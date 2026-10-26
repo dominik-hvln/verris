@@ -1,4 +1,4 @@
-import { KROKI_BETA_IDS, SCENARIUSZE_BETA, SCENARIUSZE_BETA_IDS, policzPostepBeta } from '@verris/contracts';
+import { KROKI_BETA_IDS, LICZBA_KROKOW_BETA, SCENARIUSZE_BETA, SCENARIUSZE_BETA_IDS, policzPostepBeta } from '@verris/contracts';
 
 /**
  * PB-26 — scenariusze testów są zapisywane w bazie po identyfikatorach (BetaPostep.kroki / .uwagi), a ta sama lista
@@ -25,7 +25,25 @@ describe('Scenariusze testów (beta)', () => {
   });
 
   it('postęp liczy tylko znane kroki (usunięty krok z bazy nie zawyża wyniku)', () => {
-    expect(policzPostepBeta({ 's01.k1': 'x', 's99.k1': 'x' })).toEqual({ zrobione: 1, wszystkie: KROKI_BETA_IDS.size });
+    expect(policzPostepBeta({ 's01.k1': 'x', 's99.k1': 'x' })).toEqual({ zrobione: 1, wszystkie: LICZBA_KROKOW_BETA });
     expect(policzPostepBeta(null).zrobione).toBe(0);
+  });
+
+  it('26.10: poczta z migracji, płatności i dostęp współpracownika są obowiązkowe; Git, aplikacje, SSH i cron — opcjonalne', () => {
+    const tytul = (id: string) => SCENARIUSZE_BETA.find((s) => s.id === id);
+    expect(tytul('s12')?.tytul).toMatch(/poczty/i);
+    expect(tytul('s13')?.tytul).toMatch(/faktury/i);
+    expect(tytul('s14')?.tytul).toMatch(/współpracownika/i);
+    const opcjonalne = SCENARIUSZE_BETA.filter((s) => s.opcjonalny).map((s) => s.id);
+    expect(opcjonalne).toEqual(['s15', 's16']);
+    expect(SCENARIUSZE_BETA.at(-1)?.id).toBe('s16');
+  });
+
+  it('kroki opcjonalnych scenariuszy da się zapisać, ale nie wliczają się do postępu', () => {
+    expect(KROKI_BETA_IDS.has('s15.k1')).toBe(true);
+    const wymagane = SCENARIUSZE_BETA.filter((s) => !s.opcjonalny).reduce((n, s) => n + s.kroki.length, 0);
+    expect(LICZBA_KROKOW_BETA).toBe(wymagane);
+    expect(LICZBA_KROKOW_BETA).toBeLessThan(KROKI_BETA_IDS.size);
+    expect(policzPostepBeta({ 's15.k1': 'x', 's16.k2': 'x', 's01.k1': 'x' })).toEqual({ zrobione: 1, wszystkie: LICZBA_KROKOW_BETA });
   });
 });

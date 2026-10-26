@@ -48,7 +48,7 @@ export function OdswiezanieNaZywo() {
 export function szczegolyPostepu(p: NonNullable<TesterRow["postep"]>) {
   return SCENARIUSZE_BETA.map((s) => ({
     id: s.id,
-    tytul: s.tytul,
+    tytul: s.opcjonalny ? `${s.tytul} (opcjonalny)` : s.tytul,
     zrobione: s.kroki.filter((k) => p.kroki[k.id]).length,
     wszystkie: s.kroki.length,
     uwaga: p.uwagi[s.id] ?? null,

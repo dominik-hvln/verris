@@ -20,6 +20,8 @@ export interface ScenariuszBeta {
   kroki: KrokBeta[];
   /** Na co zwrócić uwagę (pytania do siebie w trakcie). */
   uwagi: string[];
+  /** Blok dla osób technicznych — nie wlicza się do postępu ani do „Kontynuuj”. */
+  opcjonalny?: boolean;
 }
 
 export const SCENARIUSZE_BETA: ScenariuszBeta[] = [
@@ -137,6 +139,28 @@ export const SCENARIUSZE_BETA: ScenariuszBeta[] = [
     ],
   },
   {
+    id: 's12',
+    tytul: 'Przeniesienie poczty ze starego hostingu',
+    czas: 'ok. 15 min + czas kopiowania',
+    cel: 'Dla wielu firm poczta jest ważniejsza niż strona. Sprawdzamy, czy skrzynki przechodzą w całości — z folderami i starymi wiadomościami.',
+    weryfikacja: [
+      'Liczba wiadomości w Odebranych, Wysłanych i własnych folderach zgadza się ze starą skrzynką.',
+      'Foldery i podfoldery mają te same nazwy co u poprzedniego dostawcy.',
+      'Po zmianie DNS nowe maile przychodzą do skrzynki u nas.',
+    ],
+    kroki: [
+      { id: 's12.k1', tekst: 'Przed migracją zapisz, ile wiadomości masz w głównych folderach starej skrzynki.' },
+      { id: 's12.k2', tekst: 'W „Migracjach” uruchom kreator i dodaj skrzynki do przeniesienia (dane IMAP ze starego hostingu).' },
+      { id: 's12.k3', tekst: 'Po zakończeniu porównaj w webmailu u nas foldery i liczbę wiadomości.' },
+      { id: 's12.k4', tekst: 'Po zmianie DNS wyślij maila z zewnątrz i sprawdź, że trafił do skrzynki u nas.' },
+    ],
+    uwagi: [
+      'Czy wiesz, skąd wziąć dane IMAP i hasło do starej skrzynki?',
+      'Czy było jasne, kiedy przełączyć DNS, żeby nie zgubić maili?',
+      'Czy coś zginęło: załączniki, foldery, oznaczenia przeczytanych?',
+    ],
+  },
+  {
     id: 's06',
     tytul: 'Kopie zapasowe i odtwarzanie',
     czas: 'ok. 10 min',
@@ -223,6 +247,47 @@ export const SCENARIUSZE_BETA: ScenariuszBeta[] = [
     ],
   },
   {
+    id: 's13',
+    tytul: 'Płatności, faktury i odnowienie',
+    czas: 'ok. 10 min',
+    cel: 'Pieniądze muszą się zgadzać co do grosza: doładowanie, faktura z Twoimi danymi i jasna data odnowienia.',
+    weryfikacja: [
+      'Faktura ma Twoje dane (firma z NIP albo imię i nazwisko), kwotę brutto i stawkę VAT.',
+      'Saldo portfela rośnie dokładnie o kwotę doładowania.',
+      'Data odnowienia w usłudze zgadza się z okresem, za który zapłacono.',
+    ],
+    kroki: [
+      { id: 's13.k1', tekst: 'W „Płatnościach” uzupełnij dane do faktury (firma z NIP albo osoba prywatna).' },
+      { id: 's13.k2', tekst: 'Doładuj portfel najmniejszą możliwą kwotą BLIK-iem albo kartą.' },
+      { id: 's13.k3', tekst: 'Pobierz fakturę za doładowanie i sprawdź dane, kwoty i VAT.' },
+      { id: 's13.k4', tekst: 'W usłudze, w zakładce „Subskrypcja i płatności”, sprawdź datę odnowienia i z czego zostanie opłacone.' },
+    ],
+    uwagi: [
+      'Czy wiesz, ile i kiedy zapłacisz przy odnowieniu?',
+      'Czy coś na fakturze Cię zdziwiło (nazwa usługi, okres, kwota)?',
+    ],
+  },
+  {
+    id: 's14',
+    tytul: 'Dostęp dla współpracownika',
+    czas: 'ok. 10 min',
+    cel: 'Firmy i agencje dają dostęp księgowej, pracownikowi albo grafikowi. Taka osoba ma widzieć tylko to, do czego ją zaprosisz.',
+    weryfikacja: [
+      'Zaproszona osoba widzi tylko usługi i sekcje, do których dostała dostęp.',
+      'Nie widzi płatności ani portfela, jeśli nie dostała do nich uprawnień.',
+      'Po odebraniu dostępu nie może już wejść do Twojej usługi.',
+    ],
+    kroki: [
+      { id: 's14.k1', tekst: 'W „IAM i subkonta” przyciskiem „Zaproś osobę” zaproś drugi adres e-mail — tylko z dostępem do poczty.' },
+      { id: 's14.k2', tekst: 'Przyjmij zaproszenie jako ta osoba i sprawdź, co widzi w panelu.' },
+      { id: 's14.k3', tekst: 'Odbierz jej dostęp i sprawdź, że już nie może wejść do usługi.' },
+    ],
+    uwagi: [
+      'Czy nazwy uprawnień były zrozumiałe?',
+      'Czy widać, kto i kiedy coś zmienił na Twoim koncie?',
+    ],
+  },
+  {
     id: 's10',
     tytul: 'Pomoc i zgłoszenia',
     czas: 'ok. 5 min',
@@ -261,12 +326,60 @@ export const SCENARIUSZE_BETA: ScenariuszBeta[] = [
       'Czego brakowało w porównaniu z komputerem?',
     ],
   },
+  {
+    id: 's15',
+    tytul: 'Deploy z Gita i budowanie strony',
+    czas: 'ok. 20 min',
+    cel: 'Dla programistów i agencji: strona z repozytorium, budowana na serwerze, z sekretami poza kodem.',
+    opcjonalny: true,
+    weryfikacja: [
+      'Log budowania pokazuje wynik i czas, a strona działa po wdrożeniu.',
+      'Zmiana wypchnięta do repozytorium pojawia się na stronie (webhook albo „Pobierz zmiany teraz”).',
+      'Adresy /.git/config i /.env na Twojej domenie nie otwierają się (błąd 403 albo 404).',
+    ],
+    kroki: [
+      { id: 's15.k1', tekst: 'W usłudze, w zakładce „Deploy (Git)”, sklonuj swoje repozytorium (publiczne albo z kluczem wdrożeniowym konta).' },
+      { id: 's15.k2', tekst: 'Wybierz sposób budowania (npm albo composer), dodaj zmienną środowiskową i zapisz ustawienia.' },
+      { id: 's15.k3', tekst: 'Wypchnij zmianę do repozytorium i sprawdź, czy strona się zaktualizowała.' },
+      { id: 's15.k4', tekst: 'Otwórz w przeglądarce /.git/config i /.env na swojej domenie — nie powinny się otworzyć.' },
+    ],
+    uwagi: [
+      'Czy log budowania pomógł znaleźć przyczynę błędu?',
+      'Czego zabrakło w porównaniu z Twoim zwykłym wdrażaniem (np. Vercel, Netlify, własny serwer)?',
+    ],
+  },
+  {
+    id: 's16',
+    tytul: 'Aplikacja Node.js albo Python, SSH i cron',
+    czas: 'ok. 20 min',
+    cel: 'Rzeczy dla bardziej technicznych: aplikacja Node.js albo Python, dostęp SSH i zadania uruchamiane cyklicznie.',
+    opcjonalny: true,
+    weryfikacja: [
+      'Aplikacja odpowiada pod swoim adresem i działa po restarcie.',
+      'Logujesz się przez SSH kluczem i widzisz tylko pliki swojego konta.',
+      'Zadanie cron wykonuje się o czasie (widać to w pliku, który zapisuje).',
+    ],
+    kroki: [
+      { id: 's16.k1', tekst: 'W „Aplikacjach 1-click” utwórz aplikację Node.js albo Python i otwórz ją w przeglądarce.' },
+      { id: 's16.k2', tekst: 'Zrestartuj ją przyciskiem „Restart” i sprawdź, że dalej działa.' },
+      { id: 's16.k3', tekst: 'W „FTP i SSH” włącz dostęp SSH i zaloguj się swoim kluczem.' },
+      { id: 's16.k4', tekst: 'W „Zadaniach cron” dodaj zadanie co 5 minut, które dopisuje linię do pliku, i sprawdź plik po 15 minutach.' },
+    ],
+    uwagi: [
+      'Czy instrukcja uruchomienia aplikacji wystarczyła bez szukania w internecie?',
+      'Czy w SSH czegoś brakowało (np. git, composer, npm)?',
+    ],
+  },
 ];
 
 /** Wszystkie identyfikatory kroków (walidacja zapisu w API). */
 export const KROKI_BETA_IDS: ReadonlySet<string> = new Set(SCENARIUSZE_BETA.flatMap((s) => s.kroki.map((k) => k.id)));
 export const SCENARIUSZE_BETA_IDS: ReadonlySet<string> = new Set(SCENARIUSZE_BETA.map((s) => s.id));
-export const LICZBA_KROKOW_BETA = KROKI_BETA_IDS.size;
+/** Kroki scenariuszy obowiązkowych — tylko one liczą się do postępu (blok techniczny jest opcjonalny). */
+export const KROKI_BETA_WYMAGANE: ReadonlySet<string> = new Set(
+  SCENARIUSZE_BETA.filter((s) => !s.opcjonalny).flatMap((s) => s.kroki.map((k) => k.id)),
+);
+export const LICZBA_KROKOW_BETA = KROKI_BETA_WYMAGANE.size;
 export const MAKS_DLUGOSC_UWAGI_BETA = 2000;
 
 /** Postęp testera: kroki odhaczone (id → kiedy) i uwagi do scenariuszy (id → tekst). */
@@ -277,8 +390,8 @@ export interface PostepBetaDto {
   zaktualizowano: string | null;
 }
 
-/** Ile kroków odhaczono — tylko znane identyfikatory (stare, usunięte z listy nie liczą się). */
+/** Ile kroków odhaczono — tylko kroki scenariuszy obowiązkowych (opcjonalne i usunięte z listy nie liczą się). */
 export function policzPostepBeta(kroki: Record<string, unknown> | null | undefined): { zrobione: number; wszystkie: number } {
-  const zrobione = Object.keys(kroki ?? {}).filter((id) => KROKI_BETA_IDS.has(id)).length;
+  const zrobione = Object.keys(kroki ?? {}).filter((id) => KROKI_BETA_WYMAGANE.has(id)).length;
   return { zrobione, wszystkie: LICZBA_KROKOW_BETA };
 }

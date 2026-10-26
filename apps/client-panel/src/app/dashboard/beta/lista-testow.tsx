@@ -110,6 +110,11 @@ export function ListaTestowBeta({ poczatkowy }: { poczatkowy: PostepBetaDto }) {
               <span className="font-mono text-[12px] text-data">{String(i + 1).padStart(2, "0")}</span>
               <h2 id={`${s.id}-tytul`} className="m-0 font-display text-[18px] font-bold leading-tight text-foreground">{s.tytul}</h2>
               <span className="font-mono text-[11.5px] text-muted-foreground">{s.czas}</span>
+              {s.opcjonalny ? (
+                <span className="rounded-full border border-line px-2 py-0.5 text-[11.5px] text-muted-foreground" data-opcjonalny={s.id}>
+                  Opcjonalnie — dla osób technicznych
+                </span>
+              ) : null}
               <span className={ps.gotowy ? "ml-auto text-[12.5px] font-semibold text-data-hi" : "ml-auto text-[12.5px] text-muted-foreground"}>
                 {ps.zrobione}/{ps.wszystkie}
               </span>

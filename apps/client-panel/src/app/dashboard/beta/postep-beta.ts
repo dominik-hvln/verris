@@ -13,7 +13,7 @@ export function postepScenariusza(s: ScenariuszBeta, kroki: Record<string, strin
   return { zrobione, wszystkie: s.kroki.length, gotowy: zrobione === s.kroki.length };
 }
 
-/** Pierwszy scenariusz z czymś do zrobienia — tam prowadzi „Kontynuuj”. */
+/** Pierwszy obowiązkowy scenariusz z czymś do zrobienia — tam prowadzi „Kontynuuj” (blok techniczny jest opcjonalny). */
 export function nastepnyScenariusz(kroki: Record<string, string>): ScenariuszBeta | null {
-  return SCENARIUSZE_BETA.find((s) => !postepScenariusza(s, kroki).gotowy) ?? null;
+  return SCENARIUSZE_BETA.find((s) => !s.opcjonalny && !postepScenariusza(s, kroki).gotowy) ?? null;
 }

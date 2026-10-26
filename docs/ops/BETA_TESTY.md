@@ -1,8 +1,10 @@
 # Otwarte testy przed startem (beta) — PB-26
 
 > Stan: **plan** (2026-10-04, wariant A). Dwa etapy:
-> - **beta wewnętrzna** na węźle testowym t1 — **19.10–6.11.2026** (PB-40): właściciel i 2–3 zaufane osoby,
->   te same scenariusze co niżej, bez zaproszeń z kodem;
+> - **beta wewnętrzna** na węzłach testowych TEST-02 i t1 — od **ostatniego tygodnia października 2026** (PB-40;
+>   pierwotnie 19.10–6.11 na samym t1): właściciel i kilka zaufanych osób, te same scenariusze co niżej.
+>   Dwa węzły z płatnymi licencjami (decyzja 26.10 — trial CloudLinux nie jest przedłużany), żeby sprawdzić też
+>   automatyczny dobór węzła;
 > - **otwarta beta** na węźle produkcyjnym #1 (AX102) — **7–20.12.2026** (PB-26), po przeniesieniu kilku
 >   stron właściciela na AX102 i publikacji dokumentów. Potem decyzja GO 4–8.01.2027 (PB-12).
 > Zaproszenia wysyła właściciel; ten dokument mówi, co ma być gotowe, co testerzy dostają i kiedy
@@ -46,14 +48,41 @@ rodzaj `FIXED_CREDIT`, `maxRedemptions: 1`, ważny 14 dni od wysłania):
 
 ## Scenariusze do przejścia (lista dla testera)
 
-1. Rejestracja, weryfikacja e-maila, 2FA/passkey.
-2. Doładowanie kodem, zakup hostingu, uruchomienie usługi.
-3. Przeniesienie strony kreatorem migracji (albo instalacja WordPressa od zera).
-4. Podpięcie domeny (DNS u nas albo rekordy A), SSL.
-5. Skrzynka pocztowa: wysyłka i odbiór, konfiguracja w telefonie.
-6. Kopia i odtworzenie pliku/bazy, staging (jeśli używa).
-7. Zgłoszenie do wsparcia; ocena odpowiedzi.
-8. Telefon: te same kroki z telefonu (panel mobilny, Q-09).
+Jedno źródło: `libs/contracts/src/beta-scenariusze.ts` — strona „Testy (beta)” w panelu klienta, postęp w panelu
+admina i przewodnik PDF. 14 scenariuszy obowiązkowych i 2 opcjonalne dla osób technicznych (nie liczą się do postępu).
+
+1. Konto i bezpieczeństwo (rejestracja, e-mail, 2FA/passkey).
+2. Kod testera, portfel i zakup hostingu.
+3. Przeniesienie strony albo nowy WordPress.
+4. Domena, DNS i certyfikat SSL.
+5. Poczta: skrzynka, wysyłka, odbiór, telefon.
+6. Przeniesienie poczty ze starego hostingu (IMAP, foldery i liczba wiadomości) — dopisane 26.10.
+7. Kopie zapasowe i odtwarzanie.
+8. Staging i narzędzia strony (PHP, phpMyAdmin, FTP).
+9. Asystent AI w panelu.
+10. Zużycie, prognoza i autoskalowanie.
+11. Płatności, faktury i odnowienie (dane do faktury, doładowanie BLIK/kartą, faktura, data odnowienia) — dopisane 26.10.
+12. Dostęp dla współpracownika (IAM: zaproszenie z ograniczonymi uprawnieniami i odebranie dostępu) — dopisane 26.10.
+13. Pomoc i zgłoszenia.
+14. Wszystko jeszcze raz — z telefonu.
+15. *Opcjonalnie:* Deploy z Gita i budowanie (npm/composer, zmienne, webhook; `/.git/config` i `/.env` niedostępne).
+16. *Opcjonalnie:* Aplikacja Node.js albo Python, SSH (CageFS — tylko własne pliki) i cron.
+
+Doładowanie w scenariuszu 11 zależy od trybu płatności: przy kluczach testowych Paynow/Stripe tester potrzebuje danych
+testowych (np. karta 4242…), przy produkcyjnych płaci naprawdę i dostaje równowartość kredytem (patrz „Co dostają”).
+Przed wysłaniem zaproszeń właściciel decyduje, który tryb obowiązuje, i pisze to testerom.
+
+## Testy operatora w trakcie bety (nie dla testerów)
+
+- **Dobór węzła:** kilka zakupów z rzędu — konta rozkładają się według obciążenia (gorsze z handlowego
+  i fizycznego); zachowanie, gdy węzeł jest pełny (`maxAccounts`, np. limit licencji DA Lite) albo wyłączony z puli.
+- **Autoskalowanie pod obciążeniem:** krótki test ruchu na stronie testowej — limit rośnie, opłata z portfela,
+  powrót po spadku ruchu.
+- **Aktualizacja węzła w trakcie bety** (fala, węzeł testowy pierwszy) — strony testerów działają w tym czasie.
+- **Alerty:** zatrzymana usługa na węźle (np. LiteSpeed na 2 minuty) → panel, e-mail, push.
+- **Kopie:** co rano wpis z nocnej kopii off-site z obu węzłów (Flota → Kopie).
+- **Licencje:** ważność LiteSpeed, CloudLinux i DirectAdmina na obu węzłach (ręcznie, dopóki nie ma monitoringu).
+- **Git po aktualizacji węzła:** `curl -I https://<strona>/.git/config` → 403 (paczka 98).
 
 ## Co mierzymy
 

@@ -3,7 +3,7 @@
  */
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { LICZBA_KROKOW_BETA, type PostepBetaDto } from '@verris/contracts';
+import { LICZBA_KROKOW_BETA, SCENARIUSZE_BETA, type PostepBetaDto } from '@verris/contracts';
 
 /**
  * PB-26 — strona „Testy (beta)”: ptaszek zapisuje się od razu (błąd API go cofa), uwaga — raz, po chwili bez pisania.
@@ -32,6 +32,13 @@ describe('postęp testera — logika', () => {
     expect(nastepnyScenariusz({})?.id).toBe('s01');
     const s01 = { 's01.k1': 'x', 's01.k2': 'x', 's01.k3': 'x', 's01.k4': 'x' };
     expect(nastepnyScenariusz(s01)?.id).toBe('s02');
+  });
+
+  it('„Kontynuuj” pomija opcjonalny blok techniczny: po wszystkich obowiązkowych krokach nie ma już dokąd prowadzić', () => {
+    const wymagane = Object.fromEntries(
+      SCENARIUSZE_BETA.filter((s) => !s.opcjonalny).flatMap((s) => s.kroki.map((k) => [k.id, 'x'] as const)),
+    );
+    expect(nastepnyScenariusz(wymagane)).toBeNull();
   });
 });
 
@@ -92,5 +99,14 @@ describe('ListaTestowBeta', () => {
     expect(mockUwaga).toHaveBeenCalledTimes(1);
     expect(mockUwaga).toHaveBeenCalledWith('s05', 'Mail po 2 min');
     expect(el.textContent).toContain('Zapisano');
+  });
+
+  it('blok techniczny ma oznaczenie „Opcjonalnie”, a jego ptaszek nie zmienia licznika', async () => {
+    mockKrok.mockResolvedValueOnce({ ok: true, postep: { ...pusty, kroki: { 's15.k1': '2026-10-26T10:00:00.000Z' }, zaktualizowano: '2026-10-26T10:00:00.000Z' } });
+    await act(async () => root.render(<ListaTestowBeta poczatkowy={pusty} />));
+    expect(el.querySelector('[data-opcjonalny="s15"]')?.textContent).toContain('Opcjonalnie');
+    expect(el.querySelector('[data-opcjonalny="s01"]')).toBeNull();
+    await act(async () => el.querySelector<HTMLInputElement>('[data-krok="s15.k1"]')!.click());
+    expect(licznik()).toContain(`0 z ${LICZBA_KROKOW_BETA}`);
   });
 });
