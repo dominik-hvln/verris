@@ -8,6 +8,8 @@ import { AutoscalingTimeline } from './timeline';
 import { EcoModeCard } from './eco-mode-card';
 import { EcoReportCard } from './eco-report-card';
 import { liczba } from '@/lib/liczba';
+import { uslugaWProbie } from '@verris/contracts';
+import { OgraniczenieProby } from '@/components/panel/ograniczenie-proby';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,6 +55,7 @@ export default async function AutoscalingPage({
   const currency = history?.currency ?? service.currency;
   const capPct = cap > 0 ? Math.min(100, (spend / cap) * 100) : 0;
   const acc = service.account;
+  const wProbie = uslugaWProbie(service);
 
   return (
     <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6">
@@ -107,7 +110,15 @@ export default async function AutoscalingPage({
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
         <div className="flex min-w-0 flex-col gap-6">
+          {wProbie ? (
+            <OgraniczenieProby
+              tytul="Dodatkowa moc po opłaceniu hostingu"
+              tresc="W czasie okresu próbnego autoskalowanie jest wyłączone — strona działa na zasobach pakietu. Opłać hosting, żeby włączyć dodatkową moc w szczycie."
+              uslugaProbnaId={service.id}
+            />
+          ) : null}
           <AutoscalingForm
+            zablokowane={wProbie}
             subscriptionId={service.id}
             enabled={service.autoscalingEnabled}
             maxMonthlyCost={Number(service.autoscalingMaxCost)}

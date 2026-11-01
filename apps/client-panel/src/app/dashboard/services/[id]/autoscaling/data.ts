@@ -1,3 +1,4 @@
+import type { SubscriptionStatus } from '@verris/contracts';
 import { apiFetch, ApiError } from '@/lib/api';
 import type { PozycjaLimitu } from '@verris/contracts';
 
@@ -34,7 +35,9 @@ export interface AutoscalingHistoryDto {
 
 export interface ServiceDetailDto {
   id: string;
-  status: string;
+  status: SubscriptionStatus;
+  /** O-1 — okres próbny (pełny wiersz subskrypcji z GET /subscriptions/:id). */
+  isTrial: boolean;
   priceAmount: string;
   currency: string;
   interval: 'MONTH' | 'YEAR';

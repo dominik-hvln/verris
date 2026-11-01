@@ -4,3 +4,9 @@
  * klientowi w zakładce Poczta. Zmiana tu bez zmiany w skrypcie wywraca test zgodności.
  */
 export const HOSTING_MAIL_DAILY_SEND_LIMIT = 1000;
+
+/**
+ * 1.11 — dobowy limit wysyłki konta w trwającym okresie próbnym (decyzja Dominika: 100). Ustawia go API
+ * (apps/api/src/subscriptions/limit-wysylki-proby.service.ts), panel pokazuje go w zakładce Poczta usługi próbnej.
+ */
+export const LIMIT_WYSYLKI_PROBY = 100;

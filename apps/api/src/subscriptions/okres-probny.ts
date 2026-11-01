@@ -1,4 +1,5 @@
 import { SubscriptionStatus } from '@verris/database';
+import { LIMIT_WYSYLKI_PROBY } from '@verris/contracts';
 import type { PrismaService } from '../prisma/prisma.service.js';
 
 /**
@@ -11,7 +12,8 @@ import type { PrismaService } from '../prisma/prisma.service.js';
  *  - bez rejestracji i transferu domen, jeśli klient nie ma żadnej płatnej usługi (domain-registrar.service.ts);
  *  - bez dodatkowej mocy (autoskalowanie wyłączone, silnik pomija próby).
  */
-export const LIMIT_WYSYLKI_PROBY = 100;
+/** Liczba w libs/contracts (mail-limits.ts) — ta sama pokazywana klientowi w panelu. */
+export { LIMIT_WYSYLKI_PROBY };
 
 export const KOMUNIKAT_DOMENY_W_PROBIE = 'W czasie okresu próbnego nie zarejestrujesz domeny. Opłać hosting, żeby ją kupić.';
 export const KOMUNIKAT_AUTOSKALOWANIA_W_PROBIE =

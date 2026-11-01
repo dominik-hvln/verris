@@ -12,6 +12,8 @@ interface Props {
   scaleCpu: boolean;
   scaleRam: boolean;
   scaleDisk: boolean;
+  /** 1.11 — usługa w okresie próbnym: przełącznik nieaktywny, powód pokazuje strona (OgraniczenieProby). */
+  zablokowane?: boolean;
 }
 
 export function AutoscalingForm({
@@ -21,6 +23,7 @@ export function AutoscalingForm({
   scaleCpu: initialScaleCpu,
   scaleRam: initialScaleRam,
   scaleDisk: initialScaleDisk,
+  zablokowane = false,
 }: Props) {
   const enabledId = useId();
   const [state, formAction, pending] = useActionState<UpdateAutoscalingState, FormData>(
@@ -50,10 +53,11 @@ export function AutoscalingForm({
         </p>
       </div>
 
-      <label className="flex items-start gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-4 cursor-pointer">
+      <label className={`flex items-start gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-4 ${zablokowane ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
         <Checkbox
           name="enabled"
           checked={enabled}
+          disabled={zablokowane}
           onChange={(e) => setEnabled(e.target.checked)}
           aria-labelledby={`${enabledId}-title`}
           aria-describedby={`${enabledId}-desc`}
@@ -145,7 +149,7 @@ export function AutoscalingForm({
 
       <button
         type="submit"
-        disabled={pending}
+        disabled={pending || zablokowane}
         className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 px-5 py-3 text-sm font-bold text-black shadow-[0_0_20px_rgba(16,185,129,0.45)] disabled:opacity-50"
       >
         {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}

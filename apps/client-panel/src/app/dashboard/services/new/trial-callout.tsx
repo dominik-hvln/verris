@@ -7,6 +7,10 @@ import type { PlanDto } from '@verris/contracts';
 import { getTrialEligibilityAction, startTrialAction } from './actions';
 import { trackGenerateLead } from '@/lib/analytics-events';
 import { plForm } from '@/lib/pl';
+import { LIMIT_WYSYLKI_PROBY } from '@verris/contracts';
+
+/** Regulamin §7 ust. 8 + decyzja 29.09 (RETENCJA_KONTA_DNI w API): po próbie usługa zawieszona, dane czekają 14 dni. */
+const DNI_NA_OPLACENIE = 14;
 
 /**
  * O-1 — free trial entry point shown above the paid order form. Renders only
@@ -122,10 +126,19 @@ export function TrialCallout({ plans }: { plans: PlanDto[] }) {
         {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Gift className="h-4 w-4" />}
         Uruchom darmowy okres próbny
       </button>
-      <p className="mt-2 text-[11px] text-neutral-400">
-        Po okresie próbnym usługa zostanie zawieszona, chyba że przekształcisz ją na płatną. Dane
-        przechowujemy 30 dni.
-      </p>
+      <div className="mt-3 rounded-lg border border-white/10 bg-black/20 px-3 py-2.5" data-ograniczenia-proby="">
+        <p className="m-0 text-xs font-semibold text-neutral-200">W czasie okresu próbnego</p>
+        <ul className="mt-1.5 list-disc space-y-0.5 pl-4 text-[11.5px] text-neutral-300">
+          <li>wysyłka poczty do {LIMIT_WYSYLKI_PROBY} wiadomości na dobę,</li>
+          <li>bez rejestracji i transferu domen,</li>
+          <li>bez dodatkowej mocy (autoskalowania).</li>
+        </ul>
+        <p className="mt-1.5 text-[11px] text-neutral-400">
+          Ograniczenia znikają od razu po opłaceniu hostingu. Po {selected.trialDays}{' '}
+          {plForm(selected.trialDays, 'dniu', 'dniach', 'dniach')} bez opłaty usługa zostaje zawieszona, a dane czekają na Ciebie
+          jeszcze {DNI_NA_OPLACENIE} dni — potem je usuwamy.
+        </p>
+      </div>
     </div>
   );
 }

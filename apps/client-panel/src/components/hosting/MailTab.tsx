@@ -15,7 +15,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@verris/ui';
-import { HOSTING_MAIL_DAILY_SEND_LIMIT } from '@verris/contracts';
+import { HOSTING_MAIL_DAILY_SEND_LIMIT, LIMIT_WYSYLKI_PROBY, uslugaWProbie } from '@verris/contracts';
+import { fetchServiceDetailsAction } from '@/app/dashboard/services/[id]/hosting-service-actions';
 import {
   changeHostingEmailPasswordAction,
   changeHostingEmailQuotaAction,
@@ -81,6 +82,13 @@ export default function MailTab({ serviceId }: Props) {
   const [limitWysylki, setLimitWysylki] = useState<number>(HOSTING_MAIL_DAILY_SEND_LIMIT);
   // Weryfikacja 11.10 — zakładka mówi o blokadzie wysyłki przez obsługę (wcześniej pokazywała tylko limit).
   const [wysylkaWstrzymana, setWysylkaWstrzymana] = useState(false);
+  // 1.11 — w trwającej próbie wysyłka ma niższy limit (ustawia go API); mówimy to wprost, zanim klient trafi na limit.
+  const [wProbie, setWProbie] = useState(false);
+  useEffect(() => {
+    void fetchServiceDetailsAction(serviceId).then((r) => {
+      if (r.ok) setWProbie(uslugaWProbie(r.dane));
+    });
+  }, [serviceId]);
   const [domains, setDomains] = useState<string[]>([]);
 
   // create form
@@ -321,6 +329,16 @@ export default function MailTab({ serviceId }: Props) {
         <div role="status" className="mb-3 flex items-start gap-2 rounded-[7px] border border-warn/30 bg-warn-soft px-3 py-2 text-xs text-warn">
           <AlertCircle className="h-4 w-4 shrink-0" />
           {komunikatSkrzynekZBledem(domenyZBledem)}
+        </div>
+      ) : null}
+
+      {wProbie ? (
+        <div role="status" data-limit-proby="" className="mb-3 flex items-start gap-2 rounded-[7px] border border-warn/30 bg-warn-soft px-3 py-2 text-xs text-warn">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span>
+            <b>Okres próbny:</b> wysyłka do {LIMIT_WYSYLKI_PROBY} wiadomości na dobę z całego konta. Po opłaceniu hostingu limit
+            wraca do {HOSTING_MAIL_DAILY_SEND_LIMIT}.
+          </span>
         </div>
       ) : null}
 

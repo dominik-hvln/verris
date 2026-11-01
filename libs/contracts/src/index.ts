@@ -28,3 +28,4 @@ export * from './dostep-wezla.ts';
 export * from './limity-indywidualne.ts';
 export * from './beta-scenariusze.ts';
 export * from './aktualizacje-wezla.ts';
+export * from './okres-probny.ts';

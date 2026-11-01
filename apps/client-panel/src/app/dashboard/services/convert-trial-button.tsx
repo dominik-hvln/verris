@@ -12,7 +12,7 @@ import { Checkbox } from '@/components/panel/checkbox';
  * Konwersja = zawarcie odpłatnej umowy, więc wymaga oświadczenia
  * konsumenckiego (art. 15 ust. 3 / 21 ust. 2 upk) przed kliknięciem.
  */
-export function ConvertTrialButton({ serviceId }: { serviceId: string }) {
+export function ConvertTrialButton({ serviceId, etykieta = 'Przekształć na płatną' }: { serviceId: string; etykieta?: string }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
@@ -61,7 +61,7 @@ export function ConvertTrialButton({ serviceId }: { serviceId: string }) {
         className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 disabled:opacity-60 px-2.5 py-1 text-[11px] font-semibold text-black"
       >
         {isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-        Przekształć na płatną
+        {etykieta}
       </button>
       {error && <p className="mt-1 text-[11px] text-rose-300">{error}</p>}
     </div>
