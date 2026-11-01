@@ -93,14 +93,11 @@ describe('Z-13 — pakiet ze strony istnieje w bazie i zgadza się z ofertą', (
       expect(oszczednosc).toBe(91);
     });
 
-    it('te same liczby stoją w treści strony', () => {
-      const pricing = readFileSync(
-        resolve(WWW, 'app/(frontend)/components/Pricing.tsx'),
-        'utf-8',
-      );
-      expect(pricing).toContain("'45 zł'");
-      expect(pricing).toContain("'449 zł'");
-      expect(pricing).toContain('−91 zł');
+    it('te same liczby stoją w zapasowych cenach strony (lib/ceny.ts)', () => {
+      // Od 1.11.2026 strona bierze ceny z GET /plans (lib/ceny-api.ts); wpisane są tylko ceny zapasowe na wypadek,
+      // gdy API nie odpowiada. Muszą się zgadzać z definicją planu, inaczej awaria API pokazałaby inną cenę.
+      const ceny = readFileSync(resolve(WWW, 'lib/ceny.ts'), 'utf-8');
+      expect(ceny).toMatch(/hosting:\s*\{\s*miesiecznie:\s*45,\s*rocznie:\s*449\b/);
     });
   });
 

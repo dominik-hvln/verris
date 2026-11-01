@@ -2,6 +2,7 @@
 
 import { useState, useSyncExternalStore } from 'react';
 import { LEGAL, PANEL } from '@/lib/site';
+import { miesiecznieZRocznej, netto, zl, zlGrosze, type CenaPakietu } from '@/lib/ceny';
 
 /*
  * Grupa A — /zamow (makieta 14.10, plansza Zamowienie): trzy kroki i podsumowanie. Strona niczego nie
@@ -18,21 +19,29 @@ const DOMENY = [
   { tytul: 'Przenieś domenę do Verris', opis: 'Potrzebny kod AuthInfo od obecnego rejestratora.', pozycja: 'Transfer domeny', cena: 'wg cennika domen' },
 ] as const;
 
-const OKRESY = [
-  { rok: true, tytul: 'Rocznie — 449 zł', opis: 'Około 37 zł miesięcznie, taniej o 91 zł niż 12 × 45 zł.' },
-  { rok: false, tytul: 'Miesięcznie — 45 zł', opis: 'Bez zobowiązania, rezygnujesz, kiedy chcesz.' },
-] as const;
+/** Okresy rozliczenia z cenami z API (lib/ceny) — brutto w tytule, netto w opisie. */
+const okresy = (c: CenaPakietu) => [
+  {
+    rok: true,
+    tytul: `Rocznie — ${zl(c.rocznie)}`,
+    opis: `Około ${zl(miesiecznieZRocznej(c))} miesięcznie, taniej o ${zl(c.miesiecznie * 12 - c.rocznie)} niż 12 × ${zl(c.miesiecznie)}. Netto ${zl(netto(c.rocznie))}.`,
+  },
+  { rok: false, tytul: `Miesięcznie — ${zl(c.miesiecznie)}`, opis: `Bez zobowiązania, rezygnujesz, kiedy chcesz. Netto ${zl(netto(c.miesiecznie))}.` },
+];
 
 const nic = () => () => {};
 
-export function AZamowienie() {
+export function AZamowienie({ cena: c }: { cena: CenaPakietu }) {
+  const OKRESY = okresy(c);
   const js = useSyncExternalStore(nic, () => true, () => false);
   const [krok, setKrok] = useState(0);
   const [domena, setDomena] = useState(0);
   const [rok, setRok] = useState(true);
 
   const widac = (i: number) => !js || krok === i;
-  const cena = rok ? '449,00 zł' : '45,00 zł';
+  const brutto = rok ? c.rocznie : c.miesiecznie;
+  const cena = zlGrosze(brutto);
+  const cenaNetto = zlGrosze(netto(brutto));
   const d = DOMENY[domena];
 
   return (
@@ -135,7 +144,9 @@ export function AZamowienie() {
           </div>
           <div className="a-kalk-suma">
             <dt>Do zapłaty za hosting</dt>
-            <dd className="mint">{cena}</dd>
+            <dd className="mint">
+              {cena} <small>brutto ({cenaNetto} netto)</small>
+            </dd>
           </div>
         </dl>
         <p className="kalk-note">

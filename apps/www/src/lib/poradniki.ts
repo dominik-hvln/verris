@@ -40,7 +40,7 @@ export type Poradnik = {
 const ZAMOW_KROK: KrokPoradnika = {
   tytul: 'Zamów hosting Verris',
   tekst:
-    'Wybierz rozliczenie — 45 zł/mies albo 449 zł/rok brutto, ta sama cena przy odnowieniu. Przeniesienie strony jest w cenie hostingu. Twoja obecna strona dalej działa.',
+    'Wybierz rozliczenie — {cena}, ta sama cena przy odnowieniu. Przeniesienie strony jest w cenie hostingu. Twoja obecna strona dalej działa.',
 };
 
 const KONIEC_KROKI: KrokPoradnika[] = [
@@ -67,7 +67,7 @@ const FAQ_WSPOLNE: [string, string][] = [
   ],
   [
     'Ile kosztuje przeniesienie strony?',
-    'Nic. Kreator w panelu i pomoc zespołu są w cenie hostingu: 45 zł/mies albo 449 zł/rok brutto.',
+    'Nic. Kreator w panelu i pomoc zespołu są w cenie hostingu: {cena}.',
   ],
   [
     'Kiedy mogę wypowiedzieć stary hosting?',

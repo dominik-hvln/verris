@@ -1,6 +1,6 @@
 // Wspólne helpery structured data (JSON-LD).
 import { OFERTA_KROTKO } from './oferta';
-import { CENY_ZAPASOWE, type Ceny } from './ceny';
+import type { Ceny } from './ceny';
 
 export const SITE = 'https://verris.pl';
 
@@ -74,9 +74,6 @@ export function ofertyHostingu(ceny: Pick<Ceny, 'hosting'>) {
     { '@type': 'Offer', price: ceny.hosting.rocznie.toFixed(2), priceCurrency: 'PLN', availability: 'https://schema.org/InStock', description: 'Rozliczenie roczne, cena brutto' },
   ];
 }
-
-/** Dla stron synchronicznych (np. /specyfikacja) — ceny zapasowe modułu, do czasu przejścia strony na pobierzCeny(). */
-export const HOSTING_OFFERS = ofertyHostingu(CENY_ZAPASOWE);
 
 export function faqSchema(qa: [string, string][]) {
   return {

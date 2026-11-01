@@ -4,6 +4,8 @@ import { Accordion, Breadcrumbs, Button, Card, CTABand, JsonLd, SectionHead } fr
 import { VPS_W_SPRZEDAZY } from '@/lib/oferta';
 import { faqSchema, graph, guideSchema, itemListSchema } from '@/lib/schema';
 import { ZAMOW } from '@/lib/site';
+import { cenaPakietu, netto, zl, type CenaPakietu } from '@/lib/ceny';
+import { pobierzCeny } from '@/lib/ceny-api';
 
 /*
  * Przewodnik-filar (makieta 14.10, plansza JakWybrac). Tabele tylko z faktów ogólnych i z faktów o Verris
@@ -61,8 +63,11 @@ const PARAMETRY: [string, string][] = [
   ['Lokalizacja danych', 'Dla firm w Polsce najprościej, gdy dane zostają w Unii Europejskiej.'],
 ];
 
-const VERRIS: [string, string][] = [
-  ['Cena za 3 lata', '3 × 449 zł = 1347 zł brutto przy dzisiejszym cenniku — ta sama cena przy odnowieniu'],
+const verris = (c: CenaPakietu): [string, string][] => [
+  [
+    'Cena za 3 lata',
+    `3 × ${zl(c.rocznie)} = ${zl(3 * c.rocznie)} brutto (${zl(3 * netto(c.rocznie))} netto) przy dzisiejszym cenniku — ta sama cena przy odnowieniu`,
+  ],
   ['Kopie', 'codziennie: 7 ostatnich na serwerze i kopia z każdego z 30 ostatnich dni poza serwerem; przywracasz sam w panelu'],
   ['Przeprowadzka', 'w cenie — robi ją kreator w panelu albo nasz zespół'],
   ['Limity', '50 GB NVMe, 8 GB RAM, 2 vCPU; z autoskalowaniem do 1000 GB, 64 GB RAM i 24 vCPU'],
@@ -111,7 +116,8 @@ const jsonLd = graph(
   faqSchema(FAQ),
 );
 
-export default function Page() {
+export default async function Page() {
+  const c = (await pobierzCeny()).hosting;
   return (
     <main>
       <JsonLd data={jsonLd} />
@@ -247,7 +253,7 @@ export default function Page() {
               </tr>
             </thead>
             <tbody>
-              {VERRIS.map(([k, v]) => (
+              {verris(c).map(([k, v]) => (
                 <tr key={k}>
                   <th scope="row">{k}</th>
                   <td data-label="Verris" className="vr">
@@ -278,7 +284,7 @@ export default function Page() {
 
       <CTABand
         title="Sprawdziłeś listę? Sprawdź nas w praktyce"
-        text="45 zł/mies albo 449 zł/rok brutto, przeniesienie strony w cenie. Z odnowienia zrezygnujesz w panelu w dwóch kliknięciach."
+        text={`${cenaPakietu(c)}, przeniesienie strony w cenie. Z odnowienia zrezygnujesz w panelu w dwóch kliknięciach.`}
         primaryHref={ZAMOW}
         secondary={{ label: 'Zobacz cennik', href: '/cennik' }}
       />

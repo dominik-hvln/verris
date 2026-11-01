@@ -7,6 +7,8 @@ import { getPayloadClient } from '@/lib/payload';
 import { articleSchema, faqSchema } from '@/lib/schema';
 import { czasCzytania, dataPL, przytnij, spisTresci, wSkrocie } from '@/lib/blog';
 import { OPUBLIKOWANE } from '@/collections/tylko-opublikowane';
+import { cenaPakietu } from '@/lib/ceny';
+import { pobierzCeny } from '@/lib/ceny-api';
 
 /*
  * Szablon wpisu — makieta 14.10 (BlogWpis.dc.html): „W skrócie” (gdy treść zaczyna się od nagłówka „W skrócie”
@@ -107,6 +109,7 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
   const spis = spisTresci(tresc);
   const min = czasCzytania(post.content);
   const powiazane = await getPowiazane(post);
+  const ceny = await pobierzCeny();
   const zaktualizowano =
     post.updatedAt && post.updatedAt.slice(0, 10) !== post.publishedAt?.slice(0, 10) ? post.updatedAt : null;
 
@@ -240,7 +243,7 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
 
       <CTABand
         title="Hosting bez niespodzianek przy odnowieniu"
-        text="45 zł miesięcznie albo 449 zł za rok brutto — przy odnowieniu tyle samo, a przeprowadzkę robimy za Ciebie."
+        text={`${cenaPakietu(ceny.hosting)} — przy odnowieniu tyle samo, a przeprowadzkę robimy za Ciebie.`}
         secondary={{ label: 'Przeniesienie strony', href: '/przenies-strone' }}
       />
     </main>

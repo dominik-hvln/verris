@@ -3,6 +3,8 @@ import { EMAIL_MARKETING_W_SPRZEDAZY, OFERTA_KROTKO, VPS_W_SPRZEDAZY } from '@/l
 import { getPayloadClient } from '@/lib/payload';
 import { OPUBLIKOWANE } from '@/collections/tylko-opublikowane';
 import { PORADNIKI } from '@/lib/poradniki';
+import { cenaPakietu, stawka, type Ceny } from '@/lib/ceny';
+import { pobierzCeny } from '@/lib/ceny-api';
 
 /**
  * /llms.txt — plik kontekstowy dla agentów i wyszukiwarek AI (llmstxt.org).
@@ -25,14 +27,14 @@ async function getPosts(): Promise<Post[]> {
   }
 }
 
-const HEADER = `# Verris
+const naglowek = (c: Ceny) => `# Verris
 
 > Verris to polski ${OFERTA_KROTKO}. Płacisz tyle, ile widzisz —
 > odnowienie po cenie z cennika, bez pułapek odnowień. Migracja i SSL za 0 zł, SLA 99,5%
 > z rekompensatami na wniosek, serwery w Unii Europejskiej (zgodność z RODO). Claim: „Hosting bez gwiazdek".
 
 ## Oferta
-- Hosting z autoskalowaniem: 45 zł/mies lub 449 zł/rok (brutto). Limity w pakiecie: 50 GB NVMe,
+- Hosting z autoskalowaniem: ${cenaPakietu(c.hosting)}. Limity w pakiecie: 50 GB NVMe,
   limit 8 GB RAM i 2 vCPU (limity konta, nie rezerwacja); autoskalowanie do 1000 GB, 64 GB RAM, 24 vCPU (do 12× mocy CPU względem bazy),
   rozliczane godzinowo; po piku zasoby wracają do bazy.
 - ${VPS_W_SPRZEDAZY ? 'VPS niezarządzany (pełny root), d' : 'D'}omeny bez auto-odnowień${EMAIL_MARKETING_W_SPRZEDAZY ? ', e-mail marketing' : ''}, program resellerski (wielu klientów w jednym panelu; własny narzut — wkrótce).
@@ -58,14 +60,14 @@ ${PORADNIKI.map((p) => `- [${p.h1}](${BASE}/przenies-strone/${p.slug})`).join('\
 - [Mapa strony](${BASE}/sitemap.xml)
 `;
 
-const FACTS = `
+const fakty = (c: Ceny) => `
 ## Fakty
 - Operator: HVLN Dominik Kowalski, Zielona Góra, NIP 9292069367.
 - SLA 99,5% z rekompensatami zapisanymi w regulaminie (kredyty wg skali niedostępności),
   przyznawanymi na wniosek klienta. Verris nie deklaruje „100% uptime".
-- Cena hostingu: 45 zł/mies lub 449 zł/rok brutto; odnowienie zawsze po cenie z cennika (brak modelu
+- Cena hostingu: ${cenaPakietu(c.hosting)}; odnowienie zawsze po cenie z cennika (brak modelu
   „tani pierwszy rok, kilkukrotnie droższe odnowienie"); ewentualny rabat na start widoczny przed zapłatą.
-- Stawki autoskalowania (brutto/h): CPU 0,001323 zł za 1% · RAM 0,0882 zł za 1 GB · dysk 0,0008 zł za 1 GB.
+- Stawki autoskalowania (brutto/h): CPU ${stawka(c.stawki.cpu)} zł za 1% · RAM ${stawka(c.stawki.ram)} zł za 1 GB · dysk ${stawka(c.stawki.dysk)} zł za 1 GB.
 - Migracja strony i poczty oraz certyfikat SSL Let's Encrypt: 0 zł, w ramach zamówienia hostingu.
 - „Bez limitu" stron, skrzynek i transferu oznacza brak sztywnego licznika; realnym ogranicznikiem
   są zasoby konta i zasady uczciwego korzystania.
@@ -80,7 +82,7 @@ const FACTS = `
 `;
 
 export async function GET() {
-  const posts = await getPosts();
+  const [posts, ceny] = await Promise.all([getPosts(), pobierzCeny()]);
 
   const featureLines = features
     .map((f) => `- [${f.title}](${BASE}/funkcje/${f.slug}) — ${f.lead}`)
@@ -110,10 +112,10 @@ export async function GET() {
     }
   }
 
-  const body = `${HEADER}
+  const body = `${naglowek(ceny)}
 ## Funkcje
 ${featureLines}
-${blogSection}${FACTS}`;
+${blogSection}${fakty(ceny)}`;
 
   return new Response(body, {
     headers: {

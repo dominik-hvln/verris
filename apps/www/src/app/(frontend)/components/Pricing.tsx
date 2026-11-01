@@ -3,11 +3,12 @@
 import { useState } from 'react';
 import { VPS_W_SPRZEDAZY } from '@/lib/oferta';
 import { PANEL } from '@/lib/site';
+import { miesiecznieZRocznej, netto, rabatRocznyProcent, zl, type CenaPakietu } from '@/lib/ceny';
 import { Button, SectionHead } from './ui';
 
 /*
  * Cennik (strona główna i /cennik): jeden pakiet, przełącznik Miesięcznie/Rocznie (domyślnie rocznie).
- * Ceny pilnuje test API plan-produkcyjny.spec.ts, liczbę dni kopii — kopie-30-dni.spec.ts (czytają ten plik).
+ * Ceny przychodzą z API (lib/ceny, prop `cena`), liczbę dni kopii pilnuje kopie-30-dni.spec.ts (czyta ten plik).
  */
 
 const RESOURCES = [
@@ -29,8 +30,11 @@ const FEATURES = [
 ];
 
 /** `naglowek={false}` — gdy stronę otwiera już własny h1 o cenie (/cennik). */
-export function Pricing({ naglowek = true }: { naglowek?: boolean }) {
+export function Pricing({ naglowek = true, cena }: { naglowek?: boolean; cena: CenaPakietu }) {
   const [yearly, setYearly] = useState(true);
+  const m = cena.miesiecznie;
+  const r = cena.rocznie;
+  const rabat = rabatRocznyProcent(cena);
   const Tytul = naglowek ? 'h3' : 'h2'; // bez nagłówka sekcji karta idzie zaraz po h1
 
   return (
@@ -70,18 +74,18 @@ export function Pricing({ naglowek = true }: { naglowek?: boolean }) {
                 Miesięcznie
               </button>
               <button type="button" aria-pressed={yearly} onClick={() => setYearly(true)}>
-                Rocznie −91 zł
+                {rabat > 0 ? `Rocznie −${rabat}%` : 'Rocznie'}
               </button>
             </div>
             <div aria-live="polite">
               <p className="price-big2">
-                {yearly ? '449 zł' : '45 zł'}
+                {yearly ? zl(r) : zl(m)}
                 <span>{yearly ? ' / rok' : ' / mies'}</span>
               </p>
               <p className="price-sub2">
                 {yearly
-                  ? 'brutto, ok. 37 zł/mies · albo 45 zł/mies bez zobowiązania'
-                  : 'brutto, bez zobowiązania · albo 449 zł/rok (taniej o 91 zł)'}
+                  ? `brutto (${zl(netto(r))} netto), ok. ${zl(miesiecznieZRocznej(cena))}/mies · albo ${zl(m)}/mies bez zobowiązania`
+                  : `brutto (${zl(netto(m))} netto), bez zobowiązania · albo ${zl(r)}/rok (taniej o ${zl(m * 12 - r)})`}
               </p>
             </div>
             <Button href={PANEL} cta="pricing" conv="checkout_intent" plan="hosting">

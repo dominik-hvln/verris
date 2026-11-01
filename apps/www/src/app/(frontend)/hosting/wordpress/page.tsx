@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { Accordion, Breadcrumbs, Button, Card, CTABand, JsonLd, SectionHead, Steps, type Step } from '../../components/ui';
 import { MobilnyPasek } from '../../components/MobilnyPasek';
 import { pobierzCeny } from '@/lib/ceny-api';
+import { netto, zl, type CenaPakietu } from '@/lib/ceny';
 import { pasekHostingu } from '@/lib/proba';
 import { ZAMOW } from '@/lib/site';
 import { faqSchema, ofertyHostingu, productSchema } from '@/lib/schema';
@@ -13,7 +14,7 @@ import { zweryfikowane } from '@/lib/oferta';
 export const metadata: Metadata = {
   title: 'Hosting WordPress — szybki, z kopiami i stagingiem | Verris',
   description:
-    'Hosting WordPress z cache LiteSpeed, wersją testową strony i kopiami, które przywracasz sam. Przeniesienie WordPressa gratis. 45 zł/mies. brutto.',
+    'Hosting WordPress z cache LiteSpeed, wersją testową strony i kopiami, które przywracasz sam. Przeniesienie WordPressa gratis. Ta sama cena przy odnowieniu.',
   alternates: { canonical: '/hosting/wordpress' },
 };
 
@@ -77,10 +78,10 @@ const PRZENIESIENIE: [string, string][] = [
   ['Ty podajesz', 'dostęp do starego hostingu i hasła skrzynek'],
 ];
 
-const FAQ: [string, string][] = [
+const faqWordpressa = (c: CenaPakietu): [string, string][] => [
   [
     'Jaki hosting dla WordPressa wybrać?',
-    'Taki, który ma cache na poziomie serwera (u nas LiteSpeed), szybkie dyski NVMe, aktualne PHP i kopie, które przywracasz sam. Wszystko to jest w naszym pakiecie za 45 zł miesięcznie brutto.',
+    `Taki, który ma cache na poziomie serwera (u nas LiteSpeed), szybkie dyski NVMe, aktualne PHP i kopie, które przywracasz sam. Wszystko to jest w naszym pakiecie za ${zl(c.miesiecznie)} miesięcznie brutto (${zl(netto(c.miesiecznie))} netto).`,
   ],
   [
     'Ile stron WordPress zmieszczę na jednym koncie?',
@@ -102,6 +103,8 @@ const FAQ: [string, string][] = [
 
 export default async function Page() {
   const ceny = await pobierzCeny();
+  const m = ceny.hosting.miesiecznie;
+  const FAQ = faqWordpressa(ceny.hosting);
   return (
     <main>
       <JsonLd
@@ -126,7 +129,7 @@ export default async function Page() {
             <h1>Hosting WordPress, przy którym przestajesz się martwić o stronę</h1>
             <p className="lead">
               Szybki serwer z cache LiteSpeed, ostrzeżenia o wtyczkach z lukami, kopie, które przywracasz sam, i wersja
-              testowa strony, na której sprawdzisz nową wtyczkę. Wszystko w jednym pakiecie za 45 zł miesięcznie.
+              testowa strony, na której sprawdzisz nową wtyczkę. Wszystko w jednym pakiecie za {zl(m)} miesięcznie brutto ({zl(netto(m))} netto).
             </p>
             <div className="hero2-cta">
               <Button href={ZAMOW} cta="subhero" plan="hosting">
@@ -222,8 +225,8 @@ export default async function Page() {
       </section>
 
       <CTABand
-        title="Twój WordPress zasługuje na szybki dom. 45 zł miesięcznie, z przeniesieniem w cenie"
-        text="Cache LiteSpeed, kopie, które przywracasz sam, i wersja testowa strony. WordPressa przeniesiemy za Ciebie."
+        title={`Twój WordPress zasługuje na szybki dom. ${zl(m)} miesięcznie, z przeniesieniem w cenie`}
+        text={`Cena brutto (${zl(netto(m))} netto). Cache LiteSpeed, kopie, które przywracasz sam, i wersja testowa strony. WordPressa przeniesiemy za Ciebie.`}
         primaryLabel="Zamów hosting WordPress"
         secondary={{ label: 'Zobacz cennik', href: '/cennik' }}
       />

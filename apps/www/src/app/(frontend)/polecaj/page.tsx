@@ -3,6 +3,8 @@ import { Accordion, Card, CTABand, JsonLd, SectionHead, Steps, SubHero } from '.
 import { PANEL } from '@/lib/site';
 import { faqSchema, webPageSchema } from '@/lib/schema';
 import { POLECENIA } from '@/lib/polecenia';
+import { netto } from '@/lib/ceny';
+import { pobierzCeny } from '@/lib/ceny-api';
 
 const { prowizjaPct, karencjaDni, minWyplataZl, bonusKredyty, bonusCoPolecen } = POLECENIA;
 
@@ -17,10 +19,8 @@ export const metadata: Metadata = {
 /** Kwota w złotych z przecinkiem dziesiętnym (44,90 zł). */
 const zl = (n: number) => `${n.toFixed(2).replace('.', ',')} zł`;
 
-// Przykład z makiety: 5 firm po 449 zł/rok brutto (cena z cennika, ta sama przy odnowieniu).
-const ROK = 449;
+// Przykład z makiety: 5 firm płaci za rok hostingu (cena roczna z API, ta sama przy odnowieniu).
 const FIRM = 5;
-const PROWIZJA_ROK = (ROK * prowizjaPct) / 100;
 
 const ZASADY: [string, string][] = [
   ['Prowizja', `${prowizjaPct}% od każdej płatności poleconego klienta za usługi`],
@@ -80,7 +80,9 @@ const FAQ: [string, string][] = [
   ],
 ];
 
-export default function Page() {
+export default async function Page() {
+  const ROK = (await pobierzCeny()).hosting.rocznie;
+  const PROWIZJA_ROK = (ROK * prowizjaPct) / 100;
   return (
     <main>
       <JsonLd data={webPageSchema({ name: 'Program poleceń Verris', description: OPIS, path: '/polecaj' })} />
@@ -132,7 +134,7 @@ export default function Page() {
             <Card accent className="rates">
               <h3>Przykład</h3>
               <p>
-                Polecasz Verris {FIRM} firmom, każda płaci {ROK} zł brutto za rok hostingu.
+                Polecasz Verris {FIRM} firmom, każda płaci {zl(ROK)} brutto ({zl(netto(ROK))} netto) za rok hostingu.
               </p>
               <dl>
                 <div>

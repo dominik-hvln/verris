@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { Accordion, Breadcrumbs, Button, Card, CTABand, JsonLd, SectionHead, Steps, type Step } from '../../components/ui';
 import { MobilnyPasek } from '../../components/MobilnyPasek';
 import { pobierzCeny } from '@/lib/ceny-api';
+import { netto, stawka, zl, zlGrosze, type CenaPakietu } from '@/lib/ceny';
 import { pasekHostingu } from '@/lib/proba';
 import { ZAMOW } from '@/lib/site';
 import { faqSchema, ofertyHostingu, productSchema } from '@/lib/schema';
@@ -13,14 +14,13 @@ import { zweryfikowane } from '@/lib/oferta';
 export const metadata: Metadata = {
   title: 'Hosting dla sklepu internetowego i WooCommerce | Verris',
   description:
-    'Hosting dla sklepu: dodatkowa moc w Black Friday, kopie bazy zamówień, które przywracasz sam, i zapora WAF. Przeniesienie sklepu gratis. 45 zł/mies.',
+    'Hosting dla sklepu: dodatkowa moc w Black Friday, kopie bazy zamówień, które przywracasz sam, i zapora WAF. Przeniesienie sklepu gratis.',
   alternates: { canonical: '/hosting/sklep' },
 };
 
 // Przykład z makiety: +16 GB RAM przez 36 h — liczony ze stawek (lib/kalkulator.ts), nie wpisany.
 const BF_GODZ = 36;
 const BF_RAM = 16;
-const BF = kosztPiku(0, BF_RAM, BF_GODZ);
 
 const NAJWAZNIEJSZE: [string, string][] = [
   ['do 24 vCPU i 64 GB RAM', 'w szczycie sprzedaży, automatycznie'],
@@ -55,10 +55,10 @@ const PLATFORMY = zweryfikowane([
   { t: 'Poczta sklepu', p: 'zamowienia@ i sklep@ w Twojej domenie, z aliasami i przekierowaniami.' },
 ]);
 
-const FAQ: [string, string][] = [
+const faqSklepu = (c: CenaPakietu): [string, string][] => [
   [
     'Jaki hosting dla sklepu internetowego wybrać?',
-    'Taki, który nie zwalnia przy dużym ruchu, ma kopie z samodzielnym przywracaniem i chroni dane klientów. W Verris to jeden pakiet za 45 zł miesięcznie brutto, z dodatkową mocą na dni szczytu.',
+    `Taki, który nie zwalnia przy dużym ruchu, ma kopie z samodzielnym przywracaniem i chroni dane klientów. W Verris to jeden pakiet za ${zl(c.miesiecznie)} miesięcznie brutto (${zl(netto(c.miesiecznie))} netto), z dodatkową mocą na dni szczytu.`,
   ],
   [
     'Co się stanie, gdy w Black Friday ruch wzrośnie kilkukrotnie?',
@@ -77,6 +77,9 @@ const FAQ: [string, string][] = [
 
 export default async function Page() {
   const ceny = await pobierzCeny();
+  const m = ceny.hosting.miesiecznie;
+  const BF = kosztPiku(0, BF_RAM, BF_GODZ, ceny.stawki);
+  const FAQ = faqSklepu(ceny.hosting);
   return (
     <main>
       <JsonLd
@@ -153,13 +156,13 @@ export default async function Page() {
           <div>
             <SectionHead
               title="Ile kosztuje Black Friday na hostingu?"
-              lead={`Przykład: sklep przez ${BF_GODZ} godzin potrzebuje ${BF_RAM} GB pamięci więcej niż zwykle. Dopłata za te godziny to ${formatZl(BF)} zł brutto. Przez resztę roku płacisz 45 zł miesięcznie, zamiast co miesiąc opłacać większy pakiet „na zapas”.`}
+              lead={`Przykład: sklep przez ${BF_GODZ} godzin potrzebuje ${BF_RAM} GB pamięci więcej niż zwykle. Dopłata za te godziny to ${formatZl(BF)} zł brutto. Przez resztę roku płacisz ${zl(m)} miesięcznie brutto (${zl(netto(m))} netto), zamiast co miesiąc opłacać większy pakiet „na zapas”.`}
             />
             <p>
               <Link href="/cennik#kalkulator">Policz swój przypadek w kalkulatorze →</Link>
             </p>
             <p className="kalk-note">
-              {BF_RAM} GB × {BF_GODZ} h × 0,0882 zł = {formatZl(BF)} zł brutto, sama pamięć. Naliczanie w blokach po 15
+              {BF_RAM} GB × {BF_GODZ} h × {stawka(ceny.stawki.ram)} zł = {formatZl(BF)} zł brutto ({formatZl(netto(BF))} zł netto), sama pamięć. Naliczanie w blokach po 15
               minut.
             </p>
           </div>
@@ -167,7 +170,7 @@ export default async function Page() {
             <dl className="a-kv">
               <div>
                 <dt>Hosting w listopadzie</dt>
-                <dd>45,00 zł</dd>
+                <dd>{zlGrosze(m)}</dd>
               </div>
               <div>
                 <dt>Dodatkowa moc ({BF_GODZ} h)</dt>
@@ -175,11 +178,13 @@ export default async function Page() {
               </div>
               <div className="a-kalk-suma">
                 <dt>Razem za listopad</dt>
-                <dd className="mint">{formatZl(45 + BF)} zł</dd>
+                <dd className="mint">
+                  {zlGrosze(m + BF)} <small>brutto ({zlGrosze(netto(m + BF))} netto)</small>
+                </dd>
               </div>
               <div>
                 <dt>Pozostałe 11 miesięcy</dt>
-                <dd>45 zł / mies.</dd>
+                <dd>{zl(m)} / mies.</dd>
               </div>
             </dl>
           </Card>

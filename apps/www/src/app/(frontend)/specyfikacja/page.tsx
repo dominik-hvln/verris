@@ -1,16 +1,17 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { SPECYFIKACJA_OPUBLIKOWANA } from '@/lib/oferta';
-import { CENY_ZAPASOWE } from '@/lib/ceny';
+import { cenaPakietu } from '@/lib/ceny';
+import { pobierzCeny } from '@/lib/ceny-api';
 import { sekcjeWidoczne } from '@/lib/specyfikacja';
-import { HOSTING_OFFERS, productSpecSchema } from '@/lib/schema';
+import { ofertyHostingu, productSpecSchema } from '@/lib/schema';
 import { ZAMOW } from '@/lib/site';
 import { CTABand, JsonLd, SectionHead, SubHero } from '../components/ui';
 
 export const metadata: Metadata = {
   title: 'Parametry hostingu: zasoby, PHP, kopie, SLA | Verris',
   description:
-    'Specyfikacja hostingu Verris: 50 GB NVMe, limit 8 GB RAM, autoskalowanie do 24 vCPU, LiteSpeed, PHP 7.4–8.3, kopie z 30 dni i SLA 99,5%. 45 zł/mies.',
+    'Specyfikacja hostingu Verris: 50 GB NVMe, limit 8 GB RAM, autoskalowanie do 24 vCPU, LiteSpeed, PHP 7.4–8.3, kopie z 30 dni i SLA 99,5%.',
   alternates: { canonical: '/specyfikacja' },
 };
 
@@ -20,10 +21,15 @@ export const metadata: Metadata = {
  * (lib/oferta.ts). Lokalizacji centrów danych nie podajemy (brief 14.10: „dane w UE”).
  */
 
-export default function Page() {
+export default async function Page() {
   if (!SPECYFIKACJA_OPUBLIKOWANA) notFound();
-  // Stawki z wartości zapasowych modułu cen (te same co w API 1.11.2026); strona zostaje synchroniczna.
-  const sekcje = sekcjeWidoczne(CENY_ZAPASOWE.stawki);
+  // Ceny i stawki z API (lib/ceny-api.ts). Stawki autoskalowania pokazujemy brutto, a pod nimi ten sam wiersz netto.
+  const ceny = await pobierzCeny();
+  const wNetto = sekcjeWidoczne(ceny.stawki, true);
+  const sekcje = sekcjeWidoczne(ceny.stawki).map((s, i) => ({
+    ...s,
+    wiersze: s.wiersze.flatMap((w, j) => (w[0].startsWith('Stawki autoskalowania') ? [w, wNetto[i].wiersze[j]] : [w])),
+  }));
   return (
     <main>
       <JsonLd
@@ -33,7 +39,7 @@ export default function Page() {
             'Jeden pakiet hostingu: 50 GB NVMe, limit 8 GB RAM i 2 vCPU, autoskalowanie do 24 vCPU, 64 GB RAM i 1000 GB dysku.',
           path: '/specyfikacja',
           properties: sekcje.flatMap((s) => s.wiersze.map(([k, v]): [string, string] => [k, v])),
-          offers: HOSTING_OFFERS,
+          offers: ofertyHostingu(ceny),
         })}
       />
       <SubHero
@@ -71,7 +77,7 @@ export default function Page() {
       ))}
       <CTABand
         title="Parametry się zgadzają? Zacznij od przeprowadzki"
-        text="45 zł/mies albo 449 zł/rok brutto, ta sama cena przy odnowieniu. Przeniesienie strony robimy za Ciebie."
+        text={`${cenaPakietu(ceny.hosting)}, ta sama cena przy odnowieniu. Przeniesienie strony robimy za Ciebie.`}
         secondary={{ label: 'Wszystkie funkcje', href: '/funkcje' }}
       />
     </main>

@@ -3,6 +3,8 @@ import { Logo } from './ui';
 import { CookiePreferencesButton } from './CookieConsent';
 import { footerCols, legalLinks, ZAMOW } from '@/lib/site';
 import { getFooterGlobal } from '@/lib/globals';
+import { odCeny } from '@/lib/ceny';
+import { pobierzCeny } from '@/lib/ceny-api';
 
 const DEFAULT_LEGAL =
   '© 2026 Verris · Operator: HVLN Dominik Kowalski, Zielona Góra · NIP 9292069367 · Wszystkie ceny brutto (z VAT 23%)';
@@ -13,6 +15,7 @@ const DEFAULT_PAY =
 type Col = { heading: string; links: { label: string; href: string }[] };
 
 export async function Footer() {
+  const ceny = await pobierzCeny();
   const g = (await getFooterGlobal()) as {
     columns?: { heading?: string; links?: { label?: string; href?: string }[] }[];
     legalLine?: string;
@@ -39,7 +42,7 @@ export async function Footer() {
             <Logo />
             <p>Polski hosting dla firm, sklepów i WordPressa. Dane w UE. Skaluj świadomie.</p>
             <a className="btn btn-primary btn-sm foot-cta" href={ZAMOW} data-event="cta_click" data-cta="footer">
-              Zamów hosting od 45 zł/mies.
+              Zamów hosting {odCeny(ceny.hosting)}
             </a>
           </div>
           {cols.map((col) => (

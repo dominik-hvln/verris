@@ -3,17 +3,18 @@ import type { Metadata } from 'next';
 import { Accordion, Card, CTABand, JsonLd, SectionHead, SubHero } from '../components/ui';
 import { MobilnyPasek } from '../components/MobilnyPasek';
 import { pobierzCeny } from '@/lib/ceny-api';
+import { cenaPakietu, miesiecznieZRocznej, netto, odCeny, zl, type CenaPakietu } from '@/lib/ceny';
 import { pasekHostingu } from '@/lib/proba';
 import { Pricing } from '../components/Pricing';
 import { AKalkulator } from '../components/AKalkulator';
 import { VPS_W_SPRZEDAZY } from '@/lib/oferta';
 import { faqSchema, ofertyHostingu, productSchema } from '@/lib/schema';
 
-// Makieta 14.10, plansza Cennik. Ceny brutto z lib/schema.ts (HOSTING_OFFERS), stawki z lib/kalkulator.ts.
+// Makieta 14.10, plansza Cennik. Ceny i stawki z API (lib/ceny-api); w metadanych bez kwot, bo te są statyczne.
 export const metadata: Metadata = {
-  title: 'Cennik hostingu — 45 zł/mies. lub 449 zł/rok | Verris',
+  title: 'Cennik hostingu — jedna cena, także za rok | Verris',
   description:
-    'Ile kosztuje hosting? 45 zł/mies. albo 449 zł/rok brutto, ta sama cena przy odnowieniu. Policz w kalkulatorze dopłatę za dodatkową moc w szczycie.',
+    'Ile kosztuje hosting? Jedna cena brutto, ta sama przy odnowieniu. Policz w kalkulatorze dopłatę za dodatkową moc w szczycie.',
   alternates: { canonical: '/cennik' },
 };
 
@@ -26,14 +27,14 @@ const W_CENIE: [string, string, string][] = [
   ['Domena', 'nie', 'według cennika domen w panelu'],
 ];
 
-const FAQ: [string, string][] = [
+const faqCennika = (c: CenaPakietu): [string, string][] => [
   [
     'Ile kosztuje hosting w Verris?',
-    '45 zł miesięcznie albo 449 zł za rok (około 37 zł miesięcznie). Ceny brutto. Dodatkowa moc w szczycie jest opcjonalna i płatna za czas użycia, w blokach po 15 minut.',
+    `${zl(c.miesiecznie)} miesięcznie albo ${zl(c.rocznie)} za rok (około ${zl(miesiecznieZRocznej(c))} miesięcznie). Ceny brutto; netto ${zl(netto(c.miesiecznie))} albo ${zl(netto(c.rocznie))}. Dodatkowa moc w szczycie jest opcjonalna i płatna za czas użycia, w blokach po 15 minut.`,
   ],
   [
     'Czy cena wzrośnie przy odnowieniu?',
-    'Nie ma promocji na pierwszy okres. Odnowienie idzie po cenie z cennika (dziś 45 zł/mies. albo 449 zł/rok brutto), a przed odnowieniem wyślemy przypomnienie e-mail.',
+    `Nie ma promocji na pierwszy okres. Odnowienie idzie po cenie z cennika (dziś ${cenaPakietu(c)}), a przed odnowieniem wyślemy przypomnienie e-mail.`,
   ],
   ['Czy mogę wyłączyć odnawianie?', 'Tak, w panelu w każdej chwili, bez opłat.'],
   [
@@ -45,13 +46,14 @@ const FAQ: [string, string][] = [
 
 export default async function Page() {
   const ceny = await pobierzCeny();
+  const FAQ = faqCennika(ceny.hosting);
   return (
     <main>
       <JsonLd
         data={productSchema({
           name: 'Hosting Verris z autoskalowaniem',
           description:
-            'Jeden pakiet hostingu: 45 zł/mies. albo 449 zł/rok brutto. W cenie 50 GB NVMe oraz limit 8 GB RAM i 2 vCPU; z autoskalowaniem do 1000 GB, 64 GB RAM i 24 vCPU według jawnych stawek.',
+            `Jeden pakiet hostingu: ${cenaPakietu(ceny.hosting)}. W cenie 50 GB NVMe oraz limit 8 GB RAM i 2 vCPU; z autoskalowaniem do 1000 GB, 64 GB RAM i 24 vCPU według jawnych stawek.`,
           path: '/cennik',
           offers: ofertyHostingu(ceny),
         })}
@@ -60,10 +62,10 @@ export default async function Page() {
       <SubHero
         eyebrow="Cennik hostingu"
         title="Jeden pakiet, jedna cena. Także za rok"
-        lead="Nie ma u nas taniego pierwszego roku i drogiego drugiego. Płacisz 45 zł miesięcznie albo 449 zł za rok, a dodatkową moc tylko wtedy, gdy Twoja strona naprawdę jej potrzebuje."
+        lead={`Nie ma u nas taniego pierwszego roku i drogiego drugiego. Płacisz ${zl(ceny.hosting.miesiecznie)} miesięcznie albo ${zl(ceny.hosting.rocznie)} za rok brutto (${zl(netto(ceny.hosting.miesiecznie))} albo ${zl(netto(ceny.hosting.rocznie))} netto), a dodatkową moc tylko wtedy, gdy Twoja strona naprawdę jej potrzebuje.`}
         crumbs={[{ label: 'Cennik' }]}
       />
-      <Pricing naglowek={false} />
+      <Pricing naglowek={false} cena={ceny.hosting} />
 
       <section className="sec">
         <div className="wrap a-grid3">
@@ -135,7 +137,7 @@ export default async function Page() {
       </section>
 
       <CTABand
-        title="Uczciwa cena dziś i za rok. Zacznij od 45 zł"
+        title={`Uczciwa cena dziś i za rok. Zacznij ${odCeny(ceny.hosting)}`}
         text="Bez promocji na pierwszy rok i bez niespodzianek przy odnowieniu. Odnawianie wyłączysz w panelu w każdej chwili."
         secondary={{ label: 'Jak działa przeniesienie', href: '/przenies-strone' }}
       />

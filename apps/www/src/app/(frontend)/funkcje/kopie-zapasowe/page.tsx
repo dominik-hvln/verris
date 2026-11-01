@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { Accordion, Breadcrumbs, Button, Card, CTABand, JsonLd, SectionHead, Steps, type Step } from '../../components/ui';
 import { faqSchema, howToSchema } from '@/lib/schema';
 import { ZAMOW } from '@/lib/site';
+import { cenaPakietu } from '@/lib/ceny';
+import { pobierzCeny } from '@/lib/ceny-api';
 
 /*
  * /funkcje/kopie-zapasowe — makieta 14.10 (FunkcjaKopie.dc.html). Statyczna trasa ma pierwszeństwo przed
@@ -70,7 +72,8 @@ const FAQ: [string, string][] = [
   ],
 ];
 
-export default function Page() {
+export default async function Page() {
+  const c = (await pobierzCeny()).hosting;
   return (
     <main>
       <JsonLd
@@ -190,7 +193,7 @@ export default function Page() {
 
       <CTABand
         title="Śpij spokojnie, nawet po aktualizacji"
-        text="Kopie z 30 dni i przywracanie z panelu są w cenie hostingu — 45 zł/mies albo 449 zł/rok brutto."
+        text={`Kopie z 30 dni i przywracanie z panelu są w cenie hostingu — ${cenaPakietu(c)}.`}
         secondary={{ label: 'Wszystkie funkcje', href: '/funkcje' }}
       />
     </main>

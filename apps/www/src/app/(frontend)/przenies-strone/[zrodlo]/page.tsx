@@ -5,6 +5,8 @@ import { Accordion, Breadcrumbs, Button, CTABand, JsonLd, SectionHead } from '..
 import { PORADNIKI, poradnik } from '@/lib/poradniki';
 import { faqSchema, graph, howToSchema } from '@/lib/schema';
 import { ZAMOW } from '@/lib/site';
+import { zCena } from '@/lib/ceny';
+import { pobierzCeny } from '@/lib/ceny-api';
 
 /*
  * Poradnik przeprowadzki (makieta 14.10, plansza Poradnik). Przełącznik paneli z makiety = osobne strony
@@ -39,15 +41,19 @@ export default async function Page({ params }: Props) {
   const p = poradnik((await params).zrodlo);
   if (!p) notFound();
   const sciezka = `/przenies-strone/${p.slug}`;
+  // Treści poradnika trzymają znacznik {cena} — wstawiamy aktualną cenę z API (lib/ceny).
+  const ceny = await pobierzCeny();
+  const kroki = p.kroki.map((k) => ({ ...k, tekst: zCena(k.tekst, ceny.hosting) }));
+  const faq: [string, string][] = p.faq.map(([q, a]) => [q, zCena(a, ceny.hosting)]);
 
   const jsonLd = graph(
     howToSchema({
       name: p.h1,
       description: p.description,
       path: sciezka,
-      steps: p.kroki.map((k) => ({ name: k.tytul, text: k.tekst })),
+      steps: kroki.map((k) => ({ name: k.tytul, text: k.tekst })),
     }),
-    faqSchema(p.faq),
+    faqSchema(faq),
   );
 
   return (
@@ -125,7 +131,7 @@ export default async function Page({ params }: Props) {
         <div className="wrap narrow">
           <SectionHead id="b-kroki" eyebrow="Krok po kroku" title={`${p.h1} — ${p.kroki.length} kroków`} />
           <ol className="b-kroki">
-            {p.kroki.map((k, i) => (
+            {kroki.map((k, i) => (
               <li key={k.tytul} id={`krok-${i + 1}`}>
                 <span className="b-kroki-n" aria-hidden="true">
                   {String(i + 1).padStart(2, '0')}
@@ -163,7 +169,7 @@ export default async function Page({ params }: Props) {
       <section className="sec" id="faq">
         <div className="wrap narrow">
           <SectionHead eyebrow="FAQ" title={`Pytania o przeprowadzkę ${p.zrodlo}`} />
-          <Accordion items={p.faq.map(([q, a], i) => ({ title: q, body: <p>{a}</p>, open: i === 0 }))} />
+          <Accordion items={faq.map(([q, a], i) => ({ title: q, body: <p>{a}</p>, open: i === 0 }))} />
           <p className="b-przypis">
             Inne poradniki:{' '}
             {PORADNIKI.filter((x) => x.slug !== p.slug).map((x, i, arr) => (

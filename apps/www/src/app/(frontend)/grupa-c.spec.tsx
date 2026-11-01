@@ -5,12 +5,14 @@
 import type { Metadata } from 'next';
 import type { ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { CENY_ZAPASOWE, cenaPakietu } from '@/lib/ceny';
 import * as funkcje from './funkcje/page';
 import * as kopie from './funkcje/kopie-zapasowe/page';
 import * as statystyki from './funkcje/statystyki/page';
 import * as specyfikacja from './specyfikacja/page';
 
-type Strona = { metadata: Metadata; default: () => ReactElement };
+// Strony mogą być asynchroniczne (ceny z API przez lib/ceny-api.ts; w testach zwraca CENY_ZAPASOWE).
+type Strona = { metadata: Metadata; default: () => ReactElement | Promise<ReactElement> };
 
 export function typyJsonLd(html: string): string[] {
   const out: string[] = [];
@@ -57,16 +59,17 @@ describe.each(STRONY)('%s', (_nazwa, strona, fraza, sciezka, typy) => {
     sprawdzMetadane(strona.metadata, fraza, sciezka);
   });
 
-  it('jedno <h1>, bez nagłówka 4. poziomu, JSON-LD z oczekiwanymi typami, bez zakazanych sformułowań', () => {
-    sprawdzHtml(renderToStaticMarkup(strona.default()), typy);
+  it('jedno <h1>, bez nagłówka 4. poziomu, JSON-LD z oczekiwanymi typami, bez zakazanych sformułowań', async () => {
+    sprawdzHtml(renderToStaticMarkup(await strona.default()), typy);
   });
 });
 
 describe('ceny brutto i SLA', () => {
-  it('/funkcje podaje cenę brutto i SLA bez obietnicy 100%', () => {
-    const html = renderToStaticMarkup((funkcje as unknown as Strona).default());
-    expect(html).toMatch(/449 zł/);
+  it('/funkcje podaje cenę brutto i netto z modułu cen i SLA bez obietnicy 100%', async () => {
+    const html = renderToStaticMarkup(await (funkcje as unknown as Strona).default());
+    expect(html).toContain(cenaPakietu(CENY_ZAPASOWE.hosting));
     expect(html).toMatch(/brutto/);
+    expect(html).toMatch(/netto/);
     expect(html).toMatch(/99,5%/);
   });
 });

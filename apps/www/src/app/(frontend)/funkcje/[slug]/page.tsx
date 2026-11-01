@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation';
 import { SubHero, CTABand } from '../../components/ui';
 import { RevealInit } from '../../components/RevealInit';
 import { features, featureBySlug } from '@/lib/features';
+import { zCena } from '@/lib/ceny';
+import { pobierzCeny } from '@/lib/ceny-api';
 
 /** Funkcje z własną stroną (statyczna trasa ma pierwszeństwo) — nie generujemy ich tu drugi raz. */
 const OSOBNE_STRONY = new Set(['kopie-zapasowe']);
@@ -30,6 +32,8 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   const { slug } = await params;
   const f = featureBySlug(slug);
   if (!f) notFound();
+  // Treści funkcji mogą mieć znacznik {cena} — wstawiamy cenę z API.
+  const c = (await pobierzCeny()).hosting;
 
   return (
     <main>
@@ -45,11 +49,11 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
             {f.sections.map((s, i) => (
               <div key={i}>
                 {s.h ? <h2>{s.h}</h2> : null}
-                {s.p?.map((p, j) => <p key={j}>{p}</p>)}
+                {s.p?.map((p, j) => <p key={j}>{zCena(p, c)}</p>)}
                 {s.ul ? (
                   <ul>
                     {s.ul.map((li, j) => (
-                      <li key={j}>{li}</li>
+                      <li key={j}>{zCena(li, c)}</li>
                     ))}
                   </ul>
                 ) : null}

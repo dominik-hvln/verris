@@ -20,7 +20,8 @@ import * as NotFound from './not-found';
 import { POLECENIA } from '@/lib/polecenia';
 import { trescKontaktu } from '@/lib/kontakt';
 
-type Strona = { metadata: Metadata; default: () => ReactElement };
+// /polecaj jest asynchroniczne (cena roczna z API; w testach CENY_ZAPASOWE).
+type Strona = { metadata: Metadata; default: () => ReactElement | Promise<ReactElement> };
 
 const STRONY: { sciezka: string; mod: Strona; fraza: RegExp; typy: string[] }[] = [
   { sciezka: '/o-nas', mod: ONas, fraza: /^O Verris/, typy: ['AboutPage', 'BreadcrumbList'] },
@@ -42,7 +43,10 @@ const H4 = new RegExp('<h' + '4[\\s>]');
 const tekst = (html: string) => html.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<[^>]+>/g, ' ');
 
 describe.each(STRONY)('$sciezka', ({ sciezka, mod, fraza, typy }) => {
-  const html = renderToStaticMarkup(mod.default());
+  let html = '';
+  beforeAll(async () => {
+    html = renderToStaticMarkup(await mod.default());
+  });
 
   it('title ≤ 60 znaków z frazą na początku, description ≤ 155, canonical', () => {
     const title = String(mod.metadata.title);
@@ -70,7 +74,10 @@ describe.each(STRONY)('$sciezka', ({ sciezka, mod, fraza, typy }) => {
 });
 
 describe('/polecaj — warunki zgodne z API', () => {
-  const html = tekst(renderToStaticMarkup(Polecaj.default()));
+  let html = '';
+  beforeAll(async () => {
+    html = tekst(renderToStaticMarkup(await Polecaj.default()));
+  });
 
   it('liczby programu = domyślne ustawienia platformy (apps/api platform-settings.keys.ts)', () => {
     const keys = readFileSync(
@@ -89,6 +96,7 @@ describe('/polecaj — warunki zgodne z API', () => {
     expect(html).toMatch(/10% od każdej/);
     expect(html).toMatch(/5 × 44,90 zł = 224,50 zł/);
     expect(html).toMatch(/274,50 zł/);
+    expect(html).toMatch(/449,00 zł brutto \(365,04 zł netto\)/);
   });
 });
 

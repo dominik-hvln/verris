@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { Accordion, Breadcrumbs, Button, Card, CTABand, JsonLd, SectionHead, Steps, type Step } from '../../components/ui';
 import { faqSchema } from '@/lib/schema';
 import { ZAMOW } from '@/lib/site';
+import { cenaPakietu } from '@/lib/ceny';
+import { pobierzCeny } from '@/lib/ceny-api';
 
 /*
  * /funkcje/statystyki — makieta 14.10 (FunkcjaStatystyki.dc.html). Opisujemy tylko to, co jest w kodzie:
@@ -18,7 +20,7 @@ import { ZAMOW } from '@/lib/site';
 export const metadata: Metadata = {
   title: 'Statystyki strony bez cookies, w cenie hostingu | Verris',
   description:
-    'Statystyki odwiedzin wbudowane w hosting: bez cookies i bez zapisu adresów IP. Popularne strony, źródła wejść i urządzenia. W cenie, 45 zł/mies.',
+    'Statystyki odwiedzin wbudowane w hosting: bez cookies i bez zapisu adresów IP. Popularne strony, źródła wejść i urządzenia. W cenie hostingu.',
   alternates: { canonical: '/funkcje/statystyki' },
 };
 
@@ -62,7 +64,8 @@ const FAQ: [string, string][] = [
   ['Czy statystyki kosztują coś ekstra?', 'Nie. Są w cenie hostingu — możesz dodać do 25 stron na jedną usługę.'],
 ];
 
-export default function Page() {
+export default async function Page() {
+  const c = (await pobierzCeny()).hosting;
   return (
     <main>
       <JsonLd data={faqSchema(FAQ)} />
@@ -174,7 +177,7 @@ export default function Page() {
 
       <CTABand
         title="Poznaj swoich odwiedzających bez cookies"
-        text="Statystyki są w cenie hostingu — 45 zł/mies albo 449 zł/rok brutto. Włączasz je w panelu."
+        text={`Statystyki są w cenie hostingu — ${cenaPakietu(c)}. Włączasz je w panelu.`}
         secondary={{ label: 'Wszystkie funkcje', href: '/funkcje' }}
       />
     </main>

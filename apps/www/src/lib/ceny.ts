@@ -107,6 +107,29 @@ export function opisCeny(c: CenaPakietu, rocznie: boolean, nettoWidok: boolean):
 }
 
 
+/**
+ * Zdanie z ceną pakietu do treści stron (zasada: brutto i netto obok siebie):
+ * „45 zł/mies. albo 449 zł/rok brutto (36,59 zł albo 365,04 zł netto)”.
+ */
+export function cenaPakietu(c: CenaPakietu): string {
+  return `${zl(c.miesiecznie)}/mies. albo ${zl(c.rocznie)}/rok brutto (${zl(netto(c.miesiecznie))} albo ${zl(netto(c.rocznie))} netto)`;
+}
+
+/** Krótko, do przycisków i nagłówków: „od 45 zł/mies.”. */
+export function odCeny(c: CenaPakietu): string {
+  return `od ${zl(c.miesiecznie)}/mies.`;
+}
+
+/**
+ * Znacznik ceny w statycznych treściach z lib (poradniki, funkcje): tekst trzyma `{cena}`, a strona przy
+ * renderowaniu wstawia aktualną cenę z API przez zCena(). Dzięki temu treści w lib nie mają kwot na sztywno.
+ */
+export const ZNACZNIK_CENY = '{cena}';
+
+export function zCena(tekst: string, c: CenaPakietu): string {
+  return tekst.split(ZNACZNIK_CENY).join(cenaPakietu(c));
+}
+
 /** Koszt godzin dodatkowej mocy (brutto): vCPU (1 = 100% CPU), GB RAM, GB dysku. */
 export function kosztMocy(s: StawkiAutoskalowania, vcpu: number, ramGb: number, dyskGb: number, godziny: number): number {
   return (vcpu * 100 * s.cpu + ramGb * s.ram + dyskGb * s.dysk) * godziny;

@@ -5,6 +5,8 @@ import { getPayloadClient } from '@/lib/payload';
 import { SITE, ORG_ID } from '@/lib/schema';
 import { czasCzytania, dataPL } from '@/lib/blog';
 import { OPUBLIKOWANE } from '@/collections/tylko-opublikowane';
+import { cenaPakietu } from '@/lib/ceny';
+import { pobierzCeny } from '@/lib/ceny-api';
 
 /*
  * /blog — makieta 14.10 (Blog.dc.html). Lista wyłącznie z CMS (tylko opublikowane — OPUBLIKOWANE). Plan 26 wpisów
@@ -88,7 +90,7 @@ const PORADNIKI: [string, string, string][] = [
 
 export default async function BlogPage({ searchParams }: { searchParams: SP }) {
   const { kategoria: kRaw } = await searchParams;
-  const posts = await getPosts();
+  const [posts, ceny] = await Promise.all([getPosts(), pobierzCeny()]);
 
   const licznik = new Map<string, number>();
   for (const p of posts) if (p.cluster) licznik.set(p.cluster, (licznik.get(p.cluster) ?? 0) + 1);
@@ -225,7 +227,7 @@ export default async function BlogPage({ searchParams }: { searchParams: SP }) {
 
       <CTABand
         title="Masz pytanie, na które nie ma tu wpisu?"
-        text="Napisz do nas — odpowiadamy zwykle w ciągu dnia roboczego. Hosting Verris: 45 zł/mies albo 449 zł/rok brutto, ta sama cena przy odnowieniu."
+        text={`Napisz do nas — odpowiadamy zwykle w ciągu dnia roboczego. Hosting Verris: ${cenaPakietu(ceny.hosting)}, ta sama cena przy odnowieniu.`}
         secondary={{ label: 'Napisz do nas', href: '/kontakt' }}
       />
     </main>

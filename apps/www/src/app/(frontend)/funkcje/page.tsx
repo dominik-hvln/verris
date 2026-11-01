@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { Accordion, Card, CTABand, JsonLd, SectionHead, SubHero } from '../components/ui';
 import { faqSchema, SITE } from '@/lib/schema';
 import { SPEC_PO_WERYFIKACJI } from '@/lib/oferta';
+import { cenaPakietu, zCena } from '@/lib/ceny';
+import { pobierzCeny } from '@/lib/ceny-api';
 
 /*
  * /funkcje — makieta 14.10 (Funkcje.dc.html). Każda karta ma pokrycie w /specyfikacja, lib/features.ts albo
@@ -13,7 +15,7 @@ import { SPEC_PO_WERYFIKACJI } from '@/lib/oferta';
 export const metadata: Metadata = {
   title: 'Funkcje hostingu: kopie, SSL, WAF, statystyki | Verris',
   description:
-    'Co dostajesz w hostingu Verris: autoskalowanie, kopie z 30 dni, SSL, WAF, statystyki bez cookies i SLA 99,5%. Jeden pakiet, 45 zł/mies brutto.',
+    'Co dostajesz w hostingu Verris: autoskalowanie, kopie z 30 dni, SSL, WAF, statystyki bez cookies i SLA 99,5%. Jeden pakiet, ta sama cena przy odnowieniu.',
   alternates: { canonical: '/funkcje' },
 };
 
@@ -154,7 +156,7 @@ const GWARANCJE: { tag: string; title: string; text: string; href: string; more:
   {
     tag: 'cena',
     title: 'Ta sama cena przy odnowieniu',
-    text: 'Nie ma taniego pierwszego roku. 45 zł/mies albo 449 zł/rok brutto — dziś i przy odnowieniu.',
+    text: 'Nie ma taniego pierwszego roku. {cena} — dziś i przy odnowieniu.',
     href: '/cennik',
     more: 'Cennik',
   },
@@ -175,7 +177,8 @@ const FAQ: [string, string][] = [
   ],
 ];
 
-export default function Page() {
+export default async function Page() {
+  const c = (await pobierzCeny()).hosting;
   const grupy = GRUPY.map((g) => ({ ...g, items: g.items.filter((f) => SPEC_PO_WERYFIKACJI || !f.po) }));
   const lista = {
     '@context': 'https://schema.org',
@@ -224,7 +227,7 @@ export default function Page() {
               <Card key={g.title}>
                 <span className="c-tag">{g.tag}</span>
                 <h3>{g.title}</h3>
-                <p>{g.text}</p>
+                <p>{zCena(g.text, c)}</p>
                 <Link href={g.href}>{g.more} →</Link>
               </Card>
             ))}
@@ -241,7 +244,7 @@ export default function Page() {
 
       <CTABand
         title="Wszystkie te funkcje dostajesz w jednym pakiecie"
-        text="45 zł miesięcznie albo 449 zł za rok brutto. Bez wersji Pro, Max i Ultra."
+        text={`${cenaPakietu(c)}. Bez wersji Pro, Max i Ultra.`}
         secondary={{ label: 'Zobacz cennik', href: '/cennik' }}
       />
     </main>
