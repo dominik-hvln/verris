@@ -49,6 +49,45 @@ export function leadNotifyTemplate(input: {
   };
 }
 
+const PORA: Record<string, string> = { rano: 'rano', poludnie: 'w południe', popoludnie: 'po 14:00' };
+
+/** 1.11 — powiadomienie zespołu o prośbie o telefon (pas „Wolisz porozmawiać?”). Bez Reply-To: nadawca nie podaje adresu. */
+export function leadCallbackNotifyTemplate(input: {
+  to: string;
+  name: string;
+  phone: string;
+  preferredTime: string;
+  page?: string | null;
+  ip?: string | null;
+  panelUrl: string;
+}): Szablon {
+  const pora = PORA[input.preferredTime] ?? input.preferredTime;
+  const pola: [string, string | null | undefined][] = [
+    ['Imię', input.name],
+    ['Telefon', input.phone],
+    ['Kiedy zadzwonić', pora],
+    ['Strona', input.page],
+    ['IP', input.ip],
+  ];
+  const { html, text } = renderEmailShell({
+    title: 'Prośba o telefon',
+    preheader: `${input.phone} · ${pora}`,
+    bodyMarkdown: pola.filter(([, v]) => v).map(([k, v]) => `- **${k}:** ${md(v as string)}`).join('\n'),
+    footnote:
+      'Obiecujemy oddzwonienie w dni robocze 9–17, zwykle tego samego dnia. Numer służy tylko do tej rozmowy — nie dopisuj go do żadnej listy.',
+    recipientEmail: input.to,
+    panelUrl: input.panelUrl,
+    recipientHasAccount: false,
+  });
+  return {
+    to: input.to,
+    tag: 'lead.callback',
+    subject: `[Verris] Prośba o telefon: ${input.phone} (${pora})`,
+    text,
+    html,
+  };
+}
+
 /** Potwierdzenie double opt-in (MIGRATION) — link aktywacyjny. */
 export function leadOptInTemplate(input: { to: string; confirmUrl: string; panelUrl: string }): Szablon {
   const { html, text } = renderEmailShell({

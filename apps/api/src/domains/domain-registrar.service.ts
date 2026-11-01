@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import {
@@ -28,6 +28,7 @@ import {
   type DomainPricingConfig,
 } from './domain-pricing.util.js';
 import { NbpFxService } from './nbp-fx.service.js';
+import { KOMUNIKAT_DOMENY_W_PROBIE, maTylkoProbne } from '../subscriptions/okres-probny.js';
 import {
   Registrant,
   RegistrarOperation,
@@ -214,12 +215,21 @@ export class DomainRegistrarService {
     return { domain, quotes, renewalPerYear };
   }
 
+  /**
+   * 1.11 — w okresie próbnym (klient ma tylko próbne usługi) bez rejestracji i transferu domen: domena to realny koszt
+   * u rejestratora, a próba nie jest opłacona. Sprawdzane przed utworzeniem abonenta i obciążeniem portfela.
+   */
+  private async bezDomenWProbie(userId: string): Promise<void> {
+    if (await maTylkoProbne(this.prisma, userId)) throw new ForbiddenException(KOMUNIKAT_DOMENY_W_PROBIE);
+  }
+
   async register(
     userId: string,
     actorUserId: string,
     input: { name: string; years?: number; nameservers?: string[]; registrant: Registrant },
   ) {
     const domain = normalizeDomain(input.name);
+    await this.bezDomenWProbie(userId);
     const provider = this.providerFactory.get();
     const availability = await provider.availability(domain);
     if (!availability.available) {
@@ -343,6 +353,7 @@ export class DomainRegistrarService {
     input: { name: string; authCode: string; years?: number; nameservers?: string[]; registrant: Registrant },
   ) {
     const domain = normalizeDomain(input.name);
+    await this.bezDomenWProbie(userId);
     const provider = this.providerFactory.get();
     const ownerHandle = await provider.createRegistrant(input.registrant);
     const years = input.years ?? 1;

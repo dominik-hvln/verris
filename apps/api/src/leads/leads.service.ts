@@ -6,11 +6,13 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { MailerService } from '../mail/mailer.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import {
+  leadCallbackNotifyTemplate,
   leadContactAckTemplate,
   leadNotifyTemplate,
   leadOptInTemplate,
 } from './leads.templates.js';
 import type { SubmitLeadDto } from './dto/submit-lead.dto.js';
+import type { SubmitCallbackDto } from './dto/submit-callback.dto.js';
 
 @Injectable()
 export class LeadsService {
@@ -131,6 +133,56 @@ export class LeadsService {
         fromRole: 'SUPPORT',
       })
       .catch((e) => this.logger.warn(`lead ack mail failed: ${e?.message ?? e}`));
+
+    return { status: 'received' };
+  }
+
+  /**
+   * 1.11 — prośba o telefon zwrotny (pas „Wolisz porozmawiać?” na verris.pl). Bez adresu e-mail, więc bez żadnego
+   * maila do nadawcy — tylko zapis, dziennik i powiadomienie zespołu z numerem i porą dnia.
+   */
+  async submitCallback(
+    dto: SubmitCallbackDto,
+    meta: { ip?: string; userAgent?: string },
+  ): Promise<{ status: 'received' }> {
+    const phone = dto.phone.trim().replace(/\s+/g, ' ');
+    const lead = await this.prisma.siteLead.create({
+      data: {
+        kind: SiteLeadKind.CALLBACK,
+        status: SiteLeadStatus.RECEIVED,
+        email: null,
+        name: dto.name.trim(),
+        phone,
+        preferredTime: dto.preferredTime,
+        source: 'callback_band',
+        consentText: dto.consentText,
+        ip: meta.ip || null,
+        userAgent: meta.userAgent || null,
+      },
+    });
+
+    await this.audit
+      .record({
+        action: 'SITE_LEAD_SUBMITTED',
+        details: { leadId: lead.id, kind: 'CALLBACK', source: 'callback_band', page: dto.page },
+      })
+      .catch(() => undefined);
+
+    void this.mailer
+      .send({
+        ...leadCallbackNotifyTemplate({
+          to: this.notifyEmail(),
+          name: dto.name.trim(),
+          phone,
+          preferredTime: dto.preferredTime,
+          page: dto.page,
+          ip: meta.ip,
+          panelUrl: this.panelUrl(),
+        }),
+        category: 'TRANSACTIONAL',
+        fromRole: 'SUPPORT',
+      })
+      .catch((e) => this.logger.warn(`callback notify mail failed: ${e?.message ?? e}`));
 
     return { status: 'received' };
   }

@@ -2,6 +2,7 @@ import { Body, Controller, Get, Header, HttpCode, Post, Query, Req } from '@nest
 import type { Request } from 'express';
 import { LeadsService } from './leads.service.js';
 import { SubmitLeadDto } from './dto/submit-lead.dto.js';
+import { SubmitCallbackDto } from './dto/submit-callback.dto.js';
 import { RateLimit } from '../common/guards/rate-limit.guard.js';
 import { CaptchaService } from '../auth/captcha.service.js';
 
@@ -30,6 +31,21 @@ export class LeadsPublicController {
     // przepuszcza (tak samo działa logowanie i rejestracja) — limity per IP i adres zostają.
     await this.captcha.verify(dto.captchaToken, ip, 'lead');
     return this.leads.submit(dto, { ip, userAgent });
+  }
+
+  /**
+   * 1.11 — pas „Wolisz porozmawiać?”: prośba o telefon zwrotny. Bez maila do nadawcy (nie podaje adresu), więc limit
+   * per IP i per numer (keyByBodyField) chroni zespół przed zasypaniem zgłoszeniami na jeden numer.
+   */
+  @Post('callback')
+  @HttpCode(202)
+  @RateLimit({ limit: 3, windowMs: 60 * 60 * 1000, scope: 'leads:callback', keyByBodyField: 'phone' })
+  async callback(@Body() dto: SubmitCallbackDto, @Req() req: Request) {
+    const ip =
+      req.ip || (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim();
+    const userAgent = req.headers['user-agent'] as string | undefined;
+    await this.captcha.verify(dto.captchaToken, ip, 'lead');
+    return this.leads.submitCallback(dto, { ip, userAgent });
   }
 
   @Get('confirm')

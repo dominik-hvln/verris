@@ -54,6 +54,7 @@ import { DiskUsageService } from './disk-usage.service.js';
 import { MalwareScanService } from './malware-scan.service.js';
 import { RedisAccessService } from './redis-access.service.js';
 import { MailLogService } from './mail-log.service.js';
+import { LimitWysylkiProbyService } from './limit-wysylki-proby.service.js';
 import { PocztaKontaOperatoraService } from './poczta-konta-operatora.service.js';
 import { PocztaKontaAdminController } from './poczta-konta.admin.controller.js';
 import { BlokadyIpKontaService } from './blokady-ip-konta.service.js';
@@ -109,6 +110,7 @@ import { ComplianceModule } from '../compliance/compliance.module.js';
     LimityIndywidualneService,
     ZmianaWlascicielaService,
     PocztaKontaOperatoraService,
+    LimitWysylkiProbyService,
     BlokadyIpKontaService,
     TrafieniaWafKontaService,
     WarunkiIndywidualneService,

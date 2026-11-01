@@ -26,6 +26,7 @@ import { StripeService } from '../billing/stripe/stripe.service.js';
 import { DirectAdminService } from '../servers/directadmin.service.js';
 import { ProvisioningService, ProvisionResult } from './provisioning.service.js';
 import { ProvisioningQueueService } from './provisioning-queue.service.js';
+import { KOMUNIKAT_AUTOSKALOWANIA_W_PROBIE, wProbie } from './okres-probny.js';
 import { generateUniqueServiceTag } from './service-tag.util.js';
 import { komunikatEkoDlaKlienta } from './eko-komunikat.js';
 import {
@@ -1317,6 +1318,10 @@ export class SubscriptionsService {
     if (!subscription) throw new NotFoundException('Nie znaleziono usługi.');
     if (subscription.status === SubscriptionStatus.CANCELED) {
       throw new ConflictException('Cannot modify autoscaling on a canceled subscription');
+    }
+    // 1.11 — w okresie próbnym bez dodatkowej mocy (płatnej z portfela); wyłączyć wolno zawsze.
+    if (opts.enabled && wProbie(subscription)) {
+      throw new ForbiddenException(KOMUNIKAT_AUTOSKALOWANIA_W_PROBIE);
     }
 
     if (opts.maxMonthlyCost !== undefined) {

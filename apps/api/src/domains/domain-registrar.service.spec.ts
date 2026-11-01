@@ -2,7 +2,8 @@ import { ServiceUnavailableException } from '@nestjs/common';
 import { DomainRegistrarService } from './domain-registrar.service.js';
 
 describe('DomainRegistrarService', () => {
-  const prisma = {};
+  // 1.11 — rejestracja sprawdza najpierw, czy klient nie ma tylko okresu próbnego (tu: brak usług).
+  const prisma = { subscription: { count: async () => 0 } };
   const audit = { record: vi.fn() };
   const crypto = { encrypt: vi.fn((v: string) => `enc:${v}`) };
   const wallet = { debit: vi.fn(), credit: vi.fn() };

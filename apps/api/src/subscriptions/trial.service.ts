@@ -5,6 +5,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -26,6 +27,7 @@ import {
   trialConvertedTemplate,
 } from '../mail/templates/billing-lifecycle-notifications.js';
 import { generateUniqueServiceTag } from './service-tag.util.js';
+import { LimitWysylkiProbyService } from './limit-wysylki-proby.service.js';
 import type { StartTrialDto } from './dto/trial.dto.js';
 import type { CreatedSubscription } from './subscriptions.service.js';
 import { narzutResellera, zNarzutem } from '../reseller/narzut-resellera.js';
@@ -55,6 +57,8 @@ export class TrialService {
     private readonly provisioning: ProvisioningService,
     private readonly provisionQueue: ProvisioningQueueService,
     private readonly config: ConfigService,
+    // 1.11 — przywrócenie domyślnego limitu wysyłki po konwersji (opcjonalny w testach jednostkowych).
+    @Optional() private readonly limitProby?: LimitWysylkiProbyService,
   ) {}
 
   /** Whether this user may still start a trial (used to gate the UI). */
@@ -276,6 +280,14 @@ export class TrialService {
           'Żądam rozpoczęcia świadczenia usługi przed upływem 14-dniowego terminu odstąpienia i przyjmuję do wiadomości obowiązek zapłaty za świadczenia spełnione do chwili odstąpienia (Regulamin §4 ust. 4, §21).',
       },
     });
+
+    // 1.11 — koniec ograniczeń próby: domyślny limit wysyłki serwera. Błąd zlecenia nie cofa opłaconej konwersji,
+    // ale zostaje w logu, a uzgadnianie limitu prób już tej usługi nie dotyka (isTrial = false).
+    if (this.limitProby) {
+      await this.limitProby.przywrocPoKonwersji(subscriptionId).catch((err) =>
+        this.logger.error(`Przywrócenie limitu wysyłki po konwersji nie powiodło się (sub=${subscriptionId}): ${(err as Error).message}`),
+      );
+    }
 
     void this.sendTrialConverted(userId, subscription.plan.name).catch(() => undefined);
     return { ok: true };

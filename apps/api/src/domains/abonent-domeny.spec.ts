@@ -20,6 +20,8 @@ function zbuduj(provider: Record<string, unknown>, domena: Record<string, unknow
 }) {
   const prisma = {
     domain: { findFirst: vi.fn().mockResolvedValue(domena), update: vi.fn().mockResolvedValue({}) },
+    // 1.11 — sprawdzenie „tylko okres próbny” przed rejestracją: klient bez usług.
+    subscription: { count: vi.fn().mockResolvedValue(0) },
   };
   const audit = { record: vi.fn() };
   const service = new DomainRegistrarService(

@@ -82,6 +82,8 @@ const PUBLICZNE = [
   'KbPublicController.llms',
   'KbPublicController.robots',
   'KbPublicController.sitemap',
+  // 1.11 — prośba o telefon z verris.pl: captcha + limit 3/godz. per IP i per numer.
+  'LeadsPublicController.callback',
   'LeadsPublicController.confirm',
   'LeadsPublicController.submit',
   'LegalDocumentsController.getAllCurrent',

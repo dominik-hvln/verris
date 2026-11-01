@@ -89,6 +89,8 @@ export class AutoscalingEngineService {
       where: {
         status: SubscriptionStatus.ACTIVE,
         autoscalingEnabled: true,
+        // 1.11 — usługa w okresie próbnym nie dostaje dodatkowej mocy (konwersja ustawia isTrial = false).
+        isTrial: false,
         account: { isNot: null },
       },
       include: {

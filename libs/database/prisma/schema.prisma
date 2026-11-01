@@ -4240,6 +4240,7 @@ model KbArticle {
 enum SiteLeadKind {
   MIGRATION // formularz LP /przenies-strone (marketing, double opt-in)
   CONTACT   // formularz /kontakt (zapytanie, bez opt-in)
+  CALLBACK  // pas „Wolisz porozmawiać?” — prośba o telefon zwrotny (bez e-maila, bez opt-in)
 }
 
 enum SiteLeadStatus {
@@ -4254,8 +4255,12 @@ model SiteLead {
   kind           SiteLeadKind
   status         SiteLeadStatus @default(PENDING)
 
-  email          String
+  /// Puste tylko dla CALLBACK (prośba o telefon zawiera numer, nie adres).
+  email          String?
   name           String?
+  /// CALLBACK: numer do oddzwonienia i pora dnia (rano | poludnie | popoludnie).
+  phone          String?
+  preferredTime  String?
   message        String?        @db.Text
   /// Źródło zdarzenia (np. migration_plan, contact_form) — spójne z pomiarem.
   source         String?
