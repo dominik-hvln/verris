@@ -45,7 +45,8 @@ const ZASOBY_BURST = [
  * Słowa, które przed liczbą zamieniają obietnicę rezerwacji w opis limitu.
  * `→` obsługuje zapis zakresu skalowania („→ 64 GB").
  */
-const KWALIFIKATORY = ['do', 'maksymalnie', 'maks.', 'max', '→', 'ponad', 'powyżej'];
+// `+` oznacza zasoby DOKŁADANE w szczycie („+2 vCPU, +4 GB RAM” — przykład autoskalowania), nie bazę pakietu.
+const KWALIFIKATORY = ['do', 'maksymalnie', 'maks.', 'max', '→', 'ponad', 'powyżej', '+'];
 
 function plikiZrodlowe(katalog: string): string[] {
   let out: string[] = [];

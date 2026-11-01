@@ -32,7 +32,7 @@ export function PanelPodglad({
   zakladki: ZakladkaPanelu[];
   /** Kwota najbliższej płatności na pulpicie (cena miesięczna z API). */
   platnosc: string;
-  /** Dopłata za przykładowy pik (2 vCPU + 4 GB RAM przez 1,5 h) ze stawek z API. */
+  /** Dopłata za przykładowy pik (+2 vCPU, +4 GB RAM przez 1,5 h) ze stawek z API. */
   doplataPiku: string;
   doplataPikuNetto: string;
 }) {

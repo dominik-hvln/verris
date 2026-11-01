@@ -117,7 +117,7 @@ export function HeroPodglad({ dane }: { dane: DaneHeroPodgladu }) {
             <line x1="0" y1="168" x2="560" y2="168" stroke="rgba(255,255,255,.1)" />
             <line x1="0" y1="138" x2="560" y2="138" stroke="rgba(255,255,255,.08)" strokeDasharray="4 5" />
             <text x="4" y="132" fill="#93A29A" fontSize="10.5" fontFamily="JetBrains Mono, monospace">
-              pakiet: 2 vCPU · 8 GB
+              limit pakietu: 2 vCPU · 8 GB
             </text>
             <path
               className="ch-area"

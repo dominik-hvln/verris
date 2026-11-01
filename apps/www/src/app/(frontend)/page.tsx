@@ -160,7 +160,7 @@ const KARTY: { ikona: ReactNode; t: string; p: string; etykiety: string[]; href:
 ];
 
 const CECHY: [string, string[]][] = [
-  ['Moc', ['50 GB NVMe, 8 GB RAM, 2 vCPU', 'w szczycie do 24 vCPU i 64 GB RAM', 'dysk do 1000 GB, gdy potrzebujesz więcej', 'LiteSpeed z cache, Redis']],
+  ['Moc', ['limity: 50 GB NVMe, 8 GB RAM, 2 vCPU', 'w szczycie do 24 vCPU i 64 GB RAM', 'dysk do 1000 GB, gdy potrzebujesz więcej', 'LiteSpeed z cache, Redis']],
   ['Bezpieczeństwo', ['kopie z ostatnich 30 dni', 'zapora WAF i skaner', 'SSL dla każdej domeny']],
   ['Poczta i domeny', ['skrzynki bez limitu liczby', 'SPF, DKIM, DMARC w panelu', 'ukrycie danych w WHOIS']],
   ['Wygoda', ['przeniesienie za 0 zł', 'wersja testowa WordPressa', 'statystyki bez cookies']],
