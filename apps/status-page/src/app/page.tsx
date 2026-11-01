@@ -7,6 +7,7 @@ import {
 } from '@/lib/api';
 import Link from 'next/link';
 import { czasTrwania, dataKrotko, godzina, pct, przedzial } from '@/lib/format';
+import { grupujZdarzenia, opisGrupy, poczatekPomiarow, tytulGrupy, type GrupaZdarzen } from '@/lib/widok';
 import { Uslugi } from './uslugi';
 
 export const revalidate = 30;
@@ -33,13 +34,13 @@ export default async function StatusPage() {
         </div>
       </header>
 
-      <main className="st-wrap" style={{ marginTop: 20, paddingBottom: 40 }}>
+      <main className="st-wrap sv-main">
         {payload ? <Widok data={payload} /> : <Niedostepny />}
 
         <footer className="st-footer">
           <p>
             Sondy sprawdzają usługi co 30 sekund. Dostępność to odsetek udanych prób w danym okresie; dni liczymy w czasie
-            polskim, a dzień bez pomiarów oznaczamy jako „brak danych”, nie jako „działa”.
+            polskim, a dni bez pomiarów nie wchodzą do średniej. Krótkie zakłócenie to przerwa do 5 minut w ciągu doby.
           </p>
           <p>SLA: 99,5% w miesiącu — zasady rekompensat opisuje regulamin.</p>
         </footer>
@@ -50,47 +51,40 @@ export default async function StatusPage() {
 
 function Widok({ data }: { data: PublicStatusDto }) {
   const { services } = data;
+  const od = poczatekPomiarow(services);
   const wykres = services.find((s) => s.key === 'strony' && maDane(s)) ?? services.find(maDane);
-  const zdarzenia = scalZdarzenia(data.activeIncidents, data.recentIncidents);
+  const grupy = grupujZdarzenia(scalZdarzenia(data.activeIncidents, data.recentIncidents));
 
   return (
     <>
-      <Baner data={data} />
+      <Stan data={data} od={od} />
 
       {services.length > 0 ? (
-        <Uslugi services={services} />
+        <Uslugi services={services} od={od} />
       ) : (
-        <div className="st-card st-empty" style={{ marginTop: 24 }}>
-          Brak skonfigurowanych sond — stan usług pojawi się tutaj po ich uruchomieniu.
-        </div>
+        <p className="sv-pusto">Brak skonfigurowanych sond — stan usług pojawi się tutaj po ich uruchomieniu.</p>
       )}
 
-      {services.length > 0 ? (
-        <div className="st-panels" style={wykres ? undefined : { gridTemplateColumns: '1fr' }}>
-          {wykres ? <Czas usluga={wykres} /> : null}
-          <Dostepnosc a={data.availability} />
-        </div>
-      ) : null}
-
-      <section aria-labelledby="zdarzenia-h" style={{ marginTop: 28 }}>
-        <h2 id="zdarzenia-h" className="st-h2">
-          Historia zdarzeń
-        </h2>
-        {data.maintenance.length === 0 && zdarzenia.length === 0 ? (
-          <div className="st-card st-empty" style={{ marginTop: 12 }}>
-            Brak zdarzeń do pokazania. Gdy coś się wydarzy, opiszemy to tutaj: od wykrycia do rozwiązania.
-          </div>
-        ) : (
-          <ul className="st-events">
-            {data.maintenance.map((w) => (
-              <Prace key={w.id} w={w} />
-            ))}
-            {zdarzenia.map((z) => (
-              <Zdarzenie key={z.id} z={z} />
-            ))}
-          </ul>
-        )}
-      </section>
+      <div className="sv-dol" style={wykres ? undefined : { gridTemplateColumns: '1fr' }}>
+        {wykres ? <Czas usluga={wykres} /> : null}
+        <section aria-labelledby="zdarzenia-h" className="sv-sek">
+          <h2 id="zdarzenia-h" className="sv-h">
+            Zdarzenia
+          </h2>
+          {data.maintenance.length === 0 && grupy.length === 0 ? (
+            <p className="sv-pusto">Brak zdarzeń do pokazania. Gdy coś się wydarzy, opiszemy to tutaj: od wykrycia do rozwiązania.</p>
+          ) : (
+            <ol className="sv-os-czasu">
+              {data.maintenance.map((w) => (
+                <Prace key={w.id} w={w} />
+              ))}
+              {grupy.map((g) => (
+                <Zdarzenie key={g.id} g={g} />
+              ))}
+            </ol>
+          )}
+        </section>
+      </div>
     </>
   );
 }
@@ -102,164 +96,141 @@ function scalZdarzenia(aktywne: PublicIncidentDto[], ostatnie: PublicIncidentDto
   return [...aktywne, ...ostatnie].filter((z) => !widziane.has(z.id) && widziane.add(z.id));
 }
 
-const BANER = {
-  OK: { tytul: 'Wszystkie usługi działają', ikona: 'ok' },
-  DEGRADED: { tytul: 'Część usług działa wolniej lub z przerwami', ikona: 'warn' },
-  DOWN: { tytul: 'Awaria — część usług jest niedostępna', ikona: 'bad' },
-  NONE: { tytul: 'Brak danych o usługach', ikona: 'none' },
+const TYTUL = {
+  OK: 'Wszystkie usługi działają',
+  DEGRADED: 'Część usług działa wolniej lub z przerwami',
+  DOWN: 'Awaria — część usług jest niedostępna',
+  NONE: 'Brak danych o usługach',
 } as const;
 
-function Baner({ data }: { data: PublicStatusDto }) {
+function Stan({ data, od }: { data: PublicStatusDto; od: number }) {
   const stan = data.services.length === 0 ? 'NONE' : data.overall;
-  const b = BANER[stan];
+  const a = data.availability;
+  const okresy = [
+    ['24 h', a.h24],
+    ['7 dni', a.d7],
+    ['30 dni', a.d30],
+    [od > 0 ? 'od startu' : '90 dni', a.d90],
+  ] as const;
   return (
-    <div className="st-banner" data-state={stan}>
-      <div className="st-banner-main">
-        <span className="st-banner-icon" aria-hidden="true">
-          <svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-            {b.ikona === 'ok' ? <path d="M5 11.5l4 4L17 7" /> : null}
-            {b.ikona === 'warn' ? <path d="M11 5v7M11 17v.01" /> : null}
-            {b.ikona === 'bad' ? <path d="M6 6l10 10M16 6L6 16" /> : null}
-            {b.ikona === 'none' ? <path d="M6 11h10" /> : null}
-          </svg>
-        </span>
-        <h1>{b.tytul}</h1>
-      </div>
-      <div className="st-banner-meta">
-        <span>Stan na {godzina(data.generatedAt)} · odświeżamy co 30 s</span>
-        <span>
-          <strong className="st-mono">{pct(data.availability.d90)}</strong> dostępność, 90 dni
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function Czas({ usluga }: { usluga: PublicServiceDto }) {
-  const wartosci = usluga.latency24h.map((h) => h.avgLatencyMs);
-  const max = Math.max(...wartosci.map((v) => v ?? 0), 1);
-  return (
-    <section className="st-card st-panel" aria-labelledby="czas-h">
-      <div className="st-panel-head">
-        <strong id="czas-h">Czas odpowiedzi — {usluga.name.toLowerCase()}, 24 h</strong>
-        {usluga.avgLatencyMs !== null ? <span className="st-mono" style={{ fontSize: 13 }}>średnio {usluga.avgLatencyMs} ms</span> : null}
-      </div>
-      <div className="st-chart" role="group" aria-label="Średni czas odpowiedzi godzina po godzinie">
-        {usluga.latency24h.map((h) => {
-          const opis = h.avgLatencyMs !== null ? `${godzina(h.hour)}: ${h.avgLatencyMs} ms` : `${godzina(h.hour)}: brak danych`;
-          return (
-            <span
-              key={h.hour}
-              role="img"
-              title={opis}
-              aria-label={opis}
-              data-empty={h.avgLatencyMs === null ? '' : undefined}
-              style={{ height: h.avgLatencyMs === null ? undefined : `${Math.max(6, Math.round((h.avgLatencyMs / max) * 100))}%` }}
-            />
-          );
-        })}
-      </div>
-      <div className="st-axis st-mono">
-        <span>24 h temu</span>
-        <span>teraz</span>
-      </div>
+    <section className="sv-stan" aria-labelledby="stan-h">
+      <h1 id="stan-h">
+        <span className="sv-kropka sv-kropka-duza" data-state={stan} aria-hidden="true" />
+        {TYTUL[stan]}
+      </h1>
+      <p className="sv-meta">Sprawdzone o {godzina(data.generatedAt)} · sondy co 30 s · SLA 99,5% w miesiącu</p>
+      <dl className="sv-dost" aria-label="Dostępność wszystkich usług łącznie">
+        {okresy.map(([nazwa, v]) => (
+          <div key={nazwa}>
+            <dt>{nazwa}</dt>
+            <dd>{pct(v)}</dd>
+          </div>
+        ))}
+      </dl>
     </section>
   );
 }
 
-function Dostepnosc({ a }: { a: PublicStatusDto['availability'] }) {
+/** Wykres liniowy czasu odpowiedzi z 24 h: godziny bez pomiaru przerywają linię zamiast udawać zero. */
+function Czas({ usluga }: { usluga: PublicServiceDto }) {
+  const W = 480;
+  const H = 120;
+  const wartosci = usluga.latency24h.map((h) => h.avgLatencyMs);
+  const znane = wartosci.filter((v): v is number => v !== null);
+  const min = Math.min(...znane);
+  const max = Math.max(...znane);
+  const zakres = Math.max(max - min, 10);
+  const y = (v: number) => H - 8 - ((v - min) / zakres) * (H - 24);
+  const krok = W / Math.max(1, wartosci.length - 1);
+  const odcinki: string[] = [];
+  let biezacy = '';
+  wartosci.forEach((v, i) => {
+    if (v === null) {
+      if (biezacy) odcinki.push(biezacy);
+      biezacy = '';
+      return;
+    }
+    biezacy += `${biezacy ? 'L' : 'M'}${(i * krok).toFixed(1)} ${y(v).toFixed(1)} `;
+  });
+  if (biezacy) odcinki.push(biezacy);
+  const ostatni = wartosci.findLastIndex((v) => v !== null);
+  const sr = usluga.avgLatencyMs;
   return (
-    <section className="st-card st-panel" aria-labelledby="dost-h">
-      <strong id="dost-h" style={{ color: 'var(--strong)' }}>
-        Dostępność
-      </strong>
-      <dl className="st-avail">
-        {(
-          [
-            ['24 godziny', a.h24],
-            ['7 dni', a.d7],
-            ['30 dni', a.d30],
-            ['90 dni', a.d90],
-          ] as const
-        ).map(([nazwa, v]) => (
-          <div key={nazwa}>
-            <dt>{nazwa}</dt>
-            <dd className="st-mono">{pct(v)}</dd>
-          </div>
-        ))}
-      </dl>
-      <p className="st-note">Wszystkie usługi łącznie. Okresy bez pomiarów nie wchodzą do średniej.</p>
+    <section className="sv-sek" aria-labelledby="czas-h">
+      <h2 id="czas-h" className="sv-h">
+        Czas odpowiedzi — {usluga.name.toLowerCase()}
+      </h2>
+      <div className="sv-wykres">
+        <div className="sv-wykres-glowka">
+          <span>ostatnie 24 h</span>
+          {sr !== null ? (
+            <span>
+              <strong>{sr} ms</strong> średnio
+            </span>
+          ) : null}
+        </div>
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          preserveAspectRatio="none"
+          role="img"
+          aria-label={`Średni czas odpowiedzi godzina po godzinie: od ${min} do ${max} ms`}
+        >
+          {sr !== null ? <line x1="0" x2={W} y1={y(sr)} y2={y(sr)} className="sv-srednia" /> : null}
+          {odcinki.map((d) => (
+            <path key={d} d={`${d}`} className="sv-linia" />
+          ))}
+          {ostatni >= 0 ? <circle cx={Math.min(ostatni * krok, W - 4)} cy={y(wartosci[ostatni] as number)} r="3.5" className="sv-punkt" /> : null}
+        </svg>
+        <div className="sv-os st-mono" aria-hidden="true">
+          <span>24 h temu</span>
+          <span>teraz</span>
+        </div>
+      </div>
     </section>
   );
 }
 
 function Prace({ w }: { w: PublicMaintenanceDto }) {
   return (
-    <li className="st-card st-event">
-      <div className="st-event-head">
-        <strong>Planowane prace: {w.title}</strong>
-        <span className="st-tag" data-tone="warn">
-          {w.status === 'IN_PROGRESS' ? 'w toku' : 'zaplanowane'}
-        </span>
-      </div>
-      <p className="st-event-when st-mono">{przedzial(w.scheduledStart, w.scheduledEnd)}</p>
-      {w.publicMessage ? <p className="st-event-msg">{w.publicMessage}</p> : null}
+    <li data-rodzaj="prace">
+      <time className="st-mono">
+        {przedzial(w.scheduledStart, w.scheduledEnd)} · {w.status === 'IN_PROGRESS' ? 'w toku' : 'zaplanowane'}
+      </time>
+      <strong>Planowane prace: {w.title}</strong>
+      {w.publicMessage ? <p>{w.publicMessage}</p> : null}
     </li>
   );
 }
 
-function Zdarzenie({ z }: { z: PublicIncidentDto }) {
-  const trwa = z.status === 'OPEN';
-  const kiedy = z.resolvedAt
-    ? `${przedzial(z.startedAt, z.resolvedAt)}${z.durationMinutes !== null ? ` · ${czasTrwania(z.durationMinutes)}` : ''}`
-    : `${dataKrotko(z.startedAt)}, ${godzina(z.startedAt)} · trwa`;
+function Zdarzenie({ g }: { g: GrupaZdarzen }) {
+  const kiedy = g.koniec
+    ? `${przedzial(g.start, g.koniec)}${g.minuty !== null ? ` · ${czasTrwania(g.minuty)}` : ''}`
+    : `${dataKrotko(g.start)}, ${godzina(g.start)} · trwa`;
+  const opis = opisGrupy(g);
   return (
-    <li className="st-card st-event">
-      <div className="st-event-head">
-        <strong>{z.title}</strong>
-        <span className="st-tag" data-tone={trwa ? (z.severity === 'MAJOR' ? 'bad' : 'warn') : 'ok'}>
-          {trwa ? 'trwa' : 'rozwiązane'}
-        </span>
-      </div>
-      <p className="st-event-when st-mono">
-        {z.service} · {kiedy}
-      </p>
-      {/* Oś czasu tylko z tego, co zapisujemy: wykrycie, komunikat zespołu, rozwiązanie. */}
-      <ol className="st-timeline">
-        {z.resolvedAt ? (
-          <li data-tone="ok">
-            <time dateTime={z.resolvedAt}>{godzina(z.resolvedAt)}</time>Rozwiązane
-          </li>
-        ) : null}
-        {z.publicMessage ? (
-          <li>
-            <b>Komunikat</b>
-            {z.publicMessage}
-          </li>
-        ) : null}
-        <li data-tone={trwa ? 'bad' : undefined}>
-          <time dateTime={z.startedAt}>{godzina(z.startedAt)}</time>Wykryte
-        </li>
-      </ol>
+    <li data-rodzaj={g.trwa ? `${g.rodzaj}-trwa` : g.rodzaj}>
+      <time className="st-mono" dateTime={g.start}>
+        {kiedy}
+      </time>
+      <strong>{tytulGrupy(g)}</strong>
+      {opis ? <p>{opis}</p> : null}
+      {g.komunikaty.map((k) => (
+        <p key={k}>{k}</p>
+      ))}
+      {g.koniec && g.rodzaj !== 'krotkie' ? <p>Rozwiązane o {godzina(g.koniec)}.</p> : null}
     </li>
   );
 }
 
 function Niedostepny() {
   return (
-    <div className="st-banner" data-state="NONE" role="alert">
-      <div className="st-banner-main">
-        <span className="st-banner-icon" aria-hidden="true">
-          <svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
-            <path d="M11 5v7M11 17v.01" />
-          </svg>
-        </span>
-        <h1>Nie udało się pobrać statusu</h1>
-      </div>
-      <div className="st-banner-meta">
-        <span>To problem tej strony, nie musi oznaczać awarii usług. Spróbuj odświeżyć za chwilę.</span>
-      </div>
-    </div>
+    <section className="sv-stan" role="alert">
+      <h1>
+        <span className="sv-kropka sv-kropka-duza" data-state="NONE" aria-hidden="true" />
+        Nie udało się pobrać statusu
+      </h1>
+      <p className="sv-meta">To problem tej strony, nie musi oznaczać awarii usług. Spróbuj odświeżyć za chwilę.</p>
+    </section>
   );
 }
 

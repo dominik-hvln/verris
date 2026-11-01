@@ -1,13 +1,11 @@
-'use client';
-
-import { useState } from 'react';
-import type { DayDto, DayState, PublicServiceDto, ServiceState } from '@/lib/api';
+import type { DayDto, PublicServiceDto, ServiceState } from '@/lib/api';
 import { dzienKrotko, pct, plForm } from '@/lib/format';
+import { klasaDnia, type KlasaDnia } from '@/lib/widok';
 
 /**
- * Lista usług z paskiem dni. Przełącznik 30/90 dni działa tylko na telefonie (atrybut data-range
- * + CSS); od 768 px pasek zawsze pokazuje 90 dni. Wszystkie 90 słupków jest w HTML-u, więc
- * pierwszy render (SSR) i hydratacja są identyczne.
+ * Lista usług: jeden wiersz na usługę (nazwa, pasek dni, czas odpowiedzi, dostępność).
+ * Pasek zaczyna się od pierwszego dnia z pomiarami — dni sprzed uruchomienia sond nie wiszą jako szare pola.
+ * Na telefonie przy długim zakresie widać ostatnie 30 dni (CSS ukrywa starsze słupki z klasą .old).
  */
 const NOTATKI: Record<string, string> = {
   panel: 'logowanie i zarządzanie usługami',
@@ -19,120 +17,100 @@ const NOTATKI: Record<string, string> = {
   dns: 'serwery nazw',
 };
 
-const STAN_USLUGI: Record<ServiceState, string> = { OK: 'Działa', DEGRADED: 'Spowolnienie', DOWN: 'Awaria' };
-const STAN_DNIA: Record<DayState, string> = {
-  OK: 'działa',
-  DEGRADED: 'spowolnienie',
-  DOWN: 'awaria',
-  NO_DATA: 'brak danych',
-  MAINTENANCE: 'planowane prace',
+const STAN_USLUGI: Record<ServiceState, string> = { OK: 'działa', DEGRADED: 'spowolnienie', DOWN: 'awaria' };
+const OPIS_KLASY: Record<KlasaDnia, string> = {
+  ok: 'działa',
+  krotkie: 'krótkie zakłócenie',
+  spowolnienie: 'spowolnienie',
+  awaria: 'awaria',
+  prace: 'planowane prace',
+  brak: 'brak pomiarów',
 };
 
 function opisDnia(d: DayDto): string {
-  const wynik = `${dzienKrotko(d.date)}: ${STAN_DNIA[d.state]}`;
-  const ms = d.avgLatencyMs !== null ? `, śr. ${d.avgLatencyMs} ms` : '';
-  return d.uptimePct !== null ? `${wynik}, dostępność ${pct(d.uptimePct)}${ms}` : wynik;
+  const wynik = `${dzienKrotko(d.date)}: ${OPIS_KLASY[klasaDnia(d)]}`;
+  const czas = d.avgLatencyMs !== null ? `, śr. ${d.avgLatencyMs} ms` : '';
+  return d.uptimePct !== null ? `${wynik}, dostępność ${pct(d.uptimePct)}${czas}` : wynik;
 }
 
-function podsumowanie(dni: DayDto[]): string {
-  const awarie = dni.filter((d) => d.state === 'DOWN').length;
-  const wolne = dni.filter((d) => d.state === 'DEGRADED').length;
-  const brak = dni.filter((d) => d.state === 'NO_DATA').length;
-  const prace = dni.filter((d) => d.state === 'MAINTENANCE').length;
-  const czesci = [
-    awarie ? `${awarie} ${plForm(awarie, 'dzień', 'dni', 'dni')} awarii` : null,
-    wolne ? `${wolne} ${plForm(wolne, 'dzień', 'dni', 'dni')} spowolnienia` : null,
-    prace ? `${prace} ${plForm(prace, 'dzień', 'dni', 'dni')} planowanych prac` : null,
-    brak ? `${brak} ${plForm(brak, 'dzień', 'dni', 'dni')} bez danych` : null,
-  ].filter(Boolean);
-  return czesci.length ? czesci.join(', ') : 'bez zakłóceń';
-}
-
-export function Uslugi({ services }: { services: PublicServiceDto[] }) {
-  const [range, setRange] = useState<30 | 90>(30);
+export function Uslugi({ services, od }: { services: PublicServiceDto[]; od: number }) {
+  const dni = services[0]?.days.slice(od) ?? [];
+  const pelne = od === 0;
   return (
-    <section className="st-uslugi" data-range={range} aria-labelledby="uslugi-h">
-      <div className="st-services-head">
-        <h2 id="uslugi-h" className="st-h2">
+    <section className="sv-uslugi" aria-labelledby="uslugi-h">
+      <div className="sv-sek-glowka">
+        <h2 id="uslugi-h" className="sv-h">
           Usługi
         </h2>
-        <div className="st-toggle" role="group" aria-label="Zakres paska dni">
-          {([30, 90] as const).map((n) => (
-            <button key={n} type="button" aria-pressed={range === n} onClick={() => setRange(n)}>
-              {n} dni
-            </button>
-          ))}
-        </div>
+        <span className="st-mono sv-meta">
+          {pelne
+            ? 'ostatnie 90 dni'
+            : `pomiary od ${dzienKrotko(dni[0]?.date ?? '')} · ${dni.length} ${plForm(dni.length, 'dzień', 'dni', 'dni')}`}
+        </span>
       </div>
 
-      <div className="st-card" style={{ marginTop: 12 }}>
-        <ul className="st-services" style={{ marginTop: 0 }}>
-          {services.map((s) => (
-            <li key={s.key} className="st-svc">
-              <div className="st-svc-head">
-                <div className="st-svc-name">
-                  <span className="st-dot" data-state={s.state} aria-hidden="true" />
-                  <strong>{s.name}</strong>
-                  <span className="st-chip" data-state={s.state}>
-                    {STAN_USLUGI[s.state]}
-                  </span>
-                  <span className="st-svc-note">{NOTATKI[s.key]}</span>
-                </div>
-                <div className="st-svc-metrics st-mono">
-                  {s.avgLatencyMs !== null ? <span className="st-ms">{s.avgLatencyMs} ms</span> : null}
-                  <span>
-                    <span className="st-sr">Dostępność z 90 dni: </span>
-                    {pct(s.uptime90Pct)}
-                  </span>
-                </div>
+      <ul className="sv-lista">
+        {services.map((s) => {
+          const dniUslugi = s.days.slice(od);
+          return (
+            <li key={s.key} className="sv-wiersz">
+              <div className="sv-nazwa">
+                <strong>
+                  <span className="sv-kropka" data-state={s.state} aria-hidden="true" />
+                  {s.name}
+                  {s.state !== 'OK' ? (
+                    <span className="sv-chip" data-state={s.state}>
+                      {STAN_USLUGI[s.state]}
+                    </span>
+                  ) : (
+                    <span className="st-sr">: {STAN_USLUGI[s.state]}</span>
+                  )}
+                </strong>
+                <span>{NOTATKI[s.key]}</span>
               </div>
-              <div className="st-bars" role="group" aria-label={`${s.name} — stan dzień po dniu`}>
-                {s.days.map((d, i) => (
-                  <span
+              <div className="sv-pasek" role="group" aria-label={`${s.name} — stan dzień po dniu`}>
+                {dniUslugi.map((d, i) => (
+                  <i
                     key={d.date}
                     role="img"
-                    className={i < s.days.length - 30 ? 'st-bar old' : 'st-bar'}
-                    data-state={d.state}
+                    className={i < dniUslugi.length - 30 ? 'old' : undefined}
+                    data-k={klasaDnia(d)}
                     title={opisDnia(d)}
                     aria-label={opisDnia(d)}
                   />
                 ))}
               </div>
-              <div className="st-axis st-mono">
-                <span>
-                  <span className="st-r30">30 dni temu</span>
-                  <span className="st-r90">90 dni temu</span> → dziś
-                </span>
-                <span className="st-sum">
-                  <span className="st-r30">{podsumowanie(s.days.slice(-30))}</span>
-                  <span className="st-r90">{podsumowanie(s.days)}</span>
-                </span>
-              </div>
+              <span className="sv-ms st-mono">{s.avgLatencyMs !== null ? `${s.avgLatencyMs} ms` : '—'}</span>
+              <span className="sv-proc">
+                <span className="st-sr">Dostępność: </span>
+                {pct(s.uptime90Pct)}
+              </span>
             </li>
-          ))}
-        </ul>
-        <div className="st-legend" aria-label="Legenda kolorów">
-          <span>
-            <i className="st-swatch" data-state="OK" />
-            działa
-          </span>
-          <span>
-            <i className="st-swatch" data-state="DEGRADED" />
-            spowolnienie
-          </span>
-          <span>
-            <i className="st-swatch" data-state="DOWN" />
-            awaria
-          </span>
-          <span>
-            <i className="st-swatch" data-state="MAINTENANCE" />
-            planowane prace
-          </span>
-          <span>
-            <i className="st-swatch" data-state="NO_DATA" />
-            brak danych
-          </span>
+          );
+        })}
+      </ul>
+      <div className="sv-wiersz sv-os-wiersz" aria-hidden="true">
+        <span />
+        <div className="sv-os st-mono">
+          {dni.length > 30 ? (
+            <span>
+              <span className="sv-tylko-tel">30 dni temu</span>
+              <span className="sv-tylko-komp">{dzienKrotko(dni[0].date)}</span>
+            </span>
+          ) : (
+            <span>{dzienKrotko(dni[0]?.date ?? '')}</span>
+          )}
+          <span>dziś</span>
         </div>
+      </div>
+
+      <div className="sv-legenda" aria-label="Legenda kolorów">
+        {(['ok', 'krotkie', 'spowolnienie', 'awaria', 'prace'] as const).map((k) => (
+          <span key={k}>
+            <i data-k={k} />
+            {k === 'krotkie' ? 'krótkie zakłócenie (do 5 min)' : OPIS_KLASY[k]}
+          </span>
+        ))}
       </div>
     </section>
   );

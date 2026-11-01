@@ -35,6 +35,8 @@ const dzienKlucz = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { 
 /** „wt 04:00–04:20” w jednym dniu, „wt 7 paź 22:00 – śr 8 paź 02:00” między dniami. */
 export function przedzial(startIso: string, endIso: string): string {
   if (dzienKlucz(startIso) === dzienKlucz(endIso)) {
+    // Zakłócenie w obrębie jednej minuty: „11:53”, nie „11:53–11:53”.
+    if (godzina(startIso) === godzina(endIso)) return `${dzienTygodnia(startIso)} ${dataKrotko(startIso)}, ${godzina(startIso)}`;
     return `${dzienTygodnia(startIso)} ${dataKrotko(startIso)}, ${godzina(startIso)}–${godzina(endIso)}`;
   }
   const pelna = (i: string) => `${dzienTygodnia(i)} ${dataKrotko(i)} ${godzina(i)}`;
