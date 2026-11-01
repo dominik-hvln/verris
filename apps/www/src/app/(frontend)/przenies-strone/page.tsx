@@ -1,6 +1,11 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { Accordion, Breadcrumbs, Button, Card, CTABand, JsonLd, SectionHead, StickyBuy } from '../components/ui';
+import { Accordion, Breadcrumbs, Button, Card, CTABand, JsonLd, SectionHead, SectionHead2 } from '../components/ui';
+import { MobilnyPasek } from '../components/MobilnyPasek';
+import { PasRozmowy } from '../components/PasRozmowy';
+import { KartyUslug } from '../components/KartyUslug';
+import { pobierzCeny } from '@/lib/ceny-api';
+import { netto, zl, type Ceny } from '@/lib/ceny';
 import { MigrationLeadForm } from '../components/MigrationLeadForm';
 import { PokazPrzeprowadzki } from '../components/PokazPrzeprowadzki';
 import { CMS_Z_ODCZYTEM_BAZY, HASLA_KASOWANE_PO_DNIACH, KROKI_PRZEPROWADZKI } from '@/lib/migracja';
@@ -57,7 +62,7 @@ const BEZPIECZENSTWO: [string, string][] = [
   ['Zatrzymasz w każdej chwili', 'Przeprowadzkę w toku anulujesz w panelu jednym przyciskiem.'],
 ];
 
-const FAQ: [string, string][] = [
+const faq = (ceny: Ceny): [string, string][] => [
   [
     'Czy strona przestanie działać w trakcie przenoszenia na inny hosting?',
     'Nie powinna. Migracja odbywa się „obok” działającej strony — kopiujemy dane na nowy serwer, a Twoja obecna strona działa u dotychczasowego dostawcy do momentu przełączenia domeny. Samo przełączenie DNS wiąże się z propagacją, która zwykle trwa od kilkunastu minut do kilku godzin; w tym czasie część odwiedzających może jeszcze trafiać na starą wersję strony.',
@@ -92,7 +97,7 @@ const FAQ: [string, string][] = [
   ],
   [
     'Czy cena wzrośnie przy odnowieniu?',
-    'Nie stosujemy modelu „tani pierwszy rok, kilkukrotnie droższe odnowienie”. Odnowienie następuje według cennika obowiązującego w dniu odnowienia (dziś 45 zł/mies lub 449 zł/rok brutto), a przed każdym odnowieniem wyślemy przypomnienie e-mail (7, 3 i 1 dzień wcześniej). Z odnowienia zrezygnujesz w panelu w dwóch kliknięciach, bez opłat.',
+    `Nie stosujemy modelu „tani pierwszy rok, kilkukrotnie droższe odnowienie”. Odnowienie następuje według cennika obowiązującego w dniu odnowienia (dziś ${zl(ceny.hosting.miesiecznie)}/mies lub ${zl(ceny.hosting.rocznie)}/rok brutto), a przed każdym odnowieniem wyślemy przypomnienie e-mail (7, 3 i 1 dzień wcześniej). Z odnowienia zrezygnujesz w panelu w dwóch kliknięciach, bez opłat.`,
   ],
   [
     'Czy mogę zrezygnować po zakupie?',
@@ -100,7 +105,8 @@ const FAQ: [string, string][] = [
   ],
 ];
 
-const jsonLd = graph(
+const jsonLd = (FAQ: [string, string][]) =>
+  graph(
   howToSchema({
     name: 'Jak przenieść stronę na nowy hosting bez przerwy w działaniu',
     description: 'Przeniesienie strony, bazy i poczty do Verris w 6 krokach — stara strona działa do przełączenia domeny.',
@@ -110,10 +116,37 @@ const jsonLd = graph(
   faqSchema(FAQ),
 );
 
-export default function Page() {
+// Makieta 1.11: czasy przeniesienia — orientacyjne (zależą od rozmiaru i szybkości starego serwera).
+const CZASY: { kicker: string; czas: string; opis: string; ty?: boolean }[] = [
+  { kicker: 'Twój czas', czas: 'ok. 5 min', opis: 'wybór domeny, dostęp i jedno kliknięcie na koniec', ty: true },
+  { kicker: 'Strona firmowa do 1 GB', czas: '15–30 min', opis: 'pliki, baza i kilka skrzynek pocztowych' },
+  { kicker: 'Sklep 1–10 GB', czas: '30–90 min', opis: 'duża baza, tysiące zdjęć produktów' },
+  { kicker: 'Przerwa w działaniu', czas: '0 min', opis: 'stara strona działa, aż sam przełączysz domenę' },
+];
+
+// Makieta 1.11: pilny przypadek. Migrator nie przyjmuje pliku kopii (sprawdzone 1.11 w apps/api/src/subscriptions/migration-*),
+// więc przy wygasłym hostingu nie obiecujemy odtworzenia „z pliku w panelu” — pomaga zespół.
+const PILNE: [string, string][] = [
+  ['Stary hosting jeszcze działa', 'Przenosimy jak zwykle. Domenę przełączasz po sprawdzeniu nowej strony.'],
+  ['Zostało kilka dni', 'Najpierw kopiujemy pliki i bazy, pocztę na końcu. Strona nie zniknie, kiedy stary hosting wygaśnie.'],
+  ['Hosting już wygasł', 'Poproś starego dostawcę o kopię strony i napisz do nas — pomożemy ją odtworzyć.'],
+];
+
+const zyski = (ceny: Ceny): [string, string][] => [
+  ['Szybsze ładowanie', 'LiteSpeed z cache dla WordPressa, dyski NVMe i Redis. Strony z cache serwer oddaje bez uruchamiania PHP.'],
+  ['Spokój przy ruchu', 'Przy promocji albo kampanii moc rośnie sama. Ty ustawiasz, ile najwyżej możesz za to zapłacić.'],
+  ['Kopie, które przywrócisz sam', 'Codziennie, z każdego z ostatnich 30 dni. Pliki, bazy i poczta, bez zgłoszenia do pomocy.'],
+  ['Ta sama cena za rok', `${zl(ceny.hosting.rocznie)} brutto (${zl(netto(ceny.hosting.rocznie))} netto) rocznie, także przy odnowieniu.`],
+  ['Statystyki bez cookies', 'Widzisz odwiedziny i źródła ruchu bez banera zgody i bez narzędzi zewnętrznych.'],
+  ['Dostępność w umowie', '99,5% w miesiącu. Poniżej tego oddajemy część opłaty, a każdą awarię widać na stronie statusu.'],
+];
+
+export default async function Page() {
+  const ceny = await pobierzCeny();
+  const FAQ = faq(ceny);
   return (
     <main>
-      <JsonLd data={jsonLd} />
+      <JsonLd data={jsonLd(FAQ)} />
 
       <section className="hero2 hero2-sub">
         <div className="bg-pat" aria-hidden="true" />
@@ -137,8 +170,10 @@ export default function Page() {
               </Button>
             </div>
             <p className="hero2-fine">
-              Hosting z autoskalowaniem: <strong>45 zł/mies</strong> lub <strong>449 zł/rok</strong> brutto, ta sama cena
-              przy odnowieniu. Przeniesienie jest bezpłatne w ramach zamówienia.
+              Hosting z autoskalowaniem: <strong>{zl(ceny.hosting.miesiecznie)}/mies</strong> lub{' '}
+              <strong>{zl(ceny.hosting.rocznie)}/rok</strong> brutto ({zl(netto(ceny.hosting.miesiecznie))} lub{' '}
+              {zl(netto(ceny.hosting.rocznie))} netto), ta sama cena przy odnowieniu. Przeniesienie jest bezpłatne w ramach
+              zamówienia.
             </p>
           </div>
           <ul className="params">
@@ -179,6 +214,20 @@ export default function Page() {
             </ol>
             <PokazPrzeprowadzki etykiety={KROKI_PRZEPROWADZKI.map((k) => k.etykieta)} />
           </div>
+          <ul className="pc-czasy" aria-label="Ile trwa przeniesienie">
+            {CZASY.map((c) => (
+              <li key={c.kicker} className={c.ty ? 'ty' : undefined}>
+                <p className="kicker mono">{c.kicker.toUpperCase()}</p>
+                <b>{c.czas}</b>
+                <span>{c.opis}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="pc-uwaga">
+            Czasy kopiowania są orientacyjne: zależą od rozmiaru strony i poczty oraz od szybkości starego serwera.
+            Przeniesienie przez samo FTP i duże skrzynki pocztowe trwają dłużej. Postęp każdego etapu widzisz w panelu na
+            bieżąco.
+          </p>
         </div>
       </section>
 
@@ -233,6 +282,56 @@ export default function Page() {
         </div>
       </section>
 
+      <section className="sec" id="pilne" aria-labelledby="pp-tytul">
+        <div className="wrap">
+          <div className="pp-pilne">
+            <div className="pp-pilne-txt">
+              <p className="kicker">Pilny przypadek</p>
+              <h2 id="pp-tytul">Kończy Ci się hosting? Zacznij przeniesienie dziś</h2>
+              <p>
+                Załóż konto i uruchom przeniesienie od razu, bez czekania na odpowiedź z pomocy. Jeśli zostało niewiele
+                czasu, zostaw numer — oddzwonimy i ustalimy kolejność.
+              </p>
+              <div className="pp-pilne-cta">
+                <Button href={ZAMOW} cta="pilne" conv="checkout_intent" plan="hosting">
+                  Przenieś pilnie
+                </Button>
+                <Button href="#porozmawiajmy" variant="ghost" cta="pilne-telefon">
+                  Poproś o telefon
+                </Button>
+              </div>
+            </div>
+            <ul className="pp-scen">
+              {PILNE.map(([t, p]) => (
+                <li key={t}>
+                  <b>{t}</b>
+                  <span>{p}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section className="sec sec-alt" id="po-przeniesieniu" aria-labelledby="pz-tytul">
+        <div className="wrap">
+          <SectionHead2
+            id="pz-tytul"
+            eyebrow="Po przeniesieniu"
+            title="Co zmieni się dla Twojej strony"
+            lead="Ta sama strona, ten sam adres. Zmienia się to, co dzieje się pod spodem."
+          />
+          <ul className="pz-karty">
+            {zyski(ceny).map(([t, p]) => (
+              <li key={t}>
+                <h3>{t}</h3>
+                <p>{p}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
       <section className="sec sec-alt" aria-labelledby="b-bezp">
         <div className="wrap">
           <SectionHead id="b-bezp" eyebrow="Bezpieczeństwo" title="Twoje hasła i dane są bezpieczne" />
@@ -262,6 +361,14 @@ export default function Page() {
         </div>
       </section>
 
+      <section className="sec">
+        <div className="wrap">
+          <KartyUslug pomin={['przeniesienie']} />
+        </div>
+      </section>
+
+      <PasRozmowy />
+
       <CTABand
         title="Przeprowadzka bez stresu i bez kosztów"
         text="Podaj dostęp, a resztą zajmiemy się my. Stara strona działa do chwili przełączenia domeny."
@@ -269,7 +376,7 @@ export default function Page() {
         primaryHref={ZAMOW}
         secondary={{ label: 'Jak wybrać hosting', href: '/jak-wybrac-hosting' }}
       />
-      <StickyBuy href={ZAMOW} label="Przenieś stronę" />
+      <MobilnyPasek tytul="Przeniesienie 0 zł" podpis="stara strona działa do końca" przycisk="Przenieś stronę" href={ZAMOW} />
     </main>
   );
 }

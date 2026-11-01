@@ -1,9 +1,12 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
-import { Accordion, Breadcrumbs, Button, Card, CTABand, JsonLd, SectionHead, StickyBuy, Steps, type Step } from '../../components/ui';
+import { Accordion, Breadcrumbs, Button, Card, CTABand, JsonLd, SectionHead, Steps, type Step } from '../../components/ui';
+import { MobilnyPasek } from '../../components/MobilnyPasek';
+import { pobierzCeny } from '@/lib/ceny-api';
+import { pasekHostingu } from '@/lib/proba';
 import { ZAMOW } from '@/lib/site';
-import { faqSchema, HOSTING_OFFERS, productSchema } from '@/lib/schema';
+import { faqSchema, ofertyHostingu, productSchema } from '@/lib/schema';
 import { zweryfikowane } from '@/lib/oferta';
 
 // Makieta 14.10, plansza HostingWordpress (title z makiety, 59 zn.).
@@ -97,7 +100,8 @@ const FAQ: [string, string][] = [
   ],
 ];
 
-export default function Page() {
+export default async function Page() {
+  const ceny = await pobierzCeny();
   return (
     <main>
       <JsonLd
@@ -106,7 +110,7 @@ export default function Page() {
           description:
             'Hosting WordPress z autoskalowaniem: instalacja jednym kliknięciem, wersja testowa (staging), kopie z 30 dni przywracane samodzielnie, SSL i przeniesienie strony w cenie.',
           path: '/hosting/wordpress',
-          offers: HOSTING_OFFERS,
+          offers: ofertyHostingu(ceny),
         })}
       />
       <JsonLd data={faqSchema(FAQ)} />
@@ -223,7 +227,7 @@ export default function Page() {
         primaryLabel="Zamów hosting WordPress"
         secondary={{ label: 'Zobacz cennik', href: '/cennik' }}
       />
-      <StickyBuy />
+      <MobilnyPasek {...pasekHostingu(ceny)} />
     </main>
   );
 }

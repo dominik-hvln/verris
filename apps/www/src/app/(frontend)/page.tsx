@@ -1,33 +1,73 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { AKalkulator } from './components/AKalkulator';
-import { AZakladki, type Zakladka } from './components/AZakladki';
-import { Accordion, Button, Card, CTABand, JsonLd, SectionHead, StickyBuy, Steps, type Step } from './components/ui';
-import { organization, ORG_ID, SITE, HOSTING_OFFERS, faqSchema, productSchema } from '@/lib/schema';
-import { formatZl, kosztPiku } from '@/lib/kalkulator';
-import { ZAMOW } from '@/lib/site';
+import { Activity, ChartColumn, FileText, Globe, History, ShieldCheck, Zap } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { Accordion, Button, Card, CTABand, JsonLd, SectionHead2 } from './components/ui';
+import { KartyUslug, Poradniki } from './components/KartyUslug';
+import { MobilnyPasek } from './components/MobilnyPasek';
+import { PasRozmowy } from './components/PasRozmowy';
+import { PasekDostepnosci } from './components/PasekDostepnosci';
+import { PrzelacznikCeny } from './components/PrzelacznikCeny';
+import { HeroPodglad, type DaneHeroPodgladu } from './_glowna/HeroPodglad';
+import { PanelPodglad, type ZakladkaPanelu } from './_glowna/PanelPodglad';
+import { STYL_GLOWNEJ } from './_glowna/styl';
+import { pobierzCeny } from '@/lib/ceny-api';
+import {
+  GODZIN_W_MIESIACU,
+  kosztMocy,
+  miesiecznieZRocznej,
+  netto,
+  nettoStawki,
+  stawka,
+  zl,
+  zlGrosze,
+  type Ceny,
+} from '@/lib/ceny';
+import { pobierzDostepnosc, procent } from '@/lib/dostepnosc';
+import { ctaProby, okresProbny, pasekHostingu } from '@/lib/proba';
+import { organization, ORG_ID, SITE, faqSchema, productSchema, ofertyHostingu } from '@/lib/schema';
+import { plForm } from '@/lib/pl';
+import { LEGAL, ZAMOW } from '@/lib/site';
 
-// Makieta 14.10, plansza Main + notatka „seo-glowna” (canvas.json).
+// Makieta „verris.pl — rozbudowa treści” (1.11.2026), plansza Main z poprawkami z komentarzy.
+// Ceny wyłącznie z API (lib/ceny-api.ts) — w tym pliku nie ma kwot wpisanych na sztywno.
 export const metadata: Metadata = {
   title: 'Hosting WWW i WordPress z autoskalowaniem | Verris',
   description:
-    'Szybki polski hosting dla firm i sklepów: LiteSpeed, NVMe, kopie, które przywracasz sam, i darmowe przeniesienie strony. Od 45 zł/mies. brutto.',
+    'Szybki polski hosting dla firm i sklepów: LiteSpeed, NVMe, kopie, które przywracasz sam, i darmowe przeniesienie strony. Ta sama cena przy odnowieniu.',
   alternates: { canonical: '/' },
 };
 
-// Przykład w zakładce „Autoskalowanie”: dwa dodatkowe procesory wirtualne i 4 GB pamięci przez 1,5 h (ze stawek, nie wpisane).
-const PRZYKLAD_ZAKLADKA = formatZl(kosztPiku(2, 4, 1.5));
+/** Przykład w hero: kampania 20:00–23:00, +2 vCPU i +4 GB RAM przez 3 h, przy przykładowym limicie kosztu. */
+const PIK_HERO = { vcpu: 2, ram: 4, godziny: 3 };
+/** Przykład w panelu („Pik wczoraj 19:40–21:10”): +2 vCPU i +4 GB RAM przez 1,5 h. */
+const PIK_PANEL = { vcpu: 2, ram: 4, godziny: 1.5 };
+const PRZYKLADOWY_LIMIT = 30;
+/** Dysk ponad pakiet w przykładzie dopłat: +50 GB przez cały miesiąc. */
+const PRZYKLAD_DYSKU_GB = 50;
 
-const PARAMETRY: [string, string][] = [
-  ['SLA 99,5%', 'z rekompensatą, warunki w regulaminie'],
-  ['50 GB NVMe', 'limit 8 GB RAM i 2 vCPU w cenie'],
-  ['do 24 vCPU', '64 GB RAM i 1000 GB z autoskalowaniem'],
-  ['LiteSpeed', 'cache dla WordPressa i WooCommerce'],
-  ['Po polsku', 'pomoc, panel, regulamin i umowy'],
-];
+function daneHero(c: Ceny): DaneHeroPodgladu {
+  const doplata = kosztMocy(c.stawki, PIK_HERO.vcpu, PIK_HERO.ram, 0, PIK_HERO.godziny);
+  const razem = c.hosting.miesiecznie + doplata;
+  const r = c.hosting.rocznie;
+  const mies = miesiecznieZRocznej(c.hosting);
+  return {
+    pakiet: zlGrosze(c.hosting.miesiecznie),
+    doplata: zlGrosze(doplata),
+    razem: zlGrosze(razem),
+    razemNetto: zlGrosze(netto(razem)),
+    limitProcent: (doplata / PRZYKLADOWY_LIMIT) * 100,
+    limitOpis: `wykorzystano ${zlGrosze(doplata)} z limitu ${zl(PRZYKLADOWY_LIMIT)}, który ustawiłeś`,
+    rok: zl(r),
+    rokNetto: zl(netto(r)),
+    miesiecznie: zl(mies),
+    miesiecznieNetto: zl(netto(mies)),
+    trzyLata: zl(3 * r),
+    trzyLataNetto: zl(netto(3 * r)),
+  };
+}
 
-type Tab = { id: string; label: string; title: string; text: string; points: string[]; href: string; link: string; rows: [string, string][] };
-const TABS: Tab[] = [
+const ZAKLADKI_PANELU: ZakladkaPanelu[] = [
   {
     id: 'pulpit',
     label: 'Pulpit',
@@ -36,12 +76,6 @@ const TABS: Tab[] = [
     points: ['czy strona działa i czy SSL jest aktywny', 'zużycie dysku, pamięci i procesora', 'ostatnia kopia i najbliższa płatność'],
     href: '/hosting',
     link: 'Więcej o hostingu',
-    rows: [
-      ['sklep-ogrodowy.pl', 'działa'],
-      ['Ostatnia kopia', 'dziś 03:10'],
-      ['Certyfikat SSL', 'aktywny'],
-      ['Następna płatność', '45 zł'],
-    ],
   },
   {
     id: 'autoskalowanie',
@@ -49,14 +83,8 @@ const TABS: Tab[] = [
     title: 'Zasoby rosną, kiedy rośnie ruch',
     text: 'W piku konto dostaje więcej procesora i pamięci, a po nim wraca do zasobów z pakietu. Limit kosztu ustawiasz sam.',
     points: ['do 24 vCPU i 64 GB RAM', 'dopłata tylko za czas piku, w blokach po 15 minut', 'limit kosztu autoskalowania w panelu'],
-    href: '/hosting',
+    href: '/funkcje/autoskalowanie',
     link: 'Jak działa autoskalowanie',
-    rows: [
-      ['Autoskalowanie', 'włączone'],
-      ['Limit kosztu / mies.', '30 zł'],
-      ['Pik wczoraj', '19:40–21:10'],
-      ['Dopłata za ten pik', `${PRZYKLAD_ZAKLADKA} zł`],
-    ],
   },
   {
     id: 'kopie',
@@ -66,12 +94,6 @@ const TABS: Tab[] = [
     points: ['pliki, bazy i poczta osobno', 'kopia bezpieczeństwa przed przywróceniem', 'szyfrowane kopie poza serwerem z ostatnich 30 dni'],
     href: '/funkcje/kopie-zapasowe',
     link: 'Jak działają kopie',
-    rows: [
-      ['14.10 03:10', 'pełna'],
-      ['13.10 03:10', 'pełna'],
-      ['12.10 03:10', 'pełna'],
-      ['Przywróć bazę sklepu', 'wybierz →'],
-    ],
   },
   {
     id: 'przeniesienie',
@@ -81,12 +103,6 @@ const TABS: Tab[] = [
     points: ['pliki, bazy danych i poczta', 'podgląd strony przed zmianą DNS', 'bezpłatnie, w ramach zamówienia hostingu'],
     href: '/przenies-strone',
     link: 'Jak działa przeniesienie',
-    rows: [
-      ['Pliki', '100%'],
-      ['Baza wp_sklep', '100%'],
-      ['Poczta biuro@', '64%'],
-      ['Przełączenie domeny', 'czeka na Ciebie'],
-    ],
   },
   {
     id: 'poczta',
@@ -96,266 +112,288 @@ const TABS: Tab[] = [
     points: ['skrzynki bez limitu liczby, w ramach zasobów konta', 'aliasy i przekierowania', 'webmail z logowaniem z panelu'],
     href: '/poczta',
     link: 'Więcej o poczcie',
-    rows: [
-      ['biuro@sklep-ogrodowy.pl', '0,4 / 1 GB'],
-      ['zamowienia@', 'alias → biuro@'],
-      ['Webmail', 'zaloguj z panelu'],
-      ['SPF, DKIM, DMARC', 'ustawione'],
-    ],
   },
   {
     id: 'statystyki',
     label: 'Statystyki',
     title: 'Odwiedziny bez plików cookies',
-    text: 'Liczba odwiedzin, źródła ruchu i najczęściej czytane strony — w panelu, bez cookies na Twojej stronie.',
+    text: 'Liczba odwiedzin, źródła ruchu i najczęściej czytane strony, w panelu, bez cookies na Twojej stronie.',
     points: ['odwiedziny, źródła i strony wejścia', 'bez plików cookies', 'w cenie hostingu'],
     href: '/funkcje/statystyki',
     link: 'Jak działają statystyki',
-    rows: [
-      ['Odwiedziny dziś', '1 284'],
-      ['Źródło nr 1', 'Google'],
-      ['Najczęstsze wejście', '/sklep/nasiona'],
-      ['Cookies', 'brak'],
-    ],
   },
 ];
 
-const ZAKLADKI: Zakladka[] = TABS.map((t) => ({
-  id: t.id,
-  label: t.label,
-  panel: (
-    <div className="a-tabpanel">
-      <div className="a-tabtxt">
-        <h3>{t.title}</h3>
-        <p>{t.text}</p>
-        <ul className="a-list">
-          {t.points.map((p) => (
-            <li key={p}>{p}</li>
-          ))}
-        </ul>
-        <Link href={t.href}>{t.link} →</Link>
-      </div>
-      <div className="a-screen" role="img" aria-label={`Przykładowy ekran panelu: ${t.title.toLowerCase()}.`}>
-        <span className="a-dots" aria-hidden="true">
-          <i />
-          <i />
-          <i />
-        </span>
-        {t.rows.map(([a, b]) => (
-          <p key={a}>
-            <span>{a}</span>
-            <span className="mono mint">{b}</span>
-          </p>
-        ))}
-        <small>Przykładowe dane. Ekran poglądowy panelu Verris.</small>
-      </div>
-    </div>
-  ),
-}));
-
-const FUNKCJE: { t: string; p: string; href: string; link: string }[] = [
+const KARTY: { ikona: ReactNode; t: string; p: string; etykiety: string[]; href: string; link: string }[] = [
   {
+    ikona: <Zap aria-hidden="true" />,
     t: 'Szybka strona to więcej zamówień',
     p: 'LiteSpeed z cache dla WordPressa i WooCommerce, dyski NVMe i Redis. Strona ładuje się szybko także wtedy, gdy odwiedza ją naraz wiele osób.',
-    href: '/hosting',
-    link: 'Jak działa autoskalowanie',
+    etykiety: ['LiteSpeed', 'NVMe', 'Redis'],
+    href: '/funkcje/autoskalowanie',
+    link: 'Autoskalowanie',
   },
   {
+    ikona: <ShieldCheck aria-hidden="true" />,
     t: 'Śpisz spokojnie, strona pracuje',
     p: 'Każde konto działa w osobnej izolacji, zapora aplikacji (WAF) zatrzymuje typowe ataki, a ImunifyAV skanuje pliki w tle.',
+    etykiety: ['WAF', 'ImunifyAV', 'izolacja kont'],
     href: '/specyfikacja',
-    link: 'Co dokładnie chroni Twoją stronę',
+    link: 'Zabezpieczenia',
   },
   {
+    ikona: <History aria-hidden="true" />,
     t: 'Aktualizacja coś zepsuła? Wróć do wczoraj',
     p: 'Przywracasz pliki, bazę albo pocztę z wybranego dnia. Zanim to zrobisz, zapisujemy kopię obecnego stanu, na wszelki wypadek.',
+    etykiety: ['30 dni', 'poza serwerem', 'szyfrowane'],
     href: '/funkcje/kopie-zapasowe',
-    link: 'Zobacz, jak to wygląda',
+    link: 'Kopie zapasowe',
   },
   {
+    ikona: <ChartColumn aria-hidden="true" />,
     t: 'Wiesz, kto Cię odwiedza. Bez cookies',
     p: 'Liczba odwiedzin, źródła ruchu i najczęściej czytane strony w panelu. Statystyki działają bez plików cookies.',
+    etykiety: ['bez cookies', 'bez banera', 'w cenie'],
     href: '/funkcje/statystyki',
-    link: 'Jak działają statystyki',
+    link: 'Statystyki',
   },
 ];
 
-const PRZENIESIENIE: Step[] = [
-  { label: '01', title: 'Wybierz domenę', text: 'Tę, którą chcesz przenieść — z listy domen Twojego konta.' },
-  { label: '02', title: 'Podaj dostęp', text: 'Login do starego panelu albo FTP i hasła skrzynek. Wystarczy formularz w panelu.' },
-  { label: '03', title: 'Kopiujemy dane', text: 'Pliki, bazy i pocztę. Stara strona działa w tym czasie normalnie.' },
-  { label: '04', title: 'Przełącz, kiedy chcesz', text: 'Najpierw sprawdzasz stronę, potem zmieniasz DNS. Decyzja należy do Ciebie.' },
+const CECHY: [string, string[]][] = [
+  ['Moc', ['50 GB NVMe, 8 GB RAM, 2 vCPU', 'w szczycie do 24 vCPU i 64 GB RAM', 'dysk do 1000 GB, gdy potrzebujesz więcej', 'LiteSpeed z cache, Redis']],
+  ['Bezpieczeństwo', ['kopie z ostatnich 30 dni', 'zapora WAF i skaner', 'SSL dla każdej domeny']],
+  ['Poczta i domeny', ['skrzynki bez limitu liczby', 'SPF, DKIM, DMARC w panelu', 'ukrycie danych w WHOIS']],
+  ['Wygoda', ['przeniesienie za 0 zł', 'wersja testowa WordPressa', 'statystyki bez cookies']],
 ];
 
-const ZASADY: [string, string][] = [
-  [
-    'Strona nie działała? Dostajesz rekompensatę',
-    'SLA 99,5% dostępności w miesiącu. Gdy dostępność spadnie poniżej, przyznajemy rekompensatę w kredytach — na wniosek, na zasadach z regulaminu.',
-  ],
-  ['Domena nie przedłuży się bez Ciebie', 'Przypominamy 30, 14 i 7 dni przed końcem, a odnawiasz wtedy, kiedy sam zdecydujesz.'],
-  [
-    'RODO bez papierologii',
-    'Umowę powierzenia danych akceptujesz w panelu. Listę firm, z którymi współpracujemy, znajdziesz w dokumentach.',
-  ],
-  ['Nie ukrywamy awarii', 'Publiczna strona statusu pokazuje dostępność usług i każdą przerwę, z opisem.'],
+const KROKI: { n: string; t: string; p: string; kto: string; akcent?: boolean }[] = [
+  { n: '1', t: 'Wybierasz domenę', p: 'Sprawdzamy, gdzie dziś jest strona i jaki panel ma stary hosting.', kto: 'TY · 1 min' },
+  { n: '2', t: 'Podajesz dostęp', p: 'Login do cPanel, Plesk albo FTP. Hasła szyfrujemy i kasujemy po przeniesieniu.', kto: 'TY · kilka minut' },
+  { n: '3', t: 'Kopiujemy dane', p: 'Pliki, bazy i skrzynki. Każdy etap widzisz w panelu na żywo.', kto: 'MY · zwykle 15–90 min' },
+  { n: '4', t: 'Przełączasz, kiedy chcesz', p: 'Sprawdzasz stronę na adresie testowym i dopiero wtedy przełączasz domenę.', kto: 'TY · 1 klik', akcent: true },
 ];
 
-const FAQ: [string, string][] = [
-  [
-    'Jaki hosting wybrać dla WordPressa albo sklepu WooCommerce?',
-    'Taki, który ma cache LiteSpeed, szybkie dyski NVMe i zapas mocy na dni z większym ruchem. W Verris masz to w jednym pakiecie za 45 zł miesięcznie brutto, a w szczycie strona dostaje dodatkową moc automatycznie — do 24 vCPU i 64 GB RAM.',
-  ],
-  [
-    'Czy cena wzrośnie przy odnowieniu?',
-    'Nie ma taniego pierwszego okresu. Odnowienie idzie po cenie z cennika (dziś 45 zł/mies. albo 449 zł/rok brutto). Przed odnowieniem wyślemy przypomnienie e-mail, a z odnowienia zrezygnujesz w panelu w każdej chwili, bez opłat.',
-  ],
-  [
-    'Jak przenieść stronę na nowy hosting i ile to kosztuje?',
-    'U nas nic. Podajesz dostęp do starego hostingu, a stronę, bazę i pocztę kopiujemy za Ciebie — albo robisz to sam migratorem w panelu. Stara strona działa, dopóki nie przełączysz domeny.',
-  ],
-  [
-    'Co to jest autoskalowanie hostingu?',
-    'To dodatkowa moc, która włącza się sama, gdy na stronie robi się tłoczno, na przykład po starcie reklamy. Co minutę sprawdzamy obciążenie konta i w razie potrzeby dokładamy procesora i pamięci. Płacisz tylko za czas z dodatkową mocą, w blokach po 15 minut, do limitu z panelu.',
-  ],
-  [
-    'Gdzie są moje dane?',
-    'W Unii Europejskiej, zgodnie z RODO. Kopie trzymamy poza serwerem strony, a listę podwykonawców znajdziesz w dokumentach.',
-  ],
-  ['Jak dostanę fakturę?', 'Fakturę VAT po każdej płatności znajdziesz w panelu, a powiadomienie o niej dostajesz e-mailem.'],
+const CZASY: [string, string, string][] = [
+  ['TWÓJ CZAS', 'ok. 5 min', 'wybór domeny, dostęp i jedno kliknięcie na koniec'],
+  ['STRONA FIRMOWA DO 1 GB', '15–30 min', 'pliki, baza i kilka skrzynek pocztowych'],
+  ['SKLEP 1–10 GB', '30–90 min', 'duża baza, tysiące zdjęć produktów'],
+  ['PRZERWA W DZIAŁANIU', '0 min', 'stara strona działa, aż sam przełączysz domenę'],
 ];
 
-const homeJsonLd = {
-  '@context': 'https://schema.org',
-  '@graph': [
-    organization,
-    { '@type': 'WebSite', '@id': `${SITE}/#website`, url: `${SITE}/`, name: 'Verris', inLanguage: 'pl-PL', publisher: { '@id': ORG_ID } },
-    { ...productSchema({
-      name: 'Hosting Verris z autoskalowaniem',
-      description:
-        'Hosting WWW i WordPress z autoskalowaniem. W cenie 50 GB NVMe oraz limit 8 GB RAM i 2 vCPU; z autoskalowaniem limity rosną do 1000 GB dysku, 64 GB RAM i 24 vCPU. Przeniesienie strony i SSL w cenie, SLA 99,5% z rekompensatą.',
-      path: '/',
-      offers: HOSTING_OFFERS,
-    }), '@context': undefined },
-    { ...faqSchema(FAQ), '@context': undefined },
-  ],
-};
+const DOKUMENTY: [string, string][] = [
+  ['Regulamin', `${LEGAL}/terms`],
+  ['Polityka prywatności', `${LEGAL}/privacy`],
+  ['Umowa powierzenia (DPA)', `${LEGAL}/dpa`],
+  ['Podprocesorzy', `${LEGAL}/privacy`],
+];
 
-export default function HomePage() {
+function faq(c: Ceny): [string, string][] {
+  const m = c.hosting.miesiecznie;
+  const r = c.hosting.rocznie;
+  const lista: [string, string][] = [];
+  const cta = ctaProby(c);
+  if (cta.proba) {
+    lista.push([
+      `Jak działa ${cta.dni} ${plForm(cta.dni, 'dzień', 'dni', 'dni')} za darmo?`,
+      `Zakładasz konto bez karty i przez ${cta.dni} ${plForm(cta.dni, 'dzień', 'dni', 'dni')} korzystasz z panelu i przeniesienia strony. W czasie próby wysyłka poczty ma niższy limit, nie rejestrujesz domen i nie włączasz dodatkowej mocy. Po próbie opłacasz hosting albo konto zostaje zawieszone.`,
+    ]);
+  }
+  lista.push(
+    [
+      'Jaki hosting wybrać dla WordPressa albo sklepu WooCommerce?',
+      `Taki, który ma cache LiteSpeed, szybkie dyski NVMe i zapas mocy na dni z większym ruchem. W Verris masz to w jednym pakiecie za ${zl(m)} miesięcznie brutto (${zl(netto(m))} netto), a w szczycie strona dostaje dodatkową moc automatycznie — do 24 vCPU i 64 GB RAM.`,
+    ],
+    [
+      'Czy cena wzrośnie przy odnowieniu?',
+      `Nie ma taniego pierwszego okresu. Odnowienie idzie po cenie z cennika (dziś ${zl(m)}/mies. albo ${zl(r)}/rok brutto). Przed odnowieniem wyślemy przypomnienie e-mail, a z odnowienia zrezygnujesz w panelu w każdej chwili, bez opłat.`,
+    ],
+    [
+      'Jak przenieść stronę na nowy hosting i ile to kosztuje?',
+      'U nas nic. Podajesz dostęp do starego hostingu, a stronę, bazę i pocztę kopiujemy za Ciebie — albo robisz to sam migratorem w panelu. Stara strona działa, dopóki nie przełączysz domeny.',
+    ],
+    [
+      'Co to jest autoskalowanie hostingu?',
+      'To dodatkowa moc, która włącza się sama, gdy na stronie robi się tłoczno, na przykład po starcie reklamy. Co minutę sprawdzamy obciążenie konta i w razie potrzeby dokładamy procesora i pamięci. Płacisz tylko za czas z dodatkową mocą, w blokach po 15 minut, do limitu z panelu.',
+    ],
+    [
+      'Gdzie są moje dane?',
+      'W Unii Europejskiej, zgodnie z RODO. Kopie trzymamy poza serwerem strony, a listę podwykonawców znajdziesz w dokumentach.',
+    ],
+    ['Jak dostanę fakturę?', 'Fakturę VAT po każdej płatności znajdziesz w panelu, a powiadomienie o niej dostajesz e-mailem.'],
+  );
+  return lista;
+}
+
+function jsonLd(c: Ceny, pytania: [string, string][]) {
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [
+      organization,
+      { '@type': 'WebSite', '@id': `${SITE}/#website`, url: `${SITE}/`, name: 'Verris', inLanguage: 'pl-PL', publisher: { '@id': ORG_ID } },
+      {
+        ...productSchema({
+          name: 'Hosting Verris z autoskalowaniem',
+          description:
+            'Hosting WWW i WordPress z autoskalowaniem. W cenie 50 GB NVMe oraz limit 8 GB RAM i 2 vCPU; z autoskalowaniem limity rosną do 1000 GB dysku, 64 GB RAM i 24 vCPU. Przeniesienie strony i SSL w cenie, SLA 99,5% z rekompensatą.',
+          path: '/',
+          offers: ofertyHostingu(c),
+        }),
+        '@context': undefined,
+      },
+      { ...faqSchema(pytania), '@context': undefined },
+    ],
+  };
+}
+
+function Ok() {
+  return (
+    <span className="gl-ok" aria-hidden="true">
+      ✓
+    </span>
+  );
+}
+
+function Stopka({ opis, link, href }: { opis: string; link: string; href: string }) {
+  return (
+    <div className="gl-stopka">
+      <span>{opis}</span>
+      {href.startsWith('/') ? <Link href={href}>{link} →</Link> : <a href={href}>{link} →</a>}
+    </div>
+  );
+}
+
+export default async function HomePage() {
+  const [ceny, dostepnosc] = await Promise.all([pobierzCeny(), pobierzDostepnosc()]);
+  const cta = ctaProby(ceny);
+  const proba = okresProbny(ceny);
+  const m = ceny.hosting.miesiecznie;
+  const r = ceny.hosting.rocznie;
+  const s = ceny.stawki;
+  const pytania = faq(ceny);
+  const doplataPiku = kosztMocy(s, PIK_PANEL.vcpu, PIK_PANEL.ram, 0, PIK_PANEL.godziny);
+  const dyskMiesiac = s.dysk * GODZIN_W_MIESIACU;
+
   return (
     <main>
-      <JsonLd data={homeJsonLd} />
+      <style href="verris-glowna" precedence="medium">
+        {STYL_GLOWNEJ}
+      </style>
+      <JsonLd data={jsonLd(ceny, pytania)} />
 
       {/* HERO */}
-      <section className="hero2">
+      <section className="hero2 gl-hero">
         <div className="bg-pat" aria-hidden="true" />
-        <div className="wrap hero2-grid">
+        <div className="wrap gl-hero-grid">
           <div>
-            <span className="chip">Polski hosting dla firm, sklepów i WordPressa</span>
+            <p className="kicker" style={{ margin: 0 }}>
+              Hosting WWW i WordPress z autoskalowaniem
+            </p>
             <h1>Hosting, przy którym Twoja strona nadąża za klientami</h1>
             <p className="lead">
-              Szybki hosting stron, sklepów i WordPressa. Kiedy na stronę wpada więcej klientów, dostaje więcej mocy.
-              Kiedy coś pójdzie nie tak, sam przywracasz wczorajszą kopię. A za rok płacisz tyle samo co dziś.
+              Kiedy reklama zadziała albo ruszy promocja, serwer sam dokłada mocy. Po szczycie wracasz do {zl(m)}. Stronę
+              przeniesiemy za Ciebie.
             </p>
-            <div className="hero2-cta">
-              <Button href={ZAMOW} cta="hero" plan="hosting">
-                Zacznij od 45 zł/mies.
+            <ul className="gl-punkty">
+              <li>
+                <Ok />
+                Moc rośnie do 24 vCPU i 64 GB RAM, tylko na czas ruchu
+              </li>
+              <li>
+                <Ok />
+                Ta sama cena przy odnowieniu, bez taniego pierwszego roku
+              </li>
+              <li>
+                <Ok />
+                Przeniesienie strony, bazy i poczty za 0 zł
+              </li>
+            </ul>
+            <div className="gl-cta">
+              <Button href={cta.href} cta="hero" plan="hosting">
+                {cta.label}
               </Button>
               <Button href="/przenies-strone" variant="ghost" cta="hero-migracja">
-                Przeniesiemy Twoją stronę za darmo
+                Przenieś stronę za 0 zł
               </Button>
             </div>
-            <p className="hero2-fine">
-              Ceny brutto. Rocznie 449 zł (ok. 37 zł/mies.). Odnowienie po tej samej cenie — bez taniego pierwszego roku
-              i drogiego drugiego.
+            <p className="gl-drobne">
+              {proba ? 'Bez karty. Po próbie ' : 'Ceny brutto: '}
+              {zl(m)}/mies. brutto ({zl(netto(m))} netto) albo {zl(r)}/rok brutto ({zl(netto(r))} netto). Ta sama cena przy
+              odnowieniu.
             </p>
           </div>
+          <HeroPodglad dane={daneHero(ceny)} />
+        </div>
+      </section>
 
-          <div className="card a-hero-panel">
-            <div className="a-hero-top">
-              <p>Twój panel · sklep-ogrodowy.pl</p>
-              <p className="mono mint">● działa</p>
+      {/* LICZBY DO SPRAWDZENIA */}
+      <section className="sec" aria-label="Liczby, które możesz sprawdzić" style={{ paddingTop: 0 }}>
+        <div className="wrap">
+          <div className="gl-liczby">
+            {dostepnosc?.d30 != null && (
+              <div className="gl-liczba">
+                <strong>{procent(dostepnosc.d30)}</strong>
+                <span>dostępność w ostatnich 30 dniach</span>
+                <a href="https://status.verris.pl">na żywo ze status.verris.pl →</a>
+              </div>
+            )}
+            <div className="gl-liczba">
+              <strong>99,5%</strong>
+              <span>dostępności w umowie, z rekompensatą</span>
+              <Link href="/funkcje/sla">zasady SLA →</Link>
             </div>
-            <div className="a-tiles">
-              <div>
-                <small>CPU</small>
-                <b>2 → 6 vCPU</b>
-                <small className="mint">pik o 19:40</small>
-              </div>
-              <div>
-                <small>RAM</small>
-                <b>8 GB</b>
-                <small>limit w pakiecie</small>
-              </div>
-              <div>
-                <small>Kopia</small>
-                <b>dziś 03:10</b>
-                <small>przywróć sam</small>
-              </div>
+            <div className="gl-liczba">
+              <strong>30 dni</strong>
+              <span>kopii poza serwerem, przywracasz sam</span>
+              <Link href="/funkcje/kopie-zapasowe">jak działają kopie →</Link>
             </div>
-            <svg
-              viewBox="0 0 520 150"
-              role="img"
-              aria-label="Przykładowy wykres: obciążenie rośnie wieczorem, zasoby dobierają się automatycznie i wracają do zasobów z pakietu."
-              className="a-curve"
-            >
-              <line x1="0" y1="110" x2="520" y2="110" stroke="rgba(255,255,255,0.12)" strokeDasharray="4 4" />
-              <text x="4" y="104" fill="#93A29A" fontSize="11" fontFamily="JetBrains Mono, monospace">
-                zasoby w cenie pakietu
-              </text>
-              <path
-                d="M0 120 C60 118 100 116 140 112 C190 104 220 70 260 40 C290 22 320 26 350 60 C380 96 420 112 520 116 L520 150 L0 150 Z"
-                fill="rgba(52,229,160,0.10)"
-              />
-              <path
-                d="M0 120 C60 118 100 116 140 112 C190 104 220 70 260 40 C290 22 320 26 350 60 C380 96 420 112 520 116"
-                fill="none"
-                stroke="#34E5A0"
-                strokeWidth="3"
-              />
-              <text x="236" y="20" fill="#F4F4EE" fontSize="12">
-                więcej klientów — więcej mocy
-              </text>
-            </svg>
-            <Link href="/hosting#pokaz" className="a-link">
-              Zobacz animację: tydzień sklepu z reklamą →
-            </Link>
+            <div className="gl-liczba">
+              <strong>0 zł</strong>
+              <span>za przeniesienie strony, bazy i poczty</span>
+              <Link href="/przenies-strone">jak działa przeniesienie →</Link>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="a-band" aria-label="Najważniejsze parametry">
-        <ul className="wrap a-params">
-          {PARAMETRY.map(([b, s]) => (
-            <li key={b}>
-              <b>{b}</b>
-              <span>{s}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      {/* PANEL */}
+      {/* ZAJRZYJ DO PANELU */}
       <section className="sec" id="panel">
         <div className="wrap">
-          <SectionHead
+          <SectionHead2
             eyebrow="Zajrzyj do panelu, zanim kupisz"
             title="Sprawy, o które zwykle piszesz do pomocy, załatwisz sam w minutę"
-            lead="Przywrócenie kopii, nowa skrzynka, sprawdzenie, czemu strona zwolniła — bez czekania na odpowiedź i bez szukania po menu. Kliknij zakładkę i zobacz."
+            lead="Przywrócenie kopii, nowa skrzynka, sprawdzenie, czemu strona zwolniła. Bez czekania na odpowiedź i bez szukania po menu. Kliknij zakładkę i zobacz."
           />
-          <AZakladki label="Funkcje panelu" items={ZAKLADKI} />
+          <PanelPodglad
+            zakladki={ZAKLADKI_PANELU}
+            platnosc={zl(m)}
+            doplataPiku={zlGrosze(doplataPiku)}
+            doplataPikuNetto={zlGrosze(netto(doplataPiku))}
+          />
         </div>
       </section>
 
-      {/* FUNKCJE */}
+      {/* RZECZY, KTÓRE DOCENISZ */}
       <section className="sec" id="funkcje">
         <div className="wrap">
-          <SectionHead title="Rzeczy, które docenisz w najgorszym możliwym momencie" />
-          <div className="a-grid4">
-            {FUNKCJE.map((f) => (
-              <Card key={f.t}>
-                <h3>{f.t}</h3>
-                <p>{f.p}</p>
-                <Link href={f.href}>{f.link} →</Link>
+          <SectionHead2
+            eyebrow="Dlaczego Verris"
+            title="Rzeczy, które docenisz w najgorszym możliwym momencie"
+            lead="Rzeczy, o których nie myślisz na co dzień, a które ratują dzień, kiedy coś pójdzie nie tak."
+          />
+          <div className="gl-karty n4">
+            {KARTY.map((k) => (
+              <Card key={k.t} className="gl-karta">
+                <span className="gl-ik">{k.ikona}</span>
+                <h3>{k.t}</h3>
+                <p>{k.p}</p>
+                <div className="gl-etyk">
+                  {k.etykiety.map((e) => (
+                    <span key={e}>{e}</span>
+                  ))}
+                </div>
+                <div className="gl-stopka">
+                  <Link href={k.href}>{k.link} →</Link>
+                </div>
               </Card>
             ))}
           </div>
@@ -364,32 +402,107 @@ export default function HomePage() {
 
       {/* CENNIK */}
       <section className="sec sec-alt" id="cennik">
-        <div className="wrap a-cennik">
-          <div>
-            <SectionHead
-              eyebrow="Cennik"
-              title="Twoja strona ma lepsze i gorsze dni. Rachunek też powinien"
-              lead="W zwykły dzień płacisz 45 zł za miesiąc i nic więcej. Gdy wyprzedaż albo reklama ściągnie tłum, dokładamy mocy na te godziny i tylko za nie płacisz — do limitu, który sam ustawisz. Sprawdź, ile to może być:"
-            />
-            <AKalkulator wariant="krotki" />
-          </div>
-          <div className="card card-accent a-price">
-            <h3>Hosting Verris z autoskalowaniem</h3>
-            <p className="price-big2">
-              45 zł<span> / mies. brutto</span>
-            </p>
-            <p>albo 449 zł / rok brutto — ta sama cena przy odnowieniu</p>
-            <ul className="a-list">
-              <li>50 GB NVMe, limit 8 GB RAM i 2 vCPU w cenie</li>
-              <li>bez limitu stron, skrzynek i transferu (w ramach zasobów konta i zasad uczciwego korzystania)</li>
-              <li>certyfikaty SSL, kopie z 30 dni i przeniesienie strony w cenie</li>
-            </ul>
-            <Button href={ZAMOW} cta="home-cennik" plan="hosting" className="btn-block">
-              Zamów hosting
-            </Button>
-            <Link href="/cennik" className="a-link">
-              Pełny cennik i kalkulator →
-            </Link>
+        <div className="wrap">
+          <SectionHead2
+            eyebrow="Cennik"
+            title="Jeden pakiet. Ta sama cena dziś i za rok"
+            lead="Nie wybierasz między pakietami. Dostajesz wszystko, a za dodatkową moc płacisz tylko wtedy, gdy strona jej naprawdę potrzebuje."
+          />
+          <div className="gl-cennik">
+            <Card accent className="gl-cena">
+              <PrzelacznikCeny cena={ceny.hosting} nazwa="Hosting Verris z autoskalowaniem" />
+              {proba && (
+                <div className="gl-proba">
+                  <b>
+                    {cta.dni} {plForm(cta.dni, 'dzień', 'dni', 'dni')} za darmo, bez karty
+                  </b>
+                  <span>
+                    Pełny panel i przeniesienie strony. W czasie próby: wysyłka do 100 maili na dobę, bez rejestracji domen i bez
+                    dodatkowej mocy.
+                  </span>
+                </div>
+              )}
+              <Button href={cta.href} cta="home-cennik" plan="hosting">
+                {cta.label}
+              </Button>
+              {proba ? (
+                <Link href={ZAMOW} className="gl-alt">
+                  albo zamów od razu
+                </Link>
+              ) : (
+                <Link href="/cennik" className="gl-alt">
+                  Pełny cennik i kalkulator →
+                </Link>
+              )}
+            </Card>
+            <div style={{ display: 'grid', gap: 16, minWidth: 0 }}>
+              <div className="gl-cechy">
+                {CECHY.map(([t, lista]) => (
+                  <Card key={t} className="gl-cecha">
+                    <h3>{t}</h3>
+                    <ul>
+                      {lista.map((x) => (
+                        <li key={x}>
+                          <Ok />
+                          {x}
+                        </li>
+                      ))}
+                    </ul>
+                  </Card>
+                ))}
+              </div>
+              <Card className="gl-tabela">
+                <h3>Płatne dodatki</h3>
+                <table>
+                  <thead>
+                    <tr>
+                      <th scope="col">Dodatek</th>
+                      <th scope="col">Cena brutto</th>
+                      <th scope="col">Cena netto</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <th scope="row">
+                        Dodatkowa moc w szczycie
+                        <small>tylko w szczycie, do limitu, który ustawisz</small>
+                      </th>
+                      <td>
+                        {stawka(s.ram)} zł za 1 GB RAM/h · {stawka(s.cpu)} zł za 1% CPU/h
+                      </td>
+                      <td>
+                        {stawka(nettoStawki(s.ram))} zł · {stawka(nettoStawki(s.cpu))} zł
+                      </td>
+                    </tr>
+                    <tr>
+                      <th scope="row">
+                        Więcej miejsca na dysku
+                        <small>ponad 50 GB, do 1000 GB, tylko za czas użycia</small>
+                      </th>
+                      <td>
+                        {stawka(s.dysk)} zł za 1 GB/h
+                        <small>
+                          ok. {zlGrosze(dyskMiesiac)} za 1 GB/mies. · +{PRZYKLAD_DYSKU_GB} GB przez cały miesiąc: ok.{' '}
+                          {zlGrosze(dyskMiesiac * PRZYKLAD_DYSKU_GB)}
+                        </small>
+                      </td>
+                      <td>
+                        {stawka(nettoStawki(s.dysk))} zł
+                        <small>
+                          ok. {zlGrosze(nettoStawki(dyskMiesiac))} · ok. {zlGrosze(nettoStawki(dyskMiesiac * PRZYKLAD_DYSKU_GB))}
+                        </small>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th scope="row">Domena</th>
+                      <td colSpan={2}>
+                        według <Link href="/domeny">cennika domen</Link>, rejestracja i odnowienie obok siebie
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </Card>
+            </div>
           </div>
         </div>
       </section>
@@ -397,51 +510,196 @@ export default function HomePage() {
       {/* PRZENIESIENIE */}
       <section className="sec" id="migracja">
         <div className="wrap">
-          <SectionHead
-            eyebrow="Przeniesienie strony"
-            title="Przeprowadzka bez stresu. Stara strona działa, dopóki nie powiesz „przełączamy”"
+          <SectionHead2
+            eyebrow="Przeniesienie strony · 0 zł"
+            title="Przeprowadzka, przy której stara strona działa do końca"
+            lead="Ty poświęcasz kilka minut na podanie dostępu. Resztę robimy my, a domenę przełączasz dopiero wtedy, gdy sprawdzisz nową stronę."
           />
-          <Steps items={PRZENIESIENIE} />
-          <p className="center-cta">
-            <Button href="/przenies-strone" cta="migracja">
-              Zobacz, jak działa przeniesienie
-            </Button>
+          <ol className="gl-kroki">
+            {KROKI.map((k) => (
+              <li key={k.n}>
+                <Card className="gl-krok" accent={k.akcent}>
+                  <span className="gl-mono" aria-hidden="true">
+                    {k.n}
+                  </span>
+                  <h3>{k.t}</h3>
+                  <p>{k.p}</p>
+                  <span className="gl-kto">{k.kto}</span>
+                </Card>
+              </li>
+            ))}
+          </ol>
+          <Card className="gl-czasy">
+            {CZASY.map(([e, w, o]) => (
+              <div key={e} className="gl-czas">
+                <small>{e}</small>
+                <strong>{w}</strong>
+                <span>{o}</span>
+              </div>
+            ))}
+          </Card>
+          <p className="gl-orient">
+            Czasy kopiowania są orientacyjne: zależą od rozmiaru strony i poczty oraz od szybkości starego serwera.
+            Przeniesienie przez samo FTP i duże skrzynki pocztowe trwają dłużej. Postęp każdego etapu widzisz w panelu na
+            bieżąco.
           </p>
+          <div className="gl-ramki">
+            <Card className="gl-ramka">
+              <div>
+                <b>Kończy Ci się hosting?</b>
+                <span>Zacznij przeniesienie dziś. Napisz, do kiedy masz opłacony stary hosting, a ustawimy kolejność.</span>
+              </div>
+              <Button href="/przenies-strone" cta="home-migracja-pilna">
+                Przenieś pilnie
+              </Button>
+            </Card>
+            <Card className="gl-ramka">
+              <div>
+                <b>Wolisz zrobić to sam?</b>
+                <span>Poradniki krok po kroku dla cPanel, Plesk i FTP.</span>
+              </div>
+              <Button href="/przenies-strone#poradniki" variant="ghost" cta="home-poradniki">
+                Zobacz poradniki
+              </Button>
+            </Card>
+          </div>
         </div>
       </section>
 
       {/* ZASADY */}
       <section className="sec sec-alt" id="zasady">
-        <div className="wrap a-cennik">
-          <SectionHead
+        <div className="wrap">
+          <SectionHead2
+            eyebrow="Zasady"
             title="Zasady, które znasz przed zakupem"
-            lead="Jesteśmy nową marką, więc nie prosimy, żebyś wierzył nam na słowo. Wszystko, co tu obiecujemy, jest zapisane w regulaminie i specyfikacji. Przeczytasz je, zanim cokolwiek zapłacisz."
+            lead="Jesteśmy nową marką, więc nie prosimy, żebyś wierzył nam na słowo. Wszystko poniżej jest zapisane w dokumentach, które przeczytasz, zanim cokolwiek zapłacisz."
           />
-          <div className="a-grid2">
-            {ZASADY.map(([t, p]) => (
-              <Card key={t}>
-                <h3>{t}</h3>
-                <p>{p}</p>
-              </Card>
-            ))}
+          <div className="gl-zasady">
+            <Card className="gl-zasada">
+              <div className="gl-zasada-g">
+                <span className="gl-ik">
+                  <ShieldCheck aria-hidden="true" />
+                </span>
+                <h3>Strona nie działała? Dostajesz rekompensatę</h3>
+              </div>
+              <p>Gwarantujemy 99,5% dostępności w miesiącu. Poniżej tego oddajemy część opłaty:</p>
+              <div className="gl-sla">
+                {[
+                  ['5%', 'poniżej 99,5%'],
+                  ['25%', 'poniżej 99%'],
+                  ['50%', 'poniżej 95%'],
+                  ['100%', 'poniżej 90%'],
+                ].map(([a, b]) => (
+                  <div key={a}>
+                    <b>{a}</b>
+                    <span>{b}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="gl-mini">Rekompensatę przyznajemy w kredytach, na wniosek, na zasadach z regulaminu.</p>
+              <Stopka opis="Regulamin, §15: dostępność i rekompensaty" link="Czytaj" href={`${LEGAL}/terms`} />
+            </Card>
+            <Card className="gl-zasada">
+              <div className="gl-zasada-g">
+                <span className="gl-ik">
+                  <Activity aria-hidden="true" />
+                </span>
+                <h3>Nie ukrywamy awarii</h3>
+              </div>
+              <p>Każde zakłócenie widać publicznie, z czasem trwania.{dostepnosc ? ' Tak wyglądały dni od uruchomienia pomiarów:' : ''}</p>
+              {dostepnosc && <PasekDostepnosci dane={dostepnosc} />}
+              <Stopka opis="Sprawdzisz sam, bez logowania" link="status.verris.pl" href="https://status.verris.pl" />
+            </Card>
+            <Card className="gl-zasada">
+              <div className="gl-zasada-g">
+                <span className="gl-ik">
+                  <Globe aria-hidden="true" />
+                </span>
+                <h3>Domena nie przedłuży się bez Ciebie</h3>
+              </div>
+              <p>
+                Nie pobieramy pieniędzy za domenę automatycznie. Przypominamy 30, 14 i 7 dni przed końcem, a odnawiasz jednym
+                kliknięciem w panelu, kiedy sam zdecydujesz.
+              </p>
+              <div className="gl-etyk">
+                <span>cena odnowienia widoczna przed zakupem</span>
+                <span>kod transferu na żądanie</span>
+              </div>
+              <Stopka opis="Regulamin, §12: domeny" link="Jak to działa" href="/funkcje/domeny-bez-auto-odnowien" />
+            </Card>
+            <Card className="gl-zasada">
+              <div className="gl-zasada-g">
+                <span className="gl-ik">
+                  <FileText aria-hidden="true" />
+                </span>
+                <h3>RODO bez papierologii</h3>
+              </div>
+              <p>
+                Umowę powierzenia akceptujesz w panelu. Lista podprocesorów i regulamin są publiczne, napisane prostym językiem.
+                Dane trzymamy w Unii Europejskiej.
+              </p>
+              <div className="gl-etyk">
+                <span>dane w UE</span>
+                <span>rodo@verris.pl</span>
+                <span>DPA online</span>
+              </div>
+              <Stopka opis="Umowa powierzenia i lista podprocesorów" link="Dokumenty" href="/dokumenty" />
+            </Card>
           </div>
+          <Card className="gl-firma">
+            <div className="gl-firma-kto">
+              <small>KTO ŚWIADCZY USŁUGĘ</small>
+              <b>HVLN Dominik Kowalski</b>
+              <span>Zielona Góra · NIP 9292069367 · REGON 521024260</span>
+            </div>
+            <ul className="gl-dokumenty">
+              {DOKUMENTY.map(([t, h]) => (
+                <li key={t}>
+                  <a href={h}>
+                    <b>{t}</b>
+                    <span>aktualna wersja i historia zmian</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        </div>
+      </section>
+
+      {/* INNE USŁUGI + PORADNIKI */}
+      <section className="sec">
+        <div className="wrap">
+          <KartyUslug />
+          <Poradniki />
         </div>
       </section>
 
       {/* FAQ */}
       <section className="sec" id="faq">
-        <div className="wrap narrow">
-          <SectionHead title="Pytania, które słyszymy najczęściej" />
-          <Accordion items={FAQ.map(([q, a], i) => ({ title: q, body: <p>{a}</p>, open: i === 0 }))} />
+        <div className="wrap gl-faq">
+          <div className="gl-faq-g">
+            <p className="kicker" style={{ margin: 0 }}>
+              FAQ
+            </p>
+            <h2>Pytania, które słyszymy najczęściej</h2>
+            <p>
+              Nie ma tu Twojego pytania? <a href="#porozmawiajmy">Poproś o telefon</a> albo <Link href="/kontakt">napisz do nas</Link>.
+            </p>
+          </div>
+          <Accordion items={pytania.map(([q, a], i) => ({ title: q, body: <p>{a}</p>, open: i === 0 }))} />
         </div>
       </section>
+
+      <PasRozmowy />
 
       <CTABand
         title="Przenieś stronę dziś. Za rok zapłacisz tyle samo"
         text="Przeniesienie strony, poczty i bazy w cenie. Stara strona działa do momentu, w którym sam przełączysz domenę."
-        secondary={{ label: 'Jak działa przeniesienie', href: '/przenies-strone' }}
+        primaryLabel={cta.label}
+        primaryHref={cta.href}
+        secondary={{ label: 'Przenieś stronę za 0 zł', href: '/przenies-strone' }}
       />
-      <StickyBuy />
+      <MobilnyPasek {...pasekHostingu(ceny)} />
     </main>
   );
 }

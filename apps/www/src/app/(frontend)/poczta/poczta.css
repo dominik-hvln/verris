@@ -1,0 +1,77 @@
+/* /poczta — makieta 1.11.2026. Klasy z prefiksem pcz-, żeby nie mieszać ze wspólnymi stylami. */
+
+.pcz-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* Hero: tekst + podgląd poczty w przeglądarce */
+.pcz-hero{position:relative;display:grid;gap:32px;align-items:center}
+.pcz-hero-t{min-width:0}
+@media(min-width:1024px){.pcz-hero{grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:52px}}
+.pcz-webmail{margin:0;background:var(--pine);border:1px solid var(--line2);border-radius:18px;overflow:hidden;box-shadow:0 30px 70px rgba(0,0,0,.45);min-width:0}
+.pcz-wm-bar{display:flex;align-items:center;gap:6px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.pcz-wm-bar i{width:10px;height:10px;border-radius:50%;background:#2a3a33}
+.pcz-wm-bar span{margin-left:10px;font-size:12px;color:var(--stone);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.pcz-wm-body{display:grid;grid-template-columns:150px minmax(0,1fr)}
+.pcz-wm-foldery{list-style:none;margin:0;padding:12px;display:grid;gap:2px;align-content:start;border-right:1px solid var(--line);font-size:14px}
+.pcz-wm-foldery li{padding:8px 10px;border-radius:8px;display:flex;justify-content:space-between}
+.pcz-wm-foldery li.on{background:var(--card2);color:var(--paper)}
+.pcz-wm-foldery b{color:var(--mint)}
+.pcz-wm-lista{list-style:none;margin:0;padding:0;font-size:14px;min-width:0}
+.pcz-wm-lista li{display:grid;gap:2px;padding:13px 16px;border-bottom:1px solid var(--line)}
+.pcz-wm-lista li:last-child{border-bottom:0}
+.pcz-wm-lista .t{color:var(--body);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pcz-wm-lista li.nowa .t{color:var(--paper);font-weight:600}
+.pcz-wm-lista .od{color:var(--stone);font-size:13px}
+.pcz-webmail figcaption{padding:10px 14px;border-top:1px solid var(--line);font-size:12px;color:var(--stone)}
+@media(max-width:560px){.pcz-wm-body{grid-template-columns:1fr}.pcz-wm-foldery{display:flex;flex-wrap:wrap;border-right:0;border-bottom:1px solid var(--line)}}
+
+/* Limity wprost */
+.pcz-limity,.pcz-dodatki{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+.pcz-limity li{display:grid;gap:6px;align-content:start}
+.pcz-duzo{font-family:var(--display);font-weight:800;font-size:32px;line-height:1.05;color:var(--paper);letter-spacing:-.02em}
+.pcz-limity strong{color:var(--paper)}
+.pcz-limity span:last-child{font-size:14px}
+.pcz-dodatki{margin-top:14px}
+.pcz-dodatki h3{font-size:17px}
+@media(min-width:768px){.pcz-limity,.pcz-dodatki{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}}
+
+/* Konfiguracja na telefonie i komputerze */
+.pcz-konf{display:grid;gap:24px;align-items:start}
+.pcz-konf-l{display:grid;gap:16px;min-width:0}
+@media(min-width:1024px){.pcz-konf{grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:32px}}
+.pcz-tabs{display:flex;flex-wrap:wrap;gap:8px}
+.pcz-tab{min-height:44px;padding:0 16px;border-radius:10px;border:1px solid var(--line2);background:transparent;color:var(--body);font:600 14px var(--text);cursor:pointer}
+.pcz-tab:hover{border-color:var(--mint);color:var(--paper)}
+.pcz-tab.on{background:var(--card2);border-color:var(--mid);color:var(--paper)}
+.pcz-tab:focus-visible{outline:2px solid var(--mint);outline-offset:2px}
+.pcz-kroki{margin:0;padding-left:22px;display:grid;gap:10px}
+.pcz-tabela{padding:0;overflow-x:auto}
+.pcz-tabela table,.pcz-param table{width:100%;border-collapse:collapse;font-size:15px}
+.pcz-tabela th,.pcz-tabela td,.pcz-param th,.pcz-param td{text-align:left;vertical-align:top;padding:14px 16px;border-bottom:1px solid var(--line)}
+.pcz-tabela thead th{font:500 12px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--stone)}
+.pcz-tabela tbody th,.pcz-param th{color:var(--paper);font-weight:600}
+.pcz-tabela tr:last-child>*,.pcz-param tr:last-child>*{border-bottom:0}
+.pcz-tabela table{min-width:520px}
+
+/* Przeniesienie poczty — 4 kroki */
+.pcz-kroki4{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+.pcz-kroki4 li{display:grid;gap:8px;align-content:start}
+.pcz-nr{color:var(--mint);font-size:14px}
+@media(min-width:768px){.pcz-kroki4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:1024px){.pcz-kroki4{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}}
+
+/* Dostarczalność */
+.pcz-spam{display:grid;gap:28px;align-items:center}
+.pcz-spam h2{margin-bottom:14px}
+@media(min-width:1024px){.pcz-spam{grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:52px}}
+.pcz-raport{margin:0;display:grid;gap:12px}
+.pcz-raport strong{color:var(--paper)}
+.pcz-raport ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.pcz-raport li{display:flex;justify-content:space-between;gap:12px;background:var(--page);border-radius:10px;padding:12px 14px}
+.pcz-raport .ok{color:var(--mint)}
+.pcz-raport .brak{color:#E8B450}
+.pcz-raport figcaption{font-size:12px;color:var(--stone)}
+
+/* Parametry */
+.pcz-param{padding:0;overflow-x:auto}
+.pcz-param th{width:36%}
+@media(max-width:560px){.pcz-param th,.pcz-param td{display:block;width:auto;border-bottom:0;padding:10px 16px 0}.pcz-param td{padding:4px 16px 12px;border-bottom:1px solid var(--line)}}

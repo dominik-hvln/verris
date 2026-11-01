@@ -7,6 +7,8 @@ import type { ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 jest.mock('next/navigation', () => ({
+  // MobilnyPasek (pasek na telefonie) czyta ścieżkę, żeby nie pokazywać się na /kontakt i /dokumenty.
+  usePathname: () => null,
   notFound: () => {
     throw new Error('NEXT_NOT_FOUND');
   },
@@ -136,12 +138,19 @@ describe('grupa B — /domeny', () => {
 });
 
 describe('grupa B — /poczta', () => {
-  it('metadane z ceną, jedno h1, Service + FAQPage + BreadcrumbList, bez obietnic spoza kodu (QR, czarne listy)', async () => {
+  // 1.11.2026: opis bez ceny (ceny wyłącznie z API, strażnik ceny-na-sztywno.spec.ts); cena samej poczty w treści z lib/ceny.
+  it('metadane bez ceny na sztywno, cena poczty z modułu cen, jedno h1, Service + FAQPage + BreadcrumbList, bez obietnic spoza kodu', async () => {
     const mod = await import('./poczta/page');
+    const { CENY_ZAPASOWE, zl } = await import('@/lib/ceny');
     const html = await render(mod.default());
     sprawdzStrone({ html, meta: mod.metadata, fraza: /^Poczta w domenie/, typy: ['Service', 'FAQPage', 'BreadcrumbList'], canonical: '/poczta' });
-    expect(String(mod.metadata.description)).toContain('45 zł');
-    expect(html).not.toMatch(/kod(em)? QR|czarn\w+ list/i);
+    expect(String(mod.metadata.description)).not.toMatch(/\d+ zł/);
+    expect(String(mod.metadata.description)).toContain('skrzynki');
+    expect(html).toContain(zl(CENY_ZAPASOWE.poczta.miesiecznie));
+    expect(html).not.toMatch(/kod(em)? QR|czarn\w+ list|Roundcube|największ\w+ wiadomoś/i);
+    // Porty z artykułu bazy wiedzy: IMAP 993, SMTP 465.
+    expect(html).toContain('993');
+    expect(html).toContain('465');
   });
 });
 

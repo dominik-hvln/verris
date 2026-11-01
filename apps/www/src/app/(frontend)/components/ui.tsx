@@ -6,7 +6,8 @@ import { breadcrumbList } from '@/lib/schema';
 /*
  * Wspólne klocki verris.pl (style: globals.css, sekcja „Komponenty 2026-10”). Mobile-first:
  * bazowe style są pod telefon, większe ekrany dostają układ przez @media (min-width).
- *   Button, Card, SectionHead, Steps, CTABand, StickyBuy, Accordion, SpecTable — opis przy każdym.
+ *   Button, Card, SectionHead, SectionHead2, Steps, CTABand, Accordion, SpecTable — opis przy każdym.
+ *   Pasek zakupu na telefonie: MobilnyPasek.tsx (zastąpił StickyBuy 1.11.2026).
  */
 
 export function JsonLd({ data }: { data: object }) {
@@ -173,6 +174,32 @@ export function SectionHead({
   );
 }
 
+/**
+ * Nagłówek sekcji z makiety 1.11 („head2”): eyebrow + h2 po lewej, opis po prawej; do 900 px jeden pod drugim.
+ * Szersze sekcje (kontener 1320 px) nie zostawiają wtedy pustego pasa po prawej, jak przy wyśrodkowanym SectionHead.
+ */
+export function SectionHead2({
+  eyebrow,
+  title,
+  lead,
+  id,
+}: {
+  eyebrow?: string;
+  title: ReactNode;
+  lead?: ReactNode;
+  id?: string;
+}) {
+  return (
+    <div className="shead2">
+      <div className="shead2-t">
+        {eyebrow && <p className="kicker">{eyebrow}</p>}
+        <h2 id={id}>{title}</h2>
+      </div>
+      {lead && <p className="lead">{lead}</p>}
+    </div>
+  );
+}
+
 export type Step = { label: string; title: string; text: ReactNode; bar?: number; accent?: boolean };
 
 /**
@@ -242,24 +269,6 @@ export function CTABand({
         </div>
       </div>
     </section>
-  );
-}
-
-/**
- * Przyklejony pasek zakupu — tylko telefon (< 768 px). Wstaw jako OSTATNIE dziecko <main>: przykleja się
- * do dołu ekranu, dopóki widać treść strony, i nie zasłania stopki.
- */
-export function StickyBuy({ href = PANEL, label = 'Zamów hosting' }: { href?: string; label?: string }) {
-  return (
-    <div className="stickybuy">
-      <p>
-        <strong>45 zł/mies</strong>
-        <span>albo 449 zł/rok brutto</span>
-      </p>
-      <Button href={href} cta="sticky" conv="checkout_intent">
-        {label}
-      </Button>
-    </div>
   );
 }
 

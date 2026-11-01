@@ -1,10 +1,13 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { Accordion, Card, CTABand, JsonLd, SectionHead, StickyBuy, SubHero } from '../components/ui';
+import { Accordion, Card, CTABand, JsonLd, SectionHead, SubHero } from '../components/ui';
+import { MobilnyPasek } from '../components/MobilnyPasek';
+import { pobierzCeny } from '@/lib/ceny-api';
+import { pasekHostingu } from '@/lib/proba';
 import { Pricing } from '../components/Pricing';
 import { AKalkulator } from '../components/AKalkulator';
 import { VPS_W_SPRZEDAZY } from '@/lib/oferta';
-import { faqSchema, HOSTING_OFFERS, productSchema } from '@/lib/schema';
+import { faqSchema, ofertyHostingu, productSchema } from '@/lib/schema';
 
 // Makieta 14.10, plansza Cennik. Ceny brutto z lib/schema.ts (HOSTING_OFFERS), stawki z lib/kalkulator.ts.
 export const metadata: Metadata = {
@@ -40,7 +43,8 @@ const FAQ: [string, string][] = [
   ['Czy dostanę fakturę VAT?', 'Tak. Fakturę VAT po każdej płatności znajdziesz w panelu, a powiadomienie o niej dostajesz e-mailem.'],
 ];
 
-export default function Page() {
+export default async function Page() {
+  const ceny = await pobierzCeny();
   return (
     <main>
       <JsonLd
@@ -49,7 +53,7 @@ export default function Page() {
           description:
             'Jeden pakiet hostingu: 45 zł/mies. albo 449 zł/rok brutto. W cenie 50 GB NVMe oraz limit 8 GB RAM i 2 vCPU; z autoskalowaniem do 1000 GB, 64 GB RAM i 24 vCPU według jawnych stawek.',
           path: '/cennik',
-          offers: HOSTING_OFFERS,
+          offers: ofertyHostingu(ceny),
         })}
       />
       <JsonLd data={faqSchema(FAQ)} />
@@ -89,7 +93,7 @@ export default function Page() {
             title="Ile kosztuje dodatkowa moc?"
             lead="Ustaw, ile mocy ponad pakiet może potrzebować Twoja strona w szczycie. Płacisz za czas, w którym ta moc była włączona, i nigdy więcej niż limit z panelu."
           />
-          <AKalkulator wariant="pelny" />
+          <AKalkulator wariant="pelny" ceny={ceny} />
         </div>
       </section>
 
@@ -135,7 +139,7 @@ export default function Page() {
         text="Bez promocji na pierwszy rok i bez niespodzianek przy odnowieniu. Odnawianie wyłączysz w panelu w każdej chwili."
         secondary={{ label: 'Jak działa przeniesienie', href: '/przenies-strone' }}
       />
-      <StickyBuy />
+      <MobilnyPasek {...pasekHostingu(ceny)} />
     </main>
   );
 }

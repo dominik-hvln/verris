@@ -1,19 +1,26 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Accordion, Breadcrumbs, Button, Card, CTABand, JsonLd, SectionHead, StickyBuy, Steps, type Step } from '../components/ui';
+import { Accordion, Breadcrumbs, Button, CTABand, JsonLd, SectionHead, SectionHead2, Steps, type Step } from '../components/ui';
+import { MobilnyPasek } from '../components/MobilnyPasek';
+import { KartyUslug, Poradniki } from '../components/KartyUslug';
+import { PasRozmowy } from '../components/PasRozmowy';
+import { HostingSpecyfikacja } from '../components/HostingSpecyfikacja';
+import { pobierzCeny } from '@/lib/ceny-api';
+import { GODZIN_W_MIESIACU, kosztMocy, netto, nettoStawki, stawka, zl, zlGrosze, type Ceny } from '@/lib/ceny';
+import { ctaProby, pasekHostingu } from '@/lib/proba';
+import { sekcjeWidoczne } from '@/lib/specyfikacja';
 import { ASymulacja } from '../components/ASymulacja';
 import { AZakladki, type Zakladka } from '../components/AZakladki';
 import { KalkulatorPiku } from '../components/KalkulatorPiku';
-import { ZAMOW } from '@/lib/site';
-import { faqSchema, HOSTING_OFFERS, productSchema } from '@/lib/schema';
-import { SPECYFIKACJA_OPUBLIKOWANA, zweryfikowane } from '@/lib/oferta';
-import { formatZl, kosztPiku } from '@/lib/kalkulator';
+import { faqSchema, ofertyHostingu, productSchema } from '@/lib/schema';
+import { SPECYFIKACJA_OPUBLIKOWANA } from '@/lib/oferta';
 
 // Makieta 14.10, plansza Hosting + notatka „seo-hosting” (canvas.json).
+// Opis bez kwoty: ceny bierzemy z API (lib/ceny-api.ts), a metadane zostają statyczne.
 export const metadata: Metadata = {
   title: 'Hosting z autoskalowaniem dla stron i sklepów | Verris',
   description:
-    'Hosting, który sam dokłada mocy, gdy rośnie ruch, i wraca do 45 zł, gdy jest spokojnie. Zobacz symulację tygodnia sklepu i policz koszt.',
+    'Hosting, który sam dokłada mocy, gdy rośnie ruch, i wraca do ceny pakietu, gdy jest spokojnie. Zobacz symulację tygodnia sklepu i policz koszt.',
   alternates: { canonical: '/hosting' },
 };
 
@@ -24,7 +31,7 @@ const W_CENIE: [string, string, string][] = [
   ['Bez limitu', 'stron i skrzynek', 'w ramach zasobów konta'],
 ];
 
-const JAK: Step[] = [
+const jak = (ceny: Ceny): Step[] => [
   {
     label: '01 · włączasz',
     title: 'Jeden przełącznik i limit kosztu',
@@ -38,14 +45,14 @@ const JAK: Step[] = [
   },
   {
     label: '03 · oszczędzasz',
-    title: 'Po szczycie wracasz do 45 zł',
+    title: `Po szczycie wracasz do ${zl(ceny.hosting.miesiecznie)}`,
     text: 'Nie przepłacasz przez cały rok za większy pakiet, który przydaje się kilka dni. Każdy blok z dodatkową mocą i jego koszt widzisz w panelu.',
   },
 ];
 
 // Scenariusze miesiąca: koszt liczony ze stawek (lib/kalkulator.ts) dla podanej nadwyżki — nie wpisany ręcznie.
 type Scenariusz = { id: string; label: string; title: string; text: string; vcpu: number; ram: number; godz: number; piki: number[] };
-const SCENARIUSZE: Scenariusz[] = [
+const scenariusze = (ceny: Ceny): Scenariusz[] => [
   {
     id: 'black-friday',
     label: 'Sklep w Black Friday',
@@ -70,7 +77,7 @@ const SCENARIUSZE: Scenariusz[] = [
     id: 'spokojny',
     label: 'Spokojny miesiąc',
     title: 'Zwykły miesiąc firmy',
-    text: 'Strona spokojnie mieści się w pakiecie, więc płacisz 45 zł i nic więcej.',
+    text: `Strona spokojnie mieści się w pakiecie, więc płacisz ${zl(ceny.hosting.miesiecznie)} i nic więcej.`,
     vcpu: 0,
     ram: 0,
     godz: 0,
@@ -78,8 +85,9 @@ const SCENARIUSZE: Scenariusz[] = [
   },
 ];
 
-const ZAKLADKI: Zakladka[] = SCENARIUSZE.map((s) => {
-  const koszt = kosztPiku(s.vcpu, s.ram, s.godz);
+const zakladki = (ceny: Ceny): Zakladka[] =>
+  scenariusze(ceny).map((s) => {
+  const koszt = kosztMocy(ceny.stawki, s.vcpu, s.ram, 0, s.godz);
   return {
     id: s.id,
     label: s.label,
@@ -102,8 +110,10 @@ const ZAKLADKI: Zakladka[] = SCENARIUSZE.map((s) => {
               </div>
             )}
             <div>
-              <dt>Dopłata w miesiącu (brutto)</dt>
-              <dd className="mint">{koszt > 0 ? `${formatZl(koszt)} zł` : '0 zł'}</dd>
+              <dt>Dopłata w miesiącu</dt>
+              <dd className="mint">
+                {koszt > 0 ? `${zlGrosze(koszt)} (${zlGrosze(netto(koszt))} netto)` : '0 zł'}
+              </dd>
             </div>
           </dl>
           <p className="kalk-note">Przykład poglądowy liczony ze stawek z cennika.</p>
@@ -137,59 +147,27 @@ const ZAKLADKI: Zakladka[] = SCENARIUSZE.map((s) => {
   };
 });
 
-type Poz = { t: string; po?: boolean };
-const PAKIET: { title: string; items: Poz[] }[] = [
-  {
-    title: 'Wydajność',
-    items: [
-      { t: 'LiteSpeed Enterprise z cache', po: true },
-      { t: 'dyski NVMe' },
-      { t: 'Redis i Memcached dla konta', po: true },
-      { t: 'wersja PHP osobno dla każdej domeny' },
-    ],
-  },
-  {
-    title: 'Bezpieczeństwo',
-    items: [
-      { t: 'izolacja kont', po: true },
-      { t: 'zapora aplikacji (WAF)', po: true },
-      { t: 'skaner ImunifyAV w tle i na żądanie', po: true },
-      { t: 'certyfikaty SSL w cenie' },
-      { t: 'logowanie dwuskładnikowe i passkeys' },
-    ],
-  },
-  {
-    title: 'Kopie i odtwarzanie',
-    items: [
-      { t: 'szyfrowane kopie poza serwerem z ostatnich 30 dni' },
-      { t: 'przywracanie plików, baz i poczty osobno' },
-      { t: 'kopia bezpieczeństwa przed przywróceniem' },
-      { t: 'codzienna kopia na serwerze, 7 ostatnich' },
-    ],
-  },
-  {
-    title: 'Dla deweloperów',
-    items: [
-      { t: 'SSH w izolowanym środowisku', po: true },
-      { t: 'wdrożenia z Git', po: true },
-      { t: 'kopia testowa (staging) WordPressa' },
-      { t: 'Node.js i Python', po: true },
-      { t: 'cron w panelu' },
-    ],
-  },
-].map((g) => ({ ...g, items: zweryfikowane(g.items) }));
 
-const WYBOR: [string, string, string][] = [
-  ['Ile zapłacę przy odnowieniu?', 'niska cena pierwszego roku bywa wyraźnie niższa od odnowienia', 'ta sama cena z cennika, przypomnienie przed odnowieniem'],
-  ['Co, gdy strona padnie?', 'obietnica bez rekompensaty niewiele daje', 'SLA 99,5% i rekompensata w kredytach według regulaminu'],
-  ['Czy przywrócę kopię sam?', 'zgłoszenie do pomocy to godziny przestoju', 'tak — pliki, baza albo poczta z wybranego dnia'],
-  ['Gdzie są dane?', 'RODO i umowa powierzenia', 'w UE, umowa powierzenia do akceptacji w panelu'],
+// Makieta 1.11: „Sześć pytań do każdego dostawcy” — odpowiedzi Verris mają pokrycie w regulaminie/specyfikacji;
+// „Często” to ogólny wzorzec rynku, bez nazw konkurentów.
+const pytania = (ceny: Ceny): { kat: string; q: string; my: string; rynek: string }[] => [
+  {
+    kat: 'Cena',
+    q: 'Ile zapłacę w drugim roku?',
+    my: `Tyle samo co w pierwszym: ${zl(ceny.hosting.rocznie)} brutto (${zl(netto(ceny.hosting.rocznie))} netto).`,
+    rynek: 'Często: tani pierwszy rok, wyższa cena przy odnowieniu.',
+  },
+  { kat: 'Ruch', q: 'Co, gdy przyjdzie dużo klientów?', my: 'Moc rośnie sama, do limitu kosztu, który ustawiasz.', rynek: 'Często: zmiana na droższy pakiet.' },
+  { kat: 'Kopie', q: 'Czy sam przywrócę stronę?', my: 'Tak, z każdego z ostatnich 30 dni: pliki, bazy i pocztę.', rynek: 'Często: przez zgłoszenie albo za opłatą.' },
+  { kat: 'Dostępność', q: 'Co, jeśli strona nie działa?', my: '99,5% w umowie i zwrot do 100% opłaty.', rynek: 'Często: deklaracja bez rekompensaty.' },
+  { kat: 'Domena', q: 'Czy domena odnowi się sama?', my: 'Nie. Odnawiasz wtedy, kiedy chcesz.', rynek: 'Często: automatyczne pobranie z karty.' },
+  { kat: 'RODO', q: 'Jak podpiszę umowę powierzenia?', my: 'Akceptujesz ją w panelu, bez papierów.', rynek: 'Często: na wniosek, mailem.' },
 ];
 
-const FAQ: [string, string][] = [
+const faq = (ceny: Ceny): [string, string][] => [
   [
     'Ile kosztuje hosting z autoskalowaniem?',
-    'Pakiet kosztuje 45 zł miesięcznie albo 449 zł za rok brutto. W cenie masz 50 GB NVMe oraz limit 8 GB RAM i 2 vCPU. Z autoskalowaniem limity rosną do 1000 GB dysku, 64 GB RAM i 24 vCPU, a dodatkową moc liczymy według jawnych stawek brutto w blokach po 15 minut, do limitu, który ustawiasz w panelu.',
+    `Pakiet kosztuje ${zl(ceny.hosting.miesiecznie)} miesięcznie albo ${zl(ceny.hosting.rocznie)} za rok brutto (${zl(netto(ceny.hosting.miesiecznie))} albo ${zl(netto(ceny.hosting.rocznie))} netto). W cenie masz 50 GB NVMe oraz limit 8 GB RAM i 2 vCPU. Z autoskalowaniem limity rosną do 1000 GB dysku, 64 GB RAM i 24 vCPU, a dodatkową moc liczymy według jawnych stawek brutto w blokach po 15 minut, do limitu, który ustawiasz w panelu.`,
   ],
   [
     'Czy autoskalowanie może mnie zaskoczyć rachunkiem?',
@@ -205,7 +183,13 @@ const FAQ: [string, string][] = [
   ],
 ];
 
-export default function HostingPage() {
+export default async function HostingPage() {
+  const ceny = await pobierzCeny();
+  const cta = ctaProby(ceny);
+  const FAQ = faq(ceny);
+  const st = ceny.stawki;
+  const dyskMies = st.dysk * GODZIN_W_MIESIACU;
+  const przyklad = kosztMocy(st, 2, 4, 0, 3);
   return (
     <main>
       <JsonLd
@@ -214,7 +198,7 @@ export default function HostingPage() {
           description:
             'Hosting WWW z autoskalowaniem dla stron i sklepów. W cenie 50 GB NVMe oraz limit 8 GB RAM i 2 vCPU; z autoskalowaniem do 1000 GB dysku, 64 GB RAM i 24 vCPU. Przeniesienie strony i SSL w cenie.',
           path: '/hosting',
-          offers: HOSTING_OFFERS,
+          offers: ofertyHostingu(ceny),
         })}
       />
       <JsonLd data={faqSchema(FAQ)} />
@@ -231,16 +215,18 @@ export default function HostingPage() {
             <p className="lead">
               Reklama zadziałała, ktoś polecił Cię w mediach, ruszyła wyprzedaż — i nagle na stronie jest kilka razy
               więcej osób. U nas nie musisz wtedy w pośpiechu zmieniać pakietu. Dokładamy mocy na te godziny, a gdy ruch
-              opadnie, wracasz do zwykłych 45 zł.
+              opadnie, wracasz do zwykłych {zl(ceny.hosting.miesiecznie)} miesięcznie brutto (
+              {zl(netto(ceny.hosting.miesiecznie))} netto).
             </p>
             <div className="hero2-cta">
-              <Button href={ZAMOW} cta="subhero" plan="hosting">
-                Zamów hosting
+              <Button href={cta.href} cta="subhero" conv="checkout_intent" plan="hosting">
+                {cta.label}
               </Button>
-              <Button href="#pokaz" variant="ghost" cta="subhero-pokaz">
-                Zobacz, jak to działa
+              <Button href="#parametry" variant="ghost" cta="subhero-parametry">
+                Zobacz parametry
               </Button>
             </div>
+            <p className="h-fine">{cta.proba ? 'Bez karty · ' : ''}przeniesienie strony w cenie · ta sama cena przy odnowieniu</p>
           </div>
           <ul className="a-tiles a-tiles-2">
             {W_CENIE.map(([k, v, d]) => (
@@ -256,27 +242,27 @@ export default function HostingPage() {
 
       <section className="sec" id="pokaz" aria-labelledby="pokaz-tytul">
         <div className="wrap">
-          <SectionHead
+          <SectionHead2
             id="pokaz-tytul"
             eyebrow="Zobacz na przykładzie"
             title="Zobacz, co się dzieje, gdy Twoja reklama naprawdę zadziała"
             lead="Tydzień zwykłego sklepu internetowego. W czwartek startuje kampania i nagle na stronie jest kilka razy więcej osób. Moc serwera rośnie razem z ruchem, a po szczycie wraca do pakietu. Wyłącz autoskalowanie i porównaj, jak wyglądałby ten sam weekend bez niego."
           />
-          <ASymulacja />
+          <ASymulacja cenaMiesieczna={ceny.hosting.miesiecznie} />
         </div>
       </section>
 
       <section className="sec sec-alt" id="jak">
         <div className="wrap">
-          <SectionHead title="Ty ustalasz zasady. Resztą zajmujemy się my" />
-          <Steps items={JAK} />
+          <SectionHead2 eyebrow="Jak to działa" title="Ty ustalasz zasady. Resztą zajmujemy się my" />
+          <Steps items={jak(ceny)} />
         </div>
       </section>
 
       <section className="sec" id="scenariusze">
         <div className="wrap">
-          <SectionHead title="Ile to kosztuje w prawdziwym miesiącu?" />
-          <AZakladki label="Scenariusze" items={ZAKLADKI} />
+          <SectionHead2 eyebrow="Przykłady" title="Ile to kosztuje w prawdziwym miesiącu?" />
+          <AZakladki label="Scenariusze" items={zakladki(ceny)} />
         </div>
       </section>
 
@@ -287,69 +273,137 @@ export default function HostingPage() {
             title="Policz swój pik"
             lead="Przesuń suwaki — liczymy według stawek z cennika. Limity z pakietu (2 vCPU i 8 GB RAM) są zawsze w abonamencie."
           />
-          <KalkulatorPiku />
+          <KalkulatorPiku stawki={st} />
         </div>
       </section>
 
-      <section className="sec" id="specyfikacja">
+      <section className="sec" id="parametry" aria-labelledby="parametry-tytul">
         <div className="wrap">
-          <SectionHead title="Co dostajesz w pakiecie" />
-          <div className="a-grid4">
-            {PAKIET.map((g) => (
-              <Card key={g.title}>
-                <h3>{g.title}</h3>
-                <ul className="a-list">
-                  {g.items.map((i) => (
-                    <li key={i.t}>{i.t}</li>
-                  ))}
-                </ul>
-              </Card>
-            ))}
-          </div>
+          <SectionHead2
+            id="parametry-tytul"
+            eyebrow="Parametry"
+            title="Wszystko, co jest w pakiecie"
+            lead="Pełna lista bez gwiazdek. Te same dane są na stronie specyfikacji."
+          />
+          <HostingSpecyfikacja brutto={sekcjeWidoczne(st)} netto={sekcjeWidoczne(st, true)} />
           {SPECYFIKACJA_OPUBLIKOWANA && (
-            <p className="center-cta">
-              <Button href="/specyfikacja" variant="ghost">
-                Pełna specyfikacja techniczna →
-              </Button>
+            <p className="hspec-pelna">
+              <Link href="/specyfikacja">Pełna specyfikacja →</Link>
             </p>
           )}
         </div>
       </section>
 
-      <section className="sec sec-alt" id="wybor">
+      <section className="sec sec-alt" id="dodatki" aria-labelledby="dodatki-tytul">
         <div className="wrap">
-          <SectionHead
-            title="Jak wybrać hosting? Cztery pytania, które warto zadać każdemu dostawcy"
-            lead={
-              <>
-                Pełny przewodnik znajdziesz w artykule <Link href="/jak-wybrac-hosting">Jak wybrać hosting</Link>.
-              </>
-            }
+          <SectionHead2
+            id="dodatki-tytul"
+            eyebrow="Za co dopłacasz"
+            title="Płatne dodatki, wszystkie w jednym miejscu"
+            lead="Podstawy są w cenie. Płacisz tylko za to, co sam włączysz. Ceny brutto i netto obok siebie."
           />
-          <table className="cmp2">
-            <thead>
-              <tr>
-                <th scope="col">Pytanie</th>
-                <th scope="col">Dlaczego ważne</th>
-                <th scope="col">Verris</th>
-              </tr>
-            </thead>
-            <tbody>
-              {WYBOR.map(([q, why, my]) => (
-                <tr key={q}>
-                  <th scope="row">{q}</th>
-                  <td data-label="Dlaczego ważne">{why}</td>
-                  <td data-label="Verris" className="vr">
-                    {my}
+          <div className="hdod-wrap">
+            <table className="hdod">
+              <thead>
+                <tr>
+                  <th scope="col">Dodatek</th>
+                  <th scope="col">Kiedy płacisz</th>
+                  <th scope="col">Brutto</th>
+                  <th scope="col">Netto</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row">Dodatkowy procesor</th>
+                  <td>tylko w szczycie, do limitu, który ustawisz</td>
+                  <td>{stawka(st.cpu)} zł za 1% CPU/h</td>
+                  <td>{stawka(nettoStawki(st.cpu))} zł</td>
+                </tr>
+                <tr>
+                  <th scope="row">Dodatkowa pamięć RAM</th>
+                  <td>tylko w szczycie</td>
+                  <td>{stawka(st.ram)} zł za 1 GB/h</td>
+                  <td>{stawka(nettoStawki(st.ram))} zł</td>
+                </tr>
+                <tr>
+                  <th scope="row">Więcej miejsca na dysku</th>
+                  <td>ponad 50 GB, do 1000 GB, za czas użycia</td>
+                  <td>
+                    {stawka(st.dysk)} zł za 1 GB/h
+                    <small>
+                      ok. {zlGrosze(dyskMies)} za 1 GB/mies.; +50 GB na miesiąc: ok. {zlGrosze(dyskMies * 50)}
+                    </small>
+                  </td>
+                  <td>
+                    {stawka(nettoStawki(st.dysk))} zł
+                    <small>
+                      ok. {zlGrosze(nettoStawki(dyskMies))}; ok. {zlGrosze(nettoStawki(dyskMies * 50))}
+                    </small>
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+                <tr>
+                  <th scope="row">Domena</th>
+                  <td>przy rejestracji i odnowieniu, bez automatycznego pobrania</td>
+                  <td colSpan={2}>
+                    według <Link href="/domeny">cennika domen</Link>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <ul className="hprz">
+            <li>
+              <span>Zwykły miesiąc firmy</span>
+              <b>{zl(ceny.hosting.miesiecznie)}</b>
+              <span>{zl(netto(ceny.hosting.miesiecznie))} netto · bez dopłat</span>
+            </li>
+            <li>
+              <span>Kampania: 3 h z +2 vCPU i +4 GB RAM</span>
+              <b>
+                {zl(ceny.hosting.miesiecznie)} + {zlGrosze(przyklad)}
+              </b>
+              <span>
+                {zl(netto(ceny.hosting.miesiecznie))} + {zlGrosze(netto(przyklad))} netto
+              </span>
+            </li>
+            <li>
+              <span>Limit kosztu, który ustawiasz</span>
+              <b>np. 30 zł</b>
+              <span>powyżej moc nie rośnie</span>
+            </li>
+          </ul>
         </div>
       </section>
 
-      <section className="sec" id="faq">
+      <section className="sec" id="wybor" aria-labelledby="wybor-tytul">
+        <div className="wrap">
+          <SectionHead2
+            id="wybor-tytul"
+            eyebrow="Zanim wybierzesz"
+            title="Sześć pytań do każdego dostawcy"
+            lead={
+              <>
+                Zadaj je każdemu hostingowi, który rozważasz. Nasze odpowiedzi są pod spodem, a wszystkie zapisaliśmy w
+                regulaminie. Pełny przewodnik: <Link href="/jak-wybrac-hosting">Jak wybrać hosting</Link>.
+              </>
+            }
+          />
+          <ol className="hpyt">
+            {pytania(ceny).map((p, i) => (
+              <li key={p.q}>
+                <p className="kicker mono">
+                  {String(i + 1).padStart(2, '0')} · {p.kat.toUpperCase()}
+                </p>
+                <h3>{p.q}</h3>
+                <p className="hpyt-my">{p.my}</p>
+                <p className="hpyt-rynek">{p.rynek}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      <section className="sec sec-alt" id="faq">
         <div className="wrap narrow">
           <SectionHead title="Pytania o hosting z autoskalowaniem" />
           <Accordion items={FAQ.map(([q, a], i) => ({ title: q, body: <p>{a}</p>, open: i === 0 }))} />
@@ -360,12 +414,23 @@ export default function HostingPage() {
         </div>
       </section>
 
+      <section className="sec">
+        <div className="wrap">
+          <KartyUslug />
+          <Poradniki />
+        </div>
+      </section>
+
+      <PasRozmowy />
+
       <CTABand
-        title="Daj swojej stronie zapas mocy. Od 45 zł miesięcznie"
+        title={`Daj swojej stronie zapas mocy. Od ${zl(ceny.hosting.miesiecznie)} miesięcznie`}
         text="Jeden pakiet z mocą w cenie i zapasem na dni, kiedy przychodzi więcej klientów. Przeniesienie strony gratis."
+        primaryLabel={cta.label}
+        primaryHref={cta.href}
         secondary={{ label: 'Jak działa przeniesienie', href: '/przenies-strone' }}
       />
-      <StickyBuy />
+      <MobilnyPasek {...pasekHostingu(ceny)} />
     </main>
   );
 }

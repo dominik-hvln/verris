@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { CENY_ZAPASOWE, zl } from '@/lib/ceny';
 
 /*
  * Grupa A — symulacja tygodnia sklepu na /hosting#pokaz (makieta 14.10, plansza Hosting).
@@ -49,7 +50,8 @@ const PROBKI_STALA = probki(CAP_STALA);
 
 const fmt = (n: number) => (n >= 1000 ? `${String(Math.round(n / 100) / 10).replace('.', ',')} tys.` : String(Math.round(n)));
 
-export function ASymulacja() {
+/** `cenaMiesieczna` — cena pakietu z modułu cen (lib/ceny-api.ts); bez propsa wartość zapasowa. */
+export function ASymulacja({ cenaMiesieczna = CENY_ZAPASOWE.hosting.miesiecznie }: { cenaMiesieczna?: number }) {
   const [t, setT] = useState(KONIEC);
   const [auto, setAuto] = useState(true);
   const [gra, setGra] = useState(false);
@@ -216,7 +218,7 @@ export function ASymulacja() {
           <b>{auto ? `${godzinyPiku} h` : fmt(utracone)}</b>
           <small>
             {auto
-              ? 'Płacisz tylko za nie, do limitu z panelu. Potem znów 45 zł.'
+              ? `Płacisz tylko za nie, do limitu z panelu. Potem znów ${zl(cenaMiesieczna)}.`
               : przeciazona
                 ? 'Strona zwalnia, koszyki zostają porzucone.'
                 : 'Na razie wszystko w normie — poczekaj na czwartek.'}

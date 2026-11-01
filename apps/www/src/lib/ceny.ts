@@ -1,0 +1,171 @@
+/**
+ * Ceny verris.pl — jedno źródło dla wszystkich stron (decyzja 1.11.2026: ceny na stronie mają się brać z realnych
+ * danych w API, nie z liczb wpisanych w kod). Ten plik jest czysty (bez fetch), więc mogą go używać także
+ * komponenty klienckie. Pobieranie z API: lib/ceny-api.ts.
+ *
+ * Źródła w API: GET /plans (Plan.priceMonthly / priceYearly — kwoty BRUTTO, trialDays) i GET /autoscaling/pricing
+ * (AutoscalingPriceRule.pricePerUnit — stawki BRUTTO za godzinę: CPU za 1%, RAM i dysk za 1 GB).
+ */
+
+/** Stawka VAT dla cen na stronie. Netto liczymy tylko tutaj. */
+export const VAT = 0.23;
+
+export type CenaPakietu = {
+  /** Brutto, zł. */
+  miesiecznie: number;
+  /** Brutto, zł. */
+  rocznie: number;
+};
+
+export type StawkiAutoskalowania = {
+  /** Brutto za 1% CPU na godzinę (100% = 1 vCPU). */
+  cpu: number;
+  /** Brutto za 1 GB RAM na godzinę. */
+  ram: number;
+  /** Brutto za 1 GB dysku na godzinę. */
+  dysk: number;
+};
+
+export type Ceny = {
+  hosting: CenaPakietu & { trialDays: number };
+  /** Sama poczta (plan poczta-standard). */
+  poczta: CenaPakietu;
+  stawki: StawkiAutoskalowania;
+  /** 'api' — wszystko z API; 'zapas' — przynajmniej część z CENY_ZAPASOWE (API nie odpowiedziało). */
+  zrodlo: 'api' | 'zapas';
+};
+
+/**
+ * Ostatnie znane ceny z API (stan na 1.11.2026: GET /plans i /autoscaling/pricing na api.verris.pl).
+ * Używane tylko wtedy, gdy API nie odpowiada — żeby strona nigdy nie była pusta. Przy zmianie cennika w adminie
+ * strona i tak pokaże nowe wartości z API; tę stałą warto wtedy zaktualizować, ale nie jest źródłem prawdy.
+ */
+export const CENY_ZAPASOWE: Ceny = {
+  hosting: { miesiecznie: 45, rocznie: 449, trialDays: 0 },
+  poczta: { miesiecznie: 9.99, rocznie: 99.99 },
+  stawki: { cpu: 0.001323, ram: 0.0882, dysk: 0.0008 },
+  zrodlo: 'zapas',
+};
+
+/** Kwota netto z brutto, zaokrąglona do grosza. */
+export function netto(brutto: number): number {
+  return Math.round((brutto / (1 + VAT)) * 100) / 100;
+}
+
+/** Stawka netto bez zaokrąglania do grosza (stawki godzinowe są ułamkami grosza). */
+export function nettoStawki(brutto: number): number {
+  return brutto / (1 + VAT);
+}
+
+function grupuj(calkowite: string): string {
+  return calkowite.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+}
+
+/** „45 zł”, „36,59 zł”, „1 347 zł” — pełne złote bez groszy, inaczej dwa miejsca po przecinku. */
+export function zl(kwota: number): string {
+  const grosze = Math.round(kwota * 100);
+  const cale = Math.trunc(grosze / 100);
+  const reszta = Math.abs(grosze % 100);
+  const tekst = reszta === 0 ? grupuj(String(cale)) : `${grupuj(String(cale))},${String(reszta).padStart(2, '0')}`;
+  return `${tekst} zł`;
+}
+
+/** Kwota zawsze z groszami: „45,00 zł”. Do rachunków i podsumowań. */
+export function zlGrosze(kwota: number): string {
+  const [c, g] = (Math.round(kwota * 100) / 100).toFixed(2).split('.');
+  return `${grupuj(c)},${g} zł`;
+}
+
+/** Stawka godzinowa: do 4 cyfr znaczących, przecinek dziesiętny, bez „zł” — „0,0882”, „0,001323”, „0,07171”. */
+export function stawka(x: number): string {
+  return String(Number(x.toPrecision(4))).replace('.', ',');
+}
+
+/** Rabat za płatność roczną względem 12 × miesięczna, w pełnych procentach w dół (449 vs 540 → 16). */
+export function rabatRocznyProcent(c: CenaPakietu): number {
+  const rok = c.miesiecznie * 12;
+  if (rok <= 0 || c.rocznie >= rok) return 0;
+  return Math.floor(((rok - c.rocznie) / rok) * 100);
+}
+
+/** Ile miesięcznie wychodzi przy płatności rocznej (brutto, zł, do grosza). */
+export function miesiecznieZRocznej(c: CenaPakietu): number {
+  return Math.round((c.rocznie / 12) * 100) / 100;
+}
+
+/** Cena do wyświetlenia w wariancie okresu i brutto/netto (PrzelacznikCeny, pasek na telefonie). */
+export function opisCeny(c: CenaPakietu, rocznie: boolean, nettoWidok: boolean): { cena: string; okres: string; podpis: string } {
+  if (rocznie) {
+    const mies = miesiecznieZRocznej(c);
+    return nettoWidok
+      ? { cena: zl(netto(c.rocznie)), okres: '/ rok', podpis: `netto · ${zl(c.rocznie)} brutto · ok. ${zl(netto(mies))} netto miesięcznie` }
+      : { cena: zl(c.rocznie), okres: '/ rok', podpis: `brutto · ${zl(netto(c.rocznie))} netto · ok. ${zl(mies)} miesięcznie` };
+  }
+  return nettoWidok
+    ? { cena: zl(netto(c.miesiecznie)), okres: '/ mies.', podpis: `netto · ${zl(c.miesiecznie)} brutto · bez zobowiązania` }
+    : { cena: zl(c.miesiecznie), okres: '/ mies.', podpis: `brutto · ${zl(netto(c.miesiecznie))} netto · bez zobowiązania` };
+}
+
+
+/** Koszt godzin dodatkowej mocy (brutto): vCPU (1 = 100% CPU), GB RAM, GB dysku. */
+export function kosztMocy(s: StawkiAutoskalowania, vcpu: number, ramGb: number, dyskGb: number, godziny: number): number {
+  return (vcpu * 100 * s.cpu + ramGb * s.ram + dyskGb * s.dysk) * godziny;
+}
+
+/** Średnia liczba godzin w miesiącu (365 × 24 / 12) — do przeliczeń „za miesiąc” stawek godzinowych. */
+export const GODZIN_W_MIESIACU = 730;
+
+// --- Parsowanie odpowiedzi API (eksportowane dla testów i lib/ceny-api.ts) ---
+
+type PlanApi = { slug?: unknown; productKind?: unknown; priceMonthly?: unknown; priceYearly?: unknown; trialDays?: unknown };
+type RegulaApi = { resource?: unknown; pricePerUnit?: unknown; isActive?: unknown };
+
+const liczba = (v: unknown): number | null => {
+  const n = typeof v === 'number' ? v : typeof v === 'string' ? Number(v.replace(',', '.')) : NaN;
+  return Number.isFinite(n) && n >= 0 ? n : null;
+};
+
+function pakiet(p: PlanApi | undefined): CenaPakietu | null {
+  if (!p) return null;
+  const m = liczba(p.priceMonthly);
+  const r = liczba(p.priceYearly);
+  return m !== null && r !== null && m > 0 && r > 0 ? { miesiecznie: m, rocznie: r } : null;
+}
+
+/** GET /plans → hosting (slug verris-hosting, albo pierwszy HOSTING) i poczta (poczta-standard, albo pierwszy EMAIL). */
+export function parsujPlany(dane: unknown): { hosting: (CenaPakietu & { trialDays: number }) | null; poczta: CenaPakietu | null } {
+  const lista = Array.isArray(dane) ? (dane as PlanApi[]) : [];
+  const hostingPlan = lista.find((p) => p.slug === 'verris-hosting') ?? lista.find((p) => p.productKind === 'HOSTING');
+  const pocztaPlan = lista.find((p) => p.slug === 'poczta-standard') ?? lista.find((p) => p.productKind === 'EMAIL');
+  const h = pakiet(hostingPlan);
+  const trial = liczba(hostingPlan?.trialDays);
+  return {
+    hosting: h ? { ...h, trialDays: trial !== null ? Math.floor(trial) : 0 } : null,
+    poczta: pakiet(pocztaPlan),
+  };
+}
+
+/** GET /autoscaling/pricing → stawki CPU/RAM/DISK (tylko aktywne reguły; brak którejś → null). */
+export function parsujStawki(dane: unknown): StawkiAutoskalowania | null {
+  const lista = Array.isArray(dane) ? (dane as RegulaApi[]) : [];
+  const z = (zasob: string) => {
+    const r = lista.find((x) => x.resource === zasob && x.isActive !== false);
+    return r ? liczba(r.pricePerUnit) : null;
+  };
+  const cpu = z('CPU');
+  const ram = z('RAM');
+  const dysk = z('DISK');
+  return cpu !== null && ram !== null && dysk !== null ? { cpu, ram, dysk } : null;
+}
+
+/** Składa ceny z odpowiedzi API; brakujące części biorą wartości zapasowe i oznaczają wynik jako 'zapas'. */
+export function zlozCeny(plany: unknown, stawki: unknown): Ceny {
+  const p = parsujPlany(plany);
+  const s = parsujStawki(stawki);
+  return {
+    hosting: p.hosting ?? CENY_ZAPASOWE.hosting,
+    poczta: p.poczta ?? CENY_ZAPASOWE.poczta,
+    stawki: s ?? CENY_ZAPASOWE.stawki,
+    zrodlo: p.hosting && p.poczta && s ? 'api' : 'zapas',
+  };
+}

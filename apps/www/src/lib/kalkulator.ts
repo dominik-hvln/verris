@@ -1,12 +1,14 @@
+import { CENY_ZAPASOWE, type StawkiAutoskalowania } from './ceny';
+
 /**
- * Stawki autoskalowania (brutto, zł) — te same co w /specyfikacja: 1% CPU/h, 1 GB RAM/h, 1 GB dysku/h.
- * Jedno źródło dla kalkulatora piku (/hosting) i kalkulatora na /przenies-strone.
+ * Stawki autoskalowania (brutto, zł) — domyślne wartości kalkulatorów. Źródłem prawdy jest API
+ * (GET /autoscaling/pricing przez lib/ceny-api.ts); strony z danymi z API przekazują stawki jawnie.
  */
-export const STAWKI = { cpu: 0.001323, ram: 0.0882, dysk: 0.0008 } as const;
+export const STAWKI: StawkiAutoskalowania = CENY_ZAPASOWE.stawki;
 
 /** Dopłata za pik ponad bazę: 1 vCPU = 100% CPU. */
-export function kosztPiku(vcpu: number, ramGb: number, godziny: number): number {
-  return (vcpu * 100 * STAWKI.cpu + ramGb * STAWKI.ram) * godziny;
+export function kosztPiku(vcpu: number, ramGb: number, godziny: number, stawki: StawkiAutoskalowania = STAWKI): number {
+  return (vcpu * 100 * stawki.cpu + ramGb * stawki.ram) * godziny;
 }
 
 /** „3,20” — dwa miejsca po przecinku, przecinek dziesiętny. */

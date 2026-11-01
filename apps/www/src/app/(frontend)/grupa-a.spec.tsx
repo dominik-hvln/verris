@@ -4,12 +4,13 @@
  * że na stronę nie trafiają placeholdery z makiety ani zakazane sformułowania z briefu.
  */
 import type { Metadata } from 'next';
-import type { ComponentType } from 'react';
+import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 type Strona = {
   sciezka: string;
-  modul: () => { default: ComponentType; metadata: Metadata };
+  /** Strona może być asynchroniczna (ceny z API przez lib/ceny-api.ts) — wywołujemy ją jak funkcję. */
+  modul: () => { default: () => ReactNode | Promise<ReactNode>; metadata: Metadata };
   fraza: RegExp;
   typy: string[];
   noindex?: boolean;
@@ -42,8 +43,12 @@ function typyJsonLd(html: string): string[] {
 
 describe.each(STRONY)('grupa A — $sciezka', (s) => {
   const { default: Strona, metadata } = s.modul();
-  const html = renderToStaticMarkup(<Strona />);
-  const tekst = html.replace(/<script[\s\S]*?<\/script>/g, ' ').replace(/<[^>]+>/g, ' ');
+  let html = '';
+  let tekst = '';
+  beforeAll(async () => {
+    html = renderToStaticMarkup(<>{await Strona()}</>);
+    tekst = html.replace(/<script[\s\S]*?<\/script>/g, ' ').replace(/<[^>]+>/g, ' ');
+  });
 
   it('title do 60 znaków z frazą na początku, description do 155 znaków, canonical', () => {
     const title = String(metadata.title);

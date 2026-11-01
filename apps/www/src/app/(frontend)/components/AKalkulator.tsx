@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, type CSSProperties } from 'react';
-import { STAWKI, formatZl } from '@/lib/kalkulator';
+import { formatZl } from '@/lib/kalkulator';
+import { CENY_ZAPASOWE, stawka, zl, type Ceny, type StawkiAutoskalowania } from '@/lib/ceny';
 
 /*
- * Grupa A — kalkulator dopłat za moc ponad pakiet (strona główna i /cennik). Stawki wyłącznie z lib/kalkulator.ts.
+ * Grupa A — kalkulator dopłat za moc ponad pakiet (strona główna i /cennik). Ceny i stawki z propsa `ceny`
+ * (strona pobiera je z API przez lib/ceny-api.ts); bez propsa — wartości zapasowe z lib/ceny.ts.
  *  - wariant „krotki” (strona główna): pamięć ponad pakiet × godziny piku w miesiącu;
  *  - wariant „pelny” (/cennik): procesor, pamięć, dysk, godziny i przełącznik pakietu miesięczny/roczny.
  * Bez JavaScriptu kalkulator pokazuje wynik dla wartości startowych (render na serwerze).
@@ -44,11 +46,13 @@ const GODZ = (max: number, step: number, start: number): Suwak => ({
 const fill = (v: number, s: Suwak) => ({ ['--fill']: `${((v - s.min) / (s.max - s.min)) * 100}%` }) as CSSProperties;
 
 /** Koszt godziny z dodatkową mocą (brutto): % CPU, GB RAM, GB dysku. */
-export function kosztGodziny(cpuProc: number, ramGb: number, dyskGb: number): number {
-  return cpuProc * STAWKI.cpu + ramGb * STAWKI.ram + dyskGb * STAWKI.dysk;
+export function kosztGodziny(cpuProc: number, ramGb: number, dyskGb: number, s: StawkiAutoskalowania = CENY_ZAPASOWE.stawki): number {
+  return cpuProc * s.cpu + ramGb * s.ram + dyskGb * s.dysk;
 }
 
-export function AKalkulator({ wariant }: { wariant: 'krotki' | 'pelny' }) {
+export function AKalkulator({ wariant, ceny = CENY_ZAPASOWE }: { wariant: 'krotki' | 'pelny'; ceny?: Ceny }) {
+  const STAWKI = ceny.stawki;
+  const h = ceny.hosting;
   const suwaki: Suwak[] = wariant === 'pelny' ? [CPU, RAM(16), DYSK, GODZ(720, 4, 36)] : [RAM(8), GODZ(200, 5, 40)];
   const [w, setW] = useState<number[]>(suwaki.map((s) => s.start));
   const [rocznie, setRocznie] = useState(true);
@@ -57,9 +61,9 @@ export function AKalkulator({ wariant }: { wariant: 'krotki' | 'pelny' }) {
     return i < 0 ? 0 : w[i];
   };
 
-  const godzina = kosztGodziny(wart('ak-cpu'), wart('ak-ram'), wart('ak-dysk'));
+  const godzina = kosztGodziny(wart('ak-cpu'), wart('ak-ram'), wart('ak-dysk'), STAWKI);
   const doplata = godzina * wart('ak-godz');
-  const baza = wariant === 'pelny' && rocznie ? 449 / 12 : 45;
+  const baza = wariant === 'pelny' && rocznie ? h.rocznie / 12 : h.miesiecznie;
 
   return (
     <div className={`a-kalk a-kalk-${wariant}`}>
@@ -83,8 +87,8 @@ export function AKalkulator({ wariant }: { wariant: 'krotki' | 'pelny' }) {
           </div>
         ))}
         <p className="kalk-note">
-          Stawki brutto za godzinę: 1% procesora (100% = 1 vCPU) — {String(STAWKI.cpu).replace('.', ',')} zł · 1 GB
-          RAM — {String(STAWKI.ram).replace('.', ',')} zł · 1 GB dysku — {String(STAWKI.dysk).replace('.', ',')} zł.
+          Stawki brutto za godzinę: 1% procesora (100% = 1 vCPU) — {stawka(STAWKI.cpu)} zł · 1 GB
+          RAM — {stawka(STAWKI.ram)} zł · 1 GB dysku — {stawka(STAWKI.dysk)} zł.
           Naliczanie w blokach po 15 minut.
         </p>
       </div>
@@ -112,7 +116,7 @@ export function AKalkulator({ wariant }: { wariant: 'krotki' | 'pelny' }) {
             <dd className="mint">{formatZl(doplata)} zł</dd>
           </div>
           <div className="a-kalk-suma">
-            <dt>Razem z pakietem{wariant === 'pelny' && rocznie ? ' (449 zł/rok ÷ 12)' : ' (45 zł/mies)'}</dt>
+            <dt>Razem z pakietem{wariant === 'pelny' && rocznie ? ` (${zl(h.rocznie)}/rok ÷ 12)` : ` (${zl(h.miesiecznie)}/mies)`}</dt>
             <dd>{formatZl(baza + doplata)} zł</dd>
           </div>
           {wariant === 'pelny' && (

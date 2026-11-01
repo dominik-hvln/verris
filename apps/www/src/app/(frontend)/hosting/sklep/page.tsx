@@ -1,8 +1,11 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { Accordion, Breadcrumbs, Button, Card, CTABand, JsonLd, SectionHead, StickyBuy, Steps, type Step } from '../../components/ui';
+import { Accordion, Breadcrumbs, Button, Card, CTABand, JsonLd, SectionHead, Steps, type Step } from '../../components/ui';
+import { MobilnyPasek } from '../../components/MobilnyPasek';
+import { pobierzCeny } from '@/lib/ceny-api';
+import { pasekHostingu } from '@/lib/proba';
 import { ZAMOW } from '@/lib/site';
-import { faqSchema, HOSTING_OFFERS, productSchema } from '@/lib/schema';
+import { faqSchema, ofertyHostingu, productSchema } from '@/lib/schema';
 import { formatZl, kosztPiku } from '@/lib/kalkulator';
 import { zweryfikowane } from '@/lib/oferta';
 
@@ -72,7 +75,8 @@ const FAQ: [string, string][] = [
   ],
 ];
 
-export default function Page() {
+export default async function Page() {
+  const ceny = await pobierzCeny();
   return (
     <main>
       <JsonLd
@@ -81,7 +85,7 @@ export default function Page() {
           description:
             'Hosting dla sklepów WooCommerce i PrestaShop z autoskalowaniem do 24 vCPU i 64 GB RAM, kopiami z 30 dni przywracanymi samodzielnie, zaporą WAF i bezpłatnym przeniesieniem sklepu.',
           path: '/hosting/sklep',
-          offers: HOSTING_OFFERS,
+          offers: ofertyHostingu(ceny),
         })}
       />
       <JsonLd data={faqSchema(FAQ)} />
@@ -199,7 +203,7 @@ export default function Page() {
         primaryLabel="Zamów hosting dla sklepu"
         secondary={{ label: 'Jak działa przeniesienie', href: '/przenies-strone' }}
       />
-      <StickyBuy />
+      <MobilnyPasek {...pasekHostingu(ceny)} />
     </main>
   );
 }

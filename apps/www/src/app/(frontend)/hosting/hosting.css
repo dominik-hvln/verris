@@ -1,0 +1,36 @@
+/* /hosting — sekcje z makiety 1.11.2026 (specyfikacja w zakładkach, płatne dodatki, sześć pytań). */
+.h-fine{margin:14px 0 0;font-size:14px;color:var(--stone)}
+
+/* Specyfikacja w zakładkach */
+.hspec{display:grid;gap:14px}
+.hspec-prz{display:flex;justify-content:flex-end}
+.hspec-prz .seg{width:220px;max-width:100%}
+.hspec-tab{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.hspec .c-spec{min-width:0}
+.hspec .c-spec tbody th{width:38%}
+.hspec-pelna{margin:16px 0 0}
+
+/* Płatne dodatki */
+.hdod-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.hdod{width:100%;min-width:640px;border-collapse:separate;border-spacing:0;background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.hdod th,.hdod td{padding:14px 16px;text-align:left;vertical-align:top;font-size:15px;border-bottom:1px solid var(--line);line-height:1.5}
+.hdod tr:last-child>*{border-bottom:0}
+.hdod thead th{font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--stone);font-weight:500}
+.hdod tbody th{font-weight:600;color:var(--paper)}
+.hdod small{display:block;font-size:13px;color:var(--stone);margin-top:2px}
+.hprz{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:14px}
+.hprz li{display:grid;gap:4px;padding:20px 22px;background:var(--card);border:1px solid var(--line);border-radius:16px}
+.hprz span{font-size:13.5px;color:var(--stone)}
+.hprz b{font-family:var(--display);font-size:22px;color:var(--paper)}
+@media(min-width:768px){.hprz{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* Sześć pytań do każdego dostawcy */
+.hpyt{list-style:none;margin:0;padding:0;display:grid;gap:16px}
+.hpyt li{display:flex;flex-direction:column;gap:12px;padding:24px;background:var(--card);border:1px solid var(--line);border-radius:18px}
+.hpyt .kicker{margin:0;font-size:12px;color:var(--stone);letter-spacing:.06em}
+.hpyt h3{margin:0;font-size:20px}
+.hpyt-my{margin:0;color:var(--paper);font-size:15.5px}
+.hpyt-my::before{content:"✓";color:var(--mint);font-weight:700;margin-right:8px}
+.hpyt-rynek{margin:auto 0 0;padding-top:10px;border-top:1px solid var(--line);font-size:13.5px;color:var(--stone)}
+@media(min-width:640px){.hpyt{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:1024px){.hpyt{grid-template-columns:repeat(3,minmax(0,1fr))}}

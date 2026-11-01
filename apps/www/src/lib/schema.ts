@@ -1,5 +1,6 @@
 // Wspólne helpery structured data (JSON-LD).
 import { OFERTA_KROTKO } from './oferta';
+import { CENY_ZAPASOWE, type Ceny } from './ceny';
 
 export const SITE = 'https://verris.pl';
 
@@ -66,10 +67,16 @@ export function serviceSchema(args: {
   };
 }
 
-export const HOSTING_OFFERS = [
-  { '@type': 'Offer', price: '45.00', priceCurrency: 'PLN', availability: 'https://schema.org/InStock', description: 'Rozliczenie miesięczne, cena brutto' },
-  { '@type': 'Offer', price: '449.00', priceCurrency: 'PLN', availability: 'https://schema.org/InStock', description: 'Rozliczenie roczne, cena brutto' },
-];
+/** Oferty schema.org dla pakietu hostingu — z cen modułu (lib/ceny), żeby JSON-LD zgadzał się z tym, co widać na stronie. */
+export function ofertyHostingu(ceny: Pick<Ceny, 'hosting'>) {
+  return [
+    { '@type': 'Offer', price: ceny.hosting.miesiecznie.toFixed(2), priceCurrency: 'PLN', availability: 'https://schema.org/InStock', description: 'Rozliczenie miesięczne, cena brutto' },
+    { '@type': 'Offer', price: ceny.hosting.rocznie.toFixed(2), priceCurrency: 'PLN', availability: 'https://schema.org/InStock', description: 'Rozliczenie roczne, cena brutto' },
+  ];
+}
+
+/** Dla stron synchronicznych (np. /specyfikacja) — ceny zapasowe modułu, do czasu przejścia strony na pobierzCeny(). */
+export const HOSTING_OFFERS = ofertyHostingu(CENY_ZAPASOWE);
 
 export function faqSchema(qa: [string, string][]) {
   return {

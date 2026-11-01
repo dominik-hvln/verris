@@ -1,49 +1,104 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { Accordion, Breadcrumbs, Button, Card, CTABand, JsonLd, SectionHead, StickyBuy } from '../components/ui';
+import { Accordion, Breadcrumbs, Button, CTABand, JsonLd, SectionHead2 } from '../components/ui';
+import { MobilnyPasek } from '../components/MobilnyPasek';
+import { PasRozmowy } from '../components/PasRozmowy';
+import { KartyUslug, Poradniki } from '../components/KartyUslug';
+import { PocztaKonfiguracja } from '../components/PocztaKonfiguracja';
+import { pobierzCeny } from '@/lib/ceny-api';
+import { netto, zl, type Ceny } from '@/lib/ceny';
+import { ctaProby, pasekPoczty, ZAMOW_W_PANELU } from '@/lib/proba';
 import { EMAIL_MARKETING_W_SPRZEDAZY } from '@/lib/oferta';
-import { faqSchema, graph, HOSTING_OFFERS, serviceSchema } from '@/lib/schema';
-import { ZAMOW } from '@/lib/site';
+import { faqSchema, graph, serviceSchema } from '@/lib/schema';
 
 /*
- * Makieta 14.10 (plansza Poczta). Funkcje sprawdzone w panelu klienta (zakładka Poczta, kreator SPF/DKIM/DMARC,
- * aliasy, autoodpowiedź, filtr antyspam, dzienny limit wysyłki). Z makiety pominięte, bo ich nie ma w kodzie:
- * konfiguracja telefonu kodem QR, sprawdzanie czarnych list, przeglądanie zatrzymanego spamu.
+ * Makieta 1.11.2026 (plansza „/poczta — nowa”). Fakty sprawdzone w kodzie:
+ *  - limity skrzynek i wysyłki: /specyfikacja (domyślnie 1 GB, do 100 GB, 1000 wiadomości na dobę z konta),
+ *  - porty: artykuł bazy wiedzy „Konfiguracja poczty e-mail (IMAP/SMTP, porty)”,
+ *  - dogranie różnic przed przełączeniem: delta-sync migratora (migration-orchestrator.service.ts, queueDeltaSync).
+ * Celowo pominięte: rozmiar największej wiadomości (brak potwierdzonej wartości z serwera),
+ * konfiguracja kodem QR i sprawdzanie czarnych list (nie ma ich w kodzie).
+ * Ceny wyłącznie z lib/ceny (GET /plans) — bez kwot wpisanych na sztywno.
  */
 export const metadata: Metadata = {
-  title: 'Poczta w domenie — firmowy e-mail w hostingu | Verris',
+  title: 'Poczta w domenie — firmowy e-mail | Verris',
   description:
-    'Firmowa poczta na własnej domenie w hostingu za 45 zł/mies brutto: skrzynki bez limitu liczby, webmail, SPF, DKIM i DMARC w panelu, migracja w cenie.',
+    'Firmowa poczta na własnej domenie: skrzynki bez limitu liczby, do 100 GB na skrzynkę, webmail, SPF, DKIM i DMARC w panelu, przeniesienie skrzynek w cenie.',
   alternates: { canonical: '/poczta' },
 };
 
-const FUNKCJE: [string, string][] = [
-  ['Telefon i komputer', 'Skrzynkę dodasz do aplikacji pocztowej w telefonie albo na komputerze przez IMAP i SMTP.'],
-  ['Poczta w przeglądarce', 'Webmail Roundcube pod webmail.verris.pl, gdy jesteś z dala od własnego komputera.'],
+const LIMITY: { duzo: string; co: string; opis: string }[] = [
+  { duzo: 'bez limitu', co: 'liczba skrzynek', opis: 'w ramach 50 GB miejsca konta, wspólnego dla stron i poczty' },
+  { duzo: 'do 100 GB', co: 'na jedną skrzynkę', opis: 'domyślnie 1 GB, rozmiar zmieniasz w panelu' },
+  { duzo: '1000', co: 'wiadomości na dobę', opis: 'wysyłka z konta; limit chroni reputację serwera' },
+];
+
+const DODATKI: [string, string][] = [
+  ['Kopie poczty z 30 dni', 'Skasowane wiadomości przywrócisz sam, z wybranego dnia.'],
   ['Aliasy i przekierowania', 'kontakt@, faktury@ i sklep@ mogą trafiać do jednej skrzynki. Autoodpowiedź na urlop ustawisz w panelu.'],
-  ['Mniej spamu', 'Filtr antyspamowy włączasz dla domeny w panelu i sam ustawiasz jego czułość.'],
+  ['Kalendarz i kontakty', 'CalDAV i CardDAV dla każdej skrzynki, także na telefonie.'],
 ];
 
-const RAPORT: [string, string][] = [
-  ['SPF', 'stan odczytany z publicznego DNS'],
-  ['DKIM', 'podpis wysyłanych wiadomości'],
-  ['DMARC', 'polityka do wyboru i gotowy rekord'],
-  ['Brakujący rekord', 'jednym kliknięciem, gdy domena używa DNS Verris'],
+const PRZENIESIENIE: [string, string][] = [
+  ['Zakładasz konto', 'Dodajesz domenę w panelu. Skrzynki o tych samych nazwach założymy za Ciebie.'],
+  ['Podajesz hasła skrzynek', 'Tylko tych, które przenosimy. Szyfrujemy je i kasujemy po zakończeniu.'],
+  ['Kopiujemy wiadomości', 'Z folderami, także Wysłane i Archiwum. Postęp widzisz przy każdej skrzynce.'],
+  ['Przełączasz domenę', 'Tuż przed przełączeniem jednym kliknięciem dogrywasz różnice, czyli maile z ostatnich godzin.'],
 ];
 
-export default function Page() {
+const RAPORT: { k: string; v: string; ok: boolean }[] = [
+  { k: 'SPF', v: 'ustawiony', ok: true },
+  { k: 'DKIM', v: 'ustawiony', ok: true },
+  { k: 'DMARC', v: 'brak · Dodaj', ok: false },
+];
+
+const PARAMETRY: [string, string][] = [
+  ['Liczba skrzynek i aliasów', 'bez limitu, w ramach 50 GB konta'],
+  ['Pojemność skrzynki', 'domyślnie 1 GB, do 100 GB'],
+  ['Wysyłka', 'do 1000 wiadomości na dobę z konta'],
+  ['Dostęp', 'IMAP, POP3 i SMTP z szyfrowaniem, poczta w przeglądarce z logowaniem z panelu'],
+  ['Funkcje', 'przekierowania, autoresponder, catch-all, filtr antyspamowy'],
+  ['Uwierzytelnianie', 'SPF, DKIM, DMARC z kreatorem w panelu'],
+  ['Kalendarz i kontakty', 'CalDAV i CardDAV'],
+  ['Kopie', 'codziennie, przywracanie z każdego z ostatnich 30 dni'],
+  ['Newslettery', 'nie ze zwykłej skrzynki; zwykła skrzynka ma dzienny limit wysyłki'],
+];
+
+const WEBMAIL: { t: string; od: string; nowa: boolean }[] = [
+  { t: 'Zamówienie #1042 — opłacone', od: 'sklep@pracownia-anna.pl · 10:24', nowa: true },
+  { t: 'Pytanie o termin dostawy', od: 'Marek W. · 9:51', nowa: true },
+  { t: 'Faktura za październik', od: 'biuro rachunkowe · wczoraj', nowa: true },
+  { t: 'Oferta współpracy', od: 'Piotr K. · wt.', nowa: false },
+];
+
+/** Oferty schema.org z planu „sama poczta” (ceny brutto z API). */
+function oferty(ceny: Ceny) {
+  return [
+    { '@type': 'Offer', price: ceny.poczta.miesiecznie.toFixed(2), priceCurrency: 'PLN', availability: 'https://schema.org/InStock', description: 'Sama poczta, rozliczenie miesięczne, cena brutto' },
+    { '@type': 'Offer', price: ceny.poczta.rocznie.toFixed(2), priceCurrency: 'PLN', availability: 'https://schema.org/InStock', description: 'Sama poczta, rozliczenie roczne, cena brutto' },
+  ];
+}
+
+export default async function Page() {
+  const ceny = await pobierzCeny();
+  const cta = ctaProby(ceny);
+  const p = ceny.poczta;
   const FAQ: [string, string][] = [
     [
+      'Ile kosztuje firmowa poczta bez hostingu strony?',
+      `${zl(p.miesiecznie)} miesięcznie albo ${zl(p.rocznie)} za rok brutto (${zl(netto(p.miesiecznie))} albo ${zl(netto(p.rocznie))} netto). Jeśli masz hosting w Verris, poczta jest w nim w cenie.`,
+    ],
+    [
       'Jak założyć pocztę w swojej domenie?',
-      'Zamawiasz hosting, dodajesz domenę i w panelu zakładasz skrzynkę w zakładce Poczta. Stan rekordów SPF, DKIM i DMARC sprawdzisz w tym samym panelu.',
+      'Zamawiasz usługę, dodajesz domenę i w panelu zakładasz skrzynkę w zakładce Poczta. Stan rekordów SPF, DKIM i DMARC sprawdzisz w tym samym panelu.',
     ],
     [
       'Ile skrzynek mogę mieć?',
-      'Nie liczymy skrzynek. Granicą są zasoby konta — 50 GB miejsca NVMe w pakiecie, wspólne dla stron i poczty.',
+      'Nie liczymy skrzynek. Granicą są zasoby konta — 50 GB miejsca NVMe w pakiecie, wspólne dla stron i poczty. Jedna skrzynka może mieć do 100 GB.',
     ],
     [
       'Czy przeniesiecie maile ze starej poczty?',
-      'Tak, w cenie hostingu. Zakładamy skrzynki u nas i kopiujemy wiadomości z folderami — potrzebujemy tylko haseł przenoszonych skrzynek.',
+      'Tak, w cenie. Zakładamy skrzynki u nas i kopiujemy wiadomości z folderami — potrzebujemy tylko haseł przenoszonych skrzynek.',
     ],
     [
       'Dlaczego moje maile trafiają do spamu?',
@@ -51,7 +106,7 @@ export default function Page() {
     ],
     [
       'Gdzie otworzę pocztę w przeglądarce?',
-      'W webmailu Roundcube pod webmail.verris.pl. Skrzynki skonfigurujesz też w aplikacji pocztowej przez IMAP i SMTP.',
+      'Pod webmail.verris.pl albo jednym kliknięciem z panelu, bez osobnego logowania. Skrzynki skonfigurujesz też w aplikacji pocztowej przez IMAP i SMTP.',
     ],
     [
       'Czy mogę wysyłać newsletter z firmowej skrzynki?',
@@ -65,12 +120,14 @@ export default function Page() {
     serviceSchema({
       name: 'Poczta e-mail w domenie',
       description:
-        'Skrzynki e-mail na własnej domenie w ramach hostingu Verris: webmail Roundcube, IMAP/SMTP, aliasy, autoodpowiedź, filtr antyspam, SPF/DKIM/DMARC w panelu.',
+        'Skrzynki e-mail na własnej domenie: poczta w przeglądarce, IMAP/SMTP, aliasy, autoodpowiedź, filtr antyspam, SPF/DKIM/DMARC w panelu.',
       path: '/poczta',
-      offers: HOSTING_OFFERS,
+      offers: oferty(ceny),
     }),
     faqSchema(FAQ),
   );
+
+  const glowny = cta.proba ? { label: cta.label, href: cta.href } : { label: 'Załóż firmową pocztę', href: ZAMOW_W_PANELU };
 
   return (
     <main>
@@ -78,8 +135,8 @@ export default function Page() {
 
       <section className="hero2 hero2-sub">
         <div className="bg-pat" aria-hidden="true" />
-        <div className="wrap hero2-grid">
-          <div>
+        <div className="wrap pcz-hero">
+          <div className="pcz-hero-t">
             <Breadcrumbs items={[{ label: 'Hosting', href: '/hosting' }, { label: 'Poczta' }]} />
             <span className="eyebrow" style={{ marginTop: 18 }}>
               Poczta w domenie
@@ -88,89 +145,172 @@ export default function Page() {
               Firmowy e-mail, <span className="mint">który trafia do skrzynki, nie do spamu</span>
             </h1>
             <p className="lead">
-              biuro@twojafirma.pl wygląda poważniej niż adres z darmowej poczty. Skrzynki zakładasz w panelu, a stan
-              rekordów, od których zależy dostarczalność, widzisz w jednym miejscu.
+              anna@twojafirma.pl na telefonie, w Outlooku i w przeglądarce. Skrzynek nie liczymy, a SPF, DKIM i DMARC
+              ustawisz w panelu w minutę.
             </p>
             <div className="hero2-cta">
-              <Button href={ZAMOW} cta="subhero" conv="checkout_intent" plan="poczta">
-                Załóż firmową pocztę
+              <Button href={glowny.href} cta="subhero" conv="checkout_intent" plan="poczta">
+                {glowny.label}
               </Button>
               <Button href="/przenies-strone" variant="ghost" cta="subhero-alt">
-                Przenieś skrzynki z innego hostingu
+                Przenieś pocztę za 0 zł
               </Button>
             </div>
             <p className="hero2-fine">
-              Poczta jest w pakiecie hostingu za <strong>45 zł/mies</strong> lub <strong>449 zł/rok</strong> brutto. Bez
-              limitu liczby skrzynek, w ramach miejsca na koncie.
+              Sama poczta, bez hostingu strony: <strong>{zl(p.miesiecznie)}/mies.</strong> brutto ({zl(netto(p.miesiecznie))} netto)
+              albo <strong>{zl(p.rocznie)}/rok</strong> brutto ({zl(netto(p.rocznie))} netto). Masz już hosting w Verris? Poczta
+              jest w nim w cenie.
             </p>
           </div>
-          <Card className="incl">
-            <h2 className="incl-h">Poczta w abonamencie</h2>
-            <dl>
-              <div>
-                <dt>Skrzynki</dt>
-                <dd>bez limitu liczby</dd>
-              </div>
-              <div>
-                <dt>Webmail</dt>
-                <dd>Roundcube</dd>
-              </div>
-              <div>
-                <dt>Aliasy i autoodpowiedź</dt>
-                <dd>w panelu</dd>
-              </div>
-              <div>
-                <dt>SPF · DKIM · DMARC</dt>
-                <dd>stan w panelu</dd>
-              </div>
-              <div>
-                <dt>Przeniesienie skrzynek</dt>
-                <dd>w cenie</dd>
-              </div>
-            </dl>
-          </Card>
+
+          <figure className="pcz-webmail" aria-label="Ekran poglądowy poczty w przeglądarce">
+            <div className="pcz-wm-bar" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+              <span className="mono">poczta Verris · anna@pracownia-anna.pl</span>
+            </div>
+            <div className="pcz-wm-body" aria-hidden="true">
+              <ul className="pcz-wm-foldery">
+                <li className="on">
+                  Odebrane <b>3</b>
+                </li>
+                <li>Wysłane</li>
+                <li>Faktury</li>
+                <li>Sklep</li>
+                <li>Spam</li>
+              </ul>
+              <ul className="pcz-wm-lista">
+                {WEBMAIL.map((m) => (
+                  <li key={m.t} className={m.nowa ? 'nowa' : undefined}>
+                    <span className="t">{m.t}</span>
+                    <span className="od">{m.od}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <figcaption>Ekran poglądowy, przykładowe dane.</figcaption>
+          </figure>
         </div>
       </section>
 
-      <section className="sec" aria-labelledby="b-poczta-funkcje">
+      <section className="sec sec-alt" aria-labelledby="pcz-limity">
         <div className="wrap">
-          <SectionHead id="b-poczta-funkcje" eyebrow="W pakiecie" title="Wszystko, czego potrzebuje poczta w małej firmie" />
-          <div className="b-grid4">
-            {FUNKCJE.map(([t, p]) => (
-              <Card key={t}>
-                <h3>{t}</h3>
-                <p>{p}</p>
-              </Card>
+          <SectionHead2
+            id="pcz-limity"
+            eyebrow="Limity"
+            title="Ile skrzynek, ile miejsca, ile maili"
+            lead="Liczby, o które pytają klienci, zanim przeniosą pocztę."
+          />
+          <ul className="pcz-limity">
+            {LIMITY.map((l) => (
+              <li key={l.co} className="card">
+                <span className="pcz-duzo">{l.duzo}</span>
+                <strong>{l.co}</strong>
+                <span>{l.opis}</span>
+              </li>
             ))}
-          </div>
+          </ul>
+          <ul className="pcz-dodatki">
+            {DODATKI.map(([t, d]) => (
+              <li key={t} className="card">
+                <h3>{t}</h3>
+                <p>{d}</p>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 
-      <section className="sec sec-alt" aria-labelledby="b-spam">
-        <div className="wrap b-split">
-          <SectionHead
-            id="b-spam"
-            eyebrow="Dostarczalność"
-            title="Dlaczego maile trafiają do spamu? I jak to naprawić"
-            lead="Skrzynki odbiorców sprawdzają, czy wiadomość naprawdę wysłała Twoja firma. Bez poprawnych rekordów SPF, DKIM i DMARC nawet zwykła oferta może wylądować w spamie. Panel Verris pokazuje ich stan i podpowiada, co dodać."
+      <section className="sec" aria-labelledby="pcz-konf">
+        <div className="wrap">
+          <SectionHead2
+            id="pcz-konf"
+            eyebrow="Telefon i komputer"
+            title="Skonfigurujesz w 2 minuty"
+            lead="Wybierz urządzenie. Adres serwera znajdziesz w panelu przy każdej skrzynce, z przyciskiem „Kopiuj”."
           />
-          <div className="b-ramka">
-            <h3>Kreator SPF, DKIM i DMARC w panelu</h3>
-            <ul className="b-pokaz-ekran" style={{ minHeight: 0, marginTop: 12 }}>
-              {RAPORT.map(([k, v]) => (
-                <li key={k}>
-                  <span>{k}</span>
-                  <span className="b-pokaz-v">{v}</span>
+          <PocztaKonfiguracja />
+        </div>
+      </section>
+
+      <section className="sec sec-alt" aria-labelledby="pcz-przen">
+        <div className="wrap">
+          <SectionHead2
+            id="pcz-przen"
+            eyebrow="Przeniesienie poczty · 0 zł"
+            title="Przenosimy skrzynki razem z folderami"
+            lead="Stara poczta działa, dopóki nie przełączysz domeny. Żaden mail nie ginie po drodze."
+          />
+          <ol className="pcz-kroki4">
+            {PRZENIESIENIE.map(([t, d], i) => (
+              <li key={t} className={`card${i === PRZENIESIENIE.length - 1 ? ' card-accent' : ''}`}>
+                <span className="mono pcz-nr">{i + 1}</span>
+                <h3>{t}</h3>
+                <p>{d}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      <section className="sec" aria-labelledby="pcz-spam" id="dostarczalnosc">
+        <div className="wrap pcz-spam">
+          <div>
+            <p className="kicker">Dostarczalność</p>
+            <h2 id="pcz-spam">Dlaczego maile trafiają do spamu i jak to naprawić</h2>
+            <p className="lead">
+              Skrzynki odbiorców sprawdzają, czy serwer może wysyłać w imieniu Twojej domeny. Bez trzech rekordów DNS Twoje
+              oferty lądują w spamie. W panelu widzisz, co jest ustawione, a brakujące dodasz jednym kliknięciem, gdy domena
+              używa DNS Verris.
+            </p>
+          </div>
+          <figure className="card pcz-raport" aria-label="Ekran poglądowy kreatora SPF, DKIM i DMARC">
+            <strong>twojafirma.pl · uwierzytelnianie poczty</strong>
+            <ul>
+              {RAPORT.map((r) => (
+                <li key={r.k}>
+                  <span>{r.k}</span>
+                  <span className={r.ok ? 'ok' : 'brak'}>{r.ok ? `✓ ${r.v}` : r.v}</span>
                 </li>
               ))}
             </ul>
+            <figcaption>Ekran poglądowy kreatora w panelu.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section className="sec sec-alt" aria-labelledby="pcz-param">
+        <div className="wrap">
+          <SectionHead2
+            id="pcz-param"
+            eyebrow="Parametry"
+            title="Poczta w liczbach"
+            lead={
+              <>
+                Pełna lista, ta sama co w <Link href="/specyfikacja">specyfikacji hostingu</Link>.
+              </>
+            }
+          />
+          <div className="card pcz-param">
+            <table>
+              <caption className="pcz-sr">Parametry poczty</caption>
+              <tbody>
+                {PARAMETRY.map(([k, v]) => (
+                  <tr key={k}>
+                    <th scope="row">{k}</th>
+                    <td>{v}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
 
       <section className="sec" id="faq">
         <div className="wrap narrow">
-          <SectionHead eyebrow="FAQ" title="Pytania o pocztę w domenie" />
+          <SectionHead2 eyebrow="FAQ" title="Pytania o pocztę w domenie" />
           <Accordion items={FAQ.map(([q, a], i) => ({ title: q, body: <p>{a}</p>, open: i === 0 }))} />
           {EMAIL_MARKETING_W_SPRZEDAZY && (
             <p className="b-przypis">
@@ -180,14 +320,23 @@ export default function Page() {
         </div>
       </section>
 
+      <section className="sec sec-alt" aria-label="Inne usługi i poradniki">
+        <div className="wrap pcz-powiazane">
+          <KartyUslug pomin={['poczta']} />
+          <Poradniki />
+        </div>
+      </section>
+
+      <PasRozmowy />
+
       <CTABand
         title="Twoja firma pod własnym adresem. Skrzynki przeniesiemy za darmo"
-        text="Skrzynki w Twojej domenie, webmail i kreator SPF, DKIM i DMARC od pierwszego dnia."
-        primaryLabel="Załóż firmową pocztę"
-        primaryHref={ZAMOW}
+        text="Skrzynki w Twojej domenie, poczta w przeglądarce i kreator SPF, DKIM i DMARC od pierwszego dnia."
+        primaryLabel={glowny.label}
+        primaryHref={glowny.href}
         secondary={{ label: 'Jak działa przeniesienie', href: '/przenies-strone' }}
       />
-      <StickyBuy href={ZAMOW} />
+      <MobilnyPasek {...pasekPoczty(ceny)} />
     </main>
   );
 }

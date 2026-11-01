@@ -2,8 +2,10 @@
 
 import { useState, type CSSProperties } from 'react';
 import { formatZl, kosztPiku } from '@/lib/kalkulator';
+import { CENY_ZAPASOWE, stawka, type StawkiAutoskalowania } from '@/lib/ceny';
 
-// Kalkulator dopłaty za pik (/hosting#kalkulator): vCPU i RAM ponad bazę × czas trwania, stawki z lib/kalkulator.ts.
+// Kalkulator dopłaty za pik (/hosting#kalkulator): vCPU i RAM ponad bazę × czas trwania; stawki z propsa (API),
+// bez propsa — wartości zapasowe z lib/ceny.ts.
 
 const SUWAKI = [
   { id: 'kp-vcpu', label: 'Dodatkowe vCPU ponad bazę', min: 0, max: 22, start: 7 },
@@ -14,7 +16,7 @@ const SUWAKI = [
 const fill = (v: number, min: number, max: number) =>
   ({ ['--fill']: `${((v - min) / (max - min)) * 100}%` }) as CSSProperties;
 
-export function KalkulatorPiku() {
+export function KalkulatorPiku({ stawki = CENY_ZAPASOWE.stawki }: { stawki?: StawkiAutoskalowania }) {
   const [w, setW] = useState<number[]>(SUWAKI.map((s) => s.start));
   const [vcpu, ram, h] = w;
 
@@ -40,9 +42,11 @@ export function KalkulatorPiku() {
       ))}
       <div className="kalk-out" aria-live="polite">
         <span>Dopłata za ten pik (brutto)</span>
-        <strong>{formatZl(kosztPiku(vcpu, ram, h))} zł</strong>
+        <strong>{formatZl(kosztPiku(vcpu, ram, h, stawki))} zł</strong>
       </div>
-      <p className="kalk-note">1 vCPU·h = 0,1323 zł · 1 GB RAM·h = 0,0882 zł · naliczanie w blokach 15 min</p>
+      <p className="kalk-note">
+        1 vCPU·h = {stawka(stawki.cpu * 100)} zł · 1 GB RAM·h = {stawka(stawki.ram)} zł · naliczanie w blokach 15 min
+      </p>
     </div>
   );
 }

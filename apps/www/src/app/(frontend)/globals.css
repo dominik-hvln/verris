@@ -7,7 +7,7 @@
   --display:'Schibsted Grotesk',system-ui,sans-serif;
   --text:'Hanken Grotesk',system-ui,sans-serif;
   --mono:'JetBrains Mono',ui-monospace,monospace;
-  --wrap:1200px; --gutter:16px;
+  --wrap:1320px; --gutter:16px;
   --pat:url('/pattern.svg');
 }
 *{margin:0;padding:0;box-sizing:border-box}
@@ -627,13 +627,22 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;bac
 @media(min-width:768px){.ctaband{padding:44px 40px;border-radius:28px}.ctaband h2{font-size:clamp(30px,3.4vw,40px)}.ctaband p{font-size:18px}.ctaband-btns{flex-direction:row;flex-wrap:wrap;gap:12px}.ctaband-sec{padding:16px 0 72px}.bg-pat-full{background-size:294px 120px}}
 @media(min-width:1024px){.ctaband{flex-direction:row;align-items:center;justify-content:space-between;gap:28px;padding:56px 48px}.ctaband-txt{flex:1 1 480px}.ctaband-sec{padding:0 0 88px}.sec-alt + .ctaband-sec{padding-top:80px}}
 
-/* StickyBuy — przyklejony pasek zakupu, tylko telefon */
-.stickybuy{position:sticky;bottom:0;z-index:50;display:flex;align-items:center;gap:12px;padding:10px var(--gutter);background:rgba(9,20,16,.96);border-top:1px solid rgba(255,255,255,.1);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
-.stickybuy p{flex:1;display:flex;flex-direction:column;line-height:1.3}
-.stickybuy strong{color:var(--paper)}
-.stickybuy span{font-size:12px;color:var(--stone)}
-body:has(.stickybuy) .cc-trigger{bottom:84px}
-@media(min-width:768px){.stickybuy{display:none}body:has(.stickybuy) .cc-trigger{bottom:16px}}
+/* MobilnyPasek — pasek zakupu na telefonie (do 900 px; makieta 1.11, zastąpił StickyBuy). Ukryty, dopóki
+   nie przewiniesz za hero; chowa się przy otwartym banerze cookies. */
+.mpasek{position:fixed;left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:60;display:flex;align-items:center;gap:10px;padding:10px 6px 10px 16px;border-radius:14px;background:rgba(14,31,23,.96);border:1px solid rgba(52,229,160,.35);box-shadow:0 12px 30px rgba(0,0,0,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);opacity:0;transform:translateY(130%);visibility:hidden;pointer-events:none}
+.mpasek.on{opacity:1;transform:none;visibility:visible;pointer-events:auto}
+@media(prefers-reduced-motion:no-preference){.mpasek{transition:opacity .25s ease,transform .25s ease,visibility .25s}}
+.mpasek p{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.3;margin:0}
+.mpasek strong{color:var(--paper);font-size:16px}
+.mpasek span{font-size:12px;color:var(--stone)}
+.mpasek .btn{white-space:nowrap}
+.mpasek-x{display:grid;place-items:center;width:44px;height:44px;flex:none;border:0;background:transparent;color:var(--stone);cursor:pointer;border-radius:10px}
+.mpasek-x:hover{color:var(--paper)}
+.mpasek-x:focus-visible{outline:2px solid var(--tip);outline-offset:2px}
+.mpasek-x svg{width:18px;height:18px}
+body:has(.cc-bar) .mpasek{display:none}
+@media(max-width:899px){body:has(.mpasek.on) .cc-trigger{bottom:96px}}
+@media(min-width:900px){.mpasek{display:none}}
 
 /* === grupa D: o-nas, kontakt, reseller, polecaj, dokumenty, 404 (makieta 14.10) === */
 /* /polecaj — tabela zasad i przykład */
@@ -976,3 +985,78 @@ body:has(.stickybuy) .cc-trigger{bottom:84px}
 @media(min-width:1200px){.hero2 h1{font-size:48px}.hero2-sub h1{font-size:44px}}
 h2{font-size:clamp(26px,3vw,32px)}
 .subhero h1{font-size:clamp(30px,4vw,44px)}
+
+/* === Komponenty 2026-11 (makieta „verris.pl — rozbudowa treści”, 1.11.2026) === */
+/* SectionHead2: tytuł po lewej, opis po prawej od 900 px */
+.shead2{display:grid;gap:12px;margin-bottom:28px}
+.shead2 .kicker{font-size:12px;letter-spacing:.08em;margin-bottom:8px}
+.shead2 h2{margin:0}
+.shead2 .lead{font-size:16px;line-height:1.6;color:var(--body);max-width:620px}
+@media(min-width:900px){.shead2{grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:48px;align-items:end;margin-bottom:44px}.shead2 .lead{font-size:18px}}
+
+/* PrzelacznikCeny */
+.pcena{display:grid;gap:20px}
+.pcena-prz{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between}
+.pcena-prz .seg{flex:1 1 220px}
+.pcena-kwota{display:grid;gap:4px}
+.pcena-nazwa{font-size:15px;font-weight:600;color:var(--paper)}
+.pcena-cena{margin:0;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.pcena-cena strong{font-family:var(--display);font-weight:800;font-size:clamp(44px,6vw,60px);line-height:1;color:var(--paper)}
+.pcena-cena span{font-size:18px;color:var(--body)}
+.pcena-podpis{margin:0;font-size:14px;color:var(--stone)}
+
+/* PasRozmowy */
+.pasrozm{display:grid;gap:28px;border-color:rgba(52,229,160,.28)}
+.pasrozm-kto{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+.pasrozm-kto>div{flex:1 1 240px;display:grid;gap:8px}
+.pasrozm-kto h2{margin:0;font-size:clamp(26px,3vw,30px)}
+.pasrozm-kto p{margin:0}
+.pasrozm-av{width:96px;height:96px;flex:none;border-radius:50%;display:grid;place-items:center;background:var(--card2);border:1px solid rgba(52,229,160,.35);font-family:var(--display);font-weight:800;font-size:40px;color:var(--mint)}
+.pasrozm-godz{font-size:14px;color:var(--stone)}
+.pasrozm-form{display:grid;gap:4px}
+.pasrozm-pola{display:grid;gap:0 12px}
+.pasrozm-pora{border:0;padding:0;margin:0 0 18px}
+.pasrozm-pora legend{font-size:14px;font-weight:600;color:var(--paper);margin-bottom:8px;padding:0}
+.pasrozm-radio{display:flex;flex-wrap:wrap;gap:6px}
+.pasrozm-radio label{position:relative;cursor:pointer}
+.pasrozm-radio input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.pasrozm-radio span{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border-radius:10px;border:1px solid var(--line2);color:var(--body);font-size:15px}
+.pasrozm-radio input:checked+span{background:var(--mid);border-color:var(--mid);color:#06120D;font-weight:600}
+.pasrozm-radio input:focus-visible+span{outline:2px solid var(--tip);outline-offset:2px}
+.pasrozm-form .btn{justify-self:start}
+.pasrozm .form-error{color:#ff9b9b;margin:8px 0 0}
+@media(min-width:600px){.pasrozm-pola{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:900px){.pasrozm{grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:44px;align-items:center;padding:40px}}
+
+/* KartyUslug + Poradniki */
+.powiaz{display:grid;gap:22px}
+.powiaz+.powiaz{margin-top:56px}
+.powiaz-g{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.powiaz-g h2{margin:0}
+.powiaz-karty{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+.powiaz-karty>li{display:flex;min-width:0}
+.kusl,.porad{display:flex;flex-direction:column;gap:8px;width:100%;color:var(--body);text-decoration:none;transition:border-color .15s}
+.kusl:hover,.porad:hover{border-color:rgba(52,229,160,.45)}
+.kusl:focus-visible,.porad:focus-visible{outline:2px solid var(--tip);outline-offset:2px}
+.kusl h3,.porad h3{margin:0;font-size:19px}
+.kusl p{margin:0;font-size:15px}
+.kusl .kicker,.porad .kicker{font-size:12px;letter-spacing:.08em;margin:0}
+.kusl-ik,.porad-ik{width:42px;height:42px;border-radius:11px;background:var(--card2);border:1px solid rgba(52,229,160,.25);display:grid;place-items:center;color:var(--mint);margin-bottom:4px}
+.kusl-ik svg,.porad-ik svg{width:20px;height:20px}
+.kusl-link{margin-top:auto;padding-top:10px;color:var(--mint);font-weight:600;white-space:nowrap}
+@media(min-width:640px){.powiaz-karty{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:1024px){.powiaz-karty.n3{grid-template-columns:repeat(3,minmax(0,1fr))}.powiaz-karty.n4{grid-template-columns:repeat(4,minmax(0,1fr))}}
+
+/* PasekDostepnosci */
+.pdost{display:grid;gap:10px}
+.pdost-dni{display:flex;gap:3px;height:40px}
+.pdost-d{flex:1;min-width:0;padding:0;border:0;border-radius:3px;cursor:pointer;background:#2fbf86}
+.pdost-d[data-k=krotkie]{background:linear-gradient(#2fbf86 0 62%,#E8B450 62% 100%)}
+.pdost-d[data-k=spowolnienie]{background:#E8B450}
+.pdost-d[data-k=awaria]{background:#d34c4c}
+.pdost-d[data-k=prace]{background:repeating-linear-gradient(135deg,#5b84d6 0 4px,#3f5f9e 4px 8px)}
+.pdost-d:hover,.pdost-d[aria-pressed=true]{filter:brightness(1.18)}
+@media(prefers-reduced-motion:no-preference){.pdost-d{transition:transform .15s ease,filter .15s ease}.pdost-d:hover,.pdost-d[aria-pressed=true]{transform:scaleY(1.12)}}
+.pdost-d:focus-visible{outline:2px solid var(--paper);outline-offset:2px}
+.pdost-info{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;min-height:44px;background:var(--page);border-radius:10px;padding:8px 12px;font-size:14px;color:var(--paper)}
+.pdost-info .mono{font-size:12px;color:var(--stone)}
