@@ -65,4 +65,30 @@ describe('Prośba o telefon (CALLBACK)', () => {
     const e = await validate(plainToInstance(SubmitCallbackDto, { name: 'A', phone: '600123456', preferredTime: 'noc' }));
     expect(e.map((x) => x.property).sort()).toEqual(['consentText', 'preferredTime']);
   });
+
+  it('prośba z okna asystenta AI: mail do zespołu zawiera przebieg rozmowy', async () => {
+    const s = stanowisko();
+    const findMany = vi.fn(async () => [
+      { rola: 'USER', tresc: 'Czy mogę przenieść sklep?' },
+      { rola: 'ASSISTANT', tresc: 'Tak, przeniesienie jest w cenie.' },
+    ]);
+    (s.prisma as unknown as { asystentWiadomosc: unknown }).asystentWiadomosc = { findMany };
+    const rozmowaId = '7f9c2a3e-1b4d-4c8e-9f0a-2b3c4d5e6f70';
+    await s.svc.submitCallback({ ...dto, rozmowaId } as never, {});
+    await vi.waitFor(() => expect(s.mailer.send).toHaveBeenCalledTimes(1));
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { rozmowaId } }));
+    const m = s.mailer.send.mock.calls[0][0];
+    expect(m.text).toContain('Rozmowa z asystentem AI');
+    expect(m.text).toContain('Czy mogę przenieść sklep?');
+    expect(m.text).toContain('przeniesienie jest w cenie');
+  });
+
+  it('bez rozmowaId mail nie ma sekcji rozmowy, a rozmowaId musi być UUID', async () => {
+    const s = stanowisko();
+    await s.svc.submitCallback(dto as never, {});
+    await vi.waitFor(() => expect(s.mailer.send).toHaveBeenCalledTimes(1));
+    expect(s.mailer.send.mock.calls[0][0].text).not.toContain('Rozmowa z asystentem');
+    const e = await validate(plainToInstance(SubmitCallbackDto, { ...dto, phone: '600123456', rozmowaId: 'x; drop' }));
+    expect(e.map((x) => x.property)).toEqual(['rozmowaId']);
+  });
 });

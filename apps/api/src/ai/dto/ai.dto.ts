@@ -1,6 +1,7 @@
 import {
   ArrayMaxSize,
   IsArray,
+  IsBoolean,
   IsEnum,
   IsIn,
   IsNumber,
@@ -149,4 +150,28 @@ export class UstawieniaAiDto {
   /** Model → { wej, wyj } USD / 1 mln tokenów; każdy wpis sprawdza jeszcze odczytajKonfiguracjeAi. */
   @IsObject()
   ceny!: Record<string, { wej: number; wyj: number }>;
+}
+
+/** 1.11 — asystent AI na verris.pl: wyłącznik, modele i limity kosztu (USD; 0 = bez limitu). */
+export class UstawieniaAsystentaWwwDto {
+  @IsBoolean()
+  wlaczony!: boolean;
+
+  @IsString()
+  @Matches(/^[A-Za-z0-9._:-]{2,80}$/)
+  model!: string;
+
+  @IsString()
+  @Matches(/^[A-Za-z0-9._:-]{2,80}$/)
+  modelStraznika!: string;
+
+  @IsNumber()
+  @Min(0)
+  @Max(10_000)
+  limitDziennyUsd!: number;
+
+  @IsNumber()
+  @Min(0)
+  @Max(10_000)
+  limitMiesiecznyUsd!: number;
 }

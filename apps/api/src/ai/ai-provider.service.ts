@@ -179,6 +179,31 @@ export class AiProviderService {
     return { ...r, wynik: JSON.parse(bezPlotkow(r.wynik)) as unknown };
   }
 
+  /**
+   * Wywołanie wskazanym modelem (asystent www ma własną konfigurację modeli — asystent-www/konfiguracja.ts).
+   * Ten sam bezpiecznik budżetu platformy i ten sam cennik modeli co poziomy szybki/analiza.
+   */
+  async wywolajModelem(input: {
+    dostawca: DostawcaAi;
+    model: string;
+    system: string;
+    messages: Wiadomosc[];
+    json: boolean;
+    maxTokens: number;
+  }): Promise<WynikAi<string>> {
+    const konf = await this.konfiguracja();
+    const key = this.klucz(input.dostawca);
+    if (!key) throw new ServiceUnavailableException('AI provider is not configured.');
+    if (await this.budzetPlatformyWyczerpany(konf)) {
+      throw new ServiceUnavailableException('Asystent AI jest chwilowo niedostępny. Chętnie pomożemy w zgłoszeniu.');
+    }
+    const r =
+      input.dostawca === 'anthropic'
+        ? await this.anthropic(key, input.model, input.system, input.messages, input.json, input.maxTokens)
+        : await this.openai(key, input.model, input.system, input.messages, input.json, input.maxTokens);
+    return { ...r, dostawca: input.dostawca, model: input.model, kosztUsd: kosztUsd(konf, input.model, r.wej, r.wyj) };
+  }
+
   private async wywolaj(
     poziom: PoziomAi,
     system: string,

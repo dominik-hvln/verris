@@ -4,6 +4,7 @@ import { headers } from 'next/headers';
 import './globals.css';
 import { Analytics } from './components/Analytics';
 import { CookieConsent } from './components/CookieConsent';
+import { AsystentWidget } from './components/AsystentWidget';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { ANALYTICS } from '@/lib/analytics';
@@ -71,6 +72,8 @@ export default async function FrontendLayout({ children }: { children: ReactNode
         {children}
         <Footer />
         <CookieConsent />
+        {/* Asystent AI — nic nie renderuje bez NEXT_PUBLIC_ASYSTENT=1 (decyzja: włączenie po zatwierdzeniu dokumentów). */}
+        <AsystentWidget />
       </body>
     </html>
   );

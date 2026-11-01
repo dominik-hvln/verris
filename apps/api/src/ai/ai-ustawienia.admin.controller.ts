@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Patch, Query, UseGuards } from '@nestjs/common';
 import { Role } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
@@ -9,7 +9,9 @@ import { AdminCustomerActions } from '../common/audit/audit.actions.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AiProviderService, FUNKCJE_KLIENTA_AI, KLUCZ_KONFIGURACJI_AI } from './ai-provider.service.js';
 import { ZNANE_MODELE_AI, odczytajKonfiguracjeAi } from './ai-modele.js';
-import { UstawieniaAiDto } from './dto/ai.dto.js';
+import { UstawieniaAiDto, UstawieniaAsystentaWwwDto } from './dto/ai.dto.js';
+import { AsystentWwwService } from './asystent-www/asystent-www.service.js';
+import { KLUCZ_ASYSTENTA_WWW, odczytajKonfiguracjeAsystenta } from './asystent-www/konfiguracja.js';
 
 /** L-11 — admin wybiera dostawcę i model każdego poziomu AI, ceny i limit klienta; widzi koszty. */
 @Controller('admin/ai')
@@ -20,6 +22,7 @@ export class AiUstawieniaAdminController {
     private readonly prisma: PrismaService,
     private readonly provider: AiProviderService,
     private readonly audit: AuditService,
+    private readonly asystent: AsystentWwwService,
   ) {}
 
   @Get('ustawienia')
@@ -108,5 +111,44 @@ export class AiUstawieniaAdminController {
         kosztUsd: Number(t._sum.costUsd ?? 0),
       })),
     };
+  }
+
+  /** 1.11 — asystent AI na verris.pl: stan, koszt dziś i w miesiącu (te same limity, które sprawdza serwis). */
+  @Get('asystent-www')
+  async asystentWww() {
+    const konfiguracja = await this.asystent.konfiguracja();
+    const teraz = new Date();
+    const [dzisUsd, miesiacUsd] = await Promise.all([
+      this.asystent.kosztOd(new Date(Date.UTC(teraz.getUTCFullYear(), teraz.getUTCMonth(), teraz.getUTCDate()))),
+      this.asystent.kosztOd(new Date(Date.UTC(teraz.getUTCFullYear(), teraz.getUTCMonth(), 1))),
+    ]);
+    return { konfiguracja, kluczAnthropic: Boolean(this.provider.klucz('anthropic')), dzisUsd, miesiacUsd };
+  }
+
+  /** Wyłącznik i limity asystenta www. Zapis przez tę samą walidację co odczyt (odczytajKonfiguracjeAsystenta). */
+  @Patch('asystent-www')
+  @HttpCode(200)
+  async zapiszAsystentaWww(@Body() body: UstawieniaAsystentaWwwDto, @CurrentUser() actor: { userId: string }) {
+    const konf = odczytajKonfiguracjeAsystenta(JSON.stringify(body));
+    const value = JSON.stringify(konf);
+    await this.prisma.platformSetting.upsert({
+      where: { key: KLUCZ_ASYSTENTA_WWW },
+      create: { key: KLUCZ_ASYSTENTA_WWW, value, updatedByUserId: actor.userId },
+      update: { value, updatedByUserId: actor.userId },
+    });
+    this.asystent.wyczyscCache();
+    await this.audit.record({
+      action: AdminCustomerActions.AI_SETTINGS_UPDATED,
+      userId: actor.userId,
+      actorUserId: actor.userId,
+      details: { asystentWww: { ...konf } },
+    });
+    return this.asystentWww();
+  }
+
+  /** Ostatnie rozmowy asystenta www (podgląd jakości; retencja 30 dni, bez adresów IP). */
+  @Get('asystent-www/rozmowy')
+  async rozmowyAsystenta(@Query('ile') ile?: string) {
+    return this.asystent.ostatnieRozmowy(Number(ile) || 30);
   }
 }

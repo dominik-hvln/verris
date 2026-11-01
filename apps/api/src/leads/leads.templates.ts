@@ -60,8 +60,18 @@ export function leadCallbackNotifyTemplate(input: {
   page?: string | null;
   ip?: string | null;
   panelUrl: string;
+  /** Przebieg rozmowy z asystentem AI, gdy prośba przyszła z jego okna. */
+  rozmowa?: Array<{ rola: 'USER' | 'ASSISTANT'; tresc: string }> | null;
 }): Szablon {
   const pora = PORA[input.preferredTime] ?? input.preferredTime;
+  const przebieg = input.rozmowa?.length
+    ? [
+        '',
+        '## Rozmowa z asystentem AI',
+        '',
+        ...input.rozmowa.flatMap((w) => [`**${w.rola === 'USER' ? 'Klient' : 'Asystent'}:** ${md(w.tresc.replace(/\s+/g, ' ').trim())}`, '']),
+      ]
+    : [];
   const pola: [string, string | null | undefined][] = [
     ['Imię', input.name],
     ['Telefon', input.phone],
@@ -72,7 +82,7 @@ export function leadCallbackNotifyTemplate(input: {
   const { html, text } = renderEmailShell({
     title: 'Prośba o telefon',
     preheader: `${input.phone} · ${pora}`,
-    bodyMarkdown: pola.filter(([, v]) => v).map(([k, v]) => `- **${k}:** ${md(v as string)}`).join('\n'),
+    bodyMarkdown: [...pola.filter(([, v]) => v).map(([k, v]) => `- **${k}:** ${md(v as string)}`), ...przebieg].join('\n'),
     footnote:
       'Obiecujemy oddzwonienie w dni robocze 9–17, zwykle tego samego dnia. Numer służy tylko do tej rozmowy — nie dopisuj go do żadnej listy.',
     recipientEmail: input.to,

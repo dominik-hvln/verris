@@ -168,6 +168,8 @@ export class LeadsService {
       })
       .catch(() => undefined);
 
+    const rozmowa = dto.rozmowaId ? await this.rozmowaAsystenta(dto.rozmowaId) : null;
+
     void this.mailer
       .send({
         ...leadCallbackNotifyTemplate({
@@ -178,6 +180,7 @@ export class LeadsService {
           page: dto.page,
           ip: meta.ip,
           panelUrl: this.panelUrl(),
+          rozmowa,
         }),
         category: 'TRANSACTIONAL',
         fromRole: 'SUPPORT',
@@ -185,6 +188,18 @@ export class LeadsService {
       .catch((e) => this.logger.warn(`callback notify mail failed: ${e?.message ?? e}`));
 
     return { status: 'received' };
+  }
+
+  /**
+   * 1.11 — przebieg rozmowy z asystentem AI (prośba o telefon z okna asystenta). Tylko do maila zespołu;
+   * rozmowa ma własną retencję 30 dni. Brak rozmowy (po retencji, zły id) → zwykła prośba o telefon.
+   */
+  private async rozmowaAsystenta(rozmowaId: string): Promise<Array<{ rola: 'USER' | 'ASSISTANT'; tresc: string }> | null> {
+    const wiadomosci = await this.prisma.asystentWiadomosc
+      .findMany({ where: { rozmowaId }, orderBy: { createdAt: 'asc' }, select: { rola: true, tresc: true }, take: 40 })
+      .catch(() => []);
+    if (!wiadomosci.length) return null;
+    return wiadomosci.map((w) => ({ rola: w.rola === 'USER' ? 'USER' : 'ASSISTANT', tresc: w.tresc }));
   }
 
   /** Double opt-in: potwierdza adres i włącza lead do sekwencji. */

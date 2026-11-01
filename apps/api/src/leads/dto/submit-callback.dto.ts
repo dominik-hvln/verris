@@ -1,4 +1,4 @@
-import { IsIn, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { IsIn, IsOptional, IsString, IsUUID, Matches, MaxLength, MinLength } from 'class-validator';
 
 /** Pory dnia do wyboru w pasie „Wolisz porozmawiać?” (rano / w południe / po 14:00). */
 export const PORY_ODDZWONIENIA = ['rano', 'poludnie', 'popoludnie'] as const;
@@ -37,4 +37,9 @@ export class SubmitCallbackDto {
   @IsString()
   @MaxLength(4096)
   captchaToken?: string;
+
+  /** 1.11 — prośba o telefon z okna asystenta AI: zespół dostaje w mailu przebieg rozmowy. */
+  @IsOptional()
+  @IsUUID()
+  rozmowaId?: string;
 }

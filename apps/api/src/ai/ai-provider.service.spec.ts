@@ -120,3 +120,34 @@ describe('AiProviderService — dwa poziomy (L-11)', () => {
     expect(await wszyscy.kontoPozaTestemAi('obcy')).toBeNull();
   });
 });
+
+describe('AiProviderService.wywolajModelem — asystent www (1.11)', () => {
+  beforeEach(() => {
+    global.fetch = vi.fn() as unknown as typeof fetch;
+  });
+  const prisma = (koszt = 0) => ({
+    platformSetting: { findUnique: vi.fn(async () => null) },
+    aiInteractionLog: { aggregate: vi.fn(async () => ({ _sum: { costUsd: koszt } })) },
+    user: { findMany: vi.fn(async () => []) },
+  });
+
+  it('wskazany model Anthropic (nie poziom z ustawień), koszt z cennika modelu', async () => {
+    (global.fetch as Mock).mockResolvedValue(odp({ content: [{ type: 'text', text: '{"kategoria":"oferta"}' }], usage: { input_tokens: 2000, output_tokens: 100 } }));
+    const s = new AiProviderService(konfig({ ANTHROPIC_API_KEY: 'sk-ant' }) as never, prisma() as never);
+    const r = await s.wywolajModelem({ dostawca: 'anthropic', model: 'claude-haiku-4-5-20251001', system: 'S', messages: [{ role: 'user', content: 'q' }], json: true, maxTokens: 200 });
+    expect((global.fetch as Mock).mock.calls[0][0]).toBe('https://api.anthropic.com/v1/messages');
+    expect(wyslane()).toMatchObject({ model: 'claude-haiku-4-5-20251001', max_tokens: 200 });
+    expect(r).toMatchObject({ wynik: '{"kategoria":"oferta"}', dostawca: 'anthropic', model: 'claude-haiku-4-5-20251001', wej: 2000, wyj: 100 });
+    expect(r.kosztUsd).toBeCloseTo(kosztUsd(DOMYSLNA_KONFIGURACJA_AI, 'claude-haiku-4-5-20251001', 2000, 100), 12);
+    expect(r.kosztUsd).toBeGreaterThan(0);
+  });
+
+  it('bez klucza i przy wyczerpanym budżecie platformy: 503 bez ruchu sieciowego', async () => {
+    const bez = new AiProviderService(konfig({}) as never, prisma() as never);
+    const wej = { dostawca: 'anthropic' as const, model: 'claude-sonnet-5-5', system: 'S', messages: [{ role: 'user' as const, content: 'q' }], json: true, maxTokens: 100 };
+    await expect(bez.wywolajModelem(wej)).rejects.toBeInstanceOf(ServiceUnavailableException);
+    const pelny = new AiProviderService(konfig({ ANTHROPIC_API_KEY: 'sk-ant' }) as never, prisma(1e9) as never);
+    await expect(pelny.wywolajModelem(wej)).rejects.toBeInstanceOf(ServiceUnavailableException);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+});

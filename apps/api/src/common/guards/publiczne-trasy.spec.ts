@@ -51,6 +51,8 @@ const PUBLICZNE = [
   'AuthController.webauthnStatus',
   'AutoscalingController.estimate',
   'AutoscalingController.list',
+  // 1.11 — asystent AI na verris.pl: limit 20/10 min i 60/dobę per IP, captcha od 4. wiadomości, limity kosztu.
+  'AsystentWwwController.zapytaj',
   'BrandController.ctaPattern',
   'BrandController.logo',
   'ConsentsController.unsubscribe',

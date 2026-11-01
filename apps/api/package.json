@@ -16,6 +16,7 @@
     "cli:seed-kb": "pnpm build:cli && node dist-cli/cli/seed-knowledge-base.js",
     "cli:seed-kb-cms": "pnpm build:cli && node dist-cli/cli/seed-kb-cms.js",
     "cli:czyszczenie-przed-beta": "pnpm build:cli && node dist-cli/cli/czyszczenie-przed-beta.js",
+    "cli:ewaluacja-asystenta": "pnpm build:cli && node dist-cli/cli/ewaluacja-asystenta.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "test:int": "vitest run --config vitest.integration.config.ts",

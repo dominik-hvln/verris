@@ -4560,3 +4560,38 @@ model ZdarzenieStraznika {
   @@index([serverId, createdAt])
   @@index([stan, createdAt])
 }
+
+// -----------------------------------------------------------------------------
+// Asystent AI na verris.pl (1.11.2026) — rozmowy przedsprzedażowe, bez konta.
+// Retencja 30 dni (AsystentRetencjaScheduler). Bez IP w treści — tylko skrót do limitów.
+// -----------------------------------------------------------------------------
+
+model AsystentRozmowa {
+  id           String              @id @default(uuid())
+  /// HMAC-SHA256 adresu IP (sól z konfiguracji) — wyłącznie do dobowego limitu wiadomości.
+  ipHash       String
+  liczbaWymian Int                 @default(0)
+  kosztUsd     Decimal             @default(0) @db.Decimal(12, 6)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  wiadomosci   AsystentWiadomosc[]
+
+  @@index([ipHash, updatedAt])
+  @@index([createdAt])
+}
+
+model AsystentWiadomosc {
+  id        String          @id @default(uuid())
+  rozmowaId String
+  rozmowa   AsystentRozmowa @relation(fields: [rozmowaId], references: [id], onDelete: Cascade)
+  /// USER | ASSISTANT
+  rola      String
+  tresc     String          @db.Text
+  /// Źródła odpowiedzi: [{id, tytul, url}]
+  zrodla    Json?
+  nieWiem   Boolean         @default(false)
+  kosztUsd  Decimal?        @db.Decimal(12, 6)
+  createdAt DateTime        @default(now())
+
+  @@index([rozmowaId, createdAt])
+}
