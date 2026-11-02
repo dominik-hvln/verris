@@ -1,0 +1,71 @@
+/* /beta — otwarte testy przed startem. Klasy z prefiksem bt-, żeby nie mieszać ze wspólnymi stylami. */
+
+.bt-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* Hero: tekst + przykładowy kod testera */
+.bt-hero{position:relative;display:grid;gap:32px;align-items:center}
+.bt-hero-t{min-width:0}
+@media(min-width:1024px){.bt-hero{grid-template-columns:minmax(0,7fr) minmax(0,4fr);gap:52px}}
+.bt-kod{margin:0;display:grid;gap:14px;min-width:0;box-shadow:0 30px 70px rgba(0,0,0,.35)}
+.bt-kod .kicker{margin:0}
+.bt-kod-nr{margin:0;font-size:28px;letter-spacing:.06em;color:var(--paper);padding:14px 16px;border:1px dashed var(--line2);border-radius:12px;text-align:center;overflow-wrap:anywhere}
+.bt-kod-dl{margin:0;display:grid;gap:0}
+.bt-kod-dl div{display:flex;justify-content:space-between;gap:16px;padding:11px 0;border-bottom:1px solid var(--line)}
+.bt-kod-dl div:last-child{border-bottom:0}
+.bt-kod-dl dt{color:var(--stone);font-size:14px}
+.bt-kod-dl dd{margin:0;color:var(--paper);font-weight:600;text-align:right}
+.bt-kod figcaption{font-size:12.5px;color:var(--stone)}
+
+/* Siatki kart: kogo szukamy, kroki */
+.bt-siatka4{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+.bt-siatka4 li{display:grid;gap:8px;align-content:start}
+.bt-siatka4 h3{font-size:18px}
+.bt-nr{color:var(--mint);font-size:14px}
+@media(min-width:768px){.bt-siatka4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:1024px){.bt-siatka4{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}}
+
+/* Dwie kolumny: treść + karta */
+.bt-dwa{display:grid;gap:28px;align-items:start}
+.bt-dwa>*{min-width:0}
+.bt-dwa .shead2{grid-template-columns:1fr;gap:12px;align-items:start;margin-bottom:20px}
+.bt-dwa p+p{margin-top:12px}
+@media(min-width:1024px){.bt-dwa{grid-template-columns:minmax(0,6fr) minmax(0,5fr);gap:48px}}
+.bt-lista{margin:0;padding:0;list-style:none;display:grid;gap:12px}
+.bt-lista li{position:relative;padding-left:28px}
+.bt-lista li::before{content:"";position:absolute;left:4px;top:.55em;width:10px;height:6px;border-left:2px solid var(--mint);border-bottom:2px solid var(--mint);transform:rotate(-45deg)}
+.bt-uczciwie{display:grid;gap:0;align-content:start}
+.bt-uczciwie h3{margin-bottom:10px}
+
+/* Tabela limitów */
+.bt-limity{padding:0;overflow-x:auto}
+.bt-limity table{width:100%;border-collapse:collapse;font-size:16px}
+.bt-limity th,.bt-limity td{text-align:left;padding:14px 18px;border-bottom:1px solid var(--line)}
+.bt-limity thead th{font:500 12px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--stone)}
+.bt-limity tbody th{color:var(--paper);font-weight:600}
+.bt-limity td{font-family:var(--display);font-weight:700;font-size:20px;color:var(--paper)}
+.bt-limity td.mint{color:var(--mint)}
+.bt-limity tr:last-child>*{border-bottom:0}
+
+/* Formularz */
+.bt-form{display:grid;gap:4px}
+.bt-pola{display:grid;gap:0 16px}
+@media(min-width:640px){.bt-pola{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.bt-zakres{border:0;margin:0 0 18px;padding:0;min-width:0}
+.bt-zakres legend{font-size:14px;font-weight:600;color:var(--paper);margin-bottom:9px;padding:0}
+.bt-tagi{display:flex;flex-wrap:wrap;gap:8px}
+.bt-tagi button{min-height:44px;padding:0 16px;border-radius:100px;border:1px solid var(--line2);background:transparent;color:var(--body);font:500 15px var(--text);cursor:pointer}
+.bt-tagi button:hover{border-color:var(--mint);color:var(--paper)}
+.bt-tagi button[aria-pressed=true]{background:var(--mint);color:var(--pine);border-color:var(--mint);font-weight:600}
+.bt-tagi button:focus-visible{outline:2px solid var(--mint);outline-offset:2px}
+.bt-blad{color:#ff9b9b;font-size:14px;margin:6px 0 0}
+.bt-hp{position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden}
+.bt-zgoda{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.5;color:var(--body);margin:4px 0 8px;cursor:pointer}
+.bt-zgoda input{width:20px;height:20px;margin-top:1px;flex:none;accent-color:var(--mint)}
+.bt-zgoda a{text-decoration:underline;text-underline-offset:3px}
+.bt-form .form-error{color:#ff9b9b;margin:8px 0}
+.bt-form .form-error a{text-decoration:underline}
+.bt-wyslij{justify-self:start;margin-top:8px}
+.bt-form{position:relative}
+.bt-ok h3{margin-bottom:8px;outline:none}
+.bt-ok h3:focus-visible{outline:2px solid var(--mint);outline-offset:4px}
+@media(min-width:1024px){.bt-form-sec>div:first-child{position:sticky;top:110px}}
