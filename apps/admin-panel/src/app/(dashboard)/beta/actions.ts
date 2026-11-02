@@ -56,3 +56,58 @@ export async function revokeInviteAction(id: string): Promise<{ ok: true } | { o
     return { ok: false, error: blad(e) };
   }
 }
+
+/** Otwarta beta — zgłoszenia z formularza verris.pl/beta (double opt-in, potem decyzja tutaj). */
+export type StatusZgloszenia = "NIEPOTWIERDZONE" | "NOWE" | "ZAPROSZONE" | "ODRZUCONE";
+
+export interface ZgloszenieRow {
+  id: string;
+  imie: string;
+  email: string;
+  zakres: string[];
+  strona: string | null;
+  obecnyHosting: string | null;
+  uwagi: string | null;
+  zrodlo: { source: string | null; campaign: string | null; content?: string | null } | null;
+  status: StatusZgloszenia;
+  utworzone: string;
+  potwierdzone: string | null;
+  decyzjaAt: string | null;
+  kod: string | null;
+}
+
+export interface ListaZgloszen {
+  liczby: Record<StatusZgloszenia, number>;
+  zgloszenia: ZgloszenieRow[];
+}
+
+export async function listZgloszenia(status?: StatusZgloszenia): Promise<ListaZgloszen> {
+  return adminApi<ListaZgloszen>(`/admin/beta/zgloszenia${status ? `?status=${encodeURIComponent(status)}` : ""}`);
+}
+
+export async function zaprosZgloszenieAction(id: string): Promise<
+  { ok: true; code: string; mailWyslany: boolean } | { ok: false; error: string }
+> {
+  try {
+    const r = await adminApi<{ code: string; mailWyslany: boolean }>(`/admin/beta/zgloszenia/${encodeURIComponent(id)}/zapros`, { method: "POST" });
+    revalidatePath("/beta");
+    return { ok: true, code: r.code, mailWyslany: r.mailWyslany };
+  } catch (e) {
+    return { ok: false, error: blad(e) };
+  }
+}
+
+export async function odrzucZgloszenieAction(id: string, powiadom: boolean): Promise<
+  { ok: true; mailWyslany: boolean } | { ok: false; error: string }
+> {
+  try {
+    const r = await adminApi<{ mailWyslany: boolean }>(`/admin/beta/zgloszenia/${encodeURIComponent(id)}/odrzuc`, {
+      method: "POST",
+      body: { powiadom },
+    });
+    revalidatePath("/beta");
+    return { ok: true, mailWyslany: r.mailWyslany };
+  } catch (e) {
+    return { ok: false, error: blad(e) };
+  }
+}

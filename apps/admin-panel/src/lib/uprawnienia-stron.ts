@@ -20,7 +20,7 @@ export const STRONY = {
   "/audit": { perm: "AUDIT_VIEW", tytul: "Dziennik bezpieczeństwa", api: ["admin/audit-logs"] },
   "/autoscaling": { perm: "ADMIN", tytul: "Reguły cenowe autoskalowania" },
   "/autoscaling/revenue": { perm: "ADMIN", tytul: "Przychody z autoskalowania" },
-  "/beta": { perm: "PROMO_MANAGE", tytul: "Beta", api: ["admin/beta/invites"] },
+  "/beta": { perm: "PROMO_MANAGE", tytul: "Beta", api: ["admin/beta/invites", "admin/beta/zgloszenia"] },
   // Dane z pulpitu (admin/dashboard/overview — DASHBOARD_VIEW; sumy portfela tylko z METRICS_VIEW) i eksport CSV.
   "/billing": { perm: "BILLING_VIEW", tytul: "Portfel i płatności", api: ["admin/dashboard/overview"] },
   "/billing/webhooki": { perm: "BILLING_MANAGE", tytul: "Webhooki płatności", api: ["admin/billing/webhooki"] },

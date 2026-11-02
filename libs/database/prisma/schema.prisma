@@ -3001,7 +3001,53 @@ model BetaInvite {
   invitedById String?
   sentAt      DateTime?
   createdAt   DateTime  @default(now())
+  /// Zgłoszenie z verris.pl/beta, z którego powstało zaproszenie (brak = zaproszenie ręczne).
+  zgloszenia  BetaZgloszenie[]
 
+  @@index([email])
+}
+
+/// Otwarta beta — status zgłoszenia z formularza verris.pl/beta (double opt-in, potem decyzja właściciela).
+enum BetaZgloszenieStatus {
+  NIEPOTWIERDZONE // czeka na kliknięcie linku z maila
+  NOWE            // adres potwierdzony, czeka na decyzję
+  ZAPROSZONE      // wysłano imienny kod (BetaInvite)
+  ODRZUCONE       // tym razem bez zaproszenia
+}
+
+/// Otwarta beta — zgłoszenie z formularza verris.pl/beta. Retencja: NIEPOTWIERDZONE 7 dni, NOWE i ODRZUCONE
+/// 90 dni od utworzenia; ZAPROSZONE zostają razem z zaproszeniem (BetaZgloszeniaService.usunStare).
+model BetaZgloszenie {
+  id             String               @id @default(uuid())
+  imie           String
+  email          String
+  /// WORDPRESS | SKLEP | STRONY_DLA_KLIENTOW | POCZTA | INNE
+  zakres         String[]
+  strona         String?
+  obecnyHosting  String?
+  uwagi          String?              @db.Text
+  /// Parametry UTM z adresu strony (source, medium, campaign, content, term).
+  utm            Json?
+  page           String?
+  /// Dowód zgody: treść klauzuli i chwila wysłania, IP i User-Agent.
+  zgodaTekst     String               @db.Text
+  zgodaAt        DateTime
+  ip             String?
+  userAgent      String?              @db.Text
+  status         BetaZgloszenieStatus @default(NIEPOTWIERDZONE)
+  /// Double opt-in — token jednorazowy, zerowany po potwierdzeniu.
+  confirmToken   String?              @unique
+  potwierdzoneAt DateTime?
+  /// Ostatni mail potwierdzający wysłany do nadawcy (najwyżej jeden na dobę).
+  mailAt         DateTime?
+  betaInviteId   String?
+  betaInvite     BetaInvite?          @relation(fields: [betaInviteId], references: [id], onDelete: SetNull)
+  decyzjaAt      DateTime?
+  decyzjaPrzezId String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  @@index([status, createdAt])
   @@index([email])
 }
 

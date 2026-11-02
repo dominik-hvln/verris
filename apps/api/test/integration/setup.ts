@@ -46,6 +46,8 @@ const TABELE = [
   'Plan',
   // X-04 — kody mają unikalną nazwę; bez czyszczenia drugi przebieg testów kodów by się wywracał.
   'PromoCode',
+  // Otwarta beta — zgłoszenia nie mają relacji do User/PromoCode (tylko SetNull do BetaInvite), więc osobno.
+  'BetaZgloszenie',
   'User',
 ];
 

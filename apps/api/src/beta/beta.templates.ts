@@ -54,3 +54,98 @@ export function zaproszenieDoTestowTemplate(input: {
   });
   return { to: input.to, tag: 'beta.invite', subject: 'Zaproszenie do testów Verris', text, html };
 }
+
+type Szablon = Omit<MailMessage, 'fromAddress'>;
+
+/** Termin otwartej bety (BETA_TESTY.md, PB-26) — ten sam co BETA_TERMIN w apps/www/src/lib/beta.ts. */
+export const TERMIN_OTWARTEJ_BETY = '7 grudnia 2026';
+
+/** Etykiety zakresów z formularza verris.pl/beta (mail zespołu, panel admina). */
+export const ETYKIETY_ZAKRESU_BETA: Record<string, string> = {
+  WORDPRESS: 'WordPress',
+  SKLEP: 'Sklep',
+  STRONY_DLA_KLIENTOW: 'Strony dla klientów',
+  POCZTA: 'Poczta',
+  INNE: 'Inne',
+};
+
+/** Otwarta beta — double opt-in zgłoszenia z verris.pl/beta. Bez kodu: zaproszenie przychodzi osobno, po decyzji. */
+export function potwierdzenieZgloszeniaBetaTemplate(input: {
+  to: string;
+  imie: string;
+  confirmUrl: string;
+  panelUrl: string;
+}): Szablon {
+  const { html, text } = renderEmailShell({
+    title: 'Potwierdź zgłoszenie do testów Verris',
+    preheader: 'Jedno kliknięcie i Twoje zgłoszenie trafi na listę.',
+    bodyMarkdown: [
+      `Cześć **${md(input.imie)}**,`,
+      '',
+      'dziękujemy za zgłoszenie do testów hostingu Verris. Potwierdź jeszcze, że to Twój adres — bez tego nie zobaczymy zgłoszenia.',
+      '',
+      `Testy ruszają ${TERMIN_OTWARTEJ_BETY}. Testerów zapraszamy małymi grupami — gdy przyjdzie Twoja kolej, wyślemy na ten adres zaproszenie z imiennym kodem.`,
+    ].join('\n'),
+    cta: { label: 'Potwierdzam zgłoszenie', url: input.confirmUrl },
+    footnote: 'Jeśli to nie Ty wypełniłeś formularz na verris.pl — zignoruj tę wiadomość. Niepotwierdzone zgłoszenie usuniemy po 7 dniach.',
+    recipientEmail: input.to,
+    panelUrl: input.panelUrl,
+    recipientHasAccount: false,
+  });
+  return { to: input.to, tag: 'beta.zgloszenie.potwierdz', subject: 'Potwierdź zgłoszenie do testów Verris', text, html };
+}
+
+/** Otwarta beta — powiadomienie zespołu o potwierdzonym zgłoszeniu (decyzja w panelu admina → Testy (beta)). */
+export function zgloszenieBetaNotifyTemplate(input: {
+  to: string;
+  imie: string;
+  email: string;
+  zakres: string[];
+  strona?: string | null;
+  obecnyHosting?: string | null;
+  uwagi?: string | null;
+  zrodlo?: string | null;
+  panelUrl: string;
+}): Szablon {
+  const pola: [string, string | null | undefined][] = [
+    ['Imię', input.imie],
+    ['E-mail', input.email],
+    ['Chce sprawdzić', input.zakres.map((z) => ETYKIETY_ZAKRESU_BETA[z] ?? z).join(', ')],
+    ['Strona', input.strona],
+    ['Obecny hosting', input.obecnyHosting],
+    ['Źródło', input.zrodlo],
+  ];
+  const { html, text } = renderEmailShell({
+    title: 'Nowe zgłoszenie do testów',
+    preheader: input.email,
+    bodyMarkdown: [
+      ...pola.filter(([, v]) => v).map(([k, v]) => `- **${k}:** ${md(v as string)}`),
+      ...(input.uwagi ? ['', '## Uwagi', '', md(input.uwagi.trim())] : []),
+    ].join('\n'),
+    footnote: 'Adres potwierdzony. Zaproszenie z kodem wysyłasz w panelu admina → Testy (beta) → Zgłoszenia.',
+    recipientEmail: input.to,
+    panelUrl: input.panelUrl,
+    recipientHasAccount: false,
+  });
+  return { to: input.to, tag: 'beta.zgloszenie.notify', subject: `[Verris] Zgłoszenie do testów: ${input.email}`, text, html };
+}
+
+/** Otwarta beta — uprzejma odpowiedź, gdy tym razem nie zapraszamy. Bez obietnic rabatów i terminów. */
+export function odmowaZgloszeniaBetaTemplate(input: { to: string; imie: string; panelUrl: string }): Szablon {
+  const { html, text } = renderEmailShell({
+    title: 'Dziękujemy za zgłoszenie do testów',
+    preheader: 'Tym razem miejsca w testach się skończyły.',
+    bodyMarkdown: [
+      `Cześć **${md(input.imie)}**,`,
+      '',
+      'dziękujemy za chęć pomocy w testach hostingu Verris. Tym razem miejsca się skończyły i nie wyślemy zaproszenia z kodem.',
+      '',
+      // Zgoda z formularza obejmuje tylko wiadomości o testach — bez zapowiedzi startu czy ofert (PKE).
+      'Jeśli w trakcie testów zwolni się miejsce, napiszemy. Twoje zgłoszenie usuniemy najpóźniej po 90 dniach od wysłania.',
+    ].join('\n'),
+    recipientEmail: input.to,
+    panelUrl: input.panelUrl,
+    recipientHasAccount: false,
+  });
+  return { to: input.to, tag: 'beta.zgloszenie.odmowa', subject: 'Testy Verris — dziękujemy za zgłoszenie', text, html };
+}
