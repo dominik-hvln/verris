@@ -4,7 +4,7 @@ import {
   DomainDto,
   type DomainPeriodQuotesDto,
   type DomainSearchResultDto,
-} from "@verris/contracts";
+} from "@verris/contracts/klient";
 import { revalidatePath } from "next/cache";
 import { apiFetch } from "@/lib/api";
 import { bezpiecznie, type Wynik as WynikAkcji } from "@/lib/wynik-akcji";
@@ -153,17 +153,6 @@ export async function fetchRegistrarOrders() {
     submittedAt: string | null;
     completedAt: string | null;
   }>>('/domains/registrar/orders');
-}
-
-/** Czy na koncie obowiązuje już oświadczenie domenowe (Regulamin §12 ust. 8). */
-export async function getWaiverConsentAction(): Promise<{ granted: boolean; grantedAt: string | null }> {
-  try {
-    return await apiFetch<{ granted: boolean; grantedAt: string | null }>(
-      '/domains/registrar/waiver-consent',
-    );
-  } catch {
-    return { granted: false, grantedAt: null };
-  }
 }
 
 /** A-13 — dane abonenta domeny (właściciela). Kształt jak RegistrantDto w API. */

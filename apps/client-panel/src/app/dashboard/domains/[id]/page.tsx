@@ -5,7 +5,7 @@ import { DomainWhoisPrivacy } from './domain-whois-privacy';
 import { DomainNameservers } from './domain-nameservers';
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api';
-import type { DomainDto, ServiceSummaryDto } from '@verris/contracts';
+import type { DomainDto, ServiceSummaryDto } from '@verris/contracts/klient';
 import {
   ArrowLeft,
   Globe,

@@ -3,7 +3,7 @@
  * Czysta logika (bez fetch), żeby dało się ją sprawdzić testem.
  */
 
-import { domenaDoWyswietlenia } from "@verris/contracts";
+import { domenaDoWyswietlenia } from "@verris/contracts/klient";
 
 export interface UslugaDoZgloszenia {
   id: string;

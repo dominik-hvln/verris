@@ -1,6 +1,6 @@
-import type { SubscriptionStatus } from '@verris/contracts';
+import type { SubscriptionStatus } from '@verris/contracts/klient';
 import { apiFetch, ApiError } from '@/lib/api';
-import type { PozycjaLimitu } from '@verris/contracts';
+import type { PozycjaLimitu } from '@verris/contracts/klient';
 
 export interface AutoscalingEventDto {
   id: string;

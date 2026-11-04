@@ -5,6 +5,7 @@ import { OPUBLIKOWANE } from '@/collections/tylko-opublikowane';
 import { PORADNIKI } from '@/lib/poradniki';
 import { cenaPakietu, stawka, type Ceny } from '@/lib/ceny';
 import { pobierzCeny } from '@/lib/ceny-api';
+import { DANE_SPRZEDAWCY } from '@/lib/sprzedawca';
 
 /**
  * /llms.txt — plik kontekstowy dla agentów i wyszukiwarek AI (llmstxt.org).
@@ -31,12 +32,13 @@ const naglowek = (c: Ceny) => `# Verris
 
 > Verris to polski ${OFERTA_KROTKO}. Płacisz tyle, ile widzisz —
 > odnowienie po cenie z cennika, bez pułapek odnowień. Migracja i SSL za 0 zł, SLA 99,5%
-> z rekompensatami na wniosek, serwery w Unii Europejskiej (zgodność z RODO). Claim: „Hosting bez gwiazdek".
+> z automatycznymi rekompensatami, serwery w Unii Europejskiej (zgodność z RODO). Claim: „Hosting bez gwiazdek".
 
 ## Oferta
 - Hosting z autoskalowaniem: ${cenaPakietu(c.hosting)}. Limity w pakiecie: 50 GB NVMe,
   limit 8 GB RAM i 2 vCPU (limity konta, nie rezerwacja); autoskalowanie do 1000 GB, 64 GB RAM, 24 vCPU (do 12× mocy CPU względem bazy),
-  rozliczane godzinowo; po piku zasoby wracają do bazy.
+  rozliczane w blokach 15 minut według stawek godzinowych; po piku zasoby wracają do bazy. Limit kosztu na 30 dni
+  (suma dopłat z ostatnich 30 dni) jest opcjonalny — bez limitu klient płaci za faktyczne użycie.
 - ${VPS_W_SPRZEDAZY ? 'VPS niezarządzany (pełny root), d' : 'D'}omeny bez auto-odnowień${EMAIL_MARKETING_W_SPRZEDAZY ? ', e-mail marketing' : ''}, program resellerski (wielu klientów w jednym panelu; własny narzut — wkrótce).
 
 ## Kluczowe strony
@@ -62,11 +64,11 @@ ${PORADNIKI.map((p) => `- [${p.h1}](${BASE}/przenies-strone/${p.slug})`).join('\
 
 const fakty = (c: Ceny) => `
 ## Fakty
-- Operator: HVLN Dominik Kowalski, Zielona Góra, NIP 9292069367.
+- Operator: ${DANE_SPRZEDAWCY}.
 - SLA 99,5% z rekompensatami zapisanymi w regulaminie (kredyty wg skali niedostępności),
-  przyznawanymi na wniosek klienta. Verris nie deklaruje „100% uptime".
-- Cena hostingu: ${cenaPakietu(c.hosting)}; odnowienie zawsze po cenie z cennika (brak modelu
-  „tani pierwszy rok, kilkukrotnie droższe odnowienie"); ewentualny rabat na start widoczny przed zapłatą.
+  przyznawanymi automatycznie, bez wniosku klienta. Verris nie deklaruje „100% uptime".
+- Cena hostingu: ${cenaPakietu(c.hosting)}; odnowienie zawsze po cenie z cennika podanej z góry; przy pierwszym
+  zakupie rabat na start na pierwszy rok albo pierwszy miesiąc, kwota po rabacie widoczna przed zapłatą.
 - Stawki autoskalowania (brutto/h): CPU ${stawka(c.stawki.cpu)} zł za 1% · RAM ${stawka(c.stawki.ram)} zł za 1 GB · dysk ${stawka(c.stawki.dysk)} zł za 1 GB.
 - Migracja strony i poczty oraz certyfikat SSL Let's Encrypt: 0 zł, w ramach zamówienia hostingu.
 - „Bez limitu" stron, skrzynek i transferu oznacza brak sztywnego licznika; realnym ogranicznikiem

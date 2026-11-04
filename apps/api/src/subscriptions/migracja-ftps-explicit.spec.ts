@@ -26,13 +26,14 @@ describe('worker migracji — FTPS explicit (AUTH TLS) w lftp', () => {
     expect(url('sftp', '[2001:db8::1]', '22')).toBe('sftp://[2001:db8::1]:22');
   });
 
-  it('oba wywołania lftp (kopia plików, wgranie eksportu bazy) biorą adres z lftp_url, a ftps wymusza TLS', () => {
+  it('wszystkie wywołania lftp (kopia plików, wgranie eksportu bazy, tryb konserwacji) biorą adres z lftp_url, a ftps wymusza TLS', () => {
     const wywolania = [...zrodlo.matchAll(/lftp --env-password[\s\S]*?<\/dev\/null/g)].map((m) => m[0]);
-    expect(wywolania).toHaveLength(2);
+    // + P2-06: wgranie/usunięcie .maintenance na starej stronie (tryb konserwacji przed ostatnim kopiowaniem bazy).
+    expect(wywolania).toHaveLength(3);
     for (const w of wywolania) {
       expect(w).toContain('$(lftp_url "$proto"');
       expect(w).not.toMatch(/\$\{proto\}:\/\//);
     }
-    expect(zrodlo.match(/\[ "\$proto" = "ftps" \] && ssl_setting="set ftp:ssl-force true; set ftp:ssl-protect-data true;"/g)).toHaveLength(2);
+    expect(zrodlo.match(/\[ "\$proto" = "ftps" \] && ssl_setting="set ftp:ssl-force true; set ftp:ssl-protect-data true;"/g)).toHaveLength(3);
   });
 });

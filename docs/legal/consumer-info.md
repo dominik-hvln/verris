@@ -1,13 +1,13 @@
 # Informacje dla konsumenta — umowa zawierana na odległość
 
-**Wersja 1.0.0 · obowiązuje od 7 lipca 2026 r.**
+**Wersja 1.1.0 · obowiązuje od [DATA PUBLIKACJI]** (razem z Regulaminem 1.1.0)
 
 Dokument przekazywany Konsumentom i Przedsiębiorcom na prawach Konsumenta przed zawarciem umowy (proces zakupowy w panelu) oraz — wraz z Regulaminem — w potwierdzeniu zawarcia umowy na trwałym nośniku (e-mail), stosownie do art. 12 i art. 21 ustawy z dnia 30 maja 2014 r. o prawach konsumenta.
 
 ## 1. Sprzedawca
 
 HVLN Dominik Kowalski, Zacisze 2A, 65-775 Zielona Góra, wpisany do CEIDG, NIP 9292069367, REGON 521024260.
-Kontakt: e-mail `kontakt@verris.pl`, telefon +48 511 589 465, formularz w panelu klienta (`panel.verris.pl`). Adres do reklamacji: jak wyżej (e-mail, panel lub pisemnie).
+Kontakt: e-mail `kontakt@verris.pl`, telefon +48 511 589 465 (dni robocze 9–17), formularz zgłoszeń w panelu klienta (`panel.verris.pl`, Wsparcie → Nowe zgłoszenie); rozmowę telefoniczną możesz też umówić formularzem na `verris.pl/kontakt` — oddzwaniamy w dni robocze 9–17. Adres do reklamacji: jak wyżej (e-mail, panel lub pisemnie).
 
 ## 2. Główne cechy świadczenia
 
@@ -15,7 +15,7 @@ Usługi świadczone drogą elektroniczną pod marką Verris: hosting współdzie
 
 ## 3. Cena i płatności
 
-Ceny prezentowane przed zakupem są cenami brutto (zawierają VAT) i wyrażone są w złotych polskich. Łączna cena za wybrany okres rozliczeniowy (miesięczny albo roczny) jest widoczna w podsumowaniu zamówienia przed jego złożeniem — przycisk finalizujący jest oznaczony jako zamówienie z obowiązkiem zapłaty. Płatność: kartą, Apple Pay, Google Pay, BLIK lub przelewem online (operator: Stripe) albo ze środków przedpłaconych w Portfelu (Kredyty Verris, 1 K = 1 PLN, doładowanie od 5 K). Usługi dodatkowe rozliczane zużyciem są naliczane tylko po ich włączeniu i w granicach limitu kwotowego ustawionego przez klienta. Faktury udostępniamy w panelu i e-mailem.
+Ceny prezentowane przed zakupem są cenami brutto (zawierają VAT) i wyrażone są w złotych polskich. Łączna cena za wybrany okres rozliczeniowy (miesięczny albo roczny) jest widoczna w podsumowaniu zamówienia przed jego złożeniem — przycisk finalizujący jest oznaczony jako zamówienie z obowiązkiem zapłaty. Płatność: BLIK, szybkim przelewem lub kartą przez bramkę Paynow (operator: mBank S.A.), kartą (także Apple Pay i Google Pay) lub Przelewy24 przez operatora Stripe, albo ze środków przedpłaconych w Portfelu (Kredyty Verris, 1 K = 1 PLN, doładowanie od 5 K). Przy pierwszym zakupie może obowiązywać rabat na start (na dzień publikacji: −15% za pierwszy rok przy okresie rocznym albo −10% za pierwszy miesiąc przy miesięcznym) — przy zamówieniu pokazujemy cenę po rabacie, najniższą cenę z 30 dni i cenę kolejnych okresów. Dodatkowa moc (autoskalowanie) jest naliczana tylko po jej włączeniu, za czas użycia, w blokach po 15 minut, według stawek z cennika; domyślnie bez limitu kosztu, a własny limit kosztu na 30 dni ustawisz przy zamówieniu albo w panelu. Fakturę wystawiamy przy każdej wpłacie pieniędzy (doładowanie portfela, BLIK, przelew, karta) i udostępniamy ją w panelu i e-mailem; zakup z portfela nie tworzy nowej faktury, a kredyty z kodu promocyjnego to nie zakup — nie ma za nie faktury.
 
 ## 4. Czas trwania umowy i odnowienia
 
@@ -23,12 +23,12 @@ Umowa o prowadzenie konta zawierana jest na czas nieoznaczony i można ją wypow
 
 ## 5. Prawo odstąpienia od umowy
 
-Masz prawo odstąpić od umowy w terminie **14 dni od jej zawarcia**, bez podawania przyczyny. Oświadczenie możesz złożyć w panelu, e-mailem na `kontakt@verris.pl` albo pisemnie; możesz skorzystać z formularza w pkt 9. Zwrot płatności nastąpi niezwłocznie, nie później niż w ciągu 14 dni, tą samą metodą płatności.
+Masz prawo odstąpić od umowy w terminie **14 dni od jej zawarcia**, bez podawania przyczyny. Oświadczenie możesz złożyć w panelu (Wsparcie → Nowe zgłoszenie), e-mailem na `kontakt@verris.pl` albo pisemnie; możesz skorzystać z formularza w pkt 9. Zwrot płatności nastąpi niezwłocznie, nie później niż w ciągu 14 dni, tą samą metodą płatności.
 
 **Ważne wyjątki:**
 
-1. Jeżeli przy zakupie zażądasz rozpoczęcia świadczenia usługi przed upływem terminu odstąpienia (usługa aktywowana od razu), w razie odstąpienia zapłacisz za część usługi wykonaną do chwili odstąpienia (proporcjonalnie do ceny). Po **pełnym wykonaniu** usługi, na którą wyraziłeś taką zgodę, prawo odstąpienia nie przysługuje (art. 38 ust. 1 pkt 1 ustawy o prawach konsumenta).
-2. **Rejestracja domeny** jest wykonywana w całości niezwłocznie po opłaceniu — z chwilą zarejestrowania domeny prawo odstąpienia w tym zakresie **wygasa**. Przy pierwszym zakupie domeny poprosimy Cię o wyraźną zgodę na natychmiastowe wykonanie usługi i potwierdzenie, że przyjmujesz to do wiadomości; oświadczenie to obejmuje również kolejne rejestracje domen na Twoim koncie (przy kolejnych zamówieniach przypomnimy o nim zamiast pytać ponownie). Możesz je w każdej chwili odwołać na przyszłość, pisząc na `kontakt@verris.pl`.
+1. Jeżeli przy zakupie zażądasz rozpoczęcia świadczenia usługi przed upływem terminu odstąpienia (usługa aktywowana od razu), w razie odstąpienia zapłacisz za część usługi wykonaną do chwili odstąpienia (proporcjonalnie do ceny). Po **pełnym wykonaniu** usługi, przy której zażądano takiego rozpoczęcia, prawo odstąpienia nie przysługuje (art. 38 ust. 1 pkt 1 ustawy o prawach konsumenta).
+2. **Rejestracja domeny** jest wykonywana w całości niezwłocznie po opłaceniu — z chwilą zarejestrowania domeny prawo odstąpienia w tym zakresie **wygasa**. Przy każdym zamówieniu rejestracji albo transferu domeny poprosimy Cię o wyraźną zgodę na natychmiastowe wykonanie usługi i potwierdzenie, że przyjmujesz to do wiadomości; oświadczenie dotyczy tylko tego zamówienia, a bez niego domeny nie zamówisz.
 
 ## 6. Reklamacje
 
@@ -46,7 +46,7 @@ Językiem umowy jest polski. Umowa zawierana jest drogą elektroniczną; jej tre
 
 *(formularz ten należy wypełnić i odesłać tylko w przypadku chęci odstąpienia od umowy)*
 
-Adresat: HVLN Dominik Kowalski, Zacisze 2A, 65-775 Zielona Góra, e-mail: kontakt@verris.pl
+Adresat: HVLN Dominik Kowalski, Zacisze 2A, 65-775 Zielona Góra, e-mail: kontakt@verris.pl, tel. +48 511 589 465
 
 Ja/My(\*) niniejszym informuję/informujemy(\*) o moim/naszym odstąpieniu od umowy o świadczenie następującej usługi: ……………………………………………………
 

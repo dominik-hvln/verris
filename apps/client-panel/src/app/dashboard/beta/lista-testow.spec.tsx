@@ -3,7 +3,7 @@
  */
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { LICZBA_KROKOW_BETA, SCENARIUSZE_BETA, type PostepBetaDto } from '@verris/contracts';
+import { LICZBA_KROKOW_BETA, SCENARIUSZE_BETA, type PostepBetaDto } from '@verris/contracts/klient';
 
 /**
  * PB-26 — strona „Testy (beta)”: ptaszek zapisuje się od razu (błąd API go cofa), uwaga — raz, po chwili bez pisania.
@@ -108,5 +108,13 @@ describe('ListaTestowBeta', () => {
     expect(el.querySelector('[data-opcjonalny="s01"]')).toBeNull();
     await act(async () => el.querySelector<HTMLInputElement>('[data-krok="s15.k1"]')!.click());
     expect(licznik()).toContain(`0 z ${LICZBA_KROKOW_BETA}`);
+  });
+
+  it('P4-12: ścieżka „tylko poczta” — scenariusze poczty oznaczone, strona i WordPress bez oznaczenia', async () => {
+    await act(async () => root.render(<ListaTestowBeta poczatkowy={pusty} />));
+    expect(el.querySelector('[data-sciezka-poczta]')?.textContent).toContain('Testujesz tylko pocztę?');
+    expect(el.querySelector('[data-poczta="s05"]')?.textContent).toContain('Też przy samej poczcie');
+    expect(el.querySelector('[data-poczta="s02"]')).not.toBeNull();
+    expect(el.querySelector('[data-poczta="s03"]')).toBeNull();
   });
 });

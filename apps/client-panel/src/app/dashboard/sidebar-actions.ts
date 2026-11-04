@@ -34,6 +34,8 @@ export interface SidebarUser {
   billingOutside?: boolean;
   /** PB-20 — konto, na którym pracuję z własnego loginu; `null` = moje konto. */
   actingFor?: { ownerUserId: string; nazwa: string; email: string } | null;
+  /** P3-08 — subkonto: czyje konto obsługuje (null = konto własne albo dostęp z własnego konta). */
+  kontoSubkonta?: { ownerUserId: string; nazwa: string; email: string } | null;
 }
 
 /**
@@ -88,6 +90,7 @@ export async function fetchSidebarUserState(): Promise<{ user: SidebarUser | nul
       serviceScope: Array.isArray(data.serviceScope) ? data.serviceScope.map(String) : [],
       billingOutside: data.billingOutside === true,
       actingFor: data.actingFor && typeof data.actingFor === 'object' ? data.actingFor : null,
+      kontoSubkonta: data.kontoSubkonta && typeof data.kontoSubkonta === 'object' ? data.kontoSubkonta : null,
     };
     return { user, unauthorized: false };
   } catch {

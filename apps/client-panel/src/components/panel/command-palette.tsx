@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { Search } from 'lucide-react';
+import { trzymajFokusWOknie } from './fokus-okna';
 
 export type PaletteItem = { label: string; hint: string; href?: string; run?: () => void };
 
@@ -23,12 +24,22 @@ export function filterItems(items: PaletteItem[], q: string): PaletteItem[] {
   return items.filter((i) => normalize(`${i.label} ${i.hint}`).includes(n));
 }
 
+/**
+ * P3-08 — pozycje z adresem tylko, gdy konto może tę stronę otworzyć (subkonto bez „Płatności” nie widzi „Faktury”
+ * ani „Doładuj portfel”); pozycje bez adresu (np. zmiana widoku) zostają.
+ */
+export function tylkoDostepne(mozeOtworzyc: (href: string) => boolean, items: PaletteItem[]): PaletteItem[] {
+  return items.filter((i) => !i.href || mozeOtworzyc(i.href));
+}
+
 export function CommandPalette({ items }: { items: PaletteItem[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const [sel, setSel] = useState(0);
   const input = useRef<HTMLInputElement | null>(null);
+  const okno = useRef<HTMLDivElement | null>(null);
+  const wyzwalacz = useRef<HTMLButtonElement | null>(null);
   const listId = useId();
 
   useEffect(() => {
@@ -50,6 +61,26 @@ export function CommandPalette({ items }: { items: PaletteItem[] }) {
     if (open) setTimeout(() => input.current?.focus(), 10);
   }, [open]);
 
+  // A3-8 (WCAG 2.4.3) — jak PanelModal: Tab nie wychodzi spod przyciemnienia, Esc zamyka z każdego miejsca okna,
+  // a po zamknięciu fokus wraca tam, skąd paletę otwarto (przycisk albo element przed „/”).
+  useEffect(() => {
+    if (!open) return;
+    const poprzedni = document.activeElement as HTMLElement | null;
+    const przycisk = wyzwalacz.current;
+    const klawisz = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setOpen(false);
+      } else trzymajFokusWOknie(e, okno.current);
+    };
+    window.addEventListener('keydown', klawisz);
+    return () => {
+      window.removeEventListener('keydown', klawisz);
+      const cel = poprzedni && poprzedni !== document.body && poprzedni.isConnected ? poprzedni : przycisk;
+      cel?.focus?.();
+    };
+  }, [open]);
+
   const rows = useMemo(() => {
     const f = filterItems(items, q);
     if (f.length > 0 || !q.trim()) return f.slice(0, 12);
@@ -66,6 +97,7 @@ export function CommandPalette({ items }: { items: PaletteItem[] }) {
   return (
     <>
       <button
+        ref={wyzwalacz}
         type="button"
         onClick={() => {
           setQ('');
@@ -88,7 +120,7 @@ export function CommandPalette({ items }: { items: PaletteItem[] }) {
           style={{ background: 'rgba(4, 10, 7, 0.55)' }}
           onMouseDown={(e) => e.target === e.currentTarget && setOpen(false)}
         >
-          <div role="dialog" aria-label="Szukaj lub zrób coś" className="w-full max-w-[560px] overflow-hidden rounded-xl border border-line-strong bg-card shadow-[0_30px_80px_-30px_rgba(0,0,0,0.6)]">
+          <div ref={okno} role="dialog" aria-modal="true" aria-label="Szukaj lub zrób coś" className="w-full max-w-[560px] overflow-hidden rounded-xl border border-line-strong bg-card shadow-[0_30px_80px_-30px_rgba(0,0,0,0.6)]">
             <input
               ref={input}
               role="combobox"
@@ -110,7 +142,7 @@ export function CommandPalette({ items }: { items: PaletteItem[] }) {
                   e.preventDefault();
                   setSel((s) => Math.max(s - 1, 0));
                 } else if (e.key === 'Enter') run(rows[sel]);
-                else if (e.key === 'Escape') setOpen(false);
+                // Esc obsługuje nasłuch okna (działa też, gdy fokus nie jest w polu).
               }}
               placeholder="Wpisz, co chcesz zrobić…"
               className="w-full border-0 border-b border-line bg-transparent px-4 py-[15px] text-base font-medium text-foreground outline-none"

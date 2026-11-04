@@ -1,16 +1,21 @@
 import { randomUUID } from 'node:crypto';
 import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { BetaZgloszenieStatus, Prisma } from '@verris/database';
+import { BetaZgloszenieStatus, Prisma, type BetaZgloszenie as BetaZgloszenieWiersz } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { MailerService } from '../mail/mailer.service.js';
+import type { MailMessage } from '../mail/mailer.interface.js';
 import { AuditService } from '../common/audit/audit.service.js';
-import { BetaService } from './beta.service.js';
+import { BetaService, KREDYT_TESTOW } from './beta.service.js';
 import type { ZgloszenieBetaDto } from './dto/zgloszenie-beta.dto.js';
 import {
   odmowaZgloszeniaBetaTemplate,
   potwierdzenieZgloszeniaBetaTemplate,
+  stanZaproszeniaBetaTemplate,
+  zaproszenieDoTestowTemplate,
+  tylkoPocztaWZakresie,
   zgloszenieBetaNotifyTemplate,
+  zmianaZgloszeniaBetaTemplate,
 } from './beta.templates.js';
 
 /**
@@ -27,6 +32,13 @@ export const RETENCJA_ZGLOSZEN_DNI = 90;
 const AKTYWNE: BetaZgloszenieStatus[] = [BetaZgloszenieStatus.NIEPOTWIERDZONE, BetaZgloszenieStatus.NOWE];
 
 type Meta = { ip?: string; userAgent?: string };
+
+const KONTAKT = 'kontakt@verris.pl';
+
+/** Stan linku z maila (strona GET z przyciskiem — A1-06). */
+export type StanLinkuBety = 'DO_POTWIERDZENIA' | 'ZMIANA_DO_POTWIERDZENIA' | 'JUZ_POTWIERDZONE' | 'NIEAKTUALNY';
+/** Wynik kliknięcia przycisku (POST). */
+export type WynikPotwierdzeniaBety = 'POTWIERDZONE' | 'ZMIANA_ZAPISANA' | 'JUZ_POTWIERDZONE' | 'NIEAKTUALNY';
 
 function utmBezPustych(utm: ZgloszenieBetaDto['utm']): Prisma.InputJsonValue | undefined {
   if (!utm) return undefined;
@@ -63,11 +75,25 @@ export class BetaZgloszeniaService {
 
   async zglos(dto: ZgloszenieBetaDto, meta: Meta, teraz = new Date()): Promise<{ status: 'pending' }> {
     // Pułapka na boty: wygląda jak sukces, ale nic nie zapisujemy i nic nie wysyłamy.
-    if (dto.firma?.trim()) return { status: 'pending' };
+    if (dto.pulapka?.trim()) return { status: 'pending' };
 
     const email = dto.email.trim().toLowerCase();
-    // Ma już zaproszenie (albo jest testerem) — bez duplikatu i bez maila.
-    if (await this.prisma.betaInvite.findFirst({ where: { email }, select: { id: true } })) return { status: 'pending' };
+    // Ma już zaproszenie (albo jest testerem) — bez duplikatu; P2-11: właściciel skrzynki dostaje mail zgodny ze stanem.
+    const invite = await this.prisma.betaInvite.findFirst({
+      where: { email },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        name: true,
+        przypomnienieAt: true,
+        promoCode: { select: { code: true, active: true, validTo: true, redemptionCount: true } },
+        zgloszenia: { select: { zakres: true }, orderBy: { createdAt: 'desc' }, take: 1 },
+      },
+    });
+    if (invite) {
+      await this.przypomnijZaproszenie(email, invite, teraz);
+      return { status: 'pending' };
+    }
 
     const dane = {
       imie: dto.imie.trim().slice(0, 100),
@@ -88,15 +114,22 @@ export class BetaZgloszeniaService {
       orderBy: { createdAt: 'desc' },
     });
 
+    if (aktywne?.status === BetaZgloszenieStatus.NOWE) {
+      // A1-01 — potwierdzonego zgłoszenia nie nadpisujemy z formularza: kto zna adres, podmieniłby dane, zakres
+      // i dowód zgody bez dostępu do skrzynki. Zmiana czeka na kliknięcie nowego linku z maila.
+      await this.zaproponujZmiane(aktywne, dane, teraz);
+      await this.audit
+        .record({ action: 'BETA_ZGLOSZENIE_PRZYJETE', details: { zgloszenieId: aktywne.id, ponowne: true, zmianaDoPotwierdzenia: true, page: dane.page } })
+        .catch(() => undefined);
+      return { status: 'pending' };
+    }
+
     let zgloszenie: { id: string; status: BetaZgloszenieStatus; confirmToken: string | null };
     if (aktywne) {
-      // Ponowne wysłanie formularza aktualizuje to samo zgłoszenie (bez drugiego wiersza na liście).
+      // Niepotwierdzone — ponowne wysłanie aktualizuje to samo zgłoszenie (bez drugiego wiersza na liście).
       zgloszenie = await this.prisma.betaZgloszenie.update({
         where: { id: aktywne.id },
-        data: {
-          ...dane,
-          ...(aktywne.status === BetaZgloszenieStatus.NIEPOTWIERDZONE && !aktywne.confirmToken ? { confirmToken: randomUUID() } : {}),
-        },
+        data: { ...dane, ...(!aktywne.confirmToken ? { confirmToken: randomUUID() } : {}) },
       });
     } else {
       zgloszenie = await this.prisma.betaZgloszenie.create({
@@ -109,37 +142,121 @@ export class BetaZgloszeniaService {
       .catch(() => undefined);
 
     if (zgloszenie.status === BetaZgloszenieStatus.NIEPOTWIERDZONE && zgloszenie.confirmToken) {
-      // Najwyżej jeden mail do nadawcy na adres na dobę — formularzem nie da się zasypać cudzej skrzynki.
-      const ostatniMail = await this.prisma.betaZgloszenie.findFirst({
-        where: { email, mailAt: { gte: new Date(teraz.getTime() - DOBA_MS) } },
-        select: { id: true },
-      });
-      if (!ostatniMail) {
-        await this.prisma.betaZgloszenie.update({ where: { id: zgloszenie.id }, data: { mailAt: teraz } });
-        try {
-          await this.mailer.send({
-            ...potwierdzenieZgloszeniaBetaTemplate({ to: email, imie: dane.imie, confirmUrl: this.confirmUrl(zgloszenie.confirmToken), panelUrl: this.panelUrl() }),
-            category: 'TRANSACTIONAL',
-            fromRole: 'SUPPORT',
-          });
-        } catch (err) {
-          this.logger.warn(`Zgłoszenie beta ${zgloszenie.id}: mail potwierdzający nie wyszedł: ${(err as Error).message}`);
-        }
+      if (await this.moznaWyslac(email, zgloszenie.id, teraz)) {
+        await this.wyslij(
+          potwierdzenieZgloszeniaBetaTemplate({ to: email, imie: dane.imie, confirmUrl: this.confirmUrl(zgloszenie.confirmToken), panelUrl: this.panelUrl() }),
+          zgloszenie.id,
+        );
       }
     }
     return { status: 'pending' };
   }
 
-  /** Double opt-in: link z maila. Token jednorazowy — drugie kliknięcie pokazuje „link nieaktualny”. */
-  async potwierdz(token?: string, teraz = new Date()): Promise<{ ok: boolean }> {
-    if (!token) return { ok: false };
+  /**
+   * Najwyżej jeden mail do nadawcy na adres na dobę — formularzem nie da się zasypać cudzej skrzynki.
+   * Rezerwuje okno (mailAt) na wskazanym zgłoszeniu.
+   */
+  private async moznaWyslac(email: string, zgloszenieId: string, teraz: Date): Promise<boolean> {
+    const ostatniMail = await this.prisma.betaZgloszenie.findFirst({
+      where: { email, mailAt: { gte: new Date(teraz.getTime() - DOBA_MS) } },
+      select: { id: true },
+    });
+    if (ostatniMail) return false;
+    await this.prisma.betaZgloszenie.update({ where: { id: zgloszenieId }, data: { mailAt: teraz } });
+    return true;
+  }
+
+  private async wyslij(mail: Omit<MailMessage, 'fromAddress'>, id: string) {
+    try {
+      await this.mailer.send({ ...mail, category: 'TRANSACTIONAL', fromRole: 'SUPPORT' });
+    } catch (err) {
+      this.logger.warn(`Zgłoszenie beta ${id}: mail do nadawcy nie wyszedł: ${(err as Error).message}`);
+    }
+  }
+
+  /** A1-01 — nowe dane jako oczekująca zmiana + link. Oczekującej zmiany nie podmieniamy, dopóki trwa doba od maila. */
+  private async zaproponujZmiane(aktywne: { id: string; email: string; zmianaToken: string | null }, dane: Record<string, unknown>, teraz: Date) {
+    if (!(await this.moznaWyslac(aktywne.email, aktywne.id, teraz))) return;
+    const zmianaToken = randomUUID();
+    await this.prisma.betaZgloszenie.update({
+      where: { id: aktywne.id },
+      data: { zmiana: JSON.parse(JSON.stringify({ ...dane, utm: dane.utm === Prisma.DbNull ? null : dane.utm, zgodaAt: (dane.zgodaAt as Date).toISOString() })), zmianaToken },
+    });
+    await this.wyslij(zmianaZgloszeniaBetaTemplate({ to: aktywne.email, confirmUrl: this.confirmUrl(zmianaToken), panelUrl: this.panelUrl() }), aktywne.id);
+  }
+
+  /**
+   * P2-11 — adres ma już zaproszenie. Ważny, niewykorzystany kod: wysyłamy zaproszenie jeszcze raz (zgubiony mail);
+   * kod zrealizowany: „jesteś już w testach”; wygasły/wycofany: „napisz do nas”. Najwyżej raz na dobę.
+   */
+  private async przypomnijZaproszenie(
+    email: string,
+    invite: {
+      id: string;
+      name: string | null;
+      przypomnienieAt: Date | null;
+      promoCode: { code: string; active: boolean; validTo: Date | null; redemptionCount: number };
+      zgloszenia?: { zakres: string[] }[];
+    },
+    teraz: Date,
+  ) {
+    if (invite.przypomnienieAt && invite.przypomnienieAt.getTime() > teraz.getTime() - DOBA_MS) return;
+    const { count } = await this.prisma.betaInvite.updateMany({
+      where: { id: invite.id, OR: [{ przypomnienieAt: null }, { przypomnienieAt: { lte: new Date(teraz.getTime() - DOBA_MS) } }] },
+      data: { przypomnienieAt: teraz },
+    });
+    if (!count) return;
+    const kod = invite.promoCode;
+    const mail =
+      kod.redemptionCount > 0
+        ? stanZaproszeniaBetaTemplate({ to: email, stan: 'TESTER', panelUrl: this.panelUrl(), kontakt: KONTAKT })
+        : kod.active && kod.validTo && kod.validTo > teraz
+          ? zaproszenieDoTestowTemplate({
+              to: email,
+              name: invite.name,
+              code: kod.code,
+              credit: KREDYT_TESTOW,
+              validTo: kod.validTo,
+              panelUrl: this.panelUrl(),
+              tylkoPoczta: tylkoPocztaWZakresie(invite.zgloszenia?.[0]?.zakres),
+            })
+          : stanZaproszeniaBetaTemplate({ to: email, stan: 'NIEAKTYWNE', panelUrl: this.panelUrl(), kontakt: KONTAKT });
+    await this.wyslij(mail, invite.id);
+  }
+
+  /**
+   * P5-09 / A1-06 — co pokazać pod linkiem z maila, bez wykonywania akcji (GET otwierają też skanery linków w poczcie).
+   * Token potwierdzenia zostaje po potwierdzeniu, żeby drugie kliknięcie mówiło „już potwierdzone”, a nie „nieaktualny”.
+   */
+  async stanLinku(token?: string): Promise<StanLinkuBety> {
+    if (!token) return 'NIEAKTUALNY';
+    const z = await this.prisma.betaZgloszenie.findFirst({
+      where: { OR: [{ confirmToken: token }, { zmianaToken: token }] },
+      select: { status: true, confirmToken: true, zmianaToken: true, zmiana: true },
+    });
+    if (!z) return 'NIEAKTUALNY';
+    if (z.zmianaToken === token) return z.status === BetaZgloszenieStatus.NOWE && z.zmiana ? 'ZMIANA_DO_POTWIERDZENIA' : 'NIEAKTUALNY';
+    if (z.status === BetaZgloszenieStatus.NIEPOTWIERDZONE) return 'DO_POTWIERDZENIA';
+    if (z.status === BetaZgloszenieStatus.NOWE || z.status === BetaZgloszenieStatus.ZAPROSZONE) return 'JUZ_POTWIERDZONE';
+    return 'NIEAKTUALNY';
+  }
+
+  /** Double opt-in (POST z przycisku na stronie linku): potwierdzenie zgłoszenia albo zmiany jego danych. */
+  async potwierdz(token?: string, teraz = new Date()): Promise<{ stan: WynikPotwierdzeniaBety }> {
+    if (!token) return { stan: 'NIEAKTUALNY' };
+    const zmiana = await this.prisma.betaZgloszenie.findUnique({ where: { zmianaToken: token } });
+    if (zmiana) return { stan: await this.zapiszZmiane(zmiana, teraz) };
+
     const z = await this.prisma.betaZgloszenie.findUnique({ where: { confirmToken: token } });
-    if (!z || z.status !== BetaZgloszenieStatus.NIEPOTWIERDZONE) return { ok: false };
+    if (!z) return { stan: 'NIEAKTUALNY' };
+    if (z.status === BetaZgloszenieStatus.NOWE || z.status === BetaZgloszenieStatus.ZAPROSZONE) return { stan: 'JUZ_POTWIERDZONE' };
+    if (z.status !== BetaZgloszenieStatus.NIEPOTWIERDZONE) return { stan: 'NIEAKTUALNY' };
     const { count } = await this.prisma.betaZgloszenie.updateMany({
       where: { id: z.id, status: BetaZgloszenieStatus.NIEPOTWIERDZONE },
-      data: { status: BetaZgloszenieStatus.NOWE, potwierdzoneAt: teraz, confirmToken: null },
+      data: { status: BetaZgloszenieStatus.NOWE, potwierdzoneAt: teraz },
     });
-    if (!count) return { ok: false };
+    // Wyścig dwóch kart: druga widzi już NOWE — to też „potwierdzone”, nie błąd.
+    if (!count) return { stan: 'JUZ_POTWIERDZONE' };
     await this.audit.record({ action: 'BETA_ZGLOSZENIE_POTWIERDZONE', details: { zgloszenieId: z.id } }).catch(() => undefined);
     const utm = (z.utm ?? null) as Record<string, string> | null;
     void this.mailer
@@ -159,7 +276,49 @@ export class BetaZgloszeniaService {
         fromRole: 'SUPPORT',
       })
       .catch((e) => this.logger.warn(`Zgłoszenie beta ${z.id}: powiadomienie zespołu nie wyszło: ${e?.message ?? e}`));
-    return { ok: true };
+    return { stan: 'POTWIERDZONE' };
+  }
+
+  /**
+   * A1-01 — potwierdzona zmiana danych. Poprzedni dowód zgody (treść, chwila, IP) zostaje w dzienniku — zapis
+   * w zgłoszeniu dostaje nową zgodę, ale stara nie znika.
+   */
+  private async zapiszZmiane(z: BetaZgloszenieWiersz, teraz: Date): Promise<WynikPotwierdzeniaBety> {
+    const nowe = z.zmiana as Record<string, unknown> | null;
+    if (z.status !== BetaZgloszenieStatus.NOWE || !nowe) {
+      await this.prisma.betaZgloszenie.updateMany({ where: { id: z.id, zmianaToken: z.zmianaToken }, data: { zmiana: Prisma.DbNull, zmianaToken: null } });
+      return 'NIEAKTUALNY';
+    }
+    const { count } = await this.prisma.betaZgloszenie.updateMany({
+      where: { id: z.id, zmianaToken: z.zmianaToken, status: BetaZgloszenieStatus.NOWE },
+      data: {
+        imie: String(nowe.imie ?? z.imie),
+        zakres: Array.isArray(nowe.zakres) ? (nowe.zakres as string[]) : z.zakres,
+        strona: (nowe.strona as string | null) ?? null,
+        obecnyHosting: (nowe.obecnyHosting as string | null) ?? null,
+        uwagi: (nowe.uwagi as string | null) ?? null,
+        utm: (nowe.utm as Prisma.InputJsonValue | null) ?? Prisma.DbNull,
+        page: (nowe.page as string | null) ?? null,
+        zgodaTekst: String(nowe.zgodaTekst ?? z.zgodaTekst),
+        zgodaAt: nowe.zgodaAt ? new Date(String(nowe.zgodaAt)) : z.zgodaAt,
+        ip: (nowe.ip as string | null) ?? null,
+        userAgent: (nowe.userAgent as string | null) ?? null,
+        zmiana: Prisma.DbNull,
+        zmianaToken: null,
+      },
+    });
+    if (!count) return 'NIEAKTUALNY';
+    await this.audit
+      .record({
+        action: 'BETA_ZGLOSZENIE_ZMIANA_POTWIERDZONA',
+        details: {
+          zgloszenieId: z.id,
+          potwierdzonoAt: teraz.toISOString(),
+          poprzedniaZgoda: { tekst: z.zgodaTekst, at: z.zgodaAt.toISOString(), ip: z.ip, userAgent: z.userAgent },
+        },
+      })
+      .catch(() => undefined);
+    return 'ZMIANA_ZAPISANA';
   }
 
   /** Panel admina → Testy (beta) → Zgłoszenia. */
@@ -207,10 +366,10 @@ export class BetaZgloszeniaService {
       throw new ConflictException('Adres nie jest jeszcze potwierdzony — zaproszenie dopiero po kliknięciu linku z maila.');
     if (z.status === BetaZgloszenieStatus.ZAPROSZONE) throw new ConflictException('Ta osoba ma już zaproszenie z tego zgłoszenia.');
 
-    const invite = await this.beta.zapros({ email: z.email, name: z.imie }, actorUserId);
+    const invite = await this.beta.zapros({ email: z.email, name: z.imie, tylkoPoczta: tylkoPocztaWZakresie(z.zakres) }, actorUserId);
     await this.prisma.betaZgloszenie.update({
       where: { id },
-      data: { status: BetaZgloszenieStatus.ZAPROSZONE, betaInviteId: invite.id, decyzjaAt: new Date(), decyzjaPrzezId: actorUserId },
+      data: { status: BetaZgloszenieStatus.ZAPROSZONE, betaInviteId: invite.id, decyzjaAt: new Date(), decyzjaPrzezId: actorUserId, zmiana: Prisma.DbNull, zmianaToken: null },
     });
     await this.audit.record({ action: 'BETA_ZGLOSZENIE_ZAPROSZONE', actorUserId, details: { zgloszenieId: id, inviteId: invite.id } });
     return invite;
@@ -226,7 +385,7 @@ export class BetaZgloszeniaService {
 
     await this.prisma.betaZgloszenie.update({
       where: { id },
-      data: { status: BetaZgloszenieStatus.ODRZUCONE, decyzjaAt: new Date(), decyzjaPrzezId: actorUserId, confirmToken: null },
+      data: { status: BetaZgloszenieStatus.ODRZUCONE, decyzjaAt: new Date(), decyzjaPrzezId: actorUserId, confirmToken: null, zmiana: Prisma.DbNull, zmianaToken: null },
     });
     let mailWyslany = false;
     if (powiadom && z.potwierdzoneAt) {

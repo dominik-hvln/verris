@@ -1,4 +1,4 @@
-import type { ServiceSummaryDto } from '@verris/contracts';
+import type { ServiceSummaryDto } from '@verris/contracts/klient';
 import { deriveReasons } from './services-health-overview';
 
 /**

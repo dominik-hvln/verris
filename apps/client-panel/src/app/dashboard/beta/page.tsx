@@ -20,7 +20,7 @@ export default async function TestyBetaPage() {
         <section className="rounded-[10px] border border-line bg-card px-5 py-4 text-[14px] text-muted-foreground">
           <p className="m-0">
             Ta strona jest dla osób zaproszonych do testów. Masz kod z zaproszenia? Wpisz go w{" "}
-            <Link href="/dashboard/billing" className="font-semibold text-data-hi hover:underline">Płatności → Kod promocyjny</Link>, a lista pojawi się tutaj.
+            <Link href="/dashboard/billing#kod-promocyjny" className="font-semibold text-data-hi hover:underline">Płatności → Kod promocyjny</Link>, a lista pojawi się tutaj.
           </p>
         </section>
       ) : (

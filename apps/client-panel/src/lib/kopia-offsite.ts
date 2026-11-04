@@ -10,7 +10,7 @@
  * na liście — przywróć z listy; poza listą — plik jest w katalogu `backups` (do pobrania w Menedżerze plików),
  * a przywrócenie konta z niego wykonuje obsługa (odtworzenie kopii administratora, ops/scripts/node-account-restore.sh).
  */
-import { jestKopiaAdministratora } from '@verris/contracts';
+import { jestKopiaAdministratora } from '@verris/contracts/klient';
 
 export type PobranaKopia = 'na-liscie' | 'przez-obsluge';
 

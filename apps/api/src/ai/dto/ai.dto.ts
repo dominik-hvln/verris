@@ -150,6 +150,11 @@ export class UstawieniaAiDto {
   /** Model → { wej, wyj } USD / 1 mln tokenów; każdy wpis sprawdza jeszcze odczytajKonfiguracjeAi. */
   @IsObject()
   ceny!: Record<string, { wej: number; wyj: number }>;
+
+  /** Decyzja 5: asystent AI dla wszystkich klientów (wyłącza listę kont testowych z env). Brak pola = wyłączone. */
+  @IsOptional()
+  @IsBoolean()
+  dlaWszystkichKlientow?: boolean;
 }
 
 /** 1.11 — asystent AI na verris.pl: wyłącznik, modele i limity kosztu (USD; 0 = bez limitu). */

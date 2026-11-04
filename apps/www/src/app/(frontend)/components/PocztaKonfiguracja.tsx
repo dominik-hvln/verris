@@ -94,7 +94,9 @@ export function PocztaKonfiguracja() {
           </div>
         ))}
       </div>
-      <div className="pcz-tabela card">
+      {/* A3-13: przewijana w bok tabela dostępna z klawiatury (fokus + nazwa regionu). */}
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- A3-13: przewijany w bok obszar musi dostać fokus (WCAG 2.1.1, axe scrollable-region-focusable) */}
+      <div className="pcz-tabela card" role="region" aria-label="Ustawienia programu pocztowego" tabIndex={0}>
         <table>
           <caption className="pcz-sr">Ustawienia programu pocztowego</caption>
           <thead>

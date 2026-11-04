@@ -1,4 +1,4 @@
-import type { ServiceHealthSummaryDto } from '@verris/contracts';
+import type { ServiceHealthSummaryDto } from '@verris/contracts/klient';
 import type { Tone } from '@/components/panel/v2';
 
 export const HEALTH: Record<ServiceHealthSummaryDto['label'], { tone: Tone; text: string }> = {

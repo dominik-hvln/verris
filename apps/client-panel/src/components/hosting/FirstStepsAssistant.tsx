@@ -1,7 +1,7 @@
 'use client';
 
 import { Check, ChevronRight, Globe, ShieldCheck, LayoutTemplate, Mail, Sparkles } from 'lucide-react';
-import type { ServiceHealthSummaryDto } from '@verris/contracts';
+import type { ServiceHealthSummaryDto } from '@verris/contracts/klient';
 
 /**
  * UX-2 — „Asystent startu". Zamienia surowe checki zdrowia w prowadzące za rękę,

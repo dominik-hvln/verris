@@ -129,11 +129,12 @@ export class PublicBadgesController {
     @Param('plik') plik: string,
     @Query('motyw') m: string,
     @Query('wariant') w: string,
+    @Query('licznik') licznik: string,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<string> {
     const token = plik.replace(/\.svg$/, '');
-    const profile = await this.badges.ecoProfile(token);
+    const profile = await this.badges.ecoProfile(token, licznik === 'moje' ? 'moje' : 'verris');
     if (!profile) throw new NotFoundException();
     this.impression(token, req);
     const wariant: EkoWariant = w === 'znak' || w === 'hostowane' ? w : 'eko';

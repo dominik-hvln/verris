@@ -404,7 +404,8 @@ export class UserServicesController {
       orderBy: { createdAt: 'desc' },
       include: {
         plan: true,
-        account: { include: { server: { select: { id: true, name: true, region: true } } } },
+        // P5-11 — nazwa i region węzła nie idą do klienta (white label, lokalizacja = „Unia Europejska”).
+        account: { include: { server: { select: { id: true } } } },
         healthSnapshots: { orderBy: { computedAt: 'desc' }, take: 1 },
       },
     });
@@ -464,13 +465,7 @@ export class UserServicesController {
             scaledCpu: s.account.scaledCpu,
             scaledRamMb: s.account.scaledRamMb,
             scaledDiskMb: s.account.scaledDiskMb,
-            server: s.account.server
-              ? {
-                  id: s.account.server.id,
-                  name: s.account.server.name,
-                  region: s.account.server.region,
-                }
-              : null,
+            server: s.account.server ? { id: s.account.server.id } : null,
           }
         : null,
     }));
@@ -1878,7 +1873,8 @@ export class UserServicesController {
       where: { id, userId: user.userId },
       include: {
         plan: true,
-        account: { include: { server: { select: { id: true, name: true, region: true } } } },
+        // P5-11 — nazwa i region węzła nie idą do klienta (white label, lokalizacja = „Unia Europejska”).
+        account: { include: { server: { select: { id: true } } } },
         healthSnapshots: { orderBy: { computedAt: 'desc' }, take: 1 },
       },
     });
@@ -1940,7 +1936,7 @@ export class UserServicesController {
             scaledCpu: sub.account.scaledCpu,
             scaledRamMb: sub.account.scaledRamMb,
             scaledDiskMb: sub.account.scaledDiskMb,
-            server: sub.account.server,
+            server: sub.account.server ? { id: sub.account.server.id } : null,
           }
         : null,
       provisioning: sub.provisioningStage

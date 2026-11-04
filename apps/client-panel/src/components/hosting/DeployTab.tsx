@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState, useId } from 'react';
 import { UkladZBokiem } from '@/components/hosting/UkladZBokiem';
 import { AlertCircle, ExternalLink, Loader2, Plus, RefreshCw, Rocket, Trash2 } from 'lucide-react';
 import { Button } from '@verris/ui';
-import type { DeployFrequency, DeployJobDto } from '@verris/contracts';
+import type { DeployFrequency, DeployJobDto } from '@verris/contracts/klient';
 import {
   createDeployJobAction,
   deleteDeployJobAction,

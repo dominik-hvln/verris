@@ -69,11 +69,15 @@ export class ConsentsService {
    *
    * MUST be called inside the same Prisma transaction as User creation so that
    * both rollback together if anything fails.
+   *
+   * P3-10 — także przy aktywacji subkonta z zaproszenia (`source = SUBACCOUNT_ACTIVATION`): współpracownik
+   * akceptuje dokumenty na ekranie aktywacji, więc po pierwszym logowaniu nie widzi okna ponownej akceptacji.
    */
   async recordRegistrationConsents(
     tx: Prisma.TransactionClient,
     userId: string,
     ctx: ConsentRequestContext,
+    source: ConsentSource = ConsentSource.REGISTRATION,
   ): Promise<{ termsVersion: string; privacyVersion: string }> {
     const [terms, privacy] = await Promise.all([
       this.legal.getCurrentRow('TERMS', 'pl'),
@@ -106,7 +110,7 @@ export class ConsentsService {
           documentId: terms.id,
           ipAddress: ctx.ipAddress ?? null,
           userAgent: ctx.userAgent ?? null,
-          source: ConsentSource.REGISTRATION,
+          source,
         },
         {
           userId,
@@ -116,7 +120,7 @@ export class ConsentsService {
           documentId: privacy.id,
           ipAddress: ctx.ipAddress ?? null,
           userAgent: ctx.userAgent ?? null,
-          source: ConsentSource.REGISTRATION,
+          source,
         },
       ],
     });
@@ -258,10 +262,6 @@ export class ConsentsService {
     firstName: string | null,
     dpaVersion: string,
   ): Promise<void> {
-    const apiUrl =
-      this.config.get<string>('PUBLIC_API_URL') ??
-      this.config.get<string>('publicApiUrl') ??
-      'https://api.verris.pl';
     const panelUrl =
       this.config.get<string>('CLIENT_PANEL_URL') ??
       this.config.get<string>('clientPanelUrl') ??
@@ -271,7 +271,8 @@ export class ConsentsService {
       to,
       firstName,
       dpaVersion,
-      pdfUrl: `${apiUrl}/me/dpa.pdf`,
+      // A2-06 — przez panel (sesja w ciasteczku): bezpośredni link do API `/me/dpa.pdf` dawał 401 bez nagłówka Bearer.
+      pdfUrl: `${panelUrl}/api/dpa`,
       panelUrl,
     });
     await this.mailer.send({ ...message, category: 'TRANSACTIONAL', fromRole: 'RODO' });

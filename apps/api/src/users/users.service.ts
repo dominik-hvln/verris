@@ -33,6 +33,7 @@ import { EcoPointsService, isBillingProfileComplete } from '../eco/eco-points.se
 import { WalletLedgerService } from '../billing/wallet-ledger.service.js';
 import { BEZ_WERYFIKACJI, KOMUNIKAT_ZMIANA_PO_PLATNOSCI, maPierwszaPlatnosc, zmianaDanychVat } from '../billing/vat-weryfikacja.js';
 
+import { bladNipuPl } from './nip.js';
 @Injectable()
 export class UsersService {
   private static readonly ECO_REDEEM_STEP = 100;
@@ -208,6 +209,8 @@ export class UsersService {
       // PB-20 — zakres usług (pusta lista = całe konto) i konto, na którym pracuje deweloper.
       serviceScope: dziala ? dzialanie?.serviceScope ?? [] : user.subaccountServiceIds,
       actingFor: dziala ? await this.kontoWlasciciela(accountUserId) : null,
+      // P3-08 — subkonto widzi w nagłówku, czyje konto obsługuje (wcześniej tylko w Ustawieniach).
+      kontoSubkonta: user.customerOwnerId && !dziala ? await this.kontoWlasciciela(user.customerOwnerId) : null,
       hasPasskey: passkeyCount > 0,
       // PB-28 — konto rozliczane przez właściciela poza Verris: panel chowa portfel i płatności.
       billingOutside:
@@ -551,10 +554,15 @@ export class UsersService {
     // weryfikację nabywcy, więc kolejne doładowanie wraca do 23%, dopóki obsługa jej nie potwierdzi.
     const zmianaVat = zmianaDanychVat(user, { country: dto.country, nip: dto.nip });
     const zmienia = !isSubaccount && (zmianaVat.kraj || zmianaVat.nip);
-    if (zmienia && (await maPierwszaPlatnosc(this.prisma, profileId))) {
-      throw new ForbiddenException(
-        zmianaVat.kraj ? KOMUNIKAT_ZMIANA_PO_PLATNOSCI : 'Zmianę NIP / numeru VAT-UE zgłoś obsłudze.',
-      );
+    // P2-05 (paczka 109) — NIP klient poprawia sam także po pierwszej płatności: faktury mają kopię danych nabywcy
+    // z chwili wystawienia (buyerSnapshot), więc zmiana dotyczy tylko kolejnych dokumentów; wpis w dzienniku
+    // i wyzerowana weryfikacja nabywcy zostają. Kraj rozliczenia po płatności dalej zmienia tylko obsługa.
+    if (!isSubaccount && zmianaVat.kraj && (await maPierwszaPlatnosc(this.prisma, profileId))) {
+      throw new ForbiddenException(KOMUNIKAT_ZMIANA_PO_PLATNOSCI);
+    }
+    if (!isSubaccount && dto.nip !== undefined && (dto.country ?? user.country ?? 'PL') === 'PL') {
+      const blad = bladNipuPl(dto.nip);
+      if (blad) throw new BadRequestException(blad);
     }
 
     // Kod pocztowy trafia na faktury (i do KSeF) — dla Polski tylko format NN-NNN.
@@ -615,6 +623,15 @@ export class UsersService {
         onboardingHidden: true,
       },
     });
+
+    if (!isSubaccount && zmianaVat.nip) {
+      await this.audit?.record({
+        action: 'BILLING_NIP_CHANGED',
+        userId: profileId,
+        actorUserId: profileId,
+        details: { przed: user.nip ?? null, po: updated.nip ?? null, dotyczy: 'dokumenty wystawione od tej chwili' },
+      });
+    }
 
     if (
       !isSubaccount &&
@@ -749,6 +766,8 @@ export class UsersService {
       'TWO_FACTOR_RECOVERY_CODE_USED', 'EMAIL_CHANGE_CONFIRMED', 'SESSIONS_INVALIDATED_ALL',
       'API_TOKEN_CREATED', 'API_TOKEN_REVOKED',
       'CUSTOMER_IAM_INVITE_CREATED', 'CUSTOMER_IAM_INVITE_ACCEPTED', 'CUSTOMER_IAM_INVITE_REVOKED', 'CUSTOMER_IAM_MEMBER_DISABLED',
+      // P3-07 — zmiana uprawnień, przywrócenie i usunięcie subkonta, odebranie dostępu z własnego konta też tutaj.
+      'CUSTOMER_IAM_MEMBER_UPDATED', 'CUSTOMER_IAM_MEMBER_ENABLED', 'CUSTOMER_IAM_MEMBER_REMOVED', 'CUSTOMER_IAM_MEMBERSHIP_UPDATED', 'CUSTOMER_IAM_MEMBERSHIP_DISABLED',
       'DOMAIN_NAMESERVERS_UPDATED', 'DOMAIN_WHOIS_PRIVACY_ENABLED', 'DOMAIN_WHOIS_PRIVACY_DISABLED', 'DOMAIN_AUTHCODE_REVEALED',
       'DOMAIN_TRANSFER_UNLOCKED', 'DOMAIN_REGISTRANT_UPDATED', 'SUBSCRIPTION_SUSPENDED', 'SUBSCRIPTION_UNSUSPENDED',
       // PB-45 — migracja przygotowana przez obsługę: prośba o zgodę i decyzja klienta.

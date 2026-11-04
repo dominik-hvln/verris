@@ -26,6 +26,21 @@ pełni automatycznie, z ręcznym przejęciem przez zespół tylko przy problemac
 6. **Zakończenie** → e-mail do klienta z instrukcją cutoveru DNS.
 7. **Cutover** — klient dograwa różnice (`delta-sync`) i przełącza DNS
    (`.../cutover`, `.../cutover/verify`); auto-potwierdzenie gdy domena na naszych NS.
+   Delta-sync: `FILES_DELTA` → `MYSQL_DELTA` (każda baza) → `WP_FIXUP` (kopia plików nadpisuje wp-config.php
+   danymi starej bazy) → `IMAP_DELTA`.
+
+## Ostatnie kopiowanie bazy przed DNS (`MYSQL_DELTA`, P2-06, decyzja 13 z 3.11.2026)
+
+Worker (`run_mysql_delta`): (1) WordPress — wgrywa na starą stronę `.maintenance` (dostęp z `ftpFallback`), sklep
+odpowiada 503; inny CMS — tylko ostrzeżenie (`konserwacja: niedostepna`, panel prosi o ręczne wstrzymanie
+sprzedaży); (2) pełny zrzut bazy źródłowej do pliku verris-mig (te same drogi co `MYSQL_IMPORT`) i sprawdzenie
+znacznika końca; (3) kopia bazy docelowej do `/var/lib/verris-mig-kopie/<baza>-<czas>.sql.gz` (root 0700,
+14 dni); (4) import na użytkowniku bazy docelowej i sprawdzenie, że są wszystkie tabele ze zrzutu.
+Błąd w (2) — baza docelowa nietknięta; błąd w (3)/(4) — import kopii z powrotem. W obu przypadkach `.maintenance`
+jest zdejmowane (stary sklep znowu sprzedaje) i krok kończy się błędem (ponowienie, potem zespół).
+Sukces — `.maintenance` zostaje: wygasa sam po `OKNO_KONSERWACJI_ZRODLA_MIN` (120 min) liczonych zegarem serwera
+źródłowego (`$upgrading = filemtime + okno − 10 min`, wp_is_maintenance_mode). Ręczne przywrócenie:
+`gzip -dc /var/lib/verris-mig-kopie/<plik> | mysql <baza>` (ścieżka kopii jest w logu kroku).
 
 ## Statusy `MigrationRequest`
 
@@ -40,7 +55,7 @@ pełni automatycznie, z ręcznym przejęciem przez zespół tylko przy problemac
 
 ## Kroki (`MigrationWorkerJobKind`)
 
-`FILES_SFTP_RSYNC`, `FILES_DELTA`, `MYSQL_IMPORT`, `WP_FIXUP`, `IMAP_SYNC`,
+`FILES_SFTP_RSYNC`, `FILES_DELTA`, `MYSQL_IMPORT`, `MYSQL_DELTA`, `WP_FIXUP`, `IMAP_SYNC`,
 `IMAP_DELTA`, `HTTP_POST_CHECK`. Lease wydaje kolejny krok dopiero po ukończeniu
 wcześniejszego (pole `sequence`).
 

@@ -2,7 +2,7 @@
 
 import { bezpiecznie, type Wynik as WynikAkcji } from '@/lib/wynik-akcji';
 
-import type { ServiceForecastDto } from '@verris/contracts';
+import type { ServiceForecastDto } from '@verris/contracts/klient';
 import { apiFetch } from '@/lib/api';
 
 async function fetchServiceForecastActionTresc(serviceId: string): Promise<ServiceForecastDto> {

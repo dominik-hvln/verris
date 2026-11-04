@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { getTrialEligibilityAction } from './actions';
 import { ArrowLeft, Server, Mail, Cpu, ArrowRight, Gift, Check, CreditCard, CalendarClock, Megaphone } from 'lucide-react';
-import type { BillingInterval, PlanDto } from '@verris/contracts';
+import type { BillingInterval, PlanDto } from '@verris/contracts/klient';
 import { NewSubscriptionForm } from './form';
 import { TrialCallout } from './trial-callout';
 import type { TrialOffer } from '../data';
@@ -47,7 +47,13 @@ export function OrderFlow({
   const interval = params.get('interval');
   const promo = uPartnera ? undefined : (params.get('promo') ?? undefined);
 
+  // P2-02 (beta 3.11) — okres trzyma OrderFlow: kafelki „Rok z góry” / „Miesięcznie” i formularz pokazują ten sam
+  // wybór (wcześniej kafelek zmieniał tylko adres, a formularz zostawał na poprzednim okresie).
+  const [okres, setOkres] = useState<BillingInterval>(interval === 'YEAR' ? 'YEAR' : 'MONTH');
+
   const hostingPlans = plans.filter((p) => p.productKind === 'HOSTING');
+  // P1-02 — o darmowej próbie mówimy tylko wtedy, gdy jest włączona i któryś plan ją ma (trialDays > 0).
+  const probaDostepna = ofertaVerris.freeEnabled && hostingPlans.some((p) => p.trialDays > 0);
   const emailPlans = plans.filter((p) => p.productKind === 'EMAIL');
   const newsletterPlans = emm ? plans.filter((p) => p.productKind === 'EMAIL_MARKETING') : [];
 
@@ -55,8 +61,6 @@ export function OrderFlow({
   if (type === 'hosting' || type === 'email' || (type === 'newsletter' && emm)) {
     const typed = type === 'hosting' ? hostingPlans : type === 'email' ? emailPlans : newsletterPlans;
     const title = type === 'hosting' ? 'Hosting WWW' : type === 'email' ? 'Poczta e-mail' : 'E-mail marketing';
-    const initialInterval: BillingInterval | undefined =
-      interval === 'YEAR' ? 'YEAR' : interval === 'MONTH' ? 'MONTH' : undefined;
     return (
       <div className="space-y-6">
         <button
@@ -74,7 +78,12 @@ export function OrderFlow({
         ) : (
           <>
             {type === 'hosting' ? (
-              <StartChooser offer={offer} trialPlansExist={typed.some((p) => p.trialDays > 0)} />
+              <StartChooser
+                offer={offer}
+                trialPlansExist={typed.some((p) => p.trialDays > 0)}
+                okres={okres}
+                onWybierz={setOkres}
+              />
             ) : null}
             {type === 'hosting' && offer.freeEnabled ? (
               <div id="trial">
@@ -84,7 +93,8 @@ export function OrderFlow({
             <div id="checkout">
               <NewSubscriptionForm
                 plans={typed}
-                initialInterval={initialInterval}
+                interval={okres}
+                onIntervalChange={setOkres}
                 initialPromo={promo}
                 bezKarty={bezKarty}
                 bezKodu={uPartnera}
@@ -94,6 +104,7 @@ export function OrderFlow({
                   cardEnabled: offer.cardEnabled,
                   monthlyDiscountPct: offer.monthlyDiscountPct,
                   annualDiscountPct: offer.annualDiscountPct,
+                  introDiscountPeriods: offer.introDiscountPeriods,
                 }}
               />
             </div>
@@ -155,18 +166,19 @@ export function OrderFlow({
         <ProductCard
           icon={<Server className="h-6 w-6" />}
           title="Hosting WWW"
-          desc="Strony, sklepy, WordPress. Z darmowym okresem próbnym."
-          bullets={['Autoskalowanie', 'SSL i WAF w cenie', 'Tryb EKO']}
+          desc={probaDostepna ? 'Strony, sklepy, WordPress. Z darmowym okresem próbnym.' : 'Strony, sklepy, WordPress.'}
+          bullets={['Autoskalowanie', 'SSL i zapora przed atakami w cenie', 'Tryb EKO']}
           badge="Najpopularniejsze"
           href="/dashboard/services/new?type=hosting"
           count={hostingPlans.length}
           accent="emerald"
+          prezent={probaDostepna}
         />
         <ProductCard
           icon={<Mail className="h-6 w-6" />}
           title="Poczta e-mail"
           desc="Profesjonalna poczta w Twojej domenie, bez hostingu WWW."
-          bullets={['Webmail i IMAP/SMTP', 'Antyspam', 'Wysoka dostarczalność']}
+          bullets={['Poczta w przeglądarce i w programie pocztowym', 'Filtr antyspamowy', 'Wysoka dostarczalność']}
           href="/dashboard/services/new?type=email"
           count={emailPlans.length}
           accent="sky"
@@ -198,8 +210,17 @@ export function OrderFlow({
 }
 
 /** UX-3 — „Jak chcesz zacząć?" — darmowy trial vs ścieżka z kartą + rabat. */
-function StartChooser({ offer, trialPlansExist }: { offer: TrialOffer; trialPlansExist: boolean }) {
-  const router = useRouter();
+function StartChooser({
+  offer,
+  trialPlansExist,
+  okres,
+  onWybierz,
+}: {
+  offer: TrialOffer;
+  trialPlansExist: boolean;
+  okres: BillingInterval;
+  onWybierz: (iv: BillingInterval) => void;
+}) {
   // Darmowy trial pokazujemy TYLKO gdy realnie dostępny: włączony w ofercie,
   // istnieje plan z trialem ORAZ konto jest jeszcze uprawnione (1 trial/konto).
   const [trialEligible, setTrialEligible] = useState<boolean | null>(null);
@@ -216,20 +237,21 @@ function StartChooser({ offer, trialPlansExist }: { offer: TrialOffer; trialPlan
   // Gdy tylko ścieżka darmowa (bez karty) — TrialCallout sam ją pokaże; chooser zbędny.
   if (!offer.cardEnabled) return null;
 
-  // BILL-1 — rabat na start liczy się automatycznie z ustawień (bez kuponu),
-  // więc ścieżka z kartą przekazuje tylko interwał; rabat naliczy formularz/back-end.
-  const goCard = (iv: 'YEAR' | 'MONTH') => {
-    const q = new URLSearchParams({ type: 'hosting', interval: iv });
-    router.push(`/dashboard/services/new?${q.toString()}`);
+  // BILL-1 — rabat na start liczy się automatycznie z ustawień (bez kuponu), więc kafelek ustawia tylko okres
+  // (ten sam stan co w formularzu — P2-02); rabat naliczy formularz i API.
+  const goCard = (iv: BillingInterval) => {
+    onWybierz(iv);
     setTimeout(() => document.getElementById('checkout')?.scrollIntoView({ behavior: 'smooth' }), 60);
   };
+  const jedenOkres = (offer.introDiscountPeriods ?? 1) <= 1;
 
   return (
     <div className="rounded-[24px] border border-white/10 bg-white/[0.02] p-5">
       <h3 className="text-sm font-bold text-white">Jak chcesz zacząć?</h3>
       <p className="mt-1 text-xs text-neutral-400">
-        Wypróbuj bez zobowiązań albo zamów od razu z rabatem na start. Rabat dotyczy pierwszej
-        opłaty — odnowienie pełną kwotą.
+        {showFree ? 'Wypróbuj bez zobowiązań albo zamów od razu z rabatem na start. ' : 'Przy pierwszym zakupie dostajesz rabat na start. '}
+        Rabat obejmuje {jedenOkres ? 'tylko pierwszą opłatę' : 'pierwsze opłaty'} — potem płacisz pełną cenę z cennika,
+        podaną przy zamówieniu.
       </p>
       <div className="mt-4 grid gap-3 md:grid-cols-3">
         {showFree ? (
@@ -248,6 +270,7 @@ function StartChooser({ offer, trialPlansExist }: { offer: TrialOffer; trialPlan
 
         <button
           type="button"
+          aria-pressed={okres === 'YEAR'}
           onClick={() => goCard('YEAR')}
           className="relative flex flex-col rounded-2xl border border-sky-400/30 bg-sky-400/[0.06] p-4 text-left transition-colors hover:bg-sky-400/10"
         >
@@ -258,13 +281,14 @@ function StartChooser({ offer, trialPlansExist }: { offer: TrialOffer; trialPlan
             <CalendarClock className="h-4 w-4 text-sky-300" /> Rok z góry
           </span>
           <span className="mt-1 text-xs text-sky-100/80">
-            Rabat <strong className="text-white">−{offer.annualDiscountPct}%</strong> na start + niższa cena roczna.
+            Rabat <strong className="text-white">−{offer.annualDiscountPct}%</strong> {jedenOkres ? 'za pierwszy rok' : 'na start'} + niższa cena roczna.
           </span>
           <span className="mt-3 text-[11px] font-medium text-sky-300">Wybierz →</span>
         </button>
 
         <button
           type="button"
+          aria-pressed={okres === 'MONTH'}
           onClick={() => goCard('MONTH')}
           className="flex flex-col rounded-2xl border border-white/15 bg-white/[0.03] p-4 text-left transition-colors hover:bg-white/[0.06]"
         >
@@ -272,7 +296,7 @@ function StartChooser({ offer, trialPlansExist }: { offer: TrialOffer; trialPlan
             <CreditCard className="h-4 w-4 text-neutral-300" /> Miesięcznie
           </span>
           <span className="mt-1 text-xs text-neutral-400">
-            Rabat <strong className="text-white">−{offer.monthlyDiscountPct}%</strong> na pierwszą opłatę.
+            Rabat <strong className="text-white">−{offer.monthlyDiscountPct}%</strong> {jedenOkres ? 'za pierwszy miesiąc' : 'na start'}.
           </span>
           <span className="mt-3 text-[11px] font-medium text-neutral-300">Wybierz →</span>
         </button>
@@ -291,6 +315,7 @@ function ProductCard({
   count,
   accent,
   external,
+  prezent = false,
 }: {
   icon: React.ReactNode;
   title: string;
@@ -301,6 +326,8 @@ function ProductCard({
   count?: number;
   accent: 'emerald' | 'sky' | 'violet' | 'fuchsia';
   external?: boolean;
+  /** Ikona prezentu tylko przy dostępnej darmowej próbie (P1-02). */
+  prezent?: boolean;
 }) {
   const ring: Record<string, string> = {
     emerald: 'hover:border-emerald-400/40 hover:shadow-[0_0_40px_rgba(16,185,129,0.12)]',
@@ -345,7 +372,7 @@ function ProductCard({
               : 'Sprawdź warianty'}
         </span>
         <span className="inline-flex items-center gap-1 text-sm font-medium text-white">
-          {title === 'Hosting WWW' ? (
+          {prezent ? (
             <span className="inline-flex items-center gap-1 text-emerald-300">
               <Gift className="h-3.5 w-3.5" /> Wybierz
             </span>

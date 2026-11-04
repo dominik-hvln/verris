@@ -182,7 +182,7 @@ export function DualBars({
   bLabel: string;
   format?: (v: number) => string;
 }) {
-  // Rysujemy w pikselach kontenera (nie skalujemy viewBoxa), żeby tekst osi miał stałe 11 px.
+  // Rysujemy w pikselach kontenera (nie skalujemy viewBoxa), żeby tekst osi miał stałe 12 px (P4-7).
   const box = useRef<HTMLDivElement | null>(null);
   const [W, setW] = useState(640);
   useEffect(() => {
@@ -203,11 +203,11 @@ export function DualBars({
   for (let t = 0; t <= top + 1e-9; t += step) ticks.push(t);
   return (
     <div ref={box} className="w-full">
-    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="v2-chart block" role="img" aria-label={`${aLabel} i ${bLabel}`}>
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="v2-chart block" role="img" aria-label={opisDualBars(labels, a, b, aLabel, bLabel, format)}>
       {ticks.map((t) => (
         <g key={t}>
           <line x1={L} x2={W - R} y1={y(t)} y2={y(t)} stroke="var(--line)" />
-          <text x={L - 8} y={y(t) + 4} textAnchor="end" fontSize="11" fill="var(--muted-foreground)" className="font-mono">
+          <text x={L - 8} y={y(t) + 4} textAnchor="end" fontSize="12" fill="var(--muted-foreground)" className="font-mono">
             {format(t)}
           </text>
         </g>
@@ -219,10 +219,12 @@ export function DualBars({
         const hb = (H - T - B) * (b[i]! / top);
         return (
           <g key={m + i}>
-            <rect tabIndex={0} x={x + 3} y={H - B - ha} width={w} height={ha} rx={1.5} fill="var(--data-soft)" data-tip={tip(format(a[i]!), `${aLabel} · ${m}`)} style={{ ['--v2-i' as string]: i * 2 }} />
-            <rect tabIndex={0} x={x + 4 + w} y={H - B - hb} width={w} height={hb} rx={1.5} fill="var(--data)" data-tip={tip(format(b[i]!), `${bLabel} · ${m}`)} style={{ ['--v2-i' as string]: i * 2 + 1 }} />
+            {/* A3-4 — bez tabIndex: 24 niewidoczne przystanki Tab (prostokąty bez obrysu fokusu, wewnątrz role="img");
+                dane z dymków są w etykiecie wykresu (opisDualBars). Dymki dalej pod myszą. */}
+            <rect x={x + 3} y={H - B - ha} width={w} height={ha} rx={1.5} fill="var(--data-soft)" data-tip={tip(format(a[i]!), `${aLabel} · ${m}`)} style={{ ['--v2-i' as string]: i * 2 }} />
+            <rect x={x + 4 + w} y={H - B - hb} width={w} height={hb} rx={1.5} fill="var(--data)" data-tip={tip(format(b[i]!), `${bLabel} · ${m}`)} style={{ ['--v2-i' as string]: i * 2 + 1 }} />
             {i % every === (labels.length - 1) % every ? (
-              <text x={x + bw / 2} y={H - 7} textAnchor="middle" fontSize="11" fill="var(--muted-foreground)" className="font-mono">
+              <text x={x + bw / 2} y={H - 7} textAnchor="middle" fontSize="12" fill="var(--muted-foreground)" className="font-mono">
                 {m}
               </text>
             ) : null}
@@ -232,6 +234,27 @@ export function DualBars({
     </svg>
     </div>
   );
+}
+
+/**
+ * A3-4 — tekstowe podsumowanie wykresu dwóch serii dla czytnika ekranu (jeden opis zamiast przystanku Tab na słupek):
+ * sumy obu serii i miesiące z wartością; same zera — krótko.
+ */
+export function opisDualBars(
+  labels: string[],
+  a: number[],
+  b: number[],
+  aLabel: string,
+  bLabel: string,
+  format: (v: number) => string = (v) => v.toLocaleString('pl-PL'),
+): string {
+  const suma = (xs: number[]) => xs.reduce((n, v) => n + (Number.isFinite(v) ? v : 0), 0);
+  const okres = labels.length > 1 ? `${labels[0]} – ${labels[labels.length - 1]}` : (labels[0] ?? '');
+  const naglowek = `${aLabel} i ${bLabel}${okres ? `, ${okres}` : ''}: razem ${format(suma(a))} i ${format(suma(b))}`;
+  const miesiace = labels
+    .map((m, i) => ((a[i] ?? 0) || (b[i] ?? 0) ? `${m}: ${format(a[i] ?? 0)} i ${format(b[i] ?? 0)}` : null))
+    .filter((x): x is string => x !== null);
+  return miesiace.length ? `${naglowek}. ${miesiace.join('; ')}.` : `${naglowek}.`;
 }
 
 /** „Ładny" krok osi: 1, 2, 5 × 10^n. Czysta funkcja — testowana. */
@@ -244,7 +267,8 @@ export function niceStep(max: number, ticks = 4): number {
 
 export function Label({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={cx('font-mono text-[11px] font-medium uppercase leading-none tracking-[0.08em] text-muted-foreground', className)}>
+    // P4-7 — 12,5 px zamiast 11 px: nagłówki kart na każdej stronie panelu (największe źródło drobnego pisma).
+    <div className={cx('font-mono text-[12.5px] font-medium uppercase leading-none tracking-[0.08em] text-muted-foreground', className)}>
       {children}
     </div>
   );
@@ -312,8 +336,9 @@ export function MiniBars({
         return (
           <i
             key={i}
-            // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- fokus z klawiatury pokazuje dymek z danymi (WCAG 2.1.1, 1.4.13)
-            tabIndex={0}
+            // A3-4 — przystanek Tab tylko na słupku z wartością (pulpit: ~30 pustych przystanków „0 …”); zera czyta czytnik.
+            // Fokus z klawiatury pokazuje dymek z danymi (WCAG 2.1.1, 1.4.13).
+            tabIndex={v > 0 ? 0 : undefined}
             role="img"
             aria-label={`${format(v)} ${jedn(v)}, ${labels[i] ?? ''}`}
             data-tip={tip(`${format(v)} ${jedn(v)}`, labels[i])}

@@ -1,6 +1,6 @@
 'use server';
 
-import type { HostingSslMutationOkDto, HostingSslResponseDto, SslPlatneDto, SslZamowienieDto, SslZamowRequestDto } from '@verris/contracts';
+import type { HostingSslMutationOkDto, HostingSslResponseDto, SslPlatneDto, SslZamowienieDto, SslZamowRequestDto } from '@verris/contracts/klient';
 import { apiFetch, ApiError } from '@/lib/api';
 import { bezpiecznie, type Wynik } from '@/lib/wynik-akcji';
 

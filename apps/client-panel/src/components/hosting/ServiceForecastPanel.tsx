@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AlertTriangle, ArrowRight, Lightbulb, Loader2 } from 'lucide-react';
-import type { ForecastResource, ServiceForecastDto, ServiceForecastResourceDto } from '@verris/contracts';
+import type { ForecastResource, ServiceForecastDto, ServiceForecastResourceDto } from '@verris/contracts/klient';
 import { fetchServiceForecastAction as fetchServiceForecastActionAkcja } from '@/app/dashboard/services/[id]/hosting-forecast-actions';
 import { Wykres } from '@/components/panel/wykres';
 import { zOdpakowaniem } from '@/lib/wynik-akcji';

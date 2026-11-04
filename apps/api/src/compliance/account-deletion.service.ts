@@ -9,7 +9,8 @@ import {
   Optional,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { AccountStatus, SubscriptionStatus } from '@verris/database';
+import { AccountStatus, DomainStatus, Prisma, SubscriptionStatus, WalletTxStatus } from '@verris/database';
+import { TERMIN_ZWROTU_DNI, maskaRachunku, normalizujRachunek, saldoDoZwrotu } from '../users/zwrot-salda.js';
 import { ObjectStorageService } from '../storage/object-storage.service.js';
 import { ObjectBuckets } from '../storage/object-storage.types.js';
 import { KLUCZE_OSOBOWE_PARAMETROW, ZADANIA_KONTA_Z_DANYMI_OSOBOWYMI } from '../servers/dane-zadan-wezla.js';
@@ -34,6 +35,8 @@ export interface RequestDeletionInput {
   userId: string;
   password: string;
   reason?: string;
+  /** A2-07 / decyzja 9 — rachunek do zwrotu opłaconych kredytów (wymagany, gdy jest co zwrócić i klient chce zwrotu). */
+  zwrot?: { numerRachunku: string; odbiorca: string } | null;
   ctx?: { ipAddress?: string | null; userAgent?: string | null };
 }
 
@@ -120,6 +123,52 @@ export class AccountDeletionService {
   }
 
   // ---------------------------------------------------------------------------
+  // A2-07 — „co się stanie” przed potwierdzeniem: saldo (część do zwrotu), domeny, usługi, prawdziwa data
+  // ---------------------------------------------------------------------------
+
+  async podsumowanie(userId: string, now = new Date()) {
+    const [user, transakcje, domeny, uslugi, wniosek, scheduledFor] = await Promise.all([
+      this.prisma.user.findUnique({ where: { id: userId }, select: { walletBalance: true } }),
+      this.prisma.walletTransaction.findMany({
+        where: { userId, status: WalletTxStatus.COMPLETED },
+        select: { type: true, amount: true, status: true, idempotencyKey: true, createdAt: true },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      }),
+      this.prisma.domain.findMany({
+        where: { userId, status: { not: DomainStatus.EXPIRED } },
+        select: { name: true, expiresAt: true, autoRenew: true, registrarProvider: true },
+        orderBy: { name: 'asc' },
+      }),
+      this.prisma.subscription.findMany({
+        where: { userId, status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE] } },
+        select: { id: true, currentPeriodEnd: true, plan: { select: { name: true } }, account: { select: { domain: true } } },
+        orderBy: { currentPeriodEnd: 'desc' },
+      }),
+      this.prisma.wniosekZwrotuSalda.findFirst({ where: { userId, status: 'NOWY' }, orderBy: { createdAt: 'desc' } }),
+      this.computeScheduledFor(userId, now),
+    ]);
+    if (!user) throw new NotFoundException('Konto nie istnieje');
+    const saldo = new Prisma.Decimal(user.walletBalance);
+    const doZwrotu = saldoDoZwrotu(saldo, transakcje);
+    return {
+      saldo: saldo.toFixed(2),
+      doZwrotu: doZwrotu.toFixed(2),
+      nieZwracane: Prisma.Decimal.max(0, saldo.minus(doZwrotu)).toFixed(2),
+      terminZwrotuDni: TERMIN_ZWROTU_DNI,
+      wniosekZwrotu: wniosek
+        ? { kwota: new Prisma.Decimal(wniosek.kwota).toFixed(2), rachunek: maskaRachunku(wniosek.numerRachunku), terminDo: wniosek.terminDo.toISOString() }
+        : null,
+      // Domeny rejestrowane przez Verris (u rejestratora) — po usunięciu konta nie odnowisz ich ani nie pobierzesz kodu AuthInfo.
+      domeny: domeny
+        .filter((d) => d.registrarProvider)
+        .map((d) => ({ nazwa: d.name, wygasa: d.expiresAt?.toISOString() ?? null, autoOdnowienie: d.autoRenew })),
+      uslugi: uslugi.map((u) => ({ id: u.id, nazwa: u.account?.domain ?? u.plan?.name ?? 'Usługa', koniecOkresu: u.currentPeriodEnd?.toISOString() ?? null })),
+      dataUsuniecia: scheduledFor.toISOString(),
+      gracePeriodDays: GRACE_PERIOD_DAYS,
+    };
+  }
+
+  // ---------------------------------------------------------------------------
   // Request
   // ---------------------------------------------------------------------------
 
@@ -149,6 +198,14 @@ export class AccountDeletionService {
 
     const now = new Date();
     const scheduledFor = await this.computeScheduledFor(input.userId, now);
+
+    // A2-07 / decyzja 9 — zwrot opłaconych kredytów: rachunek sprawdzamy przed zapisaniem wniosku o usunięcie.
+    let rachunek: string | null = null;
+    if (input.zwrot) {
+      rachunek = normalizujRachunek(input.zwrot.numerRachunku);
+      if (!rachunek) throw new BadRequestException('Numer rachunku do zwrotu jest nieprawidłowy — sprawdź 26 cyfr (albo IBAN z kodem kraju).');
+      if (!input.zwrot.odbiorca?.trim()) throw new BadRequestException('Podaj imię i nazwisko albo nazwę firmy — właściciela rachunku.');
+    }
 
     const row = await this.prisma.$transaction(async (tx) => {
       const created = await tx.accountDeletionRequest.upsert({
@@ -187,6 +244,8 @@ export class AccountDeletionService {
       userAgent: input.ctx?.userAgent ?? undefined,
     });
 
+    const wniosekZwrotu = rachunek ? await this.utworzWniosekZwrotu(input.userId, rachunek, input.zwrot!.odbiorca.trim(), now) : null;
+
     // Send confirmation email with cancel link and effective date. Best-effort
     // — DB row is already created so the request is durable even if SMTP is
     // down.
@@ -200,7 +259,64 @@ export class AccountDeletionService {
       requestedAt: row.requestedAt.toISOString(),
       scheduledFor: row.scheduledFor.toISOString(),
       gracePeriodDays: GRACE_PERIOD_DAYS,
+      wniosekZwrotu,
     };
+  }
+
+  /**
+   * Decyzja 9 — wniosek o zwrot dla obsługi: wiersz WniosekZwrotuSalda (kwota z chwili wniosku) + zgłoszenie
+   * w dziale rozliczeń, żeby trafiło do kolejki z terminem. Kwota zero (same kody/rekompensaty) — bez wniosku.
+   */
+  private async utworzWniosekZwrotu(userId: string, numerRachunku: string, odbiorca: string, now: Date) {
+    const istniejacy = await this.prisma.wniosekZwrotuSalda.findFirst({ where: { userId, status: 'NOWY' } });
+    if (istniejacy) return { kwota: new Prisma.Decimal(istniejacy.kwota).toFixed(2), terminDo: istniejacy.terminDo.toISOString() };
+    const [user, transakcje] = await Promise.all([
+      this.prisma.user.findUnique({ where: { id: userId }, select: { walletBalance: true, email: true } }),
+      this.prisma.walletTransaction.findMany({
+        where: { userId, status: WalletTxStatus.COMPLETED },
+        select: { type: true, amount: true, status: true, idempotencyKey: true, createdAt: true },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      }),
+    ]);
+    if (!user) return null;
+    const saldo = new Prisma.Decimal(user.walletBalance);
+    const kwota = saldoDoZwrotu(saldo, transakcje);
+    if (kwota.lessThanOrEqualTo(0)) return null;
+    const terminDo = new Date(now.getTime() + TERMIN_ZWROTU_DNI * MS_PER_DAY);
+    const kwotaTxt = kwota.toFixed(2).replace('.', ',');
+    const ticket = await this.prisma.ticket.create({
+      data: {
+        subject: `Zwrot salda przy usunięciu konta — ${kwotaTxt} zł`,
+        message: [
+          `Klient usuwa konto i prosi o zwrot opłaconych kredytów (regulamin, decyzja 9 z 3.11.2026).`,
+          ``,
+          `Kwota z chwili wniosku: ${kwotaTxt} zł (saldo ${saldo.toFixed(2).replace('.', ',')} K, bez kodów, prowizji z poleceń i rekompensat).`,
+          `Rachunek: ${numerRachunku}`,
+          `Odbiorca: ${odbiorca}`,
+          `Termin przelewu: ${terminDo.toISOString().slice(0, 10)}.`,
+          ``,
+          `Przed przelewem: sprawdź saldo opłacone w chwili wypłaty (usługi działają do końca okresu) i zaksięguj zwrot w portfelu.`,
+        ].join('\n'),
+        priority: 'HIGH',
+        department: 'BILLING',
+        topic: 'BILLING',
+        userId,
+        status: 'OPEN',
+        lastReplyAt: now,
+        lastReplyIsStaff: false,
+      },
+      select: { id: true },
+    });
+    await this.prisma.wniosekZwrotuSalda.create({
+      data: { userId, kwota, saldoPrzy: saldo, numerRachunku, odbiorca, terminDo, ticketId: ticket.id },
+    });
+    await this.audit.record({
+      action: 'WALLET_REFUND_REQUESTED',
+      userId,
+      actorUserId: userId,
+      details: { kwota: kwota.toFixed(2), rachunek: maskaRachunku(numerRachunku), zgloszenieId: ticket.id, terminDo: terminDo.toISOString() },
+    });
+    return { kwota: kwota.toFixed(2), terminDo: terminDo.toISOString() };
   }
 
   // ---------------------------------------------------------------------------
@@ -233,6 +349,16 @@ export class AccountDeletionService {
         data: { deletionRequestedAt: null },
       });
     });
+
+    // Cofnięte usunięcie konta = wycofany wniosek o zwrot salda (konto i saldo zostają u klienta).
+    const wnioski = await this.prisma.wniosekZwrotuSalda.findMany({ where: { userId, status: 'NOWY' }, select: { id: true, ticketId: true } });
+    if (wnioski.length) {
+      await this.prisma.wniosekZwrotuSalda.updateMany({ where: { id: { in: wnioski.map((w) => w.id) } }, data: { status: 'ODRZUCONY' } });
+      const zgloszenia = wnioski.map((w) => w.ticketId).filter((t): t is string => Boolean(t));
+      if (zgloszenia.length) {
+        await this.prisma.ticket.updateMany({ where: { id: { in: zgloszenia } }, data: { status: 'CLOSED', resolvedAt: now } });
+      }
+    }
 
     await this.audit.record({
       action: RodoActions.ACCOUNT_DELETION_CANCELLED,

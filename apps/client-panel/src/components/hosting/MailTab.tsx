@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@verris/ui';
-import { HOSTING_MAIL_DAILY_SEND_LIMIT, LIMIT_WYSYLKI_PROBY, uslugaWProbie } from '@verris/contracts';
+import { HOSTING_MAIL_DAILY_SEND_LIMIT, LIMIT_WYSYLKI_PROBY, uslugaWProbie } from '@verris/contracts/klient';
 import { fetchServiceDetailsAction } from '@/app/dashboard/services/[id]/hosting-service-actions';
 import {
   changeHostingEmailPasswordAction,

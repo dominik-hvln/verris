@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { Loader2 } from 'lucide-react';
-import { PROFORMA_STATUS_PL, type ProformaDto } from '@verris/contracts';
+import { PROFORMA_STATUS_PL, type ProformaDto } from '@verris/contracts/klient';
 import { SectionHead } from '@/components/panel/v2';
 import { plForm } from '@/lib/pl';
 import { zaplacProformeAction } from './actions';

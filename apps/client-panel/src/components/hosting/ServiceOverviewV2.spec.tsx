@@ -8,7 +8,7 @@ import type {
   HostingDomainsResponseDto,
   ServiceConnectionInfoDto,
   ServiceDetailsDto,
-} from '@verris/contracts';
+} from '@verris/contracts/klient';
 
 /**
  * Weryfikacja 11.10 — karta zawieszonej usługi. Serwer nie oddaje danych zawieszonego konta (domeny, kopie,

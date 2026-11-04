@@ -1,4 +1,4 @@
-import type { HostingFtpAccountDto } from '@verris/contracts';
+import type { HostingFtpAccountDto } from '@verris/contracts/klient';
 import { FolderKanban } from 'lucide-react';
 import { PanelEmptyState, ResponsiveDataView } from '@/components/panel';
 

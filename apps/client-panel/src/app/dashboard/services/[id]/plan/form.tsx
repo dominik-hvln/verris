@@ -3,7 +3,7 @@
 import { useActionState, useCallback, useEffect, useState, useTransition, useId } from 'react';
 import Link from 'next/link';
 import { AlertCircle, Check, Loader2, Wallet } from 'lucide-react';
-import type { PlanChangePreviewDto } from '@verris/contracts';
+import type { PlanChangePreviewDto } from '@verris/contracts/klient';
 import { CREDIT_DISCLAIMER, formatCredits } from '@/lib/credits';
 import { Kpi, KpiStrip } from '@/components/panel/v2';
 import {

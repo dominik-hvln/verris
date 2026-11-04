@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { ArrowRightLeft, ChevronRight, Gauge, Plus, ShieldAlert } from 'lucide-react';
-import type { ServiceSummaryDto, SubscriptionStatus } from '@verris/contracts';
+import type { ServiceSummaryDto, SubscriptionStatus } from '@verris/contracts/klient';
 import { ApiError } from '@/lib/api';
 import { UnpaidServiceBanner } from '@/components/hosting/UnpaidServiceBanner';
 import { Label, SectionHead, StatusPill } from '@/components/panel/v2';

@@ -1,4 +1,5 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import { domainToASCII } from 'node:url';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import {
@@ -38,6 +39,7 @@ import {
 } from './registrar.provider.js';
 import { EcoPointsService } from '../eco/eco-points.service.js';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
+import { OSWIADCZENIE_REJESTRACJI, OSWIADCZENIE_TRANSFERU, oswiadczenieZamowienia } from './oswiadczenie-domeny.js';
 
 /** Opis operacji w historii portfela: „1 rok”, „2 lata”, „5 lat”. */
 export const lata = (n: number) =>
@@ -226,8 +228,10 @@ export class DomainRegistrarService {
   async register(
     userId: string,
     actorUserId: string,
-    input: { name: string; years?: number; nameservers?: string[]; registrant: Registrant },
+    input: { name: string; years?: number; nameservers?: string[]; registrant: Registrant; withdrawalWaiverConsent: boolean },
   ) {
+    // Decyzja 21 — oświadczenie z TEGO żądania (nie „na stałe” z pierwszego zakupu); bez niego nic nie robimy.
+    const oswiadczenie = oswiadczenieZamowienia('REGISTER', input.withdrawalWaiverConsent);
     const domain = normalizeDomain(input.name);
     await this.bezDomenWProbie(userId);
     const provider = this.providerFactory.get();
@@ -257,6 +261,7 @@ export class DomainRegistrarService {
         ownerHandle,
         priceAmount: new Prisma.Decimal(price.amount),
         currency: price.currency,
+        ...oswiadczenie,
       },
     });
     return this.zrealizujRejestracje(userId, actorUserId, order, ownerHandle, price);
@@ -329,8 +334,8 @@ export class DomainRegistrarService {
         // F2.7 — ponowienie przez obsługę realizuje zamówienie klienta (i jego oświadczenie) z pierwotnego zlecenia.
         ...(ponowienie ? { ponowienieZamowieniaId: ponowienie.zamowienieId } : {}),
         withdrawalWaiverConsent: true,
-        consentStatement:
-          'Żądam natychmiastowego wykonania usługi rejestracji domeny i przyjmuję do wiadomości, że z chwilą jej zarejestrowania tracę prawo odstąpienia od umowy w tym zakresie.',
+        consentStatement: order.withdrawalWaiverText ?? OSWIADCZENIE_REJESTRACJI,
+        consentAt: order.withdrawalWaiverAt?.toISOString() ?? null,
       },
     });
 
@@ -350,8 +355,9 @@ export class DomainRegistrarService {
   async transfer(
     userId: string,
     actorUserId: string,
-    input: { name: string; authCode: string; years?: number; nameservers?: string[]; registrant: Registrant },
+    input: { name: string; authCode: string; years?: number; nameservers?: string[]; registrant: Registrant; withdrawalWaiverConsent: boolean },
   ) {
+    const oswiadczenie = oswiadczenieZamowienia('TRANSFER', input.withdrawalWaiverConsent);
     const domain = normalizeDomain(input.name);
     await this.bezDomenWProbie(userId);
     const provider = this.providerFactory.get();
@@ -373,6 +379,7 @@ export class DomainRegistrarService {
         ownerHandle,
         priceAmount: new Prisma.Decimal(price.amount),
         currency: price.currency,
+        ...oswiadczenie,
       },
     });
     return this.zrealizujTransfer(userId, actorUserId, order, ownerHandle, input.authCode, price);
@@ -424,30 +431,12 @@ export class DomainRegistrarService {
         walletTxId: tx.id,
         authCodeHash: hashSecret(authCode),
         ...(ponowienie ? { ponowienieZamowieniaId: ponowienie.zamowienieId } : {}),
+        withdrawalWaiverConsent: true,
+        consentStatement: order.withdrawalWaiverText ?? OSWIADCZENIE_TRANSFERU,
+        consentAt: order.withdrawalWaiverAt?.toISOString() ?? null,
       },
     });
     return submitted;
-  }
-
-  /**
-   * Czy na koncie obowiązuje już oświadczenie konsumenckie dot. domen
-   * (żądanie natychmiastowej rejestracji + wiedza o utracie prawa odstąpienia).
-   * Oświadczenie składane przy pierwszym zamówieniu zachowuje skuteczność dla
-   * kolejnych rejestracji (Regulamin §12 ust. 8) — każde ukończone zamówienie
-   * rejestracji wymagało `withdrawalWaiverConsent=true` (walidacja DTO), więc
-   * istnienie takiego zamówienia jest dowodem złożonego oświadczenia.
-   */
-  async hasStandingWaiverConsent(userId: string): Promise<{ granted: boolean; grantedAt: string | null }> {
-    const first = await this.prisma.domainRegistrarOrder.findFirst({
-      where: {
-        userId,
-        type: 'REGISTER' as never,
-        status: { in: ['SUBMITTED', 'COMPLETED'] as never[] },
-      },
-      orderBy: { createdAt: 'asc' },
-      select: { createdAt: true },
-    });
-    return { granted: Boolean(first), grantedAt: first?.createdAt.toISOString() ?? null };
   }
 
   async orders(userId: string) {
@@ -898,6 +887,9 @@ export class DomainRegistrarService {
           authCodeEnc: authCode ? this.crypto.encrypt(authCode) : null,
           priceAmount: new Prisma.Decimal(price.amount),
           currency: price.currency,
+          // F2.7 — ponowienie realizuje zamówienie klienta, więc niesie jego oświadczenie z tamtego zamówienia.
+          withdrawalWaiverText: stare.withdrawalWaiverText,
+          withdrawalWaiverAt: stare.withdrawalWaiverAt,
         },
       });
     });
@@ -1497,7 +1489,10 @@ export class DomainRegistrarService {
 }
 
 function normalizeDomain(value: string): string {
-  return value.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+  const d = value.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/\.$/, '');
+  // P5-04 (paczka 109) — IDN do rejestratora w zapisie ASCII (punycode, WHATWG `domainToASCII`); `a..pl` zostaje
+  // bez zmian i odrzuci je walidacja nazwy.
+  return d.includes('..') ? d : domainToASCII(d) || d;
 }
 
 function sanitizeDomainLabel(value: string): string {

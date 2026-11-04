@@ -16,6 +16,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { KOMUNIKAT_BRAK_OSWIADCZENIA } from '../oswiadczenie-domeny.js';
 
 /** A-13 — dane abonenta domeny (właściciela). Idą do rejestratora i dalej do rejestru (WHOIS/NASK). */
 export class RegistrantDto {
@@ -130,15 +131,12 @@ export class RegisterDomainDto {
   /**
    * Oświadczenie konsumenckie (art. 38 ust. 1 pkt 1 ustawy o prawach
    * konsumenta; Regulamin §12 ust. 7–8): żądanie natychmiastowego wykonania
-   * usługi rejestracji oraz potwierdzenie wiedzy, że z chwilą zarejestrowania
-   * domeny (pełnego wykonania usługi) prawo odstąpienia wygasa. Wymagane
-   * `true`; fakt złożenia trafia do dziennika audytu (dowód).
+   * usługi oraz potwierdzenie wiedzy, że z chwilą jej pełnego wykonania prawo
+   * odstąpienia wygasa. Decyzja 21 (4.11.2026): wymagane `true` w KAŻDYM
+   * żądaniu rejestracji i transferu — treść i chwila trafiają do zamówienia.
    */
-  @IsBoolean()
-  @Equals(true, {
-    message:
-      'Wymagane jest oświadczenie o żądaniu natychmiastowej rejestracji domeny i przyjęciu do wiadomości utraty prawa odstąpienia z chwilą jej zarejestrowania.',
-  })
+  @IsBoolean({ message: KOMUNIKAT_BRAK_OSWIADCZENIA })
+  @Equals(true, { message: KOMUNIKAT_BRAK_OSWIADCZENIA })
   withdrawalWaiverConsent!: boolean;
 
   /** A-13 (decyzja 2026-09-23): abonentem jest klient, nie operator. */

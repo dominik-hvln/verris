@@ -10,11 +10,15 @@ export type KonfiguracjaAi = {
   limitKlientaUsd: number;
   limitPlatformyUsd: number;
   ceny: Record<string, { wej: number; wyj: number }>;
+  /** Decyzja 5: asystent AI dla wszystkich klientów (znosi listę kont testowych AI_TYLKO_KONTA z env). */
+  dlaWszystkichKlientow: boolean;
 };
 export type UstawieniaAi = {
   konfiguracja: KonfiguracjaAi;
   znaneModele: { dostawca: DostawcaAi; model: string; nazwa: string; cenaWej: number; cenaWyj: number }[];
   klucze: Record<DostawcaAi, boolean>;
+  /** Liczba kont na liście testowej z env; 0 = AI i tak dla wszystkich. */
+  kontaTestowe: number;
 };
 export type KosztyAi = {
   limitKlientaUsd: number;

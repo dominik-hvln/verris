@@ -11,7 +11,7 @@ import { CTABand, JsonLd, SectionHead, SubHero } from '../components/ui';
 export const metadata: Metadata = {
   title: 'Parametry hostingu: zasoby, PHP, kopie, SLA | Verris',
   description:
-    'Specyfikacja hostingu Verris: 50 GB NVMe, limit 8 GB RAM, autoskalowanie do 24 vCPU, LiteSpeed, PHP 7.4–8.3, kopie z 30 dni i SLA 99,5%.',
+    'Specyfikacja hostingu Verris: 50 GB NVMe, limit 8 GB RAM, autoskalowanie do 24 vCPU, LiteSpeed, PHP do 8.5, kopie z 30 dni i SLA 99,5%.',
   alternates: { canonical: '/specyfikacja' },
 };
 
@@ -77,7 +77,7 @@ export default async function Page() {
       ))}
       <CTABand
         title="Parametry się zgadzają? Zacznij od przeprowadzki"
-        text={`${cenaPakietu(ceny.hosting)}, ta sama cena przy odnowieniu. Przeniesienie strony robimy za Ciebie.`}
+        text={`${cenaPakietu(ceny.hosting)}, odnowienie po cenie z cennika. Przeniesienie strony robimy za Ciebie.`}
         secondary={{ label: 'Wszystkie funkcje', href: '/funkcje' }}
       />
     </main>

@@ -44,7 +44,7 @@ export function LoginHistorySection() {
         </h3>
         <p className="mt-1 text-sm text-neutral-400">
           Ostatnie logowania do Twojego konta. Jeśli widzisz nieznane urządzenie lub lokalizację —
-          natychmiast zmień hasło i wyloguj wszystkie sesje.
+          natychmiast zmień hasło i użyj „Wyloguj wszystkie inne urządzenia” w sekcji Aktywne urządzenia.
         </p>
       </div>
 

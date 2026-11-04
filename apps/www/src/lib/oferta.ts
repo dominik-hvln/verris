@@ -25,6 +25,15 @@ export const PAKIETY_NEWSLETTER = [
   { nazwa: 'Newsletter Plus', miesiecznie: 49, rocznie: 490, kontakty: 5000, wysylki: 25000 },
 ] as const;
 
+/**
+ * Decyzja 14 Dominika (3.11.2026): PHP 8.4 i 8.5 oraz każda kolejna stabilna wersja; domyślna = przedostatnia
+ * najnowsza (dziś 8.4). Starsze gałęzie zostają dla starych stron; 7.4 i 8.0 nie mają już poprawek bezpieczeństwa
+ * (https://www.php.net/supported-versions.php). Jedno miejsce dla /specyfikacja, /funkcje, /hosting/*.
+ */
+export const PHP_ZAKRES = '7.4–8.5';
+export const PHP_DOMYSLNA = '8.4';
+export const PHP_OPIS = `8.5 i 8.4 (domyślna ${PHP_DOMYSLNA}) oraz każda kolejna stabilna wersja; dla starszych stron także 8.3, 8.2, 8.1, 8.0 i 7.4 (7.4 i 8.0 bez poprawek bezpieczeństwa) — wersja osobno dla każdej domeny`;
+
 /** „hosting z autoskalowaniem, VPS i domeny” albo bez VPS — jedno miejsce na to wyliczenie. */
 export const OFERTA_KROTKO = VPS_W_SPRZEDAZY
   ? 'hosting z autoskalowaniem, VPS i domeny'

@@ -1,6 +1,6 @@
 'use server';
 
-import type { WalletSummaryDto } from '@verris/contracts';
+import type { WalletSummaryDto } from '@verris/contracts/klient';
 import { apiFetch, ApiError } from '@/lib/api';
 import type { AutoscalingHistoryDto } from './autoscaling/data';
 

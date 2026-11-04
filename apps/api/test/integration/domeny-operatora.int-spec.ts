@@ -72,7 +72,7 @@ describe('F2.7 — operacje obsługi na domenach (pieniądze)', () => {
     const { rejestr, domeny } = uslugi();
     const k = await uzytkownik(500);
     const op = await uzytkownik(0, 'STAFF');
-    await rejestr.register(k.id, k.id, { name: 'klienta.pl', registrant: abonent });
+    await rejestr.register(k.id, k.id, { name: 'klienta.pl', registrant: abonent, withdrawalWaiverConsent: true });
     const d = await prisma().domain.findUniqueOrThrow({ where: { name: 'klienta.pl' } });
     const zgl = await prisma().ticket.create({ data: { userId: k.id, subject: 'Domena wygasa', message: 'x' } });
     const przed = await saldo(k.id);
@@ -99,7 +99,7 @@ describe('F2.7 — operacje obsługi na domenach (pieniądze)', () => {
     const { rejestr, domeny } = uslugi();
     const k = await uzytkownik(500);
     const op = await uzytkownik(0, 'STAFF');
-    await rejestr.register(k.id, k.id, { name: 'pusty-portfel.pl', registrant: abonent });
+    await rejestr.register(k.id, k.id, { name: 'pusty-portfel.pl', registrant: abonent, withdrawalWaiverConsent: true });
     const d = await prisma().domain.findUniqueOrThrow({ where: { name: 'pusty-portfel.pl' } });
     await prisma().user.update({ where: { id: k.id }, data: { walletBalance: 5 } });
     wywolania.length = 0;
@@ -115,7 +115,7 @@ describe('F2.7 — operacje obsługi na domenach (pieniądze)', () => {
     const { rejestr, domeny } = uslugi();
     const k = await uzytkownik(500);
     const op = await uzytkownik(0, 'STAFF');
-    await rejestr.register(k.id, k.id, { name: 'gratis.pl', registrant: abonent });
+    await rejestr.register(k.id, k.id, { name: 'gratis.pl', registrant: abonent, withdrawalWaiverConsent: true });
     const d = await prisma().domain.findUniqueOrThrow({ where: { name: 'gratis.pl' } });
     await prisma().user.update({ where: { id: k.id }, data: { walletBalance: 0 } });
     const przed = await saldo(k.id);
@@ -137,7 +137,7 @@ describe('F2.7 — operacje obsługi na domenach (pieniądze)', () => {
     const { rejestr, domeny } = uslugi();
     const k = await uzytkownik(500);
     const op = await uzytkownik(0, 'STAFF');
-    await rejestr.register(k.id, k.id, { name: 'redemption.pl', registrant: abonent });
+    await rejestr.register(k.id, k.id, { name: 'redemption.pl', registrant: abonent, withdrawalWaiverConsent: true });
     const d = await prisma().domain.findUniqueOrThrow({ where: { name: 'redemption.pl' } });
     const przed = await saldo(k.id);
     odnowieniePada = true;
@@ -155,7 +155,7 @@ describe('F2.7 — operacje obsługi na domenach (pieniądze)', () => {
     const k = await uzytkownik(500);
     const op = await uzytkownik(0, 'STAFF');
     rejestracjaPada = true;
-    await expect(rejestr.register(k.id, k.id, { name: 'ponowiona.pl', registrant: abonent })).rejects.toThrow('rejestr odrzucił');
+    await expect(rejestr.register(k.id, k.id, { name: 'ponowiona.pl', registrant: abonent, withdrawalWaiverConsent: true })).rejects.toThrow('rejestr odrzucił');
     const stare = await prisma().domainRegistrarOrder.findFirstOrThrow({ where: { userId: k.id } });
     expect(stare).toMatchObject({ status: DomainRegistrarOrderStatus.FAILED, ownerHandle: 'H-ABONENT' });
     expect(await saldo(k.id)).toBe(500);

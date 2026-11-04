@@ -33,8 +33,9 @@ export function EcoProgramStatus({ overview }: { overview: EcoProgramOverview })
           Twoje punkty: <span className="font-mono font-semibold text-white">{overview.ecoPoints}</span>
         </p>
         <p className="mt-4 text-xs leading-relaxed text-neutral-500">
-          Program EKO obejmuje zbieranie punktów (tryb oszczędny na hostingu, badge na stronie, wymiana na
-          kredyty). Program partnerski (polecenia) opisujemy osobno.
+          Program EKO to punkty (m.in. za płatności, tryb EKO na hostingu i odznakę na stronie), które wymienisz na
+          saldo portfela albo na drzewa, oraz automatyczny wkład z usług opłaconych pieniędzmi we wspólną pulę drzew. Program
+          partnerski (polecenia) opisujemy osobno.
         </p>
       </article>
 
@@ -81,7 +82,7 @@ export function EcoProgramStatus({ overview }: { overview: EcoProgramOverview })
         <div className="border-t border-white/10 pt-4">
           <div className="flex items-center gap-2 text-sm font-semibold text-white">
             <Share2 className="h-4 w-4 text-neutral-400" aria-hidden />
-            Program partnerski
+            Program poleceń
           </div>
           <p className="mt-2 text-sm text-neutral-400">
             {overview.referralProgramStatus ? (
@@ -95,7 +96,7 @@ export function EcoProgramStatus({ overview }: { overview: EcoProgramOverview })
               <>
                 Nie dołączyłeś jeszcze do programu poleceń.{' '}
                 <Link href="/dashboard/referral" className="text-emerald-400 underline hover:text-emerald-300">
-                  Zgłoś się do programu partnerskiego
+                  Zgłoś się do programu poleceń
                 </Link>
               </>
             )}

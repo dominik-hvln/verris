@@ -39,7 +39,7 @@ export class BetaService {
     private readonly audit: AuditService,
   ) {}
 
-  async zapros(input: { email: string; name?: string }, actorUserId: string, teraz = new Date()) {
+  async zapros(input: { email: string; name?: string; tylkoPoczta?: boolean }, actorUserId: string, teraz = new Date()) {
     const email = (input.email ?? '').trim().toLowerCase();
     if (!EMAIL_RE.test(email)) throw new BadRequestException('Nieprawidłowy adres e-mail.');
     const name = input.name?.trim().slice(0, 80) || null;
@@ -84,7 +84,7 @@ export class BetaService {
     let wyslane = false;
     try {
       const wynik = await this.mailer.send({
-        ...zaproszenieDoTestowTemplate({ to: email, name, code: invite.promoCode.code, credit: KREDYT_TESTOW, validTo, panelUrl }),
+        ...zaproszenieDoTestowTemplate({ to: email, name, code: invite.promoCode.code, credit: KREDYT_TESTOW, validTo, panelUrl, tylkoPoczta: input.tylkoPoczta }),
         category: 'TRANSACTIONAL',
         fromRole: 'SUPPORT',
       });
@@ -205,6 +205,21 @@ export class BetaService {
     if (!(await this.czyTester(userId))) {
       throw new ForbiddenException('Ta strona jest dla osób zaproszonych do testów.');
     }
+  }
+
+  /**
+   * P1-11 — konto ma ważne, niewykorzystane zaproszenie do testów na swój adres (pulpit pokazuje „Wpisz kod z zaproszenia”).
+   * Kod jest imienny (P5-02), więc wystarczy dopasowanie po adresie konta; samego kodu nie zwracamy.
+   */
+  async maZaproszenie(userId: string, teraz = new Date()): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+    const email = user?.email?.trim().toLowerCase();
+    if (!email) return false;
+    const invite = await this.prisma.betaInvite.findFirst({
+      where: { email, promoCode: { active: true, redemptionCount: 0, validTo: { gt: teraz } } },
+      select: { id: true },
+    });
+    return Boolean(invite);
   }
 
   /** Czy zalogowany użytkownik jest testerem (zrealizował kod z zaproszenia). */

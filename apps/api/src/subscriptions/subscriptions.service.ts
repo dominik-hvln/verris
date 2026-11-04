@@ -239,7 +239,8 @@ export class SubscriptionsService {
       where: { id: subscriptionId, userId },
       include: {
         plan: true,
-        account: { include: { server: { select: { id: true, name: true, region: true } } } },
+        // P5-11 — nazwa i region węzła nie idą do klienta (white label, lokalizacja = „Unia Europejska”).
+        account: { include: { server: { select: { id: true } } } },
       },
     });
     if (!subscription) throw new NotFoundException('Nie znaleziono usługi.');
@@ -458,6 +459,10 @@ export class SubscriptionsService {
             currency: plan.currency,
             paymentSource: dto.paymentSource,
             autoscalingEnabled: dto.autoscalingEnabled ?? false,
+            // Decyzja 6 (3.11) — limit ustawiony w zamówieniu; brak = 0 = bez limitu (domyślnie w bazie).
+            ...(dto.autoscalingMaxCost != null && dto.autoscalingMaxCost > 0
+              ? { autoscalingMaxCost: new Prisma.Decimal(dto.autoscalingMaxCost.toFixed(2)) }
+              : {}),
             ecoModeEnabled: dto.ecoModeEnabled ?? false,
             ...(op && (op.individualPrice != null || op.autoscalingDiscountPct)
               ? {
@@ -479,7 +484,12 @@ export class SubscriptionsService {
       data: {
         subscriptionId: subscription.id,
         type: 'CREATED',
-        details: { planSlug: plan.slug, interval: dto.interval, source: dto.paymentSource },
+        details: {
+          planSlug: plan.slug,
+          interval: dto.interval,
+          source: dto.paymentSource,
+          ...(dto.autoscalingEnabled ? { autoscalingMaxCost: dto.autoscalingMaxCost ?? null } : {}),
+        },
       },
     });
 

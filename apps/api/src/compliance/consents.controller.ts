@@ -1,8 +1,10 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Body,
   Controller,
   Get,
+  Header,
   HttpCode,
   HttpStatus,
   Patch,
@@ -11,13 +13,20 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { IsBoolean, IsOptional } from 'class-validator';
+import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { extractRequestContext } from '../common/decorators/request-context.js';
 import { ConsentsService } from './consents.service.js';
 import { MarketingPreferencesService } from './marketing-preferences.service.js';
+import { CSP_STRONY_LINKU, stronaLinku } from '../common/strona-linku.js';
+
+/** Formularz ze strony wypisu (A1-06) — token w treści; one-click RFC 8058 wysyła `List-Unsubscribe=One-Click`. */
+export class WypisDto {
+  @IsOptional() @IsString() @MaxLength(200) token?: string;
+  @IsOptional() @IsString() @MaxLength(40) 'List-Unsubscribe'?: string;
+}
 
 class UpdateMarketingPrefsDto {
   @IsOptional()
@@ -146,27 +155,39 @@ export class ConsentsController {
   // Public RFC 8058 one-click unsubscribe
   // ---------------------------------------------------------------------------
 
+  /**
+   * A1-06 (paczka 109) — link „Wypisz się” z maila: GET tylko pokazuje stronę z przyciskiem (skanery linków w poczcie
+   * firmowej otwierają linki GET-em i wypisywały klienta bez jego wiedzy), wypis robi POST. Brak tokenu → 400
+   * z ludzkim komunikatem (wcześniej wyjątek Prisma → 500 i surowy JSON z adresem e-mail).
+   */
   @Get('unsubscribe')
-  async unsubscribe(@Query('token') token: string, @Req() req: Request) {
-    const result = await this.marketingPrefs.oneClickUnsubscribe(
-      token,
-      extractRequestContext(req),
+  @Header('Content-Type', 'text/html; charset=utf-8')
+  @Header('Content-Security-Policy', CSP_STRONY_LINKU)
+  async unsubscribe(@Query('token') token?: string): Promise<string> {
+    if (!token?.trim()) throw new BadRequestException('Brak tokenu wypisu — użyj linku z wiadomości.');
+    if (!(await this.marketingPrefs.tokenWypisuIstnieje(token))) {
+      return stronaLinku('Link nieaktualny', 'Ten link do wypisu jest nieprawidłowy. Zgody na wiadomości zmienisz też w panelu: Ustawienia → Prywatność.', undefined, true);
+    }
+    return stronaLinku(
+      'Wypisać Cię z wiadomości Verris?',
+      'Po kliknięciu nie będziemy wysyłać Ci newslettera, nowości ani ofert partnerskich. Wiadomości o koncie, płatnościach i bezpieczeństwie dalej będą przychodzić.',
+      { token, etykieta: 'Wypisz mnie', akcja: '/unsubscribe' },
     );
-    return {
-      ok: true,
-      message: 'Wypisano z subskrypcji marketingowej',
-      email: result.userEmail,
-    };
   }
 
   /**
    * RFC 8058 mandates this exact URL is reachable via POST too, with header
    * `List-Unsubscribe-Post: List-Unsubscribe=One-Click`. Mailbox providers
-   * (Gmail, Outlook) call it without user interaction. Same handler.
+   * (Gmail, Outlook) call it without user interaction (token w adresie). Formularz ze strony GET wysyła token w treści.
    */
   @Post('unsubscribe')
   @HttpCode(HttpStatus.OK)
-  async unsubscribePost(@Query('token') token: string, @Req() req: Request) {
-    return this.unsubscribe(token, req);
+  @Header('Content-Type', 'text/html; charset=utf-8')
+  @Header('Content-Security-Policy', CSP_STRONY_LINKU)
+  async unsubscribePost(@Query('token') tokenZAdresu: string | undefined, @Body() body: WypisDto, @Req() req: Request): Promise<string> {
+    const token = tokenZAdresu?.trim() || body?.token?.trim();
+    if (!token) throw new BadRequestException('Brak tokenu wypisu — użyj linku z wiadomości.');
+    await this.marketingPrefs.oneClickUnsubscribe(token, extractRequestContext(req));
+    return stronaLinku('Wypisano ✓', 'Nie będziemy już wysyłać Ci wiadomości marketingowych. Zgody zmienisz w każdej chwili w panelu: Ustawienia → Prywatność.');
   }
 }

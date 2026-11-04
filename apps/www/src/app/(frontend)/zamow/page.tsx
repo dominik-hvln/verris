@@ -6,7 +6,7 @@ import { pobierzCeny } from '@/lib/ceny-api';
 // Makieta 14.10, plansza Zamowienie. Strona przejściowa do panelu — bez indeksowania (mapa strony: „bez indeksowania”).
 export const metadata: Metadata = {
   title: 'Zamów hosting w trzech krokach | Verris',
-  description: 'Zamów hosting Verris: wybierz domenę i okres rozliczenia, a konto i płatność dokończysz w panelu. Cena brutto, ta sama przy odnowieniu.',
+  description: 'Zamów hosting Verris: wybierz domenę i okres rozliczenia, a konto i płatność dokończysz w panelu. Cena brutto, odnowienie po cenie z cennika.',
   alternates: { canonical: '/zamow' },
   robots: { index: false, follow: true },
 };

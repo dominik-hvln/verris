@@ -6,10 +6,11 @@
  * Legal basis: art. 399–402 PKE + Polityka cookies v1.0.0 (§3).
  * The `cookies_consent` cookie stores the user's choice for 12 months.
  *
- * Tag loading contract:
- *  - GTM (NEXT_PUBLIC_GTM_ID) is injected in the root layout ONLY after
- *    Consent Mode defaults are set to `denied` (see analytics-scripts.tsx).
- *    Tags inside GTM must respect consent signals (built-in consent checks).
+ * Tag loading contract — decyzja 22 (4.11.2026): Consent Mode v2 w trybie PODSTAWOWYM
+ * (https://developers.google.com/tag-platform/security/guides/consent):
+ *  - analytics-scripts.tsx ustawia tylko Consent Mode default = denied (bez żądań sieciowych).
+ *  - GTM (NEXT_PUBLIC_GTM_ID) wstrzykuje applyConsent() → zaladujTagiGoogle() dopiero po zgodzie
+ *    analitycznej albo marketingowej, po `consent update` — przed zgodą do Google nie wychodzi nic.
  *  - Meta Pixel (NEXT_PUBLIC_META_PIXEL_ID) is initialised lazily from
  *    `applyConsent()` the first time `marketing` is granted, and revoked
  *    via fbq('consent','revoke') when withdrawn.
@@ -134,7 +135,34 @@ export function applyConsent(consent: CookieConsent, zmiana = true): void {
   // konwersji mógłby go jeszcze odczytać.
   if (!consent.marketing) window.dataLayer?.push({ user_data: null });
 
+  if (wolnoLadowacTagiGoogle(consent)) zaladujTagiGoogle();
   syncMetaPixel(consent.marketing);
+}
+
+/** Decyzja 22 — tagi Google tylko po zgodzie na pomiar albo reklamy (sama „Funkcjonalne” nie ładuje niczego). */
+export function wolnoLadowacTagiGoogle(zgoda: Pick<CookieConsent, "analytics" | "marketing"> | null): boolean {
+  return Boolean(zgoda && (zgoda.analytics || zgoda.marketing));
+}
+
+const GTM_SRC = "https://www.googletagmanager.com/gtm.js";
+
+/**
+ * Kanoniczny loader GTM (https://developers.google.com/tag-platform/tag-manager/web) wykonany z kodu dopiero po
+ * zgodzie, z nonce strony dla gtm.js (https://developers.google.com/tag-platform/security/guides/csp). Jednokrotnie.
+ */
+export function zaladujTagiGoogle(): void {
+  const id = process.env.NEXT_PUBLIC_GTM_ID;
+  if (!id || typeof document === "undefined") return;
+  if (document.querySelector(`script[src^="${GTM_SRC}"]`)) return;
+  window.dataLayer = window.dataLayer || [];
+  window.dataLayer.push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+  const skrypt = document.createElement("script");
+  skrypt.async = true;
+  skrypt.src = `${GTM_SRC}?id=${encodeURIComponent(id)}`;
+  const zNonce = document.querySelector<HTMLElement>("[nonce]");
+  const nonce = zNonce ? zNonce.nonce || zNonce.getAttribute("nonce") : null;
+  if (nonce) skrypt.setAttribute("nonce", nonce);
+  document.head.appendChild(skrypt);
 }
 
 function syncMetaPixel(marketingGranted: boolean): void {

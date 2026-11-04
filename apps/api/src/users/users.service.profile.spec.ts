@@ -153,13 +153,14 @@ describe('UsersService.getProfile (IAM)', () => {
       expect(update).not.toHaveBeenCalled();
     });
 
-    it('klient po opłaconej fakturze nie zmieni sam NIP', async () => {
-      const update = vi.fn();
+    // P2-05 (paczka 109) — NIP klient poprawia sam także po płatności (faktury mają kopię danych nabywcy), weryfikacja się zeruje.
+    it('klient po opłaconej fakturze poprawia NIP sam — zapis i wyzerowana weryfikacja nabywcy', async () => {
+      const update = vi.fn().mockResolvedValue({ id: 'u1', nip: '999', sidebarQuickLinks: [] });
       (prisma.user as unknown as { update: Mock }).update = update;
       prisma.user.findUnique.mockResolvedValue(klient);
       prisma.invoice.count.mockResolvedValue(1);
-      await expect(service.updateProfile('u1', { nip: '999' })).rejects.toBeInstanceOf(ForbiddenException);
-      expect(update).not.toHaveBeenCalled();
+      await expect(service.updateProfile('u1', { nip: '999' })).resolves.toBeDefined();
+      expect(update.mock.calls[0][0].data).toMatchObject({ nip: '999', vatWeryfikacjaAt: null });
     });
 
     it('ponowny zapis formularza z tym samym krajem i NIP (inny zapis spacji) przechodzi po płatności', async () => {

@@ -78,7 +78,7 @@ describe('DomainRegistrarService', () => {
       {} as never,
     );
 
-    await expect(service.register('user_1', 'user_1', { name: 'Example.pl', registrant: {} as never })).rejects.toThrow(
+    await expect(service.register('user_1', 'user_1', { name: 'Example.pl', registrant: {} as never, withdrawalWaiverConsent: true })).rejects.toThrow(
       'Domena nie jest dostępna',
     );
     expect(provider.availability).toHaveBeenCalledWith('example.pl');

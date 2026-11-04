@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
-import type { SavedPaymentMethodDto, WalletAutoTopupSettingsDto } from '@verris/contracts';
+import type { SavedPaymentMethodDto, WalletAutoTopupSettingsDto } from '@verris/contracts/klient';
 import { toast } from 'sonner';
 import { CreditCard, Landmark, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 import { CREDIT_SHORT, formatCredits, pluralCredits } from '@/lib/credits';
@@ -138,12 +138,14 @@ function PromoRedeemBlock() {
   };
 
   return (
-    <section className="rounded-[10px] border border-line bg-card px-4 pb-4 pt-3.5">
+    // P1-11 — kotwica dla kafelka „Masz kod z zaproszenia do testów?” z pulpitu.
+    <section id="kod-promocyjny" className="scroll-mt-24 rounded-[10px] border border-line bg-card px-4 pb-4 pt-3.5">
       <div className="mb-3">
         <div>
           <h3 className="m-0 font-display text-[15px] font-bold text-foreground">Kod promocyjny</h3>
           <p className="mt-1 text-[12.5px] text-muted-foreground">
-            Wpisz kod od supportu lub z kampanii — kredyty trafią od razu na Twój portfel.
+            Tu wpisz kod testera, kod od zespołu Verris albo z kampanii — kredyty od razu trafią na Twój portfel.
+            Kredyty z kodu to nie zakup, więc nie ma za nie faktury.
           </p>
         </div>
       </div>
@@ -217,8 +219,8 @@ function WalletAutotopupBlock({
         <div className="min-w-0">
           <h3 className="m-0 font-display text-[15px] font-bold text-foreground">Auto-doładowanie</h3>
           <p className="mt-1 text-[12.5px] text-muted-foreground">
-            Gdy saldo spadnie poniżej progu, obciążymy kartę bez Twojego udziału. Auto-doładowanie korzysta z karty
-            zapisanej w Stripe — wpłaty BLIK-iem czy przelewem przez Paynow nie zapisują karty.
+            Gdy saldo spadnie poniżej progu, obciążymy Twoją kartę bez Twojego udziału. Działa tylko z kartą
+            zapisaną przy płatności kartą — wpłata BLIK-iem czy przelewem nie zapisuje karty.
           </p>
         </div>
       </div>
@@ -261,7 +263,7 @@ function WalletAutotopupBlock({
               className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-2.5 text-white focus:border-white/35 focus:outline-none"
             />
             <span className="text-[10px] text-neutral-500">
-              Stripe pobierze równowartość w PLN (1 zł = 1 kredyt).
+              Pobierzemy tę kwotę w złotych (1 zł = 1 kredyt).
             </span>
           </label>
         </div>
@@ -294,7 +296,7 @@ function WalletAutotopupBlock({
 
         {savedCards.length === 0 ? (
           <p className="text-xs text-muted-foreground">
-            Nie masz zapisanej karty — auto-doładowanie użyje karty z Twojej ostatniej płatności kartą w Stripe (płatności przez Paynow się nie liczą).
+            Nie masz zapisanej karty — auto-doładowanie użyje karty z Twojej ostatniej płatności kartą (wpłaty BLIK-iem i przelewem się nie liczą).
           </p>
         ) : null}
 

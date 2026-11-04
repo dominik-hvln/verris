@@ -1,4 +1,11 @@
-import { KROKI_BETA_IDS, LICZBA_KROKOW_BETA, SCENARIUSZE_BETA, SCENARIUSZE_BETA_IDS, policzPostepBeta } from '@verris/contracts';
+import {
+  KROKI_BETA_IDS,
+  LICZBA_KROKOW_BETA,
+  SCENARIUSZE_BETA,
+  SCENARIUSZE_BETA_IDS,
+  SCENARIUSZE_BETA_POCZTA,
+  policzPostepBeta,
+} from '@verris/contracts';
 
 /**
  * PB-26 — scenariusze testów są zapisywane w bazie po identyfikatorach (BetaPostep.kroki / .uwagi), a ta sama lista
@@ -45,5 +52,21 @@ describe('Scenariusze testów (beta)', () => {
     expect(LICZBA_KROKOW_BETA).toBe(wymagane);
     expect(LICZBA_KROKOW_BETA).toBeLessThan(KROKI_BETA_IDS.size);
     expect(policzPostepBeta({ 's15.k1': 'x', 's16.k2': 'x', 's01.k1': 'x' })).toEqual({ zrobione: 1, wszystkie: LICZBA_KROKOW_BETA });
+  });
+
+  it('decyzja 4: scenariusz 02 nie każe szukać faktury za zakup z kredytów z kodu — mówi, że jej nie ma', () => {
+    const s02 = SCENARIUSZE_BETA.find((s) => s.id === 's02')!;
+    const tekst = [...s02.weryfikacja, ...s02.kroki.map((k) => k.tekst)].join(' ');
+    expect(tekst).not.toMatch(/faktur\p{L}* za zakup/iu);
+    expect(tekst).not.toMatch(/Znajdź fakturę/);
+    expect(tekst).toMatch(/kredyty z kodu testera to nie zakup, więc nie ma za nie faktury/);
+  });
+
+  it('P4-12: ścieżka „tylko poczta” — zamówienie samej poczty w 02 i oznaczone scenariusze bez strony i WordPressa', () => {
+    expect(SCENARIUSZE_BETA.find((s) => s.id === 's02')!.kroki.map((k) => k.tekst).join(' ')).toMatch(/Poczta e-mail/);
+    const ids = SCENARIUSZE_BETA_POCZTA.map((s) => s.id);
+    expect(ids).toEqual(expect.arrayContaining(['s01', 's02', 's05', 's12', 's13']));
+    for (const nie of ['s03', 's06', 's07', 's09', 's15', 's16']) expect(ids).not.toContain(nie);
+    expect(SCENARIUSZE_BETA_POCZTA.every((s) => !s.opcjonalny)).toBe(true);
   });
 });

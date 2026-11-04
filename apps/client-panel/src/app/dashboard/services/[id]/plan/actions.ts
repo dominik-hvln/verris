@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { apiFetch, ApiError } from '@/lib/api';
-import type { PlanChangePreviewDto, PlanChangeResultDto } from '@verris/contracts';
+import type { PlanChangePreviewDto, PlanChangeResultDto } from '@verris/contracts/klient';
 
 export interface PlanChangeActionState {
   ok?: boolean;

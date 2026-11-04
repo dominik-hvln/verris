@@ -38,6 +38,7 @@ const ODMOWA_OCZEKIWANA: ReadonlyArray<string> = [
   'DELETE /me/account-deletion',
   'DELETE /users/iam/invites/:id',
   'DELETE /users/iam/members/:id',
+  'DELETE /users/iam/members/:id/account',
   'DELETE /users/iam/memberships/:id',
   'GET /users/iam/invites/info',
   'PATCH /users/iam/memberships/:id',
@@ -106,6 +107,7 @@ const ODMOWA_OCZEKIWANA: ReadonlyArray<string> = [
   'GET /agent/tasks/wp-install/script',
   'GET /agent/vpn/peers-config',
   'GET /me/account-deletion',
+  'GET /me/account-deletion/podsumowanie', // A2-07 (paczka 109) — saldo do zwrotu i domeny: tylko właściciel, jak sam wniosek
   'GET /me/data-export',
   'GET /me/data-export/download/:token',
   'GET /me/dpa.pdf',
@@ -119,7 +121,6 @@ const ODMOWA_OCZEKIWANA: ReadonlyArray<string> = [
   'GET /users/iam',
   'GET /users/iam/audit',
   'PATCH /users/iam/members/:id',
-  'PATCH /users/password',
   'POST /agent/backup/offsite-report',
   'POST /agent/nodes/bootstrap/report',
   'POST /agent/nodes/bootstrap/secrets',
@@ -146,6 +147,10 @@ const ODMOWA_OCZEKIWANA: ReadonlyArray<string> = [
   // Webhook OpenProvidera — bez sesji klienta (klucz + podpis HMAC).
   'POST /webhooks/openprovider',
   'POST /users/iam/invites',
+  'POST /users/iam/members/:id/enable',
+  // Decyzja 8 (3.11.2026), P3-02 — rezygnacja z usługi i usunięcie VPS-a tylko dla właściciela.
+  'DELETE /subscriptions/:id',
+  'DELETE /vps/:id',
   'POST /users/iam/invites/accept',
   // A-09/A-13: kod transferu i dane abonenta domeny — przeniesienie albo przejęcie domeny.
   'GET /domains/:id/registrar/registrant',
@@ -153,8 +158,11 @@ const ODMOWA_OCZEKIWANA: ReadonlyArray<string> = [
   'POST /domains/:id/registrar/authcode',
 ];
 
-/** Trasy domen świadomie zamknięte (właściciel) — wyjątek od „nic w hostingu/domenach nie zamknięte”. */
-const DOMENY_WLASCICIELA = /^\/domains\/:id\/registrar\/(authcode|registrant)$/;
+/**
+ * Trasy domen i usług świadomie zamknięte (właściciel) — wyjątek od „nic w hostingu/domenach nie zamknięte”:
+ * kod transferu i dane abonenta domeny, rezygnacja z usługi (decyzja 8, P3-02).
+ */
+const DOMENY_WLASCICIELA = /^\/domains\/:id\/registrar\/(authcode|registrant)$|^\/subscriptions\/:id$/;
 
 function plikiTs(katalog: string): string[] {
   let out: string[] = [];

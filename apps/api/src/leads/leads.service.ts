@@ -9,8 +9,9 @@ import {
   leadCallbackNotifyTemplate,
   leadContactAckTemplate,
   leadNotifyTemplate,
-  leadOptInTemplate,
+  leadPlanMigracjiTemplate,
 } from './leads.templates.js';
+import { warunekRetencjiLeadow } from './leads-retencja.js';
 import type { SubmitLeadDto } from './dto/submit-lead.dto.js';
 import type { SubmitCallbackDto } from './dto/submit-callback.dto.js';
 
@@ -37,13 +38,20 @@ export class LeadsService {
     return (this.config.get<string>('clientPanelUrl') || 'https://panel.verris.pl').replace(/\/$/, '');
   }
 
-  private confirmUrl(token: string): string {
-    const base = (
+  private apiUrl(): string {
+    return (
       this.config.get<string>('publicApiUrl') ||
       process.env.PUBLIC_API_URL ||
       'https://api.verris.pl'
     ).replace(/\/$/, '');
-    return `${base}/public/leads/confirm?token=${encodeURIComponent(token)}`;
+  }
+
+  private confirmUrl(token: string): string {
+    return `${this.apiUrl()}/public/leads/confirm?token=${encodeURIComponent(token)}`;
+  }
+
+  private wypisUrl(token: string): string {
+    return `${this.apiUrl()}/public/leads/unsubscribe?token=${encodeURIComponent(token)}`;
   }
 
   async submit(
@@ -53,12 +61,10 @@ export class LeadsService {
     const email = dto.email.trim().toLowerCase();
     const kind = dto.kind === 'MIGRATION' ? SiteLeadKind.MIGRATION : SiteLeadKind.CONTACT;
 
-    if (kind === SiteLeadKind.MIGRATION && !dto.marketingConsent) {
-      // Bez zgody marketingowej nie tworzymy leada migracyjnego (PKE/RODO).
-      throw new BadRequestException('Zgoda marketingowa jest wymagana dla tego formularza.');
-    }
-
-    const confirmToken = kind === SiteLeadKind.MIGRATION ? randomUUID() : null;
+    // A2-01 (paczka 109): plan migracji dostaje każdy, kto o niego prosi — zgoda na wiadomości jest osobna
+    // i dobrowolna (art. 7 ust. 4 RODO). Token potwierdzenia (double opt-in) tylko dla zaznaczonej zgody.
+    const zgoda = kind === SiteLeadKind.MIGRATION && dto.marketingConsent === true;
+    const confirmToken = zgoda ? randomUUID() : null;
     // Audyt bezpieczeństwa 13.10: najwyżej jeden mail do nadawcy na adres na dobę (potwierdzenie albo opt-in).
     // Kolejne zgłoszenia zapisujemy i zgłaszamy obsłudze, ale nie wysyłamy nic na niezweryfikowany adres.
     const ostatni = await this.prisma.siteLead.findFirst({
@@ -70,14 +76,15 @@ export class LeadsService {
     const lead = await this.prisma.siteLead.create({
       data: {
         kind,
-        status: kind === SiteLeadKind.MIGRATION ? SiteLeadStatus.PENDING : SiteLeadStatus.RECEIVED,
+        // PENDING = zgoda na wiadomości czeka na potwierdzenie; RECEIVED = plan/odpowiedź bez zgody marketingowej.
+        status: zgoda ? SiteLeadStatus.PENDING : SiteLeadStatus.RECEIVED,
         email,
         name: dto.name?.trim() || null,
         message: dto.message?.trim() || null,
         source: dto.source || null,
-        marketingConsent: Boolean(dto.marketingConsent),
+        marketingConsent: zgoda,
         consentText: dto.consentText || null,
-        consentAt: dto.marketingConsent ? new Date() : null,
+        consentAt: zgoda ? new Date() : null,
         ip: meta.ip || null,
         userAgent: meta.userAgent || null,
         confirmToken,
@@ -104,25 +111,31 @@ export class LeadsService {
           ip: meta.ip,
           page: dto.page,
           panelUrl: this.panelUrl(),
+          marketingConsent: zgoda,
         }),
         category: 'TRANSACTIONAL',
         fromRole: 'SUPPORT',
       })
       .catch((e) => this.logger.warn(`lead notify mail failed: ${e?.message ?? e}`));
 
-    if (ostatni) return { status: kind === SiteLeadKind.MIGRATION ? 'pending' : 'received' };
+    if (ostatni) return { status: zgoda ? 'pending' : 'received' };
 
-    if (kind === SiteLeadKind.MIGRATION && confirmToken) {
-      // Double opt-in — bez potwierdzenia lead nie wchodzi do sekwencji.
+    if (kind === SiteLeadKind.MIGRATION) {
+      // Plan migracji — mail transakcyjny (prośba osoby). Przy zgodzie: przycisk potwierdzenia i link wypisu.
       void this.mailer
         .send({
-          ...leadOptInTemplate({ to: email, confirmUrl: this.confirmUrl(confirmToken), panelUrl: this.panelUrl() }),
+          ...leadPlanMigracjiTemplate({
+            to: email,
+            panelUrl: this.panelUrl(),
+            potwierdzZgodeUrl: confirmToken ? this.confirmUrl(confirmToken) : null,
+            wypisUrl: zgoda ? this.wypisUrl(lead.unsubToken) : null,
+          }),
           category: 'TRANSACTIONAL',
           fromRole: 'SUPPORT',
           userId: undefined,
         })
-        .catch((e) => this.logger.warn(`lead opt-in mail failed: ${e?.message ?? e}`));
-      return { status: 'pending' };
+        .catch((e) => this.logger.warn(`lead plan mail failed: ${e?.message ?? e}`));
+      return { status: zgoda ? 'pending' : 'received' };
     }
 
     // CONTACT — potwierdzenie dla nadawcy.
@@ -202,7 +215,47 @@ export class LeadsService {
     return wiadomosci.map((w) => ({ rola: w.rola === 'USER' ? 'USER' : 'ASSISTANT', tresc: w.tresc }));
   }
 
-  /** Double opt-in: potwierdza adres i włącza lead do sekwencji. */
+  /** Czy token potwierdzenia jest aktualny (strona GET pokazuje przycisk tylko dla ważnego tokenu). */
+  async tokenPotwierdzeniaIstnieje(token?: string): Promise<boolean> {
+    if (!token?.trim()) return false;
+    return Boolean(await this.prisma.siteLead.findUnique({ where: { confirmToken: token.trim() }, select: { id: true } }));
+  }
+
+  /** Czy token wypisu należy do leada, który jeszcze ma zgodę (wypisany drugi raz → „już wypisano”). */
+  async tokenWypisu(token?: string): Promise<'aktywny' | 'wypisany' | 'brak'> {
+    if (!token?.trim()) return 'brak';
+    const lead = await this.prisma.siteLead.findUnique({ where: { unsubToken: token.trim() }, select: { status: true } });
+    if (!lead) return 'brak';
+    return lead.status === SiteLeadStatus.UNSUBSCRIBED ? 'wypisany' : 'aktywny';
+  }
+
+  /**
+   * A2-01 — wypis z wiadomości o hostingu (wycofanie zgody, art. 7 ust. 3 RODO). Zgoda gaśnie, status UNSUBSCRIBED;
+   * rekord usuwa retencja po 30 dniach (leads-retencja.ts).
+   */
+  async unsubscribe(token?: string): Promise<{ ok: boolean }> {
+    if (!token?.trim()) throw new BadRequestException('Brak tokenu wypisu — użyj linku z wiadomości.');
+    const lead = await this.prisma.siteLead.findUnique({ where: { unsubToken: token.trim() } });
+    if (!lead) return { ok: false };
+    if (lead.status !== SiteLeadStatus.UNSUBSCRIBED) {
+      await this.prisma.siteLead.update({
+        where: { id: lead.id },
+        data: { status: SiteLeadStatus.UNSUBSCRIBED, marketingConsent: false, confirmToken: null },
+      });
+      await this.audit
+        .record({ action: 'SITE_LEAD_UNSUBSCRIBED', details: { leadId: lead.id } })
+        .catch(() => undefined);
+    }
+    return { ok: true };
+  }
+
+  /** A2-02 — retencja formularzy www (okresy w leads-retencja.ts, polityka prywatności 1.1.0 §4). */
+  async usunStare(now = new Date()): Promise<number> {
+    const { count } = await this.prisma.siteLead.deleteMany({ where: warunekRetencjiLeadow(now) });
+    return count;
+  }
+
+  /** Double opt-in zgody na wiadomości: potwierdza zgodę (plan migracji poszedł już wcześniej). */
   async confirm(token?: string): Promise<{ ok: boolean }> {
     if (!token) return { ok: false };
     const lead = await this.prisma.siteLead.findUnique({ where: { confirmToken: token } });

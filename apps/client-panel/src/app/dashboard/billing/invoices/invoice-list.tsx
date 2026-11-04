@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { Download } from 'lucide-react';
-import type { InvoiceDto, InvoiceStatus } from '@verris/contracts';
+import type { InvoiceDto, InvoiceStatus } from '@verris/contracts/klient';
 import { PanelEmptyState, ResponsiveDataView } from '@/components/panel';
 import { FileText } from 'lucide-react';
+import { ZASADA_FAKTUR, ZASADA_KREDYTOW_Z_KODU } from '../zasady-dokumentow';
 
 const statusLabels: Record<InvoiceStatus, string> = {
   DRAFT: 'Wersja robocza',
@@ -202,7 +203,7 @@ export function InvoiceList({ rows }: { rows: InvoiceDto[] }) {
         <PanelEmptyState
           icon={FileText}
           title="Brak faktur"
-          description="Faktury pojawią się po pierwszej opłacie kartą za usługę cykliczną. Doładowania portfela potwierdza e-mail od Stripe."
+          description={`${ZASADA_FAKTUR} ${ZASADA_KREDYTOW_Z_KODU}`}
           action={
             <Link href="/dashboard/billing" className="text-sm text-indigo-400 underline">
               Wróć do portfela

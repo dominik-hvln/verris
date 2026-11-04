@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { BadgeCheck, Loader2, RefreshCw } from 'lucide-react';
-import type { SslPlatneDto, SslZamowienieDto, SslZamowienieStatus } from '@verris/contracts';
+import type { SslPlatneDto, SslZamowienieDto, SslZamowienieStatus } from '@verris/contracts/klient';
 import { SectionHead, StatusPill, type Tone } from '@/components/panel/v2';
 import { Select } from '@/components/panel/select';
 import { potwierdz } from '@/components/panel/potwierdz';

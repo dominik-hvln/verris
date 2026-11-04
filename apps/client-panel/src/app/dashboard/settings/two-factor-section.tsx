@@ -344,6 +344,7 @@ export function TwoFactorSection({ showToast }: Props) {
           <div className="rounded-2xl border border-line bg-[#ffffff] p-3 self-start">
             {/* eslint-disable-next-line @next/next/no-img-element -- kod QR jako SVG data URL z API; next/image nic tu nie optymalizuje */}
             <img
+              data-prywatne
               alt="QR code do TOTP"
               src={qrDataUrl}
               width={180}
@@ -356,7 +357,7 @@ export function TwoFactorSection({ showToast }: Props) {
                 Sekret (manualne wprowadzenie)
               </p>
               <div className="flex items-center gap-2">
-                <code className="flex-1 rounded-lg border border-white/10 bg-black/60 px-3 py-2 text-sm font-mono text-white break-all">
+                <code data-prywatne className="flex-1 rounded-lg border border-white/10 bg-black/60 px-3 py-2 text-sm font-mono text-white break-all">
                   {secret}
                 </code>
                 <CopyButton value={secret} />
@@ -454,7 +455,7 @@ function RecoveryCodesPanel({
         aplikacji TOTP. Wydrukuj je albo zapisz w menedżerze haseł — po opuszczeniu
         tej strony już ich nie zobaczysz.
       </p>
-      <div className="grid grid-cols-2 gap-2 mb-4 font-mono text-sm">
+      <div data-prywatne className="grid grid-cols-2 gap-2 mb-4 font-mono text-sm">
         {codes.map((code) => (
           <code
             key={code}

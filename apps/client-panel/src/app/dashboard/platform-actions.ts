@@ -16,7 +16,7 @@ export async function fetchClientPlatformConfig(): Promise<ClientPlatformConfig>
     return await apiFetch<ClientPlatformConfig>('/platform-settings/client');
   } catch {
     return {
-      ecoPointsPerTree: 1000,
+      ecoPointsPerTree: 300,
       ecoBadgeImpressionsPerPoint: 100,
       ecoPointsPer10Credits: 100,
       clientIdleSessionMinutes: 60,

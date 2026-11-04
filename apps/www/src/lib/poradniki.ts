@@ -40,7 +40,7 @@ export type Poradnik = {
 const ZAMOW_KROK: KrokPoradnika = {
   tytul: 'Zamów hosting Verris',
   tekst:
-    'Wybierz rozliczenie — {cena}, ta sama cena przy odnowieniu. Przeniesienie strony jest w cenie hostingu. Twoja obecna strona dalej działa.',
+    'Wybierz rozliczenie — {cena}, odnowienie po cenie z cennika. Przeniesienie strony jest w cenie hostingu. Twoja obecna strona dalej działa.',
 };
 
 const KONIEC_KROKI: KrokPoradnika[] = [

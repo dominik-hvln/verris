@@ -164,7 +164,10 @@ export function GitRepoPanel({ serviceId, domains, odswiezNr = 0 }: { serviceId:
         </div>
         {nowyWebhook ? (
           <div className="mt-2">
-            <CopyValue value={nowyWebhook} />
+            {/* A1-03 — adres webhooka z tokenem: na zrzucie „Zgłoś uwagę” zamazany. */}
+            <div data-prywatne>
+              <CopyValue value={nowyWebhook} />
+            </div>
             <p className="m-0 mt-1 text-[12px] text-muted-foreground">
               Skopiuj teraz — pokazujemy go tylko raz. GitHub: Settings → Webhooks → Add webhook → Payload URL, zdarzenie „push”. GitLab: Settings → Webhooks → Push events.
             </p>
@@ -369,6 +372,7 @@ function BudowanieIZmienne({
             <span className="mt-1 flex gap-2">
               <input
                 type={pokaz ? 'text' : 'password'}
+                data-prywatne
                 value={wartosc}
                 onChange={(e) => setWartosc(e.target.value)}
                 autoComplete="off"

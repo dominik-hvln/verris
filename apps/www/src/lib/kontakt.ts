@@ -8,6 +8,10 @@ export const TEMATY_KONTAKTU: { nazwa: string; podpowiedz: string }[] = [
     nazwa: 'Przeniesienie strony',
     podpowiedz: 'Podaj adres strony i obecnego dostawcę. Haseł i dostępów tu nie wpisuj — podasz je bezpiecznie w panelu.',
   },
+  {
+    nazwa: 'Poczta w domenie',
+    podpowiedz: 'Podaj domenę i napisz, ile skrzynek potrzebujesz i gdzie jest teraz Twoja poczta.',
+  },
   { nazwa: 'Domeny', podpowiedz: 'Podaj domenę, o którą pytasz.' },
   { nazwa: 'Współpraca', podpowiedz: 'Agencja, freelancer, partner? Opisz krótko, czym się zajmujesz.' },
 ];

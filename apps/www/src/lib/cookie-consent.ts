@@ -7,10 +7,15 @@
  * Podstawa prawna: art. 399–402 PKE + Polityka cookies v1.0.0 (§3), art. 7 ust. 3 RODO.
  * Cookie `cookies_consent` przechowuje decyzję przez 12 miesięcy (dowód zgody: pole `ts`).
  *
- * Kontrakt ładowania tagów:
- *  - GTM wstrzykiwany dopiero po ustawieniu Consent Mode default = denied (Analytics.tsx).
+ * Kontrakt ładowania tagów — decyzja 22 Dominika (4.11.2026): Consent Mode v2 w trybie PODSTAWOWYM.
+ * https://developers.google.com/tag-platform/security/guides/consent („basic consent mode”: tagi Google
+ * ładują się dopiero po interakcji z banerem i zgodzie; przed zgodą do Google nie wychodzi nic).
+ *  - Skrypt inline (Analytics.tsx) ustawia tylko Consent Mode default = denied w dataLayer — bez żądań sieciowych.
+ *  - GTM (gtm.js) wstrzykuje applyConsent() dopiero po zgodzie analitycznej albo marketingowej
+ *    (zaladujTagiGoogle), PO wypchnięciu `consent update` — kontener startuje ze stanem z banera.
  *  - Meta Pixel ładowany leniwie z applyConsent() przy pierwszej zgodzie marketingowej,
  *    a wycofywany przez fbq('consent','revoke').
+ *  - Wycofanie zgody: `consent update` = denied od razu; od następnego wejścia nic się nie ładuje.
  */
 
 export const CONSENT_COOKIE = 'cookies_consent';
@@ -135,10 +140,42 @@ export function applyConsent(consent: CookieConsent, zmiana = true): void {
     },
   });
   if (!consent.marketing) window.dataLayer?.push({ user_data: null });
+  if (wolnoLadowacTagiGoogle(consent)) zaladujTagiGoogle();
   syncMetaPixel(consent.marketing);
   // Po zgodzie marketingowej dopilnuj cookie `_fbc` (Facebook click ID) dla ruchu
   // z reklam — podnosi EMQ i dokłada konwersje w CAPI. Cookie marketingowe → tylko po zgodzie.
   if (consent.marketing) ensureFbc();
+}
+
+/**
+ * Decyzja 22 — tagi Google (GTM i wszystko, co ładuje kontener) tylko po zgodzie na pomiar albo reklamy. Sama zgoda
+ * „Funkcjonalne” steruje wyłącznie sygnałami Google i bez tamtych nie ładuje niczego.
+ */
+export function wolnoLadowacTagiGoogle(zgoda: Pick<CookieConsent, 'analytics' | 'marketing'> | null): boolean {
+  return Boolean(zgoda && (zgoda.analytics || zgoda.marketing));
+}
+
+const GTM_SRC = 'https://www.googletagmanager.com/gtm.js';
+
+/**
+ * Kanoniczny loader GTM (https://developers.google.com/tag-platform/tag-manager/web) wykonany z kodu zamiast skryptu
+ * inline — dopiero po zgodzie. Nonce strony przekazujemy gtm.js (wariant Google dla CSP z nonce:
+ * https://developers.google.com/tag-platform/security/guides/csp); sam gtm.js przechodzi też przez 'strict-dynamic'.
+ * Jednokrotnie: drugi raz nic nie robi (sprawdza, czy gtm.js jest już na stronie).
+ */
+export function zaladujTagiGoogle(): void {
+  const id = process.env.NEXT_PUBLIC_GTM_ID;
+  if (!id || typeof document === 'undefined') return;
+  if (document.querySelector(`script[src^="${GTM_SRC}"]`)) return;
+  window.dataLayer = window.dataLayer || [];
+  window.dataLayer.push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
+  const skrypt = document.createElement('script');
+  skrypt.async = true;
+  skrypt.src = `${GTM_SRC}?id=${encodeURIComponent(id)}`;
+  const zNonce = document.querySelector<HTMLElement>('[nonce]');
+  const nonce = zNonce ? zNonce.nonce || zNonce.getAttribute('nonce') : null;
+  if (nonce) skrypt.setAttribute('nonce', nonce);
+  document.head.appendChild(skrypt);
 }
 
 // -----------------------------------------------------------------------------
@@ -229,6 +266,36 @@ function syncMetaPixel(marketingGranted: boolean): void {
   window.fbq('set', 'autoConfig', false, pixelId);
   window.fbq('init', pixelId);
   window.fbq('track', 'PageView');
+}
+
+/**
+ * A2-04/A2-05 (beta 3.11) + decyzja 22 Dominika (4.11): Consent Mode v2 w trybie podstawowym (GTM i Meta Pixel ładują
+ * się dopiero po zgodzie, przed nią do Google i Meta nie wychodzi nic). Baner i ustawienia mówią to wprost, a każda
+ * kategoria opisuje to, co faktycznie zapisuje verris.pl — lista plików i kluczy przeglądarki:
+ *  - niezbędne: cookie `cookies_consent` (decyzja, 12 mies.); sessionStorage `verris:mobilny-pasek-ukryty` (ukryty
+ *    pasek ceny), `verris:asystent` (rozmowa z asystentem, tylko gdy asystent działa i coś napiszesz);
+ *  - analityczne / marketingowe / funkcjonalne: pliki narzędzi Google i Meta (GTM-PJQNXCF5, Meta Pixel), `_fbc`,
+ *    sessionStorage `verris-beta-utm` (źródło kampanii przy formularzu /beta — tylko po zgodzie analitycznej albo
+ *    marketingowej, inaczej UTM tylko z adresu strony).
+ * Treść polityki cookies (docs/legal) aktualizuje osobno dokument 1.1.0 — ten opis ma być z nią zgodny.
+ */
+export const OPIS_KATEGORII = {
+  niezbedne:
+    'Zapis Twojej decyzji o cookies (12 miesięcy) i udogodnienia, o które prosisz: ukrycie paska z ceną i rozmowa z asystentem w tej karcie przeglądarki. Zawsze aktywne.',
+  funkcjonalne:
+    'Pozwalają narzędziom Google zapamiętać ustawienia i dopasować treści (sygnały functionality_storage i personalization_storage) — działają tylko razem ze zgodą na pomiar albo reklamy. Sam serwis verris.pl nie zapisuje w tej kategorii nic więcej.',
+  analityczne:
+    'Pomiar korzystania z serwisu: Google Analytics przez Google Tag Manager (pliki _ga) oraz zapamiętanie źródła kampanii przy formularzu zgłoszenia do testów.',
+  marketingowe:
+    'Pomiar i dopasowanie reklam: tagi reklamowe Google, Meta Pixel (pliki _fbp i _fbc).',
+  /** Tryb podstawowy Consent Mode (decyzja 22) — co się dzieje przed decyzją. */
+  przedDecyzja:
+    'Dopóki się nie zgodzisz, nie ładujemy narzędzi Google ani Meta — Twoja przeglądarka nic do nich nie wysyła.',
+} as const;
+
+/** Czy wolno zapamiętać UTM w sessionStorage (formularz /beta) — tylko po zgodzie analitycznej albo marketingowej. */
+export function wolnoZapamietacUtm(zgoda: Pick<CookieConsent, 'analytics' | 'marketing'> | null): boolean {
+  return Boolean(zgoda && (zgoda.analytics || zgoda.marketing));
 }
 
 /** Kategorie oferowane w banerze zależnie od skonfigurowanych tagów. */

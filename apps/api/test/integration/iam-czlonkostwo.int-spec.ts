@@ -1,6 +1,8 @@
 import { SubscriptionStatus } from '@verris/database';
 import { AuditService } from '../../src/common/audit/audit.service.js';
 import { CustomerIamService } from '../../src/users/customer-iam.service.js';
+import { ConsentsService } from '../../src/compliance/consents.service.js';
+import { LegalDocumentsService } from '../../src/compliance/legal-documents.service.js';
 import { JwtStrategy } from '../../src/auth/strategies/jwt.strategy.js';
 import { wZakresie } from '../../src/common/guards/zakres-uslug.js';
 import { prisma, rozlacz, utworzPlan, wyczyscBaze } from './setup.js';
@@ -20,7 +22,8 @@ async function user(extra: Record<string, unknown> = {}) {
 }
 function iam() {
   const p = prisma() as never;
-  return new CustomerIamService(p, new AuditService(p), mailer as never, config as never);
+  const audit = new AuditService(p);
+  return new CustomerIamService(p, audit, mailer as never, config as never, new ConsentsService(p, audit, new LegalDocumentsService(p, audit), mailer as never, config as never));
 }
 function strategia() {
   return new JwtStrategy({ get: () => 'sekret-testowy' } as never, prisma() as never);

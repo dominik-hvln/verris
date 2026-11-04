@@ -12,10 +12,14 @@ import {
   IsOptional,
   IsString,
   IsUrl,
+  Matches,
   MaxLength,
   MinLength,
   ValidateNested,
 } from 'class-validator';
+
+/** A1-04 — litery (także polskie i innych alfabetów), spacja, myślnik, apostrof; pierwsza litera. */
+export const IMIE_RE = /^\s*\p{L}[\p{L}\p{M} '’-]*\s*$/u;
 
 /** Co tester chce sprawdzić — te same wartości wysyła formularz verris.pl/beta. */
 export const ZAKRESY_BETA = ['WORDPRESS', 'SKLEP', 'STRONY_DLA_KLIENTOW', 'POCZTA', 'INNE'] as const;
@@ -31,7 +35,15 @@ export class UtmZgloszeniaDto {
 
 /** POST /public/beta/zgloszenia — formularz otwartej bety na verris.pl/beta. */
 export class ZgloszenieBetaDto {
-  @IsString() @MinLength(1) @MaxLength(100) imie!: string;
+  /**
+   * A1-04 — imię jak imię: litery, spacje, myślnik, apostrof (do 60 znaków). Bez cyfr, kropek i „://” — pole trafia
+   * do prawdziwych maili Verris (zaproszenie), więc nie da się w nim przemycić domeny ani zdania.
+   */
+  @IsString()
+  @MinLength(1)
+  @MaxLength(60, { message: 'Imię może mieć najwyżej 60 znaków.' })
+  @Matches(IMIE_RE, { message: 'Imię może zawierać tylko litery, spacje, myślnik i apostrof.' })
+  imie!: string;
 
   @IsEmail() @MaxLength(320) email!: string;
 
@@ -61,8 +73,12 @@ export class ZgloszenieBetaDto {
 
   @IsOptional() @IsString() @MaxLength(2048) page?: string;
 
-  /** Pułapka na boty — pole ukryte w formularzu; człowiek go nie wypełnia. */
-  @IsOptional() @IsString() @MaxLength(200) firma?: string;
+  /**
+   * Pułapka na boty — pole ukryte w formularzu; człowiek go nie wypełnia. P1-07 (beta 3.11): wcześniej `firma`,
+   * a takie pole autouzupełnianie przeglądarki wypełniało nazwą firmy z profilu — zgłoszenie przepadało po cichu.
+   * Nazwa bez znaczenia dla heurystyk autouzupełniania (nie imię, firma, adres, telefon).
+   */
+  @IsOptional() @IsString() @MaxLength(200) pulapka?: string;
 
   @IsOptional() @IsString() @MaxLength(4096) captchaToken?: string;
 }

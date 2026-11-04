@@ -185,7 +185,7 @@ export function PanelPodglad({
                     </div>
                     <div className="gl-pc" style={{ display: 'grid', gap: 8 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span className="gl-pl">Limit kosztu w miesiącu</span>
+                        <span className="gl-pl">Limit kosztu na 30 dni</span>
                         <b>30 zł</b>
                       </div>
                       <span className="gl-pbar" style={{ height: 8 }}>

@@ -6,7 +6,7 @@ import { PoleHasla } from '@/components/hosting/PoleHasla';
 import { FolderKanban, KeyRound, Loader2, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@verris/ui';
-import type { HostingFtpAccountDto } from '@verris/contracts';
+import type { HostingFtpAccountDto } from '@verris/contracts/klient';
 import {
   changeHostingFtpPasswordAction,
   createHostingFtpAction,

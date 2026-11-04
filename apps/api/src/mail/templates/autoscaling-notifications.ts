@@ -122,7 +122,7 @@ const END_REASON_COPY: Record<AutoscalingEndReason, { title: string; line: strin
   },
   CAP_REACHED: {
     title: 'Autoskalowanie wstrzymane — limit kosztu',
-    line: 'Osiągnięto ustawiony miesięczny limit kosztu autoskalowania, więc limity wróciły do planu bazowego. Limit możesz podnieść w panelu.',
+    line: 'Osiągnięto ustawiony limit kosztu autoskalowania (suma dopłat z ostatnich 30 dni), więc limity wróciły do planu bazowego. Limit możesz podnieść albo usunąć w panelu.',
   },
   WALLET_EMPTY: {
     title: 'Autoskalowanie wstrzymane — portfel',

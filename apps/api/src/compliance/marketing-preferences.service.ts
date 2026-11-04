@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { MarketingPreferences, Prisma } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -87,18 +87,18 @@ export class MarketingPreferencesService {
       data: input,
     });
 
-    // Audit only if the marketingEmail flag flipped — that's the
-    // RODO-relevant signal.
-    if (
-      input.marketingEmail !== undefined &&
-      before.marketingEmail !== updated.marketingEmail
-    ) {
+    // A2-14 (paczka 109) — ślad każdej zgody marketingowej, nie tylko newslettera: „Nowości” (productUpdatesEmail)
+    // i „Oferty partnerskie” (partnerOffersEmail) to też zgody na informację handlową (art. 7 ust. 1 RODO — wykazanie
+    // zgody). Wcześniej przełączenie tych dwóch nie zostawiało żadnego wpisu.
+    const KATEGORIE = ['marketingEmail', 'productUpdatesEmail', 'partnerOffersEmail'] as const;
+    for (const kategoria of KATEGORIE) {
+      if (input[kategoria] === undefined || before[kategoria] === updated[kategoria]) continue;
       await this.audit.record({
-        action: updated.marketingEmail
-          ? RodoActions.MARKETING_OPT_IN
-          : RodoActions.MARKETING_OPT_OUT,
+        action: updated[kategoria] ? RodoActions.MARKETING_OPT_IN : RodoActions.MARKETING_OPT_OUT,
         userId,
         details: {
+          kategoria,
+          zrodlo: 'USTAWIENIA_POWIADOMIENIA',
           marketingEmail: updated.marketingEmail,
           productUpdatesEmail: updated.productUpdatesEmail,
           partnerOffersEmail: updated.partnerOffersEmail,
@@ -115,10 +115,18 @@ export class MarketingPreferencesService {
    * shared across categories — opt-out kills `marketingEmail`,
    * `productUpdatesEmail` and `partnerOffersEmail` in one shot.
    */
+  /** A1-06 — czy link wypisu jest ważny (strona GET, bez zmiany zgód). */
+  async tokenWypisuIstnieje(token: string): Promise<boolean> {
+    if (!token?.trim()) return false;
+    return (await this.prisma.marketingPreferences.count({ where: { unsubscribeToken: token } })) > 0;
+  }
+
   async oneClickUnsubscribe(
     token: string,
     ctx: { ipAddress?: string | null; userAgent?: string | null },
   ): Promise<{ userEmail: string }> {
+    // A1-06 — `findUnique({ unsubscribeToken: undefined })` rzucało wyjątek Prisma (500).
+    if (!token?.trim()) throw new BadRequestException('Brak tokenu wypisu — użyj linku z wiadomości.');
     const row = await this.prisma.marketingPreferences.findUnique({
       where: { unsubscribeToken: token },
       include: { user: { select: { id: true, email: true } } },

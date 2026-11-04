@@ -277,6 +277,9 @@ model User {
   ticketAttachmentsUploaded TicketAttachment[] @relation("TicketAttachmentUploader")
   ecoPointsLedger           EcoPointsLedgerEntry[]
   ecoBadgeImpressionDedups  EcoBadgeImpressionDedup[]
+  // W6 (3.11.2026, decyzja 12) — wkład w drzewa i zamówienia sadzenia (posadzimy.pl).
+  ecoWkladyDrzew            EcoWkladDrzewa[]
+  ecoZamowieniaSadzenia     EcoZamowienieSadzenia[]
   referralProgramEnrollment ReferralProgramEnrollment?
   referralEnrollmentsReviewed ReferralProgramEnrollment[] @relation("ReferralEnrollmentReviewer")
   platformSettingsUpdated   PlatformSetting[] @relation("PlatformSettingUpdatedBy")
@@ -494,6 +497,91 @@ model EcoBadgeImpressionDedup {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+// -----------------------------------------------------------------------------
+// W6 (3.11.2026, decyzja 12) — drzewa z partnerem sadzenia (posadzimy.pl, API: https://posadzimy.pl/automatyzacje/api-wersja-produkcyjna/).
+// Jednostka udziału: „część” = 1/10 000 drzewa (setna procenta) — wszystko w liczbach całkowitych.
+// Drzewo jest „posadzone” dopiero, gdy API zwróci certyfikat (status POSADZONE z certificateUrl).
+// -----------------------------------------------------------------------------
+
+enum EcoWkladZrodlo {
+  /// Automatyczny wkład z opłaconej usługi (proporcjonalny do kwoty netto).
+  USLUGA
+  /// Klient wymienił punkty EKO na procent drzewa do wspólnej puli.
+  PUNKTY
+}
+
+enum EcoSadzenieRodzaj {
+  /// Drzewa zbiorcze z puli (wkłady wielu klientów), sadzone przez Verris.
+  PULA
+  /// Własne drzewo klienta (wymiana punktów na 100% drzewa), certyfikat na klienta.
+  WLASNE
+}
+
+enum EcoSadzenieStatus {
+  /// Czeka na wysłanie (także po odrzuceniu przez API — ponowienie po `nastepnaProbaPo`).
+  OCZEKUJE
+  /// Żądanie w drodze (zajęte przez jeden przebieg harmonogramu).
+  WYSYLANE
+  /// Nie wiadomo, czy API przyjęło zamówienie (przekroczony czas, 5xx) — nie ponawiamy sami, sprawdza admin.
+  NIEPEWNE
+  /// API przyjęło zamówienie (jest orderId), ale nie zwróciło certyfikatu — jeszcze nie „posadzone”.
+  ZLOZONE
+  /// Jest orderId i adres certyfikatu.
+  POSADZONE
+}
+
+/// Wkład w drzewo w częściach (1/10 000 drzewa). `zamowienieId` = przydział do zamówienia sadzenia z puli (FIFO);
+/// wkład przecinający granicę drzewa dzielimy: przydzielona część zostaje w wierszu, reszta to nowy wiersz bez referenceId.
+model EcoWkladDrzewa {
+  id               String          @id @default(uuid())
+  userId           String?
+  user             User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  zrodlo           EcoWkladZrodlo
+  czesci           Int
+  /// Idempotencja: `usluga:<subscriptionId>:<ref>` albo `punkty:<ledgerId>`; NULL = reszta po podziale.
+  referenceId      String?         @unique @db.VarChar(200)
+  subscriptionId   String?
+  kwotaNettoGrosze Int?
+  zamowienieId     String?
+  zamowienie       EcoZamowienieSadzenia? @relation(fields: [zamowienieId], references: [id], onDelete: Restrict)
+  createdAt        DateTime        @default(now())
+
+  @@index([zamowienieId, createdAt])
+  @@index([userId, createdAt])
+}
+
+model EcoZamowienieSadzenia {
+  id                  String            @id @default(uuid())
+  rodzaj              EcoSadzenieRodzaj
+  userId              String?
+  user                User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  liczbaDrzew         Int
+  status              EcoSadzenieStatus @default(OCZEKUJE)
+  proby               Int               @default(0)
+  nastepnaProbaPo     DateTime?
+  ostatniBlad         String?           @db.Text
+  nazwaNaCertyfikacie String            @db.VarChar(120)
+  tekstCertyfikatu    String?           @db.VarChar(300)
+  /// Koszt drzewa z ustawień w chwili utworzenia (grosze) — do rozliczeń.
+  kosztDrzewaGrosze   Int
+  /// Punkty EKO wydane na własne drzewo (WLASNE).
+  punktyWydane        Int?
+  /// produkcja | test — drzewa z API testowego nie liczą się do liczników „posadzone”.
+  srodowisko          String            @db.VarChar(16)
+  orderId             Int?
+  certificateUrl      String?           @db.Text
+  certificateImageUrl String?           @db.Text
+  wyslaneAt           DateTime?
+  posadzoneAt         DateTime?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  wklady              EcoWkladDrzewa[]
+
+  @@unique([srodowisko, orderId])
+  @@index([status, nastepnaProbaPo])
+  @@index([userId, status])
 }
 
 // -----------------------------------------------------------------------------
@@ -1291,6 +1379,9 @@ enum MigrationWorkerJobKind {
   FILES_DELTA
   /// Ponowny imapsync (dosync nowej poczty) tuż przed cutoverem DNS.
   IMAP_DELTA
+  /// P2-06 — ostatnie dosynchronizowanie bazy przed cutoverem DNS: tryb konserwacji na źródle (WordPress),
+  /// pełny zrzut do pliku, kopia bazy docelowej, import, weryfikacja; błąd = przywrócenie kopii.
+  MYSQL_DELTA
 }
 
 enum MigrationWorkerJobStatus {
@@ -1571,6 +1662,10 @@ model DomainRegistrarOrder {
   lastError       String?                    @db.Text
   submittedAt     DateTime?
   completedAt     DateTime?
+  /// Decyzja 21 (4.11.2026) — oświadczenie konsumenckie (art. 38 ust. 1 pkt 1 upk, Regulamin §12 ust. 8) złożone
+  /// przy TYM zamówieniu rejestracji/transferu: treść i chwila złożenia. Puste przy odnowieniu i WHOIS.
+  withdrawalWaiverText String?               @db.Text
+  withdrawalWaiverAt   DateTime?
 
   userId          String
   user            User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -3000,6 +3095,8 @@ model BetaInvite {
   promoCode   PromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
   invitedById String?
   sentAt      DateTime?
+  /// P2-11 — ostatnie przypomnienie zaproszenia po ponownym zgłoszeniu z /beta (najwyżej jedno na dobę).
+  przypomnienieAt DateTime?
   createdAt   DateTime  @default(now())
   /// Zgłoszenie z verris.pl/beta, z którego powstało zaproszenie (brak = zaproszenie ręczne).
   zgloszenia  BetaZgloszenie[]
@@ -3040,6 +3137,9 @@ model BetaZgloszenie {
   potwierdzoneAt DateTime?
   /// Ostatni mail potwierdzający wysłany do nadawcy (najwyżej jeden na dobę).
   mailAt         DateTime?
+  /// A1-01 — zmiana danych potwierdzonego zgłoszenia czeka na kliknięcie nowego linku (nadpisuje dopiero po nim).
+  zmiana         Json?
+  zmianaToken    String?              @unique
   betaInviteId   String?
   betaInvite     BetaInvite?          @relation(fields: [betaInviteId], references: [id], onDelete: SetNull)
   decyzjaAt      DateTime?
@@ -3049,6 +3149,33 @@ model BetaZgloszenie {
 
   @@index([status, createdAt])
   @@index([email])
+}
+
+enum WniosekZwrotuSaldaStatus {
+  NOWY         // czeka na przelew obsługi (termin 14 dni)
+  ZREALIZOWANY // przelew wysłany
+  ODRZUCONY    // np. brak środków opłaconych po weryfikacji
+}
+
+/// A2-07 / decyzja 9 (3.11.2026) — wniosek o zwrot opłaconych kredytów przy usunięciu konta. Kwota z chwili
+/// wniosku (bez kodów, prowizji z poleceń i rekompensat), przelew na wskazany rachunek do 14 dni.
+/// Bez relacji do User: konto po anonimizacji zostaje, a wniosek jest dokumentem rozliczenia.
+model WniosekZwrotuSalda {
+  id            String                    @id @default(uuid())
+  userId        String
+  kwota         Decimal                   @db.Decimal(12, 2)
+  saldoPrzy     Decimal                   @db.Decimal(12, 2)
+  numerRachunku String
+  odbiorca      String
+  status        WniosekZwrotuSaldaStatus  @default(NOWY)
+  ticketId      String?
+  terminDo      DateTime
+  zrealizowanoAt DateTime?
+  createdAt     DateTime                  @default(now())
+  updatedAt     DateTime                  @updatedAt
+
+  @@index([userId])
+  @@index([status, terminDo])
 }
 
 /// PB-26 — postęp testera: odhaczone kroki scenariuszy (id kroku → ISO data) i uwagi (id scenariusza → tekst).
@@ -3201,6 +3328,8 @@ enum ConsentSource {
   SETTINGS
   /// Manual override by an admin (e.g. UODO request, customer phone call).
   ADMIN_MANUAL
+  /// P3-10 — granted by a collaborator on the subaccount activation screen (invite link).
+  SUBACCOUNT_ACTIVATION
 }
 
 /// Append-only audit trail of every consent grant or withdrawal (RODO Art. 7

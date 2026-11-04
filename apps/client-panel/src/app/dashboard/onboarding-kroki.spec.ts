@@ -1,5 +1,5 @@
 import { fakturaKompletna, najnizszyPostep, podsumujKroki, podtytulKrokow, uslugiOnboardingu, zbudujKroki } from './onboarding-kroki';
-import type { ServiceSummaryDto } from '@verris/contracts';
+import type { ServiceSummaryDto } from '@verris/contracts/klient';
 
 /**
  * PANEL-01 — strażnik licznika onboardingu.

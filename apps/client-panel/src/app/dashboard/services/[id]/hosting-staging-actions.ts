@@ -4,7 +4,7 @@ import type {
   HostingStagingCreatedDto,
   HostingStagingMutationOkDto,
   HostingStagingResponseDto,
-} from '@verris/contracts';
+} from '@verris/contracts/klient';
 import { apiFetch, ApiError } from '@/lib/api';
 
 export async function fetchHostingStagingAction(

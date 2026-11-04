@@ -2,7 +2,7 @@
 
 import { bezpiecznie, type Wynik as WynikAkcji } from '@/lib/wynik-akcji';
 
-import type { AiChatMessageDto, AiChatResponseDto, AiStatusDto } from '@verris/contracts';
+import type { AiChatMessageDto, AiChatResponseDto, AiStatusDto } from '@verris/contracts/klient';
 import { apiFetch } from '@/lib/api';
 
 export async function fetchAiStatusAction(): Promise<AiStatusDto | null> {

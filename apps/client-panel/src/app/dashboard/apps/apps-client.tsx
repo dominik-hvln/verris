@@ -55,7 +55,7 @@ export function AppsClient({ serviceId, status }: { serviceId: string; status: A
             <p>Panel: <a href={result.adminUrl} target="_blank" rel="noopener noreferrer" className="underline">{result.adminUrl}</a></p>
             <p>Login: <span className="font-mono">{result.adminUser}</span></p>
             <p className="flex items-center gap-2">
-              Hasło: <code className="rounded bg-black/40 px-2 py-0.5 font-mono">{result.adminPassword}</code>
+              Hasło: <code data-prywatne className="rounded bg-black/40 px-2 py-0.5 font-mono">{result.adminPassword}</code>
               <button type="button" onClick={() => void navigator.clipboard?.writeText(result.adminPassword)} className="text-xs text-emerald-200 hover:text-white inline-flex items-center gap-1">
                 <Copy className="h-3 w-3" /> kopiuj
               </button>

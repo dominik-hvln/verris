@@ -1,4 +1,4 @@
-import type { ServiceSummaryDto } from '@verris/contracts';
+import type { ServiceSummaryDto } from '@verris/contracts/klient';
 import type { OnboardingSnapshot } from './onboarding-data';
 
 /**

@@ -1,10 +1,17 @@
-import { Body, Controller, Get, Header, HttpCode, Post, Query, Req } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Header, HttpCode, Post, Query, Req } from '@nestjs/common';
+import { IsOptional, IsString, MaxLength } from 'class-validator';
 import type { Request } from 'express';
 import { LeadsService } from './leads.service.js';
 import { SubmitLeadDto } from './dto/submit-lead.dto.js';
 import { SubmitCallbackDto } from './dto/submit-callback.dto.js';
 import { RateLimit } from '../common/guards/rate-limit.guard.js';
 import { CaptchaService } from '../auth/captcha.service.js';
+import { CSP_STRONY_LINKU, stronaLinku } from '../common/strona-linku.js';
+
+/** Formularz ze strony potwierdzenia/wypisu — token w treści (application/x-www-form-urlencoded). */
+export class TokenDto {
+  @IsOptional() @IsString() @MaxLength(200) token?: string;
+}
 
 /**
  * Publiczne formularze z verris.pl (LP „Zaplanuj migrację" + „Kontakt").
@@ -48,20 +55,70 @@ export class LeadsPublicController {
     return this.leads.submitCallback(dto, { ip, userAgent });
   }
 
+  /**
+   * A2-01 — potwierdzenie zgody na wiadomości (double opt-in). GET pokazuje stronę z przyciskiem, zapis robi POST:
+   * skanery linków w poczcie firmowej otwierają linki GET-em i potwierdzałyby zgodę za człowieka (jak A1-06).
+   */
   @Get('confirm')
   @Header('Content-Type', 'text/html; charset=utf-8')
-  async confirm(@Query('token') token?: string): Promise<string> {
-    const { ok } = await this.leads.confirm(token);
-    const title = ok ? 'Adres potwierdzony ✓' : 'Link nieaktualny';
-    const body = ok
-      ? 'Dziękujemy! Twój adres jest potwierdzony — wyślemy Ci plan migracji i kilka wiadomości o hostingu Verris. Rezygnacja jednym kliknięciem w każdej wiadomości.'
-      : 'Ten link potwierdzający jest nieaktualny lub został już użyty. Jeśli to pomyłka, wypełnij formularz ponownie na verris.pl.';
-    return `<!doctype html><html lang="pl"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1"><title>${title}</title>
-<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0C1A14;color:#F4F4EE;font-family:system-ui,sans-serif;padding:24px}
-.card{max-width:460px;background:#0E1F17;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:32px}
-h1{font-size:22px;margin:0 0 12px;color:#34E5A0}p{margin:0;color:#B4C2BB;line-height:1.55}
-a{display:inline-block;margin-top:20px;color:#34E5A0}</style></head>
-<body><div class="card"><h1>${title}</h1><p>${body}</p><a href="https://verris.pl">← Wróć na verris.pl</a></div></body></html>`;
+  @Header('Content-Security-Policy', CSP_STRONY_LINKU)
+  async confirmStrona(@Query('token') token?: string): Promise<string> {
+    if (!token?.trim()) throw new BadRequestException('Brak tokenu — użyj linku z wiadomości.');
+    if (!(await this.leads.tokenPotwierdzeniaIstnieje(token))) return NIEAKTUALNY;
+    return stronaLinku(
+      'Potwierdzić zgodę na wiadomości?',
+      'Po kliknięciu będziemy czasem wysyłać Ci wiadomości o hostingu Verris. Rezygnacja jednym kliknięciem w każdej wiadomości.',
+      { token, etykieta: 'Potwierdzam zgodę', akcja: '/public/leads/confirm' },
+    );
+  }
+
+  @Post('confirm')
+  @HttpCode(200)
+  @Header('Content-Type', 'text/html; charset=utf-8')
+  @Header('Content-Security-Policy', CSP_STRONY_LINKU)
+  async confirm(@Body() body: TokenDto): Promise<string> {
+    if (!body?.token?.trim()) throw new BadRequestException('Brak tokenu — użyj linku z wiadomości.');
+    const { ok } = await this.leads.confirm(body.token.trim());
+    if (!ok) return NIEAKTUALNY;
+    return stronaLinku(
+      'Zgoda potwierdzona ✓',
+      'Dziękujemy. Wiadomości o hostingu Verris będą przychodzić rzadko, a z każdej wypiszesz się jednym kliknięciem.',
+    );
+  }
+
+  /** A2-01 — wypis z wiadomości o hostingu (link z planu migracji). GET bez skutków, wypis robi POST. */
+  @Get('unsubscribe')
+  @Header('Content-Type', 'text/html; charset=utf-8')
+  @Header('Content-Security-Policy', CSP_STRONY_LINKU)
+  async unsubscribeStrona(@Query('token') token?: string): Promise<string> {
+    if (!token?.trim()) throw new BadRequestException('Brak tokenu wypisu — użyj linku z wiadomości.');
+    const stan = await this.leads.tokenWypisu(token);
+    if (stan === 'brak') {
+      return stronaLinku('Link nieaktualny', 'Ten link do wypisu jest nieprawidłowy albo dane zostały już usunięte. Napisz na kontakt@verris.pl, jeśli dalej dostajesz wiadomości.', undefined, true);
+    }
+    if (stan === 'wypisany') return WYPISANO;
+    return stronaLinku(
+      'Wypisać Cię z wiadomości Verris?',
+      'Po kliknięciu nie wyślemy Ci już żadnej wiadomości o hostingu Verris.',
+      { token, etykieta: 'Wypisz mnie', akcja: '/public/leads/unsubscribe' },
+    );
+  }
+
+  @Post('unsubscribe')
+  @HttpCode(200)
+  @Header('Content-Type', 'text/html; charset=utf-8')
+  @Header('Content-Security-Policy', CSP_STRONY_LINKU)
+  async unsubscribe(@Query('token') tokenZAdresu: string | undefined, @Body() body: TokenDto): Promise<string> {
+    const token = tokenZAdresu?.trim() || body?.token?.trim();
+    const { ok } = await this.leads.unsubscribe(token);
+    return ok ? WYPISANO : stronaLinku('Link nieaktualny', 'Ten link do wypisu jest nieprawidłowy albo dane zostały już usunięte.', undefined, true);
   }
 }
+
+const NIEAKTUALNY = stronaLinku(
+  'Link nieaktualny',
+  'Ten link jest nieaktualny albo został już użyty. Jeśli to pomyłka, wypełnij formularz ponownie na verris.pl.',
+  undefined,
+  true,
+);
+const WYPISANO = stronaLinku('Wypisano ✓', 'Nie wyślemy Ci już wiadomości o hostingu Verris.');

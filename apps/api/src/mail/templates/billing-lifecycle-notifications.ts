@@ -673,7 +673,7 @@ export function subscriptionCancelledTemplate(ctx: SubscriptionCancelledContext)
       ``,
       `Jeśli zmienisz zdanie — napisz do nas w Centrum pomocy w panelu przed tym terminem.`,
       ``,
-      `Dziękujemy, że byłeś z nami!`,
+      `Dziękujemy za wspólny czas!`,
     ].join('\n'),
     cta: {
       label: 'Wróć do panelu',

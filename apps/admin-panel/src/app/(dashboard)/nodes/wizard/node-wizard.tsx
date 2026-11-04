@@ -457,7 +457,7 @@ export function NodeWizard() {
                       onChange={setRegion}
                       className="wizard-input"
                       options={[
-                        { value: "", label: "— nie wybrano (klient zobaczy ogólne „EOG”) —" },
+                        { value: "", label: "— nie wybrano —" },
                         ...Object.entries(REGIONY_DANYCH).map(([kod, opis]) => ({ value: kod, label: `${kod} — ${opis}` })),
                       ]}
                     />

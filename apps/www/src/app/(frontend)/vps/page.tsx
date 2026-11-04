@@ -46,7 +46,7 @@ const FAQ: [string, string][] = [
     'Czy robicie kopie VPS?',
     'Snapshoty tworzysz sam w panelu, kiedy chcesz, i z panelu je przywracasz. Kopie danych wewnątrz serwera planujesz według własnych potrzeb.',
   ],
-  ['Jakie jest SLA?', 'SLA 99,5% z rekompensatami na wniosek, według regulaminu — dotyczy także usług VPS.'],
+  ['Jakie jest SLA?', 'SLA 99,5% z rekompensatami przyznawanymi automatycznie, według regulaminu — dotyczy także usług VPS.'],
 ];
 
 export default function VpsPage() {

@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { Kpi, KpiStrip, SectionHead, StatusPill, type Tone } from '@/components/panel/v2';
 import { days as daysLabel } from '@/lib/pl';
-import type { HostingSslRowDto, HostingSslStatus } from '@verris/contracts';
+import type { HostingSslRowDto, HostingSslStatus } from '@verris/contracts/klient';
 import { HostingSslForms } from '@/components/hosting/HostingSslForms';
 import { SslPlatne } from '@/components/hosting/SslPlatne';
 import { HostingHelpHint } from '@/components/hosting/HostingTabShell';

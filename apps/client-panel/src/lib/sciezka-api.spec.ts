@@ -1,4 +1,4 @@
-import { sprawdzSciezkeApi } from '@verris/contracts';
+import { sprawdzSciezkeApi } from '@verris/contracts/klient';
 
 /** Ścieżki API z danymi nie mogą przeskoczyć na inny endpoint (segmenty "." / ".."). */
 describe('sprawdzSciezkeApi', () => {

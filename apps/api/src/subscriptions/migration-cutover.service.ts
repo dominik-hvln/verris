@@ -33,6 +33,15 @@ export interface CutoverPlan {
   status: 'done' | 'ready' | 'waiting-dns' | 'blocked';
   message: string;
   deltaSyncRecommended: boolean;
+  /**
+   * P2-06 — po ostatnim kopiowaniu bazy: do kiedy stara strona jest w trybie konserwacji (ISO; null = nie jest albo
+   * okno minęło) i czy trybu nie dało się włączyć automatycznie (strona spoza WordPressa) — wtedy panel prosi klienta
+   * o ręczne wstrzymanie sprzedaży na czas dosynchronizowania.
+   */
+  konserwacjaZrodlaDo: string | null;
+  konserwacjaRecznie: boolean;
+  /** Migracja ma bazy — „Dograj różnice” kopiuje też bazę (krótka przerwa w sprzedaży na starej stronie). */
+  dosyncBazy: boolean;
   dns: HostingDnsPointingResult;
   nameserverOption: { nameservers: string[]; note: string } | null;
   records: CutoverRecordInstruction[];
@@ -125,7 +134,7 @@ export class MigrationCutoverService {
       cutoverAt: Date | null;
       cutoverMode: string | null;
       completedAt: Date | null;
-      workerJobs: Array<{ kind: string; status: string; completedAt: Date | null }>;
+      workerJobs: Array<{ kind: string; status: string; completedAt: Date | null; payload?: unknown }>;
     },
     dns: HostingDnsPointingResult,
     mxDoNas = false,
@@ -143,11 +152,18 @@ export class MigrationCutoverService {
       .filter((j) => j.status === 'COMPLETED' && j.completedAt)
       .map((j) => j.completedAt!.getTime())
       .sort((a, b) => b - a)[0];
+    // P2-06 — przy bazie (sklep) zawsze przed przełączeniem: wszystko, co stary sklep zapisał po pierwszej kopii
+    // (zamówienia, klienci, stany), inaczej przepadnie. Nie trzeba, gdy ostatnie kopiowanie bazy jest świeże — stara
+    // strona jest jeszcze w trybie konserwacji i nic nowego nie przyjęła.
+    const dosyncBazy = !poczta && request.workerJobs.some((j) => j.kind.startsWith('MYSQL'));
+    const konserwacja = ostatniaKonserwacja(request.workerJobs);
+    const konserwacjaZrodlaDo =
+      konserwacja?.wlaczona && konserwacja.do && Date.parse(konserwacja.do) > Date.now() ? konserwacja.do : null;
     const deltaSyncRecommended =
       !request.cutoverAt &&
       request.status === MigrationStatus.COMPLETED &&
       typeof lastTransfer === 'number' &&
-      Date.now() - lastTransfer > 6 * 60 * 60 * 1000;
+      (dosyncBazy ? !konserwacjaZrodlaDo : Date.now() - lastTransfer > 6 * 60 * 60 * 1000);
 
     let status: CutoverPlan['status'];
     let message: string;
@@ -165,8 +181,15 @@ export class MigrationCutoverService {
       message = poczta
         ? 'Wiadomości są już w skrzynce na tym koncie. Żeby nowa poczta też trafiała tutaj, ustaw u obecnego dostawcy DNS ' +
           'poniższe rekordy poczty, a potem kliknij „Sprawdź DNS”. Strona zostaje tam, gdzie jest — jej rekordów nie zmieniasz.'
-        : 'Dane są przeniesione. Ustaw poniższe rekordy DNS u obecnego dostawcy (albo przełącz NS na nasze), ' +
-          'a potem kliknij „Sprawdź DNS”. Do czasu przełączenia stara strona działa bez przerwy.';
+        : konserwacjaZrodlaDo
+          ? 'Baza jest skopiowana jeszcze raz, a stara strona jest w trybie konserwacji, żeby nie przyjęła zamówienia, ' +
+            'którego już nie przeniesiemy. Teraz ustaw poniższe rekordy DNS (albo przełącz NS na nasze) i kliknij „Sprawdź DNS”.'
+          : dosyncBazy
+            ? 'Dane są przeniesione, a stara strona działa dalej. Tuż przed zmianą DNS kliknij „Dograj różnice” — skopiujemy ' +
+              'jeszcze raz pliki i bazę (zamówienia, klientów, stany magazynowe). Na czas kopiowania bazy stara strona ' +
+              'zrobi kilkuminutową przerwę, żeby nic nie zginęło. Potem ustaw poniższe rekordy DNS i kliknij „Sprawdź DNS”.'
+            : 'Dane są przeniesione. Ustaw poniższe rekordy DNS u obecnego dostawcy (albo przełącz NS na nasze), ' +
+              'a potem kliknij „Sprawdź DNS”. Do czasu przełączenia stara strona działa bez przerwy.';
     } else if (request.status === MigrationStatus.RUNNING) {
       status = 'ready';
       message = 'Transfer danych jeszcze trwa — cutover DNS będzie możliwy po jego zakończeniu.';
@@ -235,6 +258,9 @@ export class MigrationCutoverService {
       status,
       message,
       deltaSyncRecommended,
+      konserwacjaZrodlaDo,
+      konserwacjaRecznie: dosyncBazy && konserwacja !== null && !konserwacja.wlaczona && !request.cutoverAt,
+      dosyncBazy,
       dns,
       nameserverOption,
       records,
@@ -242,6 +268,24 @@ export class MigrationCutoverService {
       cutoverMode: request.cutoverMode,
     };
   }
+}
+
+/**
+ * Wynik ostatniego udanego kopiowania bazy przed przełączeniem (raport workera w payload.integrity): czy tryb
+ * konserwacji starej strony działa i do kiedy. null = jeszcze nie było dosynchronizowania bazy.
+ */
+export function ostatniaKonserwacja(
+  jobs: Array<{ kind: string; status: string; completedAt: Date | null; payload?: unknown }>,
+): { wlaczona: boolean; do: string | null } | null {
+  const ostatni = jobs
+    .filter((j) => j.kind === 'MYSQL_DELTA' && j.status === 'COMPLETED' && j.completedAt)
+    .sort((a, b) => b.completedAt!.getTime() - a.completedAt!.getTime())[0];
+  if (!ostatni) return null;
+  const p = ostatni.payload && typeof ostatni.payload === 'object' ? (ostatni.payload as Record<string, unknown>) : {};
+  const i = p.integrity && typeof p.integrity === 'object' ? (p.integrity as Record<string, unknown>) : {};
+  // „niepotwierdzona” = plik wgrany, strona nie odpowiedziała 503 (np. cache) — traktujemy jak włączoną z oknem.
+  const wlaczona = i.konserwacja === 'wlaczona' || i.konserwacja === 'niepotwierdzona';
+  return { wlaczona, do: wlaczona && typeof i.konserwacjaDo === 'string' ? i.konserwacjaDo : null };
 }
 
 /** Migracja samej poczty: są kroki IMAP, nie ma plików ani baz. */

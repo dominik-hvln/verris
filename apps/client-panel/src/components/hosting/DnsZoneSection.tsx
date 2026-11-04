@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { AlertCircle, Loader2 } from 'lucide-react';
-import type { HostingDnsRecordDto } from '@verris/contracts';
+import type { HostingDnsRecordDto } from '@verris/contracts/klient';
 import { DnsManager } from '@/app/dashboard/dns/dns-manager';
 import {
   fetchHostingDnsAction as fetchHostingDnsActionAkcja,

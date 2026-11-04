@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Loader2, Trash2, Wallet } from 'lucide-react';
 import { Button } from '@verris/ui';
-import { formatLimitu, type ServiceDetailsDto, type SubscriptionStatus } from '@verris/contracts';
+import { formatLimitu, type ServiceDetailsDto, type SubscriptionStatus } from '@verris/contracts/klient';
 import {
   fetchServiceDetailsAction as fetchServiceDetailsActionAkcja,
 } from '@/app/dashboard/services/[id]/hosting-service-actions';
@@ -17,6 +17,7 @@ const BTN =
 import { UnpaidServiceBanner } from '@/components/hosting/UnpaidServiceBanner';
 import { PanelModal } from '@/components/panel';
 import { cancelSubscriptionAction } from '@/app/dashboard/services/subscription-payment-actions';
+import { fetchSidebarUser } from '@/app/dashboard/sidebar-actions';
 import { zOdpakowaniem } from '@/lib/wynik-akcji';
 
 // Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
@@ -68,6 +69,14 @@ export default function ServiceSubscriptionTab({ serviceId }: { serviceId: strin
   const [error, setError] = useState<string | null>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelImmediate, setCancelImmediate] = useState(false);
+  // Decyzja 8 (3.11.2026), P3-02 — rezygnację widzi tylko właściciel konta (API i tak odmawia współpracownikowi).
+  // null = jeszcze nie wiadomo (bez mignięcia komunikatu właścicielowi).
+  const [wlasciciel, setWlasciciel] = useState<boolean | null>(null);
+  useEffect(() => {
+    fetchSidebarUser()
+      .then((u) => setWlasciciel(Boolean(u) && !u?.isSubaccount && !u?.actingFor))
+      .catch(() => setWlasciciel(false));
+  }, []);
 
   // Chwila odczytu usługi — z niej liczymy postęp okresu (Date.now() w renderze byłby nieczysty).
   const [checkedAt, setCheckedAt] = useState(0);
@@ -248,6 +257,13 @@ export default function ServiceSubscriptionTab({ serviceId }: { serviceId: strin
               Centrum pomocy
             </Link>
             .
+          </p>
+        </section>
+      ) : wlasciciel === null ? null : canCancel && !wlasciciel && service.status !== 'PENDING_PAYMENT' && service.status !== 'PAST_DUE' ? (
+        <section className="rounded-[10px] border border-line bg-card px-4 py-3.5">
+          <h3 className="m-0 font-display text-[15px] font-bold text-foreground">Zakończenie usługi</h3>
+          <p className="mt-1 text-[13px] text-muted-foreground">
+            Zrezygnować z usługi albo wyłączyć jej odnowienie może tylko właściciel konta.
           </p>
         </section>
       ) : canCancel && service.status !== 'PENDING_PAYMENT' && service.status !== 'PAST_DUE' ? (

@@ -1,6 +1,8 @@
 import { readdirSync, readFileSync, statSync } from 'fs';
 import { join } from 'path';
 import { HOSTING_FETCH_UNAVAILABLE, daErrorMessage, hostingFetchErrorMessage } from './client-hosting-messages';
+// Wersja serwerowa (z filtrem white label) — tłumaczy odmowy w `apiFetch` (lib/api.ts), zanim tekst dojdzie do widoku.
+import { daErrorMessage as daErrorMessageSerwer } from '@verris/contracts';
 
 /**
  * X-05 — tłumaczenie surowych błędów API / DirectAdmin na komunikaty dla klienta.
@@ -45,11 +47,19 @@ describe('X-05 daErrorMessage', () => {
     expect(daErrorMessage('z'.repeat(141))).toMatch(/nie powiodła się/);
   });
 
-  it('white label: oryginał z nazwą panelu serwera nie przechodzi, polskie „nie da się” tak (CL-02)', () => {
-    expect(daErrorMessage('Invalid DirectAdmin login key')).toMatch(/nie powiodła się/);
-    expect(daErrorMessage('Konto DA nie istnieje')).toMatch(/nie powiodła się/);
-    expect(daErrorMessage('CustomBuild: brak wersji PHP')).toMatch(/nie powiodła się/);
+  it('white label (serwer, apiFetch): oryginał z nazwą panelu serwera nie przechodzi, polskie „nie da się” tak (CL-02)', () => {
+    expect(daErrorMessageSerwer('Invalid DirectAdmin login key')).toMatch(/nie powiodła się/);
+    expect(daErrorMessageSerwer('Konto DA nie istnieje')).toMatch(/nie powiodła się/);
+    expect(daErrorMessageSerwer('CustomBuild: brak wersji PHP')).toMatch(/nie powiodła się/);
+    expect(daErrorMessageSerwer('Tej bazy nie da się usunąć')).toBe('Tej bazy nie da się usunąć');
     expect(daErrorMessage('Tej bazy nie da się usunąć')).toBe('Tej bazy nie da się usunąć');
+  });
+
+  it('P5-01: drugie przejście w przeglądarce nie zmienia komunikatu przetłumaczonego na serwerze', () => {
+    for (const raw of ['Invalid DirectAdmin login key', 'Database already exists', 'Konto DA nie istnieje', 'Usługa jest zawieszona', 'x']) {
+      const zSerwera = daErrorMessageSerwer(raw);
+      expect(daErrorMessage(zSerwera)).toBe(zSerwera);
+    }
   });
 
   it('komunikat już przetłumaczony przechodzi drugi raz bez zmian (apiFetch + widok)', () => {
@@ -92,10 +102,14 @@ describe('daErrorMessage — hasło', () => {
 
 describe('daErrorMessage — white label (wspólne z API, libs/contracts)', () => {
   it('czytelna walidacja nie przechodzi w oryginale, gdy zdradza panel serwera, adres węzła albo URL', () => {
-    expect(daErrorMessage('Invalid response from DirectAdmin')).toMatch(/nie powiodła się/);
-    expect(daErrorMessage('Nieprawidłowy host 10.0.0.5')).toMatch(/nie powiodła się/);
-    expect(daErrorMessage('Nieprawidłowy token z https://wezel.example.net/login')).toMatch(/nie powiodła się/);
-    expect(daErrorMessage('Invalid PHP version (CloudLinux selector)')).toMatch(/nie powiodła się/);
+    expect(daErrorMessageSerwer('Invalid response from DirectAdmin')).toMatch(/nie powiodła się/);
+    expect(daErrorMessageSerwer('Invalid PHP version (CloudLinux selector)')).toMatch(/nie powiodła się/);
+    for (const f of [daErrorMessage, daErrorMessageSerwer]) {
+      expect(f('Nieprawidłowy host 10.0.0.5')).toMatch(/nie powiodła się/);
+      expect(f('Nieprawidłowy token z https://wezel.example.net/login')).toMatch(/nie powiodła się/);
+      expect(f('Invalid path /usr/share/x/conf')).toMatch(/nie powiodła się/);
+      expect(f('Invalid host serwer.example.net:8443')).toMatch(/nie powiodła się/);
+    }
   });
 
   it('polskie „da się” nie jest brane za DA', () => {

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { VPS_W_SPRZEDAZY } from '@/lib/oferta';
 import { PANEL } from '@/lib/site';
-import { miesiecznieZRocznej, netto, rabatRocznyProcent, zl, type CenaPakietu } from '@/lib/ceny';
+import { miesiecznieZRocznej, netto, RABAT_NA_START, rabatRocznyProcent, zl, type CenaPakietu } from '@/lib/ceny';
 import { Button, SectionHead } from './ui';
 
 /*
@@ -45,8 +45,8 @@ export function Pricing({ naglowek = true, cena }: { naglowek?: boolean; cena: C
           <SectionHead
             center
             eyebrow="Cennik"
-            title="Jedna cena. Także przy odnowieniu."
-            lead="Bez ceny za 1 zł na start i kilka razy droższego drugiego roku."
+            title="Jeden pakiet. Cenę odnowienia znasz z góry."
+            lead="Bez ceny za 1 zł na start i kilka razy droższego drugiego roku. Odnowienie po cenie z cennika."
           />
         )}
         <div className="pcard2">
@@ -92,8 +92,7 @@ export function Pricing({ naglowek = true, cena }: { naglowek?: boolean; cena: C
               Zamów hosting
             </Button>
             <p className="price-note2">
-              Odnowienie po cenie z cennika. Rabat na start, jeśli trwa, widzisz przed zapłatą; przed odnowieniem
-              przypomnimy e-mailem, a zrezygnujesz z niego w panelu w każdej chwili.
+              {RABAT_NA_START} Przed odnowieniem przypomnimy e-mailem, a zrezygnujesz z niego w panelu w każdej chwili.
             </p>
           </div>
         </div>

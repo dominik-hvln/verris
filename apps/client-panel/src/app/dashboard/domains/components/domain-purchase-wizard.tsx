@@ -15,12 +15,11 @@ import {
   X,
 } from 'lucide-react';
 import { Button, Input } from '@verris/ui';
-import type { DomainCustomerPriceDto, DomainSearchResultDto } from '@verris/contracts';
+import type { DomainCustomerPriceDto, DomainSearchResultDto } from '@verris/contracts/klient';
 import { PageHeaderRow } from '@/components/panel';
 import { SpinBorder } from '@/components/spin-border';
 import { toast } from 'sonner';
 import {
-  getWaiverConsentAction,
   quotePeriodsAction as quotePeriodsActionAkcja,
   registerDomainClientAction,
   searchDomainsAction,
@@ -187,19 +186,11 @@ export function DomainPurchaseWizard({
   const [premium, setPremium] = useState(false);
   const [ns1, setNs1] = useState(domyslneNs[0] ?? '');
   const [ns2, setNs2] = useState(domyslneNs[1] ?? '');
-  // Oświadczenie: natychmiastowa rejestracja + utrata prawa odstąpienia (art. 38 pkt 1 upk).
+  // Oświadczenie: natychmiastowa rejestracja/transfer + utrata prawa odstąpienia (art. 38 ust. 1 pkt 1 upk).
+  // Decyzja 21 (4.11.2026): przy KAŻDYM zamówieniu, zawsze niezaznaczone — bez zgody „na stałe” z pierwszego zakupu.
   const [waiverConsent, setWaiverConsent] = useState(false);
   // Zbiorcza akceptacja dokumentów przy zamówieniu (jak u liderów rynku).
   const [acceptDocs, setAcceptDocs] = useState(false);
-  // Zgoda raz na koncie (Regulamin §12 ust. 8): oświadczenie z pierwszego zakupu
-  // obejmuje kolejne rejestracje — wtedy zamiast checkboxa pokazujemy przypomnienie.
-  const [standingConsent, setStandingConsent] = useState<{ granted: boolean; grantedAt: string | null } | null>(null);
-  useEffect(() => {
-    void getWaiverConsentAction().then((r) => {
-      setStandingConsent(r);
-      if (r.granted) setWaiverConsent(true);
-    });
-  }, []);
   // A-13 — abonent (właściciel) domeny: klient. Podpowiedź z profilu, telefon wpisuje sam.
   const [abonent, setAbonent] = useState<Abonent>(PUSTY_ABONENT);
   useEffect(() => {
@@ -321,6 +312,7 @@ export function DomainPurchaseWizard({
     startTransition(async () => {
       try {
         setSelectedDomain(result.domain);
+        setWaiverConsent(false);
         setPremium(Boolean(result.premium));
         setYears(1);
         const rows = await loadQuotes(result.domain);
@@ -387,6 +379,7 @@ export function DomainPurchaseWizard({
   const resetSearch = () => {
     setStep('search');
     setSelectedDomain(null);
+    setWaiverConsent(false);
     setSearchResults([]);
     setHasSearched(false);
     setQuotes([]);
@@ -714,43 +707,25 @@ export function DomainPurchaseWizard({
                   .
                 </span>
               </label>
-              {/* Oświadczenie konsumenckie — art. 38 ust. 1 pkt 1 upk (Regulamin §12 ust. 7–8).
-                  Zgoda raz na koncie: przy kolejnych zakupach przypomnienie zamiast checkboxa. */}
-              {standingConsent?.granted ? (
-                <p className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 text-xs leading-relaxed text-neutral-400">
-                  Obejmuje to zamówienie: Twoje oświadczenie o żądaniu natychmiastowej
-                  rejestracji domen i utracie prawa odstąpienia z chwilą rejestracji, złożone
-                  przy pierwszym zakupie domeny
-                  {standingConsent.grantedAt
-                    ? ` (${new Date(standingConsent.grantedAt).toLocaleDateString('pl-PL')})`
-                    : ''}{' '}
-                  — {' '}
+              {/* Oświadczenie konsumenckie — art. 38 ust. 1 pkt 1 upk (Regulamin §12 ust. 7–8), przy każdym zamówieniu. */}
+              <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+                <Checkbox
+                  checked={waiverConsent}
+                  onChange={(e) => setWaiverConsent(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/20 bg-white/5 accent-white"
+                />
+                <span className="text-xs leading-relaxed text-neutral-300">
+                  Żądam natychmiastowego wykonania usługi rejestracji domeny{' '}
+                  <strong className="text-white">{selectedDomain}</strong> i przyjmuję do
+                  wiadomości, że z chwilą jej zarejestrowania (pełnego wykonania usługi){' '}
+                  <strong className="text-white">tracę prawo odstąpienia</strong> od umowy w tym
+                  zakresie (art. 38 ust. 1 pkt 1 ustawy o prawach konsumenta,{' '}
                   <a href="/legal/terms" target="_blank" className="underline hover:text-white">
-                    Regulamin §12 ust. 8
+                    Regulamin §12
                   </a>
-                  .
-                </p>
-              ) : (
-                <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-                  <Checkbox
-                    checked={waiverConsent}
-                    onChange={(e) => setWaiverConsent(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/20 bg-white/5 accent-white"
-                  />
-                  <span className="text-xs leading-relaxed text-neutral-300">
-                    Żądam natychmiastowego wykonania usługi rejestracji domeny{' '}
-                    <strong className="text-white">{selectedDomain}</strong> i przyjmuję do
-                    wiadomości, że z chwilą jej zarejestrowania (pełnego wykonania usługi){' '}
-                    <strong className="text-white">tracę prawo odstąpienia</strong> od umowy w tym
-                    zakresie (art. 38 ust. 1 pkt 1 ustawy o prawach konsumenta,{' '}
-                    <a href="/legal/terms" target="_blank" className="underline hover:text-white">
-                      Regulamin §12
-                    </a>
-                    ). Oświadczenie obejmuje również kolejne rejestracje domen na tym koncie
-                    (możesz je odwołać, pisząc na kontakt@verris.pl).
-                  </span>
-                </label>
-              )}
+                  ).
+                </span>
+              </label>
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
                 <Button variant="outline" onClick={() => setStep('config')}>
                   Wstecz
@@ -811,13 +786,11 @@ export function DomainPurchaseWizard({
             </p>
             <h3 className="text-sm font-semibold text-white">Abonent domeny po transferze</h3>
             <RegistrantFields value={abonent} onChange={setAbonent} />
-            {/* Bez tego pola transfer zawsze kończył się błędem 400: API wymaga oświadczenia (art. 38 pkt 1 upk). */}
-            {standingConsent?.granted ? null : (
-              <label className="flex cursor-pointer items-start gap-3 text-xs text-neutral-300">
-                <Checkbox checked={waiverConsent} onChange={(e) => setWaiverConsent(e.target.checked)} className="mt-0.5 h-4 w-4 accent-white" />
-                Żądam natychmiastowego rozpoczęcia transferu i przyjmuję do wiadomości, że z chwilą jego wykonania tracę prawo odstąpienia od umowy.
-              </label>
-            )}
+            {/* API wymaga oświadczenia przy każdym zamówieniu (art. 38 ust. 1 pkt 1 upk, decyzja 21). */}
+            <label className="flex cursor-pointer items-start gap-3 text-xs text-neutral-300">
+              <Checkbox checked={waiverConsent} onChange={(e) => setWaiverConsent(e.target.checked)} className="mt-0.5 h-4 w-4 accent-white" />
+              Żądam natychmiastowego wykonania transferu domeny i przyjmuję do wiadomości, że z chwilą jej przeniesienia tracę prawo odstąpienia od umowy w tym zakresie.
+            </label>
             <Button
               variant="outline"
               disabled={isPending || !trCenaAktualna?.amount}
@@ -840,6 +813,7 @@ export function DomainPurchaseWizard({
                   }
                   toast.success('Transfer zlecony', { description: 'Status zobaczysz w historii zleceń.' });
                   setTr({ name: '', authCode: '', years: 1, nameservers: domyslneNs.join(', ') });
+                  setWaiverConsent(false);
                   router.refresh();
                 });
               }}

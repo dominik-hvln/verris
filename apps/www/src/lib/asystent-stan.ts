@@ -136,6 +136,9 @@ export function wczytajSesje(magazyn: Pick<Storage, 'getItem'> | undefined): Sta
 }
 
 export function zapiszSesje(magazyn: Pick<Storage, 'setItem'> | undefined, stan: StanSesji): void {
+  // A2-05 (beta 3.11): nic nie zapisujemy, dopóki nie ma rozmowy — wcześniej pusty stan trafiał do sessionStorage na każdej
+  // stronie, także przy wyłączonym asystencie (klucz spoza polityki cookies).
+  if (!stan.rozmowaId && stan.wiadomosci.length === 0) return;
   try {
     magazyn?.setItem(KLUCZ_SESJI, JSON.stringify({ ...stan, wiadomosci: stan.wiadomosci.slice(-40) }));
   } catch {

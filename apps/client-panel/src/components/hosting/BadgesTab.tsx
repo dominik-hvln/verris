@@ -30,7 +30,7 @@ const KINDS: { id: Kind; name: string; tag: string; desc: string }[] = [
   { id: 'pieczec', name: 'Pieczęć zaufania', tag: 'interaktywna', desc: 'SSL, dostępność i dane w UE po kliknięciu.' },
   { id: 'dostepnosc', name: 'Dostępność na żywo', tag: 'interaktywna', desc: 'Pasek dni z monitora Twojej strony.' },
   { id: 'polecenie', name: 'Polecenie z prowizją', tag: 'zarabia', desc: 'Stopka „działa na verris” z Twoim kodem.' },
-  { id: 'eko', name: 'EKO i stopki', tag: 'statyczna', desc: 'Obrazek z linkiem — działa wszędzie.' },
+  { id: 'eko', name: 'Drzewa i stopki', tag: 'statyczna', desc: 'Obrazek z linkiem — działa wszędzie.' },
 ];
 
 const pl = (n: number, d = 2) => n.toLocaleString('pl-PL', { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -149,10 +149,10 @@ export default function BadgesTab({ serviceId }: { serviceId: string }) {
       code: embedCode(api, 'polecenie', refCode, motyw),
       state:
         data.referral.status === 'APPROVED'
-          ? { ok: true, text: `Program partnerski aktywny — ${data.referral.commissionPct}% od każdej płatności poleconego klienta trafia do portfela.` }
+          ? { ok: true, text: `Program poleceń aktywny — ${data.referral.commissionPct}% od każdej płatności poleconego klienta trafia do portfela.` }
           : data.referral.status === 'PENDING'
-            ? { ok: false, text: 'Zgłoszenie do programu partnerskiego czeka na akceptację. Do tego czasu badge działa bez prowizji.' }
-            : { ok: false, text: 'Badge działa bez prowizji. Dołącz do programu poleceń (menu: Polecenia), żeby zarabiać na każdym kliencie z Twojej strony.' },
+            ? { ok: false, text: 'Zgłoszenie do programu poleceń czeka na akceptację. Do tego czasu badge działa bez prowizji.' }
+            : { ok: false, text: 'Badge działa bez prowizji. Dołącz do programu poleceń (menu: Program poleceń), żeby zarabiać na każdym kliencie z Twojej strony.' },
     },
     eko: {
       src: null,
@@ -207,7 +207,7 @@ export default function BadgesTab({ serviceId }: { serviceId: string }) {
               <Seg label="Wariant" value={wariant} onChange={setWariant} options={[{ id: 'pelny', label: 'Pełny' }, { id: 'mini', label: 'Do stopki' }]} />
             ) : null}
             {kind === 'eko' ? (
-              <Seg label="Wariant" value={eko} onChange={setEko} options={[{ id: 'eko', label: 'EKO' }, { id: 'znak', label: 'Znak' }, { id: 'hostowane', label: 'Tekst' }]} />
+              <Seg label="Wariant" value={eko} onChange={setEko} options={[{ id: 'eko', label: 'Drzewa' }, { id: 'znak', label: 'Znak' }, { id: 'hostowane', label: 'Tekst' }]} />
             ) : null}
             <Seg label="Motyw" value={motyw} onChange={setMotyw} options={[{ id: 'ciemny', label: 'Ciemny' }, { id: 'jasny', label: 'Jasny' }]} />
           </div>
@@ -222,7 +222,7 @@ export default function BadgesTab({ serviceId }: { serviceId: string }) {
             <FramePreview key={view.src} src={view.src} />
           ) : ekoSrc ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={ekoSrc} alt="Podgląd badge EKO" />
+            <img src={ekoSrc} alt="Podgląd odznaki" />
           ) : null}
         </div>
         <div className="mt-3 flex items-start gap-2">

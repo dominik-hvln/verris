@@ -7,7 +7,7 @@ import { KartyUslug, Poradniki } from '../components/KartyUslug';
 import { PocztaKonfiguracja } from '../components/PocztaKonfiguracja';
 import { pobierzCeny } from '@/lib/ceny-api';
 import { netto, zl, type Ceny } from '@/lib/ceny';
-import { ctaProby, pasekPoczty, ZAMOW_W_PANELU } from '@/lib/proba';
+import { pasekPoczty, ZAMOW_POCZTE } from '@/lib/proba';
 import { EMAIL_MARKETING_W_SPRZEDAZY } from '@/lib/oferta';
 import { faqSchema, graph, serviceSchema } from '@/lib/schema';
 
@@ -43,7 +43,10 @@ const PRZENIESIENIE: [string, string][] = [
   ['Zakładasz konto', 'Dodajesz domenę w panelu. Skrzynki o tych samych nazwach założymy za Ciebie.'],
   ['Podajesz hasła skrzynek', 'Tylko tych, które przenosimy. Szyfrujemy je i kasujemy po zakończeniu.'],
   ['Kopiujemy wiadomości', 'Z folderami, także Wysłane i Archiwum. Postęp widzisz przy każdej skrzynce.'],
-  ['Przełączasz domenę', 'Tuż przed przełączeniem jednym kliknięciem dogrywasz różnice, czyli maile z ostatnich godzin.'],
+  [
+    'Przełączasz domenę',
+    'Domena zostaje tam, gdzie jest. W panelu pokażemy, co przepisać w jej ustawieniach. Tuż przed przełączeniem jednym kliknięciem dogrywasz maile z ostatnich godzin.',
+  ],
 ];
 
 const RAPORT: { k: string; v: string; ok: boolean }[] = [
@@ -81,7 +84,6 @@ function oferty(ceny: Ceny) {
 
 export default async function Page() {
   const ceny = await pobierzCeny();
-  const cta = ctaProby(ceny);
   const p = ceny.poczta;
   const FAQ: [string, string][] = [
     [
@@ -90,7 +92,11 @@ export default async function Page() {
     ],
     [
       'Jak założyć pocztę w swojej domenie?',
-      'Zamawiasz usługę, dodajesz domenę i w panelu zakładasz skrzynkę w zakładce Poczta. Stan rekordów SPF, DKIM i DMARC sprawdzisz w tym samym panelu.',
+      'Zamawiasz pocztę, podajesz swoją domenę i w panelu zakładasz skrzynkę w zakładce Poczta. Stan rekordów SPF, DKIM i DMARC sprawdzisz w tym samym panelu.',
+    ],
+    [
+      'Moja domena jest w innej firmie. Co mam z nią zrobić?',
+      'Nic nie musisz przenosić. Domena może zostać tam, gdzie jest teraz. Po zakupie pokażemy w panelu, co dokładnie przepisać w ustawieniach domeny u tej firmy, żeby poczta zaczęła działać. To zajmuje kilka minut. Jeśli wolisz zrobić to z nami, poproś o telefon niżej na tej stronie.',
     ],
     [
       'Ile skrzynek mogę mieć?',
@@ -127,7 +133,8 @@ export default async function Page() {
     faqSchema(FAQ),
   );
 
-  const glowny = cta.proba ? { label: cta.label, href: cta.href } : { label: 'Załóż firmową pocztę', href: ZAMOW_W_PANELU };
+  // P4-4: na /poczta przyciski zamawiają pocztę (rejestracja z celem „Poczta e-mail”), nie hosting.
+  const glowny = { label: 'Załóż firmową pocztę', href: ZAMOW_POCZTE };
 
   return (
     <main>
@@ -327,7 +334,7 @@ export default async function Page() {
         </div>
       </section>
 
-      <PasRozmowy />
+      <PasRozmowy temat="poczta" />
 
       <CTABand
         title="Twoja firma pod własnym adresem. Skrzynki przeniesiemy za darmo"

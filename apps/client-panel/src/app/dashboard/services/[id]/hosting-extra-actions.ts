@@ -5,7 +5,7 @@ import { bezpiecznie, type Wynik as WynikAkcji } from '@/lib/wynik-akcji';
 import type {
   HostingCronJobsResponseDto,
   HostingFtpAccountsResponseDto,
-} from '@verris/contracts';
+} from '@verris/contracts/klient';
 import { apiFetch } from '@/lib/api';
 
 /** Server-action wrappers so the in-service hub (client component) can fetch

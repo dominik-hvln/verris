@@ -45,6 +45,7 @@ import {
   walletTopupOkTemplate,
 } from '../mail/templates/billing-lifecycle-notifications.js';
 import { rowsToCsv } from './csv.util.js';
+import { historiaPortfelaCsv, nazwaPlikuHistorii } from './historia-portfela-csv.js';
 import { PromoService } from './promo.service.js';
 import { powodAutoDoladowania } from './wallet-auto-topup.service.js';
 import type { StatusPlatnosciPaynowDto } from '@verris/contracts';
@@ -385,6 +386,38 @@ export class BillingService {
     const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
     const scope = filters.userId ? `user-${filters.userId.slice(0, 8)}` : 'all';
     return { filename: `wallet-tx-${scope}-${stamp}.csv`, csv };
+  }
+
+  /**
+   * P2-10 (beta 3.11) — historia własnego portfela dla klienta (i jego księgowej): polskie kolumny, czas polski,
+   * numer dokumentu z netto i VAT, bez identyfikatorów technicznych. Format: `historia-portfela-csv.ts`.
+   */
+  async eksportHistoriiPortfelaKlienta(
+    userId: string,
+    filters: Omit<TransactionsCsvFilters, 'userId'>,
+  ): Promise<{ filename: string; csv: string }> {
+    const rows = await this.prisma.walletTransaction.findMany({
+      where: {
+        userId,
+        ...(filters.type ? { type: filters.type } : {}),
+        ...(filters.from || filters.to
+          ? { createdAt: { ...(filters.from ? { gte: filters.from } : {}), ...(filters.to ? { lte: filters.to } : {}) } }
+          : {}),
+      },
+      orderBy: { createdAt: 'desc' },
+      take: BillingService.TX_CSV_MAX_ROWS,
+      select: {
+        createdAt: true,
+        type: true,
+        status: true,
+        amount: true,
+        balanceAfter: true,
+        currency: true,
+        description: true,
+        invoice: { select: { number: true, externalInvoiceNumber: true, netAmount: true, vatAmount: true } },
+      },
+    });
+    return { filename: nazwaPlikuHistorii(), csv: historiaPortfelaCsv(rows) };
   }
 
   // ---------------------------------------------------------------------------

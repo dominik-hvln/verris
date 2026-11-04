@@ -1,6 +1,7 @@
 import { Controller, Get, Param, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { KbService } from './kb.service.js';
+import { plForm } from '../mail/templates/_layouts/odmiana.js';
 import { renderMarkdown, renderPublicPage, escapeHtml, renderFaq, renderRelated, renderReadingTime } from './kb-render.js';
 
 /**
@@ -35,7 +36,7 @@ export class KbPublicController {
         return `<a class="cat" href="${base}/c/${escapeHtml(c.slug)}">
           <h3>${escapeHtml(c.name)}</h3>
           <p>${escapeHtml(c.description ?? '')}</p>
-          <span class="n">${childArticles} artykuł(ów) →</span>
+          <span class="n">${childArticles} ${plForm(childArticles, 'artykuł', 'artykuły', 'artykułów')} →</span>
         </a>`;
       })
       .join('');

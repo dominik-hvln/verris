@@ -1,4 +1,4 @@
-import type { HostingDnsRecordDto } from '@verris/contracts';
+import type { HostingDnsRecordDto } from '@verris/contracts/klient';
 import { AlertCircle } from 'lucide-react';
 import { PanelEmptyState, ResponsiveDataView } from '@/components/panel';
 

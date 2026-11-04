@@ -17,6 +17,7 @@ import { BillingModule } from '../billing/billing.module.js';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module.js';
 import { EcoBadgeService } from './eco-badge.service.js';
 import { EcoModule } from '../eco/eco.module.js';
+import { ComplianceModule } from '../compliance/compliance.module.js';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { EcoModule } from '../eco/eco.module.js';
     BillingModule,
     PlatformSettingsModule,
     EcoModule,
+    ComplianceModule,
   ],
   controllers: [UsersController, UsersAdminController, CustomerIamController, EcoPublicController, KontaController],
   providers: [UsersService, UsersAdminService, CustomerIamService, EcoBadgeService, NotatkiKlientaService],

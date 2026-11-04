@@ -89,7 +89,7 @@ export function WebhooksClient() {
         {sekret ? (
           <div className="border-b border-line bg-warn-soft px-4 py-3 text-[13px] text-foreground">
             <b>Sekret webhooka — skopiuj go teraz, później już go nie pokażemy:</b>
-            <code className="mt-1 block break-all font-mono text-[12.5px]">{sekret}</code>
+            <code data-prywatne className="mt-1 block break-all font-mono text-[12.5px]">{sekret}</code>
             <button type="button" className="mt-2 text-[12px] underline" onClick={() => setSekret(null)}>
               Zapisałem, ukryj
             </button>

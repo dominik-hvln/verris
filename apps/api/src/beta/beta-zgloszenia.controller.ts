@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Header, HttpCode, Param, ParseUUIDPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 import { BetaZgloszenieStatus, Role } from '@verris/database';
-import { IsBoolean, IsIn, IsOptional } from 'class-validator';
+import { IsBoolean, IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
@@ -10,11 +10,16 @@ import { StaffPerm } from '../common/decorators/staff-permissions.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { RateLimit } from '../common/guards/rate-limit.guard.js';
 import { CaptchaService } from '../auth/captcha.service.js';
-import { BetaZgloszeniaService } from './beta-zgloszenia.service.js';
+import { CSP_STRONY_LINKU, stronaLinku } from '../common/strona-linku.js';
+import { BetaZgloszeniaService, type StanLinkuBety, type WynikPotwierdzeniaBety } from './beta-zgloszenia.service.js';
 import { ZgloszenieBetaDto } from './dto/zgloszenie-beta.dto.js';
 
 export class OdrzucZgloszenieDto {
   @IsOptional() @IsBoolean() powiadom?: boolean;
+}
+
+export class PotwierdzLinkDto {
+  @IsOptional() @IsString() @MaxLength(100) token?: string;
 }
 
 export class ListaZgloszenQuery {
@@ -23,7 +28,7 @@ export class ListaZgloszenQuery {
 
 /**
  * Otwarta beta — formularz verris.pl/beta. Bez auth: captcha jak przy leadach, limit 5/godz. per IP i per adres
- * (keyByBodyField), pułapka na boty (pole „firma”) i najwyżej jeden mail na adres na dobę w serwisie.
+ * (keyByBodyField), pułapka na boty (pole „pulapka”) i najwyżej jeden mail na adres na dobę w serwisie.
  */
 @Controller('public/beta')
 export class BetaZgloszeniaPublicController {
@@ -42,21 +47,50 @@ export class BetaZgloszeniaPublicController {
     return this.zgloszenia.zglos(dto, { ip, userAgent });
   }
 
+  /**
+   * A1-06 — GET niczego nie zmienia (linki z maili otwierają też skanery poczty, np. Safe Links): pokazuje stronę
+   * z przyciskiem, a potwierdza dopiero POST. P5-09 — drugie otwarcie linku mówi „już potwierdzone”.
+   * A1-05 — własne CSP trasy: Caddy (`header ?Content-Security-Policy`) nie nadpisuje go, więc inline `<style>` działa.
+   */
   @Get('zgloszenia/potwierdz')
   @Header('Content-Type', 'text/html; charset=utf-8')
-  async potwierdz(@Query('token') token?: string): Promise<string> {
-    const { ok } = await this.zgloszenia.potwierdz(token);
-    const title = ok ? 'Zgłoszenie potwierdzone ✓' : 'Link nieaktualny';
-    const body = ok
-      ? 'Dziękujemy! Twoje zgłoszenie do testów Verris jest na liście. Zapraszamy małymi grupami — gdy przyjdzie Twoja kolej, wyślemy zaproszenie z imiennym kodem na ten adres.'
-      : 'Ten link jest nieaktualny albo zgłoszenie zostało już potwierdzone. Jeśli to pomyłka, wypełnij formularz ponownie na verris.pl/beta.';
-    return `<!doctype html><html lang="pl"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>${title}</title>
-<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0C1A14;color:#F4F4EE;font-family:system-ui,sans-serif;padding:24px}
-.card{max-width:460px;background:#0E1F17;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:32px}
-h1{font-size:22px;margin:0 0 12px;color:#34E5A0}p{margin:0;color:#B4C2BB;line-height:1.55}
-a{display:inline-block;margin-top:20px;color:#34E5A0}</style></head>
-<body><div class="card"><h1>${title}</h1><p>${body}</p><a href="https://verris.pl">← Wróć na verris.pl</a></div></body></html>`;
+  @Header('Content-Security-Policy', CSP_STRONY_LINKU)
+  async potwierdzStrona(@Query('token') token?: string): Promise<string> {
+    const stan = await this.zgloszenia.stanLinku(token);
+    if (stan === 'DO_POTWIERDZENIA' || stan === 'ZMIANA_DO_POTWIERDZENIA') {
+      const zmiana = stan === 'ZMIANA_DO_POTWIERDZENIA';
+      return stronaLinku(
+        zmiana ? 'Potwierdź zmianę zgłoszenia' : 'Potwierdź zgłoszenie do testów',
+        zmiana
+          ? 'Kliknij przycisk, żeby zapisać nowe dane zgłoszenia. Bez tego zostaje to, co zgłosiłeś wcześniej.'
+          : 'Jeszcze jeden krok: kliknij przycisk, żeby Twoje zgłoszenie trafiło na listę testerów.',
+        { token: token!, etykieta: zmiana ? 'Potwierdzam zmianę' : 'Potwierdzam zgłoszenie', akcja: '/public/beta/zgloszenia/potwierdz' },
+      );
+    }
+    return stronaWyniku(stan);
+  }
+
+  @Post('zgloszenia/potwierdz')
+  @HttpCode(200)
+  @Header('Content-Type', 'text/html; charset=utf-8')
+  @Header('Content-Security-Policy', CSP_STRONY_LINKU)
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'beta:potwierdz' })
+  async potwierdz(@Body() body: PotwierdzLinkDto, @Query('token') tokenZAdresu?: string): Promise<string> {
+    const { stan } = await this.zgloszenia.potwierdz(body?.token || tokenZAdresu);
+    return stronaWyniku(stan);
+  }
+}
+
+function stronaWyniku(stan: WynikPotwierdzeniaBety | StanLinkuBety): string {
+  switch (stan) {
+    case 'POTWIERDZONE':
+      return stronaLinku('Zgłoszenie potwierdzone ✓', 'Dziękujemy! Twoje zgłoszenie do testów Verris jest na liście. Zapraszamy małymi grupami — gdy przyjdzie Twoja kolej, wyślemy zaproszenie z imiennym kodem na ten adres.');
+    case 'ZMIANA_ZAPISANA':
+      return stronaLinku('Zmiana zapisana ✓', 'Nowe dane Twojego zgłoszenia są zapisane. Zgłoszenie dalej czeka na liście — zaproszenie z kodem przyjdzie na ten adres.');
+    case 'JUZ_POTWIERDZONE':
+      return stronaLinku('Zgłoszenie jest już potwierdzone ✓', 'Ten adres jest już potwierdzony — nic więcej nie musisz robić. Gdy przyjdzie Twoja kolej, wyślemy zaproszenie z imiennym kodem na ten adres.');
+    default:
+      return stronaLinku('Link nieaktualny', 'Ten link wygasł albo został już wykorzystany. Jeśli chcesz zgłosić się do testów, wypełnij formularz na verris.pl/beta — wyślemy nowy link.', undefined, true);
   }
 }
 

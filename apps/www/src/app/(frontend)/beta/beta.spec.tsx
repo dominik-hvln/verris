@@ -103,7 +103,9 @@ describe('/beta — formularz', () => {
 
   it('honeypot ukryty przed ludźmi i czytnikami, poza kolejnością Tab', () => {
     const hp = html.match(/<div class="bt-hp" aria-hidden="true">[\s\S]*?<\/div>/)?.[0] ?? '';
-    expect(hp).toMatch(/<input[^>]*name="firma"/);
+    // P1-07: nazwa i etykieta, których nie rusza autouzupełnianie (nie „firma”).
+    expect(hp).toMatch(/<input[^>]*name="pulapka"/);
+    expect(hp).not.toMatch(/firma|company|organization/i);
     expect(hp).toMatch(/tabindex="-1"/);
     expect(hp).toMatch(/autoComplete="off"/i);
   });

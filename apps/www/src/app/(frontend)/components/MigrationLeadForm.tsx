@@ -6,25 +6,25 @@ import { submitLead } from '@/lib/submit-lead';
 import { captchaTokenFromForm } from '@/lib/captcha-token';
 import { Captcha } from './Captcha';
 
-const CONSENT_TEXT =
-  'Chcę otrzymać plan migracji i kilka wiadomości o hostingu Verris. Zgodę mogę wycofać w każdej chwili linkiem rezygnacji w mailu.';
+// Ta sama treść, którą widzi użytkownik przy checkboxie — API zapisuje ją jako dowód zgody (A2-14).
+export const CONSENT_TEXT =
+  'Chcę też dostać kilka wiadomości o hostingu Verris. Zgodę mogę wycofać w każdej chwili linkiem rezygnacji w mailu.';
 
 /**
- * Lead „Zaplanuj migrację" — wejście do sekwencji nurture.
- *
- * Compliance (PKE/RODO): zgoda marketingowa jest OSOBNYM, niezaznaczonym checkboxem,
- * a potwierdzenie adresu odbywa się przez double opt-in (mail E0). Bez zgody nie wysyłamy nic.
- * Rejestr zgody (data, treść, IP) zapisuje API na podstawie tego zgłoszenia.
+ * Lead „Zaplanuj migrację” (A2-01, paczka 109): plan przychodzi mailem zawsze — to odpowiedź na prośbę
+ * (wiadomość transakcyjna). Zgoda na dalsze wiadomości jest OSOBNYM, niezaznaczonym i nieobowiązkowym
+ * checkboxem; z nią API wysyła w tym samym mailu link potwierdzenia (double opt-in) i link wypisu.
+ * Rejestr zgody (data, treść, IP) zapisuje API.
  */
 export function MigrationLeadForm() {
-  const [sent, setSent] = useState(false);
+  const [sent, setSent] = useState<false | 'plan' | 'zgoda'>(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!consent || busy) return;
+    if (busy) return;
     const fd = new FormData(e.currentTarget);
     const email = fd.get('email')?.toString().trim() ?? '';
     if (!email) return;
@@ -34,8 +34,8 @@ export function MigrationLeadForm() {
       kind: 'MIGRATION',
       email,
       source: 'migration_plan',
-      marketingConsent: true,
-      consentText: CONSENT_TEXT,
+      marketingConsent: consent,
+      consentText: consent ? CONSENT_TEXT : undefined,
       page: typeof window !== 'undefined' ? window.location.href : undefined,
       captchaToken: captchaTokenFromForm(fd),
     });
@@ -45,15 +45,17 @@ export function MigrationLeadForm() {
       return;
     }
     events.generateLead('migration_plan');
-    setSent(true);
+    setSent(consent ? 'zgoda' : 'plan');
   };
 
   if (sent) {
     return (
       <div className="leadband">
         <div className="form-ok" role="status">
-          Sprawdź skrzynkę — wysłaliśmy wiadomość z prośbą o potwierdzenie adresu. Bez tego kroku nie
-          wyślemy Ci nic więcej. Jeśli mail nie dotarł w ciągu kilku minut, zajrzyj do spamu.
+          {sent === 'zgoda'
+            ? 'Plan jest już w Twojej skrzynce. Kliknij w nim „Potwierdzam”, jeśli chcesz dostawać kolejne wiadomości — bez tego nie wyślemy nic więcej.'
+            : 'Plan jest już w Twojej skrzynce. Nie wyślemy Ci nic więcej.'}{' '}
+          Jeśli mail nie dotarł w ciągu kilku minut, zajrzyj do spamu.
         </div>
       </div>
     );
@@ -82,7 +84,7 @@ export function MigrationLeadForm() {
           <button
             className="btn btn-primary"
             type="submit"
-            disabled={!consent || busy}
+            disabled={busy}
             data-event="cta_click"
             data-cta="lead-migracja"
           >
@@ -101,20 +103,18 @@ export function MigrationLeadForm() {
             type="checkbox"
             checked={consent}
             onChange={(e) => setConsent(e.target.checked)}
-            required
           />
           <span>
-            Chcę otrzymać plan migracji i kilka wiadomości o hostingu Verris. Zgodę mogę wycofać
-            w każdej chwili, klikając link rezygnacji w mailu. Szczegóły w{' '}
-            <a href="https://panel.verris.pl/legal/privacy">polityce prywatności</a>.
+            {CONSENT_TEXT} (nieobowiązkowe)
           </span>
         </label>
 
         <Captcha action="lead" />
 
         <p className="lead-note">
-          Potwierdzimy adres jednym klikiem (double opt-in). Nie wysyłamy spamu i nie przekazujemy
-          adresu nikomu.
+          Plan wyślemy na podany adres. Administratorem danych jest HVLN Dominik Kowalski; adres
+          przechowujemy zgodnie z{' '}
+          <a href="https://panel.verris.pl/legal/privacy">polityką prywatności</a>.
         </p>
       </form>
     </div>

@@ -1,6 +1,6 @@
 'use server';
 
-import type { HostingDnsPointingDto } from '@verris/contracts';
+import type { HostingDnsPointingDto } from '@verris/contracts/klient';
 import { apiFetch } from '@/lib/api';
 
 export async function fetchDomainPointingAction(

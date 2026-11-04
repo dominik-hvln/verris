@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import { Redis } from 'ioredis';
 
 /**
@@ -30,6 +30,21 @@ export interface RateLimitOptions {
   windowMs: number;
   scope?: string;
   keyByBodyField?: string;
+  /**
+   * P5-03 — liczymy tylko udane żądania (odpowiedź 2xx). Odrzucenia z walidacji (400), duplikat, odmowa nie zjadają
+   * limitu: klient poprawiający literówkę w domenie nie blokuje się na godzinę. Sprawdzenie przed obsługą, doliczenie po.
+   */
+  tylkoUdane?: boolean;
+  /**
+   * Bezpiecznik do `tylkoUdane`: limit WSZYSTKICH prób w tym samym oknie (np. 60/h), żeby nieudanymi próbami
+   * nie dało się dowolnie długo obciążać serwera.
+   */
+  limitProb?: number;
+  /**
+   * A1-02 / P5-03 — klucz per konto (sub z ważnego tokenu) zamiast per IP: biuro za jednym NAT-em nie blokuje się
+   * wzajemnie, a zmiana adresu IP nie omija limitu na koncie. Bez ważnego tokenu — per IP.
+   */
+  perKonto?: boolean;
 }
 
 export const RATE_LIMIT_KEY = 'verris:rate-limit';
@@ -49,6 +64,27 @@ const DEFAULT_WINDOW_MS = 60_000;
  */
 export const AUTHENTICATED_LIMIT = 900;
 export const MAX_BUCKETS = 50_000;
+
+/** Odmiana: 1 minuta, 2–4 minuty, 5+ minut (także 12–14 → „minut”). */
+function odmiana(n: number, [jeden, kilka, wiele]: [string, string, string]): string {
+  if (n === 1) return jeden;
+  const d = n % 10;
+  const s = n % 100;
+  return d >= 2 && d <= 4 && (s < 12 || s > 14) ? kilka : wiele;
+}
+
+/** P5-03 — „Spróbuj ponownie za 52 minuty” z czasu do odblokowania (ten sam co w `retryAfterSeconds`). */
+export function komunikatLimitu(retryAfterSeconds: number): string {
+  const s = Math.max(1, Math.ceil(retryAfterSeconds));
+  const czas =
+    s < 60
+      ? `${s} ${odmiana(s, ['sekundę', 'sekundy', 'sekund'])}`
+      : (() => {
+          const m = Math.ceil(s / 60);
+          return `${m} ${odmiana(m, ['minutę', 'minuty', 'minut'])}`;
+        })();
+  return `Zbyt wiele prób w krótkim czasie. Spróbuj ponownie za ${czas}. Jeśli sprawa jest pilna, napisz na kontakt@verris.pl.`;
+}
 
 interface Bucket {
   count: number;
@@ -118,16 +154,77 @@ export class RateLimitGuard implements CanActivate, OnModuleDestroy {
 
     const options = custom ?? { limit: DEFAULT_LIMIT, windowMs: DEFAULT_WINDOW_MS, scope: 'global' };
     const scope = options.scope ?? `${req.method}:${req.route?.path ?? req.path}`;
-    await this.assertWithinLimit(`${scope}:${ip}`, options);
-
+    const wlasciciel = options.perKonto ? this.kontoZTokenu(req) : null;
+    const klucze = [wlasciciel ? `${scope}:user:${wlasciciel}` : `${scope}:${ip}`];
     if (options.keyByBodyField) {
       const raw = (req.body as Record<string, unknown> | undefined)?.[options.keyByBodyField];
-      if (typeof raw === 'string' && raw.trim()) {
-        await this.assertWithinLimit(`${scope}:field:${raw.trim().toLowerCase()}`, options);
-      }
+      if (typeof raw === 'string' && raw.trim()) klucze.push(`${scope}:field:${raw.trim().toLowerCase()}`);
     }
 
+    if (!options.tylkoUdane) {
+      for (const k of klucze) await this.assertWithinLimit(k, options);
+      return true;
+    }
+
+    // P5-03 — bezpiecznik wszystkich prób (liczony od razu), potem sam limit udanych: sprawdzenie bez doliczania,
+    // doliczenie dopiero, gdy odpowiedź wyszła z kodem 2xx.
+    if (options.limitProb) {
+      for (const k of klucze) await this.assertWithinLimit(`${k}:proby`, { ...options, limit: options.limitProb });
+    }
+    for (const k of klucze) await this.assertBelowLimit(k, options);
+    const res = context.switchToHttp().getResponse<Response | undefined>();
+    if (res && typeof res.once === 'function') {
+      res.once('finish', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          for (const k of klucze) void this.dolicz(k, options).catch(() => undefined);
+        }
+      });
+    }
     return true;
+  }
+
+  /** Tylko sprawdzenie (bez doliczania) — do limitów `tylkoUdane`. */
+  private async assertBelowLimit(key: string, options: RateLimitOptions): Promise<void> {
+    if (this.redis && this.redisHealthy) {
+      try {
+        const redisKey = `rl:${key}`;
+        const count = Number((await this.redis.get(redisKey)) ?? 0);
+        if (count >= options.limit) {
+          const ttl = await this.redis.pttl(redisKey);
+          this.tooMany(Math.max(1, Math.ceil((ttl > 0 ? ttl : options.windowMs) / 1000)));
+        }
+        return;
+      } catch (e) {
+        if (e instanceof HttpException) throw e;
+        this.redisHealthy = false;
+      }
+    }
+    const now = Date.now();
+    const bucket = this.buckets.get(key);
+    if (bucket && bucket.resetAt > now && bucket.count >= options.limit) {
+      this.tooMany(Math.max(1, Math.ceil((bucket.resetAt - now) / 1000)));
+    }
+  }
+
+  /** Doliczenie udanego żądania (`tylkoUdane`). Nie rzuca — odpowiedź już wyszła. */
+  async dolicz(key: string, options: RateLimitOptions): Promise<void> {
+    if (this.redis && this.redisHealthy) {
+      try {
+        const redisKey = `rl:${key}`;
+        const count = await this.redis.incr(redisKey);
+        if (count === 1) await this.redis.pexpire(redisKey, options.windowMs);
+        return;
+      } catch {
+        this.redisHealthy = false;
+      }
+    }
+    const now = Date.now();
+    const bucket = this.buckets.get(key);
+    if (!bucket || bucket.resetAt <= now) {
+      if (this.buckets.size < MAX_BUCKETS) this.buckets.set(key, { count: 1, resetAt: now + options.windowMs });
+      return;
+    }
+    bucket.count += 1;
   }
 
   /** `sub` z poprawnie podpisanego, niewygasłego tokenu Bearer; wszystko inne → null (limit per IP). */
@@ -197,7 +294,8 @@ export class RateLimitGuard implements CanActivate, OnModuleDestroy {
     throw new HttpException(
       {
         statusCode: HttpStatus.TOO_MANY_REQUESTS,
-        message: 'Zbyt wiele żądań. Spróbuj ponownie za chwilę.',
+        // P5-03 — konkretny czas zamiast „za chwilę” (blokada potrafi trwać godzinę) i co zrobić teraz.
+        message: komunikatLimitu(retryAfterSeconds),
         retryAfterSeconds,
       },
       HttpStatus.TOO_MANY_REQUESTS,

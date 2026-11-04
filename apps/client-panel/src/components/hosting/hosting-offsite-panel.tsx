@@ -1,6 +1,6 @@
 'use client';
 
-import { KOPIE_OFFSITE_DNI } from '@verris/contracts';
+import { KOPIE_OFFSITE_DNI } from '@verris/contracts/klient';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import Link from 'next/link';
 import {

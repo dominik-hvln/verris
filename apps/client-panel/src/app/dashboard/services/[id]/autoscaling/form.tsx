@@ -115,7 +115,7 @@ export function AutoscalingForm({
       <div>
         <label className="block">
           <span className="text-xs font-bold uppercase tracking-widest text-neutral-500">
-            Limit miesięczny (K)
+            Limit kosztu na 30 dni (zł)
           </span>
           <input
             type="number"
@@ -125,14 +125,14 @@ export function AutoscalingForm({
             min="0"
             max="99999.99"
             step="0.01"
-            placeholder="np. 50.00 — zostaw puste dla braku limitu"
+            placeholder="np. 30 — puste albo 0 = bez limitu"
             className="mt-1.5 w-full rounded-lg bg-black border border-white/10 px-3 py-2.5 text-white focus:border-emerald-400 focus:outline-none"
           />
         </label>
         <p className="mt-2 text-[11px] text-neutral-500">
-          Po przekroczeniu liczby kredytów (1 zł = 1 K) silnik nie zwiększy więcej zasobów
-          do końca okresu rozliczeniowego — w razie skoku strona zwolni, ale nie
-          wygenerujesz dodatkowych kosztów.
+          Liczymy sumę dopłat za dodatkową moc z ostatnich 30 dni (1 zł = 1 K). Gdy dojdzie do limitu, nie
+          dokładamy więcej zasobów — w razie skoku strona zwolni, ale nie zapłacisz więcej. Bez limitu płacisz za
+          faktyczne użycie według cennika.
         </p>
       </div>
 

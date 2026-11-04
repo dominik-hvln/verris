@@ -32,3 +32,14 @@ export async function revokeSession(id: string) {
     return { error: 'Błąd połączenia z serwerem' };
   }
 }
+
+/** P5-06 — wyloguj wszystkie inne urządzenia (bieżące zostaje). */
+export async function revokeOtherSessions() {
+  try {
+    const res = await apiFetch<{ wylogowane: number }>('/auth/sessions/revoke-others', { method: 'POST' });
+    return { success: true as const, wylogowane: res.wylogowane ?? 0 };
+  } catch (err) {
+    if (err instanceof ApiError) return { error: err.message };
+    return { error: 'Błąd połączenia z serwerem' };
+  }
+}

@@ -8,7 +8,7 @@ Umowa zawierana drogą elektroniczną między Klientem (administratorem danych p
 
 **Podmiot przetwarzający („Verris"):** HVLN Dominik Kowalski z siedzibą pod adresem Zacisze 2A, 65-775 Zielona Góra, wpisany do CEIDG, NIP 9292069367, REGON 521024260, e-mail w sprawach ochrony danych: `rodo@verris.pl`.
 
-**Administrator („Klient"):** podmiot wskazany w danych rozliczeniowych Konta w Panelu (nazwa/imię i nazwisko, adres, NIP — jeżeli dotyczy — oraz e-mail kontaktowy pobierane są automatycznie z Konta i uwidaczniane w wygenerowanym egzemplarzu Umowy w Panelu, sekcja Zgodność).
+**Administrator („Klient"):** podmiot wskazany w danych rozliczeniowych Konta w Panelu (nazwa/imię i nazwisko, adres, NIP — jeżeli dotyczy — oraz e-mail kontaktowy pobierane są automatycznie z Konta i uwidaczniane w wygenerowanym egzemplarzu Umowy, który Klient pobiera w Panelu: Ustawienia → Prywatność i dane).
 
 Jeżeli Klient sam działa jako podmiot przetwarzający dla osób trzecich (np. Reseller albo agencja prowadząca serwisy swoich klientów), Klient oświadcza, że jest umocowany do dalszego powierzenia danych Verris, a Verris działa jako dalszy podmiot przetwarzający; postanowienia Umowy stosuje się odpowiednio.
 
@@ -16,6 +16,7 @@ Jeżeli Klient sam działa jako podmiot przetwarzający dla osób trzecich (np. 
 
 1. Klient powierza Verris przetwarzanie danych osobowych wyłącznie w celu i w zakresie niezbędnym do świadczenia Usług zgodnie z Regulaminem i wybranymi Planami.
 2. Charakter przetwarzania jest wyłącznie techniczny: przechowywanie, utrwalanie, porządkowanie, transmisja, wykonywanie kopii zapasowych i usuwanie danych w ramach udostępnianej infrastruktury (hosting, VPS, poczta, wysyłka kampanii e-mail). Verris nie analizuje treści powierzonych danych i nie wykorzystuje ich do własnych celów.
+3. Jeżeli Klient włączy dla swojej strony statystyki odwiedzin Verris, Verris w imieniu Klienta zlicza odsłony strony: z adresu IP i przeglądarki odwiedzającego tworzy jednokierunkowy skrót z solą zmienianą co dobę (sam adres IP ani przeglądarka nie są zapisywane), zapisuje kraj, ścieżkę odwiedzonej strony, domenę strony odsyłającej i rodzaj urządzenia; statystyki nie używają plików cookies i respektują ustawienie „Do Not Track”. Zdarzenia są usuwane po 90 dniach. Ocena, czy i jak Klient informuje o statystykach odwiedzających swoją stronę (w tym w polityce prywatności strony Klienta), należy do Klienta jako administratora.
 
 ## §3. Czas trwania
 
@@ -23,8 +24,8 @@ Umowa obowiązuje od chwili rozpoczęcia korzystania z Usług i trwa przez okres
 
 ## §4. Rodzaje danych i kategorie osób
 
-1. Zakres powierzonych danych określa samodzielnie Klient poprzez treści, które umieszcza w ramach Usług. Typowo obejmuje: dane identyfikacyjne i kontaktowe (imię, nazwisko, e-mail, telefon, adres), dane rozliczeniowe klientów Klienta, dane logowania użytkowników serwisów Klienta, treści generowane przez użytkowników, adresy IP w logach serwisów Klienta oraz listy odbiorców kampanii e-mail.
-2. Kategorie osób: klienci i kontrahenci Klienta, użytkownicy jego serwisów, pracownicy i współpracownicy Klienta, odbiorcy jego kampanii e-mail.
+1. Zakres powierzonych danych określa samodzielnie Klient poprzez treści, które umieszcza w ramach Usług. Typowo obejmuje: dane identyfikacyjne i kontaktowe (imię, nazwisko, e-mail, telefon, adres), dane rozliczeniowe klientów Klienta, dane logowania użytkowników serwisów Klienta, treści generowane przez użytkowników, adresy IP w logach serwisów Klienta, listy odbiorców kampanii e-mail oraz — jeżeli Klient włączy statystyki odwiedzin — dane odwiedzających opisane w §2 ust. 3.
+2. Kategorie osób: klienci i kontrahenci Klienta, użytkownicy i odwiedzający jego serwisy, pracownicy i współpracownicy Klienta, odbiorcy jego kampanii e-mail.
 3. Klient nie powierza Verris szczególnych kategorii danych (art. 9 RODO) ani danych dotyczących wyroków skazujących (art. 10 RODO), chyba że zapewni we własnym zakresie zgodność takiego przetwarzania z prawem i poinformuje Verris przed rozpoczęciem przetwarzania na `rodo@verris.pl`.
 4. Powierzenie nie obejmuje danych Klienta i osób go reprezentujących związanych z prowadzeniem Konta i rozliczeniami — te Verris przetwarza jako odrębny administrator (Polityka prywatności).
 
@@ -54,7 +55,7 @@ Klient zobowiązuje się powierzać dane zgodnie z prawem (posiadać podstawy pr
 
 ## §8. Transfery poza EOG
 
-1. Dane są przechowywane na infrastrukturze zlokalizowanej w EOG.
+1. Dane są przechowywane na infrastrukturze zlokalizowanej w Unii Europejskiej.
 2. Transfer do państwa trzeciego może nastąpić wyłącznie w zakresie wskazanym w Załączniku 2 (transfery wspierające dostawców z grup spółek spoza EOG) i wyłącznie na podstawie zabezpieczeń z rozdziału V RODO: standardowych klauzul umownych (decyzja 2021/914) wraz ze środkami uzupełniającymi lub decyzji adekwatności (w tym EU-U.S. Data Privacy Framework dla podmiotów certyfikowanych).
 3. Wprowadzenie transferu wykraczającego poza Załącznik 2 traktowane jest jak zmiana dalszego podmiotu przetwarzającego (§7 ust. 2).
 
@@ -75,7 +76,7 @@ Strony odpowiadają zgodnie z art. 82 RODO. W relacjach między stronami odpowie
 
 ## §12. Postanowienia końcowe
 
-1. Umowa zawierana jest drogą elektroniczną z chwilą akceptacji w Panelu lub rozpoczęcia korzystania z Usług obejmujących przetwarzanie danych osób trzecich; egzemplarz z danymi stron można pobrać w Panelu (sekcja Zgodność).
+1. Umowa zawierana jest drogą elektroniczną z chwilą akceptacji w Panelu (Ustawienia → Prywatność i dane → Umowa powierzenia danych) lub rozpoczęcia korzystania z Usług obejmujących przetwarzanie danych osób trzecich. Po akceptacji Klient pobiera w tym samym miejscu egzemplarz z danymi stron (PDF), a akceptacja jest widoczna w historii zgód Konta.
 2. Zmiany Umowy następują w trybie przewidzianym dla zmian Regulaminu (§24 Regulaminu); zmiany Załącznika 2 — w trybie §7.
 3. W sprawach nieuregulowanych stosuje się RODO, ustawę z dnia 10 maja 2018 r. o ochronie danych osobowych i Kodeks cywilny. Językiem Umowy jest polski.
 4. Spory rozstrzyga sąd właściwy dla siedziby Verris.
@@ -84,20 +85,20 @@ Strony odpowiadają zgodnie z art. 82 RODO. W relacjach między stronami odpowie
 
 ## Załącznik 1 — Środki techniczne i organizacyjne (art. 32 RODO)
 
-**Środki techniczne:** szyfrowanie transmisji (TLS, HSTS); szyfrowanie danych wrażliwych w spoczynku (AES-256-GCM, rotacja kluczy); hashowanie haseł (bcrypt); uwierzytelnianie dwuskładnikowe i passkeys, wymuszone dla personelu Verris; kontrola dostępu RBAC z zasadą minimalnych uprawnień; dostęp do paneli administracyjnych wyłącznie przez VPN (WireGuard); izolacja kont hostingowych (CloudLinux CageFS, limity LVE, MySQL Governor); zapora aplikacyjna WAF (ModSecurity/OWASP CRS); wymuszone FTPS; ograniczenia szybkości żądań (rate limiting) i ochrona anty-bot; rejestrowanie operacji w dzienniku audytu; kopie zapasowe szyfrowane przed wysyłką (age), przechowywane poza podstawową lokalizacją, z kopiami niezmienialnymi (WORM) i okresowymi testami odtwarzania; całodobowy monitoring i alertowanie.
+**Środki techniczne:** szyfrowanie transmisji (TLS, HSTS); szyfrowanie danych wrażliwych w spoczynku (AES-256-GCM, rotacja kluczy); hashowanie haseł (bcrypt); uwierzytelnianie dwuskładnikowe i passkeys, wymuszone dla personelu Verris; kontrola dostępu RBAC z zasadą minimalnych uprawnień; dostęp do paneli administracyjnych wyłącznie przez VPN; izolacja kont hostingowych (odrębne środowisko plików każdego konta) oraz limity procesora, pamięci, operacji dyskowych i zapytań do bazy danych dla każdego konta; zapora aplikacyjna WAF z regułami OWASP; wymuszone FTPS; ograniczenia szybkości żądań (rate limiting) i ochrona anty-bot; rejestrowanie operacji w dzienniku audytu; kopie zapasowe szyfrowane przed wysyłką (age), przechowywane poza podstawową lokalizacją, z kopiami niezmienialnymi (WORM) i okresowymi testami odtwarzania; całodobowy monitoring i alertowanie.
 
 **Środki organizacyjne:** zobowiązania do poufności osób upoważnionych; procedura reagowania na incydenty i naruszenia (zgłoszenie do Klienta ≤ 24 h); rejestr czynności przetwarzania; okresowe przeglądy uprawnień; ocena dostawców i umowy powierzenia z dalszymi podmiotami przetwarzającymi; planowane cykliczne zewnętrzne testy penetracyjne.
 
-**Infrastruktura fizyczna:** Verris korzysta z centrów danych dostawcy wskazanego w Załączniku 2 (obiekty w EOG z kontrolą dostępu fizycznego, redundantnym zasilaniem i certyfikacjami branżowymi dostawcy).
+**Infrastruktura fizyczna:** Verris korzysta z centrów danych dostawcy wskazanego w Załączniku 2 (obiekty w Unii Europejskiej z kontrolą dostępu fizycznego, redundantnym zasilaniem i certyfikacjami branżowymi dostawcy).
 
 ## Załącznik 2 — Dalsze podmioty przetwarzające
 
 | Podmiot | Siedziba / lokalizacja danych | Zakres | Transfer poza EOG |
 | --- | --- | --- | --- |
-| Hetzner Online GmbH | Niemcy (DC: Niemcy/Finlandia) | infrastruktura serwerowa: węzły hostingowe, serwery VPS, control-plane, kopie zapasowe (Storage Box / Object Storage) | nie |
+| Hetzner Online GmbH | Niemcy (centra danych w Niemczech i Finlandii, UE) | serwery: hosting, serwery VPS, panel i baza danych Verris, zaszyfrowane kopie zapasowe przechowywane poza podstawową lokalizacją | nie |
 | Amazon Web Services EMEA SARL | Luksemburg (region UE: Frankfurt/Irlandia) | wysyłka e-mail (Amazon SES) — powiadomienia i kampanie e-mail marketingu Klienta | możliwy dostęp wspierający z USA — SCC / Data Privacy Framework |
 | Stripe Payments Europe, Ltd. | Irlandia | obsługa płatności (dotyczy wyłącznie danych rozliczeniowych; wskazana dla kompletności) | możliwy transfer wspierający do USA — SCC / Data Privacy Framework |
-| Cloudflare, Inc. | USA (punkty obecności w EOG) | ochrona anty-bot formularzy (Turnstile) | tak — SCC / Data Privacy Framework |
+| Cloudflare, Inc. | USA (punkty obecności w EOG) | ochrona przed botami formularzy rejestracji i logowania (Turnstile; dotyczy danych Klienta i jego współpracowników, wskazana dla kompletności) | tak — SCC / Data Privacy Framework |
 | Hosting Concepts B.V. (Openprovider) | Holandia | rejestracja i obsługa domen (dane abonentów domen) | zależnie od rejestru domeny |
 
 ---

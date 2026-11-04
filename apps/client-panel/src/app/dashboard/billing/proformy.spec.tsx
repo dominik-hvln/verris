@@ -3,7 +3,7 @@
  */
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
-import type { ProformaDto } from '@verris/contracts';
+import type { ProformaDto } from '@verris/contracts/klient';
 
 const zaplacProformeAction = jest.fn();
 jest.mock('./actions', () => ({ zaplacProformeAction: (...a: unknown[]) => zaplacProformeAction(...a) }));

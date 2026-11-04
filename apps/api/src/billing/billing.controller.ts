@@ -141,12 +141,11 @@ export class BillingController {
     @Query('to') to?: string,
     @Query('type') type?: string,
   ) {
-    const filters = {
-      userId: user.userId,
+    // P2-10 — klient dostaje historię czytelną dla księgowej, nie zrzut techniczny operatora.
+    const { csv, filename } = await this.billing.eksportHistoriiPortfelaKlienta(user.userId, {
       ...parseDateRange(from, to),
       ...parseTxType(type),
-    };
-    const { csv, filename } = await this.billing.exportTransactionsCsv(filters);
+    });
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(csv);

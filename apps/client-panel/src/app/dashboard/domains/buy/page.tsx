@@ -1,6 +1,6 @@
 import { DomainPurchaseWizard } from '../components/domain-purchase-wizard';
 import { fetchRegistrarOrders, fetchRegistrarStatus } from '../actions';
-import { tylkoProbneUslugi, uslugaWProbie, type ServiceSummaryDto } from '@verris/contracts';
+import { tylkoProbneUslugi, uslugaWProbie, type ServiceSummaryDto } from '@verris/contracts/klient';
 import { listServices } from '../../services/data';
 import { OgraniczenieProby } from '@/components/panel/ograniczenie-proby';
 

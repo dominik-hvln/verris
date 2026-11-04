@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { Accordion, Button, JsonLd, SectionHead2 } from '../components/ui';
 import { BetaForm } from '../components/BetaForm';
 import { pobierzCeny } from '@/lib/ceny-api';
@@ -32,7 +33,7 @@ const KOGO: [string, string][] = [
 const KROKI: [string, string][] = [
   ['Zgłaszasz się', 'Formularz niżej: imię, e-mail i co chcesz przetestować. Potem potwierdzasz adres linkiem z maila. Minuta.'],
   ['Dostajesz zaproszenie', `Mail z imiennym kodem na ${KREDYT_TESTOW} K i krótką listą rzeczy do sprawdzenia.`],
-  ['Uruchamiasz hosting', 'Rejestracja, kod w portfelu, zakup hostingu i przeniesienie strony.'],
+  ['Uruchamiasz usługę', 'Rejestracja, kod w portfelu, zakup hostingu i przeniesienie strony. Testujesz tylko pocztę? Zamawiasz samą pocztę.'],
   ['Mówisz nam, co nie gra', 'Przycisk „Zgłoś uwagę” w panelu, ze zrzutem ekranu. Na koniec 5 pytań.'],
 ];
 
@@ -171,6 +172,11 @@ export default async function Page() {
               </li>
             ))}
           </ol>
+          {/* P1-04: co przygotować przed przeniesieniem — ta sama lista co na /przenies-strone. */}
+          <p className="b-przypis">
+            Przenosisz stronę? Przygotuj login do starego panelu albo dane FTP i hasła skrzynek. Jeśli stronę robił ktoś
+            inny, poproś go o nie wcześniej. <Link href="/przenies-strone#co-przygotowac">Co przygotować do przeniesienia</Link>
+          </p>
         </div>
       </section>
 
@@ -215,7 +221,8 @@ export default async function Page() {
               ustawiasz sam w panelu. W testach to jeden ze scenariuszy: sprawdzisz prognozę zużycia i ustawienia limitu.
             </p>
           </div>
-          <div className="card bt-limity">
+          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- A3-13: przewijany w bok obszar musi dostać fokus (WCAG 2.1.1, axe scrollable-region-focusable) */}
+          <div className="card bt-limity" role="region" aria-label="Limity w pakiecie i z autoskalowaniem" tabIndex={0}>
             <table>
               <caption className="bt-sr">Limity w pakiecie i z autoskalowaniem</caption>
               <thead>

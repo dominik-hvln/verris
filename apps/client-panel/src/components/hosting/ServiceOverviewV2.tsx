@@ -1,6 +1,6 @@
 'use client';
 
-import { domenaDoWyswietlenia, opisLokalizacji } from '@verris/contracts';
+import { LOKALIZACJA_DANYCH_KLIENTA, domenaDoWyswietlenia } from '@verris/contracts/klient';
 
 /**
  * PB-15 — ekran-wzorzec: widok usługi hostingowej w nowym wyglądzie
@@ -21,7 +21,7 @@ import type {
   ServiceHealthSummaryDto,
   HostingDomainsResponseDto,
   HostingBackupsResponseDto,
-} from '@verris/contracts';
+} from '@verris/contracts/klient';
 import {
   fetchServiceDetailsAction as fetchServiceDetailsActionAkcja,
 } from '@/app/dashboard/services/[id]/hosting-service-actions';
@@ -567,10 +567,10 @@ export default function ServiceOverviewV2({
                 { label: 'Baza danych', values: ['localhost'], port: '3306' },
               ]}
             />
-            {/* P-13 — gdzie fizycznie leżą dane usługi (region węzła albo ogólne EOG, gdy nieustalony). 09.10: jedna
-                krótka linia — szczegóły (kopie, podmioty przetwarzające) są w polityce prywatności. */}
+            {/* P5-11 (decyzja 3.11.2026) — lokalizacja danych dla klienta to wyłącznie „Unia Europejska”, bez kraju
+                i miasta. Szczegóły (kopie, podmioty przetwarzające) są w polityce prywatności. */}
             <p className="mx-4 mb-3 mt-2 text-[12.5px] text-muted-foreground">
-              Lokalizacja danych: {opisLokalizacji(account?.server?.region).opis}
+              Lokalizacja danych: {LOKALIZACJA_DANYCH_KLIENTA}
             </p>
           </Box>
 

@@ -1,6 +1,6 @@
 'use server';
 
-import type { DomainDto, ServiceSummaryDto, WalletSummaryDto } from '@verris/contracts';
+import type { DomainDto, ServiceSummaryDto, WalletSummaryDto } from '@verris/contracts/klient';
 import { apiFetch } from '@/lib/api';
 import { getWalletSummary } from './billing/data';
 import { fetchUserProfile, type UserProfile } from './settings/actions';

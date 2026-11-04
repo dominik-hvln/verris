@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { MAKS_DLUGOSC_UWAGI_BETA, SCENARIUSZE_BETA, policzPostepBeta, type PostepBetaDto } from "@verris/contracts";
+import { MAKS_DLUGOSC_UWAGI_BETA, SCENARIUSZE_BETA, SCENARIUSZE_BETA_POCZTA, policzPostepBeta, type PostepBetaDto } from "@verris/contracts/klient";
 import { Checkbox } from "@/components/panel/checkbox";
 import { Meter } from "@/components/panel/v2";
 import { plForm } from "@/lib/pl";
@@ -98,6 +98,10 @@ export function ListaTestowBeta({ poczatkowy }: { poczatkowy: PostepBetaDto }) {
           ) : null}
         </div>
         <Meter pct={pct} />
+        <p className="mt-3 text-[13px] text-muted-foreground" data-sciezka-poczta>
+          Testujesz tylko pocztę? Zamów „Poczta e-mail” zamiast hostingu i przejdź scenariusze oznaczone „Też przy samej poczcie”
+          ({SCENARIUSZE_BETA_POCZTA.length}) — resztę możesz pominąć.
+        </p>
       </section>
 
       {SCENARIUSZE_BETA.map((s, i) => {
@@ -107,12 +111,18 @@ export function ListaTestowBeta({ poczatkowy }: { poczatkowy: PostepBetaDto }) {
         return (
           <section key={s.id} id={s.id} className="scroll-mt-24 border-t border-line pt-6" aria-labelledby={`${s.id}-tytul`}>
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <span className="font-mono text-[12px] text-data">{String(i + 1).padStart(2, "0")}</span>
+              <span className="font-mono text-[12px] text-data-hi">{String(i + 1).padStart(2, "0")}</span>
               <h2 id={`${s.id}-tytul`} className="m-0 font-display text-[18px] font-bold leading-tight text-foreground">{s.tytul}</h2>
               <span className="font-mono text-[11.5px] text-muted-foreground">{s.czas}</span>
               {s.opcjonalny ? (
                 <span className="rounded-full border border-line px-2 py-0.5 text-[11.5px] text-muted-foreground" data-opcjonalny={s.id}>
                   Opcjonalnie — dla osób technicznych
+                </span>
+              ) : null}
+              {s.poczta ? (
+                // P4-12 — ścieżka „tylko poczta”: tester bez hostingu wie, które scenariusze go dotyczą.
+                <span className="rounded-full border border-line px-2 py-0.5 text-[11.5px] text-muted-foreground" data-poczta={s.id}>
+                  Też przy samej poczcie
                 </span>
               ) : null}
               <span className={ps.gotowy ? "ml-auto text-[12.5px] font-semibold text-data-hi" : "ml-auto text-[12.5px] text-muted-foreground"}>

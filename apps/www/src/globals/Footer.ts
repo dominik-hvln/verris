@@ -26,6 +26,9 @@ export const Footer: GlobalConfig = {
       name: 'legalLine',
       type: 'text',
       label: 'Linia prawna',
+      // A2-09 (3.11.2026): stopka bierze dane sprzedawcy z kodu (apps/www/src/lib/sprzedawca.ts) — pole zostaje
+      // w bazie, ale nie jest wyświetlane.
+      admin: { description: 'Nieużywane — dane sprzedawcy w stopce pochodzą z kodu strony.' },
       defaultValue: '© 2026 Verris · Operator: HVLN Dominik Kowalski, Zielona Góra · NIP 9292069367',
     },
     {
@@ -33,7 +36,7 @@ export const Footer: GlobalConfig = {
       type: 'text',
       label: 'Linia płatności / SLA',
       defaultValue:
-        'Płatności: karta · BLIK · Przelewy24 · Paynow · SLA 99,5% z rekompensatami na wniosek wg regulaminu',
+        'Płatności: karta · BLIK · Przelewy24 · Paynow · SLA 99,5% z rekompensatami przyznawanymi automatycznie wg regulaminu',
     },
   ],
 };

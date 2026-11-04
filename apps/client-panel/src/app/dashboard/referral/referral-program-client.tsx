@@ -23,6 +23,8 @@ export function ReferralProgramClient() {
   const [data, setData] = useState<ReferralProgramStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // P2-08: zgoda na zasady programu naprawdę blokuje zgłoszenie (wcześniej `required` bez formularza nic nie robił).
+  const [zasadyOk, setZasadyOk] = useState(false);
 
   useEffect(() => {
     fetchReferralProgramStatus()
@@ -64,19 +66,26 @@ export function ReferralProgramClient() {
 
       {!data?.status ? (
         <section className="rounded-2xl border border-white/10 bg-black/30 p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-white">Dołącz do programu partnerskiego</h2>
+          <h2 className="text-lg font-semibold text-white">Dołącz do programu poleceń</h2>
           <p className="text-sm text-neutral-400 leading-relaxed">
-            Po akceptacji przez zespół Verris otrzymasz osobisty link polecający. Za każdego klienta,
-            który zarejestruje się z Twojego linku, oboje otrzymacie punkty EKO.
+            Po akceptacji przez zespół Verris otrzymasz osobisty link polecający. Od każdej płatności klienta,
+            który założy konto z Twojego linku, dostajesz prowizję na portfel. Prowizja czeka chwilę (ochrona
+            przed zwrotami), potem możesz ją przenieść do portfela albo wypłacić na konto bankowe. Wysokość
+            prowizji, czas oczekiwania i minimalną wypłatę zobaczysz tu po akceptacji.
           </p>
           <label className="flex items-start gap-3 text-sm text-neutral-300">
-            <Checkbox required className="mt-1 accent-emerald-500" id="terms" />
-            <span>Akceptuję regulamin programu poleceń i zasady wypłat / punktów EKO.</span>
+            <Checkbox
+              className="mt-1 accent-emerald-500"
+              id="terms"
+              checked={zasadyOk}
+              onChange={(e) => setZasadyOk(e.target.checked)}
+            />
+            <span>Akceptuję zasady programu poleceń opisane wyżej.</span>
           </label>
           <button
             type="button"
             onClick={onApply}
-            disabled={pending}
+            disabled={pending || !zasadyOk}
             className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-bold text-white hover:bg-emerald-500 disabled:opacity-50"
           >
             {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
@@ -114,7 +123,7 @@ export function ReferralProgramClient() {
             {panelOrigin}/register?ref={data.referralCode}
           </p>
           <p className="text-xs text-neutral-500">
-            Udostępnij link znajomym. Gdy założą konto, punkty EKO przypiszemy automatycznie.
+            Udostępnij link. Prowizję naliczymy automatycznie od płatności klientów, którzy założą konto z tego linku.
           </p>
         </section>
       ) : null}

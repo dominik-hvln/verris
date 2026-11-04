@@ -2,7 +2,7 @@ import type {
   PlanDto,
   ServiceDetailsDto,
   ServiceSummaryDto,
-} from '@verris/contracts';
+} from '@verris/contracts/klient';
 import { apiFetch } from '@/lib/api';
 
 export async function listServices(): Promise<ServiceSummaryDto[]> {
@@ -24,6 +24,8 @@ export interface TrialOffer {
   monthlyDiscountPct: number;
   annualPromoCode: string;
   monthlyPromoCode: string;
+  /** Na ile okresów rozliczeniowych działa rabat na start (API: 1–24, domyślnie 1). */
+  introDiscountPeriods?: number;
 }
 
 /** UX-3 — oferta okresu próbnego (chooser zamawiania). Fallback bezpieczny. */

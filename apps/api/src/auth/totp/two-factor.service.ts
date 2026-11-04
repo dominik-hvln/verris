@@ -1,6 +1,8 @@
 import {
   BadRequestException,
   ConflictException,
+  HttpException,
+  HttpStatus,
   Injectable,
   Logger,
   NotFoundException,
@@ -26,6 +28,11 @@ interface RecoveryStorage {
   /** SHA-256 hex of each unused recovery code. Consumed entries are removed. */
   remaining: string[];
 }
+
+/** A1-02 — najwyżej 5 nieudanych prób wyłączenia 2FA na konto w 15 minut. */
+export const WYLACZENIE_2FA_MAKS_PROB = 5;
+export const WYLACZENIE_2FA_OKNO_MS = 15 * 60 * 1000;
+const POWOD_PORAZKI_WYLACZENIA = '2fa_disable_failed';
 
 @Injectable()
 export class TwoFactorService {
@@ -193,6 +200,20 @@ export class TwoFactorService {
       throw new ConflictException('2FA is not enabled');
     }
 
+    // A1-02 — limit porażek na KONTO (każde IP): przejęta sesja nie zgadnie kodu TOTP ani hasła seriami prób
+    // (wcześniej 40 błędnych kodów w 0,3 s bez blokady, a pole przyjmuje też hasło — wyrocznia hasła bez limitu).
+    const email = user.email.toLowerCase();
+    const od = new Date(Date.now() - WYLACZENIE_2FA_OKNO_MS);
+    const porazki = await this.prisma.loginAttempt.count({
+      where: { email, succeeded: false, reason: POWOD_PORAZKI_WYLACZENIA, createdAt: { gte: od } },
+    });
+    if (porazki >= WYLACZENIE_2FA_MAKS_PROB) {
+      throw new HttpException(
+        { statusCode: HttpStatus.TOO_MANY_REQUESTS, message: 'Zbyt wiele błędnych prób wyłączenia 2FA. Spróbuj ponownie za 15 minut.' },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
     let verified = false;
     if (opts.code && user.twoFactorSecret) {
       verified = this.totp.verify(this.crypto.decrypt(user.twoFactorSecret), opts.code);
@@ -202,6 +223,9 @@ export class TwoFactorService {
     }
 
     if (!verified) {
+      await this.prisma.loginAttempt.create({
+        data: { email, ip: opts.ip ?? null, succeeded: false, reason: POWOD_PORAZKI_WYLACZENIA },
+      });
       throw new UnauthorizedException(
         'Aby wyłączyć 2FA podaj poprawne hasło lub aktualny kod TOTP.',
       );

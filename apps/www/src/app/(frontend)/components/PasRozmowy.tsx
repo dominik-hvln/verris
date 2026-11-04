@@ -13,6 +13,17 @@ export const KLAUZULA_ODDZWONIENIA =
 /** Godziny oddzwaniania — decyzja Dominika 1.11.2026. */
 export const GODZINY_ODDZWANIANIA = 'Oddzwonimy w dni robocze 9–17, zwykle tego samego dnia.';
 
+/** P4-14 (beta 3.11): o czym rozmawiamy — zależnie od strony (na /poczta nikt nie pyta o przeniesienie strony). */
+export type TematRozmowy = 'strona' | 'poczta' | 'ogolny';
+export const OPIS_ROZMOWY: Record<TematRozmowy, string> = {
+  strona: 'Zostaw numer, oddzwoni Dominik, który buduje Verris. Pomożemy dobrać ustawienia i zaplanować przeniesienie strony.',
+  poczta: 'Zostaw numer, oddzwoni Dominik, który buduje Verris. Pomożemy ustawić pocztę i domenę, krok po kroku.',
+  ogolny: 'Zostaw numer, oddzwoni Dominik, który buduje Verris. Porozmawiamy o hostingu, poczcie albo przeniesieniu strony.',
+};
+
+/** Potwierdzenie po wysłaniu — jedno zdanie (wcześniej dwa razy „Oddzwonimy”). */
+export const POTWIERDZENIE_ODDZWONIENIA = 'Dziękujemy! Oddzwonimy w wybranej porze dnia, w dni robocze 9–17.';
+
 const PORY: { id: PoraOddzwonienia; label: string }[] = [
   { id: 'rano', label: 'rano' },
   { id: 'poludnie', label: 'w południe' },
@@ -23,7 +34,15 @@ const PORY: { id: PoraOddzwonienia; label: string }[] = [
  * Pas „Wolisz porozmawiać?” (makieta 1.11): prośba o telefon zwrotny → POST /public/leads/callback.
  * Wstaw przed stopką strony usługi. `id` pozwala linkować do pasa (np. „Poproś o telefon” w sekcji przeniesienia).
  */
-export function PasRozmowy({ id = 'porozmawiajmy', zrodlo = 'callback_form' }: { id?: string; zrodlo?: string }) {
+export function PasRozmowy({
+  id = 'porozmawiajmy',
+  zrodlo = 'callback_form',
+  temat = 'strona',
+}: {
+  id?: string;
+  zrodlo?: string;
+  temat?: TematRozmowy;
+}) {
   const [pora, setPora] = useState<PoraOddzwonienia>('rano');
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
@@ -71,16 +90,13 @@ export function PasRozmowy({ id = 'porozmawiajmy', zrodlo = 'callback_form' }: {
             </span>
             <div>
               <h2 id={`${id}-h`}>Wolisz porozmawiać?</h2>
-              <p>
-                Zostaw numer, oddzwoni Dominik, który buduje Verris. Pomożemy dobrać ustawienia i zaplanować
-                przeniesienie strony.
-              </p>
+              <p>{OPIS_ROZMOWY[temat]}</p>
               <p className="pasrozm-godz">{GODZINY_ODDZWANIANIA}</p>
             </div>
           </div>
           {sent ? (
             <div className="form-ok pasrozm-ok" role="status">
-              Dziękujemy! Oddzwonimy w wybranej porze dnia. {GODZINY_ODDZWANIANIA}
+              {POTWIERDZENIE_ODDZWONIENIA}
             </div>
           ) : (
             <form className="pasrozm-form" onSubmit={onSubmit}>

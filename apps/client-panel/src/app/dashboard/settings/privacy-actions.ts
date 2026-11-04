@@ -54,7 +54,7 @@ export interface UserConsentRow {
   locale: string;
   grantedAt: string;
   withdrawnAt: string | null;
-  source: "REGISTRATION" | "RE_CONSENT" | "SETTINGS" | "ADMIN_MANUAL";
+  source: "REGISTRATION" | "RE_CONSENT" | "SETTINGS" | "ADMIN_MANUAL" | "SUBACCOUNT_ACTIVATION";
 }
 
 export async function fetchConsentHistory(): Promise<UserConsentRow[]> {
@@ -124,20 +124,46 @@ export async function fetchDeletionStatus(): Promise<DeletionStatus> {
   }
 }
 
+/** A2-07 — co się stanie po usunięciu konta (przed potwierdzeniem). */
+export interface DeletionSummary {
+  saldo: string;
+  doZwrotu: string;
+  nieZwracane: string;
+  terminZwrotuDni: number;
+  wniosekZwrotu: { kwota: string; rachunek: string; terminDo: string } | null;
+  domeny: { nazwa: string; wygasa: string | null; autoOdnowienie: boolean }[];
+  uslugi: { id: string; nazwa: string; koniecOkresu: string | null }[];
+  dataUsuniecia: string;
+  gracePeriodDays: number;
+}
+
+export async function fetchDeletionSummary(): Promise<DeletionSummary | null> {
+  try {
+    return await apiFetch<DeletionSummary>("/me/account-deletion/podsumowanie");
+  } catch {
+    return null;
+  }
+}
+
 export async function requestAccountDeletion(
   password: string,
   reason?: string,
-): Promise<{ ok: true; scheduledFor: string } | { ok: false; error: string }> {
+  zwrot?: { numerRachunku: string; odbiorca: string },
+): Promise<
+  | { ok: true; scheduledFor: string; wniosekZwrotu: { kwota: string; terminDo: string } | null }
+  | { ok: false; error: string }
+> {
   try {
-    const result = await apiFetch<{ scheduledFor: string; gracePeriodDays: number }>(
-      "/me/account-deletion",
-      {
-        method: "POST",
-        body: JSON.stringify({ password, reason }),
-      },
-    );
+    const result = await apiFetch<{
+      scheduledFor: string;
+      gracePeriodDays: number;
+      wniosekZwrotu?: { kwota: string; terminDo: string } | null;
+    }>("/me/account-deletion", {
+      method: "POST",
+      body: JSON.stringify({ password, reason, ...(zwrot?.numerRachunku.trim() ? zwrot : {}) }),
+    });
     revalidatePath("/dashboard/settings");
-    return { ok: true, scheduledFor: result.scheduledFor };
+    return { ok: true, scheduledFor: result.scheduledFor, wniosekZwrotu: result.wniosekZwrotu ?? null };
   } catch (err) {
     const error = err instanceof Error ? err.message : "Nie udało się zażądać usunięcia konta";
     return { ok: false, error };

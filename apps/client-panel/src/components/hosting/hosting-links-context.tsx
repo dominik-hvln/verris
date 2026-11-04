@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import type { HostingDaLinksResponseDto } from '@verris/contracts';
+import type { HostingDaLinksResponseDto } from '@verris/contracts/klient';
 import { Loader2 } from 'lucide-react';
 import {
   fetchHostingDaLinksAction as fetchHostingDaLinksActionAkcja,

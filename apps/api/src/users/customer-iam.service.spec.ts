@@ -32,7 +32,7 @@ describe('CustomerIamService', () => {
   });
 
   function service() {
-    return new CustomerIamService(prisma as never, audit as never, mailer as never, config as never);
+    return new CustomerIamService(prisma as never, audit as never, mailer as never, config as never, {} as never);
   }
 
   it('returns IAM overview only for the account owner', async () => {

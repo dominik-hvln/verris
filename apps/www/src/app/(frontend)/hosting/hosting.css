@@ -2,7 +2,7 @@
 .h-fine{margin:14px 0 0;font-size:14px;color:var(--stone)}
 
 /* Specyfikacja w zakładkach */
-.hspec{display:grid;gap:14px}
+.hspec{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
 .hspec-prz{display:flex;justify-content:flex-end}
 .hspec-prz .seg{width:220px;max-width:100%}
 .hspec-tab{overflow-x:auto;-webkit-overflow-scrolling:touch}

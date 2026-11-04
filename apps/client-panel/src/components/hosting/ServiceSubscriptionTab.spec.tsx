@@ -3,7 +3,7 @@
  */
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import type { ServiceDetailsDto } from '@verris/contracts';
+import type { ServiceDetailsDto } from '@verris/contracts/klient';
 
 /**
  * Weryfikacja 11.10 — po anulacji na koniec okresu (cancelAt) zakładka „Subskrypcja i płatności” pokazywała
@@ -21,6 +21,8 @@ jest.mock('@/app/dashboard/services/subscription-payment-actions', () => ({
   retrySubscriptionPaymentAction: jest.fn(),
 }));
 jest.mock('next/navigation', () => ({ useRouter: () => ({ refresh: jest.fn(), push: jest.fn() }) }));
+const fetchSidebarUser = jest.fn(async (): Promise<{ isSubaccount?: boolean; actingFor?: unknown } | null> => ({ isSubaccount: false, actingFor: null }));
+jest.mock('@/app/dashboard/sidebar-actions', () => ({ fetchSidebarUser: () => fetchSidebarUser() }));
 jest.mock('next/link', () => ({ __esModule: true, default: ({ children }: { children: React.ReactNode }) => <span>{children}</span> }));
 
 import ServiceSubscriptionTab from './ServiceSubscriptionTab';
@@ -82,6 +84,18 @@ describe('ServiceSubscriptionTab — rezygnacja na koniec okresu', () => {
     expect(el.textContent).toContain('Następne odnowienie');
     expect(el.textContent).not.toContain('Rezygnacja zaplanowana');
     expect([...el.querySelectorAll('button')].map((b) => b.textContent)).toContain('Zrezygnuj z usługi');
+  });
+
+  it('P3-02: subkonto i dostęp z własnego konta — bez przycisku, z informacją, że rezygnacja należy do właściciela', async () => {
+    for (const u of [{ isSubaccount: true }, { isSubaccount: false, actingFor: { ownerUserId: 'o1' } }]) {
+      fetchSidebarUser.mockResolvedValueOnce(u);
+      await zamontuj(usluga());
+      expect([...el.querySelectorAll('button')].map((b) => b.textContent)).not.toContain('Zrezygnuj z usługi');
+      expect(el.textContent).toContain('może tylko właściciel konta');
+      act(() => root.unmount());
+      document.body.innerHTML = '';
+    }
+    root = createRoot(document.createElement('div'));
   });
 });
 

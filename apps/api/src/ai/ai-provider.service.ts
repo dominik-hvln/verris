@@ -113,20 +113,27 @@ export class AiProviderService {
   /**
    * Beta wewnętrzna (decyzja 2026-10-04): AI_TYLKO_KONTA = e-maile kont testowych po przecinku. Dopóki dokumenty
    * z OpenAI/Anthropic jako podprocesorami (PB-03) nie są opublikowane, dane innych klientów nie idą do AI.
-   * Puste = AI dla wszystkich. null = wolno; tekst = powód odmowy.
+   * Decyzja 5 (2026-11-03): przełącznik „Asystent dla wszystkich klientów” w adminie (Ustawienia → Asystent AI)
+   * wyłącza tę listę bez zmian w .env. Pusta lista = AI dla wszystkich. null = wolno; tekst = powód odmowy.
    */
   async kontoPozaTestemAi(userId: string | null | undefined): Promise<string | null> {
-    const lista = (this.config.get<string>('AI_TYLKO_KONTA') ?? '')
-      .split(',')
-      .map((e) => e.trim().toLowerCase())
-      .filter(Boolean);
+    const lista = this.kontaTestoweAi();
     if (!lista.length) return null;
+    if ((await this.konfiguracja()).dlaWszystkichKlientow) return null;
     const email = userId
       ? await this.prisma?.user.findUnique({ where: { id: userId }, select: { email: true } }).then((u) => u?.email?.toLowerCase())
       : undefined;
     return email && lista.includes(email)
       ? null
       : 'Asystent AI jest jeszcze w testach — wkrótce będzie dostępny na każdym koncie. Do tego czasu chętnie pomożemy w zgłoszeniu.';
+  }
+
+  /** E-maile z AI_TYLKO_KONTA (małe litery); pusta lista = brak ograniczenia z env. */
+  kontaTestoweAi(): string[] {
+    return (this.config.get<string>('AI_TYLKO_KONTA') ?? '')
+      .split(',')
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean);
   }
 
   /** null = mieści się w limicie; tekst = powód odmowy (pokazywany klientowi). */

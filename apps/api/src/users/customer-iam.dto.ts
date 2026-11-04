@@ -2,7 +2,9 @@ import { CustomerPermission } from '@verris/database';
 import {
   ArrayMaxSize,
   ArrayNotEmpty,
+  Equals,
   IsArray,
+  IsBoolean,
   IsEmail,
   IsEnum,
   IsOptional,
@@ -75,6 +77,15 @@ export class AcceptSubaccountInviteDto {
   @MinLength(1)
   @MaxLength(80)
   lastName!: string;
+
+  /** P3-10 — zgody na ekranie aktywacji (jak przy rejestracji, RegisterDto), nie w oknie po pierwszym logowaniu. */
+  @IsBoolean()
+  @Equals(true, { message: 'Musisz zaakceptować regulamin świadczenia usług.' })
+  acceptTerms!: boolean;
+
+  @IsBoolean()
+  @Equals(true, { message: 'Musisz zaakceptować politykę prywatności.' })
+  acceptPrivacy!: boolean;
 }
 
 export class AcceptExistingInviteDto {

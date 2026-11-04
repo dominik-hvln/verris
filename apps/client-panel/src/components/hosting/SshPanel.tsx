@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { ServiceConnectionInfoDto } from '@verris/contracts';
+import type { ServiceConnectionInfoDto } from '@verris/contracts/klient';
 import { Switch } from '@/components/panel/v2';
 import { potwierdz } from '@/components/panel/potwierdz';
 import {

@@ -286,6 +286,9 @@ services:
       AI_TYLKO_KONTA: ${AI_TYLKO_KONTA:-}
       # I-07 — baza podatności WordPressa (Wordfence Intelligence)
       WORDFENCE_API_KEY: ${WORDFENCE_API_KEY:-}
+      # W6 — partner sadzenia drzew (posadzimy.pl): token produkcyjny i testowy (RC); wybór API w adminie → Program EKO i drzewa.
+      POSADZIMY_API_TOKEN: ${POSADZIMY_API_TOKEN:-}
+      POSADZIMY_API_TOKEN_TEST: ${POSADZIMY_API_TOKEN_TEST:-}
       # Domain registrar (optional — fail-closed when unset)
       REGISTRAR_PROVIDER: ${REGISTRAR_PROVIDER:-}
       REGISTRAR_API_BASE_URL: ${REGISTRAR_API_BASE_URL:-}

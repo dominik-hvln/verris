@@ -64,9 +64,11 @@ export interface KbCtaConfig {
 
 const DEFAULT_CTA: KbCtaConfig = {
   enabled: true,
-  headline: 'Hosting, który Cię zaopiekuje',
-  subtext: 'Szybki hosting z realnym SLA, kopiami co noc i wsparciem 24/7. Bez sztuczek w cenniku.',
-  bullets: ['Backup off-node co noc', 'Autoskalowanie z bezpiecznikiem kosztów', 'Passkey i WAF w standardzie'],
+  // P4-15 (beta 3.11): bez „wsparcia 24/7” (pomoc odpowiada w dni robocze, oddzwaniamy 9–17), poprawna polszczyzna,
+  // autoskalowanie bez obietnicy „bezpiecznika” (limit kosztu jest opcjonalny — decyzja 6).
+  headline: 'Hosting, który się Tobą zaopiekuje',
+  subtext: 'Szybki hosting z SLA 99,5% w regulaminie, kopiami co noc i pomocą po polsku w dni robocze. Cena odnowienia znana z góry.',
+  bullets: ['Kopia poza serwerem co noc', 'Autoskalowanie z limitem kosztu, jeśli go ustawisz', 'Klucze dostępu (passkey) i WAF w standardzie'],
   buttonLabel: 'Zobacz plany hostingu',
   buttonUrl: 'https://panel.verris.pl/register',
   statusUrl: 'https://status.verris.pl',

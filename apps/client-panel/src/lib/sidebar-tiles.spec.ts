@@ -1,4 +1,4 @@
-import { DEFAULT_SIDEBAR_QUICK_LINKS } from '@verris/contracts';
+import { DEFAULT_SIDEBAR_QUICK_LINKS } from '@verris/contracts/klient';
 import { sidebarTilesFromLinks } from './sidebar-tiles';
 
 /**

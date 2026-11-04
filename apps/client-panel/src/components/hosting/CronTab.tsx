@@ -5,7 +5,7 @@ import { UkladZBokiem } from '@/components/hosting/UkladZBokiem';
 import { Clock, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@verris/ui';
-import type { HostingCronJobDto } from '@verris/contracts';
+import type { HostingCronJobDto } from '@verris/contracts/klient';
 import {
   createHostingCronAction,
   deleteHostingCronAction,

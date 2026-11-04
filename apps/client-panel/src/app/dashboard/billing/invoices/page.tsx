@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import { ArrowLeft, ChevronLeft, ChevronRight, ShieldAlert } from 'lucide-react';
-import type { InvoiceListResponse } from '@verris/contracts';
+import type { InvoiceListResponse } from '@verris/contracts/klient';
 import { ApiError } from '@/lib/api';
 import { PageHeaderRow, PanelCard } from '@/components/panel';
 import { getInvoiceList } from './data';
 import { InvoiceList } from './invoice-list';
 import { plForm } from '@/lib/pl';
+import { ZASADA_FAKTUR, ZASADA_KREDYTOW_Z_KODU } from '../zasady-dokumentow';
 
 const PAGE_SIZE = 25;
 
@@ -47,8 +48,11 @@ export default async function InvoicesPage({
 
       <PageHeaderRow
         title="Faktury"
-        description="Dokumenty za doładowania portfela i opłaty kartą — PDF i duplikat pobierzesz z listy."
+        description="Dokumenty za wpłaty — PDF i duplikat pobierzesz z listy."
       />
+      <p className="max-w-3xl text-sm text-neutral-400">
+        {ZASADA_FAKTUR} {ZASADA_KREDYTOW_Z_KODU}
+      </p>
 
       {loadError ? (
         <div className="flex items-start gap-3 rounded-2xl border border-rose-400/30 bg-rose-400/5 p-5 text-rose-200">

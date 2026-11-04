@@ -306,6 +306,7 @@ export function grupy(l: LicznikiMenu | null): Grupa[] {
           ikona: "ustawienia",
           pod: [
             { name: "Platforma", href: "/settings/platform", perm: "ADMIN", szukaj: "eko sesje okres próbny monitoring sla" },
+            { name: "Program EKO i drzewa", href: "/settings/eko", perm: "ADMIN", szukaj: "eko drzewa sadzenie posadzimy pula certyfikaty" },
             { name: "Dane firmy", href: "/settings/company", perm: "ADMIN", szukaj: "nip adres faktury ksef token ponów wysyłkę" },
             { name: "Kopie offsite", href: "/settings/kopie-offsite", perm: "ADMIN", szukaj: "backup kopie zapasowe storage box rclone onboard" },
             { name: "Poczta (SMTP)", href: "/settings/mail", perm: "ADMIN", szukaj: "e-mail wysyłka" },

@@ -1,4 +1,4 @@
-import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus, Logger, NotFoundException } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { DirectAdminApiError } from '@verris/directadmin-sdk';
 import { dlaKlienta } from '../biala-etykieta.js';
@@ -18,20 +18,29 @@ export class AllExceptionsFilter implements ExceptionFilter {
     // DA odmówił (np. „domena już istnieje”, brak miejsca) — to odpowiedź dla człowieka, nie awaria API.
     // Bez tego serwisy wołające SDK wprost (createDomain, bazy, pliki) zwracały 500 i klient nie wiedział dlaczego.
     const odmowaDa = exception instanceof DirectAdminApiError;
-    const status =
-      exception instanceof HttpException
+    // P5-13 — uszkodzony JSON w treści żądania i nieznana ścieżka: polski komunikat i stały kod zamiast
+    // „Unexpected end of JSON input” / „Cannot GET /api/v1/x”.
+    const zlyJson = czyZlyJson(exception);
+    const nieznanaTrasa = !zlyJson && exception instanceof NotFoundException && /^Cannot [A-Z]+ /.test(String(normalizeExceptionMessage(exception.getResponse())));
+    const status = zlyJson
+      ? HttpStatus.BAD_REQUEST
+      : exception instanceof HttpException
         ? exception.getStatus()
         : odmowaDa
           ? HttpStatus.BAD_REQUEST
           : HttpStatus.INTERNAL_SERVER_ERROR;
 
-    const surowy = normalizeExceptionMessage(
-      exception instanceof HttpException
-        ? exception.getResponse()
-        : odmowaDa
-          ? exception.daText
-          : 'Wewnętrzny błąd serwera',
-    );
+    const surowy = zlyJson
+      ? 'Treść żądania nie jest poprawnym JSON-em — sprawdź nawiasy, cudzysłowy i przecinki.'
+      : nieznanaTrasa
+        ? `Nie ma takiej ścieżki API: ${request.method} ${request.url.split('?')[0]}.`
+        : normalizeExceptionMessage(
+            exception instanceof HttpException
+              ? exception.getResponse()
+              : odmowaDa
+                ? exception.daText
+                : 'Wewnętrzny błąd serwera',
+          );
     // White label: klient nie dostaje tekstu z nazwą panelu serwera, jego komendą ani portem
     // (np. BladEtapuProvisioningu „DirectAdmin package … is missing”, powód odmowy DA).
     const message =
@@ -45,6 +54,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
       );
     }
 
+    // P5-03 — czas do odblokowania także w nagłówku (RFC 9110 §10.2.3), nie tylko w treści.
+    const retry = exception instanceof HttpException ? (exception.getResponse() as { retryAfterSeconds?: unknown })?.retryAfterSeconds : undefined;
+    if (typeof retry === 'number' && typeof (response as { setHeader?: unknown }).setHeader === 'function') {
+      response.setHeader('Retry-After', String(Math.ceil(retry)));
+    }
+
     response.status(status).json({
       statusCode: status,
       timestamp: new Date().toISOString(),
@@ -53,7 +68,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
       // Odmowa serwera hostingu: panel klienta tłumaczy ją na polski (`daErrorMessage`).
       ...(odmowaDa ? { zrodlo: 'serwer-hostingu' } : {}),
       // PB-47 — kod odmowy „wymaga wniosku” (np. { code: 'WYMAGA_WNIOSKU', operacja }) — panel zamienia go na przycisk wniosku.
-      ...(exception instanceof HttpException ? kodOdmowy(exception.getResponse()) : {}),
+      ...(exception instanceof HttpException && !zlyJson ? kodOdmowy(exception.getResponse()) : {}),
+      ...(zlyJson ? { code: 'INVALID_JSON' } : nieznanaTrasa ? { code: 'NOT_FOUND' } : {}),
+      // P5-13 — lista pól z błędami walidacji (walidacja-pl.ts) dla integratorów.
+      ...(exception instanceof HttpException ? polaWalidacji(exception.getResponse()) : {}),
     });
   }
 }
@@ -67,6 +85,24 @@ function normalizeExceptionMessage(response: string | object): string | object {
     return m.filter((x): x is string => typeof x === 'string').join(', ');
   }
   return response;
+}
+
+/** P5-13 — błąd parsera treści (body-parser: `type: 'entity.parse.failed'`, także opakowany przez Nest). */
+function czyZlyJson(e: unknown): boolean {
+  const typ = (x: unknown) => (x as { type?: unknown } | null)?.type === 'entity.parse.failed';
+  if (typ(e)) return true;
+  if (e instanceof HttpException && e.getStatus() === 400) {
+    if (typ(e.cause) || e.cause instanceof SyntaxError) return true;
+    const m = normalizeExceptionMessage(e.getResponse());
+    return typeof m === 'string' && /(Unexpected (token|end of JSON input|non-whitespace)|is not valid JSON|in JSON at position|Expected .* in JSON)/.test(m);
+  }
+  return e instanceof SyntaxError && /JSON/.test(e.message);
+}
+
+function polaWalidacji(response: string | object): { pola?: unknown } {
+  if (typeof response !== 'object' || response === null) return {};
+  const { pola } = response as { pola?: unknown };
+  return Array.isArray(pola) ? { pola } : {};
 }
 
 /** PB-47 — przepuszczamy tylko znane pola kodu odmowy (reszta treści wyjątku nie wychodzi). */

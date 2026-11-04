@@ -41,7 +41,7 @@ const CATEGORIES: Cat[] = [
   { slug: 'bezpieczenstwo', name: 'Bezpieczeństwo konta', description: 'Silne hasła, 2FA, passkey i ochrona konta.', order: 8 },
   { slug: 'kopie-zapasowe', name: 'Kopie zapasowe', description: 'Backup i przywracanie danych.', order: 9 },
   { slug: 'rozliczenia', name: 'Rozliczenia i płatności', description: 'Portfel, faktury, odnowienia i autoskalowanie.', order: 10 },
-  { slug: 'migracja', name: 'Migracja do Verris', description: 'Przeniesienie konta z cPanel, Plesk i DirectAdmin.', order: 11 },
+  { slug: 'migracja', name: 'Migracja do Verris', description: 'Przeniesienie strony, poczty i domen od innego dostawcy hostingu (np. z cPanel lub Plesk).', order: 11 },
   { slug: 'wydajnosc', name: 'Wydajność i optymalizacja', description: 'Cache, kompresja, Core Web Vitals i szybkość strony.', order: 12 },
   { slug: 'api-integracje', name: 'API i integracje', description: 'Tokeny API, publiczne API v1 i webhooki.', order: 13 },
 ];
@@ -318,9 +318,12 @@ Cron używa pięciu pól: minuta, godzina, dzień miesiąca, miesiąc, dzień ty
 
 \`\`\`cron
 # min godz dzień mies dzień_tyg  polecenie
-0 3 * * *   /usr/local/bin/php /home/user/backup.php
-*/15 * * * * /usr/local/bin/php /home/user/public_html/wp-cron.php
+0 3 * * *   /usr/local/bin/php84 -q $HOME/domains/twojadomena.pl/public_html/backup.php
+*/15 * * * * /usr/local/bin/php84 -q $HOME/domains/twojadomena.pl/public_html/wp-cron.php
 \`\`\`
+
+## Wersja PHP w poleceniu
+\`/usr/local/bin/php84\` uruchamia skrypt w PHP 8.4, \`/usr/local/bin/php83\` w PHP 8.3 itd. — dostępne są wszystkie wersje z listy w panelu. Polecenie dla wybranej wersji, domeny i pliku wstawi pomocnik **Skrypt PHP w wybranej wersji** w zakładce Cron.
 
 ## Typowe przykłady
 - Wywołanie **wp-cron** WordPress
@@ -741,7 +744,7 @@ Włącz 2FA lub passkey — hasło to tylko pierwsza warstwa ochrony.`,
   A('kopie-zapasowe', 'backup-1-klik', 'Kopia zapasowa jednym kliknięciem',
     'Wykonaj backup strony i bazy w każdej chwili.',
     `## Backup na żądanie
-W hubie usługi wybierz **Kopia zapasowa** i wykonaj backup plików oraz bazy danych jednym kliknięciem. Kopie przechowujemy również poza węzłem (offsite) dla bezpieczeństwa.
+W hubie usługi wybierz **Kopia zapasowa** i wykonaj backup plików oraz bazy danych jednym kliknięciem. Kopie przechowujemy również poza serwerem (offsite) dla bezpieczeństwa.
 
 ## Harmonogram
 Włącz automatyczne kopie (np. codziennie) i ustaw retencję — ile kopii przechowywać. Starsze będą automatycznie usuwane.
@@ -750,7 +753,7 @@ Włącz automatyczne kopie (np. codziennie) i ustaw retencję — ile kopii prze
 Przed aktualizacją WordPress lub większą zmianą zrób kopię — łatwo cofniesz ewentualny błąd.`,
     { t: 'Kopia zapasowa jednym kliknięciem — backup strony i bazy', d: 'Jak wykonać kopię zapasową w Verris: backup plików i bazy 1-klik, kopie offsite, harmonogram i retencja.',
       faq: [
-        { q: 'Gdzie przechowywane są kopie zapasowe?', a: 'Kopie trzymamy również poza węzłem (offsite), więc pozostają dostępne nawet w razie awarii serwera, na którym działa Twoja strona.' },
+        { q: 'Gdzie przechowywane są kopie zapasowe?', a: 'Kopie trzymamy również poza serwerem (offsite), więc pozostają dostępne nawet w razie awarii serwera, na którym działa Twoja strona.' },
         { q: 'Jak często robić kopie?', a: 'Włącz automatyczny backup codzienny, a dodatkowo rób kopię ręczną przed każdą większą zmianą lub aktualizacją. Ustaw retencję zależnie od tego, jak daleko wstecz chcesz sięgać.' },
       ], related: ['przywracanie-backupu', 'bezpieczenstwo-wordpress'] }),
 
@@ -815,7 +818,7 @@ Dane firmowe możesz zaktualizować w każdej chwili — kolejne faktury uwzglę
 Gdy strona ma większy ruch, usługa może chwilowo zwiększyć zasoby (CPU/RAM), aby działała płynnie. Po szczycie wraca do bazowego poziomu.
 
 ## Bezpiecznik kosztów
-Ustaw miesięczny limit wydatków na autoskalowanie (liczony z ostatnich 30 dni). Po jego osiągnięciu nie dokładamy już mocy — strona działa dalej na zasobach pakietu, a Ty nie przekroczysz budżetu.
+Domyślnie autoskalowanie nie ma limitu kosztu — płacisz za faktyczne użycie. Jeśli chcesz pilnować budżetu, ustaw własny limit kosztu na 30 dni (suma dopłat z ostatnich 30 dni) przy zamówieniu albo później w panelu. Po jego osiągnięciu nie dokładamy już mocy — strona działa dalej na zasobach pakietu.
 
 ## Jeden pakiet zamiast wyższych planów
 Verris ma jeden pakiet hostingu — nie ma wyższego planu, na który trzeba przechodzić. Dodatkową moc daje autoskalowanie, a płacisz tylko za czas, w którym była potrzebna.
@@ -828,14 +831,14 @@ Jeśli strona regularnie korzysta z dodatkowej mocy:
 
 ## Podgląd
 W panelu zobaczysz historię skalowania, bieżące zużycie i wydatki względem bezpiecznika.`,
-    { d: 'Autoskalowanie w Verris i bezpiecznik kosztów: więcej mocy w szczycie ruchu przy pełnej kontroli miesięcznego budżetu.',
+    { d: 'Autoskalowanie w Verris i bezpiecznik kosztów: więcej mocy w szczycie ruchu, a gdy chcesz — własny limit kosztu na 30 dni.',
       faq: [
-        { q: 'Czy autoskalowanie może niespodziewanie podnieść rachunek?', a: 'Nie, jeśli ustawisz bezpiecznik kosztów. Po osiągnięciu miesięcznego limitu skalowanie się zatrzymuje, więc masz pełną kontrolę nad budżetem.' },
-        { q: 'Czy mogę przejść na wyższy plan?', a: 'Verris ma jeden pakiet — nie ma wyższego planu. Gdy strona potrzebuje więcej mocy, autoskalowanie dokłada ją na czas większego ruchu, a bezpiecznik kosztów pilnuje miesięcznego limitu wydatków. Jeśli duży ruch jest stały, włącz cache, sprawdź, co obciąża stronę, albo napisz do nas — pomożemy.' },
+        { q: 'Czy autoskalowanie może niespodziewanie podnieść rachunek?', a: 'Bez limitu płacisz za faktyczne użycie dodatkowej mocy. Jeśli chcesz mieć górną granicę, ustaw bezpiecznik kosztów — limit na 30 dni. Po jego osiągnięciu skalowanie się zatrzymuje.' },
+        { q: 'Czy mogę przejść na wyższy plan?', a: 'Verris ma jeden pakiet — nie ma wyższego planu. Gdy strona potrzebuje więcej mocy, autoskalowanie dokłada ją na czas większego ruchu, a bezpiecznik kosztów (jeśli go ustawisz) pilnuje limitu wydatków na 30 dni. Jeśli duży ruch jest stały, włącz cache, sprawdź, co obciąża stronę, albo napisz do nas — pomożemy.' },
       ], related: ['portfel-i-platnosci'] }),
 
   // ---------------- Migracja
-  A('migracja', 'migracja-do-verris', 'Jak przenieść hosting do Verris (cPanel/Plesk/DirectAdmin)',
+  A('migracja', 'migracja-do-verris', 'Jak przenieść hosting do Verris (cPanel, Plesk i inne panele)',
     'Przenieś pliki, bazy, pocztę i domeny — automatycznie lub z pomocą pracownika.',
     `## Dwa tryby
 Migrację uruchomisz na dwa sposoby:
@@ -852,8 +855,8 @@ Zalecamy najpierw przenieść dane, przetestować stronę na naszym serwerze, a 
 Przy migracji automatycznej, jeśli wystąpi problem, wyślemy powiadomienie, a zgłoszenie trafi z wysokim priorytetem do naszego zespołu, który dokończy przeniesienie.
 
 ## Skąd wziąć dane
-W panelu obecnego dostawcy (cPanel/Plesk/DirectAdmin) znajdziesz dane FTP/SFTP, dostęp do bazy i ustawienia poczty. Nasze kreatory podpowiadają, gdzie ich szukać.`,
-    { t: 'Migracja hostingu do Verris z cPanel, Plesk i DirectAdmin', d: 'Jak przenieść hosting do Verris: migracja automatyczna lub z pomocą pracownika — pliki, bazy, poczta, domeny i subdomeny bez przestoju.',
+W panelu obecnego dostawcy (np. cPanel, Plesk albo inny panel hostingu) znajdziesz dane FTP/SFTP, dostęp do bazy i ustawienia poczty. Nasze kreatory podpowiadają, gdzie ich szukać.`,
+    { t: 'Migracja hostingu do Verris z cPanel, Plesk i innych paneli', d: 'Jak przenieść hosting do Verris: migracja automatyczna lub z pomocą pracownika — pliki, bazy, poczta, domeny i subdomeny bez przestoju.',
       faq: [
         { q: 'Czy migracja spowoduje przerwę w działaniu strony?', a: 'Nie musi. Przenosimy najpierw dane i testujemy stronę na naszym serwerze, a domenę przełączasz dopiero po weryfikacji — dzięki temu unikasz przestoju.' },
         { q: 'Co, jeśli automatyczna migracja się nie powiedzie?', a: 'Dostaniesz powiadomienie e-mail, a zgłoszenie trafi z wysokim priorytetem do naszego zespołu, który ręcznie dokończy przeniesienie.' },

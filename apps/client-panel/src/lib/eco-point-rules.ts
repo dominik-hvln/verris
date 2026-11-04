@@ -10,6 +10,9 @@ export type EcoPointRule = {
   description: string;
 };
 
+/** Wpisy, które wydają punkty (nie są sposobem ich zdobywania) — przewodnik pokazuje je osobno. */
+export const ECO_WYDATKI = new Set(['EKO_REDEEM_WALLET', 'EKO_DRZEWO_PULA', 'EKO_DRZEWO_WLASNE']);
+
 /** Źródła punktów EKO — zgodne z API (`EcoPointsLedgerEntry.reason`). */
 export function buildEcoPointRules(platform: EcoPlatformConfig): EcoPointRule[] {
   const perTree = platform.ecoPointsPerTree;
@@ -85,7 +88,7 @@ export function buildEcoPointRules(platform: EcoPlatformConfig): EcoPointRule[] 
     },
     {
       id: 'BADGE_IMPRESSION',
-      title: 'Badge EKO na Twojej stronie',
+      title: 'Odznaka Verris na Twojej stronie',
       points: `+1 co ${platform.ecoBadgeImpressionsPerPoint} wyśw.`,
       description:
         'Osadź oficjalny badge Verris na swojej witrynie. Liczymy unikalne wyświetlenia (maks. jedno na adres IP na godzinę).',
@@ -95,14 +98,14 @@ export function buildEcoPointRules(platform: EcoPlatformConfig): EcoPointRule[] 
       title: 'Rejestracja z kodem polecenia',
       points: '+3',
       description:
-        'Dołączasz do Verris z aktywnym kodem polecenia innego klienta (program partnerski musi być zatwierdzony u polecającego).',
+        'Dołączasz do Verris z aktywnym kodem polecenia innego klienta (polecający musi mieć zatwierdzony program poleceń).',
     },
     {
       id: 'REFERRAL_REGISTER_REFERRER',
       title: 'Nowy klient z Twoim kodem (rejestracja)',
       points: '+5',
       description:
-        'Ktoś rejestruje się z Twoim kodem polecenia, gdy masz zatwierdzony program partnerski.',
+        'Ktoś rejestruje się z Twoim kodem polecenia, gdy masz zatwierdzony program poleceń.',
     },
     {
       id: 'REFERRAL_APPLIED_REFEREE',
@@ -121,8 +124,23 @@ export function buildEcoPointRules(platform: EcoPlatformConfig): EcoPointRule[] 
       title: 'Wymiana punktów na saldo portfela',
       points: `−${redeemRate} = 10,00 K`,
       description:
-        'To nie jest sposób na zdobywanie punktów — wymieniasz je na środki w portfelu Verris. Jedno „drzewo” w programie to ok. ' +
-        `${perTree.toLocaleString('pl-PL')} pkt.`,
+        'To nie jest sposób na zdobywanie punktów — wymieniasz je na środki w portfelu Verris albo na drzewa ' +
+        `(całe drzewo z certyfikatem: ${perTree.toLocaleString('pl-PL')} pkt).`,
+    },
+    {
+      id: 'EKO_DRZEWO_PULA',
+      title: 'Wymiana punktów na procent drzewa',
+      points: `−${Math.ceil(perTree / 100)} = 1%`,
+      description:
+        'Wymieniasz punkty na procent drzewa we wspólnej puli. Gdy pula uzbiera całe drzewo, zamawiamy jego posadzenie u partnera.',
+    },
+    {
+      id: 'EKO_DRZEWO_WLASNE',
+      title: 'Wymiana punktów na własne drzewo',
+      points: `−${perTree} = 1 drzewo`,
+      description:
+        'Wymieniasz punkty na całe drzewo z certyfikatem. Certyfikat wystawiamy na Verris („Drzewo posadzone dzięki klientom Verris”) — ' +
+        'w panelu widzisz, że to Twoje drzewo. Pojawi się po potwierdzeniu przez partnera.',
     },
   ];
 }
@@ -144,4 +162,6 @@ export const ECO_LEDGER_REASON_LABEL: Record<string, string> = {
   REFERRAL_APPLIED_REFEREE: 'Polecenie (kod dodany)',
   REFERRAL_APPLIED_REFERRER: 'Polecenie — kod wykorzystany',
   EKO_REDEEM_WALLET: 'Wymiana na saldo portfela',
+  EKO_DRZEWO_PULA: 'Wymiana na procent drzewa (wspólna pula)',
+  EKO_DRZEWO_WLASNE: 'Wymiana na własne drzewo',
 };

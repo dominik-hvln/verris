@@ -66,13 +66,13 @@ const PARAMETRY: [string, string][] = [
 const verris = (c: CenaPakietu): [string, string][] => [
   [
     'Cena za 3 lata',
-    `3 × ${zl(c.rocznie)} = ${zl(3 * c.rocznie)} brutto (${zl(3 * netto(c.rocznie))} netto) przy dzisiejszym cenniku — ta sama cena przy odnowieniu`,
+    `3 × ${zl(c.rocznie)} = ${zl(3 * c.rocznie)} brutto (${zl(3 * netto(c.rocznie))} netto) przy dzisiejszym cenniku — odnowienie po cenie z cennika; przy pierwszym zakupie pierwszy rok kosztuje mniej (rabat na start)`,
   ],
   ['Kopie', 'codziennie: 7 ostatnich na serwerze i kopia z każdego z 30 ostatnich dni poza serwerem; przywracasz sam w panelu'],
   ['Przeprowadzka', 'w cenie — robi ją kreator w panelu albo nasz zespół'],
   ['Limity', '50 GB NVMe, 8 GB RAM, 2 vCPU; z autoskalowaniem do 1000 GB, 64 GB RAM i 24 vCPU'],
   ['Duży ruch', 'autoskalowanie rozliczane w blokach po 15 minut, z limitem kosztu, który ustawiasz sam'],
-  ['Dostępność', 'SLA 99,5% w miesiącu; rekompensata na wniosek od 5% do 100% opłaty, zapisana w regulaminie'],
+  ['Dostępność', 'SLA 99,5% w miesiącu; rekompensata w kredytach od 5% do całej opłaty za miesiąc, przyznawana automatycznie, zapisana w regulaminie'],
   ['SSL', 'Let’s Encrypt w cenie, także wildcard, odnawiany automatycznie'],
   ['Domeny', 'bez automatycznych odnowień — przypomnienia 30, 14 i 7 dni przed wygaśnięciem'],
   ['RODO', 'umowa powierzenia do akceptacji w panelu, dane w UE'],
@@ -155,7 +155,7 @@ export default async function Page() {
           <div className="b-odpowiedz">
             <p>Odpowiedź w 30 sekund</p>
             <p>
-              Dobry hosting dla firmowej strony albo małego sklepu ma tę samą cenę przy odnowieniu, codzienne kopie z łatwym
+              Dobry hosting dla firmowej strony albo małego sklepu podaje cenę odnowienia z góry, codzienne kopie z łatwym
               przywracaniem, SSL w cenie, szybki serwer (dyski NVMe, aktualne PHP, pamięć podręczna), jawne limity i
               dostępność zapisaną w umowie razem z rekompensatą.
             </p>

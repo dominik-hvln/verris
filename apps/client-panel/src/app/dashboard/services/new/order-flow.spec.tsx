@@ -3,7 +3,7 @@
  */
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import type { PlanDto } from '@verris/contracts';
+import type { PlanDto } from '@verris/contracts/klient';
 
 /**
  * Q-05 — pakiety Newsletter w zamówieniu: widoczne tylko przy włączonej fladze e-mail marketingu,
@@ -32,7 +32,6 @@ jest.mock('./domain-step', () => ({ DomainStep: () => <div>KROK-DOMENY</div> }))
 jest.mock('./trial-callout', () => ({ TrialCallout: () => null }));
 jest.mock('@/app/dashboard/domains/actions', () => ({
   abonentZProfiluAction: jest.fn(),
-  getWaiverConsentAction: jest.fn(),
   registerDomainClientAction: jest.fn(),
 }));
 jest.mock('@/app/dashboard/domains/components/registrant-fields', () => ({
@@ -85,6 +84,13 @@ beforeEach(() => {
 });
 afterEach(() => act(() => root.unmount()));
 
+/** A2-08 — osobne zgody (Regulamin z DPA i uruchomienie usługi od razu) zamiast jednego zbiorczego pola. */
+async function zaznaczZgody() {
+  for (const i of [...el.querySelectorAll('input')].filter((x) => x.type === 'checkbox')) {
+    if (!i.checked) await act(async () => void i.click());
+  }
+}
+
 it('flaga wyłączona: brak kafla e-mail marketingu, a ?type=newsletter zostaje na wyborze typu', async () => {
   expect(await pokaz('', false)).not.toContain('E-mail marketing');
   const t = await pokaz('type=newsletter', false);
@@ -109,10 +115,10 @@ it('flaga włączona: kafel prowadzi do pakietów Newsletter z limitami, bez kro
 it('zakup pakietu: zamówienie bez domeny, potem przestrzeń e-mail marketingu', async () => {
   mockCreate.mockResolvedValue({ ok: true, data: { subscription: { id: 'sub-9' } } });
   await pokaz('type=newsletter', true);
-  const zgoda = [...el.querySelectorAll('input')].find((i) => i.type === 'checkbox')!;
-  await act(async () => void zgoda.click());
+  await zaznaczZgody();
   const zamow = [...el.querySelectorAll('button')].find((b) => b.textContent?.includes('Zamów i opłać'))!;
   expect(zamow.disabled).toBe(false);
+  expect(zamow.getAttribute('aria-disabled')).toBe('false');
   await act(async () => void zamow.click());
   expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ planId: 'n1', paymentSource: 'WALLET', domain: undefined, ecoModeEnabled: false }));
   expect(mockPush).toHaveBeenCalledWith('/dashboard/email-marketing/sub-9');
@@ -137,7 +143,7 @@ it('rabat na start widoczny przed zapłatą także przy poczcie', async () => {
   const poczta = plan({ id: 'e1', slug: 'poczta-standard', name: 'Poczta Standard', productKind: 'EMAIL', priceMonthly: '9.99', priceYearly: '99.99' });
   const t = await pokaz('type=email', false, { ...OFERTA, cardEnabled: true, monthlyDiscountPct: 10, annualDiscountPct: 15 }, [poczta]);
   expect(t).toContain('Rabat na start −10%');
-  expect(t).toMatch(/8,99\s?K/);
+  expect(t).toMatch(/8,99\s?zł/);
 });
 
 // Decyzja 07.10: rabat na start i kody to promocja Verris, nie partnera.
@@ -154,7 +160,7 @@ it('klient resellera: bez rabatu na start i bez pola kodu rabatowego', async () 
   const t = el.textContent ?? '';
   expect(t).not.toContain('Rabat na start');
   expect(t).not.toContain('Kod rabatowy');
-  expect(t).toMatch(/Do zapłaty teraz12,49\s?K/);
+  expect(t).toMatch(/Do zapłaty teraz12,49\s?zł/);
 });
 
 // E2e 14.10 (PB-05): drugi zakup tego samego klienta znów z −15%. Rabat na start tylko przy pierwszym zakupie —
@@ -172,7 +178,7 @@ it('klient po pierwszym zakupie: bez rabatu na start, pełna cena do zapłaty, p
   const t = el.textContent ?? '';
   expect(t).not.toContain('Rabat na start');
   expect(t).toContain('Kod rabatowy');
-  expect(t).toMatch(/Do zapłaty teraz12,49\s?K/);
+  expect(t).toMatch(/Do zapłaty teraz12,49\s?zł/);
 });
 
 // 2026-10-12 (Dominik): zakup usługi BLIK-iem / przelewem — wpłata za tę usługę, nie doładowanie portfela.
@@ -192,9 +198,8 @@ it('BLIK lub przelew (Paynow): opcja tylko przy włączonym Paynow; zamówienie 
   const paynow = [...el.querySelectorAll('button')].find((b) => b.textContent?.includes('BLIK lub przelew'))!;
   expect(paynow).toBeDefined();
   await act(async () => void paynow.click());
-  expect(el.textContent).toContain('Po przekierowaniu do Paynow');
-  const zgoda = [...el.querySelectorAll('input')].find((i) => i.type === 'checkbox')!;
-  await act(async () => void zgoda.click());
+  expect(el.textContent).toContain('Po przejściu do płatności BLIK-iem lub przelewem');
+  await zaznaczZgody();
   const zamow = [...el.querySelectorAll('button')].find((b) => b.textContent?.includes('Zamów i opłać'))!;
   await act(async () => void zamow.click());
   expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ planId: 'n1', paymentSource: 'WALLET', oplata: 'PAYNOW' }));

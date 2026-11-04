@@ -143,4 +143,21 @@ describe('BetaService', () => {
     await s.svc.wycofaj('i1', 'admin1');
     expect(s.prisma.promoCode.update).toHaveBeenCalledWith({ where: { id: 'p1' }, data: { active: false } });
   });
+
+  it('P1-11: zaproszenie na adres konta — tylko ważny, niewykorzystany i aktywny kod; brak konta → false', async () => {
+    const s = stanowisko({ aktywne: true });
+    const user = { findUnique: vi.fn(async () => ({ email: ' Jan@Firma.PL ' })) };
+    Object.assign(s.prisma, { user });
+    expect(await s.svc.maZaproszenie('u1', teraz)).toBe(true);
+    expect(s.prisma.betaInvite.findFirst).toHaveBeenCalledWith({
+      where: { email: 'jan@firma.pl', promoCode: { active: true, redemptionCount: 0, validTo: { gt: teraz } } },
+      select: { id: true },
+    });
+    const bez = stanowisko({ aktywne: false });
+    Object.assign(bez.prisma, { user });
+    expect(await bez.svc.maZaproszenie('u1', teraz)).toBe(false);
+    Object.assign(bez.prisma, { user: { findUnique: vi.fn(async () => null) } });
+    expect(await bez.svc.maZaproszenie('u1', teraz)).toBe(false);
+  });
 });
+

@@ -10,6 +10,7 @@ import {
 } from './platform-settings.keys.js';
 import { ksefDozwolony, normalizujTryb, type TrybFakturowania } from '../billing/tryb-fakturowania.js';
 import type { TrialOfferConfig } from './dto/trial-offer.dto.js';
+import { wersjePhpZRaportu } from '../servers/stos-wezla.js';
 
 /** G-08 — pozycja cennika SSL: cena brutto za rok (PLN), nazwa produktu, czy wildcard. */
 export interface SslCena {
@@ -112,7 +113,7 @@ export class PlatformSettingsService {
   async getClientConfig(): Promise<ClientPlatformConfigDto> {
     const map = await this.loadMap();
     return {
-      ecoPointsPerTree: this.readInt(map, PLATFORM_SETTING_KEYS.ECO_POINTS_PER_TREE, 1000, 1, 1_000_000),
+      ecoPointsPerTree: this.readInt(map, PLATFORM_SETTING_KEYS.ECO_POINTS_PER_TREE, 300, 1, 1_000_000),
       ecoBadgeImpressionsPerPoint: this.readInt(
         map,
         PLATFORM_SETTING_KEYS.ECO_BADGE_IMPRESSIONS_PER_POINT,
@@ -145,7 +146,7 @@ export class PlatformSettingsService {
   async getAdminSettings(): Promise<AdminPlatformSettingsDto> {
     const map = await this.loadMap();
     return {
-      ecoPointsPerTree: this.readInt(map, PLATFORM_SETTING_KEYS.ECO_POINTS_PER_TREE, 1000, 1, 1_000_000),
+      ecoPointsPerTree: this.readInt(map, PLATFORM_SETTING_KEYS.ECO_POINTS_PER_TREE, 300, 1, 1_000_000),
       ecoBadgeImpressionsPerPoint: this.readInt(
         map,
         PLATFORM_SETTING_KEYS.ECO_BADGE_IMPRESSIONS_PER_POINT,
@@ -517,8 +518,19 @@ export class PlatformSettingsService {
    * Resolution: PlatformSetting `hosting.ns*` → env `HOSTING_NS*` → empty.
    * Per-node overrides (Server.ns1/2/3) take precedence in ServersService.
    */
-  /** P-6 — PHP versions selectable by clients (platform setting, comma-separated). */
-  async getAvailablePhpVersions(): Promise<string[]> {
+  /**
+   * P-6 — PHP versions selectable by clients.
+   * Decyzja 14 (3.11.2026): z `serverId` — wersje alt-php ZAINSTALOWANE na węźle konta (raport agenta,
+   * Server.aktualizacje.altPhp) od STOS_WEZLA.phpMin, od najnowszej; nowa wersja z repozytorium CloudLinux
+   * pojawia się w panelu bez zmiany kodu i bez ręcznej edycji listy. Ustawienie platformy (comma-separated) to
+   * zapas, dopóki węzeł nie zaraportuje (i lista bez kontekstu węzła).
+   */
+  async getAvailablePhpVersions(serverId?: string | null): Promise<string[]> {
+    if (serverId) {
+      const s = await this.prisma.server.findUnique({ where: { id: serverId }, select: { aktualizacje: true } });
+      const zWezla = wersjePhpZRaportu(s?.aktualizacje);
+      if (zWezla.length > 0) return zWezla;
+    }
     const map = await this.loadMap();
     const raw = this.readStr(
       map,

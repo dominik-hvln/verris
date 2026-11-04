@@ -11,6 +11,7 @@ export type MigrationJobKind =
   | 'FILES_SFTP_RSYNC'
   | 'FILES_DELTA'
   | 'MYSQL_IMPORT'
+  | 'MYSQL_DELTA'
   | 'WP_FIXUP'
   | 'IMAP_SYNC'
   | 'IMAP_DELTA'
@@ -50,6 +51,10 @@ export type MigrationIntegrity =
       targetRows: number;
       sourceRows: number | null;
       match: boolean | null;
+      /** P2-06 — ostatnie kopiowanie bazy przed DNS: stan trybu konserwacji starej strony i jego koniec (ISO). */
+      delta?: boolean;
+      konserwacja?: 'wlaczona' | 'niepotwierdzona' | 'niedostepna';
+      konserwacjaDo?: string | null;
     }
   | { kind: 'imap'; mailbox: string; sourceMessages: number | null; targetMessages: number | null; match: boolean | null };
 
@@ -158,6 +163,12 @@ export interface CutoverPlan {
   status: 'done' | 'ready' | 'waiting-dns' | 'blocked';
   message: string;
   deltaSyncRecommended: boolean;
+  /** P2-06 — stara strona w trybie konserwacji po ostatnim kopiowaniu bazy, do (ISO). */
+  konserwacjaZrodlaDo?: string | null;
+  /** Trybu konserwacji nie dało się włączyć automatycznie (strona spoza WordPressa). */
+  konserwacjaRecznie?: boolean;
+  /** „Dograj różnice” kopiuje też bazę (sklep). */
+  dosyncBazy?: boolean;
   nameserverOption: { nameservers: string[]; note: string } | null;
   records: CutoverRecordInstruction[];
   cutoverAt: string | null;
@@ -168,6 +179,7 @@ export const JOB_LABELS: Record<MigrationJobKind, string> = {
   FILES_SFTP_RSYNC: 'Pliki strony',
   FILES_DELTA: 'Pliki — dosynchronizowanie',
   MYSQL_IMPORT: 'Baza danych',
+  MYSQL_DELTA: 'Baza danych — ostatnie kopiowanie przed przełączeniem',
   WP_FIXUP: 'Konfiguracja strony (dane bazy)',
   IMAP_SYNC: 'Poczta (skrzynki)',
   IMAP_DELTA: 'Poczta — dosynchronizowanie',

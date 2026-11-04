@@ -3,7 +3,7 @@
  */
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import type { ServiceForecastDto } from '@verris/contracts';
+import type { ServiceForecastDto } from '@verris/contracts/klient';
 
 /** Zakładka „Zużycie i prognoza”: podsumowanie + 4 wykresy (7 dni historii, przerywana prognoza, limit). */
 const mockForecast = jest.fn();

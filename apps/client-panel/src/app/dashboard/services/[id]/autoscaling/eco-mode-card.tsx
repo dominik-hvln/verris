@@ -29,8 +29,8 @@ export function EcoModeCard({ subscriptionId, ecoModeEnabled: initial, ecoPoints
   const label = useMemo(
     () =>
       eco
-        ? 'Włączone — mniej agresywne kopie zapasowe i przyjazne działanie środowisku.'
-        : 'Wyłączone — pełny rytm utrzymaniowy jak w domyślnej konfiguracji.',
+        ? 'Włączony — Twoje harmonogramy kopii w panelu robią kopię raz w tygodniu zamiast codziennie.'
+        : 'Wyłączony — Twoje harmonogramy kopii działają tak, jak je ustawisz (domyślnie codziennie).',
     [eco],
   );
 
@@ -89,15 +89,23 @@ export function EcoModeCard({ subscriptionId, ecoModeEnabled: initial, ecoPoints
           className="mt-0.5 h-5 w-5 rounded border-white/20 bg-black accent-emerald-500"
         />
         <div className="flex-1">
-          <div className="text-sm font-semibold text-white">Oszczędzaj energię i nagradzaj EKO</div>
+          <div className="text-sm font-semibold text-white">Włącz Tryb EKO</div>
           <p className="mt-1 text-xs text-neutral-500">
-            Pierwsze włączenie na tej usłudze daje +5 pkt EKO (raz na usługę). Tryb zmniejsza częstotliwość
-            kopii zapasowych — mniejsze obciążenie serwera.
+            Pierwsze włączenie na tej usłudze daje +{ECO_FIRST_ENABLE_POINTS} pkt EKO (raz na usługę). Kopie, które
+            ustawiasz sam, robią się raz w tygodniu zamiast codziennie — mniej pracy serwera, ale starsza kopia do
+            odtworzenia. Kopie platformy robimy dalej codziennie.
           </p>
         </div>
         {pending ? <Loader2 className="h-5 w-5 animate-spin text-emerald-400 shrink-0" /> : null}
       </label>
 
+      {eco ? (
+        // Decyzja 7 (3.11) — po włączeniu jasne ostrzeżenie o rzadszych kopiach.
+        <p role="status" className="rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs text-amber-100">
+          Uwaga: przy Trybie EKO Twoja najnowsza własna kopia może mieć nawet tydzień. Jeśli zależy Ci na codziennych
+          kopiach, wyłącz Tryb EKO.
+        </p>
+      ) : null}
       {error ? (
         <div className="text-sm text-rose-300 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2">
           {error}

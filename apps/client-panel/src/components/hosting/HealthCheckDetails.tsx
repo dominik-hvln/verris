@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { AlertCircle, CheckCircle2, ChevronDown, ChevronUp, HelpCircle, Loader2, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
-import type { ServiceHealthCheckDetailDto, ServiceHealthCheckKey, ServiceHealthSummaryDto } from '@verris/contracts';
+import type { ServiceHealthCheckDetailDto, ServiceHealthCheckKey, ServiceHealthSummaryDto } from '@verris/contracts/klient';
 import { requestLetsEncryptSslAction } from '@/app/dashboard/services/[id]/hosting-ssl-actions';
 import { requestHostingSiteBackupAction } from '@/app/dashboard/hosting-site-backup-action';
 

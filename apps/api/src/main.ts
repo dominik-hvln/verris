@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import type { Request, Response, NextFunction } from 'express';
 import { AppModule } from './app.module.js';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
+import { walidacjaPoPolsku } from './common/walidacja-pl.js';
 import { beginDraining } from './health/lifecycle.js';
 
 async function bootstrap() {
@@ -51,6 +52,8 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
       transform: true,
       transformOptions: { enableImplicitConversion: true },
+      // P5-13 (paczka 109) — komunikaty walidacji po polsku, z kodem VALIDATION_ERROR i listą pól.
+      exceptionFactory: walidacjaPoPolsku,
     }),
   );
 

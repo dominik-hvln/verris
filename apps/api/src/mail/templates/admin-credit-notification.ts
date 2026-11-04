@@ -51,7 +51,7 @@ export function adminCreditNotificationTemplate(ctx: AdminCreditContext): MailMe
   return {
     to: ctx.customerEmail,
     tag: 'wallet.admin-credit',
-    subject: `Otrzymałeś ${ctx.amount} K od Verris`,
+    subject: `Do Twojego portfela trafiło ${ctx.amount} K od Verris`,
     text,
     html,
   };

@@ -54,7 +54,7 @@ describe.each([
   ['ciemny', '.dark {', ['background', 'card', 'raised']],
 ])('motyw %s', (_n, naglowek, tla) => {
   const t = blok(naglowek);
-  it.each(['foreground', 'muted-foreground', 'data-hi', 'warn', 'crit', 'destructive'])('tekst --%s ≥ 4,5:1', (tok) => {
+  it.each(['foreground', 'muted-foreground', 'data-hi', 'accent-text', 'data-text', 'warn', 'crit', 'destructive'])('tekst --%s ≥ 4,5:1', (tok) => {
     for (const tlo of tla) expect({ tlo, kontrast: kontrast(t[tok], t[tlo]) >= 4.5 }).toEqual({ tlo, kontrast: true });
   });
   it('przycisk: --destructive-foreground i --primary-foreground na swoim tle ≥ 4,5:1', () => {
@@ -73,3 +73,22 @@ describe.each([
     }
   });
 });
+
+/**
+ * A3-5 / A3-14 — klasy text-accent i text-data biorą kolor z tokenów tekstu, nie z --accent/--data (tło i grafika).
+ * Na starym CSS: „Zmień adres e-mail” 1,48:1 u uczestników EKO (eco-tint nadpisuje --accent tłem), 1,63:1 w motywie jasnym.
+ */
+describe('tekst w kolorze akcentu i danych', () => {
+  it('reguły .text-accent i .text-data czytają --accent-text i --data-text', () => {
+    expect(css).toMatch(/\.text-accent\s*\{\s*color:\s*var\(--accent-text\);/);
+    expect(css).toMatch(/\.text-data\s*\{\s*color:\s*var\(--data-text\);/);
+  });
+  it('eco-tint nie nadpisuje koloru tekstu akcentu, a tekst z motywu ciemnego ≥ 4,5:1 na tle EKO', () => {
+    const eco = blokSurowy('html.dark.eco-tint {');
+    expect(eco.map(([n]) => n)).not.toContain('accent-text');
+    const ciemny = blok('.dark {');
+    const baza = Object.fromEntries(blokSurowy(':root {').filter(([n]) => n.startsWith('verris-')));
+    expect(kontrast(ciemny['accent-text'], baza['verris-eco'])).toBeGreaterThanOrEqual(4.5);
+  });
+});
+

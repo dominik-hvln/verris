@@ -9,7 +9,7 @@ import { canAccessDashboardRoute, canShowWalletBalance } from '@/lib/client-nav-
 import Link from 'next/link';
 import { useEffect, useState, type ReactNode } from 'react';
 import { AlertTriangle, ArrowRight, ChevronRight, Plus } from 'lucide-react';
-import type { ServiceSummaryDto } from '@verris/contracts';
+import type { ServiceSummaryDto } from '@verris/contracts/klient';
 import { CREDIT_RATE_INFO, formatCredits } from '@/lib/credits';
 import { useModul } from '@/lib/feature-flags';
 import {
@@ -115,7 +115,16 @@ function useHintyUslug(services: ServiceSummaryDto[]): HintUslugi[] {
   return hinty;
 }
 
-export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot; aside?: ReactNode }) {
+export function DashboardHome({
+  snapshot,
+  aside,
+  zaproszenieBety = false,
+}: {
+  snapshot: DashboardSnapshot;
+  aside?: ReactNode;
+  /** P1-11 — konto ma niewykorzystane zaproszenie do testów: kafelek „Wpisz kod z zaproszenia”. */
+  zaproszenieBety?: boolean;
+}) {
   // N-12: moduł EKO może wyłączyć operator flagą (brak flagi = jak dotąd).
   const ekoWidoczny = useModul('modul.eco');
   const firstName = snapshot.profile?.firstName || '';
@@ -220,6 +229,26 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
           ) : null}
         </div>
       </header>
+
+      {zaproszenieBety && moze('/dashboard/billing') ? (
+        <section
+          aria-labelledby="kod-zaproszenia-tytul"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-[10px] border border-primary/40 bg-card p-4"
+        >
+          <div className="min-w-0">
+            <h2 id="kod-zaproszenia-tytul" className="m-0 font-display text-[16px] font-bold text-foreground">
+              Masz kod z zaproszenia do testów?
+            </h2>
+            <p className="mt-1 text-[14px] text-muted-foreground">
+              Wpisz go w Płatnościach, w karcie „Kod promocyjny” — kredyty od razu trafią na Twój portfel, a w panelu pojawią się
+              scenariusze testów i przycisk „Zgłoś uwagę”.
+            </p>
+          </div>
+          <Link href="/dashboard/billing#kod-promocyjny" className={BTN_PRIMARY}>
+            Wpisz kod <ArrowRight className="h-4 w-4" aria-hidden />
+          </Link>
+        </section>
+      ) : null}
 
       {awarie.length > 0 ? (
         <div className="flex items-start gap-3 rounded-[10px] border border-crit/30 bg-crit/5 p-4 text-sm text-foreground">
@@ -445,6 +474,11 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
                   </Link>
                   {hints.length > 1 ? <p className="mt-3 text-[12.5px] text-muted-foreground">i jeszcze {hints.length - 1} — w sekcji „Zdrowie usług”.</p> : null}
                 </>
+              ) : services.length === 0 ? (
+                // P1-11 — bez usług nie obiecujemy pilnowania czegokolwiek.
+                <p className="text-[14.5px] text-foreground">
+                  Gdy zamówisz pierwszą usługę, podpowiemy tu, co warto sprawdzić — domenę, certyfikat, kopie i obciążenie.
+                </p>
               ) : (
                 <p className="text-[14.5px] text-foreground">
                   Wszystko pod kontrolą. Pilnujemy DNS, SSL, kopii i obciążenia — damy znać, gdy coś będzie wymagać uwagi.
@@ -505,7 +539,7 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
               <dd>{snapshot.errors.services ? '—' : `${services.filter((s) => s.autoscalingEnabled).length} usł.`}</dd>
               {snapshot.ecoProgram?.referralProgramApproved ? (
                 <>
-                  <dt>Program partnerski</dt>
+                  <dt>Program poleceń</dt>
                   <dd><Link href="/dashboard/referral" className="text-primary underline">link polecający</Link></dd>
                 </>
               ) : null}

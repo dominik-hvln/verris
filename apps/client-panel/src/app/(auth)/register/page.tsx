@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useActionState, useState } from "react";
+import { Suspense, startTransition, useActionState, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { submitRegister } from "./actions";
 import { Loader2, AlertCircle, Check, X } from "lucide-react";
@@ -10,6 +10,7 @@ import { Captcha } from "@/components/captcha";
 import { checkPassword, PASSWORD_MIN_LENGTH } from "@/lib/password-policy";
 import { Checkbox } from '@/components/panel/checkbox';
 import { AUTH_BLAD, AUTH_ETYKIETA, AUTH_INPUT, AUTH_LINK, AuthShell } from "@/components/auth-shell";
+import { DOMYSLNY_POWROT, sciezkaPowrotu } from "@/lib/sciezka-powrotu";
 
 const initialState = { error: "" };
 
@@ -37,9 +38,26 @@ const PASKI = ["bg-destructive", "bg-destructive", "bg-amber-500", "bg-accent", 
 function RegisterContent() {
   const searchParams = useSearchParams();
   const refFromUrl = searchParams.get("ref")?.trim() ?? "";
+  // P4-4 / P3-11: cel z verris.pl (np. zamówienie poczty) — tylko ścieżka /dashboard… (sciezkaPowrotu).
+  const nextRaw = searchParams.get("next");
+  const cel = nextRaw ? sciezkaPowrotu(nextRaw) : null;
+  const celRejestracji = cel && cel !== DOMYSLNY_POWROT ? cel : null;
 
   const [state, formAction, isPending] = useActionState(submitRegister, initialState);
   const [password, setPassword] = useState("");
+  // P5-08 — pola kontrolowane: po błędzie z serwera (hasło z wycieku, limit, zajęty adres…) formularz akcji React
+  // resetuje pola niekontrolowane — klient wpisywał wszystko od nowa i zaznaczał zgody jeszcze raz.
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [zgody, setZgody] = useState({ acceptTerms: false, acceptPrivacy: false, acceptMarketing: false });
+  const przelacz = (k: keyof typeof zgody) => (e: React.ChangeEvent<HTMLInputElement>) => setZgody((z) => ({ ...z, [k]: e.target.checked }));
+  // Wysyłka bez automatycznego resetu formularza akcji (React czyści po akcji m.in. pola wyboru, także kontrolowane).
+  const wyslij = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const dane = new FormData(e.currentTarget);
+    startTransition(() => formAction(dane));
+  };
   const pw = checkPassword(password);
   const blad = !isPending && state?.error ? state.error : null;
 
@@ -50,7 +68,10 @@ function RegisterContent() {
       stopka={
         <>
           Masz już konto?{" "}
-          <a href="/login" className="font-semibold text-foreground underline underline-offset-4 transition-colors hover:text-accent">
+          <a
+            href={celRejestracji ? `/login?next=${encodeURIComponent(celRejestracji)}` : "/login"}
+            className="font-semibold text-foreground underline underline-offset-4 transition-colors hover:text-accent"
+          >
             Zaloguj się
           </a>
         </>
@@ -61,8 +82,9 @@ function RegisterContent() {
         <p className="mt-1 text-sm text-muted-foreground">Po rejestracji potwierdzisz adres e-mail i od razu zamówisz usługę.</p>
       </div>
 
-      <form action={formAction}>
+      <form onSubmit={wyslij}>
         {refFromUrl ? <input type="hidden" name="ref" value={refFromUrl} /> : null}
+        {celRejestracji ? <input type="hidden" name="next" value={celRejestracji} /> : null}
         <div className="space-y-5 p-8">
           <RegionBledu id="rejestracja-blad">
             {blad ? (
@@ -76,11 +98,11 @@ function RegisterContent() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <label htmlFor="firstName" className={AUTH_ETYKIETA}>Imię</label>
-              <input id="firstName" name="firstName" type="text" autoComplete="given-name" placeholder="Jan" required className={AUTH_INPUT} />
+              <input id="firstName" name="firstName" type="text" autoComplete="given-name" placeholder="Jan" required value={firstName} onChange={(e) => setFirstName(e.target.value)} className={AUTH_INPUT} />
             </div>
             <div className="space-y-2">
               <label htmlFor="lastName" className={AUTH_ETYKIETA}>Nazwisko</label>
-              <input id="lastName" name="lastName" type="text" autoComplete="family-name" placeholder="Kowalski" required className={AUTH_INPUT} />
+              <input id="lastName" name="lastName" type="text" autoComplete="family-name" placeholder="Kowalski" required value={lastName} onChange={(e) => setLastName(e.target.value)} className={AUTH_INPUT} />
             </div>
           </div>
 
@@ -93,6 +115,8 @@ function RegisterContent() {
               autoComplete="email"
               placeholder="jan@kowalski.pl"
               required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               aria-invalid={blad ? true : undefined}
               aria-describedby={blad ? "rejestracja-blad" : undefined}
               className={AUTH_INPUT}
@@ -124,19 +148,21 @@ function RegisterContent() {
                 <ul className="space-y-0.5 text-[11px]">
                   <Req ok={pw.lengthOk}>Co najmniej {PASSWORD_MIN_LENGTH} znaków</Req>
                   <Req ok={pw.classesOk}>3 z 4: mała i wielka litera, cyfra, symbol</Req>
-                  <Req ok={pw.notCommon}>Nie jest popularnym hasłem</Req>
+                  <Req ok={pw.notCommon}>Nie jest na liście najpopularniejszych haseł</Req>
                 </ul>
+                {/* P5-08 — wycieki (HIBP) sprawdza dopiero serwer: bez tej linii trzy zielone ptaszki obiecywały więcej. */}
+                <p className="text-[11px] text-muted-foreground">Przy zapisie sprawdzimy też, czy hasło nie pojawiło się w znanych wyciekach.</p>
               </div>
             ) : (
               <span id="haslo-wymagania" className="sr-only">Co najmniej {PASSWORD_MIN_LENGTH} znaków.</span>
             )}
           </div>
 
-          {/* RODO Sprint 1 / L-03 — zgody wymagane i opcjonalne. Pola niekontrolowane (FormData czyta `on`);
-              wymagane mają `required` (pierwsza linia walidacji), serwer i tak sprawdza ponownie. */}
+          {/* RODO Sprint 1 / L-03 — zgody wymagane i opcjonalne (FormData czyta `on`); wymagane mają `required`
+              (pierwsza linia walidacji), serwer i tak sprawdza ponownie. Kontrolowane — zostają po błędzie (P5-08). */}
           <div className="space-y-3 pt-2">
             <label className="flex cursor-pointer items-start gap-3">
-              <Checkbox name="acceptTerms" required className="mt-0.5" />
+              <Checkbox name="acceptTerms" required checked={zgody.acceptTerms} onChange={przelacz("acceptTerms")} className="mt-0.5" />
               <span className="text-xs leading-relaxed text-verris-body">
                 Akceptuję{" "}
                 <a href="/legal/terms" target="_blank" rel="noopener noreferrer" className={`${AUTH_LINK} underline underline-offset-2`}>
@@ -147,7 +173,7 @@ function RegisterContent() {
             </label>
 
             <label className="flex cursor-pointer items-start gap-3">
-              <Checkbox name="acceptPrivacy" required className="mt-0.5" />
+              <Checkbox name="acceptPrivacy" required checked={zgody.acceptPrivacy} onChange={przelacz("acceptPrivacy")} className="mt-0.5" />
               <span className="text-xs leading-relaxed text-verris-body">
                 Zapoznałem/am się z{" "}
                 <a href="/legal/privacy" target="_blank" rel="noopener noreferrer" className={`${AUTH_LINK} underline underline-offset-2`}>
@@ -158,7 +184,7 @@ function RegisterContent() {
             </label>
 
             <label className="flex cursor-pointer items-start gap-3">
-              <Checkbox name="acceptMarketing" className="mt-0.5" />
+              <Checkbox name="acceptMarketing" checked={zgody.acceptMarketing} onChange={przelacz("acceptMarketing")} className="mt-0.5" />
               <span className="text-xs leading-relaxed text-muted-foreground">
                 Chcę otrzymywać informacje o nowych funkcjach i ofertach Verris (opcjonalnie).
               </span>

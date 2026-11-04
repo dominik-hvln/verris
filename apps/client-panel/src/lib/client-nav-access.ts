@@ -110,6 +110,10 @@ export function canAccessDashboardRoute(
       'SERVICES_MANAGE',
     ]);
   }
+  // P3-08 — nowe zgłoszenie jak POST /tickets w API (canCreateTicket): sam podgląd zgłoszeń nie wystarcza.
+  if (href === '/dashboard/support/new' || href.startsWith('/dashboard/support/new?')) {
+    return perms.has('TICKETS_MANAGE');
+  }
   if (href.startsWith('/dashboard/support')) {
     return hasAny(perms, ['TICKETS_READ', 'TICKETS_MANAGE']);
   }

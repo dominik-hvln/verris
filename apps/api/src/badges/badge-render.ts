@@ -4,6 +4,7 @@
  * ustawiają ciasteczek i nie widzą strony klienta (iframe z sandboxem).
  */
 import type { DayUptime } from './badge-logic.js';
+import { opisPosadzonychDrzew } from '../eco/drzewa-model.js';
 
 export type Motyw = 'ciemny' | 'jasny';
 
@@ -178,25 +179,31 @@ ${d.owner ? `<span class="by">Link polecający od ${esc(d.owner)}</span>` : ''}
 
 export type EkoWariant = 'eko' | 'znak' | 'hostowane';
 
-/** Statyczne SVG do `<img>` — działa w każdym kreatorze i w mailach. */
-export function renderEkoSvg(input: { tier: string }, motyw: Motyw, wariant: EkoWariant): string {
+/**
+ * Statyczne SVG do `<img>` — działa w każdym kreatorze i w mailach.
+ * Wariant `eko` (W6, decyzja 12): „Verris — X posadzonych drzew” z licznika wybranego przez klienta; liczą się tylko
+ * drzewa z certyfikatem partnera. Bez nazwy partnera i bez ogólnych haseł środowiskowych („eko hosting”) — A2-10.
+ * Gdy licznik jest zerowy, pokazujemy sam znak Verris (nie „0 drzew”).
+ */
+export function renderEkoSvg(input: { czesciDrzew: number }, motyw: Motyw, wariant: EkoWariant): string {
   const dark = motyw !== 'jasny';
   const ink = dark ? '#F4F4EE' : '#0C1A14';
   const font = `font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif"`;
   const mark = (x: number, y: number, s: number) =>
     `<g transform="translate(${x} ${y}) scale(${s / 100})"><rect width="100" height="100" rx="22" fill="#0F7A52"/><path d="M26 30 L40 30 L50 52 L60 30 L74 30 L50 78 Z M44 55 L56 55 L50 69 Z" fill="#FFFFFF" fill-rule="evenodd"/></g>`;
-  if (wariant === 'znak') {
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="28" viewBox="0 0 96 28" role="img" aria-label="Hosting Verris"><rect x=".5" y=".5" width="95" height="27" rx="8" fill="${dark ? '#0C1A14' : '#FFFFFF'}" stroke="${dark ? 'rgba(255,255,255,.14)' : '#D5D8CF'}"/>${mark(6, 5, 18)}<text x="30" y="19" ${font} font-size="14" font-weight="800" letter-spacing="-0.6" fill="${ink}">verris</text></svg>`;
+  if (wariant === 'eko' && input.czesciDrzew >= 100) {
+    const accent = dark ? '#34E5A0' : '#0F7A52';
+    const opis = opisPosadzonychDrzew(input.czesciDrzew);
+    const tekst = `Verris — ${opis}`;
+    const szer = Math.max(200, 52 + Math.ceil(tekst.length * 7.4));
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${szer}" height="44" viewBox="0 0 ${szer} 44" role="img" aria-label="${esc(tekst)}"><rect x=".5" y=".5" width="${szer - 1}" height="43" rx="12" fill="${dark ? '#08130E' : '#F1F7F3'}" stroke="${dark ? 'rgba(52,229,160,.28)' : '#BFE3D0'}"/>
+<path d="M14 31c1-8 6-13 15-14-1 9-6 14-14 15M14 31l8-8" fill="none" stroke="${accent}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="40" y="27" ${font} font-size="13" font-weight="600" fill="${ink}">${esc(tekst)}</text></svg>`;
   }
   if (wariant === 'hostowane') {
     return `<svg xmlns="http://www.w3.org/2000/svg" width="150" height="20" viewBox="0 0 150 20" role="img" aria-label="Hostowane na Verris"><text x="0" y="14" ${font} font-size="12" fill="${dark ? '#9AA39C' : '#5B6A60'}">hostowane na</text><text x="84" y="14" ${font} font-size="13" font-weight="800" letter-spacing="-0.55" fill="${ink}">verris</text></svg>`;
   }
-  const accent = dark ? '#34E5A0' : '#0F7A52';
-  const tier = esc(input.tier);
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="196" height="44" viewBox="0 0 196 44" role="img" aria-label="EKO hosting Verris, poziom ${tier}"><rect x=".5" y=".5" width="195" height="43" rx="12" fill="${dark ? '#08130E' : '#F1F7F3'}" stroke="${dark ? 'rgba(52,229,160,.28)' : '#BFE3D0'}"/>
-<path d="M14 31c1-8 6-13 15-14-1 9-6 14-14 15M14 31l8-8" fill="none" stroke="${accent}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-<text x="40" y="20" ${font} font-size="13" font-weight="600" fill="${ink}">EKO hosting</text><text x="40" y="34" font-family="ui-monospace,Menlo,monospace" font-size="11" fill="${accent}">poziom ${tier}</text>
-<rect x="128" y="11" width="1" height="22" fill="${dark ? 'rgba(255,255,255,.12)' : '#D5D8CF'}"/><text x="140" y="27" ${font} font-size="15" font-weight="800" letter-spacing="-0.65" fill="${ink}">verris</text></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="28" viewBox="0 0 96 28" role="img" aria-label="Hosting Verris"><rect x=".5" y=".5" width="95" height="27" rx="8" fill="${dark ? '#0C1A14' : '#FFFFFF'}" stroke="${dark ? 'rgba(255,255,255,.14)' : '#D5D8CF'}"/>${mark(6, 5, 18)}<text x="30" y="19" ${font} font-size="14" font-weight="800" letter-spacing="-0.6" fill="${ink}">verris</text></svg>`;
 }
 
 /**

@@ -36,3 +36,19 @@ describe('EcoModeCard — saldo punktów z rodzica', () => {
     act(() => root.unmount());
   });
 });
+
+// Decyzja 7 (3.11): po włączeniu Trybu EKO jasne ostrzeżenie o rzadszych kopiach; bez twierdzeń środowiskowych.
+it('Tryb EKO włączony: ostrzeżenie o kopiach raz w tygodniu; wyłączony: bez ostrzeżenia', async () => {
+  const el = document.createElement('div');
+  const root = createRoot(el);
+  await act(async () => root.render(<EcoModeCard subscriptionId="s1" ecoModeEnabled={false} ecoPoints={0} />));
+  expect(el.querySelector('[role="status"]')).toBeNull();
+  expect(el.textContent).not.toMatch(/środowisk/);
+  act(() => root.unmount());
+  const el2 = document.createElement('div');
+  const root2 = createRoot(el2);
+  await act(async () => root2.render(<EcoModeCard subscriptionId="s2" ecoModeEnabled ecoPoints={0} />));
+  expect(el2.querySelector('[role="status"]')?.textContent).toContain('nawet tydzień');
+  expect(el2.textContent).toContain('raz w tygodniu zamiast codziennie');
+  act(() => root2.unmount());
+});

@@ -40,3 +40,19 @@ export async function redeemEcoPointsAction(
     return { error: e instanceof Error ? e.message : 'Nie udało się wymienić punktów.' };
   }
 }
+
+/** W6 — wymiana punktów na procent drzewa do wspólnej puli albo na własne drzewa z certyfikatem. */
+export async function wymienNaDrzewoAction(
+  input: { cel: 'PULA'; procent: number } | { cel: 'WLASNE'; drzewa: number },
+): Promise<{ ok: true; punktyWydane: number } | { error: string }> {
+  try {
+    const res = await apiFetch<{ ok: true; punktyWydane: number }>('/eco/drzewa/wymiana', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+    revalidatePath('/dashboard/eco');
+    return { ok: true, punktyWydane: res.punktyWydane };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Nie udało się wymienić punktów.' };
+  }
+}

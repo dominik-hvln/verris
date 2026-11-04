@@ -27,7 +27,7 @@ export async function GET() {
   przywróceniem), obsługa starych wersji PHP
 - Dodatkowa przestrzeń kopii zapasowych ponad limit Planu jest rozliczana zużyciem (§9 ust. 5 regulaminu)
 - Bez limitu liczby stron, skrzynek e-mail i transferu (w ramach zasobów konta i zasad uczciwego korzystania)
-- Model odnowień: cena z cennika od pierwszego dnia; odnowienie wg cennika z dnia odnowienia; brak „taniego pierwszego roku"
+- Model odnowień: odnowienie wg cennika z dnia odnowienia, podane z góry; rabat na start tylko przy pierwszym zakupie (pierwszy rok albo pierwszy miesiąc), kwota po rabacie widoczna przed zapłatą
 
 ## Poczta bez hostingu strony
 - ${zl(p.miesiecznie)}/mies. brutto (${zl(netto(p.miesiecznie))} netto) albo ${zl(p.rocznie)}/rok brutto (${zl(netto(p.rocznie))} netto)

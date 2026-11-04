@@ -30,7 +30,9 @@ export class StosWezlaService {
     const w = await this.prisma.platformSetting.findUnique({ where: { key: KLUCZ } });
     if (!w?.value) return STOS_WEZLA;
     try {
-      return { ...STOS_WEZLA, ...(JSON.parse(w.value) as Partial<ManifestStosu>) };
+      // Decyzja 14 — lista alt-php i minimum nie są edytowane w panelu: zapis manifestu kopiował je z kodu
+      // z dnia zapisu, więc stary zapis zatrzymywałby flotę na wersjach sprzed 8.4. Zawsze z kodu.
+      return { ...STOS_WEZLA, ...(JSON.parse(w.value) as Partial<ManifestStosu>), phpAlt: STOS_WEZLA.phpAlt, phpMin: STOS_WEZLA.phpMin };
     } catch {
       return STOS_WEZLA;
     }

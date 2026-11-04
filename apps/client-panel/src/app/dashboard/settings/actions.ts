@@ -2,7 +2,7 @@
 
 import { getAuthToken } from "@/lib/auth";
 import { apiFetch, ApiError } from "@/lib/api";
-import type { SidebarTileHref } from "@verris/contracts";
+import type { SidebarTileHref } from "@verris/contracts/klient";
 
 export interface UserProfile {
   id: string;
@@ -127,7 +127,9 @@ export async function changeUserPassword(currentPassword: string, newPassword: s
       body: JSON.stringify({ currentPassword, newPassword }),
     });
     return { success: true };
-  } catch {
+  } catch (err) {
+    // P3-04 — powód z API (np. złe aktualne hasło, limit prób), nie „błąd połączenia”.
+    if (err instanceof ApiError) return { error: err.message };
     return { error: "Błąd połączenia z serwerem" };
   }
 }

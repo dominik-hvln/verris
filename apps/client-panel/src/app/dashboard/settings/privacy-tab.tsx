@@ -16,13 +16,16 @@ import {
   fetchConsentHistory,
   fetchDataExports,
   fetchDeletionStatus,
+  fetchDeletionSummary,
   requestAccountDeletion,
   requestDataExport,
   type DataExportSummary,
   type DeletionStatus,
+  type DeletionSummary,
   type UserConsentRow,
 } from "./privacy-actions";
 import { Checkbox } from '@/components/panel/checkbox';
+import { UmowaPowierzenia } from './umowa-powierzenia';
 import { liczba } from '@/lib/liczba';
 
 const KIND_LABELS: Record<UserConsentRow["documentKind"], string> = {
@@ -34,9 +37,10 @@ const KIND_LABELS: Record<UserConsentRow["documentKind"], string> = {
 
 const SOURCE_LABELS: Record<UserConsentRow["source"], string> = {
   REGISTRATION: "Rejestracja",
-  RE_CONSENT: "Re-akceptacja",
+  RE_CONSENT: "Ponowna akceptacja",
   SETTINGS: "Ustawienia",
-  ADMIN_MANUAL: "Ręczne (admin)",
+  ADMIN_MANUAL: "Wpis obsługi Verris",
+  SUBACCOUNT_ACTIVATION: "Aktywacja dostępu z zaproszenia",
 };
 
 const STATUS_LABELS: Record<DataExportSummary["status"], string> = {
@@ -125,6 +129,7 @@ export function PrivacyTab({
       </header>
 
       <ConsentsSection consents={consents} />
+      <UmowaPowierzenia consents={consents} onAccepted={async () => setConsents(await fetchConsentHistory())} showToast={showToast} />
       <DataExportSection exports={exports} onRefresh={refreshExports} showToast={showToast} />
       <AccountDeletionSection
         deletion={deletion}
@@ -220,8 +225,8 @@ function DataExportSection({
           Pobierz kopię swoich danych
         </h3>
         <p className="text-xs text-neutral-500 mt-1">
-          Realizacja prawa do przenoszenia danych (RODO art. 20). Generujemy paczkę .ndjson.gz ze
-          wszystkimi Twoimi danymi w panelu (profil, faktury, tickety, audyt logów). Link do
+          Realizacja prawa do przenoszenia danych (RODO art. 20). Generujemy archiwum ZIP z plikami JSON ze
+          wszystkimi Twoimi danymi w panelu (profil, faktury, zgłoszenia, dziennik aktywności). Link do
           pobrania jest ważny 7 dni.
         </p>
       </div>
@@ -305,14 +310,28 @@ function AccountDeletionSection({
   const [reason, setReason] = useState("");
   const [agree, setAgree] = useState(false);
   const [pending, startTransition] = useTransition();
+  // A2-07 — przed potwierdzeniem: saldo (część do zwrotu), domeny, usługi i prawdziwa data usunięcia.
+  const [summary, setSummary] = useState<DeletionSummary | null>(null);
+  const [rachunek, setRachunek] = useState("");
+  const [odbiorca, setOdbiorca] = useState("");
+  const doZwrotu = Number(summary?.doZwrotu ?? 0);
+  const brakDanychZwrotu = doZwrotu > 0 && rachunek.trim() !== "" && odbiorca.trim() === "";
+
+  useEffect(() => {
+    if (showModal || deletion.active) void fetchDeletionSummary().then(setSummary);
+  }, [showModal, deletion.active]);
 
   const onRequest = () => {
-    if (!password || !agree) return;
+    if (!password || !agree || brakDanychZwrotu) return;
     startTransition(async () => {
-      const result = await requestAccountDeletion(password, reason || undefined);
+      const zwrot = doZwrotu > 0 && rachunek.trim() ? { numerRachunku: rachunek, odbiorca } : undefined;
+      const result = await requestAccountDeletion(password, reason || undefined, zwrot);
       if (result.ok) {
         showToast(
-          `Usunięcie zaplanowane na ${formatDate(result.scheduledFor)}. Możesz cofnąć w ciągu 14 dni.`,
+          `Usunięcie zaplanowane na ${formatDate(result.scheduledFor)}. Do tego dnia możesz je cofnąć.` +
+            (result.wniosekZwrotu
+              ? ` Zwrot ${liczba(Number(result.wniosekZwrotu.kwota), 2)} zł wyślemy przelewem do ${formatDate(result.wniosekZwrotu.terminDo)}.`
+              : ""),
           "success",
         );
         onChange({
@@ -325,6 +344,8 @@ function AccountDeletionSection({
         setPassword("");
         setReason("");
         setAgree(false);
+        setRachunek("");
+        setOdbiorca("");
       } else {
         showToast(result.error, "error");
       }
@@ -351,9 +372,10 @@ function AccountDeletionSection({
           Usunięcie konta
         </h3>
         <p className="text-xs text-neutral-500 mt-1">
-          Realizacja prawa do bycia zapomnianym (RODO art. 17). Po wniosku konto wchodzi w 14-dniowy
-          okres karencji — w tym czasie możesz cofnąć decyzję. Po 14 dniach dane osobowe są
-          anonimizowane (faktury i logi rozliczeniowe pozostają zgodnie z prawem 5 lat).
+          Realizacja prawa do bycia zapomnianym (RODO art. 17). Po wniosku konto wchodzi w okres karencji —
+          14 dni albo do końca najdłuższego opłaconego okresu usługi, jeśli kończy się później. Do tego dnia
+          możesz cofnąć decyzję. Potem dane osobowe są anonimizowane (faktury i dokumenty rozliczeniowe
+          przechowujemy 5 lat, jak wymaga prawo).
         </p>
       </div>
 
@@ -374,6 +396,12 @@ function AccountDeletionSection({
                   Powód: {deletion.reason}
                 </p>
               )}
+              {summary?.wniosekZwrotu && (
+                <p className="text-xs text-rose-200/80 mt-2">
+                  Zwrot salda: {liczba(Number(summary.wniosekZwrotu.kwota), 2)} zł na rachunek {summary.wniosekZwrotu.rachunek},
+                  przelew do {formatDate(summary.wniosekZwrotu.terminDo)}. Cofnięcie usunięcia wycofuje też zwrot.
+                </p>
+              )}
             </div>
           </div>
           <button
@@ -390,7 +418,7 @@ function AccountDeletionSection({
           <div>
             <p className="text-sm font-medium text-rose-200">Strefa nieodwracalna</p>
             <p className="text-xs text-neutral-400 mt-0.5">
-              Wymaga potwierdzenia hasłem. Po 14 dniach proces jest nieodwracalny.
+              Wymaga potwierdzenia hasłem. Przed potwierdzeniem zobaczysz, co stanie się z saldem, domenami i usługami.
             </p>
           </div>
           <button
@@ -409,13 +437,84 @@ function AccountDeletionSection({
           aria-modal
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4"
         >
-          <div className="w-full max-w-md rounded-2xl border border-rose-500/30 bg-neutral-950 p-6 shadow-2xl">
+          <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-rose-500/30 bg-neutral-950 p-6 shadow-2xl">
             <h3 className="text-lg font-bold text-white mb-2">Usuń konto Verris</h3>
-            <p className="text-xs text-neutral-400 mb-5">
-              Aby kontynuować, podaj swoje aktualne hasło. Zaplanujemy usunięcie za 14 dni.
+            <p className="text-xs text-neutral-400 mb-4">
+              {summary
+                ? `Usuniemy konto ${formatDate(summary.dataUsuniecia)}. Do tego dnia możesz cofnąć decyzję w ustawieniach.`
+                : "Sprawdzamy saldo, domeny i usługi…"}
             </p>
 
+            {summary && (
+              <div className="mb-5 space-y-3 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-xs text-neutral-300">
+                <p className="font-semibold text-white">Co się stanie</p>
+                <div>
+                  <p className="text-neutral-200">
+                    Saldo portfela: {liczba(Number(summary.saldo), 2)} K
+                    {doZwrotu > 0 && <> — zwrócimy {liczba(doZwrotu, 2)} zł przelewem w ciągu {summary.terminZwrotuDni} dni.</>}
+                  </p>
+                  {Number(summary.nieZwracane) > 0 && (
+                    <p className="text-neutral-500 mt-1">
+                      {liczba(Number(summary.nieZwracane), 2)} K pochodzi z kodów promocyjnych, programu poleceń albo rekompensat — tej części nie zwracamy.
+                    </p>
+                  )}
+                </div>
+                {summary.domeny.length > 0 && (
+                  <div>
+                    <p className="text-neutral-200">
+                      Domeny zarejestrowane przez Verris ({summary.domeny.length}):
+                    </p>
+                    <ul className="mt-1 list-disc pl-5 text-neutral-400">
+                      {summary.domeny.map((d) => (
+                        <li key={d.nazwa}>
+                          {d.nazwa}
+                          {d.wygasa ? ` — opłacona do ${formatDate(d.wygasa)}` : ""}
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="text-neutral-500 mt-1">
+                      Przenieś je do innego rejestratora przed datą usunięcia (kod AuthInfo pobierzesz w zakładce Domeny). Po usunięciu konta nie odnowisz ich i wygasną.
+                    </p>
+                  </div>
+                )}
+                {summary.uslugi.length > 0 && (
+                  <div>
+                    <p className="text-neutral-200">
+                      Aktywne usługi ({summary.uslugi.length}): {summary.uslugi.map((u) => u.nazwa).join(", ")}. Działają do dnia usunięcia konta, potem wyłączamy je razem z danymi.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="space-y-4">
+              {doZwrotu > 0 && (
+                <fieldset className="space-y-2">
+                  <legend className="text-xs font-medium text-neutral-200 mb-1">Rachunek do zwrotu {liczba(doZwrotu, 2)} zł</legend>
+                  <input
+                    type="text"
+                    inputMode="text"
+                    autoComplete="off"
+                    aria-label="Numer rachunku do zwrotu"
+                    placeholder="Numer rachunku (26 cyfr)"
+                    value={rachunek}
+                    onChange={(e) => setRachunek(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-[#0a0a0a]/50 px-4 py-2.5 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rose-500/30"
+                  />
+                  <input
+                    type="text"
+                    autoComplete="name"
+                    aria-label="Właściciel rachunku"
+                    placeholder="Właściciel rachunku (imię i nazwisko albo firma)"
+                    value={odbiorca}
+                    onChange={(e) => setOdbiorca(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-[#0a0a0a]/50 px-4 py-2.5 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rose-500/30"
+                  />
+                  <p className="text-[11px] text-neutral-500">
+                    Bez numeru rachunku nie zwrócimy salda — możesz też napisać do nas później na kontakt@verris.pl.
+                  </p>
+                </fieldset>
+              )}
               <input
                 type="password"
                 placeholder="Aktualne hasło"
@@ -437,8 +536,8 @@ function AccountDeletionSection({
                   onChange={(e) => setAgree(e.target.checked)}
                   className="mt-0.5 h-4 w-4 rounded border-white/20 bg-neutral-900 text-rose-500"
                 />
-                Rozumiem, że proces jest nieodwracalny po upływie 14 dni i moje dane osobowe zostaną
-                zanonimizowane.
+                Rozumiem, że po {summary ? formatDate(summary.dataUsuniecia) : "dniu usunięcia"} proces jest nieodwracalny, a moje dane
+                osobowe zostaną zanonimizowane.
               </label>
             </div>
 
@@ -449,6 +548,8 @@ function AccountDeletionSection({
                   setPassword("");
                   setReason("");
                   setAgree(false);
+                  setRachunek("");
+                  setOdbiorca("");
                 }}
                 className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-neutral-300 hover:bg-white/5"
               >
@@ -456,7 +557,7 @@ function AccountDeletionSection({
               </button>
               <button
                 onClick={onRequest}
-                disabled={!password || !agree || pending}
+                disabled={!password || !agree || brakDanychZwrotu || pending}
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}

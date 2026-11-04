@@ -24,7 +24,7 @@ const fetchHostingDomainsAction = zOdpakowaniem(fetchHostingDomainsActionAkcja);
 export function PhpClient({ serviceId, status }: { serviceId: string; status: PhpStatus }) {
   const versionId = useId();
   const router = useRouter();
-  const [version, setVersion] = useState(status.version ?? status.availableVersions[0] ?? '');
+  const [version, setVersion] = useState(status.version ?? status.recommendedVersion ?? status.availableVersions[0] ?? '');
   const [pending, startTransition] = useTransition();
 
   const inflight =
@@ -77,7 +77,10 @@ export function PhpClient({ serviceId, status }: { serviceId: string; status: Ph
               value={version}
               onChange={setVersion}
               aria-label="Wersja PHP"
-              options={status.availableVersions.map((v) => ({ value: v, label: `PHP ${v}` }))}
+              options={status.availableVersions.map((v) => ({
+                value: v,
+                label: v === status.recommendedVersion ? `PHP ${v} (zalecana)` : `PHP ${v}`,
+              }))}
             />
           </div>
           <button

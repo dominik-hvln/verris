@@ -7,8 +7,8 @@ import { netto, stawka, zl, zlGrosze, type CenaPakietu } from '@/lib/ceny';
 import { pasekHostingu } from '@/lib/proba';
 import { ZAMOW } from '@/lib/site';
 import { faqSchema, ofertyHostingu, productSchema } from '@/lib/schema';
-import { formatZl, kosztPiku } from '@/lib/kalkulator';
-import { zweryfikowane } from '@/lib/oferta';
+import { formatZl, kosztPiku, PRZYKLAD_BLACK_FRIDAY } from '@/lib/kalkulator';
+import { PHP_ZAKRES, zweryfikowane } from '@/lib/oferta';
 
 // Makieta 14.10, plansza HostingSklep (title z makiety, 55 zn.).
 export const metadata: Metadata = {
@@ -18,9 +18,8 @@ export const metadata: Metadata = {
   alternates: { canonical: '/hosting/sklep' },
 };
 
-// Przykład z makiety: +16 GB RAM przez 36 h — liczony ze stawek (lib/kalkulator.ts), nie wpisany.
-const BF_GODZ = 36;
-const BF_RAM = 16;
+// P2-09: ten sam przykład Black Friday co na /hosting i w kalkulatorze /cennik (lib/kalkulator.ts), liczony ze stawek.
+const { vcpu: BF_VCPU, ramGb: BF_RAM, godziny: BF_GODZ } = PRZYKLAD_BLACK_FRIDAY;
 
 const NAJWAZNIEJSZE: [string, string][] = [
   ['do 24 vCPU i 64 GB RAM', 'w szczycie sprzedaży, automatycznie'],
@@ -50,7 +49,7 @@ const MOMENTY: Step[] = [
 
 const PLATFORMY = zweryfikowane([
   { t: 'WooCommerce', p: 'Cache LiteSpeed i Redis dla bazy — sklep na WordPressie działa szybko także przy wielu klientach naraz.', po: true },
-  { t: 'PrestaShop', p: 'Wersję PHP (7.4–8.3) dobierasz do sklepu, osobno dla każdej domeny.' },
+  { t: 'PrestaShop', p: `Wersję PHP (${PHP_ZAKRES}) dobierasz do sklepu, osobno dla każdej domeny.` },
   { t: 'Inne sklepy na PHP', p: 'SSH w izolowanym środowisku i Node.js dla sklepów, które wymagają więcej narzędzi.', po: true },
   { t: 'Poczta sklepu', p: 'zamowienia@ i sklep@ w Twojej domenie, z aliasami i przekierowaniami.' },
 ]);
@@ -62,12 +61,12 @@ const faqSklepu = (c: CenaPakietu): [string, string][] => [
   ],
   [
     'Co się stanie, gdy w Black Friday ruch wzrośnie kilkukrotnie?',
-    'Autoskalowanie dołoży procesora i pamięci — do 24 vCPU i 64 GB RAM — a po szczycie moc wróci do pakietu. W panelu ustawiasz limit kosztu; po jego osiągnięciu zasoby wracają do pakietu, a Ty dostajesz powiadomienie.',
+    'Autoskalowanie dołoży procesora i pamięci — do 24 vCPU i 64 GB RAM — a po szczycie moc wróci do pakietu. Bez limitu płacisz za faktyczne użycie. Limit kosztu na 30 dni ustawisz przy zamówieniu albo w panelu; po jego osiągnięciu zasoby wracają do pakietu, a Ty dostajesz powiadomienie.',
   ],
   ['Czy hosting nadaje się dla WooCommerce?', 'Tak. Masz cache LiteSpeed, Redis dla bazy, dyski NVMe i wersję PHP wybraną dla sklepu.'],
   [
     'Czy przeniesiecie mój sklep z innego hostingu?',
-    'Tak, za darmo. Pliki, bazę i pocztę kopiujemy sami, a sklep działa u starego dostawcy, dopóki nie przełączysz domeny.',
+    'Tak, za darmo. Pliki, bazę i pocztę kopiujemy sami, a sklep sprzedaje u starego dostawcy, dopóki nie przełączysz domeny. Tuż przed przełączeniem dogrywamy ostatnie zamówienia z bazy: sklep ma wtedy kilka minut przerwy w składaniu zamówień, o wybranej przez Ciebie porze.',
   ],
   [
     'Jak często robicie kopie sklepu?',
@@ -78,7 +77,7 @@ const faqSklepu = (c: CenaPakietu): [string, string][] => [
 export default async function Page() {
   const ceny = await pobierzCeny();
   const m = ceny.hosting.miesiecznie;
-  const BF = kosztPiku(0, BF_RAM, BF_GODZ, ceny.stawki);
+  const BF = kosztPiku(BF_VCPU, BF_RAM, BF_GODZ, ceny.stawki);
   const FAQ = faqSklepu(ceny.hosting);
   return (
     <main>
@@ -156,14 +155,14 @@ export default async function Page() {
           <div>
             <SectionHead
               title="Ile kosztuje Black Friday na hostingu?"
-              lead={`Przykład: sklep przez ${BF_GODZ} godzin potrzebuje ${BF_RAM} GB pamięci więcej niż zwykle. Dopłata za te godziny to ${formatZl(BF)} zł brutto. Przez resztę roku płacisz ${zl(m)} miesięcznie brutto (${zl(netto(m))} netto), zamiast co miesiąc opłacać większy pakiet „na zapas”.`}
+              lead={`Przykład: sklep przez ${BF_GODZ} godzin potrzebuje ${BF_VCPU} vCPU i ${BF_RAM} GB pamięci więcej niż zwykle. Dopłata za te godziny to ${formatZl(BF)} zł brutto. Przez resztę roku płacisz ${zl(m)} miesięcznie brutto (${zl(netto(m))} netto), zamiast co miesiąc opłacać większy pakiet „na zapas”.`}
             />
             <p>
               <Link href="/cennik#kalkulator">Policz swój przypadek w kalkulatorze →</Link>
             </p>
             <p className="kalk-note">
-              {BF_RAM} GB × {BF_GODZ} h × {stawka(ceny.stawki.ram)} zł = {formatZl(BF)} zł brutto ({formatZl(netto(BF))} zł netto), sama pamięć. Naliczanie w blokach po 15
-              minut.
+              ({BF_VCPU * 100}% CPU × {stawka(ceny.stawki.cpu)} zł + {BF_RAM} GB × {stawka(ceny.stawki.ram)} zł) × {BF_GODZ} h ={' '}
+              {formatZl(BF)} zł brutto ({formatZl(netto(BF))} zł netto). Naliczanie w blokach po 15 minut.
             </p>
           </div>
           <Card accent>
@@ -204,7 +203,7 @@ export default async function Page() {
 
       <CTABand
         title="Przygotuj sklep na najlepszy dzień w roku. Przeniesienie w cenie"
-        text="Moc na Black Friday, kopie bazy zamówień i ochrona sklepu. Sklep przeniesiemy bez przerwy w sprzedaży."
+        text="Moc na Black Friday, kopie bazy zamówień i ochrona sklepu. Sklep przeniesiemy za Ciebie: przerwa w zamówieniach to kilka minut, o wybranej porze."
         primaryLabel="Zamów hosting dla sklepu"
         secondary={{ label: 'Jak działa przeniesienie', href: '/przenies-strone' }}
       />

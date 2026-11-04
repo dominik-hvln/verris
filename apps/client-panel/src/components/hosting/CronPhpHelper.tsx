@@ -12,13 +12,14 @@ import { zOdpakowaniem } from '@/lib/wynik-akcji';
 const fetchHostingDomainsAction = zOdpakowaniem(fetchHostingDomainsActionAkcja);
 
 /**
- * L-05 — polecenie crona ze skryptem PHP w wybranej wersji. Wersje = te same co przy domenie
- * (CloudLinux alt-php); binarka `/opt/alt/phpXY/usr/bin/php` — CustomBuild ma tylko jedną wersję,
- * a /opt/alt jest widoczne w CageFS. Ścieżka od $HOME, więc nie trzeba znać loginu konta.
+ * L-05 — polecenie crona ze skryptem PHP w wybranej wersji. Wersje = te same co przy domenie.
+ * Decyzja 24 (4.11.2026): krótka nazwa `/usr/local/bin/phpXY` — dowiązanie, które profil węzła tworzy dla każdej
+ * zainstalowanej wersji (ops/scripts/node-hosting-profile.sh: configure_php_aliases), zamiast ścieżki katalogu
+ * wersji na serwerze. Ścieżka skryptu od $HOME, więc nie trzeba znać loginu konta.
  * ponytail: tylko ścieżka w public_html domeny; argumenty skryptu klient dopisze w polu polecenia.
  */
 export function phpCronCommand(release: string, domain: string, path: string): string {
-  const bin = `/opt/alt/php${release.replace('.', '')}/usr/bin/php`;
+  const bin = `/usr/local/bin/php${release.replace('.', '')}`;
   const plik = path.trim().replace(/^\/+/, '');
   return `${bin} -q $HOME/domains/${domain}/public_html/${plik}`;
 }

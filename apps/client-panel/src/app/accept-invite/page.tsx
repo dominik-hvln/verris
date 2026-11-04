@@ -4,7 +4,8 @@ import { CIASTECZKO_BLEDU_IAM } from '../dashboard/iam/constants';
 import { acceptInviteAction, infoZaproszenia, przyjmijWlasnymKontemAction } from '../dashboard/iam/actions';
 import { getAuthToken } from '@/lib/auth';
 import { fetchSessionProfile } from '@/lib/session-profile';
-import { AUTH_INPUT, AUTH_PRZYCISK, AuthShell } from '@/components/auth-shell';
+import { AUTH_INPUT, AUTH_LINK, AUTH_PRZYCISK, AuthShell } from '@/components/auth-shell';
+import { Checkbox } from '@/components/panel/checkbox';
 
 const LINK = 'font-semibold text-foreground underline underline-offset-4 hover:text-accent';
 
@@ -85,6 +86,29 @@ export default async function AcceptInvitePage({
         <div className="space-y-2">
           <label htmlFor="password" className="text-sm font-semibold text-verris-body">Hasło</label>
           <input id="password" name="password" required minLength={8} type="password" autoComplete="new-password" className={AUTH_INPUT} />
+        </div>
+        {/* P3-10 — zgody przy aktywacji (jak przy rejestracji), nie w oknie po pierwszym logowaniu. */}
+        <div className="space-y-3">
+          <label className="flex cursor-pointer items-start gap-3">
+            <Checkbox name="acceptTerms" required className="mt-0.5" />
+            <span className="text-xs leading-relaxed text-verris-body">
+              Akceptuję{' '}
+              <a href="/legal/terms" target="_blank" rel="noopener noreferrer" className={`${AUTH_LINK} underline underline-offset-2`}>
+                regulamin świadczenia usług
+              </a>{' '}
+              Verris. <span className="text-destructive">*</span>
+            </span>
+          </label>
+          <label className="flex cursor-pointer items-start gap-3">
+            <Checkbox name="acceptPrivacy" required className="mt-0.5" />
+            <span className="text-xs leading-relaxed text-verris-body">
+              Zapoznałem/am się z{' '}
+              <a href="/legal/privacy" target="_blank" rel="noopener noreferrer" className={`${AUTH_LINK} underline underline-offset-2`}>
+                polityką prywatności
+              </a>
+              . <span className="text-destructive">*</span>
+            </span>
+          </label>
         </div>
         <button className={AUTH_PRZYCISK}>Aktywuj subkonto</button>
       </form>

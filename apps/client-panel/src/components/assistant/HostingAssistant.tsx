@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { Bot, Loader2, MessageCircle, Send, Sparkles, X } from 'lucide-react';
-import type { AiChatMessageDto, AiChatSourceDto } from '@verris/contracts';
+import type { AiChatMessageDto, AiChatSourceDto } from '@verris/contracts/klient';
 import {
   askHostingAssistantAction as askHostingAssistantActionAkcja,
   fetchAiStatusAction,

@@ -54,8 +54,9 @@ const PUBLICZNE = [
   // 1.11 — asystent AI na verris.pl: limit 20/10 min i 60/dobę per IP, captcha od 4. wiadomości, limity kosztu.
   'AsystentWwwController.zapytaj',
   // 2.11 — formularz otwartej bety (verris.pl/beta): captcha, limit 5/godz. per IP i adres, pułapka na boty,
-  // jeden mail na adres na dobę; potwierdzenie — jednorazowy token z maila.
+  // jeden mail na adres na dobę; potwierdzenie — token z maila: GET pokazuje stronę z przyciskiem, POST potwierdza (A1-06).
   'BetaZgloszeniaPublicController.potwierdz',
+  'BetaZgloszeniaPublicController.potwierdzStrona',
   'BetaZgloszeniaPublicController.zglos',
   'BrandController.ctaPattern',
   'BrandController.logo',
@@ -90,8 +91,12 @@ const PUBLICZNE = [
   'KbPublicController.sitemap',
   // 1.11 — prośba o telefon z verris.pl: captcha + limit 3/godz. per IP i per numer.
   'LeadsPublicController.callback',
+  // A2-01 (paczka 109): potwierdzenie zgody i wypis — token z maila; GET pokazuje stronę z przyciskiem, POST zapisuje.
   'LeadsPublicController.confirm',
+  'LeadsPublicController.confirmStrona',
   'LeadsPublicController.submit',
+  'LeadsPublicController.unsubscribe',
+  'LeadsPublicController.unsubscribeStrona',
   'LegalDocumentsController.getAllCurrent',
   'LegalDocumentsController.getByVersion',
   'LegalDocumentsController.getCurrent',

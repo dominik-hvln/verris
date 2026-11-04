@@ -1,6 +1,8 @@
 import { cookies, headers as incomingHeaders } from 'next/headers';
-import { opiszBladSieci, wpisDoLogu, sprawdzSciezkeApi } from '@verris/contracts';
-import { daErrorMessage } from './client-hosting-messages';
+import { opiszBladSieci, wpisDoLogu, sprawdzSciezkeApi } from '@verris/contracts/klient';
+// P5-01 — moduł serwerowy (next/headers): odmowę serwera hostingu tłumaczy wersja z filtrem white label,
+// której nie ma w wejściu dla przeglądarki (`@verris/contracts/klient`).
+import { daErrorMessage } from '@verris/contracts';
 
 // PRZEGLĄDARKA I SERWER TO DWA RÓŻNE ADRESY TEGO SAMEGO API.
 //
@@ -84,6 +86,10 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
     const incoming = await incomingHeaders();
     const xff = incoming.get('x-forwarded-for');
     if (xff && !headers.has('x-forwarded-for')) headers.set('x-forwarded-for', xff);
+    // P5-05 (paczka 109) — przeglądarka klienta, nie „node”: lista urządzeń, historia logowań i dowód zgody (RODO)
+    // pokazywały każde urządzenie jako „Nieznane urządzenie”.
+    const ua = incoming.get('user-agent');
+    if (ua && !headers.has('user-agent')) headers.set('user-agent', ua);
   } catch {
     /* outside request scope (build/ISR) — skip */
   }

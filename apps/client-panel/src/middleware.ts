@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { canAccessDashboardRoute } from "@/lib/client-nav-access";
+import { adresBrakuDostepu } from "@/lib/brak-dostepu";
 import { fetchSessionProfileState } from "@/lib/session-profile";
 import { CIASTECZKO_WLASCICIELA, opcjeSesji } from "@/lib/auth";
-import { sciezkaPowrotu } from "@/lib/sciezka-powrotu";
+import { DOMYSLNY_POWROT, sciezkaPowrotu } from "@/lib/sciezka-powrotu";
+import { CIASTKO_CELU } from "@/lib/cel-po-rejestracji";
 import { dostawcaCaptchy, naglowkiCsp } from "@verris/ui/csp";
 
 /**
@@ -60,8 +62,17 @@ export async function middleware(request: NextRequest) {
   }
 
   if (token && isAuthPage) {
-    const cel = pathname.startsWith("/login") ? sciezkaPowrotu(request.nextUrl.searchParams.get("next")) : "/dashboard";
-    return NextResponse.redirect(publicPanelUrl(request, cel));
+    // P4-4 / P3-11: zalogowany klient z linku verris.pl (/register?next=…) trafia od razu do celu, nie na pulpit;
+    // bez `next` — cel zapamiętany przy rejestracji (lib/cel-po-rejestracji.ts), jednorazowo.
+    const zParametru =
+      pathname.startsWith("/login") || pathname.startsWith("/register")
+        ? sciezkaPowrotu(request.nextUrl.searchParams.get("next"))
+        : DOMYSLNY_POWROT;
+    const zapisany = request.cookies.get(CIASTKO_CELU)?.value;
+    const cel = zParametru !== DOMYSLNY_POWROT || zapisany === undefined ? zParametru : sciezkaPowrotu(zapisany);
+    const res = NextResponse.redirect(publicPanelUrl(request, cel));
+    if (zapisany !== undefined) res.cookies.delete(CIASTKO_CELU);
+    return res;
   }
 
   if (token && pathname.startsWith("/dashboard")) {
@@ -88,7 +99,8 @@ export async function middleware(request: NextRequest) {
       session.isSubaccount &&
       !canAccessDashboardRoute(pathname, session)
     ) {
-      return NextResponse.redirect(publicPanelUrl(request, "/dashboard"));
+      // P3-08 — pulpit z komunikatem „Nie masz uprawnienia do …” zamiast cichego przekierowania.
+      return NextResponse.redirect(publicPanelUrl(request, adresBrakuDostepu(pathname)));
     }
   }
 

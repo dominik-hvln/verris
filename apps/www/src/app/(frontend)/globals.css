@@ -1,3 +1,11 @@
+/* A2-03 (beta 3.11): fonty z własnego serwera (public/fonts, te same pliki co panel klienta) — przeglądarka nie łączy
+   się z Google przed zgodą ani po niej. Zmienna grubość, latin + latin-ext. */
+@font-face{font-family:'Schibsted Grotesk';font-style:normal;font-display:swap;font-weight:400 900;src:url('/fonts/schibsted-grotesk-latin-ext-wght-normal.woff2') format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'Schibsted Grotesk';font-style:normal;font-display:swap;font-weight:400 900;src:url('/fonts/schibsted-grotesk-latin-wght-normal.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Hanken Grotesk';font-style:normal;font-display:swap;font-weight:100 900;src:url('/fonts/hanken-grotesk-latin-ext-wght-normal.woff2') format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'Hanken Grotesk';font-style:normal;font-display:swap;font-weight:100 900;src:url('/fonts/hanken-grotesk-latin-wght-normal.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-display:swap;font-weight:100 800;src:url('/fonts/jetbrains-mono-latin-ext-wght-normal.woff2') format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-display:swap;font-weight:100 800;src:url('/fonts/jetbrains-mono-latin-wght-normal.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
 :root{
   --pine:#0C1A14; --page:#091410; --card:#0E1F17; --card2:#102419;
   --green:#0F7A52; --mid:#1FA871; --mint:#34E5A0; --tip:#5BFFC0;
@@ -12,6 +20,8 @@
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth;scroll-padding-top:80px}
+/* P4-6 / A3 (beta 3.11): fokus i kotwice nie chowają się pod pływającym paskiem ceny ani przyciskiem cookies. */
+@media(max-width:899px){html{scroll-padding-bottom:76px}html:has(.mpasek.on){scroll-padding-bottom:110px}}
 @media(min-width:768px){:root{--gutter:24px}}
 @media(min-width:1024px){:root{--gutter:32px}}
 body{background:var(--page);color:var(--body);font-family:var(--text);font-weight:400;line-height:1.65;font-size:16px;-webkit-font-smoothing:antialiased;overflow-x:hidden}
@@ -52,6 +62,8 @@ p a:not(.btn),.form-note a,.foot-bot a{text-decoration:underline;text-underline-
 .logo .wm{height:17px;width:auto;color:var(--paper)}
 .nav-links,.nav-login,.nav-cta-long{display:none}
 .nav-cta{min-height:44px;gap:.3em;font-size:15px;padding:0 14px}
+/* P4-5: przy powiększeniu 200% na telefonie (ok. 195 px) w nagłówku zostaje logo i menu — „Zamów” jest w menu. */
+@media(max-width:359px){.nav-cta{display:none}.logo .wm{height:14px}.logo svg{width:26px;height:26px}}
 .burger{display:inline-flex;align-items:center;justify-content:center;flex:none;width:44px;height:44px;background:none;border:1px solid rgba(255,255,255,.18);border-radius:12px;cursor:pointer;color:var(--paper)}
 .burger svg{width:20px;height:20px}
 .mobile-menu{display:flex;flex-direction:column;border-top:1px solid var(--line);padding:8px var(--gutter) 20px;max-height:calc(100dvh - 64px);overflow-y:auto}
@@ -59,6 +71,7 @@ p a:not(.btn),.form-note a,.foot-bot a{text-decoration:underline;text-underline-
 .mobile-menu a:not(.btn){display:flex;align-items:center;min-height:52px;color:var(--paper);font-size:20px;font-weight:600;border-bottom:1px solid var(--line)}
 .mobile-menu a[aria-current=page]{color:var(--mint)}
 .mobile-menu .btn{margin-top:18px}
+.mobile-menu .btn+.btn{margin-top:10px}
 @media(min-width:1024px){
   .nav{gap:22px;min-height:72px}
   .logo{margin-right:6px}
@@ -245,7 +258,7 @@ footer{border-top:1px solid var(--line);background:var(--pine);padding:40px 0 28
 }
 
 /* ===== Cookie consent (RODO / PKE) — spójny z panelem ===== */
-.cc-bar{position:fixed;inset-inline:0;bottom:0;z-index:100;padding:14px}
+.cc-bar{position:fixed;inset-inline:0;bottom:0;z-index:100;padding:14px;max-height:100dvh;overflow-y:auto;overscroll-behavior:contain}
 .cc-overlay{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.62);display:flex;align-items:flex-end;justify-content:center;padding:14px}
 @media(min-width:640px){.cc-overlay{align-items:center}}
 .cc-card{width:100%;max-width:680px;margin:0 auto;background:var(--card);border:1px solid var(--line2);border-radius:18px;padding:22px 24px;box-shadow:0 30px 70px rgba(0,0,0,.55)}
@@ -258,6 +271,7 @@ footer{border-top:1px solid var(--line);background:var(--pine);padding:40px 0 28
 .cc-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;border:1px solid var(--line);background:rgba(255,255,255,.02);border-radius:12px;padding:14px}
 .cc-row h3{font-size:13.5px;margin-bottom:3px;color:var(--paper)}
 .cc-row p{font-size:12px;color:var(--stone);line-height:1.5}
+.cc-uwaga{font-size:12px;color:var(--stone);line-height:1.5;margin:0}
 .cc-sw{position:relative;flex:none;width:44px;height:24px;border-radius:100px;border:1px solid var(--line2);background:rgba(255,255,255,.08);cursor:pointer;transition:.15s;margin-top:2px}
 .cc-sw[aria-checked="true"]{background:rgba(52,229,160,.8);border-color:rgba(52,229,160,.6)}
 .cc-sw[disabled]{opacity:.55;cursor:not-allowed}
@@ -429,6 +443,9 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;bac
 .steps2 li{display:flex;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px}
 .steps2 li.on{border-color:rgba(52,229,160,.4)}
 .steps2-n{flex:none;font-family:var(--mono);font-size:22px;line-height:1.2;color:var(--mint)}
+.steps2 li>div{min-width:0}
+/* A3-12: przy 320 px długa etykieta kroku („02 · pilnujemy”) stoi nad tekstem, nie ściska go w wąską kolumnę. */
+@media(max-width:479px){.steps2 li{flex-direction:column;gap:6px}}
 .steps2 h3{font-size:17px;margin-bottom:4px}
 .steps2 p{font-size:15px;line-height:1.5}
 .steps2-bar{display:none}
@@ -642,6 +659,9 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;bac
 .mpasek-x svg{width:18px;height:18px}
 body:has(.cc-bar) .mpasek{display:none}
 @media(max-width:899px){body:has(.mpasek.on) .cc-trigger{bottom:96px}}
+/* P4-6: gdy na ekranie jest formularz (data-bez-plywajacych), pasek ceny i przycisk cookies ustępują — nie zasłaniają
+   pól ani przycisku wysyłki. „Preferencje cookies” zostają w stopce. Atrybut ustawia components/UstepujFormularzom.tsx. */
+@media(max-width:899px){html[data-formularz-widoczny] .mpasek,html[data-formularz-widoczny] .cc-trigger{opacity:0;visibility:hidden;pointer-events:none}}
 @media(min-width:900px){.mpasek{display:none}}
 
 /* === grupa D: o-nas, kontakt, reseller, polecaj, dokumenty, 404 (makieta 14.10) === */
@@ -893,6 +913,8 @@ body:has(.cc-bar) .mpasek{display:none}
 .a-kalk-wynik dl div{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:12px 14px;background:var(--card2);border-radius:12px;font-size:15px}
 .a-kalk-wynik dd{font-family:var(--mono);font-weight:500;color:var(--paper);white-space:nowrap}
 .a-kalk-wynik dd.mint{color:var(--mint)}
+.a-kalk-wynik dd small{display:block;white-space:normal;font-size:12px;font-family:var(--text);color:var(--stone);text-align:right}
+.a-kalk-wynik dl div{min-width:0}
 .a-kalk-suma dt{color:var(--paper);font-weight:600}
 /* /hosting: kafle w hero, symulacja tygodnia (ASymulacja), scenariusze */
 .a-tiles-2{list-style:none;grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -1008,7 +1030,7 @@ h2{font-size:clamp(26px,3vw,32px)}
 /* PasRozmowy */
 .pasrozm{display:grid;gap:28px;border-color:rgba(52,229,160,.28)}
 .pasrozm-kto{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
-.pasrozm-kto>div{flex:1 1 240px;display:grid;gap:8px}
+.pasrozm-kto>div{flex:1 1 min(240px,100%);min-width:0;display:grid;gap:8px}
 .pasrozm-kto h2{margin:0;font-size:clamp(26px,3vw,30px)}
 .pasrozm-kto p{margin:0}
 .pasrozm-av{width:96px;height:96px;flex:none;border-radius:50%;display:grid;place-items:center;background:var(--card2);border:1px solid rgba(52,229,160,.35);font-family:var(--display);font-weight:800;font-size:40px;color:var(--mint)}
@@ -1060,3 +1082,18 @@ h2{font-size:clamp(26px,3vw,32px)}
 .pdost-d:focus-visible{outline:2px solid var(--paper);outline-offset:2px}
 .pdost-info{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;min-height:44px;background:var(--page);border-radius:10px;padding:8px 12px;font-size:14px;color:var(--paper)}
 .pdost-info .mono{font-size:12px;color:var(--stone)}
+
+/* P4-5 (beta 3.11): telefon przy powiększeniu 200% (szerokość ok. 195 px) — mniejsze marginesy i wcięcia kart,
+   długie słowa się łamią, siatki nie rozpychają strony. Próg WCAG 1.4.10 (320 px) obsługują reguły wyżej. */
+@media(max-width:259px){
+  :root{--gutter:8px}
+  .card,.cc-card,.pasrozm{padding:14px}
+  .cc-bar{padding:6px}
+  h1,h2,h3,p,dd,dt,li,label,a,button,figcaption,summary{overflow-wrap:anywhere}
+  .btn{padding-inline:12px}
+  .wrap>*,.card>*{min-width:0}
+  .pasrozm-av{width:56px;height:56px;font-size:24px}
+  .a-pill{padding-inline:12px;white-space:normal;max-width:100%}
+  .seg{max-width:100%;flex-wrap:wrap}
+  .seg button{min-width:0}
+}

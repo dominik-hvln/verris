@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Activity, AlertTriangle, ArrowRight, CheckCircle2, ShieldAlert } from 'lucide-react';
-import type { ServiceSummaryDto } from '@verris/contracts';
+import type { ServiceSummaryDto } from '@verris/contracts/klient';
 
 /**
  * Dashboard zdrowia usług — agregat stanu wszystkich usług klienta w jednym

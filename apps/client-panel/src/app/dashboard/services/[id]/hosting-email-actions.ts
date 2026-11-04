@@ -3,7 +3,7 @@
 import { bezpiecznie, type Wynik as WynikAkcji } from '@/lib/wynik-akcji';
 
 import { revalidatePath } from 'next/cache';
-import type { HostingEmailAccountsResponseDto } from '@verris/contracts';
+import type { HostingEmailAccountsResponseDto } from '@verris/contracts/klient';
 import { apiFetch, ApiError } from '@/lib/api';
 
 async function fetchHostingEmailActionTresc(

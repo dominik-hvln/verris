@@ -2,7 +2,9 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { MonitorSmartphone, Loader2, LogOut, MapPin } from "lucide-react";
-import { fetchSessions, revokeSession, type SessionEntry } from "./sessions-actions";
+import { fetchSessions, revokeOtherSessions, revokeSession, type SessionEntry } from "./sessions-actions";
+import { potwierdz } from "@/components/panel/potwierdz";
+import { plForm } from "@/lib/pl";
 
 const METHOD: Record<string, string> = {
   password: "Hasło",
@@ -61,6 +63,31 @@ export function ActiveSessionsSection({
     });
   };
 
+  const inne = rows.filter((r) => !r.current).length;
+  const onRevokeOthers = async () => {
+    const ok = await potwierdz(
+      `Wylogować ${inne} ${plForm(inne, "inne urządzenie", "inne urządzenia", "innych urządzeń")}? Zostaniesz zalogowany tylko tutaj.`,
+      { akcja: "Wyloguj", niebezpieczne: true },
+    );
+    if (!ok) return;
+    setPendingId("inne");
+    startTransition(async () => {
+      const res = await revokeOtherSessions();
+      setPendingId(null);
+      if ("error" in res) {
+        showToast(res.error!, "error");
+        return;
+      }
+      showToast(
+        res.wylogowane > 0
+          ? `Wylogowano ${res.wylogowane} ${plForm(res.wylogowane, "urządzenie", "urządzenia", "urządzeń")}.`
+          : "Nie było innych zalogowanych urządzeń.",
+        "success",
+      );
+      setRows((prev) => prev.filter((r) => r.current));
+    });
+  };
+
   return (
     <div className="space-y-4 border-t border-white/5 pt-8">
       <div>
@@ -72,6 +99,18 @@ export function ActiveSessionsSection({
           kliknięciem — pełna kontrola nad dostępem do konta.
         </p>
       </div>
+
+      {!loading && inne > 0 ? (
+        <button
+          type="button"
+          onClick={() => void onRevokeOthers()}
+          disabled={pendingId === "inne"}
+          className="inline-flex items-center gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-200 hover:bg-rose-500/20 disabled:opacity-50"
+        >
+          {pendingId === "inne" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LogOut className="h-3.5 w-3.5" />}
+          Wyloguj wszystkie inne urządzenia
+        </button>
+      ) : null}
 
       {loading ? (
         <div className="flex items-center gap-2 py-8 text-sm text-neutral-400">

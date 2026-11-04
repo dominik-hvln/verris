@@ -13,6 +13,7 @@ const SOURCE_LABEL: Record<string, string> = {
   RE_CONSENT: "Re-akceptacja",
   SETTINGS: "Ustawienia",
   ADMIN_MANUAL: "Ręczne (admin)",
+  SUBACCOUNT_ACTIVATION: "Aktywacja subkonta",
 };
 
 export function ConsentsTable({

@@ -6,6 +6,7 @@ import { events } from '@/lib/analytics';
 import { captchaTokenFromForm } from '@/lib/captcha-token';
 import { submitBeta } from '@/lib/submit-beta';
 import { ZAKRESY, wyslijZgloszenie, zapamietajUtm, type Utm, type ZakresTestu } from '@/lib/beta';
+import { readConsent, wolnoZapamietacUtm } from '@/lib/cookie-consent';
 import { Captcha } from './Captcha';
 
 type Bledy = Partial<Record<'imie' | 'email' | 'zakres' | 'strona' | 'zgoda', string>>;
@@ -25,9 +26,11 @@ export function BetaForm() {
   const okRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
+    // A2-05: źródło kampanii zapisujemy w przeglądarce tylko po zgodzie analitycznej albo marketingowej; bez niej UTM
+    // bierzemy wyłącznie z adresu bieżącej strony (nic nie zostaje na urządzeniu).
     let magazyn: Storage | null = null;
     try {
-      magazyn = window.sessionStorage;
+      magazyn = wolnoZapamietacUtm(readConsent()) ? window.sessionStorage : null;
     } catch {
       magazyn = null;
     }
@@ -57,7 +60,7 @@ export function BetaForm() {
         obecnyHosting: s('beta-hosting'),
         uwagi: s('beta-uwagi'),
         zgoda: fd.get('beta-zgoda') === 'on',
-        firma: s('firma'),
+        pulapka: s('pulapka'),
       },
       { utm: utm.current, page: window.location.href, captchaToken: captchaTokenFromForm(fd) },
       { submit: submitBeta, onLead: () => events.generateLead('beta_signup') },
@@ -100,7 +103,7 @@ export function BetaForm() {
       <div className="bt-pola">
         <div className="field">
           <label htmlFor="bt-imie">Imię</label>
-          <input id="bt-imie" name="beta-imie" type="text" required maxLength={100} autoComplete="given-name" aria-invalid={bledy.imie ? true : undefined} aria-describedby={opis('imie')} />
+          <input id="bt-imie" name="beta-imie" type="text" required maxLength={60} autoComplete="given-name" aria-invalid={bledy.imie ? true : undefined} aria-describedby={opis('imie')} />
           {bledy.imie && <p className="bt-blad" id="bt-imie-blad">{bledy.imie}</p>}
         </div>
         <div className="field">
@@ -125,7 +128,7 @@ export function BetaForm() {
       <div className="bt-pola">
         <div className="field">
           <label htmlFor="bt-strona">Adres strony (jeśli masz)</label>
-          <input id="bt-strona" name="beta-strona" type="url" inputMode="url" maxLength={2048} placeholder="https://" autoComplete="url" aria-invalid={bledy.strona ? true : undefined} aria-describedby={opis('strona')} />
+          <input id="bt-strona" name="beta-strona" type="text" inputMode="url" maxLength={2048} placeholder="np. twojafirma.pl" autoComplete="url" aria-invalid={bledy.strona ? true : undefined} aria-describedby={opis('strona')} />
           {bledy.strona && <p className="bt-blad" id="bt-strona-blad">{bledy.strona}</p>}
         </div>
         <div className="field">
@@ -139,10 +142,11 @@ export function BetaForm() {
         <textarea id="bt-uwagi" name="beta-uwagi" maxLength={2000} rows={3} />
       </div>
 
-      {/* Honeypot: ukryte przed ludźmi i czytnikami ekranu; API odrzuca zgłoszenie z wypełnionym polem. */}
+      {/* Honeypot: ukryte przed ludźmi i czytnikami ekranu; API po cichu pomija zgłoszenie z wypełnionym polem.
+          P1-07: nazwa i etykieta bez znaczenia dla autouzupełniania (wcześniej „firma” — przeglądarka ją wypełniała). */}
       <div className="bt-hp" aria-hidden="true">
-        <label htmlFor="bt-firma">Firma</label>
-        <input id="bt-firma" name="firma" type="text" tabIndex={-1} autoComplete="off" />
+        <label htmlFor="bt-pulapka">Zostaw to pole puste</label>
+        <input id="bt-pulapka" name="pulapka" type="text" tabIndex={-1} autoComplete="off" />
       </div>
 
       <label className="bt-zgoda">

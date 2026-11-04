@@ -243,7 +243,7 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
 
       <CTABand
         title="Hosting bez niespodzianek przy odnowieniu"
-        text={`${cenaPakietu(ceny.hosting)} — przy odnowieniu tyle samo, a przeprowadzkę robimy za Ciebie.`}
+        text={`${cenaPakietu(ceny.hosting)} — odnowienie po cenie z cennika, a przeprowadzkę robimy za Ciebie.`}
         secondary={{ label: 'Przeniesienie strony', href: '/przenies-strone' }}
       />
     </main>

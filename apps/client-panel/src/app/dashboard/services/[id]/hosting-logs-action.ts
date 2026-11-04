@@ -2,7 +2,7 @@
 
 import { bezpiecznie, type Wynik as WynikAkcji } from '@/lib/wynik-akcji';
 
-import type { HostingLogDto } from '@verris/contracts';
+import type { HostingLogDto } from '@verris/contracts/klient';
 import { apiFetch } from '@/lib/api';
 
 /** K-04/K-05 — ostatnie linie logu dostępu albo błędów domeny. */

@@ -26,14 +26,14 @@ export const features: Feature[] = [
     slug: 'autoskalowanie',
     eyebrow: 'Funkcja',
     title: 'Autoskalowanie zasobów',
-    lead: 'Baza jest w abonamencie, a nadwyżkę płacisz godzinowo — tylko za czas, w którym strona naprawdę potrzebuje więcej mocy.',
+    lead: 'Baza jest w abonamencie, a nadwyżkę płacisz według stawek godzinowych, w blokach po 15 minut — tylko za czas, w którym strona naprawdę potrzebuje więcej mocy.',
     metaTitle: 'Autoskalowanie hostingu — płać za realne użycie | Verris',
     metaDescription:
-      'Jak działa autoskalowanie w Verris: limity pakietu 50 GB dysku oraz limit 8 GB RAM i 2 vCPU, skalowanie do 1000 GB, 64 GB RAM i 24 vCPU i rozliczenie godzinowe. Płacisz za realne użycie, nie za pakiet na zapas.',
+      'Jak działa autoskalowanie w Verris: limity pakietu 50 GB dysku oraz limit 8 GB RAM i 2 vCPU, skalowanie do 1000 GB, 64 GB RAM i 24 vCPU, rozliczenie w blokach 15 minut. Płacisz za realne użycie, nie za pakiet na zapas.',
     sections: [
       {
         p: [
-          'Sztywne pakiety zmuszają do wyboru mocy „na zapas". Verris rozlicza inaczej: masz konkretną bazę, a gdy ruch rośnie, silnik autoskalowania zwiększa zasoby i nalicza je godzinowo. Gdy ruch spada, autoskalowanie zwalnia nadwyżkę i naliczanie się kończy.',
+          'Sztywne pakiety zmuszają do wyboru mocy „na zapas". Verris rozlicza inaczej: masz konkretną bazę, a gdy ruch rośnie, silnik autoskalowania zwiększa zasoby i nalicza je w blokach po 15 minut. Gdy ruch spada, autoskalowanie zwalnia nadwyżkę i naliczanie się kończy.',
         ],
       },
       {
@@ -42,19 +42,20 @@ export const features: Feature[] = [
           'Limity pakietu: 50 GB NVMe, 8 GB RAM i 2 vCPU (limity izolowanego konta, nie rezerwacja).',
           'Maksymalnie: 1000 GB dysku, 64 GB RAM, 24 vCPU — do 12× mocy CPU względem bazy.',
           'Krok skalowania dobierany automatycznie; po piku zasoby wracają do bazy.',
-          'Rozliczenie godzinowe brutto — płacisz tylko za faktyczny czas nadwyżki.',
+          'Stawki godzinowe brutto, naliczane w blokach po 15 minut — płacisz tylko za faktyczny czas nadwyżki.',
+          'Limit kosztu na 30 dni (suma dopłat z ostatnich 30 dni) jest opcjonalny: ustawisz go przy zamówieniu albo w panelu. Bez limitu płacisz za faktyczne użycie.',
         ],
       },
       {
         h: 'Ile to kosztuje',
         p: [
-          'Bazowe zasoby są objęte abonamentem ({cena}). Nadwyżka nalicza się godzinowo według stawek z cennika. Orientacyjny koszt policzysz w kalkulatorze autoskalowania na stronie migracji.',
+          'Bazowe zasoby są objęte abonamentem ({cena}). Nadwyżka nalicza się według stawek godzinowych z cennika, w blokach po 15 minut. Orientacyjny koszt policzysz w kalkulatorze autoskalowania w cenniku.',
         ],
       },
     ],
     cta: {
       title: 'Policz swój koszt autoskalowania',
-      text: 'Ustaw suwaki zasobów i zobacz koszt godzinowy oraz maksymalny miesięczny.',
+      text: 'Ustaw suwaki zasobów i zobacz koszt godzinowy oraz koszt, gdyby szczyt trwał cały miesiąc.',
       primaryLabel: 'Otwórz kalkulator',
       primaryHref: '/cennik#kalkulator',
       secondary: { label: 'Zobacz hosting', href: '/hosting' },
@@ -222,10 +223,10 @@ export const features: Feature[] = [
     slug: 'sla',
     eyebrow: 'Funkcja',
     title: 'SLA 99,5% z rekompensatami',
-    lead: 'Nie „obiecujemy" dostępności — gwarantujemy ją w umowie. Za niedostępność poniżej 99,5% przyznajemy kredyty według regulaminu — wystarczy zgłoszenie.',
+    lead: 'Nie „obiecujemy" dostępności — gwarantujemy ją w umowie. Za niedostępność poniżej 99,5% przyznajemy kredyty według regulaminu — automatycznie, bez wniosku.',
     metaTitle: 'SLA 99,5% z rekompensatami — gwarancja w umowie | Verris',
     metaDescription:
-      'Verris gwarantuje SLA 99,5% z rekompensatami zapisanymi w regulaminie (kredyty zależne od skali niedostępności, przyznawane na wniosek). Bez obietnic „100% uptime".',
+      'Verris gwarantuje SLA 99,5% z rekompensatami zapisanymi w regulaminie (kredyty zależne od skali niedostępności, przyznawane automatycznie). Bez obietnic „100% uptime".',
     sections: [
       {
         p: [
@@ -236,7 +237,7 @@ export const features: Feature[] = [
         h: 'Zasady wprost',
         ul: [
           'SLA 99,5% — realny poziom, nie marketingowe „100%".',
-          'Rekompensaty = kredyty wg regulaminu, przyznawane na wniosek złożony w panelu lub e-mailem.',
+          'Rekompensaty = kredyty wg regulaminu, przyznawane automatycznie, bez wniosku, w ciągu 7 dni po zakończeniu miesiąca.',
           'Status usług na żywo pod status.verris.pl.',
         ],
       },

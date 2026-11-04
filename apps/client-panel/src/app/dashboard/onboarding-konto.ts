@@ -1,4 +1,4 @@
-import type { WalletAutoTopupSettingsDto } from '@verris/contracts';
+import type { WalletAutoTopupSettingsDto } from '@verris/contracts/klient';
 import { apiFetch } from '@/lib/api';
 import { fakturaKompletna, type KontoOnboardingu } from './onboarding-kroki';
 import type { UserProfile } from './settings/actions';

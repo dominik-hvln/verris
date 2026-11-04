@@ -65,7 +65,9 @@ export function WalletBadge({
   return (
     <Link
       href="/dashboard/billing"
-      aria-label={`Portfel: ${tooltip}`}
+      // A3-11 (WCAG 1.3.1, 2.5.3) — nazwa zaczyna się od widocznego tekstu i zawiera kwotę; wcześniej etykieta
+      // zastępowała treść linku i czytnik nie słyszał salda.
+      aria-label={`Portfel ${formatCredits(balance)}. ${tooltip}`}
       data-tip={tooltip}
       className={`inline-flex max-w-[46vw] items-center gap-2 whitespace-nowrap rounded-md border px-2.5 py-1.5 text-[13px] text-muted-foreground transition-colors ${tone}`}
     >

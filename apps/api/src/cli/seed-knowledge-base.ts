@@ -75,7 +75,7 @@ Możesz też wgrać własny certyfikat (PEM): certyfikat, klucz prywatny i opcjo
   {
     title: 'Instalacja WordPress jednym kliknięciem',
     audience: AiKnowledgeAudience.ALL,
-    content: `WordPressa zainstalujesz w panelu: Usługa → Aplikacje → „Zainstaluj WordPress". Tworzymy bazę danych, konfigurujemy stronę i wtyczkę cache (LiteSpeed). Instalacja trwa około minuty.
+    content: `WordPressa zainstalujesz w panelu: Usługa → Aplikacje → „Zainstaluj WordPress". Tworzymy bazę danych, konfigurujemy stronę i wtyczkę LiteSpeed Cache. Instalacja trwa około minuty.
 
 Po instalacji link do panelu administracyjnego (wp-admin) pojawi się w tej samej zakładce. Ponowna instalacja nadpisuje konfigurację tylko jeśli WordPress nie jest jeszcze skonfigurowany — istniejąca instalacja nie jest ruszana (bez utraty danych).
 
@@ -98,7 +98,7 @@ Zaawansowane zarządzanie (tabele, importy SQL) dostępne jest przez phpMyAdmin 
     content: `Dodatkowe konto FTP utworzysz w panelu: Usługa → Konta FTP (użytkownik, hasło, opcjonalny katalog).
 
 Połączenie w kliencie FTP (np. FileZilla):
-- Host: serwer FTP Twojej usługi (widoczny w panelu, np. node-pl-01.verris.pl),
+- Host: adres serwera FTP Twojej usługi (widoczny w panelu przy koncie FTP),
 - Użytkownik i hasło: z formularza,
 - Port: 21 (FTP z TLS) lub zgodnie z danymi w panelu.
 
@@ -107,7 +107,7 @@ Dla bezpieczeństwa używaj połączenia szyfrowanego (FTPS). Konto FTP możesz 
   {
     title: 'Zmiana wersji PHP',
     audience: AiKnowledgeAudience.ALL,
-    content: `Wersję PHP dla konta zmienisz w panelu: Usługa → Wersja PHP → wybierz wersję → „Zastosuj". Zmiana jest wykonywana na serwerze (CloudLinux PHP Selector) i trwa zwykle kilkadziesiąt sekund. Skrypty i plik .htaccess pozostają bez zmian.
+    content: `Wersję PHP dla konta zmienisz w panelu: Usługa → Wersja PHP → wybierz wersję → „Zastosuj". Zmiana jest wykonywana na serwerze i trwa zwykle kilkadziesiąt sekund. Skrypty i plik .htaccess pozostają bez zmian.
 
 Jeśli aplikacja przestała działać po zmianie, sprawdź wymagania wersji PHP danej aplikacji i w razie potrzeby wróć do poprzedniej wersji.`,
   },
@@ -116,8 +116,10 @@ Jeśli aplikacja przestała działać po zmianie, sprawdź wymagania wersji PHP 
     audience: AiKnowledgeAudience.ALL,
     content: `Zadania cykliczne dodasz w panelu: Usługa → Cron. Ustaw harmonogram (minuta, godzina, dzień miesiąca, miesiąc, dzień tygodnia) lub użyj gotowych presetów (np. „Codziennie 3:00") i wpisz komendę.
 
-Przykład komendy uruchamiającej skrypt PHP:
-php /home/UŻYTKOWNIK/domains/twojadomena.pl/public_html/cron.php
+Przykład komendy uruchamiającej skrypt PHP w wersji 8.4:
+/usr/local/bin/php84 -q $HOME/domains/twojadomena.pl/public_html/cron.php
+
+Inna wersja PHP = inna liczba (php83 to PHP 8.3, php85 to PHP 8.5). Gotowe polecenie dla wybranej wersji, domeny i pliku wstawi pomocnik „Skrypt PHP w wybranej wersji” w zakładce Cron.
 
 Zadanie możesz usunąć przyciskiem kosza. Zbyt częste, ciężkie zadania mogą obciążać konto — ustawiaj rozsądne interwały.`,
   },
@@ -233,14 +235,14 @@ Włączysz EKO przy usłudze; raport znajdziesz w sekcji EKO panelu. Uczestnictw
   {
     title: 'Autoskalowanie — jak działa i jak kontrolować koszty',
     audience: AiKnowledgeAudience.ALL,
-    content: `Autoskalowanie automatycznie dokupuje dodatkową moc (CPU/RAM) na godziny, gdy Twoja usługa potrzebuje więcej zasobów (np. skok ruchu), i zwalnia ją, gdy ruch spada. Opłata pobierana jest godzinowo z portfela.
+    content: `Autoskalowanie automatycznie dokłada dodatkową moc (CPU/RAM), gdy Twoja usługa potrzebuje więcej zasobów (np. skok ruchu), i zwalnia ją, gdy ruch spada. Opłata za czas użycia, w blokach po 15 minut, schodzi z portfela.
 
 Kontrola kosztów (Usługa → Autoskalowanie):
 - Włącz/wyłącz autoskalowanie.
-- Ustaw „bezpiecznik kosztów" — miesięczny limit wydatków na autoskalowanie.
+- Domyślnie nie ma limitu kosztu — płacisz za faktyczne użycie. Możesz ustawić „bezpiecznik kosztów” — własny limit kosztu na 30 dni (suma dopłat z ostatnich 30 dni) — przy zamówieniu albo tutaj.
 - Podgląd bieżącego zużycia i kosztu.
 
-Dzięki temu strona wytrzymuje skoki ruchu, a Ty nie przepłacasz w spokojnych okresach.`,
+Dzięki temu strona wytrzymuje skoki ruchu, a w spokojnych okresach płacisz tylko za pakiet.`,
   },
   {
     title: 'VPS / serwer Cloud — pierwsze kroki i klucze SSH',

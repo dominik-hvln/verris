@@ -3,7 +3,7 @@
 import { bezpiecznie, type Wynik as WynikAkcji } from '@/lib/wynik-akcji';
 
 import { getHostingBackups } from '@/app/dashboard/hosting-tools-data';
-import type { HostingBackupsResponseDto } from '@verris/contracts';
+import type { HostingBackupsResponseDto } from '@verris/contracts/klient';
 import { apiFetch } from '@/lib/api';
 
 async function fetchHostingBackupsActionTresc(

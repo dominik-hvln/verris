@@ -1,4 +1,4 @@
-import type { SubscriptionStatus } from '@verris/contracts';
+import type { SubscriptionStatus } from '@verris/contracts/klient';
 import { SERVICE_STATUS_LABEL, buildEcoLedgerSeries, mapWalletMonthlyFlow } from './dashboard-chart-utils';
 
 /**

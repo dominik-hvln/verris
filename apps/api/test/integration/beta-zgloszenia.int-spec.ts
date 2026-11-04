@@ -35,22 +35,63 @@ describe('Otwarta beta — zgłoszenia z verris.pl/beta', () => {
     expect(maile.filter((m) => m.tag === 'beta.zgloszenie.potwierdz')).toHaveLength(1);
 
     await expect(zgl.zapros(wiersze[0].id, 'admin')).rejects.toThrow(/nie jest jeszcze potwierdzony/);
-    expect(await zgl.potwierdz(wiersze[0].confirmToken!)).toEqual({ ok: true });
-    expect(await zgl.potwierdz(wiersze[0].confirmToken!)).toEqual({ ok: false });
+    expect(await zgl.potwierdz(wiersze[0].confirmToken!)).toEqual({ stan: 'POTWIERDZONE' });
+    // P5-09 — drugie kliknięcie (druga karta, skaner poczty): „już potwierdzone”, nie „nieaktualny”.
+    expect(await zgl.potwierdz(wiersze[0].confirmToken!)).toEqual({ stan: 'JUZ_POTWIERDZONE' });
+    expect(await zgl.stanLinku(wiersze[0].confirmToken!)).toBe('JUZ_POTWIERDZONE');
     expect(maile.some((m) => m.to === 'zespol@verris.pl' && m.tag === 'beta.zgloszenie.notify')).toBe(true);
 
     const invite = await zgl.zapros(wiersze[0].id, 'admin');
     const po = await prisma().betaZgloszenie.findUniqueOrThrow({ where: { id: wiersze[0].id } });
-    expect(po).toMatchObject({ status: 'ZAPROSZONE', betaInviteId: invite.id, confirmToken: null });
+    expect(po).toMatchObject({ status: 'ZAPROSZONE', betaInviteId: invite.id });
     expect(maile.some((m) => m.tag === 'beta.invite' && m.text.includes(invite.code))).toBe(true);
 
     const lista = await zgl.lista();
     expect(lista.liczby).toEqual({ NIEPOTWIERDZONE: 0, NOWE: 0, ZAPROSZONE: 1, ODRZUCONE: 0 });
     expect(lista.zgloszenia[0]).toMatchObject({ kod: invite.code, zrodlo: { source: 'facebook', campaign: null, content: null } });
 
-    // Po zaproszeniu formularz z tym adresem nic nie dopisuje.
+    // Po zaproszeniu formularz z tym adresem nic nie dopisuje — P2-11: zaproszenie z kodem przychodzi jeszcze raz.
+    const przed = maile.filter((m) => m.tag === 'beta.invite').length;
     await zgl.zglos(formularz(), {});
     expect(await prisma().betaZgloszenie.count()).toBe(1);
+    expect(maile.filter((m) => m.tag === 'beta.invite')).toHaveLength(przed + 1);
+    await zgl.zglos(formularz(), {});
+    expect(maile.filter((m) => m.tag === 'beta.invite')).toHaveLength(przed + 1);
+  });
+
+  it('A1-01 — potwierdzonego zgłoszenia osoba trzecia nie nadpisze; zmiana wchodzi dopiero po linku z maila, stara zgoda w dzienniku', async () => {
+    const { zgl, maile } = uslugi();
+    await zgl.zglos({ ...formularz('ofiara@firma.pl'), imie: 'Ofiara', uwagi: 'Moje uwagi' } as ZgloszenieBetaDto, { ip: '10.0.0.1' });
+    const z = await prisma().betaZgloszenie.findFirstOrThrow();
+    await zgl.potwierdz(z.confirmToken!);
+    // Doba później (limit maili), z innego IP i z inną treścią klauzuli.
+    await prisma().betaZgloszenie.update({ where: { id: z.id }, data: { mailAt: new Date(Date.now() - 25 * 3600_000) } });
+    await zgl.zglos(
+      { ...formularz('OFIARA@firma.pl'), imie: 'Ktos Obcy', zakres: ['INNE'], uwagi: 'Podmienione', zgodaTekst: 'inna klauzula' } as ZgloszenieBetaDto,
+      { ip: '10.9.9.9' },
+    );
+    const po = await prisma().betaZgloszenie.findUniqueOrThrow({ where: { id: z.id } });
+    expect(po).toMatchObject({ status: 'NOWE', imie: 'Ofiara', uwagi: 'Moje uwagi', zgodaTekst: 'Chcę dostać zaproszenie do testów', ip: '10.0.0.1' });
+    const mail = maile.find((m) => m.tag === 'beta.zgloszenie.zmiana')!;
+    expect(mail.to).toBe('ofiara@firma.pl');
+    expect(po.zmianaToken).toBeTruthy();
+    expect(await zgl.stanLinku(po.zmianaToken!)).toBe('ZMIANA_DO_POTWIERDZENIA');
+
+    expect(await zgl.potwierdz(po.zmianaToken!)).toEqual({ stan: 'ZMIANA_ZAPISANA' });
+    const zmienione = await prisma().betaZgloszenie.findUniqueOrThrow({ where: { id: z.id } });
+    expect(zmienione).toMatchObject({ status: 'NOWE', imie: 'Ktos Obcy', zakres: ['INNE'], zgodaTekst: 'inna klauzula', ip: '10.9.9.9', zmianaToken: null });
+    expect(await zgl.potwierdz(po.zmianaToken!)).toEqual({ stan: 'NIEAKTUALNY' });
+  });
+
+  it('A1-01 — w ciągu doby od maila kolejne wysłanie nie podmienia oczekującej zmiany ani nie wysyła maila', async () => {
+    const { zgl, maile } = uslugi();
+    await zgl.zglos(formularz('a@b.pl'), {});
+    const z = await prisma().betaZgloszenie.findFirstOrThrow();
+    await zgl.potwierdz(z.confirmToken!);
+    await zgl.zglos({ ...formularz('a@b.pl'), imie: 'Obcy' } as ZgloszenieBetaDto, {});
+    const po = await prisma().betaZgloszenie.findUniqueOrThrow({ where: { id: z.id } });
+    expect(po).toMatchObject({ imie: 'Tester', zmiana: null, zmianaToken: null });
+    expect(maile.filter((m) => m.to === 'a@b.pl')).toHaveLength(1);
   });
 
   it('retencja: niepotwierdzone po 7 dniach, nowe i odrzucone po 90; zaproszone i świeże zostają', async () => {

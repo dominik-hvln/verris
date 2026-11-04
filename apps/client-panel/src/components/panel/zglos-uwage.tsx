@@ -18,7 +18,7 @@ import {
   type OpisElementu,
   type RodzajUwagi,
 } from '@/lib/uwaga-z-bety';
-import { ATRYBUT_POMIN, zrobZrzutStrony } from '@/lib/zrzut-strony';
+import { ATRYBUT_POMIN, stronaZSekretami, zrobZrzutStrony } from '@/lib/zrzut-strony';
 import { Checkbox } from './checkbox';
 import { PanelModal } from './panel-modal';
 import { PoleZalacznikow } from './pole-zalacznikow';
@@ -87,8 +87,37 @@ export function ZglosUwage({
   const [element, setElement] = useState<OpisElementu | null>(null);
   const [zrzut, setZrzut] = useState<Zrzut | null>(null);
   const numerZrzutu = useRef(0);
+  const kontener = useRef<HTMLDivElement>(null);
+  const przycisk = useRef<HTMLButtonElement>(null);
+  const byloOtwarte = useRef(false);
+  const byloWskazywanie = useRef(false);
 
   const ustawSchowany = zapiszSchowany;
+
+  // A3-7 (WCAG 2.4.3) — po zamknięciu okna fokus wraca na „Zgłoś uwagę”. Okno oddawało go elementowi, który
+  // w tej chwili był odmontowany (przycisk znika na czas otwarcia), więc fokus lądował na body.
+  useEffect(() => {
+    if (otwarte) {
+      byloOtwarte.current = true;
+      return;
+    }
+    if (byloOtwarte.current) {
+      byloOtwarte.current = false;
+      przycisk.current?.focus();
+    }
+  }, [otwarte]);
+
+  // A3-6 — po wskazaniu (albo Esc) fokus wraca do formularza, na przycisk wskazywania.
+  useEffect(() => {
+    if (wskazywanie) {
+      byloWskazywanie.current = true;
+      return;
+    }
+    if (byloWskazywanie.current) {
+      byloWskazywanie.current = false;
+      kontener.current?.querySelector<HTMLElement>('[data-wskaz-miejsce]')?.focus();
+    }
+  }, [wskazywanie]);
 
   /** Nowy zrzut; wynik starszego (np. sprzed wskazania) jest ignorowany, a jego podgląd zwalniany. */
   const zrob = useCallback((zaznacz: OpisElementu['ramka'] | null) => {
@@ -122,17 +151,23 @@ export function ZglosUwage({
   };
 
   return (
-    <div {...{ [ATRYBUT_POMIN]: '' }}>
+    <div ref={kontener} {...{ [ATRYBUT_POMIN]: '' }}>
+      {!otwarte && !schowany ? (
+        // P1-10 — przycisk pływa nad treścią: dół strony dostaje zapas, żeby ostatnie elementy dało się
+        // przewinąć spod przycisku; na telefonie sama ikona (mniej zasłania).
+        <style>{'#main{padding-bottom:calc(5rem + env(safe-area-inset-bottom,0px))!important}'}</style>
+      ) : null}
       {!otwarte && !schowany ? (
         <div className="fixed bottom-[calc(max(1rem,env(safe-area-inset-bottom,1rem))+3.75rem)] right-4 z-40 inline-flex items-center rounded-full border border-line-strong bg-card/90 text-xs font-medium text-muted-foreground shadow-[0_12px_30px_-18px_rgba(0,0,0,0.55)] backdrop-blur sm:bottom-[5.25rem] sm:right-6">
           <button
+            ref={przycisk}
             type="button"
             data-zglos-uwage
             onClick={otworz}
             className="inline-flex items-center gap-1.5 rounded-l-full py-1.5 pl-3 pr-2 transition-colors hover:bg-raised hover:text-foreground"
           >
             <MessageSquarePlus className="h-3.5 w-3.5" aria-hidden />
-            Zgłoś uwagę
+            <span className="max-sm:sr-only">Zgłoś uwagę</span>
           </button>
           <button
             type="button"
@@ -219,7 +254,9 @@ function FormularzUwagi({
   const formularz = useRef<HTMLFormElement>(null);
   const [tekst, setTekst] = useState('');
   const [rodzaj, setRodzaj] = useState<RodzajUwagi | null>(null);
-  const [dolaczZrzut, setDolaczZrzut] = useState(true);
+  // A1-03 — na stronach z sekretami (ustawienia, tokeny API, widoczny token/hasło) zrzut domyślnie odznaczony.
+  const [wrazliwa] = useState(() => stronaZSekretami(pathname ?? window.location.pathname, document));
+  const [dolaczZrzut, setDolaczZrzut] = useState(!wrazliwa);
   const [blad, setBlad] = useState<string | null>(null);
   const [wysylanie, setWysylanie] = useState(false);
   const [utworzone, setUtworzone] = useState<string | null>(null);
@@ -337,7 +374,7 @@ function FormularzUwagi({
               {element.opis}
               {element.sekcja ? <span className="text-muted-foreground"> · {element.sekcja}</span> : null}
             </span>
-            <button type="button" onClick={onWskaz} className="text-xs underline underline-offset-2 hover:text-foreground">
+            <button type="button" data-wskaz-miejsce onClick={onWskaz} className="text-xs underline underline-offset-2 hover:text-foreground">
               Wskaż ponownie
             </button>
             <button type="button" onClick={onUsunElement} className="text-xs text-muted-foreground underline underline-offset-2 hover:text-crit">
@@ -347,6 +384,7 @@ function FormularzUwagi({
         ) : (
           <button
             type="button"
+            data-wskaz-miejsce
             onClick={onWskaz}
             className="inline-flex items-center gap-1.5 rounded-md border border-line px-3 py-1.5 text-sm hover:bg-raised"
           >
@@ -362,6 +400,12 @@ function FormularzUwagi({
             Dołącz zrzut ekranu
           </label>
         </div>
+        {wrazliwa && !dolaczZrzut ? (
+          <p data-zrzut-wylaczony className="m-0 text-xs text-muted-foreground">
+            Na tej stronie mogą być dane poufne (hasła, tokeny, kody), więc zrzut jest domyślnie wyłączony. Jeśli go dołączysz,
+            pola z sekretami zamażemy — sprawdź podgląd przed wysłaniem.
+          </p>
+        ) : null}
         {dolaczZrzut ? (
           zrzut?.stan === 'gotowy' ? (
             <div className="flex items-start gap-3">

@@ -227,7 +227,7 @@ export default async function BlogPage({ searchParams }: { searchParams: SP }) {
 
       <CTABand
         title="Masz pytanie, na które nie ma tu wpisu?"
-        text={`Napisz do nas — odpowiadamy zwykle w ciągu dnia roboczego. Hosting Verris: ${cenaPakietu(ceny.hosting)}, ta sama cena przy odnowieniu.`}
+        text={`Napisz do nas — odpowiadamy zwykle w ciągu dnia roboczego. Hosting Verris: ${cenaPakietu(ceny.hosting)}, odnowienie po cenie z cennika.`}
         secondary={{ label: 'Napisz do nas', href: '/kontakt' }}
       />
     </main>

@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, Logger, ConflictException, NotFoundException } from '@nestjs/common';
 import { lookupUslugiKlienta, sprawdzAdresy } from '../common/net/webhook-post.js';
 import { isIP } from 'net';
+import { domainToASCII } from 'node:url';
 import { isFQDN } from 'class-validator';
 import { REGISTRAR_TLD_CATALOG } from './registrar-tld-catalog.js';
 import * as dns from 'dns';
@@ -244,10 +245,17 @@ function sameString(a: string, b: string): boolean {
 
 const SUFIKSY = new Set(REGISTRAR_TLD_CATALOG.map((t) => t.extension.toLowerCase()));
 
-/** Nazwa domeny do zapisu: małe litery, bez kropki na końcu; nie IP, nie sam sufiks (pl, com.pl). */
+/**
+ * Nazwa domeny do zapisu: małe litery, bez kropki na końcu; nie IP, nie sam sufiks (pl, com.pl).
+ * P5-04 (paczka 109) — IDN w zapisie ASCII (punycode), tak jak zamówienie usługi (subscriptions/dto/domena-zamowienia.ts):
+ * `żółw.pl` → `xn--w-uga1v8h.pl`, żeby domena dodana tu i konto hostingowe z zamówienia miały tę samą nazwę.
+ * WHATWG URL `domainToASCII` — https://nodejs.org/api/url.html#urldomaintoasciidomain. Puste etykiety (`a..pl`) i myślnik
+ * na brzegu etykiety odrzuca isFQDN (RFC 1035 §2.3.4).
+ */
 export function normalizujNazweDomeny(raw: string): string {
-  const name = String(raw ?? '').trim().toLowerCase().replace(/\.$/, '');
-  if (isIP(name.replace(/^\[|\]$/g, '')) || !isFQDN(name, { require_tld: true })) {
+  const surowa = String(raw ?? '').trim().toLowerCase().replace(/\.$/, '');
+  const name = surowa.includes('..') || /[\s/:@]/.test(surowa) ? surowa : domainToASCII(surowa) || surowa;
+  if (isIP(name.replace(/^\[|\]$/g, '')) || !isFQDN(name, { require_tld: true, allow_underscores: false })) {
     throw new BadRequestException('Podaj nazwę domeny, np. mojafirma.pl.');
   }
   if (SUFIKSY.has(name)) {

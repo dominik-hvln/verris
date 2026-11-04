@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { Accordion, Card, CTABand, JsonLd, SectionHead, Steps, SubHero } from '../components/ui';
-import { PANEL } from '@/lib/site';
+import { ODBIERZ_LINK } from '@/lib/site';
 import { faqSchema, webPageSchema } from '@/lib/schema';
 import { POLECENIA } from '@/lib/polecenia';
 import { netto } from '@/lib/ceny';
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 /** Kwota w złotych z przecinkiem dziesiętnym (44,90 zł). */
 const zl = (n: number) => `${n.toFixed(2).replace('.', ',')} zł`;
 
-// Przykład z makiety: 5 firm płaci za rok hostingu (cena roczna z API, ta sama przy odnowieniu).
+// Przykład z makiety: 5 firm płaci za rok hostingu (cena roczna z cennika w API; bez rabatu na start).
 const FIRM = 5;
 
 const ZASADY: [string, string][] = [
@@ -52,7 +52,7 @@ const KROKI = [
 ];
 
 const POWODY: [string, string][] = [
-  ['Nie wstydzisz się odnowienia', 'Znajomy za rok zapłaci tyle samo — odnowienie idzie po cenie z cennika.'],
+  ['Nie wstydzisz się odnowienia', 'Znajomy zna cenę odnowienia z góry — to cena z cennika, bez drobnego druku.'],
   ['Przeprowadzkę robimy my', 'Przeniesienie strony, baz i poczty jest w cenie. Nie musisz nikomu pomagać.'],
   ['Pomoc po polsku', 'Odpowiada człowiek, który zna się na rzeczy, a nie formułka.'],
 ];
@@ -93,7 +93,7 @@ export default async function Page() {
         title="Poleć Verris znajomym. Zarabiasz, kiedy oni są zadowoleni"
         lead={`Znasz kogoś, kogo co roku denerwuje faktura za hosting? Wyślij mu swój link. Dostajesz ${prowizjaPct}% od każdej jego płatności — tak długo, jak z nami zostaje.`}
         crumbs={[{ label: 'Program poleceń' }]}
-        primary={{ label: 'Odbierz swój link', href: PANEL }}
+        primary={{ label: 'Odbierz swój link', href: ODBIERZ_LINK }}
         secondary={{ label: 'Zasady programu', href: '#zasady' }}
       />
 
@@ -186,7 +186,7 @@ export default async function Page() {
         title="Masz kogoś na myśli?"
         text="Odbierz link w panelu i wyślij go jeszcze dziś."
         primaryLabel="Odbierz swój link"
-        primaryHref={PANEL}
+        primaryHref={ODBIERZ_LINK}
         conv={null}
         secondary={{ label: 'Program dla agencji', href: '/reseller' }}
       />

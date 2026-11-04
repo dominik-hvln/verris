@@ -1,6 +1,7 @@
 // Wspólne helpery structured data (JSON-LD).
 import { OFERTA_KROTKO } from './oferta';
 import type { Ceny } from './ceny';
+import { SPRZEDAWCA } from './sprzedawca';
 
 export const SITE = 'https://verris.pl';
 
@@ -13,18 +14,20 @@ export const organization = {
   url: `${SITE}/`,
   logo: `${SITE}/logo.png`,
   image: `${SITE}/og-default.png`,
-  description: `Polski ${OFERTA_KROTKO}. Operator: HVLN Dominik Kowalski.`,
+  description: `Polski ${OFERTA_KROTKO}. Operator: ${SPRZEDAWCA.nazwa}.`,
   slogan: 'Skaluj świadomie.',
   areaServed: 'PL',
-  vatID: 'PL9292069367',
+  vatID: `PL${SPRZEDAWCA.nip}`,
   address: {
     '@type': 'PostalAddress',
-    addressLocality: 'Zielona Góra',
+    streetAddress: SPRZEDAWCA.ulica,
+    postalCode: SPRZEDAWCA.kodPocztowy,
+    addressLocality: SPRZEDAWCA.miasto,
     addressCountry: 'PL',
   },
   contactPoint: {
     '@type': 'ContactPoint',
-    email: 'kontakt@verris.pl',
+    email: SPRZEDAWCA.email,
     contactType: 'customer support',
     availableLanguage: ['pl'],
   },

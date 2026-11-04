@@ -6,8 +6,8 @@ import { useEffect, useRef } from 'react';
 import { ANALYTICS, events } from '@/lib/analytics';
 import { captureFbclid } from '@/lib/cookie-consent';
 
-// Consent Mode v2 — domyślnie wszystko „denied" (poza niezbędnym).
-// Musi wykonać się PRZED załadowaniem GTM.
+// Consent Mode v2 — domyślnie wszystko „denied" (poza niezbędnym). Tylko wpis w dataLayer, bez żądań sieciowych;
+// GTM ładuje się dopiero po zgodzie (tryb podstawowy, decyzja 22) i zastaje ten stan.
 // https://developers.google.com/tag-platform/security/guides/consent
 //
 // Każdy typ, który ustawia applyConsent(), ma tu wartość domyślną. `functionality_storage`
@@ -29,9 +29,8 @@ gtag('consent','default',{
   security_storage:'granted',
   wait_for_update:500
 });
-// Powracający gość: zgoda z cookie odtworzona PRZED GTM (jak w panelu). Bez tego tag GA4
-// (wyzwalacz Initialization + wymóg analytics_storage) widział „denied” i nie odpalał wcale —
-// applyConsent() z komponentu banera przychodzi dopiero po gtm.js i page_view (27.09.2026).
+// Powracający gość: zgoda z cookie odtworzona od razu (jak w panelu), więc kontener po załadowaniu
+// (decyzja 22 — dopiero po zgodzie) zastaje stan z banera już przy inicjalizacji.
 try{var m=document.cookie.match(/(?:^|; )cookies_consent=([^;]*)/);if(m){var c=JSON.parse(decodeURIComponent(m[1]));if(c&&c.v===1){gtag('consent','update',{
   analytics_storage:c.analytics?'granted':'denied',
   ad_storage:c.marketing?'granted':'denied',
@@ -42,29 +41,19 @@ try{var m=document.cookie.match(/(?:^|; )cookies_consent=([^;]*)/);if(m){var c=J
   security_storage:'granted'
 });}}}catch(e){}
 gtag('set','ads_data_redaction',true);
-gtag('set','url_passthrough',true);
 `;
 
-/**
- * Snippet GTM z przekazaniem nonce do gtm.js (wariant Google dla CSP z nonce, jak w panelu klienta):
- * https://developers.google.com/tag-platform/security/guides/csp — gtm.js przechodzi przez 'strict-dynamic',
- * a nonce na jego elemencie GTM nadaje ewentualnym tagom „Niestandardowy kod HTML” (GTM-PJQNXCF5 ich nie ma).
- * Eksport dla testu (Analytics.spec.ts).
- */
-export const gtmLoader = (id: string) => `
-(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});
-var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';
-j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
-var n=d.querySelector('[nonce]');n&&j.setAttribute('nonce',n.nonce||n.getAttribute('nonce'));
-f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${id}');
-`;
+// Decyzja 22 (4.11.2026) — Consent Mode v2 w trybie podstawowym: GTM NIE jest ładowany tutaj. Wstrzykuje go
+// applyConsent() → zaladujTagiGoogle() (lib/cookie-consent.ts) dopiero po zgodzie analitycznej albo marketingowej —
+// przy kliknięciu w banerze albo przy wejściu z zapisaną zgodą (CookieConsent woła applyConsent przy montowaniu).
+// Bez `<noscript>` z ramką GTM w layoucie: bez JavaScriptu nie ma jak wyrazić zgody, więc nic się nie ładuje.
 
-// Meta Pixel NIE jest ładowany tutaj — bootstrap następuje leniwie w
+// Meta Pixel też NIE jest ładowany tutaj — bootstrap następuje leniwie w
 // lib/cookie-consent.ts (applyConsent) dopiero po zgodzie marketingowej.
 
 const SCROLL_THRESHOLDS = [25, 50, 75, 90] as const;
 
-/** `nonce` — z nagłówka `x-nonce` (layout); bez niego CSP strony zablokuje Consent Mode i loader GTM. */
+/** `nonce` — z nagłówka `x-nonce` (layout); bez niego CSP strony zablokuje skrypt Consent Mode. */
 export function Analytics({ nonce }: { nonce?: string }) {
   const pathname = usePathname();
   const firstRender = useRef(true);
@@ -177,13 +166,8 @@ export function Analytics({ nonce }: { nonce?: string }) {
   if (!ANALYTICS.gtmId) return null;
 
   return (
-    <>
-      <Script id="consent-default" strategy="beforeInteractive" nonce={nonce}>
-        {consentDefault}
-      </Script>
-      <Script id="gtm" strategy="afterInteractive" nonce={nonce}>
-        {gtmLoader(ANALYTICS.gtmId)}
-      </Script>
-    </>
+    <Script id="consent-default" strategy="beforeInteractive" nonce={nonce}>
+      {consentDefault}
+    </Script>
   );
 }

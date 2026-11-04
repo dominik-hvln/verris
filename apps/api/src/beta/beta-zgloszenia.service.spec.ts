@@ -8,15 +8,22 @@ import { odmowaZgloszeniaBetaTemplate, potwierdzenieZgloszeniaBetaTemplate, zglo
 /** Otwarta beta — zgłoszenia z verris.pl/beta: double opt-in, decyzja w adminie, retencja, ochrona przed nadużyciem. */
 type Wiersz = Record<string, unknown> & { id: string; status: string; email: string };
 
-function stanowisko(opts: { invite?: boolean; aktywne?: Wiersz | null; mailDzis?: boolean; wiersz?: Wiersz | null } = {}) {
+function stanowisko(opts: { invite?: boolean; aktywne?: Wiersz | null; mailDzis?: boolean; wiersz?: Wiersz | null; zmianaWiersz?: Wiersz | null } = {}) {
   const prisma = {
-    betaInvite: { findFirst: vi.fn(async () => (opts.invite ? { id: 'inv' } : null)) },
+    betaInvite: {
+      findFirst: vi.fn(async () =>
+        opts.invite
+          ? { id: 'inv', name: 'Ala', przypomnienieAt: null, promoCode: { code: 'BETA-AAAAAA', active: true, validTo: new Date('2026-12-01T00:00:00Z'), redemptionCount: 0 } }
+          : null,
+      ),
+      updateMany: vi.fn(async () => ({ count: 1 })),
+    },
     betaZgloszenie: {
       findFirst: vi.fn(async (a: { where: { status?: unknown; mailAt?: unknown } }) => {
         if (a.where.mailAt) return opts.mailDzis ? { id: 'stare' } : null;
         return opts.aktywne ?? null;
       }),
-      findUnique: vi.fn(async () => opts.wiersz ?? null),
+      findUnique: vi.fn(async (a: { where: { zmianaToken?: string } }) => (a.where.zmianaToken ? (opts.zmianaWiersz ?? null) : (opts.wiersz ?? null))),
       create: vi.fn(async (a: { data: Record<string, unknown> }) => ({ id: 'z1', ...a.data })),
       update: vi.fn(async (a: { where: { id: string }; data: Record<string, unknown> }) => ({ ...(opts.aktywne ?? {}), id: a.where.id, ...a.data })),
       updateMany: vi.fn(async () => ({ count: 1 })),
@@ -50,7 +57,7 @@ const teraz = new Date('2026-11-20T10:00:00Z');
 describe('BetaZgloszeniaService — formularz', () => {
   it('pułapka na boty: odpowiedź jak sukces, ale nic nie zapisuje i nic nie wysyła', async () => {
     const s = stanowisko();
-    expect(await s.svc.zglos(dto({ firma: 'Spam sp. z o.o.' }), {}, teraz)).toEqual({ status: 'pending' });
+    expect(await s.svc.zglos(dto({ pulapka: 'Spam sp. z o.o.' }), {}, teraz)).toEqual({ status: 'pending' });
     expect(s.prisma.betaZgloszenie.create).not.toHaveBeenCalled();
     expect(s.prisma.betaInvite.findFirst).not.toHaveBeenCalled();
     expect(s.mailer.send).not.toHaveBeenCalled();
@@ -88,34 +95,51 @@ describe('BetaZgloszeniaService — formularz', () => {
     expect(s.mailer.send).not.toHaveBeenCalled();
   });
 
-  it('potwierdzone zgłoszenie wysłane ponownie: bez nowego maila do nadawcy', async () => {
-    const s = stanowisko({ aktywne: { id: 'z0', status: 'NOWE', email: 'ala@firma.pl', confirmToken: null } });
-    await s.svc.zglos(dto(), {}, teraz);
-    expect(s.mailer.send).not.toHaveBeenCalled();
+  // A1-01 — potwierdzonego zgłoszenia formularz nie nadpisuje: dane czekają jako zmiana, link idzie na skrzynkę.
+  it('potwierdzone zgłoszenie wysłane ponownie: dane bez zmian, zmiana do potwierdzenia i mail z linkiem', async () => {
+    const s = stanowisko({ aktywne: { id: 'z0', status: 'NOWE', email: 'ala@firma.pl', confirmToken: 't0', imie: 'Ala' } });
+    await s.svc.zglos(dto({ imie: 'Ktos Obcy', uwagi: 'Podmienione' }), {}, teraz);
+    const zapisy = s.prisma.betaZgloszenie.update.mock.calls.map((c) => (c[0] as { data: Record<string, unknown> }).data);
+    expect(zapisy.some((d) => 'imie' in d || 'zgodaTekst' in d)).toBe(false);
+    const zmiana = zapisy.find((d) => d.zmiana) as { zmiana: Record<string, unknown>; zmianaToken: string };
+    expect(zmiana.zmiana).toMatchObject({ imie: 'Ktos Obcy', uwagi: 'Podmienione' });
+    const mail = (s.mailer.send.mock.calls[0] as unknown as [{ to: string; tag: string; text: string }])[0];
+    expect(mail).toMatchObject({ to: 'ala@firma.pl', tag: 'beta.zgloszenie.zmiana' });
+    expect(mail.text).toContain(`potwierdz?token=${zmiana.zmianaToken}`);
+    expect(mail.text).not.toContain('Ktos Obcy');
   });
 
-  it('adres z zaproszeniem (albo tester): bez duplikatu i bez maila, ta sama odpowiedź', async () => {
+  // P2-11 — „sprawdź skrzynkę” ma być prawdą: ważny kod przychodzi jeszcze raz zaproszeniem (najwyżej raz na dobę).
+  it('adres z zaproszeniem: bez duplikatu, ta sama odpowiedź; ważny kod wysłany ponownie', async () => {
     const s = stanowisko({ invite: true });
     expect(await s.svc.zglos(dto(), {}, teraz)).toEqual({ status: 'pending' });
     expect(s.prisma.betaZgloszenie.create).not.toHaveBeenCalled();
-    expect(s.mailer.send).not.toHaveBeenCalled();
+    const mail = (s.mailer.send.mock.calls[0] as unknown as [{ to: string; tag: string; text: string }])[0];
+    expect(mail).toMatchObject({ to: 'ala@firma.pl', tag: 'beta.invite' });
+    expect(mail.text).toContain('BETA-AAAAAA');
+    s.prisma.betaInvite.updateMany.mockResolvedValueOnce({ count: 0 });
+    await s.svc.zglos(dto(), {}, teraz);
+    expect(s.mailer.send).toHaveBeenCalledTimes(1);
   });
 });
 
 describe('BetaZgloszeniaService — potwierdzenie i decyzje', () => {
-  it('potwierdzenie: NIEPOTWIERDZONE → NOWE, token zerowany, mail do zespołu; brak/obcy token → nieaktualny', async () => {
+  it('potwierdzenie: NIEPOTWIERDZONE → NOWE, token zostaje (drugie kliknięcie: „już potwierdzone”), mail do zespołu; brak/obcy token → nieaktualny', async () => {
     const s = stanowisko({ wiersz: { id: 'z1', status: 'NIEPOTWIERDZONE', email: 'ala@firma.pl', imie: 'Ala', zakres: ['SKLEP'], utm: { source: 'facebook' } } });
-    expect(await s.svc.potwierdz('tok', teraz)).toEqual({ ok: true });
+    expect(await s.svc.potwierdz('tok', teraz)).toEqual({ stan: 'POTWIERDZONE' });
     expect(s.prisma.betaZgloszenie.updateMany).toHaveBeenCalledWith({
       where: { id: 'z1', status: 'NIEPOTWIERDZONE' },
-      data: { status: 'NOWE', potwierdzoneAt: teraz, confirmToken: null },
+      data: { status: 'NOWE', potwierdzoneAt: teraz },
     });
     const mail = (s.mailer.send.mock.calls[0] as unknown as [{ to: string; text: string }])[0];
     expect(mail.to).toBe('zespol@verris.pl');
     expect(mail.text).toContain('Sklep');
-    expect(await s.svc.potwierdz(undefined)).toEqual({ ok: false });
+    expect(await s.svc.potwierdz(undefined)).toEqual({ stan: 'NIEAKTUALNY' });
     const obcy = stanowisko({ wiersz: null });
-    expect(await obcy.svc.potwierdz('x')).toEqual({ ok: false });
+    expect(await obcy.svc.potwierdz('x')).toEqual({ stan: 'NIEAKTUALNY' });
+    const juz = stanowisko({ wiersz: { id: 'z1', status: 'NOWE', email: 'ala@firma.pl' } });
+    expect(await juz.svc.potwierdz('tok', teraz)).toEqual({ stan: 'JUZ_POTWIERDZONE' });
+    expect(juz.prisma.betaZgloszenie.updateMany).not.toHaveBeenCalled();
   });
 
   it('zaproś: niepotwierdzone → 409 bez kodu; nowe → kod z BetaService i status ZAPROSZONE z powiązaniem', async () => {
@@ -125,7 +149,11 @@ describe('BetaZgloszeniaService — potwierdzenie i decyzje', () => {
 
     const s = stanowisko({ wiersz: { id: 'z1', status: 'NOWE', email: 'a@b.pl', imie: 'Ala' } });
     const r = await s.svc.zapros('z1', 'admin');
-    expect(s.beta.zapros).toHaveBeenCalledWith({ email: 'a@b.pl', name: 'Ala' }, 'admin');
+    expect(s.beta.zapros).toHaveBeenCalledWith({ email: 'a@b.pl', name: 'Ala', tylkoPoczta: false }, 'admin');
+    // P4-12 — zakres wyłącznie „Poczta”: zaproszenie w wariancie bez hostingu.
+    const p = stanowisko({ wiersz: { id: 'z1', status: 'NOWE', email: 'a@b.pl', imie: 'Ala', zakres: ['POCZTA'] } });
+    await p.svc.zapros('z1', 'admin');
+    expect(p.beta.zapros).toHaveBeenCalledWith({ email: 'a@b.pl', name: 'Ala', tylkoPoczta: true }, 'admin');
     expect(r.code).toBe('BETA-AAAAAA');
     expect(s.prisma.betaZgloszenie.update).toHaveBeenCalledWith({
       where: { id: 'z1' },
@@ -184,6 +212,11 @@ describe('ZgloszenieBetaDto — walidacja formularza', () => {
     expect(await bledy({ strona: 'javascript:alert(1)' })).toContain('strona');
     expect(await bledy({ utm: { source: 'x'.repeat(101) } })).toContain('utm');
     expect(await bledy({ imie: '' })).toContain('imie');
+  });
+
+  it('P1-07: pułapka na boty to pole „pulapka”; stare pole „firma” (autouzupełniane nazwą firmy) już nie istnieje', async () => {
+    expect(await bledy({ pulapka: 'bot' })).toEqual([]);
+    expect(await bledy({ firma: 'Pracownia Anny' })).toContain('firma');
   });
 });
 

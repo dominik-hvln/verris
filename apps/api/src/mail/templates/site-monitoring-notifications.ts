@@ -38,7 +38,7 @@ export function siteDownTemplate(ctx: SiteDownContext): MailMessage {
       ``,
       `1. Otwórz stronę w trybie incognito — może to chwilowy problem z siecią.`,
       `2. Sprawdź status usługi i ostatnie zmiany (wtyczki, aktualizacje) w panelu.`,
-      `3. Jeśli problem trwa, odpowiedz na tego maila lub otwórz ticket — pomożemy.`,
+      `3. Jeśli problem trwa, odpowiedz na tego maila albo napisz w panelu (Wsparcie → Nowe zgłoszenie) — pomożemy.`,
     ].join('\n'),
     cta: { label: 'Zobacz usługę w panelu', url: ctx.serviceUrl },
     footnote:
@@ -139,7 +139,7 @@ export function monitoringPaidLapsedTemplate(ctx: MonitoringPaidLapsedContext): 
     ].join('\n'),
     cta: { label: 'Doładuj i włącz ponownie', url: `${ctx.panelUrl}/dashboard/billing` },
     footnote:
-      'Otrzymujesz tę wiadomość, bo miałeś włączony płatny monitoring tej usługi. Standardowy (darmowy) monitoring pozostaje aktywny.',
+      'Otrzymujesz tę wiadomość, bo ta usługa miała włączony płatny monitoring. Standardowy (darmowy) monitoring pozostaje aktywny.',
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,
     category: 'TRANSACTIONAL',

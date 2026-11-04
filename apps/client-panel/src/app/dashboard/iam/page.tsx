@@ -6,10 +6,12 @@ import { czyModul } from '@/lib/feature-flags-core';
 import { pobierzFlagiAction } from '@/lib/feature-flags-action';
 import { getAuthToken } from '@/lib/auth';
 import { fetchSessionProfile } from '@/lib/session-profile';
-import { Users, Mail, ShieldCheck, Ban } from 'lucide-react';
+import { Users, Mail, ShieldCheck, Ban, RotateCcw, Trash2 } from 'lucide-react';
 import {
   disableMemberAction,
+  enableMemberAction,
   getIamOverview,
+  removeMemberAction,
   inviteSubaccountAction,
   revokeInviteAction,
   updateMemberAction,
@@ -18,6 +20,7 @@ import { IamAuditSection } from './iam-audit-section';
 import { IamNoticeBanner } from './iam-notice-banner';
 import { IamPermissionPicker } from './iam-permission-picker';
 import { IamScopePicker } from './iam-scope-picker';
+import { PrzyciskZPotwierdzeniem } from './przycisk-z-potwierdzeniem';
 import { CIASTECZKO_BLEDU_IAM, PERMISSION_LABELS, pokazEmail } from './constants';
 import { PanelFetchError, PanelPageHeader } from '@/components/panel';
 
@@ -69,6 +72,11 @@ export default async function IamPage() {
               Zaproszenie jest wysyłane mailowo i wygasa po 7 dniach. Jeśli adres ma już konto Verris (np. Twój deweloper albo agencja),
               osoba przyjmie je ze swojego konta i będzie przełączać się między kontami bez nowego loginu.
             </p>
+            <p className="mt-1 text-sm text-neutral-500">
+              Adres bez konta Verris dostaje subkonto — login przypięty do Twojego konta. Subkonto możesz w każdej chwili wyłączyć
+              i włączyć ponownie albo usunąć: wtedy adres się zwalnia (możesz go zaprosić jeszcze raz, a ta osoba może założyć własne konto).
+              Rezygnacja z usług, usunięcie konta i zarządzanie dostępem zostają zawsze u Ciebie.
+            </p>
           </div>
         </div>
         <form action={inviteSubaccountAction} className="space-y-5">
@@ -88,11 +96,11 @@ export default async function IamPage() {
         <div className="rounded-[28px] border border-white/10 bg-[#0a0a0a]/80 p-6">
           <div className="mb-5 flex items-center gap-3">
             <Users className="h-5 w-5 text-white" />
-            <h2 className="text-lg font-semibold text-white">Aktywne subkonta</h2>
+            <h2 className="text-lg font-semibold text-white">Subkonta</h2>
           </div>
           <div className="space-y-3">
             {data.members.length === 0 ? (
-              <p className="text-sm text-neutral-500">Brak aktywnych subkont.</p>
+              <p className="text-sm text-neutral-500">Brak subkont.</p>
             ) : data.members.map((member) => (
               <div key={member.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                 <div className="flex items-start justify-between gap-4">
@@ -102,13 +110,38 @@ export default async function IamPage() {
                     {member.subaccountLabel && <p className="mt-1 text-xs text-neutral-500">{member.subaccountLabel}</p>}
                   </div>
                   {member.subaccountDisabledAt ? (
-                    <span className="rounded-full bg-neutral-800 px-3 py-1 text-xs text-neutral-400">Wyłączone</span>
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      <span className="rounded-full bg-neutral-800 px-3 py-1 text-xs text-neutral-400">Wyłączone</span>
+                      <form action={enableMemberAction}>
+                        <input type="hidden" name="id" value={member.id} />
+                        <button className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-neutral-300 hover:bg-white/10">
+                          <RotateCcw className="mr-1 inline h-3 w-3" aria-hidden /> Włącz ponownie
+                        </button>
+                      </form>
+                      <form action={removeMemberAction}>
+                        <input type="hidden" name="id" value={member.id} />
+                        <PrzyciskZPotwierdzeniem
+                          tytul="Usunąć subkonto?"
+                          pytanie={`Subkonto ${pokazEmail(member.email)} zniknie z listy, a adres się zwolni — możesz go potem zaprosić ponownie. Wpisy w dzienniku zostają. Tego nie da się cofnąć.`}
+                          akcja="Usuń subkonto"
+                          niebezpieczne
+                          className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-neutral-300 hover:bg-white/10"
+                        >
+                          <Trash2 className="mr-1 inline h-3 w-3" aria-hidden /> Usuń
+                        </PrzyciskZPotwierdzeniem>
+                      </form>
+                    </div>
                   ) : (
                     <form action={disableMemberAction}>
                       <input type="hidden" name="id" value={member.id} />
-                      <button className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-neutral-300 hover:bg-white/10">
-                        <Ban className="mr-1 inline h-3 w-3" /> Wyłącz
-                      </button>
+                      <PrzyciskZPotwierdzeniem
+                        tytul="Wyłączyć subkonto?"
+                        pytanie={`${pokazEmail(member.email)} nie zaloguje się, a otwarte sesje zostaną zakończone. Dostaniesz przycisk „Włącz ponownie”, a osoba — maila o odebraniu dostępu.`}
+                        akcja="Wyłącz"
+                        className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-neutral-300 hover:bg-white/10"
+                      >
+                        <Ban className="mr-1 inline h-3 w-3" aria-hidden /> Wyłącz
+                      </PrzyciskZPotwierdzeniem>
                     </form>
                   )}
                 </div>
@@ -204,9 +237,14 @@ export default async function IamPage() {
                 <form action={disableMemberAction}>
                   <input type="hidden" name="id" value={m.id} />
                   <input type="hidden" name="rodzaj" value="konto" />
-                  <button className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-neutral-300 hover:bg-white/10">
-                    <Ban className="mr-1 inline h-3 w-3" /> Odbierz dostęp
-                  </button>
+                  <PrzyciskZPotwierdzeniem
+                    tytul="Odebrać dostęp?"
+                    pytanie={`${m.name ?? m.email} nie przełączy się już na Twoje konto (jej własne konto Verris działa dalej). Żeby przywrócić dostęp, wyślesz nowe zaproszenie.`}
+                    akcja="Odbierz dostęp"
+                    className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-neutral-300 hover:bg-white/10"
+                  >
+                    <Ban className="mr-1 inline h-3 w-3" aria-hidden /> Odbierz dostęp
+                  </PrzyciskZPotwierdzeniem>
                 </form>
               </div>
               <div className="mt-3 flex flex-wrap gap-2">

@@ -2,7 +2,7 @@
 
 import { apiFetch } from "@/lib/api";
 import { getAuthToken } from "@/lib/auth";
-import type { ServiceSummaryDto } from "@verris/contracts";
+import type { ServiceSummaryDto } from "@verris/contracts/klient";
 import { nazwaUslugi, type UslugaDoZgloszenia, type UslugaZApi } from "./usluga-zgloszenia";
 
 const API_URL = process.env.API_URL || "http://localhost:3000";

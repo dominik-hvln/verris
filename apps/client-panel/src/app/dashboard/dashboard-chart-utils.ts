@@ -1,4 +1,4 @@
-import type { SubscriptionStatus } from '@verris/contracts';
+import type { SubscriptionStatus } from '@verris/contracts/klient';
 import type { EcoLedgerRowDto } from './eco/eco-data';
 import { dataPl, dzienPl, ostatnieDniPl } from '@/lib/data-pl';
 

@@ -13,6 +13,7 @@ import { RateLimit } from '../common/guards/rate-limit.guard.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { BezSesjiWsparcia } from '../common/decorators/bez-sesji-wsparcia.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { RequestContext, type RequestContextDto } from '../common/decorators/request-context.js';
 import { CustomerIamService } from './customer-iam.service.js';
 import {
   AcceptExistingInviteDto,
@@ -51,8 +52,8 @@ export class CustomerIamController {
   }
 
   @Post('invites/accept')
-  accept(@Body() dto: AcceptSubaccountInviteDto) {
-    return this.iam.accept(dto);
+  accept(@Body() dto: AcceptSubaccountInviteDto, @RequestContext() ctx: RequestContextDto) {
+    return this.iam.accept(dto, ctx);
   }
 
   /** PB-20 — strona zaproszenia: czy adres ma już konto (wtedy „zaloguj się i przyjmij”). */
@@ -97,6 +98,21 @@ export class CustomerIamController {
   @Delete('members/:id')
   disableMember(@CurrentUser() user: CustomerPrincipal, @Param('id') memberId: string) {
     return this.iam.disableMember(user.userId, user.principalUserId ?? user.userId, memberId);
+  }
+
+  /** P3-01 — przywrócenie wyłączonego subkonta (wyłączenie jest odwracalne). */
+  @UseGuards(JwtAuthGuard)
+  @BezSesjiWsparcia()
+  @Post('members/:id/enable')
+  enableMember(@CurrentUser() user: CustomerPrincipal, @Param('id') memberId: string) {
+    return this.iam.enableMember(user.userId, user.principalUserId ?? user.userId, memberId);
+  }
+
+  /** P3-01 — usunięcie subkonta: adres się zwalnia (ponowne zaproszenie, własne konto Verris). */
+  @UseGuards(JwtAuthGuard)
+  @Delete('members/:id/account')
+  removeMember(@CurrentUser() user: CustomerPrincipal, @Param('id') memberId: string) {
+    return this.iam.removeMember(user.userId, user.principalUserId ?? user.userId, memberId);
   }
 
   @UseGuards(JwtAuthGuard)

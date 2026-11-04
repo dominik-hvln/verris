@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { Check, Globe, Loader2, Search, Sparkles } from 'lucide-react';
-import type { DomainSearchResultDto } from '@verris/contracts';
+import type { DomainSearchResultDto } from '@verris/contracts/klient';
 import { searchDomainsAction } from '@/app/dashboard/domains/actions';
 import { formatCredits } from '@/lib/credits';
 
@@ -25,9 +25,18 @@ export interface DomainSelection {
 export function DomainStep({
   value,
   onChange,
+  dlaPoczty = false,
+  bladDomeny = null,
+  zapisAscii = null,
 }: {
   value: DomainSelection;
   onChange: (next: DomainSelection) => void;
+  /** P4-8 — przy zamówieniu samej poczty teksty bez „hostingu”. */
+  dlaPoczty?: boolean;
+  /** P5-04 — błąd formatu wpisanej domeny (sprawdzany w panelu tą samą regułą co w API). */
+  bladDomeny?: string | null;
+  /** P5-04 — domena z polskimi znakami: zapis, pod którym ją założymy. */
+  zapisAscii?: string | null;
 }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<DomainSearchResultDto[] | null>(null);
@@ -72,31 +81,54 @@ export function DomainStep({
           onClick={() => setMode('own')}
           icon={<Globe className="h-5 w-5" />}
           title="Mam własną domenę"
-          description="Wpiszę domenę, którą już posiadam (lub roboczą)."
+          description="Wpiszę domenę, którą już mam, np. mojafirma.pl."
         />
         <ModeCard
           active={value.mode === 'register'}
           onClick={() => setMode('register')}
           icon={<Sparkles className="h-5 w-5" />}
           title="Zarejestruj nową domenę"
-          description="Wyszukaj i zarejestruj nową domenę razem z hostingiem."
+          description={`Wyszukaj i zarejestruj nową domenę razem z ${dlaPoczty ? 'pocztą' : 'hostingiem'}.`}
         />
       </div>
 
       {value.mode === 'own' ? (
-        <input
-          type="text"
-          value={value.domain}
-          onChange={(e) => onChange({ mode: 'own', domain: e.target.value, register: null })}
-          placeholder="mojadomena.pl"
-          aria-label="Domena"
-          className="mt-4 w-full max-w-md rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-white placeholder:text-neutral-500 focus:border-white/40 focus:outline-none"
-        />
+        <div className="mt-4 max-w-2xl">
+          <input
+            id="domena-wlasna"
+            type="text"
+            value={value.domain}
+            onChange={(e) => onChange({ mode: 'own', domain: e.target.value, register: null })}
+            placeholder="mojadomena.pl"
+            aria-label="Domena"
+            autoCapitalize="none"
+            spellCheck={false}
+            aria-invalid={bladDomeny ? true : undefined}
+            aria-describedby={bladDomeny ? 'domena-blad' : 'domena-u-rejestratora'}
+            className="w-full max-w-md rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-white placeholder:text-neutral-500 focus:border-white/40 focus:outline-none"
+          />
+          {bladDomeny ? (
+            <p id="domena-blad" className="mt-2 text-sm text-rose-300">{bladDomeny}</p>
+          ) : zapisAscii ? (
+            <p className="mt-2 text-xs text-neutral-400">
+              Domenę z polskimi znakami założymy w zapisie technicznym <span className="font-mono">{zapisAscii}</span> —
+              tak samo działa w przeglądarce i poczcie.
+            </p>
+          ) : null}
+          {/* P4-3 (beta 3.11) — co z domeną u obecnej firmy, zanim klient zapłaci. */}
+          <p id="domena-u-rejestratora" className="mt-3 text-sm text-neutral-400">
+            Domena może zostać tam, gdzie jest teraz. Po zakupie pokażemy w panelu, co dokładnie przepisać w ustawieniach
+            domeny u tej firmy, żeby {dlaPoczty ? 'poczta zaczęła działać' : 'strona i poczta zaczęły działać'}. To zajmuje
+            kilka minut. Jeśli wolisz zrobić to z nami, napisz w Centrum pomocy — przeprowadzimy Cię krok po kroku.
+          </p>
+        </div>
       ) : (
         <div className="mt-4 max-w-2xl">
           <div className="flex flex-col sm:flex-row gap-3">
             <input
+              id="domena-szukaj"
               type="text"
+              aria-label="Nazwa domeny do rejestracji"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => {
@@ -174,7 +206,7 @@ export function DomainStep({
           {value.register ? (
             <p className="mt-3 text-sm text-emerald-200">
               Zarejestrujemy <strong className="font-mono">{value.register.name}</strong> na 1 rok i
-              uruchomimy na niej hosting.
+              uruchomimy na niej {dlaPoczty ? 'pocztę' : 'hosting'}.
             </p>
           ) : null}
         </div>
@@ -199,6 +231,7 @@ function ModeCard({
   return (
     <button
       type="button"
+      aria-pressed={active}
       onClick={onClick}
       className={`rounded-2xl border p-5 text-left transition-all ${
         active

@@ -7,7 +7,7 @@
  * Akcji spoza tej listy test nie rozwiązuje (komponent zostaje w stanie „wczytywanie”) — to też
  * jest widok, który klient ogląda, więc też przechodzi przez axe.
  */
-import type { ServiceHealthSummaryDto } from '@verris/contracts';
+import type { ServiceHealthSummaryDto } from '@verris/contracts/klient';
 
 const ok = <T>(dane: T) => ({ ok: true as const, dane });
 

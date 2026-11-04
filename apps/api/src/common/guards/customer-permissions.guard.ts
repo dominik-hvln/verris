@@ -118,9 +118,26 @@ export const REGULY_TRAS: Regula[] = [
     po_co: 'Kod transferu i dane abonenta to przeniesienie albo przejęcie domeny — należą do właściciela (A-09, A-13).',
   },
   {
+    // Decyzja 8 (3.11.2026), P3-02 — rezygnacja z usługi (od razu albo z końcem okresu = wyłączenie odnowienia)
+    // i usunięcie VPS-a. Wcześniej wystarczało „Usługi: zarządzanie” (szablon DevOps): współpracownik mógł
+    // natychmiast zdjąć stronę klienta. Dopasowanie po szablonie trasy — `/subscriptions/trial` to inna trasa.
+    pasuje: (s) => s === '/subscriptions/:id' || s === '/vps/:id',
+    odczyt: [SERVICES_READ], zapis: 'ODMOWA',
+    po_co: 'Anulowanie i usunięcie usługi oraz wyłączenie odnowienia — tylko właściciel konta, nigdy współpracownik.',
+  },
+  {
+    // P3-04 — kontroler zmienia hasło `principalUserId`, czyli osoby z sesji. Wcześniej ODMOWA z uzasadnieniem
+    // „to hasło właściciela” — nieprawdziwym: współpracownik, któremu wyciekło hasło, nie mógł go zmienić.
     pasuje: zaczyna('/users/password'),
-    odczyt: 'ODMOWA', zapis: 'ODMOWA',
-    po_co: 'Zmiana hasła idzie po koncie nadrzędnym sesji — dla subkonta to hasło właściciela.',
+    odczyt: BEZ_WYMOGU, zapis: BEZ_WYMOGU,
+    po_co: 'Własne hasło osoby z sesji (users.controller: changePassword(principalUserId)).',
+  },
+  {
+    // P3-04 — PATCH /users/me zapisuje profil `principalUserId`; subkontu serwis pozwala tylko na imię, nazwisko
+    // i język (users.service updateProfile). Pozostałe /users/me/* — reguła ustawień niżej.
+    pasuje: (s) => s === '/users/me',
+    odczyt: BEZ_WYMOGU, zapis: BEZ_WYMOGU,
+    po_co: 'Własne dane osobowe osoby z sesji; dane firmy i NIP właściciela serwis odrzuca dla subkonta.',
   },
   {
     pasuje: zaczyna('/agent', '/node', '/servers'),
@@ -279,6 +296,9 @@ export function inferCustomerRoutePermissions(method: string, path: string): Wym
   return 'ODMOWA';
 }
 
+/** Trasy POST, które niczego nie zmieniają (wycena, podgląd, sprawdzenie dostępności, wyszukiwanie). */
+export const ZAPYTANIE_BEZ_ZMIAN = /(?:^|\/)(?:quote|quote-[a-z-]+|[a-z-]+-quote|preview|preview-[a-z-]+|availability|search)(?:\/|$)/;
+
 @Injectable()
 export class CustomerPermissionsGuard implements CanActivate {
   constructor(
@@ -302,6 +322,9 @@ export class CustomerPermissionsGuard implements CanActivate {
     // w dzienniku wyglądałoby to jak próba. Sygnałem jest odmowa zapisu (zakup, zmiana, usunięcie).
     if ((req.method ?? 'GET').toUpperCase() === 'GET' || req.method?.toUpperCase() === 'HEAD') return;
     const trasa = req.route?.path ?? req.path ?? '';
+    // P3-07 — wyceny i podglądy (POST bez zmian na koncie) strona wysyła sama przy otwarciu karty, np. wycena
+    // doładowania na „Płatnościach”. W dzienniku właściciela wyglądały jak próba zakupu.
+    if (ZAPYTANIE_BEZ_ZMIAN.test(trasa)) return;
     const klucz = `${req.user?.principalUserId}|${req.method}|${trasa}`;
     const teraz = Date.now();
     if ((this.ostatnieOdmowy.get(klucz) ?? 0) > teraz - 10 * 60_000) return;

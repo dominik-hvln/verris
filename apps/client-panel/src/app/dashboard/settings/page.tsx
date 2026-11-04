@@ -58,6 +58,26 @@ function visibleTabsForProfile(profile: UserProfile): (typeof tabs)[number][] {
   return tabs.filter((t) => SUBACCOUNT_TAB_IDS.includes(t.id));
 }
 
+/**
+ * P3-04 — subkonto nie wygeneruje eksportu ani nie usunie konta (to dane i decyzja właściciela; API: 403). Zamiast
+ * przycisków, które kończą się odmową, mówimy wprost, co może zrobić.
+ */
+function PrywatnoscSubkonta() {
+  return (
+    <div className="space-y-3 p-6 text-sm text-neutral-300 md:p-8" data-prywatnosc-subkonta>
+      <h2 className="text-xl font-bold text-white">Prywatność i dane</h2>
+      <p>
+        Pracujesz na subkoncie. Eksport danych i usunięcie konta dotyczą całego konta, więc robi je właściciel konta.
+      </p>
+      <p>
+        Swoje imię i nazwisko zmienisz w zakładce „Profil”, a hasło — w „Bezpieczeństwo”. W sprawie danych tego subkonta
+        (wgląd, usunięcie) napisz do właściciela konta albo do nas:{" "}
+        <a href="mailto:rodo@verris.pl" className="underline underline-offset-2">rodo@verris.pl</a>.
+      </p>
+    </div>
+  );
+}
+
 /* ──────────────────── Reusable Form Components ──────────────────── */
 
 function FormField({
@@ -291,7 +311,8 @@ export default function SettingsPage() {
             />
             )}
             {activeTab === "notifications" && <NotificationsTab showToast={showToast} />}
-            {activeTab === "privacy" && <PrivacyTab showToast={showToast} />}
+            {activeTab === "privacy" &&
+              (profile.isSubaccount ? <PrywatnoscSubkonta /> : <PrivacyTab showToast={showToast} />)}
             {activeTab === "panel" && (
               <div className="p-8">
                 <SidebarTilesSection initialLinks={profile.sidebarQuickLinks ?? []} />
@@ -623,9 +644,9 @@ function BillingTab({
   return (
     <div className="p-8 space-y-8">
       <div>
-        <h2 className="text-xl font-bold text-white mb-2">Dane bilingowe</h2>
+        <h2 className="text-xl font-bold text-white mb-2">Dane do faktury</h2>
         <p className="text-neutral-400">
-          Dane te zostaną użyte na wszystkich nowo wystawianych fakturach VAT.
+          Dane te zostaną użyte na wszystkich nowo wystawianych fakturach VAT. Faktury wystawione wcześniej zostają bez zmian.
         </p>
       </div>
 
@@ -641,14 +662,14 @@ function BillingTab({
         </FormField>
         <FormField
           label="NIP / numer VAT-UE"
-          description="Firma z UE: numer VAT-UE z prefiksem kraju (np. DE123456789). Sprawdzamy go w VIES przy doładowaniu — ważny oznacza dokument bez polskiego VAT (odwrotne obciążenie) i cenę netto."
+          description="Polska firma: 10 cyfr NIP — sprawdzamy cyfrę kontrolną. Firma z innego kraju UE: numer VAT-UE z prefiksem kraju (np. DE123456789), sprawdzany w VIES przy doładowaniu — ważny oznacza dokument bez polskiego VAT (odwrotne obciążenie) i cenę netto. Zmianę NIP-u zapisujemy w dzienniku konta; obowiązuje od kolejnej faktury."
         >
           <Input
             value={form.nip}
             onChange={(e) =>
               setForm((f) => ({ ...f, nip: e.target.value }))
             }
-            placeholder="PL1234567890"
+            placeholder="123-456-32-18"
           />
         </FormField>
       </div>

@@ -1,7 +1,7 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import type { ServiceSummaryDto } from '@verris/contracts';
+import type { ServiceSummaryDto } from '@verris/contracts/klient';
 import { apiFetch } from '@/lib/api';
 import { bezpiecznie, type Wynik } from '@/lib/wynik-akcji';
 

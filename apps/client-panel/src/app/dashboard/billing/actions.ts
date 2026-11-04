@@ -11,7 +11,7 @@ import type {
   TopupQuoteDto,
   WalletAutoTopupSettingsDto,
   WalutaWplaty,
-} from '@verris/contracts';
+} from '@verris/contracts/klient';
 import { ApiError, apiFetch } from '@/lib/api';
 
 export interface TopupResult {

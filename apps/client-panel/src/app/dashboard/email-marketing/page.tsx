@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Megaphone, ArrowRight, Plus } from 'lucide-react';
-import type { ServiceSummaryDto } from '@verris/contracts';
+import type { ServiceSummaryDto } from '@verris/contracts/klient';
 import { ApiError } from '@/lib/api';
 import { PageHeaderRow } from '@/components/panel';
 import { listServices } from '../services/data';

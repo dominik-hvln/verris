@@ -3,7 +3,7 @@
  */
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
-import { LIMIT_WYSYLKI_PROBY, tylkoProbneUslugi, uslugaWProbie } from '@verris/contracts';
+import { LIMIT_WYSYLKI_PROBY, tylkoProbneUslugi, uslugaWProbie } from '@verris/contracts/klient';
 
 const mockConvert = jest.fn();
 const mockStartTrial = jest.fn();

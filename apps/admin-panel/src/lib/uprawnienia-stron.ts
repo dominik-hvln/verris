@@ -87,6 +87,7 @@ export const STRONY = {
   "/settings/ai": { perm: "ADMIN", tytul: "Konfiguracja asystenta" },
   "/settings/canned-responses": { perm: "ADMIN", tytul: "Szablony odpowiedzi" },
   "/settings/company": { perm: "ADMIN", tytul: "Dane firmy" },
+  "/settings/eko": { perm: "ADMIN", tytul: "Program EKO i drzewa" },
   "/settings/kopie-offsite": { perm: "ADMIN", tytul: "Kopie offsite" },
   "/settings/live-readiness": { perm: "ADMIN", tytul: "Gotowość do startu" },
   "/settings/mail": { perm: "ADMIN", tytul: "Poczta (SMTP)" },

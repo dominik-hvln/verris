@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { PERMISSION_LABELS } from './constants';
+import { PERMISSION_DESCRIPTIONS, PERMISSION_LABELS } from './constants';
 import { IAM_ROLE_PRESETS } from './role-presets';
 import { Checkbox } from '@/components/panel/checkbox';
 
@@ -33,16 +33,17 @@ export function IamPermissionPicker({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-2">
+      {/* P3-05 — opis szablonu widoczny na stałe (wcześniej tylko w dymku `title`). */}
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         {IAM_ROLE_PRESETS.map((preset) => (
           <button
             key={preset.id}
             type="button"
-            title={preset.description}
             onClick={() => applyPreset(preset.permissions)}
-            className="rounded-full border border-white/15 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-neutral-200 transition hover:border-white/30 hover:bg-white/10"
+            className="rounded-xl border border-white/15 bg-white/[0.04] px-3 py-2 text-left transition hover:border-white/30 hover:bg-white/10"
           >
-            {preset.label}
+            <span className="block text-xs font-medium text-neutral-200">{preset.label}</span>
+            <span className="mt-0.5 block text-[12px] leading-snug text-neutral-400">{preset.description}</span>
           </button>
         ))}
       </div>
@@ -50,16 +51,21 @@ export function IamPermissionPicker({
         {permissions.map((permission) => (
           <label
             key={permission}
-            className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-sm text-neutral-300"
+            className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-sm text-neutral-300"
           >
             <Checkbox
               name="permissions"
               value={permission}
               checked={selected.has(permission)}
               onChange={() => toggle(permission)}
-              className="h-4 w-4 accent-white"
+              className="mt-0.5 h-4 w-4 accent-white"
             />
-            {PERMISSION_LABELS[permission] ?? permission}
+            <span>
+              <span className="block">{PERMISSION_LABELS[permission] ?? permission}</span>
+              {PERMISSION_DESCRIPTIONS[permission] ? (
+                <span className="mt-0.5 block text-[12px] leading-snug text-neutral-500">{PERMISSION_DESCRIPTIONS[permission]}</span>
+              ) : null}
+            </span>
           </label>
         ))}
       </div>

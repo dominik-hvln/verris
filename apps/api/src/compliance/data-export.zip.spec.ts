@@ -207,10 +207,30 @@ describe('X-22 — eksport RODO buduje prawdziwe archiwum', () => {
   it('sekrety są zaczernione, a BigInt i daty serializują się poprawnie', async () => {
     const pliki = await zbudujZip(zbuduj().svc);
     const profil = JSON.parse(pliki.get('profile.json')!);
-    expect(profil).toMatchObject({ passwordHash: '[REDACTED]', twoFactorSecret: '[REDACTED]', twoFactorRecoveryCodesEnc: '[REDACTED]', walletBalance: '4500', createdAt: '2026-01-01T00:00:00.000Z' });
-    expect(JSON.parse(pliki.get('accounts.json')!)[0].daPasswordEnc).toBe('[REDACTED]');
+    // P5-07 (paczka 109) — allowlista: sekretów i pól wewnętrznych nie ma w pliku wcale (nie tylko zaczernione).
+    expect(profil).toMatchObject({ email: 'jan@firma.pl', walletBalance: '4500', createdAt: '2026-01-01T00:00:00.000Z' });
+    for (const k of ['passwordHash', 'twoFactorSecret', 'twoFactorRecoveryCodesEnc', 'staffBreakGlassCodesEnc']) expect(profil).not.toHaveProperty(k);
+    expect(JSON.parse(pliki.get('accounts.json')!)[0]).not.toHaveProperty('daPasswordEnc');
     const calosc = [...pliki.values()].join('\n');
     for (const sekret of ['$2b$10$tajne', 'SEKRET-TOTP', 'enc:haslo-da', 'enc:kody-awaryjne']) expect(calosc).not.toContain(sekret);
+  });
+
+  it('P5-07 — profil i konta z allowlisty: bez flag zespołu, wyzwań, węzła i prefiksu „da”; notatka obsługi podpisana; README i _meta po polsku', async () => {
+    const z = zbuduj();
+    z.prisma.user.findUniqueOrThrow.mockResolvedValueOnce({
+      id: 'u1', email: 'jan@firma.pl', passwordHash: 'x', adminInternalNote: 'Klient VIP', canAccessGrafana: true, isInternal: false,
+      billingOutside: false, webauthnChallenge: 'wyzwanie', twoFactorLastStep: 123, tokenVersion: 4, stripeCustomerId: 'cus_1',
+      referredByUserId: OPERATOR, createdAt: new Date('2026-01-01T00:00:00Z'),
+    } as never);
+    (z.prisma.account.findMany as ReturnType<typeof vi.fn>).mockResolvedValueOnce([
+      { id: 'a1', domain: 'x.pl', daUsername: 'jan1', daPasswordEnc: 'enc', daMessageSeen: 5, serverId: 'srv-1', phpVersion: '8.3' },
+    ]);
+    const pliki = await zbudujZip(z.svc);
+    const profil = JSON.parse(pliki.get('profile.json')!);
+    expect(profil).toEqual({ id: 'u1', email: 'jan@firma.pl', createdAt: '2026-01-01T00:00:00.000Z', notatkaObslugi: 'Klient VIP' });
+    expect(JSON.parse(pliki.get('accounts.json')!)).toEqual([{ login: 'jan1', id: 'a1', domain: 'x.pl', phpVersion: '8.3' }]);
+    expect(pliki.get('README.txt')).not.toMatch(/daPasswordEnc|REDACTED/);
+    expect(JSON.parse(pliki.get('_meta.json')!).notice).toMatch(/^Archiwum zawiera/);
   });
 
   it('F2.4 — notatki obsługi o kliencie są w eksporcie, bez autora (art. 15 RODO, D3)', async () => {

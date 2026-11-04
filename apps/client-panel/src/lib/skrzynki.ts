@@ -1,4 +1,4 @@
-import type { HostingEmailAccountsResponseDto } from '@verris/contracts';
+import type { HostingEmailAccountsResponseDto } from '@verris/contracts/klient';
 import { plForm } from '@/lib/pl';
 
 /**

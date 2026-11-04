@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import type { Prisma } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { EcoDrzewaService } from './eco-drzewa.service.js';
 
 /** Stałe wartości punktów — źródło prawdy dla API i panelu klienta. */
 export const ECO_POINT_DELTAS = {
@@ -29,7 +30,12 @@ export const ECO_POINT_LIMITS = {
   DOMAIN_RENEWAL_YEARLY_CAP: 2,
 } as const;
 
-export type EcoPointsReason = keyof typeof ECO_POINT_DELTAS | 'WALLET_TOPUP' | 'EKO_REDEEM_WALLET';
+export type EcoPointsReason =
+  | keyof typeof ECO_POINT_DELTAS
+  | 'WALLET_TOPUP'
+  | 'EKO_REDEEM_WALLET'
+  | 'EKO_DRZEWO_PULA'
+  | 'EKO_DRZEWO_WLASNE';
 
 type Db = PrismaService | Prisma.TransactionClient;
 
@@ -62,7 +68,27 @@ function startOfUtcYear(d: Date): Date {
 export class EcoPointsService {
   private readonly logger = new Logger(EcoPointsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly drzewa?: EcoDrzewaService,
+  ) {}
+
+  /**
+   * W6 (decyzja 12) — każda opłacona usługa daje oprócz punktów automatyczny wkład w drzewo do wspólnej puli.
+   * Osobno od punktów: roczny limit punktów za odnowienia nie obcina wkładu, a błąd wkładu nie zabiera punktów.
+   */
+  private async wkladWDrzewo(
+    db: Db,
+    input: { userId: string; subscriptionId: string; referenceId: string; pierwsza: boolean },
+  ): Promise<void> {
+    if (!this.drzewa) return;
+    try {
+      await this.drzewa.wkladZUslugi(db, input);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`Wkład w drzewo pominięty (${input.subscriptionId}:${input.referenceId}): ${msg}`);
+    }
+  }
 
   /**
    * Przyznaje punkty tylko raz na parę (userId, reason, subscriptionId?, referenceId?).
@@ -159,6 +185,7 @@ export class EcoPointsService {
   }
 
   async awardSubscriptionFirstPaid(db: Db, userId: string, subscriptionId: string): Promise<boolean> {
+    await this.wkladWDrzewo(db, { userId, subscriptionId, referenceId: 'pierwsza', pierwsza: true });
     return this.awardOnce(db, {
       userId,
       delta: ECO_POINT_DELTAS.SUBSCRIPTION_FIRST_PAID,
@@ -180,6 +207,7 @@ export class EcoPointsService {
     db: Db,
     input: { userId: string; subscriptionId: string; referenceId: string },
   ): Promise<boolean> {
+    await this.wkladWDrzewo(db, { ...input, pierwsza: false });
     return this.awardWithYearlyCap(db, {
       userId: input.userId,
       delta: ECO_POINT_DELTAS.SUBSCRIPTION_RENEWAL,

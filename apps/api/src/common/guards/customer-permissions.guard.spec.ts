@@ -67,12 +67,13 @@ describe('CustomerPermissionsGuard — zachowanie', () => {
       ).toBe(false);
     });
 
-    it('odczyt profilu nie wymaga niczego, zmiana wymaga SETTINGS_MANAGE', () => {
+    it('P3-04: własne dane i hasło osoby z sesji bez uprawnienia; reszta ustawień konta za SETTINGS_MANAGE', () => {
       expect(guard().canActivate(zadanie('GET', '/users/me', sub()))).toBe(true);
-      expect(guard().canActivate(zadanie('PATCH', '/users/me', sub()))).toBe(false);
-      expect(
-        guard().canActivate(zadanie('PATCH', '/users/me', sub(CustomerPermission.SETTINGS_MANAGE))),
-      ).toBe(true);
+      // Profil i hasło zapisuje się na principalUserId (osoba z sesji) — subkonto zmienia własne imię i hasło.
+      expect(guard().canActivate(zadanie('PATCH', '/users/me', sub()))).toBe(true);
+      expect(guard().canActivate(zadanie('PATCH', '/users/password', sub()))).toBe(true);
+      expect(guard().canActivate(zadanie('PATCH', '/users/me/referral', sub()))).toBe(false);
+      expect(guard().canActivate(zadanie('PATCH', '/users/me/referral', sub(CustomerPermission.SETTINGS_MANAGE)))).toBe(true);
     });
 
     it('jawny dekorator wygrywa z wnioskowaniem ze ścieżki', () => {
@@ -93,7 +94,9 @@ describe('CustomerPermissionsGuard — zachowanie', () => {
       ['GET', '/reseller/me/clients', 'lista klientów resellera'],
       ['POST', '/users/iam/invites', 'zapraszanie kolejnych subkont'],
       ['DELETE', '/users/iam/members/:id', 'usuwanie innych subkont'],
-      ['PATCH', '/users/password', 'zmiana hasła konta nadrzędnego'],
+      // Decyzja 8 (3.11.2026), P3-02 — rezygnacja z usługi i usunięcie VPS-a tylko dla właściciela.
+      ['DELETE', '/subscriptions/:id', 'rezygnacja z usługi (od razu albo z końcem okresu)'],
+      ['DELETE', '/vps/:id', 'usunięcie VPS-a'],
       ['POST', '/servers/handshake', 'powierzchnia węzła'],
     ];
 
@@ -204,8 +207,13 @@ describe('CustomerPermissionsGuard — zachowanie', () => {
       }
     });
 
-    it('skasowanie VPS-a wymaga SERVICES_MANAGE', () => {
-      expect(guard().canActivate(zadanie('DELETE', '/vps/:id', sub(CustomerPermission.SERVICES_READ)))).toBe(false);
+    it('P3-02: podgląd usługi i VPS-a zostaje przy SERVICES_READ; trasy bez :id (okres próbny) — jak dotąd', () => {
+      expect(guard().canActivate(zadanie('GET', '/subscriptions/:id', sub(CustomerPermission.SERVICES_READ)))).toBe(true);
+      expect(guard().canActivate(zadanie('GET', '/vps/:id', sub(CustomerPermission.SERVICES_READ)))).toBe(true);
+      expect(guard().canActivate(zadanie('POST', '/subscriptions/trial', sub(CustomerPermission.SERVICES_MANAGE)))).toBe(true);
+      expect(() => guard().canActivate(zadanie('DELETE', '/subscriptions/:id', sub(CustomerPermission.SERVICES_MANAGE, CustomerPermission.BILLING_MANAGE)))).toThrow(
+        'Ta operacja jest dostępna wyłącznie dla właściciela konta.',
+      );
     });
 
     it('zakup dodatku wymaga BILLING_MANAGE, nie SERVICES_MANAGE', () => {
@@ -308,5 +316,24 @@ describe('SSO do webmaila — tylko z EMAIL_MANAGE', () => {
   it('POST /services/:id/hosting-webmail-login → EMAIL_MANAGE', () => {
     const w = inferCustomerRoutePermissions('POST', '/services/abc/hosting-webmail-login');
     expect(w).toEqual(['EMAIL_MANAGE']);
+  });
+});
+
+describe('P3-07 — dziennik odmów bez automatycznych zapytań strony', () => {
+  it('wycena/podgląd (POST bez zmian) nie trafia do dziennika właściciela; zakup — tak', () => {
+    const record = vi.fn();
+    const g = new CustomerPermissionsGuard({ getAllAndOverride: () => undefined } as never, { record } as never);
+    const ctx = (method: string, path: string) =>
+      ({
+        switchToHttp: () => ({ getRequest: () => ({ method, route: { path }, user: { customerOwnerId: 'w', principalUserId: 's', customerPermissions: ['SERVICES_READ'] } }) }),
+        getHandler: () => undefined,
+        getClass: () => undefined,
+      }) as never;
+    for (const p of ['/billing/checkout-session/quote', '/subscriptions/preview-promo', '/subscriptions/:id/plan/preview', '/domains/registrar/quote-periods', '/domains/:id/registrar/renew-quote', '/domains/registrar/availability']) {
+      expect(g.canActivate(ctx('POST', p))).toBe(false);
+    }
+    expect(record).not.toHaveBeenCalled();
+    expect(g.canActivate(ctx('POST', '/billing/checkout-session'))).toBe(false);
+    expect(record).toHaveBeenCalledTimes(1);
   });
 });

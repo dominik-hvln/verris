@@ -9,6 +9,11 @@ describe('specyfikacja asystenta = specyfikacja na verris.pl', () => {
   const www = readFileSync(new URL('../../../../www/src/lib/specyfikacja.ts', import.meta.url), 'utf8');
   /** Wiersze ['parametr', 'wartość'] z pliku www (literały w apostrofach albo cudzysłowach). */
   const wierszeWww = [...www.matchAll(/\[\s*(['"])((?:(?!\1).)+)\1\s*,\s*(['"])((?:(?!\3).)+)\3/g)].map((m) => [m[2], m[4]]);
+  // Wiersz PHP na stronie to stała PHP_OPIS z lib/oferta.ts (paczka 109, decyzja 14) — liczymy jej wartość.
+  const oferta = readFileSync(new URL('../../../../www/src/lib/oferta.ts', import.meta.url), 'utf8');
+  const phpDomyslna = oferta.match(/PHP_DOMYSLNA = '([^']+)'/)?.[1] ?? '';
+  const phpOpis = (oferta.match(/PHP_OPIS = `([^`]+)`/)?.[1] ?? '').replace('${PHP_DOMYSLNA}', phpDomyslna);
+  if (/\['PHP', PHP_OPIS\]/.test(www)) wierszeWww.push(['PHP', phpOpis]);
   const STAWKI = 'Stawki autoskalowania';
 
   it('każdy wiersz kopii (poza stawkami z cennika) jest na stronie', () => {

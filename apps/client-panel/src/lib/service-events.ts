@@ -1,4 +1,4 @@
-import { SERVICE_EVENT_PL } from '@verris/contracts';
+import { SERVICE_EVENT_PL } from '@verris/contracts/klient';
 import { plForm } from './pl';
 
 /** Zdarzenia usługi po polsku — źródło w `@verris/contracts` (wspólne z panelem obsługi). */

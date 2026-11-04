@@ -16,7 +16,7 @@ const srodowiskoApi = (() => {
 })();
 
 describe('compose produkcji przekazuje do API zmienne, które API czyta', () => {
-  it.each(['ALERT_PUSH_URL', 'ALERT_PUSH_TOKEN'])('%s jest w environment serwisu api', (nazwa) => {
+  it.each(['ALERT_PUSH_URL', 'ALERT_PUSH_TOKEN', 'POSADZIMY_API_TOKEN', 'POSADZIMY_API_TOKEN_TEST'])('%s jest w environment serwisu api', (nazwa) => {
     expect(srodowiskoApi).toMatch(/^\n? {2}api:\n/);
     expect(srodowiskoApi).toContain('CONTROL_PLANE_MAIL_HOST'); // to blok api, nie cały plik
     expect(srodowiskoApi).not.toContain('GF_SMTP_FROM_ADDRESS');

@@ -87,9 +87,13 @@ describe('Weryfikacja VAT nabywcy spoza UE', () => {
     await wplata(dol, u.id, 'c1');
     await expect(users.updateProfile(u.id, { country: 'DE' })).rejects.toBeInstanceOf(ForbiddenException);
     await expect(users.updateProfile(u.id, { country: 'DE' })).rejects.toThrow('Zmianę kraju rozliczenia zgłoś obsłudze');
-    await expect(users.updateProfile(u.id, { nip: '1' })).rejects.toBeInstanceOf(ForbiddenException);
+    // P2-05 (paczka 109) — NIP klient poprawia sam także po płatności (faktury mają kopię danych nabywcy z dnia
+    // wystawienia); kraj rozliczenia dalej tylko przez obsługę.
+    await expect(users.updateProfile(u.id, { nip: 'US-123456789' })).resolves.toBeDefined();
     const w = await prisma().user.findUniqueOrThrow({ where: { id: u.id } });
     expect(w.country).toBe('US');
+    expect(w.nip).toBe('US-123456789');
+    expect(w.vatWeryfikacjaAt).toBeNull();
     // Ten sam kraj w zapisie formularza — przechodzi.
     await expect(users.updateProfile(u.id, { country: 'US', city: 'Austin' })).resolves.toBeDefined();
   });

@@ -40,7 +40,7 @@ describe('A-13 — abonent domeny to klient', () => {
     };
     const { service } = zbuduj(provider);
     const charge = vi.spyOn(service as unknown as { charge: () => Promise<void> }, 'charge').mockImplementation((async () => { kolejnosc.push('portfel'); }) as never);
-    await expect(service.register('u1', 'u1', { name: 'jan.pl', registrant: JAN })).rejects.toThrow('stop');
+    await expect(service.register('u1', 'u1', { name: 'jan.pl', registrant: JAN, withdrawalWaiverConsent: true })).rejects.toThrow('stop');
     expect(provider.createRegistrant).toHaveBeenCalledWith(JAN);
     expect(charge).not.toHaveBeenCalled();
     expect(kolejnosc).toEqual(['uchwyt']);

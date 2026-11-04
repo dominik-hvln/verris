@@ -182,7 +182,7 @@ function humaniseEventType(type: string): string {
     case 'AUTOSCALING_DISABLED':
       return 'Wyłączono autoskalowanie';
     case 'CAP_REACHED':
-      return 'Osiągnięto limit miesięczny';
+      return 'Osiągnięto limit kosztu na 30 dni';
     case 'WALLET_EMPTY':
       return 'Wstrzymano: pusty portfel';
     default:

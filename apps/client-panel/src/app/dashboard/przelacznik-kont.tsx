@@ -80,9 +80,20 @@ export function PrzelacznikKont({ actingFor }: { actingFor: Dzialanie }) {
   );
 }
 
-/** PB-20 — pasek nad treścią, gdy pracuję na cudzym koncie: czyje to konto i jak wrócić. */
-export function PasekCudzegoKonta({ actingFor, zakres }: { actingFor: Dzialanie; zakres: number }) {
+/**
+ * PB-20 — pasek nad treścią, gdy pracuję na cudzym koncie: czyje to konto i jak wrócić.
+ * P3-08 — subkonto (login przypięty do konta właściciela) też widzi, czyje konto obsługuje; bez „Wróć”.
+ */
+export function PasekCudzegoKonta({ actingFor, zakres, kontoSubkonta = null }: { actingFor: Dzialanie; zakres: number; kontoSubkonta?: Dzialanie }) {
   const [zajety, setZajety] = useState(false);
+  if (!actingFor && kontoSubkonta) {
+    return (
+      <div data-konto-subkonta className="mb-4 rounded-[10px] border border-data/30 bg-data-soft px-4 py-2.5 text-sm text-foreground">
+        Pracujesz na koncie <b>{kontoSubkonta.nazwa}</b> ({kontoSubkonta.email}){zakres ? ` · dostęp do wybranych usług (${zakres})` : ''}.
+        Część miejsc panelu widzi tylko właściciel konta — o dodatkowy dostęp poproś właściciela.
+      </div>
+    );
+  }
   if (!actingFor) return null;
   return (
     <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-[10px] border border-data/30 bg-data-soft px-4 py-2.5 text-sm text-foreground">

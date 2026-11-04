@@ -52,13 +52,15 @@ export class HtaccessService {
    * versions”) — test D3 na t1 (28.09). Pusta wersja = domena wraca do wersji konta.
    */
   async phpDomenyStatus(subscriptionId: string, userId: string, domain: string) {
-    const [stan, wersje] = await Promise.all([this.status(subscriptionId, userId, domain), this.settings.getAvailablePhpVersions()]);
+    const { account } = await this.wymagajKonta(subscriptionId, userId);
+    const [stan, wersje] = await Promise.all([this.status(subscriptionId, userId, domain), this.settings.getAvailablePhpVersions(account.serverId)]);
     return { domain: stan.domena, versions: wersje, currentVersion: stan.php || null, wToku: stan.wToku, blad: stan.blad };
   }
 
   async phpDomeny(subscriptionId: string, userId: string, input: { domain: string; version: string }) {
     const v = input.version.trim();
-    if (v && !(await this.settings.getAvailablePhpVersions()).includes(v)) throw new BadRequestException('Nieobsługiwana wersja PHP.');
+    const { account } = await this.wymagajKonta(subscriptionId, userId);
+    if (v && !(await this.settings.getAvailablePhpVersions(account.serverId)).includes(v)) throw new BadRequestException('Nieobsługiwana wersja PHP.');
     // „zachowaj” — listowanie, HSTS i strony błędów zostają ze starego bloku (node-htaccess.sh).
     await this.zlec(subscriptionId, userId, input.domain, {
       mode: 'write', php: v.replace('.', ''), indexes: 'zachowaj', hsts: '0', e403: '', e404: '', e500: '',

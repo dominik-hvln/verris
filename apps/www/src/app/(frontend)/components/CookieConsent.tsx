@@ -6,6 +6,7 @@ import {
   applyConsent,
   availableCategories,
   OPEN_PREFERENCES_EVENT,
+  OPIS_KATEGORII,
   readConsent,
   writeConsent,
   type CookieConsent as Consent,
@@ -109,13 +110,17 @@ export function CookieConsent() {
     <div className="cc-card">
       <h2>Pliki cookies</h2>
       <p className="cc-text">
-        Używamy plików cookie niezbędnych do działania serwisu (bezpieczeństwo, zapis Twojej
-        decyzji). Za Twoją zgodą użyjemy też cookies opcjonalnych
-        {cats.analytics || cats.marketing
-          ? ' — funkcjonalnych, analitycznych i marketingowych'
-          : ' — funkcjonalnych (zapamiętywanie udogodnień)'}
-        . Zgodę możesz w każdej chwili zmienić lub wycofać — przycisk „Preferencje cookies” jest
-        stale dostępny w rogu ekranu i w stopce. Szczegóły:{' '}
+        {/* A2-05: kategorie zgodne z tym, co faktycznie zapisuje verris.pl (lib/cookie-consent.ts, OPIS_KATEGORII). */}
+        Niezbędne pliki zapisują Twoją decyzję i udogodnienia, o które prosisz.
+        {cats.analytics || cats.marketing ? (
+          <>
+            {' '}
+            Za Twoją zgodą użyjemy też plików {cats.analytics ? 'analitycznych (Google Analytics), ' : ''}
+            {cats.marketing ? 'marketingowych (reklamy Google i Meta) ' : ''}i funkcjonalnych (ustawienia narzędzi Google).{' '}
+            {OPIS_KATEGORII.przedDecyzja}
+          </>
+        ) : null}{' '}
+        Zgodę zmienisz lub wycofasz w każdej chwili przyciskiem „Preferencje cookies” w stopce strony. Szczegóły:{' '}
         <a href="https://panel.verris.pl/legal/cookies">Polityka cookies</a>.
       </p>
       <div className="cc-actions">
@@ -143,34 +148,18 @@ export function CookieConsent() {
         ) : null}
       </div>
       <div className="cc-rows">
-        <Row
-          label="Niezbędne"
-          desc="Bezpieczeństwo, poprawne działanie serwisu i zapis Twojej decyzji. Zawsze aktywne."
-          checked
-          disabled
-        />
-        <Row
-          label="Funkcjonalne"
-          desc="Zapamiętują udogodnienia i preferencje interfejsu."
-          checked={functional}
-          onChange={setFunctional}
-        />
+        <Row label="Niezbędne" desc={OPIS_KATEGORII.niezbedne} checked disabled />
+        {/* A2-05: „Funkcjonalne” steruje tylko sygnałami narzędzi Google — bez nich (brak GTM) nie ma czego włączać. */}
         {cats.analytics && (
-          <Row
-            label="Analityczne"
-            desc="Pomiar korzystania z serwisu (np. Google Analytics przez Google Tag Manager)."
-            checked={analytics}
-            onChange={setAnalytics}
-          />
+          <Row label="Funkcjonalne" desc={OPIS_KATEGORII.funkcjonalne} checked={functional} onChange={setFunctional} />
+        )}
+        {cats.analytics && (
+          <Row label="Analityczne" desc={OPIS_KATEGORII.analityczne} checked={analytics} onChange={setAnalytics} />
         )}
         {cats.marketing && (
-          <Row
-            label="Marketingowe"
-            desc="Dopasowanie i pomiar skuteczności reklam (np. Meta Pixel, tagi reklamowe Google)."
-            checked={marketing}
-            onChange={setMarketing}
-          />
+          <Row label="Marketingowe" desc={OPIS_KATEGORII.marketingowe} checked={marketing} onChange={setMarketing} />
         )}
+        {cats.analytics || cats.marketing ? <p className="cc-uwaga">{OPIS_KATEGORII.przedDecyzja}</p> : null}
       </div>
       <div className="cc-actions">
         <button type="button" className="btn btn-primary" onClick={saveSelection}>

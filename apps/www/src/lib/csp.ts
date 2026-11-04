@@ -4,11 +4,11 @@
  * Wcześniej CSP dawał Caddy (blok WWW w ops/caddy/Caddyfile) ze `script-src 'unsafe-inline'`, więc każdy
  * wstrzyknięty `<script>` albo atrybut `onerror=` wykonałby się na stronie. Teraz politykę stron publicznych
  * ustawia proxy Next (src/proxy.ts): Next odczytuje `'nonce-…'` z nagłówka CSP żądania i dokleja go do swoich
- * skryptów, a Consent Mode i loader GTM (components/Analytics.tsx) dostają nonce z nagłówka `x-nonce`.
+ * skryptów, a skrypt Consent Mode (components/Analytics.tsx) dostaje nonce z nagłówka `x-nonce`.
  * https://nextjs.org/docs/app/guides/content-security-policy
  *
  * `'strict-dynamic'`: skrypt z nonce może dociągać kolejne przez `document.createElement('script')` — tak ładują
- * się gtm.js (loader GTM), tagi GTM-PJQNXCF5 (wyłącznie __gaawe, __googtag, __gclidw — gtag.js przez createElement,
+ * się gtm.js (lib/cookie-consent.ts, dopiero po zgodzie — decyzja 22), tagi GTM-PJQNXCF5 (wyłącznie __gaawe, __googtag, __gclidw — gtag.js przez createElement,
  * bez „Niestandardowego kodu HTML”) i fbevents.js (lib/cookie-consent.ts po zgodzie marketingowej).
  * Przeglądarki z CSP3 ignorują wtedy listę hostów i `'self'` w script-src — zostają jako zapas dla CSP2.
  *
@@ -19,7 +19,7 @@
  * Plik nie importuje Reacta: ładuje go proxy (runtime bez DOM).
  */
 
-/** Dyrektywy poza script-src — 1:1 z dotychczasowej polityki www w ops/caddy/Caddyfile. */
+/** Dyrektywy poza script-src — jak dotychczasowa polityka www w ops/caddy/Caddyfile, bez Google Fonts (A2-03). */
 const DYREKTYWY_STALE: ReadonlyArray<string> = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -27,8 +27,9 @@ const DYREKTYWY_STALE: ReadonlyArray<string> = [
   "frame-ancestors 'none'",
   "form-action 'self' https://www.facebook.com",
   "img-src 'self' data: blob: https:",
-  "font-src 'self' data: https://fonts.gstatic.com",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  // A2-03 (3.11): fonty z public/fonts — Google Fonts usunięte z polityki (strona nie łączy się z nimi wcale).
+  "font-src 'self' data:",
+  "style-src 'self' 'unsafe-inline'",
   "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.doubleclick.net https://*.googlesyndication.com https://www.googleadservices.com https://www.google.com https://www.facebook.com https://connect.facebook.net",
   "frame-src https://td.doubleclick.net https://www.googletagmanager.com https://www.facebook.com",
 ];

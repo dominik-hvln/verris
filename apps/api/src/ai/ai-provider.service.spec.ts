@@ -119,6 +119,27 @@ describe('AiProviderService — dwa poziomy (L-11)', () => {
     const wszyscy = new AiProviderService(konfig({}) as never, prisma as never);
     expect(await wszyscy.kontoPozaTestemAi('obcy')).toBeNull();
   });
+
+  it('decyzja 5: przełącznik „dla wszystkich klientów” w adminie znosi AI_TYLKO_KONTA bez zmian w .env', async () => {
+    const aggregate = vi.fn(async () => ({ _sum: { costUsd: 0 } }));
+    const user = { findUnique: vi.fn(async () => ({ email: 'obcy@firma.pl' })) };
+    const findUnique = vi.fn(async () => ({ value: JSON.stringify({ dlaWszystkichKlientow: true }) }));
+    const s = new AiProviderService(
+      konfig({ AI_TYLKO_KONTA: 'tester@hvln.pl' }) as never,
+      { platformSetting: { findUnique }, aiInteractionLog: { aggregate }, user } as never,
+    );
+    expect(await s.przekroczonyLimitKlienta('obcy')).toBeNull();
+    expect(await s.kontoPozaTestemAi('obcy')).toBeNull();
+    expect(user.findUnique).not.toHaveBeenCalled();
+    // Przełącznik wyłączony (albo brak ustawienia) — lista z env dalej obowiązuje.
+    findUnique.mockResolvedValue({ value: JSON.stringify({ dlaWszystkichKlientow: false }) });
+    s.wyczyscCache();
+    expect(await s.kontoPozaTestemAi('obcy')).toMatch(/w testach/);
+    // Domyślnie wyłączone; tylko prawdziwe true włącza (nie „tak”, nie 1).
+    expect(DOMYSLNA_KONFIGURACJA_AI.dlaWszystkichKlientow).toBe(false);
+    expect(odczytajKonfiguracjeAi(JSON.stringify({ dlaWszystkichKlientow: 'tak' })).dlaWszystkichKlientow).toBe(false);
+    expect(odczytajKonfiguracjeAi(JSON.stringify({ dlaWszystkichKlientow: true })).dlaWszystkichKlientow).toBe(true);
+  });
 });
 
 describe('AiProviderService.wywolajModelem — asystent www (1.11)', () => {

@@ -1,12 +1,14 @@
 import type { Metadata } from 'next';
-import { Mail, LifeBuoy, Activity, Building2 } from 'lucide-react';
+import { Mail, LifeBuoy, Activity, Building2, Phone } from 'lucide-react';
 import { JsonLd, SubHero } from '../components/ui';
 import { ContactForm } from '../components/ContactForm';
+import { GODZINY_ODDZWANIANIA, PasRozmowy } from '../components/PasRozmowy';
 import { PANEL } from '@/lib/site';
+import { ADRES_SPRZEDAWCY, SPRZEDAWCA } from '@/lib/sprzedawca';
 import { organization, webPageSchema } from '@/lib/schema';
 
 const OPIS =
-  'Napisz do Verris przez formularz lub na kontakt@verris.pl. Pomoc po polsku, odpowiedź zwykle w ciągu dnia roboczego.';
+  'Napisz na kontakt@verris.pl albo poproś o telefon (dni robocze 9–17). Pomoc po polsku, odpowiedź zwykle w ciągu dnia roboczego.';
 
 export const metadata: Metadata = {
   title: 'Kontakt — Verris, polski hosting',
@@ -30,7 +32,7 @@ export default function Page() {
       <SubHero
         eyebrow="Kontakt"
         title="Porozmawiajmy. Odpisze człowiek, nie bot"
-        lead="Pytasz o hosting, przeprowadzkę albo domenę? Napisz, a dostaniesz konkretną odpowiedź — zwykle w ciągu dnia roboczego."
+        lead="Pytasz o hosting, pocztę, przeprowadzkę albo domenę? Napisz, a dostaniesz konkretną odpowiedź — zwykle w ciągu dnia roboczego. Wolisz rozmowę? Poproś o telefon."
         crumbs={[{ label: 'Kontakt' }]}
       />
 
@@ -51,6 +53,15 @@ export default function Page() {
                   <a href="mailto:kontakt@verris.pl">kontakt@verris.pl</a>
                   <br />
                   Odpowiadamy zwykle w ciągu dnia roboczego.
+                </p>
+              </div>
+              <div className="icard">
+                <div className="ico" aria-hidden="true">
+                  <Phone />
+                </div>
+                <h2>Wolisz porozmawiać?</h2>
+                <p>
+                  <a href="#telefon">Zostaw swój numer</a> — {GODZINY_ODDZWANIANIA.charAt(0).toLowerCase() + GODZINY_ODDZWANIANIA.slice(1)}
                 </p>
               </div>
               <div className="icard">
@@ -79,15 +90,22 @@ export default function Page() {
                 </div>
                 <h2>Dane firmy</h2>
                 <p>
-                  HVLN Dominik Kowalski
+                  {SPRZEDAWCA.nazwa}
                   <br />
-                  Zielona Góra · NIP 9292069367
+                  {ADRES_SPRZEDAWCY}
+                  <br />
+                  NIP {SPRZEDAWCA.nip} · REGON {SPRZEDAWCA.regon}
+                  <br />
+                  <a href={`mailto:${SPRZEDAWCA.email}`}>{SPRZEDAWCA.email}</a>
                 </p>
               </div>
             </div>
           </div>
         </div>
       </section>
+
+      {/* P4-11 + decyzja 10: zamiast numeru telefonu — prośba o telefon (dni robocze 9–17). */}
+      <PasRozmowy id="telefon" temat="ogolny" />
     </main>
   );
 }

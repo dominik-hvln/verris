@@ -8,7 +8,7 @@ import { AutoscalingTimeline } from './timeline';
 import { EcoModeCard } from './eco-mode-card';
 import { EcoReportCard } from './eco-report-card';
 import { liczba } from '@/lib/liczba';
-import { uslugaWProbie } from '@verris/contracts';
+import { uslugaWProbie } from '@verris/contracts/klient';
 import { OgraniczenieProby } from '@/components/panel/ograniczenie-proby';
 
 export const dynamic = 'force-dynamic';
@@ -74,7 +74,7 @@ export default async function AutoscalingPage({
 
       <PanelPageHeader
         title="Autoskalowanie i EKO"
-        description={`Gdy strona potrzebuje więcej mocy, dokładamy zasoby ponad plan i naliczamy je z portfela — nigdy powyżej bezpiecznika.${acc?.domain ? ` Konto: ${acc.domain}.` : ''}`}
+        description={`Gdy strona potrzebuje więcej mocy, dokładamy zasoby ponad plan i naliczamy je z portfela. Bez limitu płacisz za faktyczne użycie; limit kosztu na 30 dni ustawisz niżej.${acc?.domain ? ` Konto: ${acc.domain}.` : ''}`}
       />
 
       <KpiStrip>
@@ -141,7 +141,7 @@ export default async function AutoscalingPage({
               {cap > 0
                 ? `Nie zapłacisz więcej niż ${liczba(cap, 2)} zł w 30 dni. Po osiągnięciu limitu zasoby wracają do planu, a strona działa dalej.`
                 : service.autoscalingEnabled
-                  ? 'Nie ustawiłeś limitu — autoskalowanie nalicza bez górnej granicy. Ustaw „Limit miesięczny” w formularzu.'
+                  ? 'Limit nie jest ustawiony — płacisz za faktyczne użycie dodatkowej mocy, bez górnej granicy. Jeśli chcesz ją mieć, wpisz „Limit kosztu na 30 dni” w formularzu.'
                   : 'Autoskalowanie jest wyłączone — nic nie naliczamy.'}
             </p>
             {acc ? (

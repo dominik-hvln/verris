@@ -69,7 +69,9 @@ export function HeroPodglad({ dane }: { dane: DaneHeroPodgladu }) {
 
   return (
     <div className="gl-podglad">
-      <div className="gl-zakl" role="tablist" aria-label="Podgląd panelu">
+      {/* A3-16: w role=tablist mogą być tylko zakładki — opis automatycznej zmiany stoi obok, nie w środku. */}
+      <div className="gl-zakl">
+        <div className="gl-zakl-karty" role="tablist" aria-label="Podgląd panelu">
         {WIDOKI.map((w, i) => (
           <button
             key={w}
@@ -89,6 +91,7 @@ export function HeroPodglad({ dane }: { dane: DaneHeroPodgladu }) {
             {w}
           </button>
         ))}
+        </div>
         <span className="gl-auto" aria-live="off">
           {auto ? 'zmienia się co 7 s' : 'zatrzymane'}
         </span>
@@ -236,9 +239,9 @@ export function HeroPodglad({ dane }: { dane: DaneHeroPodgladu }) {
         <div className="gl-widok" role="tabpanel" id="gl-hero-widok-2" aria-labelledby="gl-hero-tab-2" aria-hidden={widok !== 2} data-off={off(2)}>
           <div className="gl-widok-g">
             <b>Twoja cena przez 3 lata</b>
-            <span className="gl-mono">odnowienie bez podwyżki</span>
+            <span className="gl-mono">odnowienie po cenie z cennika</span>
           </div>
-          <svg className="gl-wykres" viewBox="0 0 560 150" role="img" aria-label={`Oś czasu: trzy lata po ${dane.rok}, odnowienia w tej samej cenie`}>
+          <svg className="gl-wykres" viewBox="0 0 560 150" role="img" aria-label={`Oś czasu: trzy lata po ${dane.rok} według cennika, odnowienia po cenie z cennika`}>
             <line x1="20" y1="62" x2="540" y2="62" stroke="#34E5A0" strokeWidth="4" strokeLinecap="round" />
             <circle cx="20" cy="62" r="8" fill="#34E5A0" />
             <circle cx="193" cy="62" r="10" fill="#0E1F17" stroke="#34E5A0" strokeWidth="3" />
@@ -260,7 +263,7 @@ export function HeroPodglad({ dane }: { dane: DaneHeroPodgladu }) {
                   odnowienie
                 </text>
                 <text x={x} y="137" textAnchor="middle" fill="#34E5A0" fontSize="11" fontFamily="JetBrains Mono, monospace">
-                  ta sama cena
+                  cena z cennika
                 </text>
               </g>
             ))}
@@ -284,7 +287,10 @@ export function HeroPodglad({ dane }: { dane: DaneHeroPodgladu }) {
                 <strong>{dane.trzyLata}</strong> <span className="gl-mini">brutto · {dane.trzyLataNetto} netto</span>
               </span>
             </div>
-            <span className="gl-mini">Przed każdym odnowieniem przypomnimy e-mailem.</span>
+            <span className="gl-mini">
+              Według cennika. Przy pierwszym zakupie pierwszy rok kosztuje mniej (rabat na start). Przed każdym
+              odnowieniem przypomnimy e-mailem.
+            </span>
           </div>
         </div>
       </div>

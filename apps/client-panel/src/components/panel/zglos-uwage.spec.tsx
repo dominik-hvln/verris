@@ -12,6 +12,8 @@ const zrobZrzutStrony = jest.fn();
 jest.mock('@/lib/zrzut-strony', () => ({
   ATRYBUT_POMIN: 'data-zglos-uwage-ui',
   zrobZrzutStrony: (...a: unknown[]) => zrobZrzutStrony(...a),
+  // A1-03 — logikę stron z sekretami testuje lib/zrzut-prywatne.spec.ts; tu: element prywatny na stronie.
+  stronaZSekretami: (_s: string, korzen: ParentNode) => korzen.querySelector('[data-prywatne]') !== null,
 }));
 const ZRZUT = new File(['jpeg'], 'zrzut-ekranu.jpg', { type: 'image/jpeg' });
 jest.mock('next/navigation', () => ({
@@ -188,7 +190,7 @@ describe('ZglosUwage — formularz', () => {
     act(() => button('Wskaż miejsce na stronie').click());
     // okno formularza schowane, belka z instrukcją widoczna
     expect(el.querySelector('[role="dialog"]')!.closest('.hidden')).not.toBeNull();
-    expect(el.textContent).toContain('Kliknij miejsce na stronie, którego dotyczy uwaga.');
+    expect(el.textContent).toContain('Kliknij miejsce na stronie, którego dotyczy uwaga');
 
     await act(async () => {
       strona.querySelector('svg')!.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
@@ -229,5 +231,55 @@ describe('ZglosUwage — formularz', () => {
     expect(el.querySelector('[role="alert"]')?.textContent).toBe('Brak uprawnień');
     expect(el.querySelector('textarea')).not.toBeNull();
     expect(wyslane().get('topic')).toBe('BETA');
+  });
+
+  it('A1-03: strona z sekretem → zrzut domyślnie odznaczony, z wyjaśnieniem; zwykła strona → zaznaczony', async () => {
+    const tajne = document.createElement('code');
+    tajne.setAttribute('data-prywatne', '');
+    tajne.textContent = 'vrs_live_x';
+    document.body.appendChild(tajne);
+    render({ flagi: WLACZONA, mozeZglaszac: true });
+    await otworz();
+    const pole = el.querySelector<HTMLInputElement>('[data-zrzut-ekranu] input')!;
+    expect(pole.checked).toBe(false);
+    expect(el.querySelector('[data-zrzut-wylaczony]')?.textContent).toMatch(/dane poufne/);
+    act(() => button('Anuluj').click());
+    tajne.remove();
+    await otworz();
+    expect(el.querySelector<HTMLInputElement>('[data-zrzut-ekranu] input')!.checked).toBe(true);
+  });
+
+  it('A3-7: po zamknięciu okna fokus wraca na „Zgłoś uwagę” (nie na body)', async () => {
+    render({ flagi: WLACZONA, mozeZglaszac: true });
+    await otworz();
+    act(() => button('Anuluj').click());
+    expect(document.activeElement).toBe(przycisk());
+  });
+
+  it('A3-6: tryb wskazywania z klawiatury — Tab nie jest łapany przez ukryte okno, Enter wybiera element z fokusem', async () => {
+    const strona = document.createElement('section');
+    strona.innerHTML = '<h2>Domeny</h2><a href="#x" id="dodaj">Dodaj domenę</a>';
+    document.body.appendChild(strona);
+    const przejscie = jest.fn();
+    strona.querySelector('a')!.addEventListener('click', przejscie);
+    render({ flagi: WLACZONA, mozeZglaszac: true });
+    await otworz();
+    act(() => button('Wskaż miejsce na stronie').click());
+    const tab = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+    act(() => {
+      document.body.dispatchEvent(tab);
+    });
+    // Pułapka fokusu okna robiła preventDefault i przestawiała fokus na niewidoczny element.
+    expect(tab.defaultPrevented).toBe(false);
+    const link = strona.querySelector<HTMLAnchorElement>('#dodaj')!;
+    act(() => link.focus());
+    expect(el.querySelector('[data-ramka-wskazania]')).not.toBeNull();
+    await act(async () => {
+      link.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    });
+    expect(przejscie).not.toHaveBeenCalled();
+    expect(el.querySelector('[data-wskazany-element]')?.textContent).toContain('Dodaj domenę');
+    // fokus wraca do formularza, na „Wskaż ponownie”
+    expect(document.activeElement?.hasAttribute('data-wskaz-miejsce')).toBe(true);
   });
 });

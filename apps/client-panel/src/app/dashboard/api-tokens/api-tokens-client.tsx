@@ -16,6 +16,9 @@ import { potwierdz } from '@/components/panel/potwierdz';
 
 const BASE_HINT = '/api/v1';
 
+/** P5-14 — domyślny termin nowego tokenu API (dni). */
+const DOMYSLNE_WYGASNIECIE = '90';
+
 export function ApiTokensClient({ mozeTworzyc = true }: { mozeTworzyc?: boolean }) {
   const [tokens, setTokens] = useState<ApiTokenView[]>([]);
   const [scopes, setScopes] = useState<ScopeOption[]>([]);
@@ -25,7 +28,8 @@ export function ApiTokensClient({ mozeTworzyc = true }: { mozeTworzyc?: boolean 
   const [name, setName] = useState('');
   const fieldId = useId();
   const [picked, setPicked] = useState<Set<string>>(new Set());
-  const [expiry, setExpiry] = useState<string>('0');
+  // P5-14 (paczka 109) — domyślnie 90 dni; token bez terminu to świadomy wybór z ostrzeżeniem.
+  const [expiry, setExpiry] = useState<string>(DOMYSLNE_WYGASNIECIE);
   const [pending, startTransition] = useTransition();
   const [created, setCreated] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -58,7 +62,7 @@ export function ApiTokensClient({ mozeTworzyc = true }: { mozeTworzyc?: boolean 
       });
       if (!r.ok) { setErr(r.error); return; }
       setCreated(r.token);
-      setName(''); setPicked(new Set()); setExpiry('0');
+      setName(''); setPicked(new Set()); setExpiry(DOMYSLNE_WYGASNIECIE);
       reload();
     });
   };
@@ -92,7 +96,7 @@ export function ApiTokensClient({ mozeTworzyc = true }: { mozeTworzyc?: boolean 
         <section className="rounded-2xl border border-emerald-500/40 bg-emerald-500/5 p-5 space-y-3">
           <div className="flex items-center gap-2 text-emerald-200 font-semibold"><ShieldAlert className="h-5 w-5" /> Skopiuj token teraz — pokazujemy go tylko raz</div>
           <div className="flex items-center gap-2">
-            <code className="flex-1 break-all rounded-lg bg-black/50 border border-white/10 px-3 py-2 text-sm text-emerald-300 font-mono">{created}</code>
+            <code data-prywatne className="flex-1 break-all rounded-lg bg-black/50 border border-white/10 px-3 py-2 text-sm text-emerald-300 font-mono">{created}</code>
             <button onClick={copy} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-500">{copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />} {copied ? 'Skopiowano' : 'Kopiuj'}</button>
           </div>
           <p className="text-xs text-neutral-400">Użyj go w nagłówku: <code className="text-neutral-300">Authorization: Bearer &lt;token&gt;</code>. Po zamknięciu nie odzyskasz sekretu — utwórz nowy, jeśli go zgubisz.</p>
@@ -126,12 +130,17 @@ export function ApiTokensClient({ mozeTworzyc = true }: { mozeTworzyc?: boolean 
               onChange={setExpiry}
               className="w-44"
               options={[
-                { value: '0', label: 'Bez wygaśnięcia' },
                 { value: '30', label: '30 dni' },
                 { value: '90', label: '90 dni' },
                 { value: '365', label: '1 rok' },
+                { value: '0', label: 'Bez wygaśnięcia' },
               ]}
             />
+            {expiry === '0' ? (
+              <p role="status" className="mt-1 max-w-xs text-[11px] text-amber-300">
+                Token bez terminu działa, dopóki go nie unieważnisz. Jeśli wycieknie (np. z CI), ktoś może go używać latami.
+              </p>
+            ) : null}
           </div>
           <button onClick={submit} disabled={pending || name.trim().length < 2 || picked.size === 0} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-40">
             {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />} Utwórz token

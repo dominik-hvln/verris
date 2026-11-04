@@ -1,4 +1,4 @@
-import { SCENARIUSZE_BETA, type PostepBetaDto, type ScenariuszBeta } from "@verris/contracts";
+import { SCENARIUSZE_BETA, type PostepBetaDto, type ScenariuszBeta } from "@verris/contracts/klient";
 
 /** Odhaczenie od razu w widoku (zanim odpowie API); błąd zapisu cofa je do stanu z serwera. */
 export function zastosujKrok(p: PostepBetaDto, krokId: string, zrobione: boolean, teraz = new Date()): PostepBetaDto {

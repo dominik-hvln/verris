@@ -31,6 +31,8 @@ export class AiUstawieniaAdminController {
       konfiguracja: await this.provider.konfiguracja(),
       znaneModele: ZNANE_MODELE_AI,
       klucze: { openai: Boolean(this.provider.klucz('openai')), anthropic: Boolean(this.provider.klucz('anthropic')) },
+      /** Ile kont na liście testowej z env (AI_TYLKO_KONTA) — 0 = AI dla wszystkich niezależnie od przełącznika. */
+      kontaTestowe: this.provider.kontaTestoweAi().length,
     };
   }
 
@@ -50,7 +52,13 @@ export class AiUstawieniaAdminController {
       action: AdminCustomerActions.AI_SETTINGS_UPDATED,
       userId: actor.userId,
       actorUserId: actor.userId,
-      details: { szybki: konf.szybki, analiza: konf.analiza, limitKlientaUsd: konf.limitKlientaUsd, limitPlatformyUsd: konf.limitPlatformyUsd },
+      details: {
+        szybki: konf.szybki,
+        analiza: konf.analiza,
+        limitKlientaUsd: konf.limitKlientaUsd,
+        limitPlatformyUsd: konf.limitPlatformyUsd,
+        dlaWszystkichKlientow: konf.dlaWszystkichKlientow,
+      },
     });
     return this.ustawienia();
   }

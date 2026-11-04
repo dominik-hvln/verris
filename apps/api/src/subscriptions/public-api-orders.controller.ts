@@ -16,7 +16,7 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { BillingInterval, SubscriptionPaymentSource, SubscriptionStatus } from '@verris/database';
-import { Equals, IsBoolean, IsEnum, IsOptional, IsString, IsUUID, Length, Matches } from 'class-validator';
+import { Equals, IsBoolean, IsEnum, IsOptional, IsString, IsUUID, Length } from 'class-validator';
 import { ApiTokenGuard } from '../api-tokens/api-token.guard.js';
 import { ApiScope } from '../api-tokens/api-scope.decorator.js';
 import { API_SCOPES } from '../api-tokens/api-scopes.js';
@@ -24,6 +24,7 @@ import { RateLimit } from '../common/guards/rate-limit.guard.js';
 import { ConsentsService } from '../compliance/consents.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SubscriptionsService } from './subscriptions.service.js';
+import { DomenaZamowienia } from './dto/domena-zamowienia.js';
 
 /** Zamówienie przez publiczne API — wyłącznie z salda portfela (bez karty i Paynow, bez przekierowań). */
 export class ZamowienieApiDto {
@@ -35,9 +36,7 @@ export class ZamowienieApiDto {
 
   /** Domena główna (hosting, poczta); dla produktów bez konta DA pomijana. */
   @IsOptional()
-  @IsString()
-  @Length(4, 253)
-  @Matches(/^[a-z0-9.-]+\.[a-z]{2,}$/i, { message: 'Niepoprawny format domeny' })
+  @DomenaZamowienia()
   domain?: string;
 
   /**

@@ -4,6 +4,7 @@ import { plForm } from "@/lib/pl";
 import { useId, useState, useTransition } from 'react';
 import { Bot, Loader2, Plus, Save } from 'lucide-react';
 import { Select } from '@/components/select';
+import { Checkbox } from '@/components/checkbox';
 import { PoleLiczby } from '@/components/pole-liczby';
 import { zapiszUstawieniaAi, type DostawcaAi, type KonfiguracjaAi, type UstawieniaAi } from './actions';
 
@@ -57,6 +58,27 @@ export function UstawieniaAiForm({ initial }: { initial: UstawieniaAi }) {
       <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-emerald-400">
         <Bot className="h-4 w-4" aria-hidden /> Poziomy i modele
       </h2>
+
+      <fieldset className="space-y-2 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+        <legend className="px-1 text-sm font-semibold text-white">Kto korzysta z asystenta</legend>
+        <label className="flex items-start gap-3 text-sm text-white">
+          <Checkbox
+            checked={Boolean(konf.dlaWszystkichKlientow)}
+            onChange={(e) => setKonf((k) => ({ ...k, dlaWszystkichKlientow: e.target.checked }))}
+            className="mt-0.5"
+          />
+          <span>
+            Asystent AI dla wszystkich klientów
+            <span className="block text-[11px] text-neutral-400">
+              {(initial.kontaTestowe ?? 0) === 0
+                ? 'Lista kont testowych na serwerze jest pusta — asystent działa dla wszystkich niezależnie od tego pola.'
+                : konf.dlaWszystkichKlientow
+                  ? `Lista kont testowych z serwera (${initial.kontaTestowe}) nie obowiązuje — asystent dla każdego klienta.`
+                  : `Teraz tylko konta testowe z serwera (${initial.kontaTestowe}). Włącz po publikacji polityki prywatności 1.1.0 — bez zmian w konfiguracji serwera.`}
+            </span>
+          </span>
+        </label>
+      </fieldset>
 
       {(['szybki', 'analiza'] as Poziom[]).map((p) => {
         const { dostawca, model } = konf[p];

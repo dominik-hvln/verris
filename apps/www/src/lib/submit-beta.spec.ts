@@ -6,7 +6,7 @@ jest.mock('next/headers', () => ({
 import { submitBeta } from './submit-beta';
 import { ZGODA_BETA, type ZgloszenieBeta } from './beta';
 
-const Z: ZgloszenieBeta = { imie: 'Anna', email: 'anna@example.pl', zakres: ['WORDPRESS'], zgoda: true, zgodaTekst: ZGODA_BETA, firma: '' };
+const Z: ZgloszenieBeta = { imie: 'Anna', email: 'anna@example.pl', zakres: ['WORDPRESS'], zgoda: true, zgodaTekst: ZGODA_BETA, pulapka: '' };
 
 describe('submitBeta', () => {
   const fetchOrg = global.fetch;

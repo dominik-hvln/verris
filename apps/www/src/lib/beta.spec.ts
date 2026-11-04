@@ -9,6 +9,7 @@ import {
   budujZgloszenie,
   komunikatBledu,
   miesiaceZKredytu,
+  normalizujStrone,
   utmZAdresu,
   walidujZgloszenie,
   wyslijZgloszenie,
@@ -24,7 +25,7 @@ const DANE: DaneFormularza = {
   obecnyHosting: '',
   uwagi: '',
   zgoda: true,
-  firma: '',
+  pulapka: '',
 };
 
 describe('stałe zgodne z API', () => {
@@ -54,15 +55,31 @@ describe('walidujZgloszenie', () => {
   it('adres strony tylko http/https z domeną; puste pole jest w porządku', () => {
     expect(walidujZgloszenie({ ...DANE, strona: 'ftp://pracownia.pl' }).strona).toBeDefined();
     expect(walidujZgloszenie({ ...DANE, strona: 'javascript:alert(1)' }).strona).toBeDefined();
-    expect(walidujZgloszenie({ ...DANE, strona: 'pracownia.pl' }).strona).toBeDefined();
+    expect(walidujZgloszenie({ ...DANE, strona: 'pracownia' }).strona).toBeDefined();
     expect(walidujZgloszenie({ ...DANE, strona: 'http://pracownia.pl/sklep' }).strona).toBeUndefined();
     expect(walidujZgloszenie({ ...DANE, strona: '' }).strona).toBeUndefined();
+  });
+
+  it('P1-12: adres bez https:// jest przyjmowany i wysyłany z https:// (API wymaga protokołu)', () => {
+    expect(walidujZgloszenie({ ...DANE, strona: 'gabinet-anna.pl' }).strona).toBeUndefined();
+    expect(walidujZgloszenie({ ...DANE, strona: ' www.gabinet-anna.pl/kontakt ' }).strona).toBeUndefined();
+    expect(normalizujStrone('gabinet-anna.pl')).toBe('https://gabinet-anna.pl');
+    expect(normalizujStrone('//gabinet-anna.pl')).toBe('https://gabinet-anna.pl');
+    expect(normalizujStrone('http://gabinet-anna.pl')).toBe('http://gabinet-anna.pl');
+    expect(normalizujStrone('  ')).toBe('');
+    expect(budujZgloszenie({ ...DANE, strona: 'gabinet-anna.pl' }, {}).strona).toBe('https://gabinet-anna.pl');
+  });
+
+  it('imię jak w API (A1-04): tylko litery, spacje, myślnik, apostrof; do 60 znaków', () => {
+    expect(walidujZgloszenie({ ...DANE, imie: 'Anna-Maria O’Neil' }).imie).toBeUndefined();
+    expect(walidujZgloszenie({ ...DANE, imie: 'Anna http://spam.pl' }).imie).toBeDefined();
+    expect(walidujZgloszenie({ ...DANE, imie: 'A'.repeat(61) }).imie).toBeDefined();
   });
 });
 
 describe('budujZgloszenie', () => {
   it('treść żądania: zakres w stałej kolejności, e-mail małymi literami, zgoda z treścią klauzuli, utm i honeypot', () => {
-    const z = budujZgloszenie({ ...DANE, firma: 'bot' }, { utm: { source: 'facebook', campaign: 'meta-leadgen-hosting-202611' }, page: 'https://verris.pl/beta' });
+    const z = budujZgloszenie({ ...DANE, pulapka: 'bot' }, { utm: { source: 'facebook', campaign: 'meta-leadgen-hosting-202611' }, page: 'https://verris.pl/beta' });
     expect(z).toEqual({
       imie: 'Anna',
       email: 'anna@example.pl',
@@ -74,7 +91,7 @@ describe('budujZgloszenie', () => {
       zgodaTekst: ZGODA_BETA,
       utm: { source: 'facebook', campaign: 'meta-leadgen-hosting-202611' },
       page: 'https://verris.pl/beta',
-      firma: 'bot',
+      pulapka: 'bot',
       captchaToken: undefined,
     });
   });

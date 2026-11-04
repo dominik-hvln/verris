@@ -80,6 +80,13 @@ export interface MigrationBundleDetail extends MigrationRequestSummary {
 export const MIGRATION_STALL_MINUTES = 20;
 
 /**
+ * P2-06 — ile minut stara strona (WordPress) zostaje w trybie konserwacji po ostatnim kopiowaniu bazy: czas na
+ * przełączenie DNS, w którym stary sklep nie przyjmie zamówienia, którego już nie przeniesiemy. Wygasa sam
+ * (zegar serwera źródłowego), także gdy worker przerwie pracę. Worker przyjmuje 15–480.
+ */
+export const OKNO_KONSERWACJI_ZRODLA_MIN = 120;
+
+/**
  * Retencja sekretów migracji (hasła klienta do starego hostingu).
  * Po zakończeniu trzymamy je jeszcze przez okno na delta-sync/cutover, potem
  * kasujemy zaszyfrowany bundle. Awarie kasujemy szybciej (staff ma czas na
@@ -886,7 +893,10 @@ export class MigrationOrchestratorService {
         remotePath: bundle.ftp.remotePath ?? '/',
       };
       response.delta = updated.kind === MigrationWorkerJobKind.FILES_DELTA;
-    } else if (updated.kind === MigrationWorkerJobKind.MYSQL_IMPORT) {
+    } else if (
+      updated.kind === MigrationWorkerJobKind.MYSQL_IMPORT ||
+      updated.kind === MigrationWorkerJobKind.MYSQL_DELTA
+    ) {
       const index = Number(payload.index ?? 0);
       const source = bundle.mysql?.[index];
       if (!source) throw new BadRequestException('Migration bundle does not contain MySQL source.');
@@ -915,6 +925,12 @@ export class MigrationOrchestratorService {
           remotePath: bundle.ftp.remotePath ?? '/',
         };
         response.sourceDomain = bundle.sourceDomain || targetDomain;
+      }
+      // P2-06 — ostatnie dosynchronizowanie bazy: worker włącza na starej stronie tryb konserwacji (WordPress,
+      // przez ftpFallback) i zostawia go na tyle minut, żeby klient zdążył przełączyć DNS.
+      if (updated.kind === MigrationWorkerJobKind.MYSQL_DELTA) {
+        response.delta = true;
+        response.konserwacja = { minuty: OKNO_KONSERWACJI_ZRODLA_MIN };
       }
     } else if (
       updated.kind === MigrationWorkerJobKind.IMAP_SYNC ||
@@ -1340,9 +1356,14 @@ export class MigrationOrchestratorService {
   }
 
   /**
-   * Delta-sync przed cutoverem: ponowny rsync plików + dosync poczty.
+   * Delta-sync przed cutoverem: ponowny rsync plików + ostatnia kopia baz + dosync poczty.
    * Dostępne dla zakończonych migracji — imapsync i mirror są idempotentne,
    * dociągają wyłącznie różnice od pierwszego transferu.
+   *
+   * P2-06 (decyzja 13) — bazy też: MYSQL_DELTA na czas kopiowania włącza na starej stronie tryb konserwacji
+   * (sklep nie przyjmuje zamówień, których byśmy nie przenieśli) i podmienia bazę docelową na świeży zrzut.
+   * Po nim WP_FIXUP jeszcze raz: ponowne kopiowanie plików nadpisuje wp-config.php wersją ze starego serwera
+   * (stare dane bazy), więc bez tego kroku strona po dosynchronizowaniu traciła połączenie z bazą.
    */
   async queueDeltaSync(
     subscriptionId: string,
@@ -1366,7 +1387,9 @@ export class MigrationOrchestratorService {
     }
     const pendingDelta = request.workerJobs.some(
       (j) =>
-        (j.kind === MigrationWorkerJobKind.FILES_DELTA || j.kind === MigrationWorkerJobKind.IMAP_DELTA) &&
+        (j.kind === MigrationWorkerJobKind.FILES_DELTA ||
+          j.kind === MigrationWorkerJobKind.MYSQL_DELTA ||
+          j.kind === MigrationWorkerJobKind.IMAP_DELTA) &&
         (j.status === MigrationWorkerJobStatus.QUEUED ||
           j.status === MigrationWorkerJobStatus.RUNNING ||
           j.status === MigrationWorkerJobStatus.RETRYING),
@@ -1377,6 +1400,7 @@ export class MigrationOrchestratorService {
 
     const bundle = JSON.parse(this.crypto.decrypt(request.sourceBundleEnc)) as {
       ftp?: unknown | null;
+      mysql?: unknown[] | null;
       imap?: unknown[] | null;
     };
     const stamp = Date.now();
@@ -1392,18 +1416,39 @@ export class MigrationOrchestratorService {
         payload: { delta: true },
       });
     }
+    const bazy = bundle.mysql ?? [];
+    bazy.forEach((_, index) => {
+      jobs.push({
+        migrationRequestId: request.id,
+        kind: MigrationWorkerJobKind.MYSQL_DELTA,
+        status: MigrationWorkerJobStatus.QUEUED,
+        idempotencyKey: `migration:${subscriptionId}:${stamp}:mysql-delta:${index}`,
+        sequence: maxSeq + 20 + index,
+        payload: { index, delta: true },
+      });
+    });
+    if (bundle.ftp && bazy.length > 0) {
+      jobs.push({
+        migrationRequestId: request.id,
+        kind: MigrationWorkerJobKind.WP_FIXUP,
+        status: MigrationWorkerJobStatus.QUEUED,
+        idempotencyKey: `migration:${subscriptionId}:${stamp}:wp-fixup-delta`,
+        sequence: maxSeq + 20 + bazy.length,
+        payload: { delta: true },
+      });
+    }
     (bundle.imap ?? []).forEach((_, index) => {
       jobs.push({
         migrationRequestId: request.id,
         kind: MigrationWorkerJobKind.IMAP_DELTA,
         status: MigrationWorkerJobStatus.QUEUED,
         idempotencyKey: `migration:${subscriptionId}:${stamp}:imap-delta:${index}`,
-        sequence: maxSeq + 20 + index,
+        sequence: maxSeq + 21 + bazy.length + index,
         payload: { index, delta: true },
       });
     });
     if (jobs.length === 0) {
-      throw new BadRequestException('To zlecenie nie ma źródeł plików ani poczty do delta-synca.');
+      throw new BadRequestException('To zlecenie nie ma źródeł plików, baz ani poczty do delta-synca.');
     }
 
     await this.prisma.$transaction([
@@ -2144,6 +2189,8 @@ function workerStep(kind: MigrationWorkerJobKind): string {
       return 'files-delta';
     case MigrationWorkerJobKind.MYSQL_IMPORT:
       return 'mysql';
+    case MigrationWorkerJobKind.MYSQL_DELTA:
+      return 'mysql-delta';
     case MigrationWorkerJobKind.WP_FIXUP:
       return 'wp-fixup';
     case MigrationWorkerJobKind.IMAP_SYNC:

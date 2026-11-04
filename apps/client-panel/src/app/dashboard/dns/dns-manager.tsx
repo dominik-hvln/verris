@@ -3,7 +3,7 @@
 import { useState, useTransition, useId } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import type { HostingDnsRecordDto } from '@verris/contracts';
+import type { HostingDnsRecordDto } from '@verris/contracts/klient';
 import { AlertCircle, Check, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { Select } from '@/components/panel';
 import { createDnsRecordAction, deleteDnsRecordAction, editDnsRecordAction } from './dns-actions';

@@ -1,9 +1,9 @@
 import { Leaf, Sparkles } from 'lucide-react';
 import type { EcoPlatformConfig } from './eco-data';
-import { buildEcoPointRules } from '@/lib/eco-point-rules';
+import { ECO_WYDATKI, buildEcoPointRules } from '@/lib/eco-point-rules';
 
 export function EcoPointsGuide({ platform }: { platform: EcoPlatformConfig }) {
-  const rules = buildEcoPointRules(platform).filter((r) => r.id !== 'EKO_REDEEM_WALLET');
+  const rules = buildEcoPointRules(platform).filter((r) => !ECO_WYDATKI.has(r.id));
   const redeemRule = buildEcoPointRules(platform).find((r) => r.id === 'EKO_REDEEM_WALLET');
 
   return (

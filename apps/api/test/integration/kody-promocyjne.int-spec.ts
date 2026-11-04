@@ -38,7 +38,8 @@ describe('X-04 kody promocyjne', () => {
     expect(wynik.amountPln).toBe('50.00');
     expect(await saldo(k.id)).toBe(50);
     expect(await kredyty(k.id)).toBe(1);
-    await expect(promo().redeemPromo(k.id, 'START50')).rejects.toThrow('Już zrealizowałeś');
+    // P5-12 — ten sam klient drugi raz: „już na Twoim portfelu”, nie „w pełni wykorzystany”.
+    await expect(promo().redeemPromo(k.id, 'START50')).rejects.toThrow('już na Twoim portfelu (+50,00 K');
     expect(await saldo(k.id)).toBe(50);
     expect((await prisma().promoCode.findUniqueOrThrow({ where: { id: c.id } })).redemptionCount).toBe(1);
   });

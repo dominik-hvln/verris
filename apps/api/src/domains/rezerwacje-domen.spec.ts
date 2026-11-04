@@ -82,7 +82,9 @@ describe('Domeny — rezerwacje i sonda TLS', () => {
       await expect(svc.create('u1', { name: zla })).rejects.toThrow();
     }
     await expect(svc.create('u1', { name: ' MojaFirma.PL. ' })).resolves.toMatchObject({ name: 'mojafirma.pl' });
-    expect(normalizujNazweDomeny('żółw.pl')).toBe('żółw.pl');
+    // P5-04 (paczka 109) — IDN w zapisie ASCII, jak w zamówieniu usługi; puste etykiety i myślnik na brzegu odrzucone.
+    expect(normalizujNazweDomeny('Żółw.pl')).toBe('xn--w-uga1v8h.pl');
+    for (const zla of ['example..com', '-zla-.pl', 'a.-b.pl', 'https://x.pl']) expect(() => normalizujNazweDomeny(zla)).toThrow();
   });
 
   it('sonda TLS: adres prywatny wpisany jako nazwa → bez połączenia', async () => {

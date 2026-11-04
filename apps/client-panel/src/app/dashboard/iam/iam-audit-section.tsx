@@ -2,12 +2,7 @@ import { ScrollText } from 'lucide-react';
 import { getIamAudit } from './actions';
 import { pokazEmail } from './constants';
 import { etykietaDziennika } from '@/lib/etykiety-dziennika';
-
-/** Z-10/O-03 — przy odmowie i działaniu subkonta pokazujemy metodę i trasę API. */
-function trasaOdmowy(details: unknown): string | null {
-  const d = details as { method?: unknown; route?: unknown } | null;
-  return d && typeof d.route === 'string' ? `${typeof d.method === 'string' ? d.method : ''} ${d.route}`.trim() : null;
-}
+import { ktoregoDotyczy, opisTrasy } from './opis-trasy';
 
 export async function IamAuditSection() {
   const { entries } = await getIamAudit();
@@ -40,8 +35,12 @@ export async function IamAuditSection() {
                     {entry.actor.email && pokazEmail(entry.actor.email) !== pokazEmail(entry.actor.name) ? ` (${pokazEmail(entry.actor.email)})` : ''}
                   </span>
                 )}
-                {(entry.action === 'CUSTOMER_IAM_ACCESS_DENIED' || entry.action === 'CUSTOMER_IAM_SUBACCOUNT_ACTION') && trasaOdmowy(entry.details) ? (
-                  <span className="mt-0.5 block font-mono text-xs text-neutral-500">{trasaOdmowy(entry.details)}</span>
+                {/* P3-07 — co subkonto próbowało zrobić / zrobiło, po ludzku (nie trasa API). */}
+                {(entry.action === 'CUSTOMER_IAM_ACCESS_DENIED' || entry.action === 'CUSTOMER_IAM_SUBACCOUNT_ACTION') && opisTrasy(entry.details) ? (
+                  <span className="mt-0.5 block text-xs text-neutral-500">{opisTrasy(entry.details)}</span>
+                ) : null}
+                {entry.action.startsWith('CUSTOMER_IAM_MEMBER') && ktoregoDotyczy(entry.details) ? (
+                  <span className="mt-0.5 block text-xs text-neutral-500">Dotyczy: {pokazEmail(ktoregoDotyczy(entry.details))}</span>
                 ) : null}
               </div>
               <time className="text-xs text-neutral-500" dateTime={entry.createdAt}>

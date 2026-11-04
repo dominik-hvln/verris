@@ -17,7 +17,7 @@ import {
   TerminalSquare,
   Wifi,
 } from 'lucide-react';
-import type { ConnectionMetricDto, ServiceConnectionInfoDto } from '@verris/contracts';
+import type { ConnectionMetricDto, ServiceConnectionInfoDto } from '@verris/contracts/klient';
 import {
   fetchConnectionInfoAction as fetchConnectionInfoActionAkcja,
 } from '@/app/dashboard/services/[id]/hosting-connection-actions';

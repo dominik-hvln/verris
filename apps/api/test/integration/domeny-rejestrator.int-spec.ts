@@ -4,6 +4,7 @@ import { WalletLedgerService } from '../../src/billing/wallet-ledger.service.js'
 import { DomainRegistrarService } from '../../src/domains/domain-registrar.service.js';
 import { DomainsService } from '../../src/domains/domains.service.js';
 import { RejestrWynikNiepewny } from '../../src/domains/registrar.provider.js';
+import { KOMUNIKAT_BRAK_OSWIADCZENIA, OSWIADCZENIE_REJESTRACJI, OSWIADCZENIE_TRANSFERU } from '../../src/domains/oswiadczenie-domeny.js';
 import { prisma, rozlacz, wyczyscBaze } from './setup.js';
 
 /**
@@ -110,7 +111,7 @@ describe('X-04 domeny u rejestratora', () => {
     const u = await klient(500);
     const [wycena] = (await rejestr.quotePeriods('moja-firma.pl', [1])).quotes;
 
-    await rejestr.register(u.id, u.id, { name: 'Moja-Firma.pl', registrant: abonent });
+    await rejestr.register(u.id, u.id, { name: 'Moja-Firma.pl', registrant: abonent, withdrawalWaiverConsent: true });
 
     const tx = await obciazenia(u.id);
     expect(tx).toHaveLength(1);
@@ -125,7 +126,7 @@ describe('X-04 domeny u rejestratora', () => {
     const u = await klient(500);
     rejestracjaPada = true;
 
-    await expect(rejestr.register(u.id, u.id, { name: 'odrzucona.pl', registrant: abonent })).rejects.toThrow('rejestr odrzucił');
+    await expect(rejestr.register(u.id, u.id, { name: 'odrzucona.pl', registrant: abonent, withdrawalWaiverConsent: true })).rejects.toThrow('rejestr odrzucił');
 
     expect(await saldo(u.id)).toBe(500);
     const z = await prisma().domainRegistrarOrder.findFirstOrThrow({ where: { userId: u.id } });
@@ -137,7 +138,7 @@ describe('X-04 domeny u rejestratora', () => {
     const { rejestr } = uslugi();
     const u = await klient(500);
     rejestracjaPada = true;
-    await expect(rejestr.register(u.id, u.id, { name: 'ponowiona.pl', registrant: abonent })).rejects.toThrow('rejestr odrzucił');
+    await expect(rejestr.register(u.id, u.id, { name: 'ponowiona.pl', registrant: abonent, withdrawalWaiverConsent: true })).rejects.toThrow('rejestr odrzucił');
     const stare = await prisma().domainRegistrarOrder.findFirstOrThrow({ where: { userId: u.id } });
     expect(stare.status).toBe(DomainRegistrarOrderStatus.FAILED);
     expect(await saldo(u.id)).toBe(500);
@@ -154,11 +155,58 @@ describe('X-04 domeny u rejestratora', () => {
     expect(await saldo(u.id)).toBeCloseTo(500 - Number(stare.priceAmount), 2);
   });
 
+  it('decyzja 21 — oświadczenie przy każdym zamówieniu: bez niego odmowa, z nim treść i czas zapisane przy zamówieniu', async () => {
+    const { rejestr } = uslugi();
+    const u = await klient(500);
+    await rejestr.register(u.id, u.id, { name: 'pierwsza.pl', registrant: abonent, withdrawalWaiverConsent: true });
+
+    // Drugie zamówienie na tym samym koncie bez oświadczenia: pierwsze go nie „przenosi” (koniec zgody na stałe).
+    const przed = await saldo(u.id);
+    wywolania.length = 0;
+    await expect(
+      rejestr.register(u.id, u.id, { name: 'druga.pl', registrant: abonent, withdrawalWaiverConsent: false }),
+    ).rejects.toThrow(KOMUNIKAT_BRAK_OSWIADCZENIA);
+    await expect(
+      rejestr.transfer(u.id, u.id, { name: 'trzecia.pl', authCode: 'KOD', registrant: abonent, withdrawalWaiverConsent: undefined as never }),
+    ).rejects.toThrow(KOMUNIKAT_BRAK_OSWIADCZENIA);
+    expect(wywolania).toEqual([]);
+    expect(await saldo(u.id)).toBe(przed);
+    expect(await prisma().domainRegistrarOrder.count({ where: { userId: u.id } })).toBe(1);
+
+    const t0 = new Date();
+    await rejestr.register(u.id, u.id, { name: 'druga.pl', registrant: abonent, withdrawalWaiverConsent: true });
+    await rejestr.transfer(u.id, u.id, { name: 'trzecia.pl', authCode: 'KOD', registrant: abonent, withdrawalWaiverConsent: true });
+    const zamowienia = await prisma().domainRegistrarOrder.findMany({ where: { userId: u.id }, orderBy: { createdAt: 'asc' } });
+    expect(zamowienia.map((z) => [z.domainName, z.withdrawalWaiverText])).toEqual([
+      ['pierwsza.pl', OSWIADCZENIE_REJESTRACJI],
+      ['druga.pl', OSWIADCZENIE_REJESTRACJI],
+      ['trzecia.pl', OSWIADCZENIE_TRANSFERU],
+    ]);
+    for (const z of zamowienia.slice(1)) expect(z.withdrawalWaiverAt!.getTime()).toBeGreaterThanOrEqual(t0.getTime() - 1000);
+    // Dziennik niesie tę samą treść i chwilę co zamówienie.
+    const wpis = await prisma().auditLog.findFirstOrThrow({ where: { userId: u.id, action: 'DOMAIN_REGISTRAR_TRANSFER_SUBMITTED' } });
+    expect(wpis.details).toMatchObject({ consentStatement: OSWIADCZENIE_TRANSFERU, consentAt: zamowienia[2].withdrawalWaiverAt!.toISOString() });
+  });
+
+  it('decyzja 21 — ponowienie przez obsługę niesie oświadczenie z pierwotnego zamówienia klienta', async () => {
+    const { rejestr } = uslugi();
+    const u = await klient(500);
+    rejestracjaPada = true;
+    await expect(rejestr.register(u.id, u.id, { name: 'po-raz-drugi.pl', registrant: abonent, withdrawalWaiverConsent: true })).rejects.toThrow('rejestr odrzucił');
+    const stare = await prisma().domainRegistrarOrder.findFirstOrThrow({ where: { userId: u.id } });
+    rejestracjaPada = false;
+    const operator = await prisma().user.create({ data: { email: `op-osw-${Date.now()}@test.verris.pl`, passwordHash: 'x', role: 'STAFF' } });
+    await rejestr.ponowZamowienie(stare.id, operator.id);
+    const nowe = await prisma().domainRegistrarOrder.findFirstOrThrow({ where: { userId: u.id, id: { not: stare.id } } });
+    expect(nowe.withdrawalWaiverText).toBe(stare.withdrawalWaiverText);
+    expect(nowe.withdrawalWaiverAt).toEqual(stare.withdrawalWaiverAt);
+  });
+
   it('brak środków: odmowa bez wywołania rejestratora, portfel nietknięty', async () => {
     const { rejestr } = uslugi();
     const u = await klient(5);
 
-    await expect(rejestr.register(u.id, u.id, { name: 'za-droga.pl', registrant: abonent })).rejects.toThrow('Brak wystarczających środków');
+    await expect(rejestr.register(u.id, u.id, { name: 'za-droga.pl', registrant: abonent, withdrawalWaiverConsent: true })).rejects.toThrow('Brak wystarczających środków');
 
     expect(wywolania).toEqual([]);
     expect(await saldo(u.id)).toBe(5);
@@ -173,7 +221,7 @@ describe('X-04 domeny u rejestratora', () => {
     // Intruz dopisuje do swojego konta nazwę, której nikt jeszcze nie zarejestrował (PENDING, bez weryfikacji).
     await domeny.create(intruz.id, { name: 'cudza-marka.pl' } as never);
 
-    await rejestr.register(placacy.id, placacy.id, { name: 'cudza-marka.pl', registrant: abonent });
+    await rejestr.register(placacy.id, placacy.id, { name: 'cudza-marka.pl', registrant: abonent, withdrawalWaiverConsent: true });
 
     const d = await prisma().domain.findUniqueOrThrow({ where: { name: 'cudza-marka.pl' } });
     expect(d.userId).toBe(placacy.id);
@@ -187,7 +235,7 @@ describe('X-04 domeny u rejestratora', () => {
     const u = await klient(500);
     const wycena = await rejestr.quoteTransfer('przenoszona.pl', 1);
 
-    await rejestr.transfer(u.id, u.id, { name: 'przenoszona.pl', authCode: 'KOD-123', registrant: abonent });
+    await rejestr.transfer(u.id, u.id, { name: 'przenoszona.pl', authCode: 'KOD-123', registrant: abonent, withdrawalWaiverConsent: true });
 
     const [tx] = await obciazenia(u.id);
     expect(Math.abs(Number(tx.amount))).toBeCloseTo(Number(wycena.amount), 2);
@@ -199,7 +247,7 @@ describe('X-04 domeny u rejestratora', () => {
     const { rejestr } = uslugi();
     const wlasciciel = await klient(500);
     const obcy = await klient(500);
-    await rejestr.register(wlasciciel.id, wlasciciel.id, { name: 'odnawiana.pl', registrant: abonent });
+    await rejestr.register(wlasciciel.id, wlasciciel.id, { name: 'odnawiana.pl', registrant: abonent, withdrawalWaiverConsent: true });
     const d = await prisma().domain.findUniqueOrThrow({ where: { name: 'odnawiana.pl' } });
     wywolania.length = 0;
 
@@ -211,7 +259,7 @@ describe('X-04 domeny u rejestratora', () => {
   it('dwuklik „Odnów”: jedno obciążenie i jedno odnowienie u rejestratora', async () => {
     const { rejestr } = uslugi();
     const u = await klient(500);
-    await rejestr.register(u.id, u.id, { name: 'dwuklik.pl', registrant: abonent });
+    await rejestr.register(u.id, u.id, { name: 'dwuklik.pl', registrant: abonent, withdrawalWaiverConsent: true });
     const d = await prisma().domain.findUniqueOrThrow({ where: { name: 'dwuklik.pl' } });
     wywolania.length = 0;
     await Promise.all([rejestr.renew(u.id, u.id, d.id, 1).catch(() => undefined), rejestr.renew(u.id, u.id, d.id, 1).catch(() => undefined)]);
@@ -221,7 +269,7 @@ describe('X-04 domeny u rejestratora', () => {
   it('dwuklik „Odnów”, gdy drugie kliknięcie dostaje blokadę dopiero po zakończeniu pierwszego: 409, jedno obciążenie', async () => {
     const { rejestr } = uslugi();
     const u = await klient(500);
-    await rejestr.register(u.id, u.id, { name: 'dwuklik-po.pl', registrant: abonent });
+    await rejestr.register(u.id, u.id, { name: 'dwuklik-po.pl', registrant: abonent, withdrawalWaiverConsent: true });
     const d = await prisma().domain.findUniqueOrThrow({ where: { name: 'dwuklik-po.pl' } });
     wywolania.length = 0;
     await rejestr.renew(u.id, u.id, d.id, 1);
@@ -232,7 +280,7 @@ describe('X-04 domeny u rejestratora', () => {
   it('A-14 ukrycie WHOIS: dwuklik = jedno obciążenie; odmowa rejestru = zwrot i stan bez zmian', async () => {
     const { rejestr } = uslugi();
     const u = await klient(500);
-    await rejestr.register(u.id, u.id, { name: 'prywatna.com', registrant: abonent });
+    await rejestr.register(u.id, u.id, { name: 'prywatna.com', registrant: abonent, withdrawalWaiverConsent: true });
     const d = await prisma().domain.findUniqueOrThrow({ where: { name: 'prywatna.com' } });
     const przed = await saldo(u.id);
     wywolania.length = 0;
@@ -242,7 +290,7 @@ describe('X-04 domeny u rejestratora', () => {
     expect((await prisma().domain.findUniqueOrThrow({ where: { id: d.id } })).whoisPrivacy).toBe(true);
     expect(await prisma().domainRegistrarOrder.findFirstOrThrow({ where: { domainId: d.id, type: 'WHOIS_PRIVACY' } })).toMatchObject({ status: DomainRegistrarOrderStatus.COMPLETED });
 
-    await rejestr.register(u.id, u.id, { name: 'odmowa.pl', registrant: abonent });
+    await rejestr.register(u.id, u.id, { name: 'odmowa.pl', registrant: abonent, withdrawalWaiverConsent: true });
     const pl = await prisma().domain.findUniqueOrThrow({ where: { name: 'odmowa.pl' } });
     const przedPl = await saldo(u.id);
     whoisPada = true;
@@ -254,7 +302,7 @@ describe('X-04 domeny u rejestratora', () => {
   it('transfer zakończony u rejestratora: domena na koncie płacącego, zlecenie zamknięte raz', async () => {
     const { rejestr } = uslugi();
     const u = await klient(500);
-    await rejestr.transfer(u.id, u.id, { name: 'przeniesiona.pl', authCode: 'KOD', registrant: abonent });
+    await rejestr.transfer(u.id, u.id, { name: 'przeniesiona.pl', authCode: 'KOD', registrant: abonent, withdrawalWaiverConsent: true });
 
     expect(await rejestr.domknijTransfery()).toEqual({ zakonczone: 0, nieudane: 0 }); // w toku — nic
     stanTransferu = 'active';
@@ -271,7 +319,7 @@ describe('X-04 domeny u rejestratora', () => {
   it('przegląd 15.10: transfer odrzucony, a zlecenie bez zapisanego walletTxId — zwrot po kluczu obciążenia', async () => {
     const { rejestr } = uslugi();
     const u = await klient(500);
-    await rejestr.transfer(u.id, u.id, { name: 'bez-txid.pl', authCode: 'ZLY', registrant: abonent });
+    await rejestr.transfer(u.id, u.id, { name: 'bez-txid.pl', authCode: 'ZLY', registrant: abonent, withdrawalWaiverConsent: true });
     // charge() dopuszcza „obciążone, walletTxId niezapisany” (tylko log) — symulacja tego stanu.
     await prisma().domainRegistrarOrder.updateMany({ where: { userId: u.id }, data: { walletTxId: null } });
     stanTransferu = 'failed';
@@ -283,7 +331,7 @@ describe('X-04 domeny u rejestratora', () => {
   it('transfer odrzucony przez rejestr: zwrot na portfel, zlecenie nieudane, domeny brak', async () => {
     const { rejestr } = uslugi();
     const u = await klient(500);
-    await rejestr.transfer(u.id, u.id, { name: 'nieprzeniesiona.pl', authCode: 'ZLY', registrant: abonent });
+    await rejestr.transfer(u.id, u.id, { name: 'nieprzeniesiona.pl', authCode: 'ZLY', registrant: abonent, withdrawalWaiverConsent: true });
     expect(await saldo(u.id)).toBeLessThan(500);
 
     stanTransferu = 'failed';
@@ -306,7 +354,7 @@ describe('X-04 domeny u rejestratora', () => {
       const { rejestr } = uslugi();
       const u = await klient(500);
       niepewny = { wykonaj: true };
-      await expect(rejestr.register(u.id, u.id, { name: 'cisza.pl', registrant: abonent })).rejects.toThrow('nie potwierdził');
+      await expect(rejestr.register(u.id, u.id, { name: 'cisza.pl', registrant: abonent, withdrawalWaiverConsent: true })).rejects.toThrow('nie potwierdził');
       const po = await saldo(u.id);
       expect(po).toBeLessThan(500);
       const z = await zamowienie(u.id, 'REGISTER');
@@ -327,7 +375,7 @@ describe('X-04 domeny u rejestratora', () => {
       const { rejestr } = uslugi();
       const u = await klient(500);
       niepewny = { wykonaj: false };
-      await expect(rejestr.register(u.id, u.id, { name: 'nic.pl', registrant: abonent })).rejects.toThrow('nie potwierdził');
+      await expect(rejestr.register(u.id, u.id, { name: 'nic.pl', registrant: abonent, withdrawalWaiverConsent: true })).rejects.toThrow('nie potwierdził');
       const z = await zamowienie(u.id, 'REGISTER');
       await cofnij(z.id, 30);
       await rejestr.domknijNiepewne();
@@ -344,7 +392,7 @@ describe('X-04 domeny u rejestratora', () => {
     it('odnowienie: niepewne blokuje kolejne „Odnów”; wykonane — nowa data ważności, bez zwrotu', async () => {
       const { rejestr } = uslugi();
       const u = await klient(500);
-      await rejestr.register(u.id, u.id, { name: 'odnowa.pl', registrant: abonent });
+      await rejestr.register(u.id, u.id, { name: 'odnowa.pl', registrant: abonent, withdrawalWaiverConsent: true });
       const d = await prisma().domain.findUniqueOrThrow({ where: { name: 'odnowa.pl' } });
       niepewny = { wykonaj: true };
       await expect(rejestr.renew(u.id, u.id, d.id, 1)).rejects.toThrow('nie potwierdził');
@@ -363,7 +411,7 @@ describe('X-04 domeny u rejestratora', () => {
     it('odnowienie niewykonane: po godzinie zwrot', async () => {
       const { rejestr } = uslugi();
       const u = await klient(500);
-      await rejestr.register(u.id, u.id, { name: 'bez-odnowy.pl', registrant: abonent });
+      await rejestr.register(u.id, u.id, { name: 'bez-odnowy.pl', registrant: abonent, withdrawalWaiverConsent: true });
       const d = await prisma().domain.findUniqueOrThrow({ where: { name: 'bez-odnowy.pl' } });
       const przed = await saldo(u.id);
       niepewny = { wykonaj: false };
@@ -377,11 +425,11 @@ describe('X-04 domeny u rejestratora', () => {
     it('ukrycie WHOIS i transfer: stan u rejestratora rozstrzyga', async () => {
       const { rejestr } = uslugi();
       const u = await klient(500);
-      await rejestr.register(u.id, u.id, { name: 'ukryta.com', registrant: abonent });
+      await rejestr.register(u.id, u.id, { name: 'ukryta.com', registrant: abonent, withdrawalWaiverConsent: true });
       const d = await prisma().domain.findUniqueOrThrow({ where: { name: 'ukryta.com' } });
       niepewny = { wykonaj: true };
       await expect(rejestr.setWhoisPrivacy(u.id, u.id, d.id, true)).rejects.toThrow('nie potwierdził');
-      await expect(rejestr.transfer(u.id, u.id, { name: 'wchodzi.pl', authCode: 'KOD', registrant: abonent })).rejects.toThrow('nie potwierdził');
+      await expect(rejestr.transfer(u.id, u.id, { name: 'wchodzi.pl', authCode: 'KOD', registrant: abonent, withdrawalWaiverConsent: true })).rejects.toThrow('nie potwierdził');
       const przed = await saldo(u.id);
       await cofnij((await zamowienie(u.id, 'WHOIS_PRIVACY')).id, 6);
       await cofnij((await zamowienie(u.id, 'TRANSFER')).id, 6);

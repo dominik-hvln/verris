@@ -1,6 +1,8 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { zapamietajCel } from "@/lib/cel-po-rejestracji";
 import { apiFetch, ApiError } from "@/lib/api";
 import { setAuthCookie } from "@/lib/auth";
 import { captchaTokenFromForm } from "@/lib/captcha";
@@ -71,6 +73,9 @@ export async function submitRegister(prevState: { error: string }, formData: For
           : "Błąd serwera. Spróbuj ponownie później.";
     return { error: message };
   }
+
+  // P4-4 / P3-11: cel z verris.pl (np. zamówienie poczty) czeka do pierwszego logowania po potwierdzeniu e-maila.
+  zapamietajCel(await cookies(), formData.get("next"));
 
   const q = new URLSearchParams({ email: email.trim().toLowerCase() });
   redirect(`/register/check-email?${q.toString()}`);

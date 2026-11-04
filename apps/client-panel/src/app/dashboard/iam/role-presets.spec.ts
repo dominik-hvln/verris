@@ -1,5 +1,5 @@
 import { canAccessDashboardRoute, canShowWalletBalance } from '@/lib/client-nav-access';
-import { PERMISSION_LABELS } from './constants';
+import { PERMISSION_DESCRIPTIONS, PERMISSION_LABELS } from './constants';
 import { IAM_ROLE_PRESETS } from './role-presets';
 
 /**
@@ -54,13 +54,19 @@ describe('X-05 szablony ról subkont', () => {
     expect(canAccessDashboardRoute('/dashboard/billing', c)).toBe(false);
   });
 
-  it('Podgląd: odczyt usług, domen, ticketów i płatności — bez zarządzania plikami i DNS', () => {
+  it('Podgląd (P3-05): odczyt usług, domen i ticketów — bez płatności, portfela, plików i DNS (jak w opisie)', () => {
     const c = ctx(preset('readonly').permissions);
-    for (const href of ['/dashboard/services', '/dashboard/domains', '/dashboard/support', '/dashboard/billing']) {
+    for (const href of ['/dashboard/services', '/dashboard/domains', '/dashboard/support']) {
       expect(canAccessDashboardRoute(href, c)).toBe(true);
     }
-    for (const href of ['/dashboard/dns', '/dashboard/file-manager', '/dashboard/email']) {
+    for (const href of ['/dashboard/billing', '/dashboard/dns', '/dashboard/file-manager', '/dashboard/email']) {
       expect(canAccessDashboardRoute(href, c)).toBe(false);
     }
+    expect(canShowWalletBalance(c)).toBe(false);
+    expect(preset('readonly').description).toMatch(/bez płatności/);
+  });
+
+  it('każde uprawnienie ma stały opis widoczny w pickerze (nie tylko dymek)', () => {
+    for (const perm of Object.keys(PERMISSION_LABELS)) expect(PERMISSION_DESCRIPTIONS[perm]).toBeTruthy();
   });
 });

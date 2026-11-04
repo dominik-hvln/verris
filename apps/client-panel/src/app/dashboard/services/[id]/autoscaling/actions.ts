@@ -23,7 +23,7 @@ export async function updateAutoscalingAction(
   const scaleDisk = formData.get('scaleDisk') === 'on';
 
   if (cap !== undefined && (Number.isNaN(cap) || cap < 0 || cap > 99_999.99)) {
-    return { ok: false, error: 'Limit miesięczny musi być liczbą z zakresu 0–99 999,99 K (1 zł = 1 K).' };
+    return { ok: false, error: 'Limit kosztu na 30 dni musi być liczbą z zakresu 0–99 999,99 zł.' };
   }
 
   if (enabled && !scaleCpu && !scaleRam && !scaleDisk) {

@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useState } from 'react';
 import { Loader2, RefreshCw } from 'lucide-react';
-import type { HostingDomainsResponseDto, HostingLogDto } from '@verris/contracts';
+import type { HostingDomainsResponseDto, HostingLogDto } from '@verris/contracts/klient';
 import {
   fetchHostingDomainsAction as fetchHostingDomainsActionAkcja,
 } from '@/app/dashboard/services/[id]/hosting-domains-action';

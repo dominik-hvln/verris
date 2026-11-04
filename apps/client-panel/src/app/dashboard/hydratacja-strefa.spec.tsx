@@ -1,5 +1,5 @@
 import { renderToString } from 'react-dom/server';
-import type { ServiceSummaryDto } from '@verris/contracts';
+import type { ServiceSummaryDto } from '@verris/contracts/klient';
 import { DashboardHome } from './dashboard-home';
 import type { DashboardSnapshot } from './dashboard-data';
 import ClientTicketChat from './support/[id]/client-ticket-chat';

@@ -11,8 +11,8 @@ export default async function ReferralProgramPage() {
   if (!czyModul(await pobierzFlagiAction(), 'modul.referral')) {
     return (
       <FeatureNotAvailable
-        title="Program partnerski"
-        description="Program partnerski nie jest jeszcze aktywny w panelu. Możesz korzystać z hostingu i portfela bez ograniczeń."
+        title="Program poleceń"
+        description="Program poleceń nie jest jeszcze aktywny w panelu. Możesz korzystać z hostingu i portfela bez ograniczeń."
       />
     );
   }
@@ -20,8 +20,8 @@ export default async function ReferralProgramPage() {
   return (
     <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6">
       <PanelPageHeader
-        title="Program partnerski"
-        description="Poleć Verris znajomym — po akceptacji zgłoszenia dostaniesz link i punkty EKO za rejestracje."
+        title="Program poleceń"
+        description="Poleć Verris — po akceptacji zgłoszenia dostaniesz link, a od każdej płatności poleconego klienta prowizję na portfel."
       />
       <ReferralProgramClient />
     </div>

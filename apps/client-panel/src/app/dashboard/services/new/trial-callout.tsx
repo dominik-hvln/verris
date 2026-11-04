@@ -3,11 +3,11 @@
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Gift, Loader2, Check } from 'lucide-react';
-import type { PlanDto } from '@verris/contracts';
+import type { PlanDto } from '@verris/contracts/klient';
 import { getTrialEligibilityAction, startTrialAction } from './actions';
 import { trackGenerateLead } from '@/lib/analytics-events';
 import { plForm } from '@/lib/pl';
-import { LIMIT_WYSYLKI_PROBY } from '@verris/contracts';
+import { LIMIT_WYSYLKI_PROBY } from '@verris/contracts/klient';
 
 /** Regulamin §7 ust. 8 + decyzja 29.09 (RETENCJA_KONTA_DNI w API): po próbie usługa zawieszona, dane czekają 14 dni. */
 const DNI_NA_OPLACENIE = 14;

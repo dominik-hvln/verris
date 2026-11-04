@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { Accordion, Breadcrumbs, Button, Card, CTABand, JsonLd, SectionHead, Steps } from '../components/ui';
-import { PANEL } from '@/lib/site';
+import { ZOSTAN_PARTNEREM } from '@/lib/site';
 import { faqSchema, serviceSchema } from '@/lib/schema';
 import { SPEC_PO_WERYFIKACJI } from '@/lib/oferta';
 import { POLECENIA } from '@/lib/polecenia';
@@ -9,7 +9,7 @@ const OPIS =
   'Obsługuj strony klientów z jednego panelu Verris: szybki hosting, przeprowadzki za 0 zł, subkonta z uprawnieniami i prowizja z programu poleceń.';
 
 export const metadata: Metadata = {
-  title: 'Hosting dla agencji — program partnerski | Verris',
+  title: 'Hosting dla agencji — program dla agencji | Verris',
   description: OPIS,
   alternates: { canonical: '/reseller' },
 };
@@ -61,6 +61,10 @@ const FAQ: [string, string][] = [
     'Ceny z cennika Verris. Pracujemy nad własnym narzutem, który doliczysz do cen dla swoich klientów — do tego czasu klienci płacą cennik.',
   ],
   [
+    'Czy klienci zobaczą moją markę?',
+    'Dziś: Twoja nazwa i logo pojawiają się w mailach, które Verris wysyła Twoim klientom, z dopiskiem „na infrastrukturze Verris”. Panel klienta i faktury są pod marką Verris. Panelu i faktur pod własną marką nie oferujemy.',
+  ],
+  [
     'Co widzę na kontach klientów?',
     'Usługi i ich stan: domenę, pakiet, status, stan działania i termin odnowienia. Nie widzisz plików, baz, poczty, faktur ani salda klienta.',
   ],
@@ -83,7 +87,7 @@ export default function Page() {
     <main>
       <JsonLd
         data={serviceSchema({
-          name: 'Program partnerski dla agencji',
+          name: 'Program dla agencji',
           description: OPIS,
           path: '/reseller',
         })}
@@ -102,7 +106,7 @@ export default function Page() {
               miejsca. Bez kilkunastu loginów i bez tłumaczenia każdemu, gdzie jest faktura.
             </p>
             <div className="hero2-cta">
-              <Button href={PANEL} cta="subhero">
+              <Button href={ZOSTAN_PARTNEREM} cta="subhero">
                 Zostań partnerem
               </Button>
               <Button href="/kontakt" variant="ghost" cta="subhero-alt">
@@ -130,8 +134,16 @@ export default function Page() {
                 <dd>z programu poleceń</dd>
               </div>
               <div>
+                <dt>Twoja marka</dt>
+                <dd>nazwa i logo w mailach do klientów</dd>
+              </div>
+              <div>
+                <dt>Panel i faktury</dt>
+                <dd>pod marką Verris</dd>
+              </div>
+              <div>
                 <dt>Własny narzut</dt>
-                <dd>wkrótce</dd>
+                <dd>jeszcze nie — klienci płacą cennik Verris</dd>
               </div>
             </dl>
           </Card>
@@ -170,7 +182,7 @@ export default function Page() {
         title="Pokaż klientom hosting, za który nie będziesz się tłumaczyć"
         text="Zaproś pierwszego klienta, a przeprowadzkę jego strony weźmiemy na siebie."
         primaryLabel="Zostań partnerem"
-        primaryHref={PANEL}
+        primaryHref={ZOSTAN_PARTNEREM}
         conv={null}
         secondary={{ label: 'Program poleceń', href: '/polecaj' }}
       />

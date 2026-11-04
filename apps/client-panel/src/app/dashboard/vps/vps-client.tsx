@@ -184,7 +184,7 @@ export function VpsClient({
             Hasło root dla <span className="font-mono">{rootPw.name}</span> — zapisz teraz, pokazujemy je tylko raz:
           </p>
           <div className="flex items-center gap-2">
-            <code className="rounded bg-black/40 px-3 py-1.5 font-mono text-white">{rootPw.pw}</code>
+            <code data-prywatne className="rounded bg-black/40 px-3 py-1.5 font-mono text-white">{rootPw.pw}</code>
             <button
               type="button"
               onClick={() => void navigator.clipboard?.writeText(rootPw.pw)}

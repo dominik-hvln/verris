@@ -5,9 +5,9 @@ import './globals.css';
 import { Analytics } from './components/Analytics';
 import { CookieConsent } from './components/CookieConsent';
 import { AsystentWidget } from './components/AsystentWidget';
+import { UstepujFormularzom } from './components/UstepujFormularzom';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
-import { ANALYTICS } from '@/lib/analytics';
 import { VPS_W_SPRZEDAZY, OFERTA_KROTKO } from '@/lib/oferta';
 
 // D12 (10.10): CSP z nonce (src/proxy.ts) wymaga renderu per żądanie — layout czyta `x-nonce` przez headers(),
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://verris.pl'),
   title: 'Verris — polski hosting z autoskalowaniem. Hosting bez gwiazdek.',
   description:
-    `Hosting współdzielony ${VPS_W_SPRZEDAZY ? 'z autoskalowaniem, VPS i domeny' : 'z autoskalowaniem i domeny'} w jednym panelu. Jedna cena hostingu, ta sama przy odnowieniu — bez pułapek odnowień. Migracja i SSL za 0 zł, SLA 99,5% z rekompensatami na wniosek, kopie z samodzielnym odtwarzaniem.`,
+    `Hosting współdzielony ${VPS_W_SPRZEDAZY ? 'z autoskalowaniem, VPS i domeny' : 'z autoskalowaniem i domeny'} w jednym panelu. Cena odnowienia znana z góry — bez pułapek odnowień. Migracja i SSL za 0 zł, SLA 99,5% z automatycznymi rekompensatami, kopie z samodzielnym odtwarzaniem.`,
   alternates: { canonical: '/' },
   robots: { index: true, follow: true },
   openGraph: {
@@ -47,31 +47,18 @@ export default async function FrontendLayout({ children }: { children: ReactNode
   return (
     <html lang="pl">
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        {/* eslint-disable-next-line @next/next/no-page-custom-font -- to root layout App Routera, więc font ładuje się na każdej stronie; reguła celuje w pages/_document */}
-        <link
-          href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@700;800&family=Hanken+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
-          rel="stylesheet"
-        />
+        {/* A2-03: fonty z public/fonts (@font-face w globals.css) — bez żądań do Google. Preload dwóch głównych krojów. */}
+        <link rel="preload" href="/fonts/hanken-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossOrigin="" />
+        <link rel="preload" href="/fonts/schibsted-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossOrigin="" />
       </head>
       <body>
         <Analytics nonce={nonce} />
-        {ANALYTICS.gtmId ? (
-          <noscript>
-            <iframe
-              src={`https://www.googletagmanager.com/ns.html?id=${ANALYTICS.gtmId}`}
-              title="Google Tag Manager"
-              height="0"
-              width="0"
-              style={{ display: 'none', visibility: 'hidden' }}
-            />
-          </noscript>
-        ) : null}
+        {/* Decyzja 22 — bez ramki GTM dla przeglądarek bez JavaScriptu: tagi Google tylko po zgodzie z banera. */}
         <Header />
         {children}
         <Footer />
         <CookieConsent />
+        <UstepujFormularzom />
         {/* Asystent AI — nic nie renderuje bez NEXT_PUBLIC_ASYSTENT=1 (decyzja: włączenie po zatwierdzeniu dokumentów). */}
         <AsystentWidget />
       </body>

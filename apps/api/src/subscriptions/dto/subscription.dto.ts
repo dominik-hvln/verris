@@ -13,6 +13,7 @@ import {
   Min,
 } from 'class-validator';
 import { BillingInterval, SubscriptionPaymentSource } from '@verris/database';
+import { DomenaZamowienia } from './domena-zamowienia.js';
 
 /**
  * Z-02 — źródła płatności, które wolno wskazać KLIENTOWI przy zakładaniu usługi.
@@ -79,9 +80,7 @@ export class CreateSubscriptionDto {
    * activate without a DA account. Walidacja obecności jest w serwisie wg planu.
    */
   @IsOptional()
-  @IsString()
-  @Length(4, 253)
-  @Matches(/^[a-z0-9.-]+\.[a-z]{2,}$/i, { message: 'Niepoprawny format domeny' })
+  @DomenaZamowienia()
   domain?: string;
 
   /** Optional region preference (e.g. "PL-WAW"). Used as a tie-breaker. */
@@ -93,6 +92,17 @@ export class CreateSubscriptionDto {
   @IsOptional()
   @IsBoolean()
   autoscalingEnabled?: boolean;
+
+  /**
+   * Decyzja 6 (3.11.2026) — własny limit kosztu autoskalowania ustawiony już w zamówieniu (zł = K, brutto,
+   * suma dopłat z ostatnich 30 dni — tak liczy silnik, `autoscaling-engine.service.ts` `thirtyDaySpend`).
+   * Brak albo 0 = bez limitu (płatność za faktyczne użycie). Te same granice co przy zmianie w panelu usługi.
+   */
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 }, { message: 'Limit kosztu podaj w złotych, z dokładnością do grosza.' })
+  @Min(0, { message: 'Limit kosztu nie może być ujemny.' })
+  @Max(99_999.99, { message: 'Limit kosztu może wynosić najwyżej 99 999,99 zł.' })
+  autoscalingMaxCost?: number;
 
   /** Whether eco mode is enabled at sign-up. Default false. */
   @IsOptional()

@@ -7,4 +7,4 @@ export {
   formatPln,
   formatPlnAndCredits,
   pluralCredits,
-} from '@verris/contracts';
+} from '@verris/contracts/klient';

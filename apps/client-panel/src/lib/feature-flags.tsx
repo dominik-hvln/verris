@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import type { FlagaModulu } from '@verris/contracts';
+import type { FlagaModulu } from '@verris/contracts/klient';
 import { czyModul } from './feature-flags-core';
 import { pobierzFlagiAction } from './feature-flags-action';
 

@@ -1,4 +1,6 @@
 import { Eye, Gift, History, Trees } from 'lucide-react';
+import { EcoDrzewa } from './eco-drzewa';
+import { EcoOdznakaDrzew } from './eco-odznaka-drzew';
 import { FeatureNotAvailable } from '@/components/feature-not-available';
 import { czyModul } from '@/lib/feature-flags-core';
 import { pobierzFlagiAction } from '@/lib/feature-flags-action';
@@ -11,12 +13,16 @@ export const dynamic = 'force-dynamic';
 import { EcoPointsGuide } from './eco-points-guide';
 import { ECO_LEDGER_REASON_LABEL } from '@/lib/eco-point-rules';
 import { PanelFetchError, PanelPageHeader } from '@/components/panel';
-import { Kpi, KpiStrip, Meter } from '@/components/panel/v2';
+import { Kpi, KpiStrip } from '@/components/panel/v2';
 import { plForm } from '@/lib/pl';
 
 function badgeEmbedHtml(src: string, height: number, alt: string): string {
   return `<a href="https://verris.pl" target="_blank" rel="noopener"><img src="${src}" height="${height}" alt="${alt}"></a>`;
 }
+
+/** Opis programu bez ogólnych twierdzeń środowiskowych (A2-10): punkty, drzewa z certyfikatem partnera. */
+const OPIS_PROGRAMU =
+  'Punkty za korzystanie z Verris. Wymienisz je na saldo portfela albo na drzewa sadzone przez partnera — z certyfikatem.';
 
 export default async function EcoProgramPage() {
   // N-12: przełącznik build-time + flaga operatora.
@@ -33,12 +39,12 @@ export default async function EcoProgramPage() {
   if (dane instanceof Error) {
     return (
       <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6">
-        <PanelPageHeader title="Program EKO" description="Punkty za oszczędność zasobów i badge na Twoją stronę." />
+        <PanelPageHeader title="Program EKO" description={OPIS_PROGRAMU} />
         <PanelFetchError message={dane.message} />
       </div>
     );
   }
-  const { profile, ledger, platform, badgeStats, program } = dane;
+  const { profile, ledger, platform, badgeStats, program, drzewa } = dane;
   const apiBase = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000').replace(/\/$/, '');
   const badgeSrc = profile.ecoBadgeToken
     ? `${apiBase}/public/badges/eko/${encodeURIComponent(profile.ecoBadgeToken)}.svg`
@@ -52,8 +58,6 @@ export default async function EcoProgramPage() {
   });
   const badgeVariants = badgeSrc
     ? [
-        variant('EKO · ciemny', 'Do ciemnej stopki. Poziom rośnie razem z Twoimi punktami.', 'motyw=ciemny&wariant=eko', 44, 'EKO hosting Verris'),
-        variant('EKO · jasny', 'Do jasnej stopki albo sekcji „Partnerzy”.', 'motyw=jasny&wariant=eko', 44, 'EKO hosting Verris'),
         variant('Znak', 'Mały znak obok logotypów.', 'motyw=ciemny&wariant=znak', 28, 'Hosting Verris'),
         variant('Tekst', 'Dyskretne „hostowane na verris” w stopce.', 'motyw=jasny&wariant=hostowane', 20, 'Hostowane na Verris'),
       ]
@@ -61,24 +65,14 @@ export default async function EcoProgramPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 pb-12">
-      <PanelPageHeader
-        title="Program EKO"
-        description="Zbieraj punkty za ekologiczne działania na hostingu — wspieramy sadzenie drzew i pokazujemy Twój postęp."
-      />
+      <PanelPageHeader title="Program EKO" description={OPIS_PROGRAMU} />
 
       <KpiStrip>
-        <Kpi label="Twoje punkty" value={profile.ecoPoints} unit="pkt" foot={<span>do wymiany na saldo</span>} />
-        <Kpi
-          label="Do kolejnego drzewa"
-          value={Math.max(0, platform.ecoPointsPerTree - (profile.ecoPoints % platform.ecoPointsPerTree))}
-          unit="pkt"
-          foot={<span>drzewo co {platform.ecoPointsPerTree} pkt</span>}
-        >
-          <Meter pct={((profile.ecoPoints % platform.ecoPointsPerTree) / platform.ecoPointsPerTree) * 100} />
-        </Kpi>
-        <Kpi label="Drzewa łącznie" value={Math.floor(profile.ecoPoints / platform.ecoPointsPerTree)} foot={<span>posadzone z Twoich punktów</span>} />
+        <Kpi label="Twoje punkty" value={profile.ecoPoints} unit="pkt" foot={<span>na saldo albo na drzewa</span>} />
         <Kpi label="Przelicznik" value={platform.ecoPointsPer10Credits} unit="pkt = 10 K" foot={<span>wymiana na portfel</span>} />
       </KpiStrip>
+
+      {drzewa ? <EcoDrzewa d={drzewa} /> : null}
 
       <EcoPointsGuide platform={platform} />
 
@@ -139,14 +133,21 @@ export default async function EcoProgramPage() {
         <div className="mx-auto mb-8 max-w-2xl text-center">
           <div className="mb-2 flex items-center justify-center gap-2 text-white font-semibold">
             <Trees className="h-5 w-5 text-emerald-400" aria-hidden />
-            Badge na stronę
+            Odznaka na stronę
           </div>
           <p className="text-sm text-neutral-400">
-            Statyczny obrazek z linkiem — działa w każdym kreatorze i w mailach. Każde unikalne wyświetlenie na
-            zewnętrznej stronie przybliża Cię do kolejnego punktu EKO. Interaktywne badge (pieczęć zaufania,
-            dostępność na żywo, polecenie z prowizją) znajdziesz w usłudze hostingu, w zakładce „Badge na stronę”.
+            Statyczny obrazek z linkiem — działa w każdym kreatorze i w mailach. Odznaka „Verris — posadzone drzewa”
+            pokazuje tylko drzewa z certyfikatem partnera; wybierz, czy liczyć wszystkie drzewa Verris, czy Twoje.
+            Każde unikalne wyświetlenie na zewnętrznej stronie przybliża Cię do kolejnego punktu EKO. Interaktywne
+            odznaki (pieczęć, dostępność na żywo, polecenie) znajdziesz w usłudze hostingu, w zakładce „Badge na stronę”.
           </p>
         </div>
+
+        {badgeSrc ? (
+          <div className="mx-auto mb-8 max-w-2xl rounded-2xl border border-white/10 bg-black/40 p-5">
+            <EcoOdznakaDrzew badgeSrc={badgeSrc} />
+          </div>
+        ) : null}
 
         {badgeVariants.length > 0 ? (
           <div className="grid gap-5 md:grid-cols-2">

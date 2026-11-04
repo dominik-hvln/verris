@@ -205,8 +205,11 @@ describe('skrypty węzła — polecenia z oficjalnej dokumentacji', () => {
     const t = czytaj('node-hosting-profile.sh');
     expect(t).toContain('els-php-release');
     expect(t).toMatch(/groupinstall -y "alt-php\$\{v\/\.\/\}"/);
-    // PB-30 — lista wersji z manifestu floty (/etc/verris-stack.env), bez własnej domyślnej w skrypcie.
-    expect(t).toMatch(/for v in \$\{VERRIS_PHP_VERSIONS:\?\$BRAK_MANIFESTU\}/);
+    // Decyzja 14 (3.11.2026) — wszystkie wersje z repozytorium od VERRIS_PHP_MIN; lista z manifestu tylko jako zapas
+    // (bez własnej domyślnej w skrypcie). Zachowanie funkcji: src/test/php-wszystkie-wersje.spec.ts.
+    expect(t).toMatch(/php_od_minimum "\$\{VERRIS_PHP_MIN:\?\$BRAK_MANIFESTU\}" \$php_z_repo/);
+    expect(t).toMatch(/php_z_repo="\$\{VERRIS_PHP_VERSIONS:\?\$BRAK_MANIFESTU\}"/);
+    expect(t).toMatch(/for v in \$php_wersje; do\n\s+selectorctl --list --interpreter=php/);
     expect(t).toContain('log_fail "PHP Selector: brak wersji');
   });
 

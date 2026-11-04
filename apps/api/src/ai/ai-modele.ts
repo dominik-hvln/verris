@@ -36,6 +36,12 @@ export interface KonfiguracjaAi {
   limitPlatformyUsd: number;
   /** Ceny modeli (USD / 1 mln tokenów) — domyślnie z ZNANE_MODELE_AI, admin może nadpisać i dopisać nowe. */
   ceny: Record<string, { wej: number; wyj: number }>;
+  /**
+   * Decyzja 5 (2026-11-03): asystent AI dla wszystkich klientów. Włączone w adminie = lista kont testowych
+   * z env (AI_TYLKO_KONTA) przestaje obowiązywać, bez zmian w .env. Domyślnie wyłączone — admin włącza po publikacji
+   * polityki prywatności 1.1.0 (OpenAI/Anthropic jako podprocesorzy).
+   */
+  dlaWszystkichKlientow: boolean;
 }
 
 /**
@@ -50,6 +56,7 @@ export const DOMYSLNA_KONFIGURACJA_AI: KonfiguracjaAi = {
   limitKlientaUsd: 2,
   limitPlatformyUsd: 8,
   ceny: Object.fromEntries(ZNANE_MODELE_AI.map((m) => [m.model, { wej: m.cenaWej, wyj: m.cenaWyj }])),
+  dlaWszystkichKlientow: false,
 };
 
 const MODEL_RE = /^[A-Za-z0-9._:-]{2,80}$/;
@@ -85,6 +92,7 @@ export function odczytajKonfiguracjeAi(surowe: string | null | undefined): Konfi
     limitPlatformyUsd:
       Number.isFinite(limitP) && limitP >= 0 && limitP <= 10_000 ? Math.round(limitP * 100) / 100 : DOMYSLNA_KONFIGURACJA_AI.limitPlatformyUsd,
     ceny,
+    dlaWszystkichKlientow: v.dlaWszystkichKlientow === true,
   };
 }
 

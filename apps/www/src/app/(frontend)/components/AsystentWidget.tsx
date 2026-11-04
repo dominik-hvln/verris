@@ -254,8 +254,9 @@ export function AsystentWidget({
   const lista = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
+    if (!wlaczony) return;
     zapiszSesje(wSesji(), { rozmowaId, wiadomosci, wymiany });
-  }, [rozmowaId, wiadomosci, wymiany]);
+  }, [wlaczony, rozmowaId, wiadomosci, wymiany]);
 
   useEffect(() => {
     if (otwarte) pole.current?.focus();

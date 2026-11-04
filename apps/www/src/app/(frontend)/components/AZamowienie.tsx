@@ -91,7 +91,8 @@ export function AZamowienie({ cena: c }: { cena: CenaPakietu }) {
             ))}
           </div>
           <p className="a-order-note">
-            Ceny brutto. Autoskalowanie i miesięczny limit jego kosztu włączysz i ustawisz w panelu.
+            Ceny brutto. Autoskalowanie włączasz sam w panelu. Bez limitu płacisz za faktyczne użycie; limit kosztu na 30 dni
+            możesz ustawić przy zamówieniu i zmienić w panelu.
           </p>
         </section>
 
@@ -155,8 +156,8 @@ export function AZamowienie({ cena: c }: { cena: CenaPakietu }) {
         </p>
         <ul className="a-list">
           <li>odnowienie wyłączysz w panelu w każdej chwili</li>
-          <li>faktura VAT w panelu po każdej płatności</li>
-          <li>SLA 99,5% z rekompensatą według regulaminu</li>
+          <li>faktura VAT przy każdej wpłacie, w panelu</li>
+          <li>SLA 99,5% z automatyczną rekompensatą według regulaminu</li>
         </ul>
       </aside>
     </div>

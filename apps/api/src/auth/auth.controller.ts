@@ -85,7 +85,9 @@ export class AuthController {
 
   // Audit F-09: strict per-route limits — registration and mail-out endpoints
   // are the main spam / enumeration vectors.
-  @RateLimit({ limit: 5, windowMs: 60 * 60 * 1000, scope: 'auth:register' })
+  // P5-03 / P3-12 — 20 udanych rejestracji na godzinę z IP (agencja zakłada konta klientom z biura), odrzucenia
+  // (słabe hasło, wyciek, błąd formularza) nie zjadają limitu; bezpiecznik 60 prób/h. Komunikat podaje czas.
+  @RateLimit({ limit: 20, windowMs: 60 * 60 * 1000, scope: 'auth:register', tylkoUdane: true, limitProb: 60 })
   @Post('register')
   async register(@Body() dto: RegisterDto, @Req() req: Request) {
     const ctx = requestContext(req);
@@ -277,6 +279,8 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
+  // A1-02 — limit per konto (nie per IP); porażki liczy i blokuje też TwoFactorService.disable.
+  @RateLimit({ limit: 10, windowMs: 15 * 60 * 1000, scope: 'auth:2fa-disable', perKonto: true })
   @Post('2fa/disable')
   @HttpCode(HttpStatus.OK)
   async twoFactorDisable(
@@ -392,6 +396,14 @@ export class AuthController {
     @CurrentUser() user: { userId: string; principalUserId?: string; sid?: string },
   ) {
     return this.authService.listSessions(user.principalUserId ?? user.userId, user.sid);
+  }
+
+  /** P5-06 — wyloguj wszystkie inne urządzenia (bieżąca sesja zostaje). Przed `:id`, żeby nie złapała jej trasa z parametrem. */
+  @UseGuards(JwtAuthGuard)
+  @Post('sessions/revoke-others')
+  @HttpCode(HttpStatus.OK)
+  async revokeOtherSessions(@CurrentUser() user: { userId: string; principalUserId?: string; sid?: string }) {
+    return this.authService.revokeOtherSessions(user.principalUserId ?? user.userId, user.sid);
   }
 
   /** SEC-10 — zdalne wylogowanie pojedynczej sesji (urządzenia). */

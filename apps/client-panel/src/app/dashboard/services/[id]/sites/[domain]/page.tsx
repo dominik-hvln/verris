@@ -18,7 +18,7 @@ import type {
   HostingDomainsResponseDto,
   HostingEmailAccountsResponseDto,
   HostingSslResponseDto,
-} from '@verris/contracts';
+} from '@verris/contracts/klient';
 
 import { Box, Kpi, KpiStrip, Meter, SectionHead, StatusPill } from '@/components/panel/v2';
 import { DnsManager } from '@/app/dashboard/dns/dns-manager';

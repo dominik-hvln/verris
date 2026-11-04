@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { Accordion, Card, CTABand, JsonLd, SectionHead, SubHero } from '../components/ui';
 import { MobilnyPasek } from '../components/MobilnyPasek';
 import { pobierzCeny } from '@/lib/ceny-api';
-import { cenaPakietu, miesiecznieZRocznej, netto, odCeny, zl, type CenaPakietu } from '@/lib/ceny';
+import { cenaPakietu, miesiecznieZRocznej, netto, odCeny, RABAT_NA_START, zl, type CenaPakietu } from '@/lib/ceny';
 import { pasekHostingu } from '@/lib/proba';
 import { Pricing } from '../components/Pricing';
 import { AKalkulator } from '../components/AKalkulator';
@@ -12,9 +12,9 @@ import { faqSchema, ofertyHostingu, productSchema } from '@/lib/schema';
 
 // Makieta 14.10, plansza Cennik. Ceny i stawki z API (lib/ceny-api); w metadanych bez kwot, bo te są statyczne.
 export const metadata: Metadata = {
-  title: 'Cennik hostingu — jedna cena, także za rok | Verris',
+  title: 'Cennik hostingu — cena odnowienia znana z góry | Verris',
   description:
-    'Ile kosztuje hosting? Jedna cena brutto, ta sama przy odnowieniu. Policz w kalkulatorze dopłatę za dodatkową moc w szczycie.',
+    'Ile kosztuje hosting? Jedna cena brutto, odnowienie po cenie z cennika. Policz w kalkulatorze dopłatę za dodatkową moc w szczycie.',
   alternates: { canonical: '/cennik' },
 };
 
@@ -34,14 +34,17 @@ const faqCennika = (c: CenaPakietu): [string, string][] => [
   ],
   [
     'Czy cena wzrośnie przy odnowieniu?',
-    `Nie ma promocji na pierwszy okres. Odnowienie idzie po cenie z cennika (dziś ${cenaPakietu(c)}), a przed odnowieniem wyślemy przypomnienie e-mail.`,
+    `Odnowienie idzie po cenie z cennika (dziś ${cenaPakietu(c)}), a przed odnowieniem wyślemy przypomnienie e-mail. ${RABAT_NA_START}`,
   ],
   ['Czy mogę wyłączyć odnawianie?', 'Tak, w panelu w każdej chwili, bez opłat.'],
   [
-    'Co, jeśli zapomnę o limicie dopłat?',
-    'Limit kosztu autoskalowania ustawiasz w panelu. Gdy dopłaty go osiągną, zasoby wracają do pakietu, a Ty dostajesz powiadomienie.',
+    'Czy muszę ustawić limit dopłat?',
+    'Nie musisz. Bez limitu płacisz za faktyczne użycie dodatkowej mocy. Limit kosztu na 30 dni (suma dopłat z ostatnich 30 dni) ustawisz przy zamówieniu albo później w panelu. Gdy dopłaty go osiągną, zasoby wracają do pakietu, a Ty dostajesz powiadomienie.',
   ],
-  ['Czy dostanę fakturę VAT?', 'Tak. Fakturę VAT po każdej płatności znajdziesz w panelu, a powiadomienie o niej dostajesz e-mailem.'],
+  [
+    'Czy dostanę fakturę VAT?',
+    'Tak. Fakturę wystawiamy przy każdej wpłacie pieniędzy: doładowaniu portfela, zapłacie za usługę BLIK-iem lub przelewem i każdym pobraniu z karty. Zakup usługi z portfela nie tworzy nowej faktury, bo rozlicza go faktura za doładowanie. Faktury znajdziesz w panelu.',
+  ],
 ];
 
 export default async function Page() {
@@ -61,8 +64,8 @@ export default async function Page() {
       <JsonLd data={faqSchema(FAQ)} />
       <SubHero
         eyebrow="Cennik hostingu"
-        title="Jeden pakiet, jedna cena. Także za rok"
-        lead={`Nie ma u nas taniego pierwszego roku i drogiego drugiego. Płacisz ${zl(ceny.hosting.miesiecznie)} miesięcznie albo ${zl(ceny.hosting.rocznie)} za rok brutto (${zl(netto(ceny.hosting.miesiecznie))} albo ${zl(netto(ceny.hosting.rocznie))} netto), a dodatkową moc tylko wtedy, gdy Twoja strona naprawdę jej potrzebuje.`}
+        title="Jeden pakiet. Cenę odnowienia znasz z góry"
+        lead={`Odnowienie idzie po cenie z cennika, którą widzisz tutaj. Płacisz ${zl(ceny.hosting.miesiecznie)} miesięcznie albo ${zl(ceny.hosting.rocznie)} za rok brutto (${zl(netto(ceny.hosting.miesiecznie))} albo ${zl(netto(ceny.hosting.rocznie))} netto), a dodatkową moc tylko wtedy, gdy Twoja strona naprawdę jej potrzebuje.`}
         crumbs={[{ label: 'Cennik' }]}
       />
       <Pricing naglowek={false} cena={ceny.hosting} />
@@ -93,7 +96,7 @@ export default async function Page() {
           <SectionHead
             eyebrow="Kalkulator dopłat"
             title="Ile kosztuje dodatkowa moc?"
-            lead="Ustaw, ile mocy ponad pakiet może potrzebować Twoja strona w szczycie. Płacisz za czas, w którym ta moc była włączona, i nigdy więcej niż limit z panelu."
+            lead="Ustaw, ile mocy ponad pakiet może potrzebować Twoja strona w szczycie. Płacisz za czas, w którym ta moc była włączona. Jeśli ustawisz limit kosztu na 30 dni, dopłaty go nie przekroczą."
           />
           <AKalkulator wariant="pelny" ceny={ceny} />
         </div>
@@ -137,8 +140,8 @@ export default async function Page() {
       </section>
 
       <CTABand
-        title={`Uczciwa cena dziś i za rok. Zacznij ${odCeny(ceny.hosting)}`}
-        text="Bez promocji na pierwszy rok i bez niespodzianek przy odnowieniu. Odnawianie wyłączysz w panelu w każdej chwili."
+        title={`Cenę odnowienia znasz z góry. Zacznij ${odCeny(ceny.hosting)}`}
+        text="Odnowienie po cenie z cennika, przypomnienie przed każdym odnowieniem. Odnawianie wyłączysz w panelu w każdej chwili."
         secondary={{ label: 'Jak działa przeniesienie', href: '/przenies-strone' }}
       />
       <MobilnyPasek {...pasekHostingu(ceny)} />

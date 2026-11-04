@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@verris/ui';
-import type { DomainDto } from '@verris/contracts';
+import type { DomainDto } from '@verris/contracts/klient';
 import { verifyDomainAction, deleteDomain, runDomainChecklistAction } from '../actions';
 import { RefreshCw, Trash2 } from 'lucide-react';
 import { potwierdz } from '@/components/panel/potwierdz';

@@ -4,7 +4,7 @@ import type {
   DeployFrequency,
   DeployJobMutationOkDto,
   DeployJobsResponseDto,
-} from '@verris/contracts';
+} from '@verris/contracts/klient';
 import { apiFetch, ApiError } from '@/lib/api';
 
 export async function fetchDeployJobsAction(

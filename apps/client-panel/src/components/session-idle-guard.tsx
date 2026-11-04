@@ -8,6 +8,8 @@ const FALLBACK_IDLE_MINUTES = 60;
 const STORAGE_KEY = 'verris_client_last_activity';
 /** Co ile (najwyżej) przedłużać ciasteczko sesji przy aktywności — musi być < ZAPAS_ODSWIEZANIA_MIN. */
 const ODSWIEZANIE_MS = 4 * 60_000;
+/** Od ilu ms do końca sesji licznik jest widoczny (P1-11). */
+export const PROG_POKAZANIA_MS = 5 * 60_000;
 
 type Props = {
   idleMinutes?: number;
@@ -22,8 +24,8 @@ function ostatniaAktywnosc(): number {
 }
 
 /**
- * Wylogowuje klienta po braku aktywności (ruch myszy, klawiatura, dotyk, scroll) i pokazuje w
- * pasku licznik do końca sesji. Aktywność jest wspólna dla kart (localStorage) — wcześniej
+ * Wylogowuje klienta po braku aktywności (ruch myszy, klawiatura, dotyk, scroll) i w ostatnich 5 minutach
+ * pokazuje w pasku licznik do końca sesji. Aktywność jest wspólna dla kart (localStorage) — wcześniej
  * bezczynna karta wylogowywała klienta pracującego w innej. Przy aktywności ciasteczko sesji
  * jest przedłużane, więc po zamknięciu przeglądarki sesja kończy się po tym samym czasie.
  */
@@ -76,15 +78,17 @@ export function SessionIdleGuard({ idleMinutes = FALLBACK_IDLE_MINUTES }: Props)
 
   const min = Math.floor(zostalo / 60_000);
   const sek = Math.floor((zostalo % 60_000) / 1000);
-  const konczySie = zostalo < 5 * 60_000;
+  const konczySie = zostalo < PROG_POKAZANIA_MS;
+
+  // P1-11 — tykający licznik „59:58” niepokoił osoby nietechniczne („czy coś mi przepadnie?”). Pokazujemy go
+  // dopiero w ostatnich minutach, gdy faktycznie trzeba coś zrobić; wylogowanie działa niezależnie od widoku.
+  if (!konczySie) return null;
 
   return (
     <span
       role="timer"
-      title={`Sesja wygaśnie po ${idleMinutes} min bez aktywności — każda akcja w panelu liczy czas od nowa.`}
-      className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 font-mono text-xs tabular-nums ${
-        konczySie ? 'border-rose-400/60 text-rose-400' : 'border-line text-muted-foreground'
-      }`}
+      title={`Sesja zaraz wygaśnie z powodu braku aktywności — każda akcja w panelu liczy ${idleMinutes} min od nowa.`}
+      className="inline-flex items-center gap-1 rounded-md border border-rose-400/60 px-2 py-1 font-mono text-xs tabular-nums text-rose-400"
     >
       <Timer className="h-3.5 w-3.5" aria-hidden />
       <span className="sr-only">Do końca sesji: </span>

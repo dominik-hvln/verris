@@ -8,6 +8,8 @@ export interface PhpStatus {
   domain: string;
   version: string | null;
   availableVersions: string[];
+  /** Decyzja 14 — zalecana wersja (przedostatnia najnowsza z dostępnych na serwerze). */
+  recommendedVersion?: string | null;
   appliedAt: string | null;
   lastTask: {
     id: string;

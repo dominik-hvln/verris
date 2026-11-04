@@ -95,6 +95,19 @@ export function MigrationProgress({ serviceId, initial }: Props) {
   const pct = total > 0 ? Math.round((done / total) * 100) : summary.status === 'COMPLETED' ? 100 : 0;
 
   async function runDelta() {
+    // P2-06 (decyzja 13) — przy bazie kopiowanie wymaga krótkiej przerwy w sprzedaży na starej stronie; klient wie o niej przed kliknięciem.
+    if (
+      cutover?.dosyncBazy &&
+      !(await potwierdz(
+        'Skopiujemy jeszcze raz pliki i bazę. Na czas kopiowania bazy stara strona (WordPress, WooCommerce) pokaże ' +
+          'komunikat o krótkiej przerwie technicznej, żeby nie przyjęła zamówienia, którego już nie przeniesiemy. ' +
+          'Zaraz po kopiowaniu przełącz DNS — wtedy przerwa potrwa kilka minut. Stara strona otworzy się sama najpóźniej ' +
+          'po 2 godzinach. Sklep na innym systemie niż WordPress: wstrzymaj sprzedaż w jego panelu, zanim klikniesz.',
+        { akcja: 'Dograj różnice teraz' },
+      ))
+    ) {
+      return;
+    }
     setBusy('delta');
     setMsg(null);
     const res = await bezpiecznaAkcja(() => queueMigrationDeltaSyncAction({ serviceId, migrationId: initial.id }));
@@ -103,7 +116,13 @@ export function MigrationProgress({ serviceId, initial }: Props) {
       setMsg(res.error);
       return;
     }
-    setMsg('Dosynchronizowanie plików i poczty uruchomione.');
+    setMsg(
+      ma('MYSQL')
+        ? 'Dosynchronizowanie plików, bazy i poczty uruchomione.'
+        : ma('FILES')
+          ? 'Dosynchronizowanie plików i poczty uruchomione.'
+          : 'Dosynchronizowanie poczty uruchomione.',
+    );
     await refresh();
   }
 
@@ -278,7 +297,7 @@ function IntegrityLine({ integrity }: { integrity: MigrationIntegrity }) {
   return <span className={`ml-2 text-xs ${color}`}>{icon} {text}</span>;
 }
 
-function CutoverPanel({
+export function CutoverPanel({
   serviceId,
   poczta,
   plan,
@@ -301,9 +320,23 @@ function CutoverPanel({
       {/* 15.10 — przed przełączeniem domeny klient sprawdza przeniesioną stronę pod tymczasowym adresem. */}
       {!poczta && plan.status !== 'done' ? <PodgladPrzedDns serviceId={serviceId} /> : null}
 
+      {plan.konserwacjaZrodlaDo && plan.status !== 'done' ? (
+        <p className="rounded-lg border border-cyan-500/25 bg-cyan-500/[0.06] px-3 py-2 text-xs text-cyan-100/90">
+          Stara strona jest w trybie konserwacji do {dataGodzinaPl(plan.konserwacjaZrodlaDo)}. Przełącz DNS teraz — potem
+          stara strona sama wróci do działania i znowu będzie mogła przyjmować zamówienia.
+        </p>
+      ) : null}
+      {plan.konserwacjaRecznie && plan.status !== 'done' ? (
+        <p className="rounded-lg border border-amber-500/25 bg-amber-500/[0.06] px-3 py-2 text-xs text-amber-100/90">
+          Starej strony nie dało się automatycznie zamknąć na czas kopiowania bazy (to nie WordPress). Jeśli w tym czasie
+          przyjęła zamówienia, wstrzymaj sprzedaż w jej panelu i dograj różnice jeszcze raz, a potem przełącz DNS.
+        </p>
+      ) : null}
       {plan.deltaSyncRecommended ? (
         <div className="rounded-lg border border-amber-500/25 bg-amber-500/[0.06] px-3 py-2 text-xs text-amber-100/90">
-          Od transferu minęło trochę czasu — zalecamy dograć różnice ({poczta ? 'nowe wiadomości' : 'pliki i nową pocztę'}) tuż przed przełączeniem.
+          {plan.dosyncBazy
+            ? 'Tuż przed przełączeniem DNS dograj różnice: pliki, bazę (zamówienia, klienci, stany) i pocztę. Kopiowanie bazy to przerwa na kilka minut na starej stronie.'
+            : `Od transferu minęło trochę czasu — zalecamy dograć różnice (${poczta ? 'nowe wiadomości' : 'pliki i nową pocztę'}) tuż przed przełączeniem.`}
           <div className="mt-2">
             <Button type="button" disabled={busy === 'delta'} onClick={onDelta} className="bg-amber-600 hover:bg-amber-500 text-white text-xs">
               {busy === 'delta' ? 'Dosynchronizowuję…' : 'Dograj różnice (delta-sync)'}

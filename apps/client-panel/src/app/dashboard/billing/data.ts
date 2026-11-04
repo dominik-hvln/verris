@@ -4,7 +4,7 @@ import type {
   StatusPlatnosciPaynowDto,
   WalletAutoTopupSettingsDto,
   WalletSummaryDto,
-} from '@verris/contracts';
+} from '@verris/contracts/klient';
 import { apiFetch } from '@/lib/api';
 
 export async function getWalletSummary(): Promise<WalletSummaryDto> {

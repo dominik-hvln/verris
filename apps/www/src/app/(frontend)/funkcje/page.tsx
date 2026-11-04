@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Accordion, Card, CTABand, JsonLd, SectionHead, SubHero } from '../components/ui';
 import { faqSchema, SITE } from '@/lib/schema';
-import { SPEC_PO_WERYFIKACJI } from '@/lib/oferta';
+import { PHP_ZAKRES, SPEC_PO_WERYFIKACJI } from '@/lib/oferta';
 import { cenaPakietu, zCena } from '@/lib/ceny';
 import { pobierzCeny } from '@/lib/ceny-api';
 
@@ -15,7 +15,7 @@ import { pobierzCeny } from '@/lib/ceny-api';
 export const metadata: Metadata = {
   title: 'Funkcje hostingu: kopie, SSL, WAF, statystyki | Verris',
   description:
-    'Co dostajesz w hostingu Verris: autoskalowanie, kopie z 30 dni, SSL, WAF, statystyki bez cookies i SLA 99,5%. Jeden pakiet, ta sama cena przy odnowieniu.',
+    'Co dostajesz w hostingu Verris: autoskalowanie, kopie z 30 dni, SSL, WAF, statystyki bez cookies i SLA 99,5%. Jeden pakiet, cena odnowienia znana z góry.',
   alternates: { canonical: '/funkcje' },
 };
 
@@ -127,7 +127,7 @@ const GRUPY: { title: string; id: string; items: Funkcja[] }[] = [
         more: 'Domeny',
       },
       {
-        tag: 'PHP 7.4–8.3',
+        tag: `PHP ${PHP_ZAKRES}`,
         title: 'PHP, Node.js i Python',
         text: 'Wersja PHP osobno dla każdej domeny, aplikacje Node.js i Python uruchamiane z panelu, SSH i Git.',
         href: '/specyfikacja',
@@ -142,7 +142,7 @@ const GWARANCJE: { tag: string; title: string; text: string; href: string; more:
   {
     tag: 'SLA',
     title: 'SLA 99,5% z rekompensatą',
-    text: 'Gdy dostępność w miesiącu spadnie poniżej 99,5%, na wniosek przysługuje rekompensata od 5% do 100% opłaty — tak stoi w regulaminie.',
+    text: 'Gdy dostępność w miesiącu spadnie poniżej 99,5%, rekompensatę w kredytach (od 5% do całej opłaty za miesiąc) przyznajemy automatycznie, bez wniosku — tak stoi w regulaminie.',
     href: '/funkcje/sla',
     more: 'Zasady SLA',
   },
@@ -155,8 +155,8 @@ const GWARANCJE: { tag: string; title: string; text: string; href: string; more:
   },
   {
     tag: 'cena',
-    title: 'Ta sama cena przy odnowieniu',
-    text: 'Nie ma taniego pierwszego roku. {cena} — dziś i przy odnowieniu.',
+    title: 'Cena odnowienia znana z góry',
+    text: '{cena}. Odnowienie po cenie z cennika; rabat na start dotyczy tylko pierwszego zakupu.',
     href: '/cennik',
     more: 'Cennik',
   },

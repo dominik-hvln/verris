@@ -8,7 +8,7 @@ import {
   SIDEBAR_TILE_OPTIONS,
   resolveSidebarQuickLinks,
   type SidebarTileHref,
-} from '@verris/contracts';
+} from '@verris/contracts/klient';
 import { updateSidebarQuickLinks } from './actions';
 
 export function SidebarTilesSection({ initialLinks }: { initialLinks: string[] }) {

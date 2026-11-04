@@ -1,11 +1,24 @@
 "use server";
 
-import type { PostepBetaDto } from "@verris/contracts";
+import type { PostepBetaDto } from "@verris/contracts/klient";
 import { apiFetch } from "@/lib/api";
 
 /** PB-26 — strona „Testy (beta)”: postęp zalogowanego testera (kroki i uwagi). */
 export async function pobierzPostepBetaAction(): Promise<PostepBetaDto> {
   return apiFetch<PostepBetaDto>("/me/beta/postep");
+}
+
+/**
+ * P1-11 — stan konta w testach: tester (zrealizował kod) albo ma niewykorzystane zaproszenie (pulpit: „Wpisz kod
+ * z zaproszenia”). Błąd API = nic nie pokazujemy (pulpit działa bez tej informacji).
+ */
+export async function pobierzStanBetyAction(): Promise<{ tester: boolean; zaproszenie: boolean }> {
+  try {
+    const r = await apiFetch<{ tester?: boolean; zaproszenie?: boolean }>("/me/beta");
+    return { tester: r.tester === true, zaproszenie: r.zaproszenie === true };
+  } catch {
+    return { tester: false, zaproszenie: false };
+  }
 }
 
 type Wynik = { ok: true; postep: PostepBetaDto } | { ok: false; blad: string };

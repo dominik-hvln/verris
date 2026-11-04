@@ -6,6 +6,12 @@ import { usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
 import { Logo } from './ui';
 import { headerLinks, PANEL, topLinks, ZAMOW } from '@/lib/site';
+import { ZAMOW_POCZTE } from '@/lib/proba';
+
+/** P4-4: na stronach poczty przycisk w nagłówku zamawia pocztę, nie hosting za cenę roczną hostingu. */
+export function celZamowienia(sciezka: string | null): { href: string; dopisek: string; plan?: string } {
+  return sciezka?.startsWith('/poczta') ? { href: ZAMOW_POCZTE, dopisek: 'pocztę', plan: 'poczta' } : { href: ZAMOW, dopisek: 'hosting' };
+}
 
 /**
  * Nagłówek całego verris.pl (makieta 14.10, plansza Naglowek): pasek pomocniczy (pomoc, status, kontakt, agencje),
@@ -16,6 +22,15 @@ export function Header() {
   const [open, setOpen] = useState(false);
   const btn = useRef<HTMLButtonElement>(null);
   const path = usePathname();
+  const zamow = celZamowienia(path);
+
+  // A3-10: przy otwartym menu treść strony i stopka są nieaktywne (inert) — Tab nie ucieka spod menu na niewidoczne linki.
+  useEffect(() => {
+    if (!open) return;
+    const tlo = Array.from(document.querySelectorAll<HTMLElement>('body > main, body > footer'));
+    tlo.forEach((el) => el.setAttribute('inert', ''));
+    return () => tlo.forEach((el) => el.removeAttribute('inert'));
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -62,8 +77,8 @@ export function Header() {
           Zaloguj się
         </a>
         {/* checkout_intent liczy przycisk na /zamow (przejście do panelu), nie wejście na tę stronę. */}
-        <a className="btn btn-primary nav-cta" href={ZAMOW} data-event="cta_click" data-cta="nav">
-          Zamów<span className="nav-cta-long">hosting</span>
+        <a className="btn btn-primary nav-cta" href={zamow.href} data-event="cta_click" data-cta="nav" data-plan={zamow.plan}>
+          Zamów<span className="nav-cta-long">{zamow.dopisek}</span>
         </a>
         <button
           ref={btn}
@@ -85,6 +100,10 @@ export function Header() {
             {l.label}
           </a>
         ))}
+        {/* P4-5: przy powiększeniu 200% przycisk „Zamów” z paska chowa się — tu jest zawsze. */}
+        <a className="btn btn-primary" href={zamow.href} data-event="cta_click" data-cta="menu" data-plan={zamow.plan}>
+          Zamów {zamow.dopisek}
+        </a>
         <a className="btn btn-ghost" href={PANEL}>
           Zaloguj się
         </a>

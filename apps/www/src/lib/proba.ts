@@ -34,6 +34,16 @@ export function ctaProby(ceny: Ceny): CtaProby {
 /** Zamówienie dowolnej usługi w panelu (formularz nowej usługi z wyborem planu). */
 export const ZAMOW_W_PANELU = `${PANEL}/dashboard/services/new`;
 
+/** Zamówienie samej poczty w panelu (formularz nowej usługi z typem „Poczta e-mail”). */
+export const CEL_POCZTY = '/dashboard/services/new?type=email';
+
+/**
+ * P4-4 (beta 3.11): „Załóż firmową pocztę” z /poczta prowadzi na rejestrację z zachowanym celem, a nie na logowanie
+ * i ogólne „Nowa usługa”. Panel: rejestracja zapamiętuje `next` do pierwszego logowania; zalogowany klient trafia
+ * od razu do zamówienia poczty (middleware panelu, /register z `next`). Ścieżka sprawdzana w panelu (sciezkaPowrotu).
+ */
+export const ZAMOW_POCZTE = `${PANEL}/register?next=${encodeURIComponent(CEL_POCZTY)}`;
+
 export type TrescPaska = { tytul: string; podpis: string; przycisk: string; href: string };
 
 /** Pasek na telefonie dla stron hostingu: cena miesięczna, podpis o próbie albo cenie rocznej. */
@@ -55,6 +65,6 @@ export function pasekPoczty(ceny: Ceny): TrescPaska {
     tytul: `${zl(ceny.poczta.miesiecznie)} / mies.`,
     podpis: `brutto · ${zl(netto(ceny.poczta.miesiecznie))} netto · sama poczta`,
     przycisk: 'Załóż pocztę',
-    href: ZAMOW_W_PANELU,
+    href: ZAMOW_POCZTE,
   };
 }

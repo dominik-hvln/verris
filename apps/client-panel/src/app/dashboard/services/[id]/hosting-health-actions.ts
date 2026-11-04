@@ -1,6 +1,6 @@
 'use server';
 
-import type { ServiceHealthSummaryDto } from '@verris/contracts';
+import type { ServiceHealthSummaryDto } from '@verris/contracts/klient';
 import { apiFetch } from '@/lib/api';
 
 export async function fetchServiceHealthAction(

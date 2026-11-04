@@ -22,8 +22,8 @@ import type {
   ServiceDetailsDto,
   ServiceHealthSummaryDto,
   ServiceRecommendationDto,
-} from '@verris/contracts';
-import { domenaDoWyswietlenia } from '@verris/contracts';
+} from '@verris/contracts/klient';
+import { domenaDoWyswietlenia } from '@verris/contracts/klient';
 import { Button } from '@verris/ui';
 import {
   fetchServiceDetailsAction as fetchServiceDetailsActionAkcja,

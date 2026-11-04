@@ -13,6 +13,17 @@ import { MailerService } from '../mail/mailer.service.js';
 import { promoCodeRedeemedTemplate } from '../mail/templates/promo-notifications.js';
 import { KOD_U_PARTNERA, klientAktywnegoResellera } from '../reseller/narzut-resellera.js';
 
+export const KOD_BETA_INNY_ADRES =
+  'Ten kod z zaproszenia do testów jest przypisany do innego adresu e-mail. Zaloguj się na konto założone na adres, na który przyszło zaproszenie.';
+
+/** P5-12 — „ten kod jest już na Twoim portfelu” z kwotą i datą, zamiast „w pełni wykorzystany”. */
+export function juzZrealizowany(r: { amountCredited: Prisma.Decimal | number | string; redeemedAt: Date; walletTxId?: string | null }): string {
+  const kiedy = r.redeemedAt.toLocaleString('pl-PL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Warsaw' });
+  const kwota = new Prisma.Decimal(r.amountCredited);
+  if (!r.walletTxId || kwota.lessThanOrEqualTo(0)) return `Ten kod jest już wykorzystany na Twoim koncie (${kiedy}).`;
+  return `Ten kod jest już na Twoim portfelu (+${kwota.toFixed(2).replace('.', ',')} K, ${kiedy}).`;
+}
+
 @Injectable()
 export class PromoService {
   private readonly logger = new Logger(PromoService.name);
@@ -47,15 +58,33 @@ export class PromoService {
     if (promo.validTo && now > promo.validTo) {
       throw new BadRequestException('Ten kod wygasł.');
     }
-    if (promo.maxRedemptions != null && promo.redemptionCount >= promo.maxRedemptions) {
-      throw new BadRequestException('Ten kod został w pełni wykorzystany.');
-    }
-
+    // P5-12 — najpierw „to już Twoje”: przy kodzie jednorazowym sprawdzenie limitu odpowiadało temu samemu
+    // klientowi „w pełni wykorzystany” i wyglądało, jakby kod wykorzystał ktoś obcy.
     const already = await this.prisma.promoRedemption.findUnique({
       where: { promoCodeId_userId: { promoCodeId: promo.id, userId } },
     });
     if (already) {
-      throw new BadRequestException('Już zrealizowałeś ten kod.');
+      throw new BadRequestException(juzZrealizowany(already));
+    }
+
+    // P5-02 — kod z zaproszenia do testów jest imienny: realizuje go tylko konto z adresem z zaproszenia,
+    // a jedno konto zbiera najwyżej jeden kod BETA. Wcześniej kod wklejony przez kogokolwiek dopisywał mu 150 K,
+    // a zaproszona osoba dostawała „w pełni wykorzystany”.
+    const zaproszenie = await this.prisma.betaInvite.findUnique({ where: { promoCodeId: promo.id }, select: { email: true } });
+    if (zaproszenie) {
+      const konto = await this.prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+      if (!konto || konto.email.trim().toLowerCase() !== zaproszenie.email.trim().toLowerCase()) {
+        throw new BadRequestException(KOD_BETA_INNY_ADRES);
+      }
+      const innyBeta = await this.prisma.promoRedemption.findFirst({
+        where: { userId, promoCode: { betaInvite: { isNot: null } } },
+        select: { id: true },
+      });
+      if (innyBeta) throw new BadRequestException('Masz już na koncie kredyt z zaproszenia do testów — kolejny kod BETA nie zostanie dopisany.');
+    }
+
+    if (promo.maxRedemptions != null && promo.redemptionCount >= promo.maxRedemptions) {
+      throw new BadRequestException('Ten kod został w pełni wykorzystany.');
     }
 
     if (promo.kind === PromoKind.PERCENT_BONUS) {
@@ -85,7 +114,9 @@ export class PromoService {
       data: { redemptionCount: { increment: 1 } },
     });
     if (zajete.count === 0) {
-      throw new BadRequestException('Ten kod został w pełni wykorzystany.');
+      // P5-12 — druga karta tego samego klienta: miejsce zajęła jego pierwsza karta, więc „już na Twoim portfelu”.
+      const moje = await this.prisma.promoRedemption.findUnique({ where: { promoCodeId_userId: { promoCodeId: promo.id, userId } } });
+      throw new BadRequestException(moje ? juzZrealizowany(moje) : 'Ten kod został w pełni wykorzystany.');
     }
 
     let credit: Awaited<ReturnType<WalletLedgerService['credit']>>;
@@ -96,7 +127,9 @@ export class PromoService {
         amount,
         type: WalletTxType.PROMO_CREDIT,
         description: promo.description ?? `Promocja „${promo.code}”`,
-        idempotencyKey: `promo-redeem:${promo.id}:${userId}`,
+        // Kod BETA: jeden klucz na konto — dwa różne kody BETA zrealizowane równocześnie dają jeden kredyt
+        // (drugi wpis użycia trafia na unikalne walletTxId i jest wycofywany).
+        idempotencyKey: zaproszenie ? `promo-beta:${userId}` : `promo-redeem:${promo.id}:${userId}`,
         paymentProvider: 'PROMO',
         paymentRef: promo.id,
         metadata: { promoCodeId: promo.id },

@@ -537,20 +537,13 @@ export class DataExportService implements OnApplicationBootstrap {
         }),
       ]);
 
-    const sanitizedUser = {
-      ...user,
-      passwordHash: '[REDACTED]',
-      twoFactorSecret: user.twoFactorSecret ? '[REDACTED]' : null,
-      twoFactorRecoveryCodesEnc: user.twoFactorRecoveryCodesEnc ? '[REDACTED]' : null,
-      staffBreakGlassCodesEnc: user.staffBreakGlassCodesEnc ? '[REDACTED]' : null,
-    };
+    // P5-07 (paczka 109) — allowlista zamiast „cały wiersz minus sekrety”: nowe kolumny wewnętrzne (flagi zespołu,
+    // wyzwania WebAuthn, liczniki tokenów) nie wyciekają same do eksportu. Sekretów nie ma w pliku wcale.
+    const sanitizedUser = profilDoEksportu(user);
     // Audyt Fal 2 — powód blokady wysyłki to notatka zespołu (API klienta też go nie oddaje — subscriptions.service.ts):
     // przy abuse niesie uzasadnienie z treścią zgłoszenia osoby trzeciej (art. 15 ust. 4 RODO). Klient widzi, że
     // i kiedy obsługa zablokowała wysyłkę; kto (id pracownika) — zamienia bezIdPracownikow na „Obsługa Verris”.
-    const sanitizedAccounts = accounts.map(({ mailBlockedReason: _powod, ...a }) => ({
-      ...a,
-      daPasswordEnc: a.daPasswordEnc ? '[REDACTED]' : null,
-    }));
+    const sanitizedAccounts = accounts.map(kontoDoEksportu);
 
     const pracownicy = await this.idPracownikow(userId);
     return bezIdPracownikow(pracownicy, {
@@ -559,7 +552,7 @@ export class DataExportService implements OnApplicationBootstrap {
         generatedAt: new Date().toISOString(),
         format: 'zip-of-json',
         notice:
-          'This archive contains all personal data Verris stores about your account, in machine-readable form (RODO Art. 20).',
+          'Archiwum zawiera wszystkie dane osobowe, które Verris przechowuje o Twoim koncie, w formie do odczytu maszynowego (RODO art. 20). Opis plików: README.txt.'
       },
       profile: sanitizedUser,
       'marketing-preferences': prefs,
@@ -842,10 +835,11 @@ function buildReadme(userId: string): string {
     '',
     'Pliki w archiwum:',
     '  README.txt                       — ten plik.',
-    '  profile.json                     — dane konta (e-mail, dane do faktury, flagi).',
+    '  profile.json                     — dane konta: e-mail, imię i nazwisko, dane do faktury, saldo, ustawienia logowania,',
+    '                                     zgody i daty; notatkaObslugi — notatka obsługi o koncie (jeśli jest).',
     '  consents.json                    — historia akceptacji regulaminu, polityki, DPA.',
     '  marketing-preferences.json       — preferencje komunikacji (newsletter, kampanie).',
-    '  accounts.json                    — konta hostingowe, bez haseł.',
+    '  accounts.json                    — konta hostingowe: domena, login, wersja PHP, limity, kopie; bez haseł.',
     '  subscriptions.json               — subskrypcje (plan, status, okresy).',
     '  invoices.json                    — faktury VAT (zachowane 5 lat — wymóg PL).',
     '  wallet-transactions.json         — historia portfela (kredyty, doładowania).',
@@ -863,11 +857,10 @@ function buildReadme(userId: string): string {
     '',
     'Format: UTF-8, JSON. Zewnętrzny plik archiwum: ZIP (deflate).',
     '',
-    'Pole, które nigdy nie opuszcza naszego systemu w eksporcie:',
-    '  - hash hasła (passwordHash) → "[REDACTED]"',
-    '  - sekret 2FA (twoFactorSecret) → "[REDACTED]"',
-    '  - kody odzyskiwania 2FA → "[REDACTED]"',
-    '  - hasła kont hostingowych (daPasswordEnc) → "[REDACTED]"',
+    'Czego nie ma w eksporcie (ze względów bezpieczeństwa):',
+    '  - hasło do panelu (przechowujemy tylko jego skrót),',
+    '  - sekret i kody odzyskiwania logowania dwuetapowego,',
+    '  - hasła kont hostingowych.',
     '',
     'Pełne wyjaśnienie polityki eksportu i podstawy prawnej:',
     '  https://verris.pl/legal/privacy',
@@ -875,4 +868,41 @@ function buildReadme(userId: string): string {
     'Kontakt RODO: rodo@verris.pl',
     '',
   ].join('\n');
+}
+
+/**
+ * P5-07 (paczka 109) — pola profilu w eksporcie (allowlista). Poza listą zostają: skrót hasła, sekrety 2FA, wyzwania
+ * WebAuthn, liczniki tokenów, flagi zespołu (isInternal, canAccessGrafana, billingOutside), identyfikatory innych osób
+ * (polecający, reseller, pracownik weryfikujący VAT) i identyfikatory płatności. Notatka obsługi o koncie to dane
+ * klienta (art. 15, jak customer-notes — decyzja 10.10), więc wychodzi jako „notatkaObslugi”.
+ */
+const POLA_PROFILU = [
+  'id', 'email', 'firstName', 'lastName', 'companyName', 'nip', 'address', 'city', 'postalCode', 'country', 'locale',
+  'walletBalance', 'walletCurrency', 'ecoPoints', 'referralCode', 'vatWeryfikacjaAt', 'vatWeryfikacjaPodstawa', 'vatWeryfikacjaKraj',
+  'isTwoFactorEnabled', 'twoFactorEnrolledAt', 'requireStrongAuth', 'termsAcceptedAt', 'privacyAcceptedAt',
+  'lastConsentVersionTerms', 'lastConsentVersionPrivacy', 'emailVerifiedAt', 'pendingEmail', 'trialStartedAt',
+  'loginBlocked', 'loginBlockedReason', 'deletionRequestedAt', 'panelViewMode', 'panelTheme', 'customerOwnerId',
+  'subaccountLabel', 'subaccountDisabledAt', 'prioritySupport', 'prioritySupportUntil', 'createdAt', 'updatedAt',
+] as const;
+
+export function profilDoEksportu(user: Record<string, unknown>): Record<string, unknown> {
+  const wynik: Record<string, unknown> = {};
+  for (const k of POLA_PROFILU) if (k in user) wynik[k] = user[k];
+  if (typeof user.adminInternalNote === 'string' && user.adminInternalNote.trim()) wynik.notatkaObslugi = user.adminInternalNote;
+  return wynik;
+}
+
+/** P5-07 — konto hostingowe w eksporcie: bez hasła, węzła i pól technicznych; login bez prefiksu narzędzia. */
+const POLA_KONTA = [
+  'id', 'domain', 'status', 'phpVersion', 'phpAppliedAt', 'wafMode', 'wafAppliedAt', 'stagingCreatedAt', 'stagingSyncedAt',
+  'cpuLimit', 'ramLimitMb', 'diskLimitMb', 'ioLimitKbps', 'iopsLimit', 'entryProcesses', 'nprocLimit',
+  'scaledCpu', 'scaledRamMb', 'scaledDiskMb', 'scaledSince', 'lastBackupAt', 'mailBlockedAt', 'mailBlockedById', 'mailSendLimit',
+  'offsiteBackupOkAt', 'offsiteBackupBytes', 'offsiteBackupFailedAt', 'subscriptionId', 'createdAt', 'updatedAt',
+] as const;
+
+export function kontoDoEksportu(a: Record<string, unknown>): Record<string, unknown> {
+  const wynik: Record<string, unknown> = {};
+  if ('daUsername' in a) wynik.login = a.daUsername;
+  for (const k of POLA_KONTA) if (k in a) wynik[k] = a[k];
+  return wynik;
 }

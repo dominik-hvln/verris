@@ -20,6 +20,7 @@ export const STYL_GLOWNEJ = `
 /* podgląd w hero */
 .gl-podglad{background:var(--pine);border:1px solid var(--line2);border-radius:20px;padding:16px;display:grid;gap:14px;min-width:0}
 .gl-zakl{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.gl-zakl-karty{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .gl-tab{min-height:44px;padding:0 16px;border-radius:10px;border:1px solid var(--line2);background:transparent;color:var(--body);font:600 14px var(--text);cursor:pointer}
 .gl-tab[aria-selected=true]{background:var(--card2);border-color:var(--mid);color:var(--paper)}
 .gl-tab:focus-visible{outline:2px solid var(--tip);outline-offset:2px}
@@ -145,7 +146,8 @@ export const STYL_GLOWNEJ = `
 .gl-karta h3{font-size:19px;margin:0}
 .gl-karta p{margin:0}
 .gl-etyk{display:flex;flex-wrap:wrap;gap:6px}
-.gl-etyk span{font:11.5px var(--mono);padding:4px 8px;border-radius:6px;background:var(--page);border:1px solid var(--line);color:var(--body);white-space:nowrap}
+.gl-etyk span{font:11.5px var(--mono);padding:4px 8px;border-radius:6px;background:var(--page);border:1px solid var(--line);color:var(--body);white-space:nowrap;max-width:100%;overflow-wrap:anywhere}
+@media(max-width:479px){.gl-etyk span{white-space:normal}}
 .gl-stopka{margin-top:auto;padding-top:14px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:14px}
 .gl-stopka a{white-space:nowrap;font-weight:600;color:var(--mint)}
 .gl-stopka span{color:var(--stone)}
@@ -205,12 +207,12 @@ export const STYL_GLOWNEJ = `
 @media(min-width:1100px){.gl-kroki{grid-template-columns:repeat(4,minmax(0,1fr))}}
 
 /* zasady */
-.gl-zasady{display:grid;gap:16px;align-items:stretch}
+.gl-zasady{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:stretch}
 .gl-zasada{display:flex;flex-direction:column;gap:14px;padding:28px}
 .gl-zasada-g{display:flex;gap:14px;align-items:center}
 .gl-zasada-g h3{margin:0;font-size:19px}
 .gl-zasada p{margin:0;font-size:15px}
-.gl-sla{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;text-align:center}
+.gl-sla{display:grid;grid-template-columns:repeat(auto-fit,minmax(64px,1fr));gap:8px;text-align:center}
 .gl-sla div{background:var(--page);border-radius:10px;padding:10px 4px}
 .gl-sla b{color:var(--paper);display:block}
 .gl-sla span{font-size:12px;color:var(--stone)}
@@ -218,7 +220,7 @@ export const STYL_GLOWNEJ = `
 .gl-firma-kto{display:grid;gap:8px}
 .gl-firma-kto small{font:11.5px var(--mono);letter-spacing:.06em;color:var(--stone)}
 .gl-firma-kto b{color:var(--paper);font:700 22px var(--display)}
-.gl-dokumenty{list-style:none;margin:0;padding:0;display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.gl-dokumenty{list-style:none;margin:0;padding:0;display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(170px,100%),1fr))}
 .gl-dokumenty a{display:grid;gap:2px;padding:14px 16px;border-radius:12px;background:var(--page);border:1px solid var(--line);text-decoration:none;height:100%;box-sizing:border-box}
 .gl-dokumenty a:hover{border-color:rgba(52,229,160,.45)}
 .gl-dokumenty b{color:var(--paper);font-size:15px}

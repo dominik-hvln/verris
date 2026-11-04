@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Suspense, useEffect, useState, useSyncExternalStore, type ComponentType } from "react";
+import { Suspense, useEffect, useId, useRef, useState, useSyncExternalStore, type ComponentType } from "react";
 import { logoutAction } from "./actions";
 import { fetchSidebarUserState, savePanelPreferences, type SidebarUser } from "./sidebar-actions";
 import { pushUserData } from "@/lib/analytics-events";
 import { ImpersonationBanner } from "./impersonation-banner";
 import { PasekCudzegoKonta, PrzelacznikKont } from "./przelacznik-kont";
+import { BanerBrakuDostepu } from "./baner-braku-dostepu";
+import { adresBrakuDostepu } from "@/lib/brak-dostepu";
 import { getImpersonationContext } from "./impersonation-actions";
 import { IncidentBanner } from "./incident-banner";
 import { NoticesBanner } from "./notices-banner";
@@ -31,7 +33,8 @@ import { TipLayer } from "@/components/panel/v2";
 import { BanerNowejWersji } from "@verris/ui";
 import { ServiceNav } from "@/components/panel/service-nav";
 import { THEME_KEY, ThemeToggle, applyTheme } from "@/components/panel/theme-toggle";
-import { CommandPalette, type PaletteItem } from "@/components/panel/command-palette";
+import { CommandPalette, tylkoDostepne, type PaletteItem } from "@/components/panel/command-palette";
+import { useSzufladaMenu } from "@/components/panel/szuflada-menu";
 import { fetchRailDataAction, type RailData } from "./rail-actions";
 import { najnizszyPostep } from "./onboarding-kroki";
 import {
@@ -92,7 +95,7 @@ const secondaryItems = [
         ? [{ name: "Program EKO", href: "/dashboard/eco", icon: VerrisEkoIcon, accent: true as const }]
         : []),
       ...(clientFeatures.referral
-        ? [{ name: "Program partnerski", href: "/dashboard/referral", icon: VerrisProgramPartnerskiIcon }]
+        ? [{ name: "Program poleceń", href: "/dashboard/referral", icon: VerrisProgramPartnerskiIcon }]
         : []),
       ...(clientFeatures.iam
         ? [{ name: "IAM i subkonta", href: "/dashboard/iam", icon: Users }]
@@ -219,6 +222,8 @@ function SetupProgress({ nazwa, procent, onOpen }: { nazwa: string; procent: num
 function UserMenu({ displayName, email, initials, loading = false }: { displayName: string; email: string; initials: string; loading?: boolean }) {
   const iam = useModul("modul.iam");
   const [open, setOpen] = useState(false);
+  const przycisk = useRef<HTMLButtonElement | null>(null);
+  const idListy = useId();
   // Serwer i hydratacja: widok pełny; potem wartość z przeglądarki i każda zmiana z „verris-mode”.
   const simple = useSyncExternalStore(subscribePanelMode, readSimpleMode, () => false);
   useEffect(() => {
@@ -226,7 +231,11 @@ function UserMenu({ displayName, email, initials, loading = false }: { displayNa
     const close = (e: MouseEvent) => {
       if (!(e.target as Element).closest?.("[data-user-menu]")) setOpen(false);
     };
-    const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    const esc = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      przycisk.current?.focus();
+    };
     document.addEventListener("click", close);
     document.addEventListener("keydown", esc);
     return () => {
@@ -241,8 +250,37 @@ function UserMenu({ displayName, email, initials, loading = false }: { displayNa
   const item = "flex w-full items-center gap-2.5 rounded-md px-2.5 py-[7px] text-left text-[13.5px] text-sidebar-foreground hover:bg-white/5 hover:text-verris-paper";
   return (
     <div className="relative" data-user-menu>
+      <button
+        ref={przycisk}
+        type="button"
+        aria-expanded={open}
+        aria-controls={open ? idListy : undefined}
+        aria-label={loading ? "Menu konta" : `${displayName} — menu konta: ustawienia, widok, wyloguj`}
+        onClick={() => setOpen((v) => !v)}
+        className="v2-comet v2-comet-soft flex w-full items-center gap-2.5 rounded-lg border border-white/[0.06] bg-white/[0.02] px-2.5 py-2 text-left hover:border-verris-mint/30"
+        style={{ ["--v2-k" as string]: "v2-comet-a", ["--v2-d" as string]: "11s", ["--v2-dl" as string]: "-8s", ["--v2-o" as string]: 0.5 }}
+      >
+        <span className="grid h-8 w-8 flex-none place-items-center rounded-full bg-gradient-to-br from-verris-green to-verris-mint font-display text-xs font-extrabold text-verris-pine">
+          {loading ? null : initials}
+        </span>
+        {loading ? (
+          <span className="min-w-0 flex-1 space-y-1.5" role="status" aria-label="Wczytywanie konta">
+            <span className="block h-3 w-28 animate-pulse rounded bg-white/10" />
+            <span className="block h-2.5 w-36 animate-pulse rounded bg-white/[0.06]" />
+          </span>
+        ) : (
+          <span className="min-w-0 flex-1">
+            <b className="block break-words text-[13.5px] font-semibold leading-tight text-verris-paper">{displayName}</b>
+            {email ? <small className="block break-all font-mono text-[11.5px] text-verris-stone">{email}</small> : null}
+            <small className="block font-mono text-[11.5px] text-verris-stone">widok {simple ? "prosty" : "pełny"}</small>
+          </span>
+        )}
+        <ChevronUp className={`h-4 w-4 flex-none text-verris-stone transition-transform ${open ? "" : "rotate-180"}`} />
+      </button>
+      {/* A3-9 — zwykła lista po przycisku (Tab z przycisku wchodzi w menu); bez role="menu", które zapowiada strzałki.
+          Wizualnie nad przyciskiem (absolute bottom), kolejność w DOM = kolejność Tab. */}
       {open ? (
-        <div role="menu" className="absolute inset-x-0 bottom-[calc(100%+6px)] z-10 rounded-[10px] border border-white/10 bg-[#10241b] p-1.5 shadow-[0_18px_40px_-16px_rgba(0,0,0,0.7)]">
+        <div id={idListy} className="absolute inset-x-0 bottom-[calc(100%+6px)] z-10 rounded-[10px] border border-white/10 bg-[#10241b] p-1.5 shadow-[0_18px_40px_-16px_rgba(0,0,0,0.7)]">
           <div className="flex items-center justify-between gap-2 px-2.5 pb-0.5 pt-1.5 text-[13px] text-verris-paper">
             Widok panelu
             <div className="inline-flex rounded-md border border-white/10 bg-white/[0.04] p-0.5" role="group" aria-label="Widok panelu">
@@ -266,55 +304,29 @@ function UserMenu({ displayName, email, initials, loading = false }: { displayNa
             {simple ? "Pokazujemy to, co najważniejsze, bez żargonu." : "Pokazujemy wszystkie narzędzia i szczegóły techniczne."}
           </p>
           <hr className="my-1 border-white/10" />
-          <Link href="/dashboard/settings" className={item} role="menuitem" onClick={() => setOpen(false)}>
+          <Link href="/dashboard/settings" className={item} onClick={() => setOpen(false)}>
             <VerrisUstawieniaIcon className="h-4 w-4 opacity-70" /> Ustawienia konta
           </Link>
-          <Link href="/dashboard/settings?tab=security" className={item} role="menuitem" onClick={() => setOpen(false)}>
+          <Link href="/dashboard/settings?tab=security" className={item} onClick={() => setOpen(false)}>
             <Shield className="h-4 w-4 opacity-70" /> Bezpieczeństwo i logowanie
           </Link>
           {iam ? (
-            <Link href="/dashboard/iam" className={item} role="menuitem" onClick={() => setOpen(false)}>
+            <Link href="/dashboard/iam" className={item} onClick={() => setOpen(false)}>
               <Users className="h-4 w-4 opacity-70" /> Zespół i dostęp
             </Link>
           ) : null}
-          <Link href="/dashboard/settings?tab=notifications" className={item} role="menuitem" onClick={() => setOpen(false)}>
+          <Link href="/dashboard/settings?tab=notifications" className={item} onClick={() => setOpen(false)}>
             <Bell className="h-4 w-4 opacity-70" /> Powiadomienia
           </Link>
           <CookiePreferencesButton className={item} />
           <hr className="my-1 border-white/10" />
           <form action={logoutAction}>
-            <button type="submit" className={`${item} text-rose-300 hover:text-rose-200`} role="menuitem">
+            <button type="submit" className={`${item} text-rose-300 hover:text-rose-200`}>
               <LogOut className="h-4 w-4" /> Wyloguj
             </button>
           </form>
         </div>
       ) : null}
-      <button
-        type="button"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-label="Menu konta: ustawienia, widok, wyloguj"
-        onClick={() => setOpen((v) => !v)}
-        className="v2-comet v2-comet-soft flex w-full items-center gap-2.5 rounded-lg border border-white/[0.06] bg-white/[0.02] px-2.5 py-2 text-left hover:border-verris-mint/30"
-        style={{ ["--v2-k" as string]: "v2-comet-a", ["--v2-d" as string]: "11s", ["--v2-dl" as string]: "-8s", ["--v2-o" as string]: 0.5 }}
-      >
-        <span className="grid h-8 w-8 flex-none place-items-center rounded-full bg-gradient-to-br from-verris-green to-verris-mint font-display text-xs font-extrabold text-verris-pine">
-          {loading ? null : initials}
-        </span>
-        {loading ? (
-          <span className="min-w-0 flex-1 space-y-1.5" role="status" aria-label="Wczytywanie konta">
-            <span className="block h-3 w-28 animate-pulse rounded bg-white/10" />
-            <span className="block h-2.5 w-36 animate-pulse rounded bg-white/[0.06]" />
-          </span>
-        ) : (
-          <span className="min-w-0 flex-1">
-            <b className="block break-words text-[13.5px] font-semibold leading-tight text-verris-paper">{displayName}</b>
-            {email ? <small className="block break-all font-mono text-[11.5px] text-verris-stone">{email}</small> : null}
-            <small className="block font-mono text-[11.5px] text-verris-stone">widok {simple ? "prosty" : "pełny"}</small>
-          </span>
-        )}
-        <ChevronUp className={`h-4 w-4 flex-none text-verris-stone transition-transform ${open ? "" : "rotate-180"}`} />
-      </button>
     </div>
   );
 }
@@ -339,6 +351,10 @@ function DashboardLayoutInner({
   const [userLoading, setUserLoading] = useState(true);
   const [impersonating, setImpersonating] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // A3-3 — szuflada poniżej lg: inert, gdy zamknięta; po otwarciu fokus w środku, Esc wraca na ☰.
+  const szuflada = useRef<HTMLElement | null>(null);
+  const przyciskMenu = useRef<HTMLButtonElement | null>(null);
+  const { atrybutySzuflady, atrybutyPrzycisku } = useSzufladaMenu(sidebarOpen, () => setSidebarOpen(false), szuflada, przyciskMenu);
   const navCtx = clientNavContextFromSidebar(user);
   // N-12: moduł wyłączony flagą operatora znika z menu, kafelków i palety.
   const canAccess = (href: string) =>
@@ -397,7 +413,8 @@ function DashboardLayoutInner({
   useEffect(() => {
     if (!navCtx || !pathname.startsWith("/dashboard")) return;
     if (!canAccessDashboardRoute(pathname, navCtx)) {
-      router.replace("/dashboard");
+      // P3-08 — z komunikatem na pulpicie, nie po cichu.
+      router.replace(adresBrakuDostepu(pathname));
     }
   }, [navCtx, pathname, router]);
 
@@ -446,7 +463,8 @@ function DashboardLayoutInner({
   // Usługa strony do „Zgłoś uwagę” — tylko z listy /services (to samo id, co subskrypcja w zgłoszeniu).
   const uslugaRail = serviceId ? rail?.services?.find((x) => x.id === serviceId) : undefined;
   const uslugaStrony = uslugaRail ? { id: uslugaRail.id, nazwa: uslugaRail.domain ? `${uslugaRail.name} · ${uslugaRail.domain}` : uslugaRail.name } : null;
-  const paletteItems: PaletteItem[] = [
+  // P3-08 — paleta nie podsuwa stron i akcji, do których konto nie ma uprawnienia (jak menu); akcje bez adresu zostają.
+  const paletteItems: PaletteItem[] = tylkoDostepne(canAccess, [
     ...mainGridItems.map((i) => ({ label: i.name, hint: "strona", href: i.href })),
     ...navSecondaryItems.flatMap((g) => g.items).map((i) => ({ label: i.name, hint: "strona", href: i.href })),
     ...(rail?.services ?? []).map((sv) => ({
@@ -464,7 +482,7 @@ function DashboardLayoutInner({
     { label: "Bezpieczeństwo i logowanie", hint: "konto", href: "/dashboard/settings?tab=security" },
     { label: "Widok prosty", hint: "widok", run: () => setPanelMode(true) },
     { label: "Widok pełny (szczegóły techniczne)", hint: "widok", run: () => setPanelMode(false) },
-  ];
+  ]);
 
   const displayName =
     user?.firstName && user?.lastName
@@ -499,6 +517,8 @@ function DashboardLayoutInner({
       {/* Sidebar: drawer na mobile, stały panel na desktop (lg+) */}
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- delegacja kliknięć z linków menu (Enter na linku też wywołuje click) zamyka szufladę */}
       <aside
+        ref={szuflada}
+        {...atrybutySzuflady}
         className={`max-lg:fixed max-lg:inset-y-0 max-lg:left-0 z-[60] flex w-[300px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-transform duration-300 max-lg:duration-300 lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:max-h-screen lg:self-start lg:translate-x-0 ${
           sidebarOpen ? "max-lg:translate-x-0" : "max-lg:-translate-x-full"
         }`}
@@ -599,10 +619,12 @@ function DashboardLayoutInner({
         <header className="z-50 flex min-h-14 min-w-0 shrink-0 items-center justify-between gap-3 border-b border-border bg-background/95 px-4 backdrop-blur-xl max-lg:fixed max-lg:inset-x-0 max-lg:top-0 max-lg:h-mobile-header sm:gap-3 sm:px-6 lg:sticky lg:top-0 lg:z-40 lg:h-[61px] lg:bg-background/90 lg:px-7 lg:py-3">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <button
+              ref={przyciskMenu}
               type="button"
               className="inline-flex rounded-md border border-line p-2 text-muted-foreground hover:bg-raised lg:hidden"
               onClick={() => setSidebarOpen(true)}
               aria-label="Otwórz menu"
+              {...atrybutyPrzycisku}
             >
               <Menu className="h-4 w-4" />
             </button>
@@ -628,7 +650,10 @@ function DashboardLayoutInner({
           id="main"
           className="w-full min-w-0 max-w-full flex-1 overflow-x-hidden px-3 pb-4 max-lg:pt-mobile-header sm:px-6 sm:pb-6 lg:px-10 lg:pb-12 lg:pt-10"
         >
-          <PasekCudzegoKonta actingFor={user?.actingFor} zakres={user?.serviceScope?.length ?? 0} />
+          <PasekCudzegoKonta actingFor={user?.actingFor} kontoSubkonta={user?.kontoSubkonta} zakres={user?.serviceScope?.length ?? 0} />
+          <Suspense fallback={null}>
+            <BanerBrakuDostepu navCtx={navCtx} />
+          </Suspense>
           {children}
         </main>
 

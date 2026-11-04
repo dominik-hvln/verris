@@ -80,6 +80,24 @@ describe('middleware — powrót po zalogowaniu (next)', () => {
     );
     expect(zly.headers.get('location')).toBe('http://localhost:3001/dashboard');
   });
+
+  it('P4-4: zalogowany klient z linku verris.pl (/register?next=…) trafia od razu do zamówienia poczty', async () => {
+    const poczta = '/dashboard/services/new?type=email';
+    const res = await middleware(
+      new NextRequest(`http://localhost:3001/register?next=${encodeURIComponent(poczta)}`, { headers: { cookie: 'auth_token=t' } }),
+    );
+    expect(res.headers.get('location')).toBe(`http://localhost:3001${poczta}`);
+  });
+
+  it('P4-4: sesja już jest, a cel czeka z rejestracji (ciasteczko) — prowadzi tam i kasuje ciasteczko', async () => {
+    const res = await middleware(
+      new NextRequest('http://localhost:3001/login?notice=email-verified', {
+        headers: { cookie: `auth_token=t; verris_cel=${encodeURIComponent('/dashboard/reseller')}` },
+      }),
+    );
+    expect(res.headers.get('location')).toBe('http://localhost:3001/dashboard/reseller');
+    expect(res.cookies.get('verris_cel')?.value).toBe('');
+  });
 });
 
 /**
@@ -178,5 +196,21 @@ describe('middleware — CSP z nonce', () => {
     expect(dostawcaCaptchy('hcaptcha')).toBe('hcaptcha');
     expect(dostawcaCaptchy('')).toBe('recaptcha');
     expect(dostawcaCaptchy('cos-innego')).toBe('recaptcha');
+  });
+});
+
+/** P3-08 — subkonto wpisuje adres strony bez uprawnienia: pulpit z parametrem (komunikat), nie cicho /dashboard. */
+describe('middleware — strona bez uprawnienia subkonta', () => {
+  const { fetchSessionProfileState } = jest.requireMock('@/lib/session-profile') as { fetchSessionProfileState: jest.Mock };
+
+  it('/dashboard/billing/invoices → /dashboard?brak_dostepu=…', async () => {
+    fetchSessionProfileState.mockResolvedValueOnce({
+      profile: { isSubaccount: true, customerPermissions: ['SERVICES_READ'], serviceScope: null, billingOutside: false },
+      unauthorized: false,
+    });
+    const res = await middleware(new NextRequest('http://localhost:3001/dashboard/billing/invoices', { headers: { cookie: 'auth_token=t' } }));
+    const cel = new URL(res.headers.get('location')!);
+    expect(cel.pathname).toBe('/dashboard');
+    expect(cel.searchParams.get('brak_dostepu')).toBe('/dashboard/billing/invoices');
   });
 });

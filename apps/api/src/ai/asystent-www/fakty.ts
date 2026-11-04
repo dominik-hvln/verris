@@ -26,7 +26,7 @@ export const FAKTY: Fakt[] = [
     id: 'fakt-autoskalowanie',
     tytul: 'Autoskalowanie',
     tresc:
-      'Pakiet ma 50 GB dysku NVMe oraz limit do 8 GB RAM i do 2 vCPU (to sufity, z których konto korzysta w miarę potrzeby, nie zasoby zarezerwowane na stałe). Gdy na stronie rośnie ruch (np. promocja, kampania), konto dostaje automatycznie więcej mocy — w szczycie do 24 vCPU, 64 GB RAM i 1000 GB dysku — a po szczycie wraca do zasobów pakietu. Dodatkową moc rozlicza się tylko za czas użycia, w blokach po 15 minut, według stawek z cennika. Klient sam włącza autoskalowanie i ustawia w panelu miesięczny limit kosztu; po jego osiągnięciu moc już nie rośnie, a strona działa na zasobach pakietu.',
+      'Pakiet ma 50 GB dysku NVMe oraz limit do 8 GB RAM i do 2 vCPU (to sufity, z których konto korzysta w miarę potrzeby, nie zasoby zarezerwowane na stałe). Gdy na stronie rośnie ruch (np. promocja, kampania), konto dostaje automatycznie więcej mocy — w szczycie do 24 vCPU, 64 GB RAM i 1000 GB dysku — a po szczycie wraca do zasobów pakietu. Dodatkową moc rozlicza się tylko za czas użycia, w blokach po 15 minut, według stawek z cennika. Klient sam włącza autoskalowanie. Domyślnie nie ma limitu kosztu — płaci się za faktyczne użycie; można ustawić własny limit kosztu na 30 dni (suma dopłat z ostatnich 30 dni) przy zamówieniu albo później w panelu. Po osiągnięciu limitu moc już nie rośnie, a strona działa na zasobach pakietu.',
     url: 'https://verris.pl/hosting',
   },
   // apps/www/src/lib/specyfikacja.ts (Kopie), apps/api/src/subscriptions/hosting-restore.service.ts
@@ -58,7 +58,7 @@ export const FAKTY: Fakt[] = [
     id: 'fakt-sla',
     tytul: 'Dostępność i rekompensata (SLA)',
     tresc:
-      'Gwarantowana dostępność to 99,5% w miesiącu kalendarzowym. Gdy jest niższa, rekompensata przysługuje na wniosek, według regulaminu: 5% opłaty poniżej 99,5%, 25% poniżej 99%, 50% poniżej 95% i 100% poniżej 90%. Każde zakłócenie widać publicznie na stronie statusu.',
+      'Gwarantowana dostępność to 99,5% w miesiącu kalendarzowym. Gdy jest niższa, rekompensata w kredytach trafia do portfela automatycznie, bez wniosku, według regulaminu: 5% opłaty poniżej 99,5%, 25% poniżej 99%, 50% poniżej 95% i 100% poniżej 90%. Każde zakłócenie widać publicznie na stronie statusu.',
     url: 'https://status.verris.pl',
   },
   // apps/www/src/app/(frontend)/cennik/page.tsx, regulamin §7
@@ -66,7 +66,7 @@ export const FAKTY: Fakt[] = [
     id: 'fakt-ceny-zasady',
     tytul: 'Zasady cen i płatności',
     tresc:
-      'Jest jeden pakiet hostingu, bez wyboru wersji. Cena przy odnowieniu jest taka sama jak przy zakupie — nie ma taniego pierwszego roku. Rozliczenie miesięczne albo roczne; przed odnowieniem przychodzi przypomnienie e-mailem, a z odnowienia można zrezygnować w panelu. Płatność: karta, BLIK, szybki przelew albo Kredyty Verris z portfela. Fakturę VAT po każdej płatności klient znajduje w panelu.',
+      'Jest jeden pakiet hostingu, bez wyboru wersji. Przy pierwszym zakupie obowiązuje rabat na start: −15% za pierwszy rok przy planie rocznym albo −10% za pierwszy miesiąc przy miesięcznym; kolejne okresy kosztują tyle, ile cena odnowienia podana przy zamówieniu (wiążący jest cennik). Rozliczenie miesięczne albo roczne; przed odnowieniem przychodzi przypomnienie e-mailem, a z odnowienia można zrezygnować w panelu. Płatność: karta, BLIK, szybki przelew albo Kredyty Verris z portfela. Fakturę wystawiamy przy każdej wpłacie pieniędzy (doładowanie portfela, BLIK, przelew, karta) i klient znajduje ją w panelu; zakup z portfela nie tworzy nowej faktury, a kredyty z kodu promocyjnego to nie zakup, więc nie ma za nie faktury.',
     url: 'https://verris.pl/cennik',
   },
   // apps/www/src/app/(frontend)/funkcje/statystyki/page.tsx

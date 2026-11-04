@@ -25,12 +25,24 @@ class RequestDeletionDto {
   @IsString()
   @MaxLength(2000)
   reason?: string;
+
+  /** A2-07 / decyzja 9 — rachunek do zwrotu opłaconych kredytów (opcjonalny: bez niego nie ma wniosku o zwrot). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(42)
+  numerRachunku?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(140)
+  odbiorca?: string;
 }
 
 /**
  * GDPR Art. 17 — right to be forgotten endpoints (Sprint 1, L-07).
  *
  *  - `GET    /me/account-deletion`     — current status (active? scheduled?).
+ *  - `GET    /me/account-deletion/podsumowanie` — saldo do zwrotu, domeny, usługi, data (A2-07).
  *  - `POST   /me/account-deletion`     — request deletion, requires password.
  *  - `DELETE /me/account-deletion`     — cancel pending deletion.
  */
@@ -44,6 +56,12 @@ export class AccountDeletionController {
     return this.service.getStatusForUser(user.userId);
   }
 
+  /** A2-07 — co się stanie: saldo i część do zwrotu, domeny, usługi, data usunięcia (przed potwierdzeniem). */
+  @Get('podsumowanie')
+  podsumowanie(@CurrentUser() user: { userId: string }) {
+    return this.service.podsumowanie(user.userId);
+  }
+
   @Post()
   @HttpCode(HttpStatus.OK)
   request(
@@ -55,6 +73,7 @@ export class AccountDeletionController {
       userId: user.userId,
       password: dto.password,
       reason: dto.reason,
+      zwrot: dto.numerRachunku?.trim() ? { numerRachunku: dto.numerRachunku, odbiorca: dto.odbiorca ?? '' } : null,
       ctx: extractRequestContext(req),
     });
   }

@@ -102,8 +102,8 @@ describe('1.11 — ograniczenia okresu próbnego', () => {
     const provider = { get: vi.fn(() => { throw new Error('rejestrator nie powinien być wołany'); }) };
     const reg = new DomainRegistrarService(prisma() as never, null as never, null as never, provider as never, null as never, null as never, null as never, null as never, null as never);
     const registrant = {} as never;
-    await expect(reg.register(k.user.id, k.user.id, { name: 'nowa-domena.pl', registrant })).rejects.toThrow(ForbiddenException);
-    await expect(reg.transfer(k.user.id, k.user.id, { name: 'nowa-domena.pl', authCode: 'x', registrant })).rejects.toThrow(
+    await expect(reg.register(k.user.id, k.user.id, { name: 'nowa-domena.pl', registrant, withdrawalWaiverConsent: true })).rejects.toThrow(ForbiddenException);
+    await expect(reg.transfer(k.user.id, k.user.id, { name: 'nowa-domena.pl', authCode: 'x', registrant, withdrawalWaiverConsent: true })).rejects.toThrow(
       'W czasie okresu próbnego nie zarejestrujesz domeny',
     );
     expect(provider.get).not.toHaveBeenCalled();

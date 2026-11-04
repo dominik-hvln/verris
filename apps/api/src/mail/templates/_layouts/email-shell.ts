@@ -282,7 +282,7 @@ export function renderEmailShell(input: EmailShellInput): EmailShellOutput {
   const unsubscribeBlock =
     category === 'MARKETING' || category === 'PRODUCT_UPDATE'
       ? `<p style="margin:8px 0 0;color:${PALETTE.textMuted};font-size:12px;line-height:1.5;">
-           Otrzymujesz tego maila, ponieważ wyraziłeś zgodę na komunikację marketingową.
+           Otrzymujesz tego maila, bo na tym koncie jest włączona zgoda na wiadomości od Verris.
            <a href="${escapeHtml(unsubscribeUrl)}" style="color:${PALETTE.accent};text-decoration:underline;">Wypisz się jednym kliknięciem</a>.
          </p>`
       : '';

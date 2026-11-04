@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, type CSSProperties } from 'react';
-import { formatZl } from '@/lib/kalkulator';
-import { CENY_ZAPASOWE, stawka, zl, type Ceny, type StawkiAutoskalowania } from '@/lib/ceny';
+import { formatZl, PRZYKLAD_BLACK_FRIDAY } from '@/lib/kalkulator';
+import { CENY_ZAPASOWE, GODZIN_W_MIESIACU, netto, stawka, zl, type Ceny, type StawkiAutoskalowania } from '@/lib/ceny';
 
 /*
  * Grupa A — kalkulator dopłat za moc ponad pakiet (strona główna i /cennik). Ceny i stawki z propsa `ceny`
@@ -20,7 +20,7 @@ const CPU: Suwak = {
   min: 0,
   max: 2200,
   step: 50,
-  start: 400,
+  start: PRZYKLAD_BLACK_FRIDAY.vcpu * 100,
   jedn: (v) => `${v}% · ${String(v / 100).replace('.', ',')} vCPU`,
 };
 const RAM = (start: number): Suwak => ({
@@ -53,7 +53,11 @@ export function kosztGodziny(cpuProc: number, ramGb: number, dyskGb: number, s: 
 export function AKalkulator({ wariant, ceny = CENY_ZAPASOWE }: { wariant: 'krotki' | 'pelny'; ceny?: Ceny }) {
   const STAWKI = ceny.stawki;
   const h = ceny.hosting;
-  const suwaki: Suwak[] = wariant === 'pelny' ? [CPU, RAM(16), DYSK, GODZ(720, 4, 36)] : [RAM(8), GODZ(200, 5, 40)];
+  // P2-09: wariant pełny startuje od przykładu Black Friday (ten sam co na /hosting i /hosting/sklep); miesiąc = 730 h jak w panelu.
+  const suwaki: Suwak[] =
+    wariant === 'pelny'
+      ? [CPU, RAM(PRZYKLAD_BLACK_FRIDAY.ramGb), DYSK, GODZ(GODZIN_W_MIESIACU, 1, PRZYKLAD_BLACK_FRIDAY.godziny)]
+      : [RAM(8), GODZ(200, 5, 40)];
   const [w, setW] = useState<number[]>(suwaki.map((s) => s.start));
   const [rocznie, setRocznie] = useState(true);
   const wart = (id: string) => {
@@ -113,22 +117,26 @@ export function AKalkulator({ wariant, ceny = CENY_ZAPASOWE }: { wariant: 'krotk
           )}
           <div>
             <dt>Dopłata w tym miesiącu</dt>
-            <dd className="mint">{formatZl(doplata)} zł</dd>
+            <dd className="mint">
+              {formatZl(doplata)} zł <small>brutto ({formatZl(netto(doplata))} zł netto)</small>
+            </dd>
           </div>
           <div className="a-kalk-suma">
             <dt>Razem z pakietem{wariant === 'pelny' && rocznie ? ` (${zl(h.rocznie)}/rok ÷ 12)` : ` (${zl(h.miesiecznie)}/mies)`}</dt>
-            <dd>{formatZl(baza + doplata)} zł</dd>
+            <dd>
+              {formatZl(baza + doplata)} zł <small>brutto ({formatZl(netto(baza + doplata))} zł netto)</small>
+            </dd>
           </div>
           {wariant === 'pelny' && (
             <div>
-              <dt>Gdyby szczyt trwał cały miesiąc (720 h)</dt>
-              <dd>{formatZl(godzina * 720)} zł</dd>
+              <dt>Gdyby szczyt trwał cały miesiąc ({GODZIN_W_MIESIACU} h)</dt>
+              <dd>{formatZl(godzina * GODZIN_W_MIESIACU)} zł</dd>
             </div>
           )}
         </dl>
         <p className="kalk-note">
-          W panelu ustawiasz miesięczny limit kosztu autoskalowania. Gdy dopłaty go osiągną, zasoby wracają do pakietu,
-          a Ty dostajesz powiadomienie.
+          Bez limitu płacisz za faktyczne użycie. Limit kosztu na 30 dni (suma dopłat z ostatnich 30 dni) ustawisz przy
+          zamówieniu albo w panelu: gdy dopłaty go osiągną, zasoby wracają do pakietu, a Ty dostajesz powiadomienie.
         </p>
       </div>
     </div>

@@ -1103,6 +1103,37 @@ DCONF
   fi
 }
 
+# Decyzja 14 (3.11.2026) — PHP: węzeł instaluje KAŻDĄ stabilną wersję alt-php z repozytorium CloudLinux od
+# VERRIS_PHP_MIN w górę (8.4, 8.5 i kolejne bez zmiany kodu); domyślna = przedostatnia najnowsza.
+# CloudLinux PHP Selector (alt-phpXY, selectorctl): https://docs.cloudlinux.com/cloudlinuxos/cloudlinux_os_components/#php-selector
+# i KB „Install alt-php on CloudLinux 10” (repo php-els, groupinstall alt-phpXY).
+# „Stabilna” = pakiet alt-phpXY-cli widoczny we WŁĄCZONYCH repozytoriach (dnf repoquery bez --enablerepo); wersje
+# testowe CloudLinux trzyma w repozytoriach testing/beta, domyślnie wyłączonych. NIEZWERYFIKOWANE na CL10 z sesji
+# bez dostępu do węzła — TEST-02: `dnf repolist`, `dnf -q repoquery --qf '%{name}\n' 'alt-php[0-9][0-9]*-cli'`.
+php_wersje_z_repo() {
+  dnf -q repoquery --qf '%{name}\n' 'alt-php[0-9][0-9]*-cli' 2>/dev/null \
+    | sed -nE 's/^alt-php([0-9])([0-9]+)-cli$/\1.\2/p' | sort -u
+}
+# Wersje „X.Y” od najnowszej (8.10 przed 8.9), bez powtórzeń, w jednej linii.
+php_sortuj() { tr ' ' '\n' | grep -E '^[0-9]+\.[0-9]+$' | sort -t. -k1,1nr -k2,2nr -u | tr '\n' ' ' | sed 's/ $//'; }
+# php_co_najmniej WERSJA MINIMUM
+php_co_najmniej() {
+  local a1="${1%%.*}" a2="${1#*.}" b1="${2%%.*}" b2="${2#*.}"
+  [ "$a1" -gt "$b1" ] || { [ "$a1" -eq "$b1" ] && [ "$a2" -ge "$b2" ]; }
+}
+# php_od_minimum MINIMUM WERSJA… → wersje >= minimum, od najnowszej
+php_od_minimum() {
+  local min="$1" v wynik=""; shift
+  for v in "$@"; do [[ "$v" =~ ^[0-9]+\.[0-9]+$ ]] && php_co_najmniej "$v" "$min" && wynik="$wynik $v"; done
+  printf '%s' "$wynik" | php_sortuj
+}
+# Decyzja 14 — przedostatnia najnowsza (jedna wersja = ta jedna).
+php_domyslna() {
+  local -a w
+  read -r -a w <<<"$(printf '%s ' "$@" | php_sortuj)"
+  if [ "${#w[@]}" -ge 2 ]; then echo "${w[1]}"; else echo "${w[0]:-}"; fi
+}
+
 # B-02/B-03 — PHP domeny i katalogu: `AddHandler application/x-httpd-alt-phpXX` w .htaccess działa
 # w LiteSpeed dopiero, gdy serwer zna handler o id `alt-phpXX` (<phpConfig><phpHandler>). Bez niego
 # LSWS odpowiada 403 „MIME type … does not allow serving as static file” (test D3 na t1, 28.09).
@@ -1111,9 +1142,13 @@ configure_litespeed_alt_php() {
   local conf=/usr/local/lsws/conf/httpd_config.xml
   [ -x /usr/local/lsws/bin/lswsctrl ] && [ -f "$conf" ] || { log_skip "LiteSpeed alt-php — brak LSWS"; return 0; }
   if [ "$DRY_RUN" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then log_info "dry-run: handlery alt-php w LSWS"; return 0; fi
-  local wersje="" v
-  for v in ${VERRIS_PHP_VERSIONS:?$BRAK_MANIFESTU}; do
-    [ -x "/opt/alt/php${v/./}/usr/bin/lsphp" ] && wersje="$wersje ${v/./}"
+  # Decyzja 14 — handler dla KAŻDEJ zainstalowanej wersji alt-php od minimum (także takiej, której nie zna manifest).
+  local wersje="" v f
+  for f in /opt/alt/php[0-9][0-9]*/usr/bin/lsphp; do
+    [ -x "$f" ] || continue
+    v="${f#/opt/alt/php}"; v="${v%%/*}"
+    [[ "$v" =~ ^[0-9]{2,3}$ ]] || continue
+    php_co_najmniej "${v:0:1}.${v:1}" "${VERRIS_PHP_MIN:?$BRAK_MANIFESTU}" && wersje="$wersje $v"
   done
   [ -n "$wersje" ] || { log_warn "LiteSpeed alt-php — brak /opt/alt/phpXX/usr/bin/lsphp"; return 0; }
   local zmiana bak="/root/httpd_config.xml.verris-$(date +%Y%m%d%H%M%S)"
@@ -1160,6 +1195,67 @@ PY
     log_ok "LiteSpeed: handlery alt-php dla$(printf ' %s' $wersje) (PHP domeny/katalogu w .htaccess)"
   else
     log_fail "LiteSpeed: brak handlerów alt-php dla:$brak"
+  fi
+}
+
+# Decyzja 24 (4.11.2026) — krótkie nazwy PHP dla crona i SSH: /usr/local/bin/phpXY → /opt/alt/phpXY/usr/bin/php
+# dla KAŻDEJ zainstalowanej wersji alt-php (także nowej, bez zmiany kodu). Panel klienta podpowiada w zakładce Cron
+# `/usr/local/bin/phpXY` zamiast ścieżki alt-php. Idempotentne: brakujące dowiązania dopisuje, dowiązania do
+# odinstalowanych wersji usuwa (tylko nasze — cel w katalogu alt-php); cudzego pliku ani dowiązania nie rusza.
+# CageFS: /usr/local/bin nie jest w klatce z automatu (C-28, composer t1 02.10) — każda ścieżka trafia do
+# /etc/cagefs/conf.d/verris-php-aliasy.cfg („Add a command or binary to CageFS”, paths= po przecinku), potem
+# odświeżenie skeletonu. Dokumentacja: https://docs.cloudlinux.com/cloudlinuxos/cloudlinux_os_components/#cagefs
+# NIEZWERYFIKOWANE na węźle: czy cagefsctl kopiuje do skeletonu samo dowiązanie (cel /opt/alt jest w klatce) —
+# TEST-02: `cagefsctl --enter <konto>` → `ls -l /usr/local/bin/php84; php84 -v`.
+# Katalogi z env tylko dla testów (php-wszystkie-wersje.spec.ts); na węźle zawsze domyślne.
+configure_php_aliases() {
+  echo "--- Krótkie nazwy PHP (/usr/local/bin/phpXY) ---"
+  local alt="${VERRIS_ALT_DIR:-/opt/alt}" bindir="${VERRIS_BIN_DIR:-/usr/local/bin}" cfsdir="${VERRIS_CAGEFS_CONF_DIR:-/etc/cagefs/conf.d}"
+  if [ "$DRY_RUN" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then log_info "dry-run: dowiązania $bindir/phpXY → $alt/phpXY/usr/bin/php"; return 0; fi
+  local f v l cel sciezki="" lista="" zmiana=0 obce=""
+  for f in "$alt"/php[0-9][0-9]*/usr/bin/php; do
+    [ -x "$f" ] || continue
+    v="${f#"$alt"/php}"; v="${v%%/*}"
+    [[ "$v" =~ ^[0-9]{2,3}$ ]] || continue
+    l="$bindir/php$v"
+    if [ -L "$l" ] && [ "$(readlink "$l")" = "$f" ]; then
+      :
+    elif [ -e "$l" ] || [ -L "$l" ]; then
+      # plik albo dowiązanie spoza alt-php (np. CustomBuild) — nie nadpisujemy, raport gotowości to pokaże
+      obce="$obce $l"; continue
+    else
+      mkdir -p "$bindir" && ln -s "$f" "$l" && zmiana=1
+    fi
+    sciezki="$sciezki${sciezki:+, }$l"; lista="$lista php$v"
+  done
+  for l in "$bindir"/php[0-9][0-9]*; do
+    [ -L "$l" ] || continue
+    cel="$(readlink "$l")"
+    case "$cel" in "$alt"/php[0-9]*/usr/bin/php) ;; *) continue ;; esac
+    [ -x "$cel" ] && continue
+    rm -f "$l" && zmiana=1 && log_info "Usunięte dowiązanie do odinstalowanej wersji: $l"
+  done
+  [ -z "$obce" ] || log_warn "PHP: $obce — istnieje i nie wskazuje na alt-php; zostawiam (usuń ręcznie i uruchom profil ponownie)"
+  # CageFS — tylko gdy jest (katalog conf.d); lista ścieżek = obecne dowiązania.
+  local cfg="$cfsdir/verris-php-aliasy.cfg" nowa
+  if [ -d "$cfsdir" ]; then
+    if [ -n "$sciezki" ]; then
+      nowa="$(printf '[verris-php-aliasy]\ncomment=Krótkie nazwy PHP dla crona i SSH (Verris, decyzja 24)\npaths=%s\n' "$sciezki")"
+      if [ "$(cat "$cfg" 2>/dev/null)" != "$nowa" ]; then printf '%s\n' "$nowa" >"$cfg" && zmiana=1; fi
+    elif [ -f "$cfg" ]; then
+      rm -f "$cfg" && zmiana=1
+    fi
+    if [ "$zmiana" = "1" ]; then
+      local cbin; cbin="$(cagefsctl_bin)" || true
+      if [ -n "$cbin" ]; then
+        "$cbin" --force-update 2>&1 | strip_ansi || log_warn "cagefsctl --force-update po dowiązaniach PHP — częściowy błąd"
+      fi
+    fi
+  fi
+  if [ -n "$lista" ]; then
+    log_ok "PHP: krótkie nazwy w $bindir:$lista"
+  else
+    log_skip "PHP: brak alt-php w $alt — bez krótkich nazw"
   fi
 }
 
@@ -1670,8 +1766,8 @@ $rc_blok"
     fi
   fi
 
-  # A2 — PHP Selector (CloudLinux): lvemanager + pakiety alt-php. Wersje = VERRIS_PHP_VERSIONS
-  # z manifestu floty (stos-wezla.ts phpAlt — z niego też domyślna lista php.availableVersions). Na CloudLinux 10 alt-php
+  # A2 — PHP Selector (CloudLinux): lvemanager + pakiety alt-php. Wersje = wszystkie z repozytorium od VERRIS_PHP_MIN
+  # (decyzja 14, php_wersje_z_repo); VERRIS_PHP_VERSIONS z manifestu tylko jako zapas. Na CloudLinux 10 alt-php
   # są w repo php-els (KB CloudLinux „Install alt-php on CloudLinux 10”: els-php-release, potem
   # groupinstall alt-phpXX). Bez tego selektor nie zna żadnej wersji i każda zmiana PHP z panelu
   # kończy się błędem „wersja nie jest zainstalowana” (test D3 na t1, 28.09).
@@ -1679,8 +1775,17 @@ $rc_blok"
     if [ "$DRY_RUN" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ]; then
       dnf install -y lvemanager alt-php-config >/dev/null 2>&1 || log_warn "lvemanager/alt-php-config — instalacja nie powiodła się"
       rpm -q els-php-release >/dev/null 2>&1 || dnf install -y els-php-release >/dev/null 2>&1 || true
-      local php_brak=""
-      for v in ${VERRIS_PHP_VERSIONS:?$BRAK_MANIFESTU}; do
+      # Decyzja 14 — lista z repozytorium (po dodaniu repo php-els), od VERRIS_PHP_MIN; nowa wersja = bez zmian w kodzie.
+      local php_wersje php_z_repo php_brak=""
+      php_z_repo=$(php_wersje_z_repo | tr '\n' ' ')
+      if [ -z "${php_z_repo// /}" ]; then
+        # Repozytorium nie odpowiada — lista zapasowa z manifestu floty (stos-wezla.ts phpAlt).
+        log_warn "PHP: nie udało się odczytać listy alt-php z repozytorium — instaluję listę zapasową z manifestu floty"
+        php_z_repo="${VERRIS_PHP_VERSIONS:?$BRAK_MANIFESTU}"
+      fi
+      # shellcheck disable=SC2086
+      php_wersje=$(php_od_minimum "${VERRIS_PHP_MIN:?$BRAK_MANIFESTU}" $php_z_repo)
+      for v in $php_wersje; do
         selectorctl --list --interpreter=php 2>/dev/null | awk '{print $1}' | grep -qx "$v" && continue
         dnf groupinstall -y "alt-php${v/./}" >>/var/log/verris-alt-php.log 2>&1 || true
         selectorctl --list --interpreter=php 2>/dev/null | awk '{print $1}' | grep -qx "$v" || php_brak="$php_brak $v"
@@ -1690,20 +1795,32 @@ $rc_blok"
       # wyborem rozszerzeń zachowują swój). Retest D3 29.09: strony działały bez OPcache
       # (opcache.enable = brak w odczycie PHP). --list-extensions: „+” włączone, „~” wbudowane.
       local opc_brak=""
-      for v in ${VERRIS_PHP_VERSIONS:?$BRAK_MANIFESTU}; do
+      for v in $php_wersje; do
         selectorctl --list-extensions --version="$v" 2>/dev/null | grep -qE '^[+~] opcache$' && continue
         selectorctl --enable-extensions=opcache --version="$v" >/dev/null 2>&1 || true
         selectorctl --list-extensions --version="$v" 2>/dev/null | grep -qE '^[+~] opcache$' || opc_brak="$opc_brak $v"
       done
       if [ -z "$opc_brak" ]; then
-        log_ok "PHP Selector: OPcache domyślnie włączony ($VERRIS_PHP_VERSIONS)"
+        log_ok "PHP Selector: OPcache domyślnie włączony ($php_wersje)"
       else
         log_warn "PHP Selector: OPcache nie jest domyślny dla:$opc_brak (selectorctl --enable-extensions=opcache --version=<wersja>)"
       fi
       if [ -z "$php_brak" ]; then
-        log_ok "PHP Selector (CloudLinux): wersje $VERRIS_PHP_VERSIONS dostępne"
+        log_ok "PHP Selector (CloudLinux): wersje $php_wersje dostępne"
       else
         log_fail "PHP Selector: brak wersji$php_brak po groupinstall — /var/log/verris-alt-php.log"
+      fi
+      # Domyślna = przedostatnia najnowsza. Konto bez własnego wyboru korzysta z PHP CustomBuild (php1_release
+      # z manifestu floty) — tu tylko raport; zmiana PHP serwera to „Wyrównaj flotę” w panelu (przebudowa PHP),
+      # świadomie, bo inne domyślne PHP może zatrzymać strony klientów bez własnego wyboru wersji.
+      local php_zalecana php_serwera
+      # shellcheck disable=SC2086
+      php_zalecana=$(php_domyslna $php_wersje)
+      php_serwera=$(sed -n 's/^php1_release=//p' /usr/local/directadmin/custombuild/options.conf 2>/dev/null | head -1 || true)
+      if [ -n "$php_zalecana" ] && [ -n "$php_serwera" ] && [ "$php_serwera" != "$php_zalecana" ]; then
+        log_warn "PHP: domyślne PHP serwera (CustomBuild php1_release) to $php_serwera, a zalecana (przedostatnia najnowsza) $php_zalecana — Admin → Wersje stosu floty → PHP $php_zalecana, potem „Wyrównaj flotę”"
+      else
+        log_info "PHP: zalecana domyślna wersja $php_zalecana (przedostatnia z: $php_wersje)"
       fi
     fi
   else
@@ -2617,6 +2734,7 @@ configure_hosting_capabilities
 configure_litespeed_alt_php
 configure_litespeed_throttling
 configure_dovecot_migration_master
+configure_php_aliases
 configure_php_expose
 configure_da_panel_firewall
 configure_http3_firewall

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { AlertCircle, ArrowLeft } from 'lucide-react';
 import { PanelPageHeader } from '@/components/panel';
-import type { PlanChangePreviewDto, ServiceDetailsDto } from '@verris/contracts';
+import type { PlanChangePreviewDto, ServiceDetailsDto } from '@verris/contracts/klient';
 import { ApiError } from '@/lib/api';
 import { getServiceDetails, listPublicPlans } from '../../data';
 import { PlanChangeForm } from './form';

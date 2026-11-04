@@ -6,8 +6,8 @@ import type {
   WalletAutoTopupSettingsDto,
   WalletSummaryDto,
   WalletTransactionDto,
-} from '@verris/contracts';
-import { etykietaWpisuPortfela } from '@verris/contracts';
+} from '@verris/contracts/klient';
+import { etykietaWpisuPortfela } from '@verris/contracts/klient';
 import { ApiError } from '@/lib/api';
 import { PanelPageHeader } from '@/components/panel';
 import { CREDIT_DISCLAIMER, CREDIT_RATE_INFO, CREDIT_SHORT, formatCredits } from '@/lib/credits';
@@ -21,6 +21,7 @@ import { BillingExtrasForms } from './billing-extras-forms';
 import { BillingWalletRefresh } from './billing-wallet-refresh';
 import { ZakupPoPowrocie } from './zakup-po-powrocie';
 import { pobierzPartnera } from '@/app/dashboard/settings/partner-actions';
+import { JAK_ODSTAPIC } from './zasady-dokumentow';
 
 
 export default async function BillingPage({
@@ -235,7 +236,7 @@ export default async function BillingPage({
                     <Link href="/dashboard/billing/invoices" className="group flex items-center justify-between gap-3 px-4 py-3 hover:bg-raised/50">
                       <span>
                         <b className="block text-sm font-semibold text-foreground">Faktury</b>
-                        <small className="text-[12.5px] text-muted-foreground">dokumenty za wpłaty i opłaty — PDF i duplikat</small>
+                        <small className="text-[12.5px] text-muted-foreground">dokumenty za wpłaty — PDF i duplikat</small>
                       </span>
                       <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
                     </Link>
@@ -250,6 +251,14 @@ export default async function BillingPage({
                     </Link>
                   </li>
                 </ul>
+              </section>
+              {/* P2-12 (beta 3.11) — Regulamin §21 ust. 2 obiecuje odstąpienie „w Panelu”: tu klient je znajdzie. */}
+              <section aria-labelledby="odstapienie-tytul" className="rounded-[10px] border border-line bg-card px-4 py-3.5">
+                <h3 id="odstapienie-tytul" className="m-0 font-display text-[15px] font-bold text-foreground">Odstąpienie od umowy</h3>
+                <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">{JAK_ODSTAPIC}</p>
+                <Link href="/dashboard/support/new" className="mt-2 inline-flex text-[13px] font-medium text-foreground underline">
+                  Złóż zgłoszenie
+                </Link>
               </section>
             </div>
           </div>

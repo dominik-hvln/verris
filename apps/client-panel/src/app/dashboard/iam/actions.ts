@@ -149,17 +149,48 @@ export async function disableMemberAction(formData: FormData): Promise<void> {
   redirect(konto ? '/dashboard/iam?notice=membership-disabled' : '/dashboard/iam?notice=member-disabled');
 }
 
+/** P3-01 — przywrócenie wyłączonego subkonta. */
+export async function enableMemberAction(formData: FormData): Promise<void> {
+  const id = String(formData.get('id') ?? '');
+  try {
+    await apiFetch(`/users/iam/members/${encodeURIComponent(id)}/enable`, { method: 'POST' });
+  } catch (err) {
+    return blad(normalizeError(err, 'Nie udało się włączyć subkonta.'), '/dashboard/iam');
+  }
+  revalidatePath('/dashboard/iam');
+  redirect('/dashboard/iam?notice=member-enabled');
+}
+
+/** P3-01 — usunięcie subkonta (adres się zwalnia). */
+export async function removeMemberAction(formData: FormData): Promise<void> {
+  const id = String(formData.get('id') ?? '');
+  try {
+    await apiFetch(`/users/iam/members/${encodeURIComponent(id)}/account`, { method: 'DELETE' });
+  } catch (err) {
+    return blad(normalizeError(err, 'Nie udało się usunąć subkonta.'), '/dashboard/iam');
+  }
+  revalidatePath('/dashboard/iam');
+  redirect('/dashboard/iam?notice=member-removed');
+}
+
 export async function acceptInviteAction(formData: FormData): Promise<void> {
   const token = String(formData.get('token') ?? '');
   const firstName = String(formData.get('firstName') ?? '').trim();
   const lastName = String(formData.get('lastName') ?? '').trim();
   const password = String(formData.get('password') ?? '');
+  // P3-10 — regulamin i polityka na ekranie aktywacji (API zapisuje zgody ze źródłem „aktywacja subkonta”),
+  // więc po pierwszym logowaniu nie ma okna ponownej akceptacji.
+  const acceptTerms = formData.get('acceptTerms') === 'on';
+  const acceptPrivacy = formData.get('acceptPrivacy') === 'on';
+  if (!acceptTerms || !acceptPrivacy) {
+    return blad('Zaakceptuj regulamin i politykę prywatności, żeby aktywować dostęp.', `/accept-invite?token=${encodeURIComponent(token)}`);
+  }
   let accepted = false;
   try {
     await apiFetch('/users/iam/invites/accept', {
       method: 'POST',
       unauthenticated: true,
-      body: JSON.stringify({ token, firstName, lastName, password }),
+      body: JSON.stringify({ token, firstName, lastName, password, acceptTerms, acceptPrivacy }),
     });
     accepted = true;
   } catch (err) {

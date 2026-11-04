@@ -1,6 +1,6 @@
 'use server';
 
-import type { DomainDto, ServiceSummaryDto } from '@verris/contracts';
+import type { DomainDto, ServiceSummaryDto } from '@verris/contracts/klient';
 import { apiFetch } from '@/lib/api';
 import { fetchTickets } from './support/actions';
 import { isExpiringSoon } from '@/lib/domain-expiry';

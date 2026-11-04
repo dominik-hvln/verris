@@ -8,13 +8,13 @@ import { netto, zl, type CenaPakietu } from '@/lib/ceny';
 import { pasekHostingu } from '@/lib/proba';
 import { ZAMOW } from '@/lib/site';
 import { faqSchema, ofertyHostingu, productSchema } from '@/lib/schema';
-import { zweryfikowane } from '@/lib/oferta';
+import { PHP_ZAKRES, zweryfikowane } from '@/lib/oferta';
 
 // Makieta 14.10, plansza HostingWordpress (title z makiety, 59 zn.).
 export const metadata: Metadata = {
   title: 'Hosting WordPress — szybki, z kopiami i stagingiem | Verris',
   description:
-    'Hosting WordPress z cache LiteSpeed, wersją testową strony i kopiami, które przywracasz sam. Przeniesienie WordPressa gratis. Ta sama cena przy odnowieniu.',
+    'Hosting WordPress z cache LiteSpeed, wersją testową strony i kopiami, które przywracasz sam. Przeniesienie WordPressa gratis. Cena odnowienia znana z góry.',
   alternates: { canonical: '/hosting/wordpress' },
 };
 
@@ -32,7 +32,7 @@ const SZYBKOSC: Poz[] = zweryfikowane([
   },
   {
     t: 'Nowe i starsze PHP',
-    p: 'Wybierasz wersję PHP (7.4–8.3) dla każdej strony osobno. Stara strona na starszym PHP nie blokuje nowej.',
+    p: `Wybierasz wersję PHP (${PHP_ZAKRES}) dla każdej strony osobno. Stara strona na starszym PHP nie blokuje nowej.`,
   },
   {
     t: 'Moc na dni z ruchem',

@@ -15,6 +15,8 @@
 # Job kinds:
 #   FILES_SFTP_RSYNC / FILES_DELTA — rsync-over-SSH (sshpass) z fallbackiem lftp
 #   MYSQL_IMPORT                   — mysqldump zdalny, fallback mysqldump-przez-SSH
+#   MYSQL_DELTA                    — ostatnie dosynchronizowanie bazy przed DNS: konserwacja źródła, zrzut, kopia, import
+#                                    (błąd = przywrócenie kopii i zdjęcie konserwacji) — run_mysql_delta
 #   IMAP_SYNC / IMAP_DELTA         — imapsync (idempotentny, delta = drugi przebieg)
 #   WP_FIXUP                       — wp-cli: wp-config DB creds + search-replace + ownership
 #   HTTP_POST_CHECK                — curl 2xx/3xx na https://domena
@@ -424,7 +426,9 @@ run_files() {
   # na niego prawa katalogu źródłowego.
   echo "== kopia lokalna do ${dst} (jako ${user})" >>"$logfile"
   local tryb_dst; tryb_dst=$(stat -c %a "$dst")
-  runuser -u "$user" -- rsync -a --delete --delete-excluded --exclude '.cache' --exclude 'tmp/' \
+  # /.maintenance — tryb konserwacji WordPressa, który MYSQL_DELTA zostawia na starej stronie do przełączenia DNS;
+  # ponowne „Dograj różnice” nie może go przenieść, bo zamknąłby sklep także u nas.
+  runuser -u "$user" -- rsync -a --delete --delete-excluded --exclude '.cache' --exclude 'tmp/' --exclude '/.maintenance' \
     "${zrodlo_kopii}/" "${dst}/" >>"$logfile" 2>&1 || { echo "kopia lokalna nie powiodła się" >>"$logfile"; return 3; }
   runuser -u "$user" -- chmod "$tryb_dst" "$dst" >>"$logfile" 2>&1 || true
 
@@ -831,12 +835,14 @@ run_mysql() {
   # Import na poświadczeniach użytkownika TEJ bazy (targetDb z lease) — zrzut z obcego
   # serwera nie może dotknąć innych baz węzła ani uprawnień. Brak targetDb = tymczasowy
   # użytkownik z GRANT tylko na tę bazę, usuwany po imporcie.
+  # P2-06: MIG_ZRZUT_DO=<plik verris-mig> — te same trzy drogi pobrania, ale oczyszczony zrzut trafia do pliku,
+  # a nie do bazy docelowej (run_mysql_delta importuje go dopiero po kopii bazy docelowej).
   ensure_mig_user
   local sek; sek=$(katalog_sekretow)
   local tuser tpass tymczasowy=""
   tuser=$(jq -r '.targetDb.username // empty' <<<"$job")
   tpass=$(jq -r '.targetDb.password // empty' <<<"$job")
-  if [ -z "$tuser" ] || [ -z "$tpass" ]; then
+  if [ -z "${MIG_ZRZUT_DO:-}" ] && { [ -z "$tuser" ] || [ -z "$tpass" ]; }; then
     tuser="vmig_$(openssl rand -hex 6)"
     tpass="$(openssl rand -base64 24 | tr -d '/+=')"
     tymczasowy="$tuser"
@@ -848,6 +854,7 @@ SQL
   local src_pf tgt_pf; src_pf=$(plik_sekretu "$sek" zrodlo "$spass"); tgt_pf=$(plik_sekretu "$sek" cel "$tpass")
   local sandbox; sandbox=$(mysql_sandbox_opt)
   local -a importuj=(jako_mig_env MYSQL_PWD "$tgt_pf" mysql --protocol=socket ${sandbox:+"$sandbox"} -u "$tuser" "$tdb")
+  [ -n "${MIG_ZRZUT_DO:-}" ] && importuj=(jako_mig bash -c 'cat >"$1"' _ "$MIG_ZRZUT_DO")
 
   local dumped=false remote_reachable=false
   echo "== mysqldump remote ${suser}@${shost}:${sport}/${sdb} -> ${tdb} (jako ${MIG_USER}, import jako ${tuser})" >>"$logfile"
@@ -898,6 +905,11 @@ SQL
     mysql --protocol=socket -e "DROP USER IF EXISTS '${tymczasowy}'@'localhost';" 2>>"$logfile" || true
   fi
   [ "$dumped" = true ] || { rm -rf "$sek"; return 3; }
+  if [ -n "${MIG_ZRZUT_DO:-}" ]; then
+    rm -rf "$sek"
+    jako_mig stat -c %s "$MIG_ZRZUT_DO" 2>/dev/null || echo 0
+    return 0
+  fi
 
   local bytes
   bytes=$(mysql --protocol=socket -N -e \
@@ -919,6 +931,247 @@ SQL
     '{kind:"mysql", database:$db, targetTables:$tables, targetRows:$rows, sourceRows:$srows, match:$match}' >"${logfile}.integrity"
   rm -rf "$sek"
   echo "${bytes:-0}"
+}
+
+# --- P2-06 / decyzja 13 (3.11.2026): ostatnie dosynchronizowanie bazy przed przełączeniem DNS -----------------
+# Sklep sprzedaje u starego dostawcy aż do zmiany DNS, więc baza z pierwszej kopii jest nieaktualna (zamówienia,
+# klienci, stany magazynowe). MYSQL_DELTA, uruchamiane przez „Dograj różnice” tuż przed przełączeniem:
+#   1. tryb konserwacji na starej stronie (WordPress/WooCommerce: plik .maintenance) — sklep przestaje przyjmować
+#      zamówienia; inne CMS-y: ostrzeżenie w raporcie (panel prosi klienta o ręczne wstrzymanie sprzedaży),
+#   2. pełny zrzut bazy źródłowej DO PLIKU (te same drogi co pierwsza kopia: zdalnie, przez SSH, eksport PHP)
+#      i sprawdzenie znacznika końca zrzutu — urwany zrzut nie dotyka bazy docelowej,
+#   3. kopia bazy docelowej (root, gniazdo lokalne, gzip, katalog tylko roota, 14 dni),
+#   4. import zrzutu na użytkowniku bazy docelowej i sprawdzenie, że są wszystkie tabele ze zrzutu,
+#   5. błąd w 3–4 = przywrócenie kopii (te same uprawnienia co import) + zdjęcie trybu konserwacji (sklep wraca do
+#      sprzedaży u starego dostawcy, nic nie ginie); sukces = tryb konserwacji ZOSTAJE do końca okna (domyślnie 2 h),
+#      żeby zamówienie złożone po kopii nie trafiło do starej bazy — w tym czasie klient przełącza DNS.
+# Tryb konserwacji WordPressa: wp_is_maintenance_mode() — plik ABSPATH/.maintenance z $upgrading; konserwacja trwa,
+# dopóki time() - $upgrading < 10 minut (https://developer.wordpress.org/reference/functions/wp_is_maintenance_mode/).
+# $upgrading = czas modyfikacji pliku + (okno − 10 min) → okno liczy się zegarem SERWERA ŹRÓDŁOWEGO i plik wygasa sam,
+# także gdy worker zginie w połowie (nikt nie zostanie z zamkniętym sklepem na zawsze).
+MIG_KOPIE_DIR="${VERRIS_MIG_KOPIE_DIR:-/var/lib/verris-mig-kopie}"
+
+# Import zrzutu ze STDIN do bazy docelowej zlecenia na jej użytkowniku (jak run_mysql: brak targetDb = tymczasowy
+# użytkownik z GRANT tylko na tę bazę, usuwany po imporcie). Zwraca kod mysql.
+mysql_importuj() {
+  local job="$1" logfile="$2" tdb="$3"
+  local sek tuser tpass tymczasowy="" rc=0
+  vg_is_db "$tdb" || { echo "niedozwolona nazwa bazy docelowej" >>"$logfile"; return 2; }
+  ensure_mig_user </dev/null
+  sek=$(katalog_sekretow </dev/null)
+  tuser=$(jq -r '.targetDb.username // empty' <<<"$job")
+  tpass=$(jq -r '.targetDb.password // empty' <<<"$job")
+  if [ -z "$tuser" ] || [ -z "$tpass" ]; then
+    tuser="vmig_$(openssl rand -hex 6 </dev/null)"
+    tpass="$(openssl rand -base64 24 </dev/null | tr -d '/+=')"
+    tymczasowy="$tuser"
+    mysql --protocol=socket <<SQL 2>>"$logfile" || { rm -rf "$sek"; echo "nie mogę utworzyć tymczasowego użytkownika importu" >>"$logfile"; return 3; }
+CREATE USER '${tuser}'@'localhost' IDENTIFIED BY '${tpass}';
+GRANT ALL ON \`${tdb}\`.* TO '${tuser}'@'localhost';
+SQL
+  fi
+  local tgt_pf sandbox
+  tgt_pf=$(plik_sekretu "$sek" cel "$tpass")
+  sandbox=$(mysql_sandbox_opt </dev/null)
+  jako_mig_env MYSQL_PWD "$tgt_pf" mysql --protocol=socket ${sandbox:+"$sandbox"} -u "$tuser" "$tdb" 2>>"$logfile" || rc=$?
+  if [ -n "$tymczasowy" ]; then
+    mysql --protocol=socket -e "DROP USER IF EXISTS '${tymczasowy}'@'localhost';" </dev/null 2>>"$logfile" || true
+  fi
+  rm -rf "$sek"
+  return "$rc"
+}
+
+# Kopia bazy docelowej przed nadpisaniem → ścieżka pliku .sql.gz (katalog 0700 roota; zawartość to dane klienta,
+# nie trafia do panelu klienta). Baza lokalna, nie obcy serwer — dlatego root i gniazdo, bez verris-mig.
+kopia_bazy_docelowej() {
+  local tdb="$1" logfile="$2" plik
+  vg_is_db "$tdb" || return 2
+  install -d -m 0700 -o root -g root "$MIG_KOPIE_DIR" || return 3
+  plik="${MIG_KOPIE_DIR}/${tdb}-$(date -u +%Y%m%dT%H%M%SZ)-$$.sql.gz"
+  if ! { mysqldump --protocol=socket --single-transaction --quick --routines --triggers --hex-blob --no-tablespaces \
+      "$tdb" 2>>"$logfile" | gzip -c >"$plik"; }; then
+    rm -f "$plik"; echo "kopia bazy docelowej ${tdb} nie powiodła się" >>"$logfile"; return 3
+  fi
+  chmod 0600 "$plik"
+  # Bez znacznika końca kopia jest urwana — nie wolno na niej polegać.
+  gzip -dc "$plik" 2>/dev/null | tail -c 512 | grep -q -- '-- Dump completed' \
+    || { rm -f "$plik"; echo "kopia bazy docelowej ${tdb} jest niekompletna" >>"$logfile"; return 3; }
+  echo "$plik"
+}
+
+# Tabele ze zrzutu (CREATE TABLE `x`), których nie ma w bazie docelowej po imporcie — pusto = komplet.
+brakujace_tabele() {
+  local tdb="$1" plik="$2" t
+  local -a w_bazie=()
+  mapfile -t w_bazie < <(mysql --protocol=socket -N -e \
+    "SELECT table_name FROM information_schema.tables WHERE table_schema='${tdb}'" </dev/null 2>/dev/null)
+  while IFS= read -r t; do
+    [ -n "$t" ] || continue
+    printf '%s\n' "${w_bazie[@]}" | grep -qxF -- "$t" || printf '%s\n' "$t"
+  done < <(jako_mig grep -oE '^CREATE TABLE `[^`]+`' "$plik" | sed -E 's/^CREATE TABLE `(.*)`$/\1/' | sort -u)
+}
+
+# Tryb konserwacji starej strony: zrodlo_konserwacja wlacz|wylacz JOB LOGFILE [MINUTY]
+# wlacz → stdout: „wlaczona” (503 potwierdzone), „niepotwierdzona” (plik wgrany, strona nie odpowiedziała 503),
+# „niedostepna” (strona spoza WordPressa albo brak dostępu do plików źródła — panel prosi o ręczne wstrzymanie sprzedaży).
+zrodlo_konserwacja() {
+  local akcja="$1" job="$2" logfile="$3" minuty="${4:-120}"
+  local proto host port fuser fpass zdalny sdomain user domain fip
+  proto=$(jq -r '.ftpFallback.protocol // empty' <<<"$job")
+  host=$(jq -r '.ftpFallback.host // empty' <<<"$job")
+  port=$(jq -r '.ftpFallback.port // empty' <<<"$job")
+  fuser=$(jq -r '.ftpFallback.username // empty' <<<"$job")
+  fpass=$(jq -r '.ftpFallback.password // empty' <<<"$job")
+  sdomain=$(jq -r '.sourceDomain // empty' <<<"$job")
+  user=$(jq -r '.target.accountUsername // empty' <<<"$job")
+  domain=$(jq -r '.target.domain // empty' <<<"$job")
+  local stan="niedostepna"
+  if [ -z "$host" ] || [ -z "$fuser" ]; then
+    [ "$akcja" = wlacz ] && echo "== tryb konserwacji: brak dostępu do plików starej strony w zleceniu — wstrzymaj sprzedaż ręcznie" >>"$logfile"
+    [ "$akcja" = wlacz ] && echo "$stan"
+    return 0
+  fi
+  vg_require protocol "$proto" ftpFallback.protocol 2>>"$logfile" || { echo "$stan"; return 0; }
+  vg_require publichost "$host" ftpFallback.host 2>>"$logfile" || { echo "$stan"; return 0; }
+  vg_require port "$port" ftpFallback.port 2>>"$logfile" || { echo "$stan"; return 0; }
+  vg_require username "$fuser" ftpFallback.username 2>>"$logfile" || { echo "$stan"; return 0; }
+  vg_require account "$user" target.accountUsername 2>>"$logfile" || { echo "$stan"; return 0; }
+  vg_require domain "$domain" target.domain 2>>"$logfile" || { echo "$stan"; return 0; }
+  # WordPress = w skopiowanej stronie jest wp-settings.php (katalog .maintenance to ABSPATH); czyta klient, jak wp_config_db.
+  if ! runuser -u "$user" -- test -f "$(docroot_for "$user" "$domain")/wp-settings.php" 2>/dev/null; then
+    [ "$akcja" = wlacz ] && { echo "== tryb konserwacji: strona nie jest WordPressem — automatycznie wstrzymać sprzedaży nie umiemy, zrób to w panelu starego sklepu" >>"$logfile"; echo "$stan"; }
+    return 0
+  fi
+  zdalny=$(jako_mig cat "${MIG_HOME}/stage/${user}/${domain}.zrodlo" 2>/dev/null | head -1) \
+    || zdalny=$(jq -r '.ftpFallback.remotePath // "/"' <<<"$job")
+  [ -n "$zdalny" ] || zdalny=$(jq -r '.ftpFallback.remotePath // "/"' <<<"$job")
+  vg_require path "$zdalny" katalog_strony_zrodla 2>>"$logfile" || { echo "$stan"; return 0; }
+  fip=$(pin_host "$host") || { echo "== tryb konserwacji: host plików źródła nie jest publiczny" >>"$logfile"; echo "$stan"; return 0; }
+
+  ensure_mig_user
+  local sek; sek=$(katalog_sekretow)
+  local fpf; fpf=$(plik_sekretu "$sek" ftp "$fpass")
+  local ssl_setting="" cel="${zdalny%/}/.maintenance"
+  [ "$proto" = "ftps" ] && ssl_setting="set ftp:ssl-force true; set ftp:ssl-protect-data true;"
+  lftp_konserwacja() {
+    jako_mig_env LFTP_PASSWORD "$fpf" lftp --env-password -u "$fuser" \
+      -e "set sftp:auto-confirm yes; set net:max-retries 2; set net:timeout 30; set ssl:verify-certificate no; ${ssl_setting} $1; bye" \
+      "$(lftp_url "$proto" "$(w_nawiasach "$fip")" "$port")" </dev/null
+  }
+
+  if [ "$akcja" = wylacz ]; then
+    if lftp_konserwacja "rm '${cel}'" >>"$logfile" 2>&1; then
+      echo "== tryb konserwacji na starej stronie wyłączony — sklep znowu przyjmuje zamówienia u poprzedniego dostawcy" >>"$logfile"
+    else
+      echo "== nie udało się usunąć .maintenance ze starej strony — wygaśnie sam po oknie konserwacji" >>"$logfile"
+    fi
+    rm -rf "$sek"
+    return 0
+  fi
+
+  [[ "$minuty" =~ ^[0-9]+$ ]] && [ "$minuty" -ge 15 ] && [ "$minuty" -le 480 ] || minuty=120
+  ( umask 022
+    printf '<?php\n// Verris: krotka przerwa na czas ostatniego kopiowania bazy przed przeniesieniem strony. Wygasa sama.\n$upgrading = @filemtime(__FILE__) + %d;\n' \
+      $(( minuty * 60 - 600 )) >"$sek/maintenance.php" )
+  chown "$MIG_USER:$MIG_USER" "$sek/maintenance.php"
+  if ! lftp_konserwacja "put '$sek/maintenance.php' -o '${cel}'" >>"$logfile" 2>&1; then
+    echo "== tryb konserwacji: nie udało się wgrać .maintenance na starą stronę — wstrzymaj sprzedaż ręcznie" >>"$logfile"
+    rm -rf "$sek"; echo "$stan"; return 0
+  fi
+  stan="niepotwierdzona"
+  # Sprawdzenie: strona odpowiada 503 (adres z losowym parametrem omija cache stron). Domena z DNS albo przypięta
+  # do IP serwera plików, jak przy eksporcie PHP; bez przekierowań (SSRF z obcego serwera).
+  local d proba pin kod ftp_ip
+  local -a proby=()
+  ftp_ip=$(getent ahostsv4 "$host" 2>/dev/null | awk 'NR==1{print $1}')
+  if [ -n "$sdomain" ] && vg_require host "$sdomain" sourceDomain 2>>"$logfile"; then
+    for d in "$sdomain" "www.${sdomain}"; do
+      vg_is_public_host "$d" && proby+=("${d}|")
+      [ -n "$ftp_ip" ] && proby+=("${d}|${d}:443:${ftp_ip}")
+    done
+  fi
+  for proba in "${proby[@]}"; do
+    d="${proba%%|*}"; pin="${proba#*|}"
+    kod=$(jako_mig curl -sS -o /dev/null -w '%{http_code}' --proto =https --tlsv1.2 --max-redirs 0 --connect-timeout 15 --max-time 30 \
+      ${pin:+--resolve "$pin"} "https://${d}/?verris-konserwacja=$(openssl rand -hex 6)" 2>>"$logfile" || true)
+    if [ "$kod" = 503 ]; then stan="wlaczona"; break; fi
+  done
+  rm -rf "$sek"
+  echo "== tryb konserwacji na starej stronie: ${stan} (okno ${minuty} min, potem wygasa sam)" >>"$logfile"
+  echo "$stan"
+}
+
+run_mysql_delta() {
+  local job="$1" logfile="$2"
+  local user domain tdb minuty konserwacja kat plik kopia rc=0 brak
+  user=$(jq -r '.target.accountUsername // empty' <<<"$job")
+  domain=$(jq -r '.target.domain // empty' <<<"$job")
+  vg_require account "$user" target.accountUsername 2>>"$logfile" || return 2
+  vg_require domain "$domain" target.domain 2>>"$logfile" || return 2
+  vg_require db "$(jq -r '.source.database // empty' <<<"$job")" source.database 2>>"$logfile" || return 2
+  tdb=$(mysql_prepare_target_db "$job" "$logfile") || return 2
+  vg_require db "$tdb" targetDb.database 2>>"$logfile" || return 2
+  minuty=$(jq -r '.konserwacja.minuty // 120' <<<"$job")
+
+  ensure_mig_user
+  kat=$(katalog_sekretow); plik="$kat/zrzut.sql"
+  echo "== ostatnie dosynchronizowanie bazy ${tdb} przed przełączeniem DNS" >>"$logfile"
+  konserwacja=$(zrodlo_konserwacja wlacz "$job" "$logfile" "$minuty")
+  # Chwila na dokończenie żądań, które zaczęły się przed konserwacją (np. trwające zamówienie).
+  [ "$konserwacja" = niedostepna ] || sleep "${VERRIS_MIG_KONSERWACJA_ODCZEKAJ:-20}"
+  local konserwacja_do=""
+  [ "$konserwacja" = niedostepna ] || konserwacja_do=$(date -u -d "+${minuty} minutes" +%FT%TZ 2>/dev/null || true)
+
+  zakoncz_blad() {
+    zrodlo_konserwacja wylacz "$job" "$logfile" >/dev/null
+    rm -rf "$kat"
+    return 3
+  }
+  # 2. Zrzut do pliku — baza docelowa jeszcze nietknięta.
+  if ! MIG_ZRZUT_DO="$plik" run_mysql "$job" "$logfile" >/dev/null; then
+    echo "zrzut bazy źródłowej nie powiódł się — baza docelowa bez zmian" >>"$logfile"
+    zakoncz_blad; return 3
+  fi
+  if ! jako_mig tail -c 512 "$plik" 2>/dev/null | grep -qE -- '-- (Dump completed|VERRIS-EXPORT-OK)'; then
+    echo "zrzut bazy źródłowej jest niekompletny (brak znacznika końca) — baza docelowa bez zmian" >>"$logfile"
+    zakoncz_blad; return 3
+  fi
+  # 3. Kopia bazy docelowej.
+  kopia=$(kopia_bazy_docelowej "$tdb" "$logfile") || { echo "bez kopii bazy docelowej nie nadpisuję jej — bez zmian" >>"$logfile"; zakoncz_blad; return 3; }
+  echo "== kopia bazy docelowej: ${kopia}" >>"$logfile"
+  # 4. Import + komplet tabel.
+  jako_mig cat "$plik" | mysql_importuj "$job" "$logfile" "$tdb" || rc=$?
+  if [ "$rc" -eq 0 ]; then
+    brak=$(brakujace_tabele "$tdb" "$plik")
+    if [ -n "$brak" ]; then
+      echo "po imporcie brakuje tabel: $(printf '%s ' $brak)" >>"$logfile"
+      rc=4
+    fi
+  fi
+  if [ "$rc" -ne 0 ]; then
+    # 5. Przywrócenie stanu sprzed dosynchronizowania (kopia ma DROP TABLE IF EXISTS dla każdej swojej tabeli).
+    echo "import nie powiódł się (rc=${rc}) — przywracam bazę docelową z kopii" >>"$logfile"
+    # Przez oczysc_zrzut: obiekty z kopii mają DEFINER użytkownika importu (przy imporcie bez targetDb — tymczasowego,
+    # już usuniętego); bez zdjęcia DEFINER widoki i wyzwalacze wymagałyby SUPER.
+    if gzip -dc "$kopia" | oczysc_zrzut | mysql_importuj "$job" "$logfile" "$tdb"; then
+      echo "== baza docelowa przywrócona z kopii (stan po pierwszej migracji)" >>"$logfile"
+    else
+      echo "PRZYWRÓCENIE Z KOPII NIE POWIODŁO SIĘ — kopia zostaje na węźle: ${kopia} (obsługa: gzip -dc | mysql ${tdb})" >>"$logfile"
+    fi
+    zakoncz_blad; return 3
+  fi
+
+  local tabele wiersze
+  tabele=$(mysql --protocol=socket -N -e \
+    "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='${tdb}' AND table_type='BASE TABLE';" </dev/null 2>/dev/null || echo 0)
+  wiersze=$(mysql_row_total "$tdb" mysql --protocol=socket </dev/null 2>/dev/null || echo 0)
+  # Do panelu klienta: bez ścieżek węzła (kopia tylko w logu dla obsługi).
+  jq -nc --arg db "$tdb" --argjson tables "${tabele:-0}" --argjson rows "${wiersze:-0}" \
+    --arg k "$konserwacja" --arg kdo "$konserwacja_do" \
+    '{kind:"mysql", delta:true, database:$db, targetTables:$tables, targetRows:$rows, sourceRows:null, match:null,
+      konserwacja:$k, konserwacjaDo:(if $kdo == "" then null else $kdo end)}' >"${logfile}.integrity"
+  rm -rf "$kat"
+  echo 0
 }
 
 run_imap() {
@@ -1205,6 +1458,13 @@ run_one() {
       stop_heartbeat
       if [ $rc -eq 0 ]; then complete_job "$id" "${out:-0}" 0 1 0 "$logfile"
       else fail_job "$id" "mysql import failed (rc=$rc)" "$logfile" true; fi ;;
+    MYSQL_DELTA)
+      start_heartbeat "$id" "" "ostatnie kopiowanie bazy (stara strona w trybie konserwacji)"
+      out=$(run_mysql_delta "$job" "$logfile"); rc=$?
+      stop_heartbeat
+      # Liczniki zlecenia (bazy, bajty) już zawierają tę bazę z pierwszej kopii — dosynchronizowanie ich nie podbija.
+      if [ $rc -eq 0 ]; then complete_job "$id" 0 0 0 0 "$logfile"
+      else fail_job "$id" "mysql delta sync failed (rc=$rc) — target database restored, source maintenance lifted" "$logfile" true; fi ;;
     IMAP_SYNC|IMAP_DELTA)
       start_heartbeat "$id" "" "synchronizacja skrzynki pocztowej"
       out=$(run_imap "$job" "$logfile"); rc=$?
@@ -1296,6 +1556,7 @@ install_timer() {
   # Katalog roboczy migracji: pliki starsze niż 14 dni znikają (delta i tak dzieje się w ciągu dni).
   cat >/etc/tmpfiles.d/verris-mig.conf <<TMPF
 d ${MIG_HOME}/stage 0711 root root 14d
+d ${MIG_KOPIE_DIR} 0700 root root 14d
 TMPF
   install -m 0755 "$0" /usr/local/sbin/verris-migration-worker
   # Biblioteka walidacji musi wylądować obok workera — bez niej worker startuje

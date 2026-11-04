@@ -12,7 +12,7 @@ import {
 import {
   resolveSidebarQuickLinks,
   type SidebarTileHref,
-} from '@verris/contracts';
+} from '@verris/contracts/klient';
 import { clientFeatures } from './client-features';
 import {
   canAccessDashboardRoute,
@@ -49,4 +49,4 @@ export function sidebarTilesFromLinks(
     }));
 }
 
-export { DEFAULT_SIDEBAR_QUICK_LINKS, SIDEBAR_TILE_OPTIONS } from '@verris/contracts';
+export { DEFAULT_SIDEBAR_QUICK_LINKS, SIDEBAR_TILE_OPTIONS } from '@verris/contracts/klient';

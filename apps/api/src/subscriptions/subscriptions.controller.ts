@@ -114,7 +114,8 @@ export class SubscriptionsController {
    * portfel, więc nie może być wołane w pętli. 10/h wystarcza nawet klientowi
    * zamawiającemu kilka usług naraz, a odcina automat.
    */
-  @RateLimit({ limit: 10, windowMs: 60 * 60 * 1000, scope: 'subscriptions:create' })
+  // P5-03 (paczka 109, W2) — liczone tylko udane zamówienia, per konto (nie per IP); poprawki domeny nie blokują.
+  @RateLimit({ limit: 10, windowMs: 60 * 60 * 1000, scope: 'subscriptions:create', tylkoUdane: true, limitProb: 60, perKonto: true })
   @Post()
   @HttpCode(201)
   async create(@CurrentUser() user: { userId: string }, @Body() dto: CreateSubscriptionDto) {

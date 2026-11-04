@@ -519,7 +519,7 @@ export function hasloResetowaneTemplate(ctx: HasloResetowaneContext): MailMessag
       '',
       r.gdzie,
       '',
-      'Jeśli nie kontaktowałeś się z nami w tej sprawie — od razu napisz do Obsługi Verris.',
+      'Jeśli nikt z Twojej strony nie kontaktował się z nami w tej sprawie — od razu napisz na kontakt@verris.pl.',
     ].join('\n'),
     cta: { label: 'Ustaw nowe hasło', url: ctx.ctaUrl },
     footnote: 'Nigdy nie prosimy o hasło mailem ani telefonicznie.',

@@ -23,6 +23,11 @@ export interface CreateSubscriptionInput {
   domain?: string;
   preferredRegion?: string;
   autoscalingEnabled?: boolean;
+  /**
+   * Decyzja 6 (3.11.2026) — własny limit kosztu autoskalowania w zł (= K) brutto na 30 dni (suma dopłat z ostatnich
+   * 30 dni). Brak albo 0 = bez limitu — klient płaci za faktyczne użycie.
+   */
+  autoscalingMaxCost?: number;
   ecoModeEnabled?: boolean;
   /** Rabat % na usługę (tylko płatność z portfela). */
   promoCode?: string;
@@ -211,7 +216,8 @@ export interface ServiceAccountSummaryDto {
   scaledCpu: number;
   scaledRamMb: number;
   scaledDiskMb: number;
-  server: { id: string; name: string | null; region: string | null } | null;
+  /** P5-11 — tylko id: nazwy i regionu węzła klient nie dostaje (white label). */
+  server: { id: string } | null;
 }
 
 export interface SubscriptionEventDto {

@@ -127,6 +127,10 @@
   --data-3: #b5e3cc;
   --data-soft: rgba(31, 168, 113, 0.16);
   --data-hi: #0e7049; /* tekst: 5:1+ także na --muted */
+  /* A3-5 / A3-14 — kolor tekstu dla klas text-accent i text-data (--accent i --data to tło i grafika:
+     mięta na białym 1,6:1, --data 3,5:1). Pilnuje lib/kontrast-tokenow.spec.ts. */
+  --accent-text: #0e7049;
+  --data-text: #0e7049;
   --warn: #8a570d; /* AA: 5:1+ na każdym tle jasnym (było 4,4:1 na --muted) */
   --warn-soft: rgba(149, 95, 15, 0.13);
   --crit: #b82e4a; /* AA: 4,9:1+ na każdym tle jasnym */
@@ -190,12 +194,15 @@
   --data-3: #1c5a40;
   --data-soft: rgba(52, 229, 160, 0.14);
   --data-hi: var(--verris-tip);
+  --accent-text: var(--verris-mint);
+  --data-text: var(--verris-mint);
   --warn: #f2b84b;
   --warn-soft: rgba(242, 184, 75, 0.13);
   --crit: #fb7185;
 }
 
 
+/* --accent nadpisany kolorem tła (hover, zaznaczenie) — tekst w text-accent bierze --accent-text (A3-5: było 1,48:1). */
 html.dark.eco-tint {
   --background: var(--verris-eco);
   --accent: color-mix(in srgb, var(--verris-mid) 25%, var(--verris-card));
@@ -326,6 +333,9 @@ html.dark.eco-tint {
        poziomy scroll bez tworzenia kontenera przewijania. */
     overflow-x: clip;
     width: 100%;
+    /* P4-6 / A3 — fokus z klawiatury nie chowa się pod pływającymi elementami u dołu ekranu
+       („Zgłoś uwagę”, paski akcji): przeglądarka przewija z zapasem ~5,5 rem. */
+    scroll-padding-bottom: 5.5rem;
   }
   body {
     @apply bg-background text-foreground font-sans;
@@ -358,6 +368,14 @@ html.dark.eco-tint {
   }
   .pt-safe {
     padding-top: env(safe-area-inset-top, 0px);
+  }
+  /* A3-5 / A3-14 — --accent i --data jako tekst: kolor o kontraście ≥ 4,5:1 w każdym motywie (tokeny wyżej).
+     Ta sama warstwa co klasy Tailwinda i później w pliku — wygrywa kolejnością; hover:… ma wyższą wagę i działa dalej. */
+  .text-accent {
+    color: var(--accent-text);
+  }
+  .text-data {
+    color: var(--data-text);
   }
 }
 

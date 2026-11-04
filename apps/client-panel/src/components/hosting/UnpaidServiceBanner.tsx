@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AlertTriangle, CreditCard, Landmark, Loader2, Trash2, Wallet } from 'lucide-react';
 import { Button } from '@verris/ui';
-import type { SubscriptionStatus } from '@verris/contracts';
+import type { SubscriptionStatus } from '@verris/contracts/klient';
 import { PanelModal } from '@/components/panel';
 import { powodBlokady, zawieszonaPoKarencji } from '@/lib/service-events';
 import {

@@ -10,11 +10,12 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
 import { bladZadaniaDlaKlienta } from './blad-zadania.js';
+import { domyslnaWersjaPhp } from '../servers/stos-wezla.js';
 
 /**
  * P-6 — per-account PHP version selection (CloudLinux PHP Selector).
  *
- * The available versions are a platform setting; the change is applied on the
+ * The available versions are those installed on the account's node (decyzja 14; fallback: platform setting); the change is applied on the
  * node by the agent via a PHP_APPLY task (selectorctl). Mirrors the WAF_APPLY
  * pattern: queue one task at a time, reflect last-applied + task status.
  */
@@ -68,12 +69,12 @@ export class PhpService {
     actorUserId: string,
     ext?: { enable: string[]; disable: string[] },
   ) {
-    const available = await this.settings.getAvailablePhpVersions();
+    const account = await this.prisma.account.findUnique({ where: { id: accountId } });
+    if (!account) throw new NotFoundException('Nie znaleziono konta hostingowego.');
+    const available = await this.settings.getAvailablePhpVersions(account.serverId);
     if (!available.includes(version)) {
       throw new BadRequestException(`Nieobsługiwana wersja PHP. Dostępne: ${available.join(', ')}.`);
     }
-    const account = await this.prisma.account.findUnique({ where: { id: accountId } });
-    if (!account) throw new NotFoundException('Nie znaleziono konta hostingowego.');
     if (account.status !== 'ACTIVE') {
       throw new BadRequestException('Konto hostingowe nie jest aktywne.');
     }
@@ -120,11 +121,11 @@ export class PhpService {
   private async describe(accountId: string) {
     const account = await this.prisma.account.findUnique({
       where: { id: accountId },
-      select: { id: true, domain: true, phpVersion: true, phpAppliedAt: true },
+      select: { id: true, domain: true, phpVersion: true, phpAppliedAt: true, serverId: true },
     });
     if (!account) throw new NotFoundException('Nie znaleziono konta hostingowego.');
     const [available, lastTask] = await Promise.all([
-      this.settings.getAvailablePhpVersions(),
+      this.settings.getAvailablePhpVersions(account.serverId),
       this.prisma.nodeTask.findFirst({
         where: { accountId, kind: NodeTaskKind.PHP_APPLY },
         orderBy: { createdAt: 'desc' },
@@ -135,6 +136,8 @@ export class PhpService {
       domain: account.domain,
       version: account.phpVersion,
       availableVersions: available,
+      /** Decyzja 14 — zalecana (domyślna dla nowych stron) = przedostatnia najnowsza z dostępnych. */
+      recommendedVersion: domyslnaWersjaPhp(available),
       appliedAt: account.phpAppliedAt?.toISOString() ?? null,
       lastTask: lastTask
         ? {

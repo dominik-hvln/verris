@@ -1,4 +1,4 @@
-import type { FlagaModulu } from '@verris/contracts';
+import type { FlagaModulu } from '@verris/contracts/klient';
 import { clientFeatures } from './client-features';
 
 const ENV: Record<FlagaModulu, boolean> = {

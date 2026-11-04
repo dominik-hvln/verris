@@ -12,6 +12,7 @@ import { HeroPodglad, type DaneHeroPodgladu } from './_glowna/HeroPodglad';
 import { PanelPodglad, type ZakladkaPanelu } from './_glowna/PanelPodglad';
 import { STYL_GLOWNEJ } from './_glowna/styl';
 import { pobierzCeny } from '@/lib/ceny-api';
+import { ADRES_SPRZEDAWCY, SPRZEDAWCA } from '@/lib/sprzedawca';
 import {
   GODZIN_W_MIESIACU,
   kosztMocy,
@@ -34,7 +35,7 @@ import { LEGAL, ZAMOW } from '@/lib/site';
 export const metadata: Metadata = {
   title: 'Hosting WWW i WordPress z autoskalowaniem | Verris',
   description:
-    'Szybki polski hosting dla firm i sklepów: LiteSpeed, NVMe, kopie, które przywracasz sam, i darmowe przeniesienie strony. Ta sama cena przy odnowieniu.',
+    'Szybki polski hosting dla firm i sklepów: LiteSpeed, NVMe, kopie, które przywracasz sam, i darmowe przeniesienie strony. Cena odnowienia znana z góry.',
   alternates: { canonical: '/' },
 };
 
@@ -205,7 +206,7 @@ function faq(c: Ceny): [string, string][] {
     ],
     [
       'Czy cena wzrośnie przy odnowieniu?',
-      `Nie ma taniego pierwszego okresu. Odnowienie idzie po cenie z cennika (dziś ${zl(m)}/mies. albo ${zl(r)}/rok brutto). Przed odnowieniem wyślemy przypomnienie e-mail, a z odnowienia zrezygnujesz w panelu w każdej chwili, bez opłat.`,
+      `Odnowienie idzie po cenie z cennika (dziś ${zl(m)}/mies. albo ${zl(r)}/rok brutto), którą znasz przed zakupem. Przy pierwszym zakupie pierwszy rok albo miesiąc kosztuje mniej (rabat na start) — kwotę po rabacie widzisz przed zapłatą. Przed odnowieniem wyślemy przypomnienie e-mail, a z odnowienia zrezygnujesz w panelu w każdej chwili, bez opłat.`,
     ],
     [
       'Jak przenieść stronę na nowy hosting i ile to kosztuje?',
@@ -300,7 +301,7 @@ export default async function HomePage() {
               </li>
               <li>
                 <Ok />
-                Ta sama cena przy odnowieniu, bez taniego pierwszego roku
+                Cena odnowienia znana z góry: cena z cennika
               </li>
               <li>
                 <Ok />
@@ -317,8 +318,8 @@ export default async function HomePage() {
             </div>
             <p className="gl-drobne">
               {proba ? 'Bez karty. Po próbie ' : 'Ceny brutto: '}
-              {zl(m)}/mies. brutto ({zl(netto(m))} netto) albo {zl(r)}/rok brutto ({zl(netto(r))} netto). Ta sama cena przy
-              odnowieniu.
+              {zl(m)}/mies. brutto ({zl(netto(m))} netto) albo {zl(r)}/rok brutto ({zl(netto(r))} netto). Odnowienie po
+              cenie z cennika.
             </p>
           </div>
           <HeroPodglad dane={daneHero(ceny)} />
@@ -405,7 +406,7 @@ export default async function HomePage() {
         <div className="wrap">
           <SectionHead2
             eyebrow="Cennik"
-            title="Jeden pakiet. Ta sama cena dziś i za rok"
+            title="Jeden pakiet. Cenę odnowienia znasz z góry"
             lead="Nie wybierasz między pakietami. Dostajesz wszystko, a za dodatkową moc płacisz tylko wtedy, gdy strona jej naprawdę potrzebuje."
           />
           <div className="gl-cennik">
@@ -496,7 +497,12 @@ export default async function HomePage() {
                     <tr>
                       <th scope="row">Domena</th>
                       <td colSpan={2}>
-                        według <Link href="/domeny">cennika domen</Link>, rejestracja i odnowienie obok siebie
+                        według{' '}
+                        {/* A3-15: link w tekście tabeli odróżniony nie tylko kolorem. */}
+                        <Link href="/domeny" style={{ textDecoration: 'underline', textUnderlineOffset: 3 }}>
+                          cennika domen
+                        </Link>
+                        , rejestracja i odnowienie obok siebie
                       </td>
                     </tr>
                   </tbody>
@@ -572,7 +578,7 @@ export default async function HomePage() {
           <SectionHead2
             eyebrow="Zasady"
             title="Zasady, które znasz przed zakupem"
-            lead="Jesteśmy nową marką, więc nie prosimy, żebyś wierzył nam na słowo. Wszystko poniżej jest zapisane w dokumentach, które przeczytasz, zanim cokolwiek zapłacisz."
+            lead="Jesteśmy nową marką, więc nie prosimy, żebyś wierzył nam na słowo. Przy każdej zasadzie podajemy, w którym dokumencie ją sprawdzisz, zanim cokolwiek zapłacisz."
           />
           <div className="gl-zasady">
             <Card className="gl-zasada">
@@ -596,7 +602,7 @@ export default async function HomePage() {
                   </div>
                 ))}
               </div>
-              <p className="gl-mini">Rekompensatę przyznajemy w kredytach, na wniosek, na zasadach z regulaminu.</p>
+              <p className="gl-mini">Rekompensatę przyznajemy w kredytach automatycznie, bez wniosku, na zasadach z regulaminu.</p>
               <Stopka opis="Regulamin, §15: dostępność i rekompensaty" link="Czytaj" href={`${LEGAL}/terms`} />
             </Card>
             <Card className="gl-zasada">
@@ -649,8 +655,10 @@ export default async function HomePage() {
           <Card className="gl-firma">
             <div className="gl-firma-kto">
               <small>KTO ŚWIADCZY USŁUGĘ</small>
-              <b>HVLN Dominik Kowalski</b>
-              <span>Zielona Góra · NIP 9292069367 · REGON 521024260</span>
+              <b>{SPRZEDAWCA.nazwa}</b>
+              <span>
+                {ADRES_SPRZEDAWCY} · NIP {SPRZEDAWCA.nip} · REGON {SPRZEDAWCA.regon} · {SPRZEDAWCA.email}
+              </span>
             </div>
             <ul className="gl-dokumenty">
               {DOKUMENTY.map(([t, h]) => (
@@ -690,10 +698,10 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <PasRozmowy />
+      <PasRozmowy temat="ogolny" />
 
       <CTABand
-        title="Przenieś stronę dziś. Za rok zapłacisz tyle samo"
+        title="Przenieś stronę dziś. Cenę odnowienia znasz już teraz"
         text="Przeniesienie strony, poczty i bazy w cenie. Stara strona działa do momentu, w którym sam przełączysz domenę."
         primaryLabel={cta.label}
         primaryHref={cta.href}

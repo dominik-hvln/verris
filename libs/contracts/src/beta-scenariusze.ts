@@ -22,6 +22,11 @@ export interface ScenariuszBeta {
   uwagi: string[];
   /** Blok dla osób technicznych — nie wlicza się do postępu ani do „Kontynuuj”. */
   opcjonalny?: boolean;
+  /**
+   * P4-12 — scenariusz dotyczy też testera, który sprawdza tylko pocztę (zakres „Poczta” w /beta). Panel oznacza
+   * te scenariusze, a zaproszenie dla zakresu „tylko poczta” wymienia tylko je.
+   */
+  poczta?: boolean;
 }
 
 export const SCENARIUSZE_BETA: ScenariuszBeta[] = [
@@ -30,6 +35,7 @@ export const SCENARIUSZE_BETA: ScenariuszBeta[] = [
     tytul: 'Konto i bezpieczeństwo',
     czas: 'ok. 5 min',
     cel: 'Pierwsze minuty z Verris: czy założenie i zabezpieczenie konta jest proste i nie budzi wątpliwości.',
+    poczta: true,
     weryfikacja: [
       'Mail z linkiem potwierdzającym przychodzi w ciągu kilku minut.',
       'Po wylogowaniu logowanie prosi o drugi składnik (kod albo passkey).',
@@ -49,24 +55,26 @@ export const SCENARIUSZE_BETA: ScenariuszBeta[] = [
   },
   {
     id: 's02',
-    tytul: 'Kod testera, portfel i zakup hostingu',
+    tytul: 'Kod testera, portfel i pierwsza usługa',
     czas: 'ok. 5 min',
-    cel: 'Ścieżka zakupu tak, jak przejdzie ją każdy klient — z tą różnicą, że płacisz kredytami z kodu.',
+    cel: 'Ścieżka zamówienia tak, jak przejdzie ją każdy klient — z tą różnicą, że płacisz kredytami z kodu. Testujesz tylko pocztę? Zamów „Poczta e-mail” zamiast hostingu.',
+    poczta: true,
     weryfikacja: [
       'Przed zakupem portfel pokazuje 150 K, po zakupie — 150 K minus cena usługi.',
       'Usługa ma stan „Aktywna”, a jej przegląd otwiera się bez błędów.',
-      'Faktura za zakup jest w „Płatnościach”.',
+      'W „Płatnościach” → „Faktury” nie ma faktury za tę usługę: kredyty z kodu testera to nie zakup, więc nie ma za nie faktury.',
     ],
     kroki: [
       { id: 's02.k1', tekst: 'W „Płatnościach” wpisz kod testera w polu kodu promocyjnego.' },
       { id: 's02.k2', tekst: 'Sprawdź, że w portfelu jest 150 K.' },
-      { id: 's02.k3', tekst: 'Zamów hosting z portfela i podaj swoją domenę.' },
+      { id: 's02.k3', tekst: 'Zamów z portfela hosting albo samą pocztę („Poczta e-mail”) i podaj swoją domenę.' },
       { id: 's02.k4', tekst: 'Poczekaj, aż usługa będzie aktywna, i otwórz jej przegląd.' },
-      { id: 's02.k5', tekst: 'Znajdź fakturę za zakup w „Płatnościach”.' },
+      { id: 's02.k5', tekst: 'Zajrzyj do „Płatności” → „Faktury” i sprawdź, czy panel jasno mówi, że za kredyty z kodu faktury nie ma.' },
     ],
     uwagi: [
       'Czy przed zakupem było jasne, co dostajesz i ile to kosztuje?',
       'Czy saldo portfela po zakupie się zgadza?',
+      'Czy było jasne, kiedy dostaniesz fakturę (przy wpłacie pieniędzy), a kiedy nie (kredyty z kodu)?',
       'Ile minut minęło od zamówienia do działającej usługi?',
     ],
   },
@@ -120,6 +128,7 @@ export const SCENARIUSZE_BETA: ScenariuszBeta[] = [
     tytul: 'Poczta: skrzynka, wysyłka, odbiór, telefon',
     czas: 'ok. 15 min',
     cel: 'Poczta w domenie firmy musi działać od razu — i trafiać do odebranych, nie do spamu.',
+    poczta: true,
     weryfikacja: [
       'Mail wysłany do Gmaila (albo innej poczty) trafia do odebranych, nie do spamu.',
       'Odpowiedź widać w webmailu i w telefonie.',
@@ -143,6 +152,7 @@ export const SCENARIUSZE_BETA: ScenariuszBeta[] = [
     tytul: 'Przeniesienie poczty ze starego hostingu',
     czas: 'ok. 15 min + czas kopiowania',
     cel: 'Dla wielu firm poczta jest ważniejsza niż strona. Sprawdzamy, czy skrzynki przechodzą w całości — z folderami i starymi wiadomościami.',
+    poczta: true,
     weryfikacja: [
       'Liczba wiadomości w Odebranych, Wysłanych i własnych folderach zgadza się ze starą skrzynką.',
       'Foldery i podfoldery mają te same nazwy co u poprzedniego dostawcy.',
@@ -232,18 +242,18 @@ export const SCENARIUSZE_BETA: ScenariuszBeta[] = [
     cel: 'Klient ma rozumieć, ile zasobów zużywa strona i co się stanie w szczycie ruchu — zanim zobaczy rachunek.',
     weryfikacja: [
       'Wiesz, ile dysku, procesora i pamięci zużywasz teraz.',
-      'Widzisz, gdzie ustawić limit wydatków na dodatkową moc i jaki jest teraz.',
+      'Widzisz, czy masz ustawiony limit kosztu na 30 dni (domyślnie bez limitu) i gdzie go zmienić.',
       'Wynik z kalkulatora zgadza się ze stawkami w cenniku.',
     ],
     kroki: [
       { id: 's09.k1', tekst: 'Otwórz „Zużycie i prognoza” i sprawdź dysk, procesor i pamięć.' },
       { id: 's09.k2', tekst: 'Przeczytaj prognozę: kiedy (i czy) zabraknie zasobów.' },
-      { id: 's09.k3', tekst: 'Sprawdź ustawienia autoskalowania i limit wydatków na dodatkową moc.' },
+      { id: 's09.k3', tekst: 'Sprawdź ustawienia autoskalowania i limit kosztu na 30 dni (suma dopłat z ostatnich 30 dni).' },
       { id: 's09.k4', tekst: 'Policz w kalkulatorze, ile kosztowałby dzień z dużym ruchem.' },
     ],
     uwagi: [
       'Czy wykresy i prognoza mówią coś zrozumiałego dla nie-informatyka?',
-      'Czy wiesz, ile maksymalnie zapłacisz za autoskalowanie w miesiącu?',
+      'Czy wiesz, że bez limitu płacisz za faktyczne użycie, i umiesz ustawić własny limit kosztu?',
     ],
   },
   {
@@ -251,6 +261,7 @@ export const SCENARIUSZE_BETA: ScenariuszBeta[] = [
     tytul: 'Płatności, faktury i odnowienie',
     czas: 'ok. 10 min',
     cel: 'Pieniądze muszą się zgadzać co do grosza: doładowanie, faktura z Twoimi danymi i jasna data odnowienia.',
+    poczta: true,
     weryfikacja: [
       'Faktura ma Twoje dane (firma z NIP albo imię i nazwisko), kwotę brutto i stawkę VAT.',
       'Saldo portfela rośnie dokładnie o kwotę doładowania.',
@@ -272,6 +283,7 @@ export const SCENARIUSZE_BETA: ScenariuszBeta[] = [
     tytul: 'Dostęp dla współpracownika',
     czas: 'ok. 10 min',
     cel: 'Firmy i agencje dają dostęp księgowej, pracownikowi albo grafikowi. Taka osoba ma widzieć tylko to, do czego ją zaprosisz.',
+    poczta: true,
     weryfikacja: [
       'Zaproszona osoba widzi tylko usługi i sekcje, do których dostała dostęp.',
       'Nie widzi płatności ani portfela, jeśli nie dostała do nich uprawnień.',
@@ -292,6 +304,7 @@ export const SCENARIUSZE_BETA: ScenariuszBeta[] = [
     tytul: 'Pomoc i zgłoszenia',
     czas: 'ok. 5 min',
     cel: 'Sprawdzamy całą drogę do człowieka: od bazy wiedzy po odpowiedź w zgłoszeniu.',
+    poczta: true,
     weryfikacja: [
       'Odpowiedź pojawia się w zgłoszeniu i dostajesz o niej powiadomienie.',
       'Zgłoszenie da się ocenić po odpowiedzi.',
@@ -311,6 +324,7 @@ export const SCENARIUSZE_BETA: ScenariuszBeta[] = [
     tytul: 'Wszystko jeszcze raz — z telefonu',
     czas: 'ok. 15 min',
     cel: 'Połowa klientów zajrzy do panelu z telefonu, często w pośpiechu.',
+    poczta: true,
     weryfikacja: [
       'Wszystkie sprawdzone ekrany da się obsłużyć na telefonie bez przewijania w bok.',
       'Zmiana zrobiona na telefonie jest widoczna na komputerze.',
@@ -380,6 +394,8 @@ export const KROKI_BETA_WYMAGANE: ReadonlySet<string> = new Set(
   SCENARIUSZE_BETA.filter((s) => !s.opcjonalny).flatMap((s) => s.kroki.map((k) => k.id)),
 );
 export const LICZBA_KROKOW_BETA = KROKI_BETA_WYMAGANE.size;
+/** P4-12 — scenariusze dla testera, który sprawdza tylko pocztę (oznaczenie w panelu, lista w zaproszeniu). */
+export const SCENARIUSZE_BETA_POCZTA: readonly ScenariuszBeta[] = SCENARIUSZE_BETA.filter((s) => s.poczta);
 export const MAKS_DLUGOSC_UWAGI_BETA = 2000;
 
 /** Postęp testera: kroki odhaczone (id → kiedy) i uwagi do scenariuszy (id → tekst). */

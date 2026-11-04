@@ -1,5 +1,6 @@
 import type { MailMessage } from '../mailer.interface.js';
 import { renderEmailShell, escapeMarkdown } from './_layouts/email-shell.js';
+import { kwotaPl } from './_layouts/odmiana.js';
 
 /**
  * Mail wysyłany po pomyślnym zrealizowaniu kodu promocyjnego — informuje
@@ -52,13 +53,13 @@ export function promoCodeRedeemedTemplate(ctx: PromoCodeRedeemedContext): MailMe
     ``,
     `- **Kod:** \`${escapeMarkdown(ctx.code)}\``,
     `- **Rodzaj:** ${headlineKindLabel}`,
-    `- **Kwota zaksięgowana:** ${escapeMarkdown(ctx.amountPln)} zł`,
+    `- **Kwota zaksięgowana:** ${kwotaPl(ctx.amountPln)} zł (${kwotaPl(ctx.amountPln)} K w portfelu)`,
   ];
   if (ctx.description) {
     lines.push(`- **Opis akcji:** ${escapeMarkdown(ctx.description)}`);
   }
   if (ctx.walletBalancePln) {
-    lines.push(`- **Aktualny stan portfela:** ${escapeMarkdown(ctx.walletBalancePln)} zł`);
+    lines.push(`- **Aktualny stan portfela:** ${kwotaPl(ctx.walletBalancePln)} K`);
   }
   lines.push(
     ``,
@@ -67,14 +68,14 @@ export function promoCodeRedeemedTemplate(ctx: PromoCodeRedeemedContext): MailMe
 
   const { html, text } = renderEmailShell({
     title: 'Bonus zaksięgowany w portfelu',
-    preheader: `+${ctx.amountPln} zł trafiło do Twojego portfela Verris.`,
+    preheader: `+${kwotaPl(ctx.amountPln)} zł trafiło do Twojego portfela Verris.`,
     bodyMarkdown: lines.join('\n'),
     cta: {
       label: 'Zobacz portfel',
       url: `${ctx.panelUrl}/dashboard/billing`,
     },
     footnote:
-      'Transakcję promocyjną widzisz w historii portfela jako wpis typu „PROMO_CREDIT". Nie podlega ona zwrotowi.',
+      'W historii portfela ten wpis nazywa się „Kod promocyjny”. Kredyty z kodu to nie zakup, więc nie ma za nie faktury, i nie wypłacamy ich w pieniądzu (Regulamin §8 ust. 4).',
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,
     category: 'TRANSACTIONAL',
@@ -83,7 +84,7 @@ export function promoCodeRedeemedTemplate(ctx: PromoCodeRedeemedContext): MailMe
   return {
     to: ctx.to,
     tag: 'promo.code-redeemed',
-    subject: `[Verris] Bonus +${ctx.amountPln} zł zaksięgowany — kod ${ctx.code}`,
+    subject: `[Verris] Bonus +${kwotaPl(ctx.amountPln)} zł zaksięgowany — kod ${ctx.code}`,
     text,
     html,
   };

@@ -14,6 +14,7 @@ import { AZakladki, type Zakladka } from '../components/AZakladki';
 import { KalkulatorPiku } from '../components/KalkulatorPiku';
 import { faqSchema, ofertyHostingu, productSchema } from '@/lib/schema';
 import { SPECYFIKACJA_OPUBLIKOWANA } from '@/lib/oferta';
+import { PRZYKLAD_BLACK_FRIDAY } from '@/lib/kalkulator';
 
 // Makieta 14.10, plansza Hosting + notatka „seo-hosting” (canvas.json).
 // Opis bez kwoty: ceny bierzemy z API (lib/ceny-api.ts), a metadane zostają statyczne.
@@ -58,9 +59,9 @@ const scenariusze = (ceny: Ceny): Scenariusz[] => [
     label: 'Sklep w Black Friday',
     title: 'Sklep w Black Friday',
     text: 'Przez trzy dni na stronie jest kilka razy więcej osób niż zwykle. Dokładamy procesora i pamięci tylko na te godziny, a w poniedziałek wszystko wraca do normy.',
-    vcpu: 4,
-    ram: 8,
-    godz: 36,
+    vcpu: PRZYKLAD_BLACK_FRIDAY.vcpu,
+    ram: PRZYKLAD_BLACK_FRIDAY.ramGb,
+    godz: PRZYKLAD_BLACK_FRIDAY.godziny,
     piki: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 4, 5, 3, 0, 0, 0, 0, 0, 0],
   },
   {
@@ -154,12 +155,12 @@ const pytania = (ceny: Ceny): { kat: string; q: string; my: string; rynek: strin
   {
     kat: 'Cena',
     q: 'Ile zapłacę w drugim roku?',
-    my: `Tyle samo co w pierwszym: ${zl(ceny.hosting.rocznie)} brutto (${zl(netto(ceny.hosting.rocznie))} netto).`,
-    rynek: 'Często: tani pierwszy rok, wyższa cena przy odnowieniu.',
+    my: `Cenę z cennika, podaną z góry: ${zl(ceny.hosting.rocznie)} brutto (${zl(netto(ceny.hosting.rocznie))} netto). Rabat na start obniża tylko pierwszy zakup.`,
+    rynek: 'Często: cena odnowienia drobnym drukiem, kilka razy wyższa.',
   },
-  { kat: 'Ruch', q: 'Co, gdy przyjdzie dużo klientów?', my: 'Moc rośnie sama, do limitu kosztu, który ustawiasz.', rynek: 'Często: zmiana na droższy pakiet.' },
+  { kat: 'Ruch', q: 'Co, gdy przyjdzie dużo klientów?', my: 'Moc rośnie sama; limit kosztu ustawiasz, jeśli chcesz.', rynek: 'Często: zmiana na droższy pakiet.' },
   { kat: 'Kopie', q: 'Czy sam przywrócę stronę?', my: 'Tak, z każdego z ostatnich 30 dni: pliki, bazy i pocztę.', rynek: 'Często: przez zgłoszenie albo za opłatą.' },
-  { kat: 'Dostępność', q: 'Co, jeśli strona nie działa?', my: '99,5% w umowie i zwrot do 100% opłaty.', rynek: 'Często: deklaracja bez rekompensaty.' },
+  { kat: 'Dostępność', q: 'Co, jeśli strona nie działa?', my: '99,5% w umowie i automatyczna rekompensata w kredytach, do całej opłaty za miesiąc.', rynek: 'Często: deklaracja bez rekompensaty.' },
   { kat: 'Domena', q: 'Czy domena odnowi się sama?', my: 'Nie. Odnawiasz wtedy, kiedy chcesz.', rynek: 'Często: automatyczne pobranie z karty.' },
   { kat: 'RODO', q: 'Jak podpiszę umowę powierzenia?', my: 'Akceptujesz ją w panelu, bez papierów.', rynek: 'Często: na wniosek, mailem.' },
 ];
@@ -170,8 +171,8 @@ const faq = (ceny: Ceny): [string, string][] => [
     `Pakiet kosztuje ${zl(ceny.hosting.miesiecznie)} miesięcznie albo ${zl(ceny.hosting.rocznie)} za rok brutto (${zl(netto(ceny.hosting.miesiecznie))} albo ${zl(netto(ceny.hosting.rocznie))} netto). W cenie masz 50 GB NVMe oraz limit 8 GB RAM i 2 vCPU. Z autoskalowaniem limity rosną do 1000 GB dysku, 64 GB RAM i 24 vCPU, a dodatkową moc liczymy według jawnych stawek brutto w blokach po 15 minut, do limitu, który ustawiasz w panelu.`,
   ],
   [
-    'Czy autoskalowanie może mnie zaskoczyć rachunkiem?',
-    'Nie. Ustawiasz miesięczny limit kosztu autoskalowania. Gdy dopłaty go osiągną, zasoby wracają do pakietu, a Ty dostajesz powiadomienie.',
+    'Ile mogę zapłacić za autoskalowanie?',
+    'Autoskalowanie włączasz sam. Bez limitu płacisz za faktyczne użycie dodatkowej mocy. Limit kosztu na 30 dni (suma dopłat z ostatnich 30 dni) możesz ustawić przy zamówieniu i zmienić w panelu: gdy dopłaty go osiągną, zasoby wracają do pakietu, a Ty dostajesz powiadomienie.',
   ],
   [
     'Do ilu zasobów rośnie konto w piku?',
@@ -226,7 +227,7 @@ export default async function HostingPage() {
                 Zobacz parametry
               </Button>
             </div>
-            <p className="h-fine">{cta.proba ? 'Bez karty · ' : ''}przeniesienie strony w cenie · ta sama cena przy odnowieniu</p>
+            <p className="h-fine">{cta.proba ? 'Bez karty · ' : ''}przeniesienie strony w cenie · cena odnowienia znana z góry</p>
           </div>
           <ul className="a-tiles a-tiles-2">
             {W_CENIE.map(([k, v, d]) => (
@@ -302,7 +303,8 @@ export default async function HostingPage() {
             title="Płatne dodatki, wszystkie w jednym miejscu"
             lead="Podstawy są w cenie. Płacisz tylko za to, co sam włączysz. Ceny brutto i netto obok siebie."
           />
-          <div className="hdod-wrap">
+          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- A3-13: przewijany w bok obszar musi dostać fokus (WCAG 2.1.1, axe scrollable-region-focusable) */}
+          <div className="hdod-wrap" role="region" aria-label="Płatne dodatki" tabIndex={0}>
             <table className="hdod">
               <thead>
                 <tr>
@@ -383,7 +385,7 @@ export default async function HostingPage() {
             title="Sześć pytań do każdego dostawcy"
             lead={
               <>
-                Zadaj je każdemu hostingowi, który rozważasz. Nasze odpowiedzi są pod spodem, a wszystkie zapisaliśmy w
+                Zadaj je każdemu hostingowi, który rozważasz. Nasze odpowiedzi są pod spodem; szczegóły zasad są w
                 regulaminie. Pełny przewodnik: <Link href="/jak-wybrac-hosting">Jak wybrać hosting</Link>.
               </>
             }

@@ -53,7 +53,7 @@ export class BetaAdminController {
   }
 }
 
-/** PB-26 — czy zalogowany klient jest testerem (temat zgłoszeń „Testy (beta)”). */
+/** PB-26 — czy zalogowany klient jest testerem (temat zgłoszeń „Testy (beta)”) albo ma niewykorzystane zaproszenie. */
 @Controller('me/beta')
 @UseGuards(JwtAuthGuard)
 export class MeBetaController {
@@ -61,7 +61,9 @@ export class MeBetaController {
 
   @Get()
   async moj(@CurrentUser() user: { userId: string }) {
-    return { tester: await this.beta.czyTester(user.userId) };
+    const tester = await this.beta.czyTester(user.userId);
+    // P1-11 — zaproszenie: pulpit nowego testera pokazuje, gdzie wpisać kod (po realizacji kod już nie jest „ważny”).
+    return { tester, zaproszenie: tester ? false : await this.beta.maZaproszenie(user.userId) };
   }
 
   /** Strona „Testy (beta)” — odhaczone kroki scenariuszy i uwagi. */

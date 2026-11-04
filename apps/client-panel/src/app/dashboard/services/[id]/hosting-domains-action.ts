@@ -2,7 +2,7 @@
 
 import { bezpiecznie, type Wynik as WynikAkcji } from '@/lib/wynik-akcji';
 
-import type { HostingDnsRecordsResponseDto, HostingDomainsResponseDto } from '@verris/contracts';
+import type { HostingDnsRecordsResponseDto, HostingDomainsResponseDto } from '@verris/contracts/klient';
 import { apiFetch } from '@/lib/api';
 
 async function fetchHostingDomainsActionTresc(

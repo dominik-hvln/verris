@@ -14,8 +14,8 @@ import {
   AlertTriangle,
   FolderOpen,
 } from "lucide-react";
-import type { HostingBackupRowDto } from "@verris/contracts";
-import { jestKopiaAdministratora, opisKopii } from "@verris/contracts";
+import type { HostingBackupRowDto } from "@verris/contracts/klient";
+import { jestKopiaAdministratora, opisKopii } from "@verris/contracts/klient";
 import {
   fetchHostingBackupsAction as fetchHostingBackupsActionAkcja,
   enqueueHostingRestoreAction as enqueueHostingRestoreActionAkcja,

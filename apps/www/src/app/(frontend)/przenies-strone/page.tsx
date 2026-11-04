@@ -33,7 +33,7 @@ export const metadata: Metadata = {
 
 const PARAMETRY: [string, string][] = [
   ['0 zł', 'przeniesienie strony i poczty'],
-  ['Bez przerwy', 'stara strona działa do przełączenia'],
+  ['Bez przerwy', 'stara strona działa do przełączenia; sklep: kilka minut przerwy w zamówieniach'],
   [`${HASLA_KASOWANE_PO_DNIACH} dni`, 'potem kasujemy hasła do starego hostingu'],
   ['Na żywo', 'postęp każdego etapu w panelu'],
 ];
@@ -97,7 +97,7 @@ const faq = (ceny: Ceny): [string, string][] => [
   ],
   [
     'Czy cena wzrośnie przy odnowieniu?',
-    `Nie stosujemy modelu „tani pierwszy rok, kilkukrotnie droższe odnowienie”. Odnowienie następuje według cennika obowiązującego w dniu odnowienia (dziś ${zl(ceny.hosting.miesiecznie)}/mies lub ${zl(ceny.hosting.rocznie)}/rok brutto), a przed każdym odnowieniem wyślemy przypomnienie e-mail (7, 3 i 1 dzień wcześniej). Z odnowienia zrezygnujesz w panelu w dwóch kliknięciach, bez opłat.`,
+    `Nie stosujemy modelu „cena za 1 zł na start, kilkukrotnie droższe odnowienie”. Odnowienie następuje według cennika obowiązującego w dniu odnowienia (dziś ${zl(ceny.hosting.miesiecznie)}/mies lub ${zl(ceny.hosting.rocznie)}/rok brutto), a przed każdym odnowieniem wyślemy przypomnienie e-mail (7, 3 i 1 dzień wcześniej). Z odnowienia zrezygnujesz w panelu w dwóch kliknięciach, bez opłat.`,
   ],
   [
     'Czy mogę zrezygnować po zakupie?',
@@ -121,7 +121,11 @@ const CZASY: { kicker: string; czas: string; opis: string; ty?: boolean }[] = [
   { kicker: 'Twój czas', czas: 'ok. 5 min', opis: 'wybór domeny, dostęp i jedno kliknięcie na koniec', ty: true },
   { kicker: 'Strona firmowa do 1 GB', czas: '15–30 min', opis: 'pliki, baza i kilka skrzynek pocztowych' },
   { kicker: 'Sklep 1–10 GB', czas: '30–90 min', opis: 'duża baza, tysiące zdjęć produktów' },
-  { kicker: 'Przerwa w działaniu', czas: '0 min', opis: 'stara strona działa, aż sam przełączysz domenę' },
+  {
+    kicker: 'Przerwa w działaniu',
+    czas: '0 min',
+    opis: 'stara strona działa, aż sam przełączysz domenę; sklep wstrzymuje zamówienia na kilka minut przy ostatnim dograniu bazy, o wybranej porze',
+  },
 ];
 
 // Makieta 1.11: pilny przypadek. Migrator nie przyjmuje pliku kopii (sprawdzone 1.11 w apps/api/src/subscriptions/migration-*),
@@ -136,7 +140,7 @@ const zyski = (ceny: Ceny): [string, string][] => [
   ['Szybsze ładowanie', 'LiteSpeed z cache dla WordPressa, dyski NVMe i Redis. Strony z cache serwer oddaje bez uruchamiania PHP.'],
   ['Spokój przy ruchu', 'Przy promocji albo kampanii moc rośnie sama. Ty ustawiasz, ile najwyżej możesz za to zapłacić.'],
   ['Kopie, które przywrócisz sam', 'Codziennie, z każdego z ostatnich 30 dni. Pliki, bazy i poczta, bez zgłoszenia do pomocy.'],
-  ['Ta sama cena za rok', `${zl(ceny.hosting.rocznie)} brutto (${zl(netto(ceny.hosting.rocznie))} netto) rocznie, także przy odnowieniu.`],
+  ['Cena odnowienia z góry', `${zl(ceny.hosting.rocznie)} brutto (${zl(netto(ceny.hosting.rocznie))} netto) rocznie według cennika — tyle kosztuje odnowienie.`],
   ['Statystyki bez cookies', 'Widzisz odwiedziny i źródła ruchu bez banera zgody i bez narzędzi zewnętrznych.'],
   ['Dostępność w umowie', '99,5% w miesiącu. Poniżej tego oddajemy część opłaty, a każdą awarię widać na stronie statusu.'],
 ];
@@ -172,7 +176,7 @@ export default async function Page() {
             <p className="hero2-fine">
               Hosting z autoskalowaniem: <strong>{zl(ceny.hosting.miesiecznie)}/mies</strong> lub{' '}
               <strong>{zl(ceny.hosting.rocznie)}/rok</strong> brutto ({zl(netto(ceny.hosting.miesiecznie))} lub{' '}
-              {zl(netto(ceny.hosting.rocznie))} netto), ta sama cena przy odnowieniu. Przeniesienie jest bezpłatne w ramach
+              {zl(netto(ceny.hosting.rocznie))} netto), odnowienie po cenie z cennika. Przeniesienie jest bezpłatne w ramach
               zamówienia.
             </p>
           </div>
@@ -231,7 +235,7 @@ export default async function Page() {
         </div>
       </section>
 
-      <section className="sec sec-alt" aria-labelledby="b-podzial">
+      <section className="sec sec-alt" id="co-przygotowac" aria-labelledby="b-podzial">
         <div className="wrap">
           <SectionHead id="b-podzial" eyebrow="Podział pracy" title="Ty: kilka minut. My: cała reszta" />
           <table className="cmp2">

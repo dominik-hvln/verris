@@ -19,7 +19,7 @@ export function mailForwardConfirmTemplate(ctx: MailForwardConfirmContext): Mail
       `**${escapeMarkdown(ctx.mailboxEmail)}** → **${escapeMarkdown(ctx.to)}**`,
       ``,
       `Jeśli **zgadzasz się** otrzymywać kopie maili na ten adres — kliknij przycisk poniżej.`,
-      `Jeśli **nie** prosiłeś o to — zignoruj ten mail; przekierowanie nie zostanie włączone.`,
+      `Jeśli to nie Ty — zignoruj ten mail; przekierowanie nie zostanie włączone.`,
       ``,
       `Link jest ważny **${ctx.expiresHours} godzin**.`,
     ].join('\n'),

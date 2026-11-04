@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
+  ConsentSource,
   CustomerPermission,
   CustomerSubaccountInviteStatus,
   Prisma,
@@ -17,7 +18,9 @@ import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { MailerService } from '../mail/mailer.service.js';
-import { iamSubaccountInviteTemplate } from '../mail/templates/iam-invite-notification.js';
+import { ConsentsService, type ConsentRequestContext } from '../compliance/consents.service.js';
+import { RodoActions } from '../common/audit/audit.actions.js';
+import { iamDostepOdebranyTemplate, iamSubaccountInviteTemplate, nazwaOsoby } from '../mail/templates/iam-invite-notification.js';
 import {
   AcceptSubaccountInviteDto,
   InviteSubaccountDto,
@@ -33,13 +36,15 @@ export class CustomerIamService {
     private readonly audit: AuditService,
     private readonly mailer: MailerService,
     private readonly config: ConfigService,
+    private readonly consents: ConsentsService,
   ) {}
 
   async overview(ownerUserId: string, actorUserId: string) {
     await this.assertOwner(ownerUserId, actorUserId);
     const [members, invites] = await Promise.all([
       this.prisma.user.findMany({
-        where: { customerOwnerId: ownerUserId },
+        // P3-01 — usunięte subkonto (adres zwolniony) nie wisi na liście.
+        where: { customerOwnerId: ownerUserId, anonymizedAt: null },
         orderBy: { createdAt: 'desc' },
         select: {
           id: true,
@@ -243,6 +248,16 @@ export class CustomerIamService {
     // Tylko główne konto klienta — subkonto albo konto operatora nie może być członkiem.
     if (existing) {
       if (existing.id === ownerUserId) throw new BadRequestException('Nie możesz zaprosić samego siebie.');
+      // P3-01 — własne subkonto: mówimy, co zrobić (włączyć albo usunąć — wtedy adres się zwalnia), zamiast
+      // „użyj innego adresu”. O subkontach innych klientów nadal nic nie zdradzamy.
+      if (existing.customerOwnerId === ownerUserId && !existing.anonymizedAt) {
+        const wylaczone = await this.prisma.user.findUnique({ where: { id: existing.id }, select: { subaccountDisabledAt: true } });
+        throw new ConflictException(
+          wylaczone?.subaccountDisabledAt
+            ? 'To adres Twojego wyłączonego subkonta. Włącz je ponownie albo usuń subkonto — wtedy możesz wysłać nowe zaproszenie.'
+            : 'Ta osoba ma już subkonto na Twoim koncie — zmień jej uprawnienia na liście subkont.',
+        );
+      }
       if (existing.role !== Role.USER || existing.customerOwnerId || existing.anonymizedAt) {
         throw new ConflictException('Na ten adres nie można wysłać zaproszenia — użyj innego adresu.');
       }
@@ -255,7 +270,7 @@ export class CustomerIamService {
     const token = randomBytes(32).toString('base64url');
     const owner = await this.prisma.user.findUnique({
       where: { id: ownerUserId },
-      select: { email: true },
+      select: { email: true, firstName: true, lastName: true, companyName: true },
     });
     const invite = await this.prisma.customerSubaccountInvite.create({
       data: {
@@ -275,14 +290,12 @@ export class CustomerIamService {
       actorUserId,
       details: { inviteId: invite.id, email, permissions: dto.permissions, serviceIds, maKonto: Boolean(existing) },
     });
-    const panelUrl = (
-      this.config.get<string>('CLIENT_PANEL_URL') ??
-      this.config.get<string>('clientPanelUrl') ??
-      'https://panel.verris.pl'
-    ).replace(/\/$/, '');
+    const panelUrl = this.panelUrl();
     const message = iamSubaccountInviteTemplate({
       to: email,
       ownerEmail: owner?.email ?? 'właściciel konta',
+      ownerName: owner ? nazwaOsoby(owner) : null,
+      permissions: dto.permissions,
       inviteUrl: this.inviteUrl(token),
       expiresDays: INVITE_TTL_DAYS,
       label: dto.label?.trim() || null,
@@ -299,7 +312,7 @@ export class CustomerIamService {
     return { id: invite.id, email: invite.email, expiresAt: invite.expiresAt.toISOString() };
   }
 
-  async accept(dto: AcceptSubaccountInviteDto) {
+  async accept(dto: AcceptSubaccountInviteDto, ctx: ConsentRequestContext = {}) {
     const invite = await this.prisma.customerSubaccountInvite.findUnique({
       where: { tokenHash: hashToken(dto.token) },
       include: { owner: { select: { id: true, email: true } } },
@@ -345,6 +358,10 @@ export class CustomerIamService {
           acceptedAt: new Date(),
         },
       });
+      // P3-10 — regulamin i polityka zaakceptowane na ekranie aktywacji (DTO wymaga obu zgód): UserConsent
+      // + lastConsentVersion* w tej samej transakcji co konto, więc po pierwszym logowaniu nie ma okna
+      // „ponownej akceptacji” (wcześniej źródło RE_CONSENT, choć to pierwsza akceptacja).
+      await this.consents.recordRegistrationConsents(tx, created.id, ctx, ConsentSource.SUBACCOUNT_ACTIVATION);
       return created;
     });
     await this.audit.record({
@@ -353,6 +370,18 @@ export class CustomerIamService {
       actorUserId: user.id,
       details: { inviteId: invite.id, subaccountUserId: user.id, email: user.email },
     });
+    await Promise.all(
+      (['TERMS', 'PRIVACY'] as const).map((kind) =>
+        this.audit.record({
+          action: RodoActions.CONSENT_GRANTED,
+          userId: user.id,
+          actorUserId: user.id,
+          details: { kind, source: ConsentSource.SUBACCOUNT_ACTIVATION },
+          ipAddress: ctx.ipAddress ?? undefined,
+          userAgent: ctx.userAgent ?? undefined,
+        }),
+      ),
+    );
     return { ok: true as const };
   }
 
@@ -379,7 +408,7 @@ export class CustomerIamService {
 
   async disableMember(ownerUserId: string, actorUserId: string, memberId: string) {
     await this.assertOwner(ownerUserId, actorUserId);
-    await this.assertMember(ownerUserId, memberId);
+    const member = await this.assertMember(ownerUserId, memberId);
     await this.prisma.user.update({
       where: { id: memberId },
       data: { subaccountDisabledAt: new Date() },
@@ -388,9 +417,82 @@ export class CustomerIamService {
       action: 'CUSTOMER_IAM_MEMBER_DISABLED',
       userId: ownerUserId,
       actorUserId,
-      details: { memberId },
+      // P3-07 — kogo dotyczy wpis, po ludzku (dziennik pokazywał samo „Subkonto wyłączone”).
+      details: { memberId, email: member.email, nazwa: nazwaOsoby(member) },
+    });
+    // P3-09 — współpracownik dowiaduje się z maila, a nie z „Nieprawidłowe dane logowania”.
+    if (!member.subaccountDisabledAt) await this.powiadomOOdebraniu(ownerUserId, member.email, false);
+    return { ok: true as const };
+  }
+
+  /** P3-01 — wyłączenie jest odwracalne: właściciel przywraca dostęp bez nowego zaproszenia. */
+  async enableMember(ownerUserId: string, actorUserId: string, memberId: string) {
+    await this.assertOwner(ownerUserId, actorUserId);
+    const member = await this.assertMember(ownerUserId, memberId);
+    await this.prisma.user.update({ where: { id: memberId }, data: { subaccountDisabledAt: null } });
+    await this.audit.record({
+      action: 'CUSTOMER_IAM_MEMBER_ENABLED',
+      userId: ownerUserId,
+      actorUserId,
+      details: { memberId, email: member.email, nazwa: nazwaOsoby(member) },
     });
     return { ok: true as const };
+  }
+
+  /**
+   * P3-01 — usunięcie subkonta zwalnia adres: ten sam właściciel może go zaprosić ponownie, a osoba może założyć
+   * własne konto Verris albo dostać dostęp od innego klienta. Wiersz zostaje (dziennik i zgłoszenia wskazują
+   * działania subkonta), dane osobowe i dane logowania znikają — jak subkonta przy usunięciu konta właściciela
+   * (account-deletion.service.ts). Sesje kończy podbicie `tokenVersion`.
+   */
+  async removeMember(ownerUserId: string, actorUserId: string, memberId: string) {
+    await this.assertOwner(ownerUserId, actorUserId);
+    const member = await this.assertMember(ownerUserId, memberId);
+    const teraz = new Date();
+    await this.prisma.user.update({
+      where: { id: memberId },
+      data: {
+        email: `deleted-${memberId}@verris.local`,
+        firstName: null,
+        lastName: null,
+        passwordHash: '',
+        twoFactorSecret: null,
+        isTwoFactorEnabled: false,
+        twoFactorRecoveryCodesEnc: null,
+        customerPermissions: [],
+        subaccountServiceIds: [],
+        subaccountDisabledAt: member.subaccountDisabledAt ?? teraz,
+        anonymizedAt: teraz,
+        tokenVersion: { increment: 1 },
+      },
+    });
+    // Klucze dostępu (passkey) usuniętego subkonta — logowanie bez hasła też ma przestać działać.
+    await this.prisma.webAuthnCredential.deleteMany({ where: { userId: memberId } });
+    await this.audit.record({
+      action: 'CUSTOMER_IAM_MEMBER_REMOVED',
+      userId: ownerUserId,
+      actorUserId,
+      details: { memberId, email: member.email, nazwa: nazwaOsoby(member) },
+    });
+    if (!member.subaccountDisabledAt) await this.powiadomOOdebraniu(ownerUserId, member.email, false);
+    return { ok: true as const };
+  }
+
+  /** P3-09 — krótki mail do osoby, której właściciel odebrał dostęp. Błąd wysyłki nie cofa odebrania. */
+  private async powiadomOOdebraniu(ownerUserId: string, email: string, wlasneKonto: boolean) {
+    const owner = await this.prisma.user.findUnique({
+      where: { id: ownerUserId },
+      select: { email: true, firstName: true, lastName: true, companyName: true },
+    });
+    const message = iamDostepOdebranyTemplate({
+      to: email,
+      ownerName: owner ? nazwaOsoby(owner) : 'właściciel konta',
+      panelUrl: this.panelUrl(),
+      wlasneKonto,
+    });
+    await this.mailer
+      .send({ ...message, userId: ownerUserId, category: 'TRANSACTIONAL', fromRole: 'PANEL' })
+      .catch(() => undefined);
   }
 
   async revokeInvite(ownerUserId: string, actorUserId: string, inviteId: string) {
@@ -485,10 +587,19 @@ export class CustomerIamService {
 
   async disableMembership(ownerUserId: string, actorUserId: string, id: string) {
     await this.assertOwner(ownerUserId, actorUserId);
-    const m = await this.prisma.customerMembership.findFirst({ where: { id, ownerUserId, disabledAt: null }, select: { id: true } });
+    const m = await this.prisma.customerMembership.findFirst({
+      where: { id, ownerUserId, disabledAt: null },
+      select: { id: true, member: { select: { email: true, firstName: true, lastName: true } } },
+    });
     if (!m) throw new NotFoundException('Nie ma takiego dostępu.');
     await this.prisma.customerMembership.update({ where: { id }, data: { disabledAt: new Date() } });
-    await this.audit.record({ action: 'CUSTOMER_IAM_MEMBERSHIP_DISABLED', userId: ownerUserId, actorUserId, details: { membershipId: id } });
+    await this.audit.record({
+      action: 'CUSTOMER_IAM_MEMBERSHIP_DISABLED',
+      userId: ownerUserId,
+      actorUserId,
+      details: { membershipId: id, email: m.member?.email ?? null, nazwa: m.member ? nazwaOsoby(m.member) : null },
+    });
+    if (m.member?.email) await this.powiadomOOdebraniu(ownerUserId, m.member.email, true);
     return { ok: true as const };
   }
 
@@ -535,11 +646,20 @@ export class CustomerIamService {
 
   private async assertMember(ownerUserId: string, memberId: string) {
     const member = await this.prisma.user.findFirst({
-      where: { id: memberId, customerOwnerId: ownerUserId },
-      select: { id: true },
+      // Usunięte subkonto (P3-01) jest już tylko śladem w dzienniku — nie da się go edytować ani włączyć.
+      where: { id: memberId, customerOwnerId: ownerUserId, anonymizedAt: null },
+      select: { id: true, email: true, firstName: true, lastName: true, subaccountDisabledAt: true },
     });
     if (!member) throw new NotFoundException('Nie znaleziono subkonta.');
     return member;
+  }
+
+  private panelUrl(): string {
+    return (
+      this.config.get<string>('CLIENT_PANEL_URL') ??
+      this.config.get<string>('clientPanelUrl') ??
+      'https://panel.verris.pl'
+    ).replace(/\/$/, '');
   }
 
   private inviteUrl(token: string): string {

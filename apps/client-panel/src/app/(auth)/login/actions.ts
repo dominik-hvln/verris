@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api";
 import { captchaTokenFromForm } from "@/lib/captcha";
 import { sciezkaPowrotu } from "@/lib/sciezka-powrotu";
+import { cookies } from "next/headers";
+import { celPoZalogowaniu } from "@/lib/cel-po-rejestracji";
 import { sesjaKlienta } from "@/lib/tylko-klient";
 
 interface LoginState {
@@ -72,6 +74,14 @@ export async function submitLogin(
     }
     if (e instanceof ApiError && e.status === 401) {
       const msg = e.message.toLowerCase();
+      // P3-09 — API mówi to dopiero po poprawnym haśle, więc nie zdradza istnienia konta. Wcześniej panel
+      // pokazywał „Nieprawidłowe dane logowania” i współpracownik próbował resetu hasła.
+      if (msg.includes("subkonto zostało wyłączone")) {
+        return {
+          error: "Właściciel konta wyłączył Twój dostęp. Skontaktuj się z osobą, która Cię zaprosiła — może go przywrócić.",
+          email,
+        };
+      }
       if (msg.includes("potwierdź adres e-mail")) {
         return {
           error:
@@ -84,7 +94,8 @@ export async function submitLogin(
     return { error: "Nieprawidłowe dane logowania", email, ...(prevState?.captchaWymagana ? { captchaWymagana: true } : {}) };
   }
 
-  if (shouldRedirect) redirect(next);
+  // P4-4: pierwsze logowanie po rejestracji z verris.pl prowadzi do celu (np. zamówienie poczty), nie na pulpit.
+  if (shouldRedirect) redirect(celPoZalogowaniu(await cookies(), next));
   return { error: "Nieoczekiwana odpowiedź serwera" };
 }
 
@@ -116,6 +127,6 @@ export async function submitTwoFactor(
     return { error: "Niepoprawny kod 2FA" };
   }
 
-  if (shouldRedirect) redirect(next);
+  if (shouldRedirect) redirect(celPoZalogowaniu(await cookies(), next));
   return { error: "Brak tokenu sesji w odpowiedzi" };
 }

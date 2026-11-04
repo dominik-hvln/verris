@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import type { StatusPlatnosciPaynowDto } from '@verris/contracts';
+import type { StatusPlatnosciPaynowDto } from '@verris/contracts/klient';
 import { trackPurchase } from '@/lib/analytics-events';
 
 type Zakup = NonNullable<StatusPlatnosciPaynowDto['zakup']>;

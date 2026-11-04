@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { Loader2, BadgePercent, X, CheckCircle2 } from 'lucide-react';
 import { CREDIT_SHORT, formatCredits, pluralCredits } from '@/lib/credits';
-import type { MetodaDoladowania, PreviewTopupPromoResponse, TopupQuoteDto, WalutaWplaty } from '@verris/contracts';
+import type { MetodaDoladowania, PreviewTopupPromoResponse, TopupQuoteDto, WalutaWplaty } from '@verris/contracts/klient';
 import { previewTopupPromoAction, quoteTopupAction, startTopupAction } from './actions';
 import { TOPUP_PRESETS } from './constants';
 import { Select } from '@/components/panel/select';
@@ -80,8 +80,7 @@ export function TopupCard({ balance, paynowDostepny = false, bezKodu = false }: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [amount]);
 
-  const onApplyPromo = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const onApplyPromo = () => {
     void runPreview(amount, promoCode);
   };
 
@@ -245,7 +244,7 @@ function PromoSubform({
   promoCode: string;
   setPromoCode: (v: string) => void;
   promoState: PromoState;
-  onApply: (event: React.FormEvent<HTMLFormElement>) => void;
+  onApply: () => void;
   onClear: () => void;
 }) {
   if (promoState.status === 'applied' && promoState.preview) {
@@ -270,37 +269,60 @@ function PromoSubform({
     );
   }
 
+  // P1-01 / P4-1 (beta 3.11) — to pole leży WEWNĄTRZ formularza doładowania. Był tu drugi, zagnieżdżony <form>:
+  // HTML na to nie pozwala, „Sprawdź” wysyłał więc zewnętrzny formularz zwykłym GET-em, strona się przeładowywała,
+  // a wpisany kod znikał bez słowa. Teraz to zwykła grupa z przyciskiem `type="button"`; Enter też sprawdza kod.
+  const blokada = promoState.status === 'pending' || promoCode.trim().length < 3;
   return (
-    <form onSubmit={onApply} className="flex items-stretch gap-2">
-      <div className="relative flex-1">
-        <BadgePercent className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
-        <input
-          type="text"
-          value={promoCode}
-          aria-label="Kod promocyjny"
-          onChange={(event) => setPromoCode(event.target.value.toUpperCase())}
-          placeholder="Kod promocyjny"
-          maxLength={40}
-          className="w-full rounded-2xl border border-white/10 bg-black/40 pl-10 pr-3 py-2 text-sm text-white placeholder:text-neutral-500 uppercase tracking-wider focus:border-white/40 focus:outline-none"
-        />
+    <div>
+      <div role="group" aria-label="Kod bonusowy do tej wpłaty" className="flex items-stretch gap-2">
+        <div className="relative flex-1">
+          <BadgePercent className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" aria-hidden />
+          <input
+            type="text"
+            value={promoCode}
+            aria-label="Kod bonusowy do wpłaty"
+            aria-describedby="kod-bonusowy-opis"
+            onChange={(event) => setPromoCode(event.target.value.toUpperCase())}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                if (!blokada) onApply();
+              }
+            }}
+            placeholder="Kod bonusowy"
+            maxLength={40}
+            className="w-full rounded-2xl border border-white/10 bg-black/40 pl-10 pr-3 py-2 text-sm text-white placeholder:text-neutral-500 uppercase tracking-wider focus:border-white/40 focus:outline-none"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={onApply}
+          disabled={blokada}
+          className="rounded-2xl border border-white/15 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-neutral-200 hover:border-white/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+        >
+          {promoState.status === 'pending' ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            'Sprawdź'
+          )}
+        </button>
       </div>
-      <button
-        type="submit"
-        disabled={promoState.status === 'pending' || promoCode.trim().length < 3}
-        className="rounded-2xl border border-white/15 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-neutral-200 hover:border-white/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-      >
-        {promoState.status === 'pending' ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          'Sprawdź'
-        )}
-      </button>
       {promoState.status === 'error' ? (
-        <p className="absolute mt-12 text-xs text-rose-300">{promoState.error}</p>
-      ) : null}
-    </form>
+        <p role="alert" className="mt-2 text-xs text-rose-300">
+          {promoState.error} {KOD_GDZIE_INDZIEJ}
+        </p>
+      ) : (
+        <p id="kod-bonusowy-opis" className="mt-1.5 text-xs text-muted-foreground">
+          Kod bonusowy dokłada procent do tej wpłaty. {KOD_GDZIE_INDZIEJ}
+        </p>
+      )}
+    </div>
   );
 }
+
+/** P1-01 — kod testera (BETA-…) i kod na kredyty działają w osobnej karcie „Kod promocyjny”, nie przy wpłacie. */
+export const KOD_GDZIE_INDZIEJ = 'Kod testera albo kod na kredyty wpisz w karcie „Kod promocyjny” poniżej.';
 
 /** M-09 — co będzie na dokumencie za wpłatę; klient widzi to PRZED płatnością. */
 function VatInfo({ quote, currency }: { quote: TopupQuoteDto; currency: WalutaWplaty }) {

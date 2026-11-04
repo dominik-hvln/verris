@@ -1,8 +1,6 @@
 import { NextRequest } from 'next/server';
-import { runInNewContext } from 'node:vm';
 import { proxy } from './proxy';
 import { cspWww } from '@/lib/csp';
-import { gtmLoader } from '@/app/(frontend)/components/Analytics';
 
 /**
  * D12 (10.10) — CSP z nonce na verris.pl. Wcześniej Caddy dawał `script-src 'unsafe-inline'` dla całej domeny.
@@ -47,33 +45,13 @@ describe('proxy www — CSP z nonce', () => {
     expect(res.headers.get('x-middleware-request-x-nonce')).toBeNull();
   });
 
-  it('dyrektywy poza script-src jak dotychczas w Caddy (GTM, Ads, Meta, Google Fonts)', () => {
+  it('dyrektywy poza script-src jak dotychczas w Caddy (GTM, Ads, Meta), bez Google Fonts (A2-03)', () => {
     const csp = cspWww('n');
-    expect(csp).toContain("style-src 'self' 'unsafe-inline' https://fonts.googleapis.com");
-    expect(csp).toContain("font-src 'self' data: https://fonts.gstatic.com");
+    expect(csp).toContain("style-src 'self' 'unsafe-inline';");
+    expect(csp).toContain("font-src 'self' data:;");
+    expect(csp).not.toMatch(/fonts\.(googleapis|gstatic)\.com/);
     expect(csp).toContain('frame-src https://td.doubleclick.net https://www.googletagmanager.com https://www.facebook.com');
     expect(csp).toMatch(/connect-src [^;]*https:\/\/\*\.google-analytics\.com[^;]*https:\/\/www\.facebook\.com/);
     expect(cspWww('n', true)).toContain("'unsafe-eval'");
-  });
-});
-
-describe('loader GTM — nonce dla gtm.js', () => {
-  it('wykonany snippet nadaje gtm.js nonce strony (wariant Google dla CSP z nonce)', () => {
-    const wstawione: Array<{ src?: string; async?: boolean; attrs: Record<string, string> }> = [];
-    const el = () => {
-      const e = { attrs: {} as Record<string, string>, setAttribute(k: string, v: string) { e.attrs[k] = v; } } as { attrs: Record<string, string>; setAttribute: (k: string, v: string) => void; src?: string; async?: boolean };
-      return e;
-    };
-    const document = {
-      getElementsByTagName: () => [{ parentNode: { insertBefore: (j: (typeof wstawione)[number]) => wstawione.push(j) } }],
-      createElement: el,
-      querySelector: (s: string) => (s === '[nonce]' ? { nonce: 'abc123', getAttribute: () => '' } : null),
-    };
-    const ctx: Record<string, unknown> = { document };
-    ctx.window = ctx;
-    runInNewContext(gtmLoader('GTM-PJQNXCF5'), ctx);
-    expect(wstawione).toHaveLength(1);
-    expect(wstawione[0].src).toBe('https://www.googletagmanager.com/gtm.js?id=GTM-PJQNXCF5');
-    expect(wstawione[0].attrs.nonce).toBe('abc123');
   });
 });

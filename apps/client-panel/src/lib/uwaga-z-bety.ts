@@ -4,7 +4,7 @@
  * blok kontekstu, z którego obsługa odtworzy sytuację. Bez query stringa i hasha (tokeny,
  * kody z linków), bez nazw infrastruktury.
  */
-import type { FlagaBety } from '@verris/contracts';
+import type { FlagaBety } from '@verris/contracts/klient';
 
 export const FLAGA_ZGLOS_UWAGE: FlagaBety = 'beta.zglos-uwage';
 export const MIN_ZNAKOW_UWAGI = 10;

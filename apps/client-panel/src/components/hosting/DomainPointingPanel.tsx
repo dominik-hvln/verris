@@ -13,7 +13,7 @@ import {
   RefreshCw,
   Server,
 } from 'lucide-react';
-import type { HostingDnsPointingDto } from '@verris/contracts';
+import type { HostingDnsPointingDto } from '@verris/contracts/klient';
 import { Button } from '@verris/ui';
 import { PodgladPrzedDns } from '@/components/hosting/PodgladPrzedDns';
 import {

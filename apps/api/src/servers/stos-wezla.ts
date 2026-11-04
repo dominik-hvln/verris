@@ -17,6 +17,15 @@
  * - LiteSpeed Enterprise: stabilna 6.3.x (6.4 w fazie RC) — instaluje CustomBuild.
  * - CloudLinux PHP Selector: pakiety alt-phpXX (KB CloudLinux „Install alt-php on CloudLinux 10”).
  *
+ * Decyzja 14 (3.11.2026) — PHP: węzeł instaluje KAŻDĄ stabilną wersję alt-php, którą widzi w repozytorium
+ * CloudLinux, od `phpMin` w górę (8.4, 8.5 i kolejne bez zmiany kodu; profil węzła: php_wersje_z_repo).
+ * `phpAlt` to już tylko lista zapasowa (repozytorium nie odpowiada) i domyślna lista dla panelu, zanim węzeł
+ * zaraportuje zainstalowane wersje (Server.aktualizacje.altPhp). Domyślna = przedostatnia najnowsza
+ * (domyslnaWersjaPhp) — także `php1` (PHP CustomBuild, którego używa konto bez własnego wyboru).
+ * Dokumentacja: CloudLinux PHP Selector / selectorctl — https://docs.cloudlinux.com/cloudlinuxos/cloudlinux_os_components/#php-selector,
+ * DirectAdmin CustomBuild php1_release — https://docs.directadmin.com/directadmin/custombuild/ (NIEZWERYFIKOWANE
+ * z sesji bez internetu: kotwice stron; sprawdzić na TEST-02 razem z listą alt-php w repozytorium CL10).
+ *
  * Skrypty węzła NIE mają własnych wartości domyślnych tych wersji — pilnuje test
  * src/test/manifest-stosu-jedno-zrodlo.spec.ts (literał wersji w skrypcie albo rozjazd = czerwony).
  */
@@ -30,26 +39,68 @@ export interface ManifestStosu {
   webserver: string;
   modsecurityRuleset: string;
   litespeedLinia: string;
-  /** Wersje alt-php instalowane w PHP Selectorze CloudLinux (i domyślnie wybieralne przez klientów). */
+  /**
+   * Wersje alt-php — lista ZAPASOWA (gdy repozytorium CloudLinux nie odpowiada) i domyślna dla panelu, zanim węzeł
+   * zaraportuje zainstalowane. Węzeł instaluje wszystko z repozytorium od `phpMin` (decyzja 14).
+   */
   phpAlt: string[];
+  /** Najstarsza instalowana wersja alt-php (decyzja 14: od 7.4 w górę). Nie edytowana w panelu. */
+  phpMin: string;
 }
 
 /** Domyślny manifest (pierwsze uruchomienie). Bieżący: StosWezlaService (panel → platform_settings). */
 export const STOS_WEZLA: ManifestStosu = {
   /** Podbijaj przy każdej zmianie — węzeł raportuje, którą wersję manifestu ma. */
-  wersja: '2026-10-05.1',
+  wersja: '2026-11-03.1',
   daKanal: 'stable',
   /** Build DirectAdmin sprawdzony na węźle testowym (D3). Pusty = najnowszy z kanału. */
   daCommit: '',
-  php1: '8.3',
+  /** Decyzja 14: przedostatnia najnowsza z `phpAlt` (test pilnuje: php1 === domyslnaWersjaPhp(phpAlt)). */
+  php1: '8.4',
   mariadb: '11.4',
   governorMysql: 'mariadb1104',
   webserver: 'litespeed',
   modsecurityRuleset: 'owasp',
   /** Główna linia LiteSpeed Enterprise dopuszczona na flocie (raport zgodności porównuje prefiks). */
   litespeedLinia: '6.3',
-  phpAlt: ['8.3', '8.2', '8.1', '8.0', '7.4'],
+  phpAlt: ['8.5', '8.4', '8.3', '8.2', '8.1', '8.0', '7.4'],
+  phpMin: '7.4',
 };
+
+/** Wersja „X.Y” jako para liczb (8.10 > 8.9). */
+const czesci = (v: string) => v.split('.').map((x) => Number(x));
+
+/** Wersje PHP „X.Y” od najnowszej, bez powtórzeń i bez śmieci. */
+export function sortujWersjePhp(wersje: Iterable<string>): string[] {
+  return [...new Set([...wersje].map((v) => v.trim()).filter((v) => /^\d+\.\d+$/.test(v)))].sort((a, b) => {
+    const [a1, a2] = czesci(a);
+    const [b1, b2] = czesci(b);
+    return b1 - a1 || b2 - a2;
+  });
+}
+
+/** Czy `v` >= `min` (obie „X.Y”). */
+export function wersjaPhpCoNajmniej(v: string, min: string): boolean {
+  const [a1, a2] = czesci(v);
+  const [b1, b2] = czesci(min);
+  return a1 > b1 || (a1 === b1 && a2 >= b2);
+}
+
+/** Decyzja 14 — domyślna wersja PHP = przedostatnia najnowsza (jedna wersja → ta jedna, brak → null). */
+export function domyslnaWersjaPhp(wersje: Iterable<string>): string | null {
+  const w = sortujWersjePhp(wersje);
+  return w[1] ?? w[0] ?? null;
+}
+
+/**
+ * Wersje alt-php zainstalowane na węźle wg raportu agenta (Server.aktualizacje.altPhp, klucze „X.Y”, verris-lve.sh),
+ * od `min` w górę, od najnowszej. Pusta lista = węzeł jeszcze nie raportował (wtedy lista z ustawień platformy).
+ */
+export function wersjePhpZRaportu(aktualizacje: unknown, min: string = STOS_WEZLA.phpMin): string[] {
+  const alt = aktualizacje && typeof aktualizacje === 'object' ? (aktualizacje as { altPhp?: unknown }).altPhp : null;
+  if (!alt || typeof alt !== 'object' || Array.isArray(alt)) return [];
+  return sortujWersjePhp(Object.keys(alt)).filter((v) => wersjaPhpCoNajmniej(v, min));
+}
 
 /**
  * PB-33 — wartości, które można wybrać w panelu (oficjalne źródła, stan 2026-09-26):
@@ -104,6 +155,8 @@ export function stosJakoEnv(s: ManifestStosu = STOS_WEZLA): string {
     `VERRIS_MODSECURITY_RULESET=${q(s.modsecurityRuleset)}`,
     `VERRIS_LITESPEED_LINE=${q(s.litespeedLinia)}`,
     `VERRIS_PHP_VERSIONS=${q(s.phpAlt.join(' '))}`,
+    // Decyzja 14 — profil instaluje wszystkie wersje alt-php z repozytorium od tej w górę.
+    `VERRIS_PHP_MIN=${q(s.phpMin)}`,
     // Docelowe wersje dla node-db-upgrade.sh (strażnik po stronie węzła; API sprawdza to samo).
     `VERRIS_MARIADB_ALLOWED=${q(DOZWOLONE.mariadb.map((m) => m.v).join(' '))}`,
     '',

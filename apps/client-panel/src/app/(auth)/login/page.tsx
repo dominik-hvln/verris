@@ -11,7 +11,7 @@ import { PasskeyConditionalAutofill } from "./passkey-conditional-autofill";
 import { VerrisLockup } from "@/components/logo";
 import { VerrisPatternLayer } from "@/components/brand/brand-pattern";
 import { Captcha } from "@/components/captcha";
-import { PolePowrotu } from "./pole-powrotu";
+import { LinkRejestracji, PolePowrotu } from "./pole-powrotu";
 import { RegionBledu } from "@/components/region-bledu";
 
 const initialLoginState = {} as Awaited<ReturnType<typeof submitLogin>>;
@@ -276,12 +276,11 @@ function Shell({ children }: { children: React.ReactNode }) {
 
         <p className="mt-8 text-center text-sm font-medium text-muted-foreground">
           Nie masz konta?{" "}
-          <a
-            href="/register"
-            className="font-semibold text-foreground underline-offset-4 transition-colors hover:text-accent underline"
-          >
-            Zarejestruj się
-          </a>
+          <Suspense fallback={<a href="/register" className="font-semibold text-foreground underline underline-offset-4">Zarejestruj się</a>}>
+            <LinkRejestracji className="font-semibold text-foreground underline-offset-4 transition-colors hover:text-accent underline">
+              Zarejestruj się
+            </LinkRejestracji>
+          </Suspense>
         </p>
       </div>
     </div>

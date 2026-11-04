@@ -235,11 +235,98 @@ sprawdz_uzytkownikow_obrazu() {
   fi
 }
 
+# Decyzja 14 (3.11.2026) — PHP: w PHP Selectorze jest KAŻDA stabilna wersja alt-php z repozytorium CloudLinux od
+# VERRIS_PHP_MIN (manifest floty), a domyślne PHP serwera to przedostatnia najnowsza. Te same reguły co profil
+# (node-hosting-profile.sh: php_wersje_z_repo, php_domyslna) — profil jedzie jako pojedynczy plik, więc tu kopia
+# trzech linii zamiast wspólnej biblioteki. Dokumentacja: https://docs.cloudlinux.com/cloudlinuxos/cloudlinux_os_components/#php-selector
+# „Stabilna” = widoczna we włączonych repozytoriach — NIEZWERYFIKOWANE na CL10 (TEST-02).
+sprawdz_php() {
+  if ! command -v selectorctl >/dev/null 2>&1; then
+    log_warn "PHP Selector — brak selectorctl (węzeł bez CloudLinux?)"
+    return 0
+  fi
+  # shellcheck disable=SC1091
+  [ -r /etc/verris-stack.env ] && . /etc/verris-stack.env
+  local min="${VERRIS_PHP_MIN:-}" z_repo zainst v brak="" lista=""
+  if [ -z "$min" ]; then
+    log_fail "PHP: manifest floty bez VERRIS_PHP_MIN — pobierz manifest (agent zadań)"
+    return 0
+  fi
+  z_repo=$(dnf -q repoquery --qf '%{name}\n' 'alt-php[0-9][0-9]*-cli' 2>/dev/null | sed -nE 's/^alt-php([0-9])([0-9]+)-cli$/\1.\2/p' | sort -u || true)
+  zainst=$(selectorctl --list --interpreter=php 2>/dev/null | awk '{print $1}' || true)
+  ge() { local a1="${1%%.*}" a2="${1#*.}" b1="${2%%.*}" b2="${2#*.}"; [ "$a1" -gt "$b1" ] || { [ "$a1" -eq "$b1" ] && [ "$a2" -ge "$b2" ]; }; }
+  if [ -z "$z_repo" ]; then
+    log_warn "PHP: nie udało się odczytać listy alt-php z repozytorium (dnf repoquery) — nie sprawdzę, czy są wszystkie wersje"
+  fi
+  for v in $z_repo; do
+    ge "$v" "$min" || continue
+    grep -qxF -- "$v" <<<"$zainst" || brak="$brak $v"
+  done
+  for v in $zainst; do
+    [[ "$v" =~ ^[0-9]+\.[0-9]+$ ]] && ge "$v" "$min" && lista="$lista $v"
+  done
+  lista=$(tr ' ' '\n' <<<"$lista" | grep . | sort -t. -k1,1nr -k2,2nr -u | tr '\n' ' ' || true)
+  if [ -n "$brak" ]; then
+    log_fail "PHP: w repozytorium są wersje$brak, których nie ma w PHP Selectorze — uruchom profil hostingowy"
+  elif [ -n "$lista" ]; then
+    log_ok "PHP Selector: wszystkie wersje alt-php z repozytorium od $min ($lista)"
+  else
+    log_fail "PHP Selector: brak wersji alt-php od $min"
+  fi
+  # Domyślne PHP serwera (CustomBuild — konto bez własnego wyboru) = przedostatnia najnowsza.
+  local -a w; read -r -a w <<<"$lista"
+  local zalecana="${w[1]:-${w[0]:-}}" serwera
+  serwera=$(/usr/local/bin/php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;' 2>/dev/null || true)
+  if [ -n "$zalecana" ] && [ -n "$serwera" ] && [ "$serwera" != "$zalecana" ]; then
+    log_warn "PHP: domyślne PHP serwera $serwera, zalecana (przedostatnia najnowsza) $zalecana — Admin → Wersje stosu floty → PHP $zalecana i „Wyrównaj flotę”"
+  elif [ -n "$zalecana" ]; then
+    log_ok "PHP: domyślne PHP serwera $serwera = przedostatnia najnowsza"
+  fi
+}
+
+# Decyzja 24 (4.11.2026) — krótkie nazwy PHP: dla każdej zainstalowanej wersji alt-php dowiązanie
+# /usr/local/bin/phpXY → /opt/alt/phpXY/usr/bin/php (panel klienta podpowiada je w zakładce Cron), bez dowiązań do
+# odinstalowanych wersji, ścieżki w /etc/cagefs/conf.d/verris-php-aliasy.cfg (node-hosting-profile.sh:
+# configure_php_aliases). Obecność w skeletonie CageFS — tylko ostrzeżenie: NIEZWERYFIKOWANE, jak cagefsctl
+# przenosi dowiązanie (TEST-02: `cagefsctl --enter <konto>`, `php84 -v`).
+# Katalogi z env tylko dla testów (php-wszystkie-wersje.spec.ts).
+sprawdz_php_aliasy() {
+  local alt="${VERRIS_ALT_DIR:-/opt/alt}" bindir="${VERRIS_BIN_DIR:-/usr/local/bin}" cfsdir="${VERRIS_CAGEFS_CONF_DIR:-/etc/cagefs/conf.d}"
+  local skel="${VERRIS_CAGEFS_SKELETON:-/usr/share/cagefs-skeleton}" f v l cel zle="" ok="" poza_klatka=""
+  for f in "$alt"/php[0-9][0-9]*/usr/bin/php; do
+    [ -x "$f" ] || continue
+    v="${f#"$alt"/php}"; v="${v%%/*}"
+    [[ "$v" =~ ^[0-9]{2,3}$ ]] || continue
+    l="$bindir/php$v"
+    if [ ! -L "$l" ] || [ "$(readlink "$l")" != "$f" ]; then zle="$zle $l (brak dowiązania do $f)"; continue; fi
+    if [ -d "$cfsdir" ]; then
+      grep -qsE "^paths=(.*[ ,])?${l//./\\.}(,|$| )" "$cfsdir/verris-php-aliasy.cfg" || { zle="$zle $l (brak w CageFS: $cfsdir/verris-php-aliasy.cfg)"; continue; }
+      [ ! -d "$skel" ] || [ -e "$skel$l" ] || [ -L "$skel$l" ] || poza_klatka="$poza_klatka $l"
+    fi
+    ok="$ok php$v"
+  done
+  for l in "$bindir"/php[0-9][0-9]*; do
+    [ -L "$l" ] || continue
+    cel="$(readlink "$l")"
+    case "$cel" in "$alt"/php[0-9]*/usr/bin/php) [ -x "$cel" ] || zle="$zle $l (wskazuje na odinstalowaną wersję)" ;; esac
+  done
+  if [ -n "$zle" ]; then
+    log_fail "PHP: krótkie nazwy dla crona —$zle; uruchom profil hostingowy"
+  elif [ -n "$ok" ]; then
+    log_ok "PHP: krótkie nazwy w $bindir:$ok"
+  else
+    log_warn "PHP: brak alt-php w $alt — brak krótkich nazw dla crona"
+  fi
+  [ -z "$poza_klatka" ] || log_warn "PHP: brak w skeletonie CageFS:$poza_klatka — cagefsctl --force-update"
+}
+
 verify_live_readiness() {
   log_step "5/5 Weryfikacja LIVE"
 
   sprawdz_tls_panelu
   sprawdz_uzytkownikow_obrazu
+  sprawdz_php
+  sprawdz_php_aliasy
 
   # MariaDB
   if getent passwd mysql >/dev/null 2>&1; then

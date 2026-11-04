@@ -115,6 +115,19 @@ export function cenaPakietu(c: CenaPakietu): string {
   return `${zl(c.miesiecznie)}/mies. albo ${zl(c.rocznie)}/rok brutto (${zl(netto(c.miesiecznie))} albo ${zl(netto(c.rocznie))} netto)`;
 }
 
+/**
+ * Decyzja 3 Dominika (3.11.2026): rabat na start zostaje — pierwszy rok (płatność roczna) albo pierwszy miesiąc
+ * (płatność miesięczna) taniej, tylko przy pierwszym zakupie (apps/api/src/subscriptions/rabat-startowy.ts; procenty
+ * w ustawieniach platformy, domyślnie 15% i 10%). Procentów tu nie wpisujemy: ustawia je admin, a GET /plans ich
+ * nie zwraca. www nie mówi „bez promocji na pierwszy rok” ani „ta sama cena przy odnowieniu”; mówi, że cena
+ * odnowienia to cena z cennika podana z góry. Najniższą cenę z 30 dni panel pokazuje przy cenie po rabacie (Omnibus).
+ */
+export const RABAT_NA_START =
+  'Przy pierwszym zakupie pierwszy rok albo pierwszy miesiąc kosztuje mniej (rabat na start). Kwotę po rabacie i najniższą cenę z 30 dni przed obniżką zobaczysz przed zapłatą. Odnowienie idzie po cenie z cennika, którą podajemy tutaj.';
+
+/** Krótko: cena odnowienia (zamiast „ta sama cena przy odnowieniu” — patrz RABAT_NA_START). */
+export const ODNOWIENIE_Z_CENNIKA = 'cena odnowienia znana z góry';
+
 /** Krótko, do przycisków i nagłówków: „od 45 zł/mies.”. */
 export function odCeny(c: CenaPakietu): string {
   return `od ${zl(c.miesiecznie)}/mies.`;

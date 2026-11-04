@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { ArrowLeft, ShieldAlert } from 'lucide-react';
-import type { PlanDto } from '@verris/contracts';
+import type { PlanDto } from '@verris/contracts/klient';
 import { ApiError } from '@/lib/api';
 import { listPublicPlans, getTrialOffer, czyRabatStartowy, type TrialOffer } from '../data';
 import { Suspense } from 'react';

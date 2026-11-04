@@ -8,7 +8,7 @@ import type {
   HostingMysqlDatabasesResponseDto,
   HostingSslResponseDto,
   ServiceSummaryDto,
-} from "@verris/contracts";
+} from "@verris/contracts/klient";
 import { apiFetch } from "@/lib/api";
 import { idZasobu } from "@/lib/id-zasobu";
 

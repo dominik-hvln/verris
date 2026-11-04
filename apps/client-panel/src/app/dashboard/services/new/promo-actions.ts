@@ -1,6 +1,6 @@
 'use server';
 
-import type { PreviewSubscriptionPromoInput, PreviewSubscriptionPromoResult } from '@verris/contracts';
+import type { PreviewSubscriptionPromoInput, PreviewSubscriptionPromoResult } from '@verris/contracts/klient';
 import { ApiError, apiFetch } from '@/lib/api';
 
 export async function previewSubscriptionPromoAction(

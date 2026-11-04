@@ -85,8 +85,11 @@ export type DaneFormularza = {
   obecnyHosting: string;
   uwagi: string;
   zgoda: boolean;
-  /** Honeypot — ukryte pole; człowiek go nie wypełni. */
-  firma: string;
+  /**
+   * Honeypot — ukryte pole; człowiek go nie wypełni. P1-07: nazwa bez znaczenia dla autouzupełniania (wcześniej
+   * `firma` — przeglądarka wpisywała tam nazwę firmy z profilu i API po cichu odrzucało zgłoszenie).
+   */
+  pulapka: string;
 };
 
 export type ZgloszenieBeta = {
@@ -100,19 +103,38 @@ export type ZgloszenieBeta = {
   zgodaTekst: string;
   utm?: Utm;
   page?: string;
-  firma: string;
+  pulapka: string;
   captchaToken?: string;
 };
 
 const EMAIL_RE = /^[^@\s]{1,64}@[^@\s]{1,190}\.[^@\s]{2,}$/;
 
+/** Jak w API (apps/api/src/beta/dto/zgloszenie-beta.dto.ts, A1-04): litery, spacja, myślnik, apostrof; do 60 znaków. */
+export const IMIE_RE = /^\s*\p{L}[\p{L}\p{M} '’-]*\s*$/u;
+export const IMIE_MAX = 60;
+
+/**
+ * P1-12 (beta 3.11): adres strony wpisany tak, jak go zna klient („gabinet-anna.pl”, „www.firma.pl”), dostaje
+ * `https://` przed walidacją. Adres z własnym schematem (http, https, ftp, javascript…) zostaje bez zmian —
+ * walidacja przepuszcza tylko http(s).
+ */
+export function normalizujStrone(wpis: string): string {
+  const s = wpis.trim();
+  if (!s) return '';
+  if (/^[a-z][a-z0-9+.-]*:/i.test(s)) return s;
+  return `https://${s.replace(/^\/+/, '')}`;
+}
+
 /** Błędy walidacji po stronie przeglądarki (pole → komunikat). Pusty obiekt = można wysłać. */
 export function walidujZgloszenie(d: DaneFormularza): Partial<Record<'imie' | 'email' | 'zakres' | 'strona' | 'zgoda', string>> {
   const bledy: Partial<Record<'imie' | 'email' | 'zakres' | 'strona' | 'zgoda', string>> = {};
-  if (!d.imie.trim()) bledy.imie = 'Wpisz imię.';
+  const imie = d.imie.trim();
+  if (!imie) bledy.imie = 'Wpisz imię.';
+  else if (imie.length > IMIE_MAX) bledy.imie = `Imię może mieć najwyżej ${IMIE_MAX} znaków.`;
+  else if (!IMIE_RE.test(imie)) bledy.imie = 'Imię może zawierać tylko litery, spacje, myślnik i apostrof.';
   if (!EMAIL_RE.test(d.email.trim())) bledy.email = 'Wpisz poprawny adres e-mail.';
   if (d.zakres.length === 0) bledy.zakres = 'Wybierz co najmniej jedną rzecz do przetestowania.';
-  const strona = d.strona.trim();
+  const strona = normalizujStrone(d.strona);
   if (strona) {
     let ok = false;
     try {
@@ -121,7 +143,7 @@ export function walidujZgloszenie(d: DaneFormularza): Partial<Record<'imie' | 'e
     } catch {
       ok = false;
     }
-    if (!ok) bledy.strona = 'Adres strony zaczyna się od https:// albo http://.';
+    if (!ok) bledy.strona = 'Wpisz adres strony, np. twojafirma.pl.';
   }
   if (!d.zgoda) bledy.zgoda = 'Zaznacz zgodę, żebyśmy mogli wysłać zaproszenie.';
   return bledy;
@@ -131,17 +153,17 @@ export function walidujZgloszenie(d: DaneFormularza): Partial<Record<'imie' | 'e
 export function budujZgloszenie(d: DaneFormularza, ctx: { utm?: Utm; page?: string; captchaToken?: string }): ZgloszenieBeta {
   const opc = (v: string, max: number) => (v.trim() ? v.trim().slice(0, max) : undefined);
   return {
-    imie: d.imie.trim().slice(0, 100),
+    imie: d.imie.trim().slice(0, IMIE_MAX),
     email: d.email.trim().toLowerCase(),
     zakres: ZAKRESY.map((z) => z.id).filter((id) => d.zakres.includes(id)),
-    strona: opc(d.strona, 2048),
+    strona: opc(normalizujStrone(d.strona), 2048),
     obecnyHosting: opc(d.obecnyHosting, 100),
     uwagi: opc(d.uwagi, 2000),
     zgoda: true,
     zgodaTekst: ZGODA_BETA,
     utm: ctx.utm,
     page: ctx.page,
-    firma: d.firma,
+    pulapka: d.pulapka,
     captchaToken: ctx.captchaToken,
   };
 }

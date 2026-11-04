@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { gaClientIdZeZgoda } from '@/lib/ga-client-id';
-import type { CreateSubscriptionInput, CreateSubscriptionResponse } from '@verris/contracts';
+import type { CreateSubscriptionInput, CreateSubscriptionResponse } from '@verris/contracts/klient';
 import { ApiError, apiFetch } from '@/lib/api';
 
 export interface CreateSubscriptionResult {

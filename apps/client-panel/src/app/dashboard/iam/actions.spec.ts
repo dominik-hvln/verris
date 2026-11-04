@@ -39,7 +39,18 @@ describe('IAM: błędy formularzy', () => {
   });
 
   it('przyjęcie zaproszenia: powrót na stronę zaproszenia z tym samym tokenem', async () => {
-    await expect(acceptInviteAction(form({ token: 'tok/1', firstName: 'A', lastName: 'B', password: 'x'.repeat(10) }))).rejects.toThrow('NEXT_REDIRECT');
+    await expect(acceptInviteAction(form({ token: 'tok/1', firstName: 'A', lastName: 'B', password: 'x'.repeat(10), acceptTerms: 'on', acceptPrivacy: 'on' }))).rejects.toThrow('NEXT_REDIRECT');
     expect(przekierowania).toEqual(['/accept-invite?token=tok%2F1&notice=blad']);
+  });
+
+  it('P3-10 — aktywacja wysyła zgody do API; bez zaznaczonych zgód — komunikat, bez zapytania do API', async () => {
+    const { apiFetch } = jest.requireMock('@/lib/api') as { apiFetch: jest.Mock };
+    apiFetch.mockClear();
+    await expect(acceptInviteAction(form({ token: 'tok1', firstName: 'A', lastName: 'B', password: 'x'.repeat(10), acceptTerms: 'on' }))).rejects.toThrow('NEXT_REDIRECT');
+    expect(apiFetch).not.toHaveBeenCalled();
+    expect(ustawione.iam_blad).toMatch(/regulamin i politykę prywatności/);
+    await expect(acceptInviteAction(form({ token: 'tok1', firstName: 'A', lastName: 'B', password: 'x'.repeat(10), acceptTerms: 'on', acceptPrivacy: 'on' }))).rejects.toThrow('NEXT_REDIRECT');
+    const body = JSON.parse((apiFetch.mock.calls[0] as [string, { body: string }])[1].body);
+    expect(body).toMatchObject({ acceptTerms: true, acceptPrivacy: true });
   });
 });

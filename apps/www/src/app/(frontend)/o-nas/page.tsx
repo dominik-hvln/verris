@@ -4,9 +4,10 @@ import { Card, CTABand, JsonLd, SectionHead, SubHero } from '../components/ui';
 import { SPEC_PO_WERYFIKACJI, SPECYFIKACJA_OPUBLIKOWANA } from '@/lib/oferta';
 import { ZAMOW } from '@/lib/site';
 import { organization, webPageSchema } from '@/lib/schema';
+import { ADRES_SPRZEDAWCY, SPRZEDAWCA } from '@/lib/sprzedawca';
 
 const OPIS =
-  'Verris to polski hosting z autoskalowaniem: ta sama cena przy odnowieniu, przeniesienie strony za 0 zł i SLA 99,5% w regulaminie. Poznaj nasze zasady.';
+  'Verris to polski hosting z autoskalowaniem: cena odnowienia znana z góry, przeniesienie strony za 0 zł i SLA 99,5% w regulaminie. Poznaj nasze zasady.';
 
 export const metadata: Metadata = {
   title: 'O Verris — polski hosting z uczciwymi zasadami',
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
 
 // „Verris w skrócie” — tylko fakty z cennika i specyfikacji (kopia poza serwerem: pozycja po weryfikacji na węźle).
 const SKROT: [string, string][] = [
-  ['Cena przy odnowieniu', 'ta sama'],
+  ['Cena odnowienia', 'z cennika, znana z góry'],
   ['Przeniesienie strony', '0 zł'],
   ['Dostępność w regulaminie', '99,5%'],
   ...(SPEC_PO_WERYFIKACJI ? ([['Kopia poza serwerem', 'z 30 dni']] as [string, string][]) : []),
@@ -26,7 +27,7 @@ const SKROT: [string, string][] = [
 const ZASADY: [string, string][] = [
   [
     'Obietnice tylko z pokryciem',
-    'Jeśli coś piszemy na stronie, to jest też w regulaminie. Dostępność 99,5% z rekompensatą, a nie „100%” na banerze.',
+    'Nie obiecujemy na stronie niczego, czego nie robimy. Dostępność 99,5% z rekompensatą zapisaną w regulaminie, a nie „100%” na banerze.',
   ],
   [
     'Cena, która nie zaskakuje',
@@ -157,8 +158,9 @@ export default function Page() {
           <div className="prose">
             <h2>Kto świadczy usługę</h2>
             <p>
-              Usługę świadczy <strong>HVLN Dominik Kowalski</strong> z siedzibą w Zielonej Górze, NIP 9292069367.
-              Masz pytanie? <Link href="/kontakt">Napisz do nas</Link>.
+              Usługę świadczy <strong>{SPRZEDAWCA.nazwa}</strong>, {ADRES_SPRZEDAWCY}, NIP {SPRZEDAWCA.nip}, REGON{' '}
+              {SPRZEDAWCA.regon}, e-mail <a href={`mailto:${SPRZEDAWCA.email}`}>{SPRZEDAWCA.email}</a>. Masz pytanie?{' '}
+              <Link href="/kontakt">Napisz albo poproś o telefon</Link>.
             </p>
           </div>
         </div>

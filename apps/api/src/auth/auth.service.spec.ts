@@ -1,5 +1,5 @@
 import * as bcrypt from 'bcrypt';
-import { BadRequestException, ConflictException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service.js';
 import { hashAuthToken } from './auth-token.util.js';
 
@@ -140,10 +140,13 @@ describe('AuthService — reset hasła (X-06)', () => {
   });
 });
 
-describe('AuthService.register — X-06', () => {
-  it('zajęty adres → 409 bez sprawdzania hasła w HIBP', async () => {
-    const { svc } = zbuduj({ user: klient() });
-    await expect(svc.register({ email: 'jan@firma.pl', password: HASLO } as never)).rejects.toBeInstanceOf(ConflictException);
+describe('AuthService.register — X-06 / A1-07', () => {
+  // A1-07 (paczka 109) — zajęty adres nie daje już 409 „Email already exists”: odpowiedź jak przy sukcesie, a właściciel
+  // adresu dostaje maila (szczegóły: auth.bez-wyliczania-kont.spec.ts).
+  it('zajęty adres → ta sama odpowiedź co przy nowym koncie, bez zakładania konta', async () => {
+    const { svc, prisma } = zbuduj({ user: klient() });
+    await expect(svc.register({ email: 'jan@firma.pl', password: HASLO } as never)).resolves.toMatchObject({ ok: true, email: 'jan@firma.pl' });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 });
 

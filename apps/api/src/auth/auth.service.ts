@@ -3,7 +3,6 @@ import {
   Injectable,
   Logger,
   UnauthorizedException,
-  ConflictException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
@@ -33,6 +32,11 @@ import {
   emailChangeAlertTemplate,
 } from '../mail/templates/security-notifications.js';
 import { generateAuthToken, hashAuthToken } from './auth-token.util.js';
+import { kontoJuzIstniejeTemplate } from './konto-istnieje.templates.js';
+
+/** A1-07 — ta sama odpowiedź dla nowego i istniejącego adresu. */
+export const KOMUNIKAT_REJESTRACJI =
+  'Sprawdź skrzynkę e-mail i kliknij link z wiadomości, aby dokończyć zakładanie konta.';
 import { EcoPointsService } from '../eco/eco-points.service.js';
 import { stanWymogu2fa } from './wymog-2fa-zespolu.js';
 import { PasskeyPolicyService } from './passkey-policy.service.js';
@@ -97,18 +101,25 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto, ctx: RequestContext = {}): Promise<RegisterSuccess> {
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email: dto.email },
-    });
-    if (existingUser) {
-      throw new ConflictException('Email already exists');
-    }
-
-    // S-4b — odrzuć hasła znane z wycieków (HIBP, k-anonimowość).
+    // S-4b — odrzuć hasła znane z wycieków (HIBP, k-anonimowość). A1-07 — przed sprawdzeniem adresu, żeby odpowiedź
+    // dla zajętego i wolnego adresu przechodziła tę samą drogę.
     await this.pwned.assertNotPwned(dto.password);
 
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(dto.password, saltRounds);
+
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+      select: { id: true, email: true, firstName: true, role: true, emailVerifiedAt: true, anonymizedAt: true },
+    });
+    if (existingUser) {
+      // A1-07 — bez „Email already exists”: odpowiedź jak przy sukcesie, a właściciel adresu dostaje mail
+      // (konto niepotwierdzone — nowy link potwierdzający; potwierdzone — „zaloguj się albo zresetuj hasło”).
+      void this.powiadomOIstniejacymKoncie(existingUser, 'REJESTRACJA').catch((err) =>
+        this.logger.warn(`register: mail o istniejącym koncie nie wyszedł: ${err instanceof Error ? err.message : String(err)}`),
+      );
+      return { ok: true, email: dto.email, message: KOMUNIKAT_REJESTRACJI };
+    }
 
     const referralCode = `EKO-${randomBytes(4).toString('hex').toUpperCase()}`;
     const ecoBadgeToken = randomBytes(18).toString('base64url');
@@ -223,12 +234,25 @@ export class AuthService {
       );
     });
 
-    return {
-      ok: true,
-      email: user.email,
-      message:
-        'Konto utworzone. Sprawdź skrzynkę e-mail i kliknij link potwierdzający, aby się zalogować.',
-    };
+    return { ok: true, email: user.email, message: KOMUNIKAT_REJESTRACJI };
+  }
+
+  /** A1-07 — mail na adres, który ma już konto (rejestracja albo zmiana adresu innego konta na ten). */
+  private async powiadomOIstniejacymKoncie(
+    u: { id: string; email: string; firstName: string | null; role: Role; emailVerifiedAt: Date | null; anonymizedAt: Date | null },
+    powod: 'REJESTRACJA' | 'ZMIANA_ADRESU',
+  ): Promise<void> {
+    if (u.anonymizedAt) return;
+    if (powod === 'REJESTRACJA' && u.role === Role.USER && !u.emailVerifiedAt) {
+      await this.issueEmailVerification(u.id, u.email, u.firstName);
+      return;
+    }
+    await this.mailer.send({
+      ...kontoJuzIstniejeTemplate({ to: u.email, panelUrl: this.clientPanelUrl(), powod }),
+      userId: u.id,
+      category: 'TRANSACTIONAL',
+      fromRole: 'SECURITY',
+    });
   }
 
   /** Always returns ok — no email enumeration. */
@@ -267,7 +291,7 @@ export class AuthService {
     return { ok: true };
   }
 
-  async confirmEmailVerification(dto: { token: string }): Promise<{ ok: true }> {
+  async confirmEmailVerification(dto: { token: string }): Promise<{ ok: true; juzPotwierdzony?: true }> {
     const tokenHash = hashAuthToken(dto.token.trim());
     const row = await this.prisma.userAuthToken.findUnique({
       where: { tokenHash },
@@ -284,13 +308,16 @@ export class AuthService {
         },
       },
     });
+    // P5-09 — ten sam link drugi raz (druga karta, skaner poczty): adres jest już potwierdzony — to nie błąd.
+    if (row && row.purpose === UserAuthTokenPurpose.EMAIL_VERIFICATION && !row.user.anonymizedAt && row.user.emailVerifiedAt) {
+      return { ok: true, juzPotwierdzony: true };
+    }
     if (
       !row ||
       row.purpose !== UserAuthTokenPurpose.EMAIL_VERIFICATION ||
       row.usedAt ||
       row.expiresAt.getTime() < Date.now() ||
-      row.user.anonymizedAt ||
-      row.user.emailVerifiedAt
+      row.user.anonymizedAt
     ) {
       throw new BadRequestException('Link potwierdzenia e-mail jest nieprawidłowy lub wygasł.');
     }
@@ -557,9 +584,15 @@ export class AuthService {
     if (newEmail === user.email.toLowerCase()) {
       throw new BadRequestException('To jest już Twój aktualny adres e-mail.');
     }
-    const taken = await this.prisma.user.findUnique({ where: { email: newEmail }, select: { id: true } });
+    const taken = await this.prisma.user.findUnique({
+      where: { email: newEmail },
+      select: { id: true, email: true, firstName: true, role: true, emailVerifiedAt: true, anonymizedAt: true },
+    });
     if (taken) {
-      throw new BadRequestException('Ten adres e-mail jest już używany.');
+      // A1-07 — odpowiedź jak przy wolnym adresie (bez zdradzania, że konto istnieje); właściciel adresu dostaje mail.
+      void this.powiadomOIstniejacymKoncie(taken, 'ZMIANA_ADRESU').catch(() => undefined);
+      await this.audit.record({ action: 'EMAIL_CHANGE_REQUESTED', userId, actorUserId: userId, details: { newEmail, adresZajety: true } });
+      return { ok: true };
     }
 
     const rawToken = generateAuthToken();
@@ -1166,6 +1199,22 @@ export class AuthService {
       await this.audit.record({ action: 'SESSION_LOGOUT', userId, actorUserId: userId, details: { sessionId: sid } });
     }
     return { ok: true };
+  }
+
+  /**
+   * P5-06 (paczka 109) — „Wyloguj wszystkie inne urządzenia”: wszystkie aktywne sesje konta poza bieżącą.
+   * Typowy pierwszy ruch po podejrzeniu przejęcia — wcześniej trzeba było klikać każde urządzenie osobno.
+   */
+  async revokeOtherSessions(userId: string, currentSid?: string): Promise<{ ok: true; wylogowane: number }> {
+    if (!currentSid) throw new BadRequestException('Nie rozpoznaliśmy bieżącej sesji — zaloguj się ponownie i spróbuj jeszcze raz.');
+    const { count } = await this.prisma.userSession.updateMany({
+      where: { userId, revokedAt: null, NOT: { id: currentSid } },
+      data: { revokedAt: new Date() },
+    });
+    if (count > 0) {
+      await this.audit.record({ action: 'SESSIONS_REVOKED_OTHERS', userId, actorUserId: userId, details: { wylogowane: count } });
+    }
+    return { ok: true, wylogowane: count };
   }
 
   async revokeSession(userId: string, sessionId: string): Promise<{ ok: true }> {

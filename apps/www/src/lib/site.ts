@@ -6,6 +6,13 @@ export const LEGAL = 'https://panel.verris.pl/legal';
 
 export const KB_URL = 'https://pomoc.verris.pl';
 
+/**
+ * P3-11 (beta 3.11): „Zostań partnerem” i „Odbierz swój link” prowadzą na rejestrację z zachowanym celem — nowa agencja
+ * nie trafia na „Witaj z powrotem”, a zalogowany klient od razu na zakładkę programu (panel: /register z `next`).
+ */
+export const ZOSTAN_PARTNEREM = `${PANEL}/register?next=${encodeURIComponent('/dashboard/reseller')}`;
+export const ODBIERZ_LINK = `${PANEL}/register?next=${encodeURIComponent('/dashboard/referral')}`;
+
 // Makieta 14.10 (artefakt „verris.pl — makieta rozbudowy”, plansze Naglowek/Stopka): pasek pomocniczy nad
 // nawigacją, w nawigacji usługi + przeprowadzka + funkcje + cennik + blog; stopka w pięciu kolumnach.
 export const ZAMOW = '/zamow';

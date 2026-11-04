@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { SiteMonitorEventType, SubscriptionStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PartnersService } from '../partners/partners.service.js';
+import { EcoDrzewaService } from '../eco/eco-drzewa.service.js';
 import {
   SEAL_REASON_LABEL,
   dailyUptime,
@@ -44,6 +45,7 @@ export class BadgesService {
     private readonly prisma: PrismaService,
     private readonly partners: PartnersService,
     private readonly config: ConfigService,
+    private readonly drzewa: EcoDrzewaService,
   ) {}
 
   apiBase(): string {
@@ -137,10 +139,15 @@ export class BadgesService {
     await this.prisma.user.update({ where: { id: userId }, data: { badgeReferralClicks: { increment: 1 } } });
   }
 
-  async ecoProfile(token: string): Promise<{ tier: string } | null> {
+  /**
+   * Odznaka drzew (W6, decyzja 12): liczba posadzonych drzew (w częściach 1/10 000) z wybranego licznika —
+   * `verris` = wszystkie drzewa Verris, `moje` = własne drzewa klienta + jego udział w drzewach zbiorczych.
+   * Liczą się tylko drzewa z certyfikatem od partnera.
+   */
+  async ecoProfile(token: string, licznik: 'verris' | 'moje' = 'verris'): Promise<{ czesciDrzew: number } | null> {
     if (!/^[A-Za-z0-9_-]{1,64}$/.test(token)) return null;
-    const user = await this.prisma.user.findFirst({ where: { ecoBadgeToken: token }, select: { ecoPoints: true } });
-    return user ? { tier: ecoTier(user.ecoPoints) } : null;
+    const user = await this.prisma.user.findFirst({ where: { ecoBadgeToken: token }, select: { id: true } });
+    return user ? { czesciDrzew: await this.drzewa.licznikOdznaki(user.id, licznik) } : null;
   }
 
   /** Dane zakładki „Badge na stronę” w panelu klienta. */

@@ -18,7 +18,7 @@ import { PageHeaderRow, PanelModal } from '@/components/panel';
 import { fetchUserDomains, addDomain, deleteDomain, fetchRegistrarStatus } from './actions';
 import { fetchSidebarUserState } from '../sidebar-actions';
 import { canAccessDashboardRoute, clientNavContextFromSidebar } from '@/lib/client-nav-access';
-import { DomainDto } from '@verris/contracts';
+import { DomainDto } from '@verris/contracts/klient';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { toast } from 'sonner';
