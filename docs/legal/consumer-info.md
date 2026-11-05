@@ -1,6 +1,6 @@
 # Informacje dla konsumenta — umowa zawierana na odległość
 
-**Wersja 1.1.0 · obowiązuje od [DATA PUBLIKACJI]** (razem z Regulaminem 1.1.0)
+**Wersja 1.2.0 · obowiązuje od [DATA PUBLIKACJI]** (razem z Regulaminem 1.2.0)
 
 Dokument przekazywany Konsumentom i Przedsiębiorcom na prawach Konsumenta przed zawarciem umowy (proces zakupowy w panelu) oraz — wraz z Regulaminem — w potwierdzeniu zawarcia umowy na trwałym nośniku (e-mail), stosownie do art. 12 i art. 21 ustawy z dnia 30 maja 2014 r. o prawach konsumenta.
 

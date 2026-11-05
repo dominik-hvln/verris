@@ -1,8 +1,8 @@
 # Polityka prywatności Verris
 
-**Wersja 1.1.0 · obowiązuje od [DATA PUBLIKACJI]**
+**Wersja 1.2.0 · obowiązuje od [DATA PUBLIKACJI]**
 
-> Wersja 1.1.0 zastępuje wersję 1.0.1 z 8 lipca 2026 r., opublikowaną przed rozpoczęciem świadczenia usług klientom.
+> Wersja 1.2.0 zastępuje wersję 1.1.0 z 6 października 2026 r., opublikowaną przed rozpoczęciem świadczenia usług klientom.
 
 Niniejsza Polityka realizuje obowiązki informacyjne z art. 13 i 14 RODO wobec klientów Verris, użytkowników subkont, osób odwiedzających panel i strony Verris oraz osób korzystających z formularzy na stronie verris.pl.
 
@@ -160,4 +160,4 @@ O każdej zmianie Polityki informujemy w Panelu i e-mailem; istotne zmiany wymag
 
 ---
 
-**Wersja 1.1.0 — data publikacji i wejścia w życie: [DATA PUBLIKACJI]**
+**Wersja 1.2.0 — data publikacji i wejścia w życie: [DATA PUBLIKACJI]**

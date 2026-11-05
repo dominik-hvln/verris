@@ -39,7 +39,7 @@ export interface KonfiguracjaAi {
   /**
    * Decyzja 5 (2026-11-03): asystent AI dla wszystkich klientów. Włączone w adminie = lista kont testowych
    * z env (AI_TYLKO_KONTA) przestaje obowiązywać, bez zmian w .env. Domyślnie wyłączone — admin włącza po publikacji
-   * polityki prywatności 1.1.0 (OpenAI/Anthropic jako podprocesorzy).
+   * polityki prywatności 1.2.0 (OpenAI/Anthropic jako podprocesorzy).
    */
   dlaWszystkichKlientow: boolean;
 }

@@ -2,10 +2,10 @@ import { Prisma, SiteLeadKind, SiteLeadStatus } from '@verris/database';
 
 /**
  * A2-02 (paczka 109) — okresy przechowywania danych z formularzy verris.pl (model `SiteLead`). Te same liczby są
- * w Polityce prywatności 1.1.0 (§2.10 i tabela §4) i w RCPD (A16) — zmiana tutaj = zmiana dokumentów.
+ * w Polityce prywatności 1.2.0 (§2.10 i tabela §4) i w RCPD (A16) — zmiana tutaj = zmiana dokumentów.
  * Wcześniej `SiteLead` nie miał żadnej retencji: imię, telefon, IP i przeglądarka zostawały bez końca.
  *
- * Okresy to propozycja do zatwierdzenia przez właściciela (docs/legal/drafts/ZMIANY_1.0.0-1.1.0.md, „DO SPRAWDZENIA”).
+ * Okresy to propozycja do zatwierdzenia przez właściciela (docs/legal/drafts/ZMIANY_1.1.0-1.2.0.md, „DO SPRAWDZENIA”).
  */
 export const RETENCJA_LEADOW_DNI = {
   /** Formularz kontaktowy: czas na odpowiedź i dalszą korespondencję w tej sprawie. */

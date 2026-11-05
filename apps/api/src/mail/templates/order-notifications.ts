@@ -35,7 +35,7 @@ function kwotaZamowienia(label: string): string {
  * linku do Regulaminu niesie same informacje: sprzedawca (decyzja 10 — bez telefonu), cena i okres, automatyczne
  * odnowienie i jak je wyłączyć, faktury (ta sama zasada co w panelu — `billing/zasady-dokumentow.ts`), reklamacje
  * i odstąpienie. Regulaminu w załączniku PDF nie dołączamy: mailer nie obsługuje dziś załączników (zob.
- * docs/legal/drafts/ZMIANY_1.0.0-1.1.0.md, „DO SPRAWDZENIA”).
+ * docs/legal/drafts/ZMIANY_1.1.0-1.2.0.md, „DO SPRAWDZENIA”).
  */
 export function orderReceivedTemplate(ctx: OrderReceivedContext): MailMessage {
   const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';

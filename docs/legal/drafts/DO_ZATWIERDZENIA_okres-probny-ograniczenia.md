@@ -1,6 +1,6 @@
 # Okres próbny — ograniczenia w Regulaminie §7 ust. 8 (projekt do zatwierdzenia)
 
-> **Status: WBUDOWANE w szkic Regulaminu 1.1.0 (paczka 109, 2026-11-03): `terms.md` §7 ust. 8 w brzmieniu z pkt 3 (odwołanie: §9 ust. 5). `trialDays` zostaje 0 do wejścia 1.1.0 w życie — patrz `ZMIANY_1.0.0-1.1.0.md`.** Historia: PROJEKT · 2026-11-01. Po akceptacji właściciela nowe brzmienie trafia do
+> **Status: WBUDOWANE w szkic Regulaminu 1.1.0 (paczka 109, 2026-11-03): `terms.md` §7 ust. 8 w brzmieniu z pkt 3 (odwołanie: §9 ust. 5). `trialDays` zostaje 0 do wejścia 1.1.0 w życie — patrz `ZMIANY_1.1.0-1.2.0.md`.** Historia: PROJEKT · 2026-11-01. Po akceptacji właściciela nowe brzmienie trafia do
 > `terms.md` (§7 ust. 8) w najbliższej wersji Regulaminu. Dopiero po jej publikacji admin ustawia planowi hostingu
 > `trialDays = 14` — wtedy verris.pl i panel zaczynają pokazywać „14 dni za darmo”.
 

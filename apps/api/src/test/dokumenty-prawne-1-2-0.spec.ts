@@ -3,7 +3,9 @@ import { join } from 'node:path';
 import { RETENCJA_LEADOW_DNI } from '../leads/leads-retencja.js';
 
 /**
- * Paczka 109 — dokumenty prawne 1.1.0 (`docs/legal/drafts`) zgodne z decyzjami Dominika z 3.11.2026 i z kodem.
+ * Paczka 109 — dokumenty prawne (`docs/legal/drafts`) zgodne z decyzjami Dominika z 3.11.2026 i z kodem.
+ * Paczka 110 — numer 1.2.0: na produkcji od 6.10.2026 obowiązuje 1.1.0 (szkic z commita 49938cc0), a skrypt publikacji
+ * odmawia nadpisania opublikowanej wersji inną treścią. Numer w treści musi być równy numerowi w zgodach.
  * Publikuje je `ops/scripts/prod-legal-publish-live.sh` (podstawia `[DATA PUBLIKACJI]`, blokuje `[UZUPEŁNIĆ…]`).
  * Na szkicach sprzed paczki test pada: telefon w danych sprzedawcy, „miesięczny limit” autoskalowania, polityka
  * cookies z nieistniejącymi `refresh_token`/`csrf_token`, brak opisu Consent Mode i formularzy www.
@@ -15,7 +17,7 @@ const czytaj = (p: string) => readFileSync(join(KORZEN, p), 'utf8');
 const DOKUMENTY = ['terms', 'privacy', 'cookies', 'dpa'] as const;
 const tresc = Object.fromEntries(DOKUMENTY.map((d) => [d, czytaj(`docs/legal/drafts/${d}.md`)])) as Record<(typeof DOKUMENTY)[number], string>;
 const konsument = czytaj('docs/legal/consumer-info.md');
-const zmiany = czytaj('docs/legal/drafts/ZMIANY_1.0.0-1.1.0.md');
+const zmiany = czytaj('docs/legal/drafts/ZMIANY_1.1.0-1.2.0.md');
 const TELEFON = '+48 511 589 465';
 
 function zrodla(dir: string): string {
@@ -32,10 +34,13 @@ function zrodla(dir: string): string {
   return wynik;
 }
 
-describe('Dokumenty prawne 1.1.0 — gotowe do jednej publikacji', () => {
-  it.each(DOKUMENTY)('%s: wersja 1.1.0 z datą do podstawienia, bez miejsc do uzupełnienia i notatek roboczych', (d) => {
+describe('Dokumenty prawne 1.2.0 — gotowe do jednej publikacji', () => {
+  it.each(DOKUMENTY)('%s: wersja 1.2.0 z datą do podstawienia, bez miejsc do uzupełnienia i notatek roboczych', (d) => {
     const t = tresc[d];
-    expect(t).toContain('**Wersja 1.1.0 · obowiązuje od [DATA PUBLIKACJI]**');
+    expect(t).toContain('**Wersja 1.2.0 · obowiązuje od [DATA PUBLIKACJI]**');
+    expect(t).toContain('**Wersja 1.2.0 — data publikacji i wejścia w życie: [DATA PUBLIKACJI]**');
+    // 1.1.0 jest opublikowana na produkcji (6.10.2026) — ten numer nie może wrócić w nagłówku ani stopce.
+    expect(t).not.toMatch(/\*\*Wersja 1\.1\.0/);
     expect(t).not.toMatch(/\[(UZUPEŁNIĆ|TODO|DO UZUPEŁNIENIA)/i);
     // Komentarze HTML i notatki robocze panel pokazałby klientom dosłownie (renderer escapuje HTML).
     expect(t).not.toMatch(/<!--|DO SPRAWDZENIA/);
@@ -144,5 +149,15 @@ describe('Dokumenty prawne 1.1.0 — gotowe do jednej publikacji', () => {
 
   it('dokumenty zwracają się do klienta neutralnie (bez „wyraziłeś”, „korzystałeś”)', () => {
     for (const d of DOKUMENTY) expect(tresc[d].match(/[\p{L}]+łeś(?![\p{L}])/gu) ?? []).toEqual([]);
+  });
+
+  it('1.2.0 zastępuje opublikowaną 1.1.0, a instrukcja publikuje 1.2.0 i sprawdza akceptacje wszystkich wersji', () => {
+    for (const d of ['terms', 'privacy'] as const) {
+      expect(tresc[d]).toContain('Wersja 1.2.0 zastępuje wersję 1.1.0 z 6 października 2026 r.');
+    }
+    expect(konsument).toContain('(razem z Regulaminem 1.2.0)');
+    expect(zmiany).toContain('LEGAL_LIVE_VERSION=1.2.0');
+    expect(zmiany).not.toContain('LEGAL_LIVE_VERSION=1.1.0');
+    expect(zmiany).not.toMatch(/"documentVersion" LIKE '1\.0\.%'/);
   });
 });

@@ -1,8 +1,8 @@
 # Rejestr czynności przetwarzania (RCPD) — art. 30 ust. 1 i 2 RODO
 
-> **Wersja 1.3 · stan na 3 listopada 2026 r. (projekt — obowiązuje od publikacji Polityki prywatności 1.1.0)** (1.3: A14–A17, B5, retencje formularzy www, Consent Mode podstawowy; 1.2: rytm przeglądów i dziennik — sekcje D, E; 1.1: A13 — asystent AI.) Dokument operacyjny — aktualizować przy każdej
-> zmianie stacku, subprocesora lub retencji. Spójny z Polityką prywatności 1.1.0,
-> DPA 1.1.0 i listą subprocesorów (docs/legal/drafts/).
+> **Wersja 1.3 · stan na 3 listopada 2026 r. (projekt — obowiązuje od publikacji Polityki prywatności 1.2.0)** (1.3: A14–A17, B5, retencje formularzy www, Consent Mode podstawowy; 1.2: rytm przeglądów i dziennik — sekcje D, E; 1.1: A13 — asystent AI.) Dokument operacyjny — aktualizować przy każdej
+> zmianie stacku, subprocesora lub retencji. Spójny z Polityką prywatności 1.2.0,
+> DPA 1.2.0 i listą subprocesorów (docs/legal/drafts/).
 >
 > **Administrator:** HVLN Dominik Kowalski, Zacisze 2A, 65-775 Zielona Góra,
 > NIP 9292069367, REGON 521024260 · **Kontakt RODO:** rodo@verris.pl · tel. +48 511 589 465
@@ -37,11 +37,11 @@
 
 | # | Czynność | W imieniu (administrator) | Kategorie przetwarzania | Środki ochrony | Podstawa |
 |---|----------|---------------------------|-------------------------|----------------|----------|
-| B1 | Hosting współdzielony (pliki, bazy, poczta użytkowników klienta) | Klient Verris | przechowywanie, transmisja, kopie zapasowe — **bez analizy treści** | CageFS/LVE, WAF (ModSecurity/CRS), FTPS, backup off-site szyfrowany | DPA 1.1.0 + Regulamin §10 |
-| B2 | Serwery VPS (dane na serwerze klienta) | Klient Verris | udostępnienie infrastruktury (Hetzner Cloud); klient administruje samodzielnie | izolacja wirtualizacji, sieć, snapshoty wg planu | DPA 1.1.0 + Regulamin §11 |
-| B3 | E-mail marketing (listy odbiorców kampanii klienta) | Klient Verris | przechowywanie list, wysyłka (SES), obsługa rezygnacji | limity wysyłki, monitoring skarg/odrzuceń, auto-wstrzymanie | DPA 1.1.0 + Regulamin §13 |
-| B4 | Usługi dla klientów Resellera | Reseller (lub jego klienci — dalsze powierzenie) | jak B1–B3 w modelu odsprzedaży | jak wyżej | DPA 1.1.0 §1 + Regulamin §14 |
-| B5 | Statystyki odwiedzin stron klienta (bez cookies) | Klient Verris | zliczanie odsłon: dobowo solony skrót IP+UA (bez zapisu IP/UA), kraj, ścieżka, domena odsyłająca, typ urządzenia; usuwanie po 90 dniach | bez cookies, DNT, limit zdarzeń na dobę | DPA 1.1.0 §2 ust. 3 + Regulamin §10 |
+| B1 | Hosting współdzielony (pliki, bazy, poczta użytkowników klienta) | Klient Verris | przechowywanie, transmisja, kopie zapasowe — **bez analizy treści** | CageFS/LVE, WAF (ModSecurity/CRS), FTPS, backup off-site szyfrowany | DPA 1.2.0 + Regulamin §10 |
+| B2 | Serwery VPS (dane na serwerze klienta) | Klient Verris | udostępnienie infrastruktury (Hetzner Cloud); klient administruje samodzielnie | izolacja wirtualizacji, sieć, snapshoty wg planu | DPA 1.2.0 + Regulamin §11 |
+| B3 | E-mail marketing (listy odbiorców kampanii klienta) | Klient Verris | przechowywanie list, wysyłka (SES), obsługa rezygnacji | limity wysyłki, monitoring skarg/odrzuceń, auto-wstrzymanie | DPA 1.2.0 + Regulamin §13 |
+| B4 | Usługi dla klientów Resellera | Reseller (lub jego klienci — dalsze powierzenie) | jak B1–B3 w modelu odsprzedaży | jak wyżej | DPA 1.2.0 §1 + Regulamin §14 |
+| B5 | Statystyki odwiedzin stron klienta (bez cookies) | Klient Verris | zliczanie odsłon: dobowo solony skrót IP+UA (bez zapisu IP/UA), kraj, ścieżka, domena odsyłająca, typ urządzenia; usuwanie po 90 dniach | bez cookies, DNT, limit zdarzeń na dobę | DPA 1.2.0 §2 ust. 3 + Regulamin §10 |
 
 ## C. Ogólny opis środków technicznych i organizacyjnych (art. 32)
 
@@ -81,4 +81,4 @@ Załącznik 1.
 | Data | Rodzaj | Wersja RCPD | Zakres | Wynik | Zatwierdził |
 |---|---|---|---|---|---|
 | 2026-09-27 | wdrożenie rytmu | 1.1 → 1.2 | sekcja D (rytm, lista kontrolna, KSC), nowa sekcja E | treść A–C bez zmian | Dominik Kowalski (decyzja w rozmowie 27.09.2026) |
-| 2026-11-03 | przed zmianą (paczka 109) | 1.2 → 1.3 (projekt) | A14–A17, B5; retencje A1, A16; A12 Consent Mode podstawowy (decyzja 22 z 4.11); A6, A7 | do zatwierdzenia razem z Polityką 1.1.0 (docs/legal/drafts/ZMIANY_1.0.0-1.1.0.md) | — |
+| 2026-11-03 | przed zmianą (paczka 109) | 1.2 → 1.3 (projekt) | A14–A17, B5; retencje A1, A16; A12 Consent Mode podstawowy (decyzja 22 z 4.11); A6, A7 | do zatwierdzenia razem z Polityką 1.2.0 (docs/legal/drafts/ZMIANY_1.1.0-1.2.0.md) | — |

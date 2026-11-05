@@ -249,7 +249,7 @@ export class LeadsService {
     return { ok: true };
   }
 
-  /** A2-02 — retencja formularzy www (okresy w leads-retencja.ts, polityka prywatności 1.1.0 §4). */
+  /** A2-02 — retencja formularzy www (okresy w leads-retencja.ts, polityka prywatności 1.2.0 §4). */
   async usunStare(now = new Date()): Promise<number> {
     const { count } = await this.prisma.siteLead.deleteMany({ where: warunekRetencjiLeadow(now) });
     return count;

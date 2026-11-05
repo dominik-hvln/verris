@@ -74,7 +74,7 @@ export function UstawieniaAiForm({ initial }: { initial: UstawieniaAi }) {
                 ? 'Lista kont testowych na serwerze jest pusta — asystent działa dla wszystkich niezależnie od tego pola.'
                 : konf.dlaWszystkichKlientow
                   ? `Lista kont testowych z serwera (${initial.kontaTestowe}) nie obowiązuje — asystent dla każdego klienta.`
-                  : `Teraz tylko konta testowe z serwera (${initial.kontaTestowe}). Włącz po publikacji polityki prywatności 1.1.0 — bez zmian w konfiguracji serwera.`}
+                  : `Teraz tylko konta testowe z serwera (${initial.kontaTestowe}). Włącz po publikacji polityki prywatności 1.2.0 — bez zmian w konfiguracji serwera.`}
             </span>
           </span>
         </label>

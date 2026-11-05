@@ -1,6 +1,6 @@
 # Zgłoszenia do otwartej bety (verris.pl/beta) — zmiany w dokumentach (projekt do zatwierdzenia)
 
-> **Status: WBUDOWANE w szkic 1.1.0 (paczka 109, 2026-11-03): `privacy.md` §2.10 i wiersz w §4, `rcpd.md` A15. Publikacja razem z 1.1.0 — patrz `ZMIANY_1.0.0-1.1.0.md`.** Historia: PROJEKT · 2026-11-02. Formularz i obsługa zgłoszeń są w kodzie
+> **Status: WBUDOWANE w szkic 1.1.0 (paczka 109, 2026-11-03): `privacy.md` §2.10 i wiersz w §4, `rcpd.md` A15. Publikacja razem z 1.1.0 — patrz `ZMIANY_1.1.0-1.2.0.md`.** Historia: PROJEKT · 2026-11-02. Formularz i obsługa zgłoszeń są w kodzie
 > (`apps/api/src/beta/beta-zgloszenia.*`, panel admina → Testy (beta) → Zgłoszenia). Polityka prywatności
 > (opublikowana i szkic 1.1.0 w `drafts/privacy.md`) **nie opisuje** rekrutacji testerów ani formularzy na stronie
 > poza marketingiem (§4: „Marketing własny … zgoda”). Zgłoszenie do testów nie jest marketingiem — to prośba

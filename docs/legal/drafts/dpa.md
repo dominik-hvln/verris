@@ -1,6 +1,6 @@
 # Umowa powierzenia przetwarzania danych osobowych (DPA)
 
-**Wersja 1.1.0 · obowiązuje od [DATA PUBLIKACJI]**
+**Wersja 1.2.0 · obowiązuje od [DATA PUBLIKACJI]**
 
 Umowa zawierana drogą elektroniczną między Klientem (administratorem danych przetwarzanych w ramach jego usług utrzymywanych w Verris) a Verris (podmiotem przetwarzającym), stosownie do art. 28 ust. 3 RODO. Stanowi integralną część stosunku umownego opartego na Regulaminie świadczenia usług Verris.
 
@@ -103,4 +103,4 @@ Strony odpowiadają zgodnie z art. 82 RODO. W relacjach między stronami odpowie
 
 ---
 
-**Wersja 1.1.0 — data publikacji i wejścia w życie: [DATA PUBLIKACJI]**
+**Wersja 1.2.0 — data publikacji i wejścia w życie: [DATA PUBLIKACJI]**

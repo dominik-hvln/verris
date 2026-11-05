@@ -1,6 +1,6 @@
 # Asystent AI na verris.pl — zmiany w dokumentach (projekt do zatwierdzenia)
 
-> **Status: WBUDOWANE w szkic 1.1.0 (paczka 109, 2026-11-03): `privacy.md` §2.8, wiersze w §4 i §5.1 (Anthropic), `subprocessors.md`, `rcpd.md` A14. Asystent na verris.pl włączać dopiero po publikacji 1.1.0 — patrz `ZMIANY_1.0.0-1.1.0.md`.** Historia: PROJEKT · 2026-11-01. Asystent jest w kodzie, ale domyślnie WYŁĄCZONY
+> **Status: WBUDOWANE w szkic 1.1.0 (paczka 109, 2026-11-03): `privacy.md` §2.8, wiersze w §4 i §5.1 (Anthropic), `subprocessors.md`, `rcpd.md` A14. Asystent na verris.pl włączać dopiero po publikacji 1.1.0 — patrz `ZMIANY_1.1.0-1.2.0.md`.** Historia: PROJEKT · 2026-11-01. Asystent jest w kodzie, ale domyślnie WYŁĄCZONY
 > (ustawienie `ai.asystentWww`, admin → AI → Asystent www) i niewidoczny na stronie (flaga `NEXT_PUBLIC_ASYSTENT`).
 > Włączenie dopiero po: (1) akceptacji poniższych zmian przez właściciela, (2) publikacji Polityki prywatności
 > z nowym punktem, (3) wpisie A14 w RCPD. Ten plik nie zmienia `privacy.md`, `subprocessors.md` ani `rcpd.md` —

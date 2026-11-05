@@ -1,8 +1,8 @@
 # Regulamin świadczenia usług Verris
 
-**Wersja 1.1.0 · obowiązuje od [DATA PUBLIKACJI]**
+**Wersja 1.2.0 · obowiązuje od [DATA PUBLIKACJI]**
 
-> Wersja 1.1.0 zastępuje wersję 1.0.1 z 8 lipca 2026 r., opublikowaną przed rozpoczęciem świadczenia usług klientom.
+> Wersja 1.2.0 zastępuje wersję 1.1.0 z 6 października 2026 r., opublikowaną przed rozpoczęciem świadczenia usług klientom.
 
 ---
 
@@ -311,5 +311,5 @@ Data: ……………………
 
 ---
 
-**Wersja 1.1.0 — data publikacji i wejścia w życie: [DATA PUBLIKACJI]**
+**Wersja 1.2.0 — data publikacji i wejścia w życie: [DATA PUBLIKACJI]**
 Archiwum wersji: Panel → Dokumenty prawne → Historia wersji.

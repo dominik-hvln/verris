@@ -1,11 +1,13 @@
-# Dokumenty prawne Verris 1.0.x → 1.1.0 — lista zmian i publikacja
+# Dokumenty prawne Verris 1.1.0 → 1.2.0 — lista zmian i publikacja
 
-> **Status: PROJEKT do zatwierdzenia przez Dominika · 2026-11-03 (paczka 109) · nic nie jest opublikowane.**
-> Jedna publikacja Regulaminu, Polityki prywatności, Polityki cookies i Umowy powierzenia (DPA) w wersji 1.1.0
+> **Status: do publikacji · 2026-11-03 (paczka 109), numer 1.2.0 od 5.11.2026 (paczka 110) · nic nie jest opublikowane.**
+> Jedna publikacja Regulaminu, Polityki prywatności, Polityki cookies i Umowy powierzenia (DPA) w wersji 1.2.0
 > ze wszystkimi zmianami (decyzja 2 z 3.11.2026, przed 7.12.2026), **ze skutkiem od dnia publikacji — bez
-> 30-dniowego okresu zawiadomienia** (decyzja 19 z 4.11.2026; uzasadnienie w części C pkt 1). Na produkcji obowiązują dziś: Regulamin 1.0.1
-> (8.07.2026; treść jak 1.0.0 z 7.07), Polityka prywatności 1.0.1 (8.07), Polityka cookies 1.0.0 i DPA 1.0.0 (7.07).
-> Opublikowanych wersji 1.0.x nie zmieniamy — w bazie zostają jako archiwum i dowód tego, co klient zaakceptował.
+> 30-dniowego okresu zawiadomienia** (decyzja 19 z 4.11.2026; uzasadnienie w części C pkt 1). Na produkcji obowiązują dziś
+> wszystkie cztery dokumenty w wersji **1.1.0 z 6.10.2026** (szkic z commita `49938cc0`, sprawdzone 5.11.2026: długość
+> treści w bazie = plik z tego commita). Dlatego paczka 109 publikuje się jako **1.2.0** — skrypt słusznie odmówił
+> nadpisania 1.1.0 inną treścią. Opublikowanych wersji nie zmieniamy — w bazie zostają jako archiwum i dowód tego,
+> co klient zaakceptował.
 >
 > To nie jest porada prawna. Miejsca z ryzykiem są w części C („DO SPRAWDZENIA”) — do decyzji Dominika
 > (ew. z prawnikiem). Część A jest dla klientów (do maila i do pola „Zmiany” przy publikacji), część B dla operatora.
@@ -16,12 +18,12 @@
 
 ### A.1 Tekst maila do klientów (ponowna akceptacja)
 
-**Temat:** Nowe wersje regulaminu i polityki prywatności Verris (1.1.0)
+**Temat:** Nowe wersje regulaminu i polityki prywatności Verris (1.2.0)
 
 > Cześć,
 >
 > od [DATA PUBLIKACJI] obowiązują nowe wersje dokumentów Verris: Regulaminu, Polityki prywatności, Polityki
-> cookies i Umowy powierzenia danych (wersja 1.1.0). Przy najbliższym logowaniu poprosimy Cię o akceptację
+> cookies i Umowy powierzenia danych (wersja 1.2.0). Przy najbliższym logowaniu poprosimy Cię o akceptację
 > Regulaminu i potwierdzenie zapoznania się z Polityką prywatności. Najważniejsze zmiany:
 >
 > **Pieniądze i rozliczenia**
@@ -85,7 +87,7 @@
 
 ### A.2 Pole „Zmiany” przy publikacji (krótko, pokazuje się w oknie ponownej akceptacji)
 
-**Regulamin (TERMS) 1.1.0**
+**Regulamin (TERMS) 1.2.0**
 ```
 - Rekompensata SLA trafia do portfela automatycznie, bez wniosku (§15).
 - Rabat na start przy pierwszym zakupie, faktury przy każdej wpłacie, kredyty z kodu bez faktury (§8, §9).
@@ -97,7 +99,7 @@
 - Metody płatności (Paynow, Stripe), dane Verris z numerem telefonu (§1 ust. 1, §2 ust. 3).
 ```
 
-**Polityka prywatności (PRIVACY) 1.1.0**
+**Polityka prywatności (PRIVACY) 1.2.0**
 ```
 - Formularze verris.pl (kontakt, telefon, plan przeniesienia) z okresami przechowywania; plan bez warunku zgody.
 - Zgłoszenia do testów, asystent AI na verris.pl, program EKO, zwrot salda przy usunięciu konta.
@@ -105,23 +107,25 @@
 - Termin usunięcia konta: 14 dni albo koniec opłaconego okresu.
 ```
 
-**Polityka cookies (COOKIES) 1.1.0**
+**Polityka cookies (COOKIES) 1.2.0**
 ```
 - Tabela zgodna z tym, co faktycznie zapisujemy (panel i verris.pl), w tym pamięć przeglądarki.
 - Nowy punkt 4: Google Consent Mode v2 w trybie podstawowym — przed zgodą nie ładujemy narzędzi Google ani Meta.
 - Kategoria „Funkcjonalne” opisana zgodnie z działaniem (sygnały Google, bez własnych cookies Verris).
 ```
 
-**Umowa powierzenia (DPA) 1.1.0**
+**Umowa powierzenia (DPA) 1.2.0**
 ```
 - Statystyki odwiedzin stron klienta w zakresie powierzenia (§2 ust. 3, §4).
 - Akceptacja i egzemplarz PDF w panelu: Ustawienia → Prywatność i dane (§1, §12).
 - Opis środków technicznych bez nazw narzędzi; dane w Unii Europejskiej.
 ```
 
-### A.3 Pełna lista zmian względem 1.0.x (dla operatora i do Historii wersji)
+### A.3 Pełna lista zmian względem 1.0.1 (dla operatora i do Historii wersji)
 
-**Regulamin 1.1.0** (część zmian była już w szkicu 1.1.0 przed paczką 109 — oznaczone „wcześniej”):
+Pozycje oznaczone „wcześniej” są już w 1.1.0 z 6.10.2026 — w 1.2.0 nowe jest wszystko pozostałe.
+
+**Regulamin 1.2.0** (część zmian była już w 1.1.0 z 6.10 — oznaczone „wcześniej”):
 - §1 ust. 1, §2 ust. 3 — dane Verris z numerem telefonu +48 511 589 465 (decyzja 20; numer tylko w dokumentach —
   na verris.pl i w Panelu prośba o telefon przez verris.pl/kontakt, decyzja 10).
 - §1 ust. 6, 13; §6 — Subkonta bez słowa „IAM”; nowy §6 ust. 5: anulowanie i usunięcie usługi, wyłączenie odnowienia,
@@ -158,7 +162,7 @@
 - §19 ust. 2 — DPA w Panelu: Ustawienia → Prywatność i dane (A2-06).
 - §21 ust. 2 — odstąpienie w Panelu przez Wsparcie → Nowe zgłoszenie (W1, P2-12).
 
-**Polityka prywatności 1.1.0:** §1 z numerem telefonu (decyzja 20); §2.2 numer rachunku do zwrotu; §2.5 uwagi z testów i zgody
+**Polityka prywatności 1.2.0:** §1 z numerem telefonu (decyzja 20); §2.2 numer rachunku do zwrotu; §2.5 uwagi z testów i zgody
 marketingowe z historią; §2.6 współpracownicy; §2.7 AI dla wszystkich (wcześniej: nowy punkt); §2.8 asystent AI na
 verris.pl; §2.9 formularze verris.pl; §2.10 zgłoszenie do testów; §2.11 program EKO (wkład tylko z pieniędzy, partner bez danych klientów — decyzje 16–17); §3 statystyki odwiedzin jako
 powierzenie; §4 nowe wiersze (zwrot salda, kontakt, telefon, plan przeniesienia, wiadomości po planie, beta, oferty
@@ -167,16 +171,16 @@ Cloudflare także formularze www, Anthropic także www, Streamsoft, OpenAI (wcze
 w trybie podstawowym (decyzja 22), Meta Conversions API; §6 dane w UE; §7 ścieżki w panelu, termin usunięcia, zgłoszenia
 do przedawnienia, prawa osób bez konta; §9 bez nazw narzędzi.
 
-**Polityka cookies 1.1.0:** nowe tabele 2.1–2.2 (rzeczywiste klucze panelu i verris.pl; usunięte nieistniejące
+**Polityka cookies 1.2.0:** nowe tabele 2.1–2.2 (rzeczywiste klucze panelu i verris.pl; usunięte nieistniejące
 `refresh_token`, `csrf_token`, `panel-locale`, `panel-theme`, `dashboard-layout`, `support-draft`); 2.3 Turnstile także
 na verris.pl, Paynow; 3.1 „Funkcjonalne” zgodnie z działaniem; nowy punkt 4 — Consent Mode v2 w trybie podstawowym
 (decyzja 22 zamiast 11; A2-04, A2-05); 5.3 wspólna zgoda dla verris.pl i panelu.
 
-**DPA 1.1.0:** §1, §12 ust. 1 — akceptacja i egzemplarz w Panelu (A2-06); §2 ust. 3 i §4 — statystyki odwiedzin (A2-12);
+**DPA 1.2.0:** §1, §12 ust. 1 — akceptacja i egzemplarz w Panelu (A2-06); §2 ust. 3 i §4 — statystyki odwiedzin (A2-12);
 §8 ust. 1 i Zał. 1 — UE; Zał. 1 bez nazw narzędzi (A2-16); Zał. 2 — Hetzner, Cloudflare (zakres); §10 ust. 1 —
 14 dni na wniosek o zwrot danych (wcześniej, Z-05).
 
-**Poza publikacją w panelu (pliki w repo):** `consumer-info.md` 1.1.0 (płatności, rabat, faktury, autoskalowanie,
+**Poza publikacją w panelu (pliki w repo):** `consumer-info.md` 1.2.0 (płatności, rabat, faktury, autoskalowanie,
 kontakt z numerem telefonu, domeny), `subprocessors.md` (Cloudflare www, Anthropic www, Google — tryb podstawowy, Meta CAPI; posadzimy.pl nie jest odbiorcą danych — decyzja 17),
 `../rcpd.md` 1.3 (A14–A17, B5).
 
@@ -189,12 +193,13 @@ kontakt z numerem telefonu, domeny), `subprocessors.md` (Cloudflare www, Anthrop
 2. Wdrożony kod paczki 109 (bez niego dokumenty obiecują rzeczy, których nie ma): plan przeniesienia bez warunku zgody
    i wypis (`apps/api/src/leads`), retencja formularzy (`LeadsRetencjaScheduler`), DPA w „Prywatność i dane”,
    zwrot salda przy usunięciu konta (W2), limit autoskalowania (W1), program EKO (W6), sklep — dosynchronizowanie bazy (W7).
-3. **Publikacja od razu, bez 30 dni** (decyzja 19 z 4.11.2026; uzasadnienie — część C pkt 1). Warunek: wersje 1.0.x
-   zaakceptowały wyłącznie konta testowe. Tuż przed publikacją sprawdzić to w bazie produkcyjnej:
+3. **Publikacja od razu, bez 30 dni** (decyzja 19 z 4.11.2026; uzasadnienie — część C pkt 1). Warunek: dotychczasowe
+   wersje (1.0.x i 1.1.0) zaakceptowały wyłącznie konta testowe. Tuż przed publikacją sprawdzić to w bazie produkcyjnej
+   (5.11.2026: same konta Dominika i testowe):
    ```sql
    SELECT u.email, c."documentVersion", c."grantedAt"
    FROM "UserConsent" c JOIN "User" u ON u.id = c."userId"
-   WHERE c."documentKind" = 'TERMS' AND c."documentVersion" LIKE '1.0.%' AND c."withdrawnAt" IS NULL
+   WHERE c."documentKind" = 'TERMS' AND c."withdrawnAt" IS NULL
    ORDER BY c."grantedAt";
    ```
    Każdy adres z wyniku musi być kontem testowym (zespół, testerzy bety). Jeśli pojawi się prawdziwy klient — nie
@@ -206,9 +211,9 @@ kontakt z numerem telefonu, domeny), `subprocessors.md` (Cloudflare www, Anthrop
 Na serwerze z aktualnym repo (`/opt/verris`, gałąź po scaleniu paczki 109):
 ```bash
 cd /opt/verris
-LEGAL_LIVE_VERSION=1.1.0 \
+LEGAL_LIVE_VERSION=1.2.0 \
 LEGAL_CHANGELOG="$(cat <<'TXT'
-Wersja 1.1.0 — automatyczna rekompensata SLA, rabat na start, faktury przy każdej wpłacie, limit autoskalowania
+Wersja 1.2.0 — automatyczna rekompensata SLA, rabat na start, faktury przy każdej wpłacie, limit autoskalowania
 na 30 dni, zwrot salda przy usunięciu konta, kopie 7/30 dni, przeniesienie strony, okres próbny, program EKO,
 formularze verris.pl, oświadczenie przy każdym zamówieniu domeny i Consent Mode w trybie
 podstawowym. Lista zmian: e-mail z dnia publikacji.
@@ -216,13 +221,13 @@ TXT
 )" ./ops/scripts/prod-legal-publish-live.sh
 ```
 Skrypt podstawia datę dnia publikacji w miejsce `[DATA PUBLIKACJI]`, odmawia publikacji, gdy w treści zostało
-`[UZUPEŁNIĆ…]`/`[TODO…]`, i nie nadpisze istniejącej wersji 1.1.0 inną treścią. Jeden tekst „Zmiany” idzie do
+`[UZUPEŁNIĆ…]`/`[TODO…]`, i nie nadpisze istniejącej wersji 1.2.0 inną treścią. Jeden tekst „Zmiany” idzie do
 wszystkich czterech dokumentów.
 
 ### B.3 Publikacja — wariant 2: panel admina (osobne „Zmiany” dla każdego dokumentu)
 Panel admina → **RODO** (`/compliance`) → „Opublikuj nową wersję dokumentu”. Dla każdego z czterech dokumentów:
 1. **Rodzaj:** Regulamin (TERMS) / Polityka prywatności (PRIVACY) / Polityka cookies (COOKIES) / Umowa powierzenia (DPA).
-2. **Wersja:** `1.1.0`.
+2. **Wersja:** `1.2.0`.
 3. **Tytuł:** jak dotąd — „Regulamin świadczenia usług Verris”, „Polityka prywatności Verris”, „Polityka plików cookies
    Verris”, „Umowa powierzenia przetwarzania danych osobowych (DPA)”.
 4. **Treść:** cały plik z `docs/legal/drafts/` po **ręcznej** zamianie każdego `[DATA PUBLIKACJI]` na datę dnia
@@ -232,8 +237,8 @@ Panel admina → **RODO** (`/compliance`) → „Opublikuj nową wersję dokumen
    TERMS i PRIVACY).
 
 ### B.4 Po publikacji (ten sam dzień)
-1. Panel klienta: `/legal/terms`, `/legal/privacy`, `/legal/cookies`, `/legal/dpa` pokazują 1.1.0 i datę; okno ponownej
-   akceptacji pokazuje „Zmiany”; w „Twoich zgodach” po akceptacji widać 1.1.0 (numer w treści = numer w zgodach).
+1. Panel klienta: `/legal/terms`, `/legal/privacy`, `/legal/cookies`, `/legal/dpa` pokazują 1.2.0 i datę; okno ponownej
+   akceptacji pokazuje „Zmiany”; w „Twoich zgodach” po akceptacji widać 1.2.0 (numer w treści = numer w zgodach).
 2. Wysłać mail z A.1 (z datą) do wszystkich aktywnych kont.
 3. Włączyć funkcje, które czekały na dokumenty: rekompensata SLA automatycznie (flaga z
    `PROPOZYCJA_ZMIANY_PAR15.md`, pkt 4 checklisty — jeśli jeszcze wyłączona); asystent AI dla wszystkich klientów
@@ -251,11 +256,11 @@ Panel admina → **RODO** (`/compliance`) → „Opublikuj nową wersję dokumen
 ## C. DO SPRAWDZENIA (ryzyka — decyzja Dominika, ewentualnie z prawnikiem)
 
 1. **Publikacja od razu, bez 30 dni (decyzja 19 z 4.11.2026) — uzasadnienie i ryzyko.** Zmiany na niekorzyść
-   względem 1.0.x: §7 ust. 3 (bez prolongaty), §10 ust. 8 i DPA §10 (14 zamiast 30 dni), §15 (SLA bez VPS), §7 ust. 8
+   względem 1.0.x (część weszła już w 1.1.0 z 6.10): §7 ust. 3 (bez prolongaty), §10 ust. 8 i DPA §10 (14 zamiast 30 dni), §15 (SLA bez VPS), §7 ust. 8
    (ograniczenia próby), §8 ust. 4 (kolejność wydatków przy zwrocie). §24 ust. 2 (30 dni od zawiadomienia) chroni
-   Klientów, którzy zawarli Umowę na warunkach 1.0.x. Dziś 1.0.x zaakceptowały wyłącznie konta testowe (zespół
+   Klientów, którzy zawarli Umowę na warunkach 1.0.x albo 1.1.0. Dziś obie zaakceptowały wyłącznie konta testowe (zespół
    i testerzy bety, bez zakupów — kredyty z kodu BETA nie są zakupem), więc nie ma Klienta, wobec którego zmiana
-   działałaby wstecz; każdy nowy Klient zawiera Umowę od razu na warunkach 1.1.0 (art. 384 KC — wzorzec doręczony
+   działałaby wstecz; każdy nowy Klient zawiera Umowę od razu na warunkach 1.2.0 (art. 384 KC — wzorzec doręczony
    przed zawarciem umowy). Odczekanie 30 dni przesunęłoby start bez korzyści dla kogokolwiek. Testerzy dostają mail
    z A.1 i mogą w każdej chwili wypowiedzieć umowę bez kosztów (§24 ust. 3). Ryzyko szczątkowe: gdyby tester bety
    był traktowany jako Klient-konsument, mógłby powołać się na brak 30 dni — w praktyce bez skutku majątkowego (nie
