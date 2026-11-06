@@ -404,6 +404,8 @@ export interface PostepBetaDto {
   kroki: Record<string, string>;
   uwagi: Record<string, string>;
   zaktualizowano: string | null;
+  /** P4-12 — zaproszenie ze zgłoszenia tylko z zakresem „Poczta”: pulpit liczy kroki scenariuszy poczty. */
+  tylkoPoczta?: boolean;
 }
 
 /** Ile kroków odhaczono — tylko kroki scenariuszy obowiązkowych (opcjonalne i usunięte z listy nie liczą się). */

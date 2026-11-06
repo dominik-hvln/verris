@@ -12,7 +12,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service.js';
 import { MailerService } from '../mail/mailer.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
-import { zaproszenieDoTestowTemplate } from './beta.templates.js';
+import { tylkoPocztaWZakresie, zaproszenieDoTestowTemplate } from './beta.templates.js';
 
 /**
  * PB-26 — otwarte testy przed startem (docs/ops/BETA_TESTY.md).
@@ -158,8 +158,21 @@ export class BetaService {
   /** Strona „Testy (beta)” w panelu klienta — odhaczone kroki i uwagi zalogowanego testera. */
   async postep(userId: string): Promise<PostepBetaDto> {
     if (!(await this.czyTester(userId))) return { tester: false, kroki: {}, uwagi: {}, zaktualizowano: null };
-    const wiersz = await this.prisma.betaPostep.findUnique({ where: { userId } });
-    return { tester: true, ...odczytajPostep(wiersz) };
+    const [wiersz, tylkoPoczta] = await Promise.all([this.prisma.betaPostep.findUnique({ where: { userId } }), this.tylkoPoczta(userId)]);
+    return { tester: true, ...odczytajPostep(wiersz), tylkoPoczta };
+  }
+
+  /**
+   * P4-12 — tester z zaproszenia na zgłoszenie z /beta tylko z zakresem „Poczta” (ta sama reguła co wariant maila).
+   * Zaproszenie ręczne (bez zgłoszenia) = pełna lista scenariuszy.
+   */
+  private async tylkoPoczta(userId: string): Promise<boolean> {
+    const r = await this.prisma.promoRedemption.findFirst({
+      where: { userId, promoCode: { betaInvite: { isNot: null } } },
+      orderBy: { redeemedAt: 'desc' },
+      select: { promoCode: { select: { betaInvite: { select: { zgloszenia: { select: { zakres: true }, take: 1 } } } } } },
+    });
+    return tylkoPocztaWZakresie(r?.promoCode.betaInvite?.zgloszenia[0]?.zakres);
   }
 
   /**

@@ -9,7 +9,7 @@ import { canAccessDashboardRoute, canShowWalletBalance } from '@/lib/client-nav-
 import Link from 'next/link';
 import { useEffect, useState, type ReactNode } from 'react';
 import { AlertTriangle, ArrowRight, ChevronRight, Plus } from 'lucide-react';
-import type { ServiceSummaryDto } from '@verris/contracts/klient';
+import type { PostepBetaDto, ServiceSummaryDto } from '@verris/contracts/klient';
 import { CREDIT_RATE_INFO, formatCredits } from '@/lib/credits';
 import { useModul } from '@/lib/feature-flags';
 import {
@@ -29,6 +29,7 @@ import {
   type Tone,
 } from '@/components/panel/v2';
 import { deriveReasons } from './services-health-overview';
+import { KafelekTestowBeta } from './kafelek-testow-beta';
 import { SERVICE_STATUS_LABEL, buildEcoLedgerSeries, mapWalletMonthlyFlow } from './dashboard-chart-utils';
 import type { DashboardSnapshot } from './dashboard-data';
 import { plForm, plural } from '@/lib/pl';
@@ -119,11 +120,14 @@ export function DashboardHome({
   snapshot,
   aside,
   zaproszenieBety = false,
+  postepBety = null,
 }: {
   snapshot: DashboardSnapshot;
   aside?: ReactNode;
   /** P1-11 — konto ma niewykorzystane zaproszenie do testów: kafelek „Wpisz kod z zaproszenia”. */
   zaproszenieBety?: boolean;
+  /** Decyzja 06.11 — postęp testera (po wpisaniu kodu): kafelek „Testy (beta)” zamiast kafelka z kodem. */
+  postepBety?: PostepBetaDto | null;
 }) {
   // N-12: moduł EKO może wyłączyć operator flagą (brak flagi = jak dotąd).
   const ekoWidoczny = useModul('modul.eco');
@@ -230,7 +234,9 @@ export function DashboardHome({
         </div>
       </header>
 
-      {zaproszenieBety && moze('/dashboard/billing') ? (
+      {postepBety?.tester && moze('/dashboard/beta') ? <KafelekTestowBeta postep={postepBety} /> : null}
+
+      {zaproszenieBety && !postepBety?.tester && moze('/dashboard/billing') ? (
         <section
           aria-labelledby="kod-zaproszenia-tytul"
           className="flex flex-wrap items-center justify-between gap-3 rounded-[10px] border border-primary/40 bg-card p-4"

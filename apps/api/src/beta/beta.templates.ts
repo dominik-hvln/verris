@@ -6,6 +6,9 @@ export function tylkoPocztaWZakresie(zakres: readonly string[] | null | undefine
   return Array.isArray(zakres) && zakres.length > 0 && zakres.every((z) => z === 'POCZTA');
 }
 
+/** Trasa panelu klienta, która po sprawdzeniu sesji oddaje przewodnik testera (apps/client-panel/src/app/dashboard/beta/przewodnik/route.ts). */
+export const SCIEZKA_PRZEWODNIKA_TESTERA = '/dashboard/beta/przewodnik';
+
 /**
  * PB-26 — zaproszenie do testów: kod, co sprawdzić, gdzie zgłaszać. P1-13: link „Załóż konto” zaraz pod kodem
  * (przycisk powtórzony na dole), adresy schowane pod nazwami, nadawca „Zespół Verris”. P4-12: wariant „tylko poczta”.
@@ -67,6 +70,9 @@ export function zaproszenieDoTestowTemplate(input: {
             '- asystenta AI i prognozę zużycia w panelu,',
             '- panel na telefonie.',
           ]),
+      '',
+      // Decyzja 06.11 — przewodnik PDF tylko po zalogowaniu (trasa panelu sprawdza sesję), bez ręcznego wysyłania.
+      `Przewodnik do wydruku albo wypełnienia w PDF pobierzesz po zalogowaniu na stronie Testy (beta): **[Pobierz przewodnik (PDF)](${input.panelUrl}${SCIEZKA_PRZEWODNIKA_TESTERA})**.`,
       '',
       '## Jak zgłaszać uwagi',
       '',

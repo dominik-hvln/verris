@@ -45,6 +45,17 @@ describe('zaproszenieDoTestowTemplate', () => {
     expect(m.text).toContain('nie ma za nie faktury');
   });
 
+  it('przewodnik PDF: po akapicie o scenariuszach, do pobrania po zalogowaniu – link do trasy panelu (oba warianty)', () => {
+    const zdanie = 'Przewodnik do wydruku albo wypełnienia w PDF pobierzesz po zalogowaniu na stronie Testy (beta)';
+    expect(m.text).toContain(zdanie);
+    expect(m.html).toContain('href="https://panel.example.pl/dashboard/beta/przewodnik"');
+    const t = m.text;
+    expect(t.indexOf(zdanie)).toBeGreaterThan(t.indexOf('- panel na telefonie.'));
+    expect(t.indexOf(zdanie)).toBeLessThan(t.indexOf('Jak zgłaszać uwagi'));
+    const p = zaproszenieDoTestowTemplate({ to: 'a@example.pl', code: 'BETA-X', credit: 150, validTo: new Date(), panelUrl: 'https://panel.example.pl', tylkoPoczta: true });
+    expect(p.text).toContain(zdanie);
+  });
+
   it('P4-12: wariant „tylko poczta” – zamówienie poczty bez hostingu, migracji i WordPressa', () => {
     const p = zaproszenieDoTestowTemplate({
       to: 'zbigniew@example.pl',

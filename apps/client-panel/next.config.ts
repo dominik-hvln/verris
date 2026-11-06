@@ -12,6 +12,13 @@ const nextConfig: NextConfig = {
   output: "standalone",
   env: { NEXT_PUBLIC_WERSJA_PANELU: wersjaPanelu },
   poweredByHeader: false,
+  // Przewodnik testera (PDF) leży poza public/ i oddaje go tylko trasa z kontrolą sesji. Plik czytany z dysku
+  // w czasie działania musi trafić do .next/standalone (Dockerfile.panel kopiuje tylko standalone, static i public):
+  // https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats — klucz = ścieżka trasy,
+  // wartość = glob od katalogu projektu (apps/client-panel). Pilnuje beta/przewodnik/route.spec.ts.
+  outputFileTracingIncludes: {
+    "/dashboard/beta/przewodnik": ["./assets/beta/Verris-przewodnik-testera.pdf"],
+  },
   transpilePackages: ["@verris/ui", "@verris/contracts"],
   experimental: {
     // Pliki idą przez Server Actions, których domyślny limit to 1 MB. API przyjmuje 25 MB w menedżerze

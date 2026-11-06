@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { Download } from "lucide-react";
 import { PanelFetchError, PanelPageHeader } from "@/components/panel";
+import { ADRES_PRZEWODNIKA } from "./postep-beta";
 import { pobierzPostepBetaAction } from "./beta-actions";
 import { ListaTestowBeta } from "./lista-testow";
 
@@ -14,6 +16,13 @@ export default async function TestyBetaPage() {
         title="Testy (beta)"
         description="Scenariusze testów przed startem. Odhaczaj kroki i dopisuj uwagi – zapisują się na Twoim koncie, a my widzimy postęp na bieżąco."
       />
+      {/* Decyzja 06.11 — przewodnik PDF tylko po zalogowaniu (trasa przewodnik/route.ts sprawdza sesję). Zwykły <a>: plik, nie strona. */}
+      <p className="m-0 -mt-2 text-[14px] text-muted-foreground">
+        Wolisz na papierze albo w PDF?{" "}
+        <a href={ADRES_PRZEWODNIKA} download className="inline-flex items-center gap-1.5 font-semibold text-data-hi hover:underline" data-przewodnik-pdf>
+          <Download className="h-4 w-4" aria-hidden /> Pobierz przewodnik (PDF)
+        </a>
+      </p>
       {postep instanceof Error ? (
         <PanelFetchError message={postep.message} />
       ) : !postep.tester ? (

@@ -4,7 +4,7 @@ import { Prisma } from '@verris/database';
 import { BetaService, KREDYT_TESTOW, kodTestera } from './beta.service.js';
 
 /** PB-26 — zaproszenia do testów: imienny kod 150 K / 1 użycie / 14 dni, mail best-effort, lista testerów. */
-function stanowisko(opts: { aktywne?: boolean; mail?: 'ok' | 'suppressed' | 'throw'; kolizje?: number; tester?: boolean } = {}) {
+function stanowisko(opts: { aktywne?: boolean; mail?: 'ok' | 'suppressed' | 'throw'; kolizje?: number; tester?: boolean; zakres?: string[] | null } = {}) {
   let kolizje = opts.kolizje ?? 0;
   const prisma = {
     betaInvite: {
@@ -18,7 +18,13 @@ function stanowisko(opts: { aktywne?: boolean; mail?: 'ok' | 'suppressed' | 'thr
       findUnique: vi.fn(async () => ({ id: 'i1', promoCodeId: 'p1' })),
     },
     promoCode: { update: vi.fn(async () => undefined) },
-    promoRedemption: { count: vi.fn(async () => (opts.tester === false ? 0 : 1)) },
+    promoRedemption: {
+      count: vi.fn(async () => (opts.tester === false ? 0 : 1)),
+      // Zaproszenie testera i zgłoszenie z /beta, z którego powstało (brak `zakres` = zaproszenie ręczne).
+      findFirst: vi.fn(async () =>
+        opts.tester === false ? null : { promoCode: { betaInvite: { zgloszenia: opts.zakres ? [{ zakres: opts.zakres }] : [] } } },
+      ),
+    },
     betaPostep: { findMany: vi.fn(async () => []), findUnique: vi.fn(async () => null) },
     $executeRaw: vi.fn(async () => 1),
     subscription: { groupBy: vi.fn(async () => []) },
@@ -125,6 +131,17 @@ describe('BetaService', () => {
     await expect(obcy.svc.ustawKrok('u2', 's01.k1', true)).rejects.toThrow(ForbiddenException);
     expect(obcy.prisma.$executeRaw).not.toHaveBeenCalled();
     expect(await obcy.svc.postep('u2')).toEqual({ tester: false, kroki: {}, uwagi: {}, zaktualizowano: null });
+  });
+
+  it('P4-12: postęp mówi, czy tester jest z zaproszenia „tylko poczta” (zakres zgłoszenia z /beta); ręczne zaproszenie = pełna lista', async () => {
+    expect((await stanowisko({ zakres: ['POCZTA'] }).svc.postep('u1')).tylkoPoczta).toBe(true);
+    expect((await stanowisko({ zakres: ['POCZTA', 'WORDPRESS'] }).svc.postep('u1')).tylkoPoczta).toBe(false);
+    expect((await stanowisko().svc.postep('u1')).tylkoPoczta).toBe(false);
+    const s = stanowisko({ zakres: ['POCZTA'] });
+    await s.svc.postep('u7');
+    expect(s.prisma.promoRedemption.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { userId: 'u7', promoCode: { betaInvite: { isNot: null } } } }),
+    );
   });
 
   it('postęp: odhaczenie i pusta uwaga idą jednym zapytaniem (bez odczytu i nadpisania całego JSON-a)', async () => {
