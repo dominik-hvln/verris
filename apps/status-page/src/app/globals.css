@@ -366,6 +366,7 @@ a:hover {
   color: var(--bad-text);
 }
 .sv-pasek {
+  position: relative;
   grid-column: 1 / -1;
   order: 3;
   display: flex;
@@ -373,16 +374,38 @@ a:hover {
   height: 26px;
   min-width: 0;
 }
-.sv-pasek i,
-.sv-legenda i {
+.sv-dzien,
+.sv-legenda i,
+.sv-dymek-stan i {
   flex: 1;
   min-width: 0;
   border-radius: 2px;
   background: var(--ok);
   opacity: 0.85;
 }
-.sv-pasek i.old {
+.sv-dzien {
+  appearance: none;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  transition: opacity 0.12s ease;
+}
+.sv-dzien.old {
   display: none;
+}
+/* Otwarty dymek: pozostałe dni lekko przygasają, wskazany dzień jest pełny i obrysowany. */
+.sv-pasek[data-otwarty] .sv-dzien {
+  opacity: 0.55;
+}
+.sv-pasek .sv-dzien[data-otwarty] {
+  opacity: 1 !important;
+  box-shadow: 0 0 0 1px var(--strong);
+}
+.sv-dzien:focus-visible {
+  outline: 2px solid var(--mint);
+  outline-offset: 2px;
 }
 [data-k='krotkie'] {
   background: linear-gradient(to top, var(--warn) 0 34%, var(--ok) 34%) !important;
@@ -399,6 +422,92 @@ a:hover {
 }
 [data-k='brak'] {
   background: var(--none) !important;
+}
+/* Przed uruchomieniem sond: sam cienki obrys — wyraźnie inaczej niż „brak pomiarów” w trakcie działania. */
+[data-k='przed'] {
+  background: transparent !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  opacity: 1 !important;
+}
+
+/* Dymek dnia: nad słupkiem, przesuwany przy krawędziach ekranu (left i --strzalka liczy PasekDni). */
+.sv-dymek {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 0;
+  z-index: 20;
+  width: max-content;
+  max-width: min(300px, calc(100vw - 16px));
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  background: #13281e;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+  color: var(--text);
+  font-size: 12.5px;
+  line-height: 1.45;
+  pointer-events: none;
+}
+.sv-dymek[hidden] {
+  display: none;
+}
+.sv-dymek::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: var(--strzalka, 50%);
+  width: 10px;
+  height: 10px;
+  background: #13281e;
+  border: solid rgba(255, 255, 255, 0.14);
+  border-width: 0 1px 1px 0;
+  transform: translate(-50%, -5px) rotate(45deg);
+}
+.sv-dymek[data-pod] {
+  bottom: auto;
+  top: calc(100% + 10px);
+}
+.sv-dymek[data-pod]::after {
+  top: auto;
+  bottom: 100%;
+  transform: translate(-50%, 5px) rotate(225deg);
+}
+.sv-dymek strong {
+  color: var(--strong);
+  font-weight: 600;
+  font-size: 13px;
+}
+.sv-dymek-stan {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--strong);
+}
+.sv-dymek-stan i {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  opacity: 1;
+}
+.sv-dymek-liczby {
+  color: var(--muted);
+}
+.sv-dymek ul {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 6px 0 0;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sv-dzien {
+    transition: none;
+  }
 }
 .sv-ms {
   display: none;
@@ -581,8 +690,12 @@ a:hover {
     grid-template-columns: repeat(4, auto);
     text-align: right;
   }
-  .sv-pasek i.old {
+  .sv-dzien.old {
     display: block;
+  }
+  /* 90 słupków na szerokim ekranie: węższa przerwa, żeby dzień nie był cieńszy niż szczelina. */
+  .sv-pasek {
+    gap: 1px;
   }
   .sv-tylko-tel {
     display: none;

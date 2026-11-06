@@ -53,14 +53,16 @@ function Widok({ data }: { data: PublicStatusDto }) {
   const { services } = data;
   const od = poczatekPomiarow(services);
   const wykres = services.find((s) => s.key === 'strony' && maDane(s)) ?? services.find(maDane);
-  const grupy = grupujZdarzenia(scalZdarzenia(data.activeIncidents, data.recentIncidents));
+  const zdarzenia = scalZdarzenia(data.activeIncidents, data.recentIncidents);
+  const grupy = grupujZdarzenia(zdarzenia);
+  const odStartu = od > 0 && od < (services[0]?.days.length ?? 0);
 
   return (
     <>
-      <Stan data={data} od={od} />
+      <Stan data={data} odStartu={odStartu} />
 
       {services.length > 0 ? (
-        <Uslugi services={services} od={od} />
+        <Uslugi services={services} zdarzenia={zdarzenia} prace={data.maintenance} teraz={data.generatedAt} />
       ) : (
         <p className="sv-pusto">Brak skonfigurowanych sond — stan usług pojawi się tutaj po ich uruchomieniu.</p>
       )}
@@ -103,14 +105,14 @@ const TYTUL = {
   NONE: 'Brak danych o usługach',
 } as const;
 
-function Stan({ data, od }: { data: PublicStatusDto; od: number }) {
+function Stan({ data, odStartu }: { data: PublicStatusDto; odStartu: boolean }) {
   const stan = data.services.length === 0 ? 'NONE' : data.overall;
   const a = data.availability;
   const okresy = [
     ['24 h', a.h24],
     ['7 dni', a.d7],
     ['30 dni', a.d30],
-    [od > 0 ? 'od startu' : '90 dni', a.d90],
+    [odStartu ? 'od startu' : '90 dni', a.d90],
   ] as const;
   return (
     <section className="sv-stan" aria-labelledby="stan-h">

@@ -16,9 +16,38 @@ export function pct(v: number | null): string {
   return `${v.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
 }
 
-/** 'YYYY-MM-DD' → „7 paź” (data kalendarzowa, bez przesunięć strefy). */
+const MIESIACE_KROTKO = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
+const MIESIACE_DOPELNIACZ = [
+  'stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca',
+  'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia',
+];
+const DNI_TYGODNIA = ['niedziela', 'poniedziałek', 'wtorek', 'środa', 'czwartek', 'piątek', 'sobota'];
+
+/**
+ * Daty kalendarzowe ('YYYY-MM-DD') składamy z własnych tabel, nie z Intl: te same napisy renderuje serwer
+ * i przeglądarka (pasek dni jest komponentem klienckim — inny zestaw danych ICU nie rozjedzie hydratacji).
+ */
+const czesci = (date: string) => {
+  const [y, m, d] = date.split('-').map(Number);
+  return { y, m, d, dt: new Date(Date.UTC(y, m - 1, d)).getUTCDay() };
+};
+
+/** 'YYYY-MM-DD' → „7 paź”. */
 export function dzienKrotko(date: string): string {
-  return new Date(`${date}T12:00:00Z`).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+  const { m, d } = czesci(date);
+  return `${d} ${MIESIACE_KROTKO[m - 1] ?? ''}`;
+}
+
+/** 'YYYY-MM-DD' → „środa, 8 października 2026”. */
+export function dataPelna(date: string): string {
+  const { y, m, d, dt } = czesci(date);
+  return `${DNI_TYGODNIA[dt]}, ${d} ${MIESIACE_DOPELNIACZ[m - 1] ?? ''} ${y}`;
+}
+
+/** 'YYYY-MM-DD' przesunięte o `n` dni kalendarzowych (arytmetyka UTC — bez skoków przy zmianie czasu). */
+export function dodajDni(date: string, n: number): string {
+  const { y, m, d } = czesci(date);
+  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
 }
 
 export const godzina = (iso: string) =>
@@ -30,7 +59,8 @@ export const dataKrotko = (iso: string) =>
 export const dzienTygodnia = (iso: string) =>
   new Date(iso).toLocaleDateString('pl-PL', { weekday: 'short', timeZone: TZ });
 
-const dzienKlucz = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { timeZone: TZ });
+/** ISO → dzień czasu polskiego 'YYYY-MM-DD' (te same granice dni co w API). */
+export const dzienKlucz = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { timeZone: TZ });
 
 /** „wt 04:00–04:20” w jednym dniu, „wt 7 paź 22:00 – śr 8 paź 02:00” między dniami. */
 export function przedzial(startIso: string, endIso: string): string {

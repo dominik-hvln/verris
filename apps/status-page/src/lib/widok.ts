@@ -1,5 +1,5 @@
-import type { DayDto, PublicIncidentDto, PublicServiceDto } from './api';
-import { plForm } from './format';
+import type { DayDto, PublicIncidentDto, PublicMaintenanceDto, PublicServiceDto } from './api';
+import { czasTrwania, dataKrotko, dataPelna, dodajDni, dzienKlucz, godzina, pct, plForm } from './format';
 
 /**
  * Logika widoku strony statusu (01.11, nowy wygląd: górna część z wariantu A, dół z wariantu B).
@@ -16,6 +16,8 @@ export const KROTKIE_MAKS_MIN = 5;
 /** Zdarzenia w różnych usługach, które zaczęły się w tym oknie, to jedno zdarzenie (np. restart węzła). */
 export const OKNO_GRUPOWANIA_MIN = 5;
 
+const ms = (iso: string) => new Date(iso).getTime();
+
 export function klasaDnia(d: DayDto): KlasaDnia {
   switch (d.state) {
     case 'NO_DATA':
@@ -30,16 +32,122 @@ export function klasaDnia(d: DayDto): KlasaDnia {
   }
 }
 
+/** Indeks pierwszego dnia z pomiarami usługi; `days.length`, gdy sondy jeszcze niczego nie zmierzyły. */
+export function pierwszyPomiar(days: DayDto[]): number {
+  const i = days.findIndex((d) => d.state !== 'NO_DATA');
+  return i < 0 ? days.length : i;
+}
+
 /**
- * Indeks pierwszego dnia z pomiarami w dowolnej usłudze (wszystkie usługi mają tę samą listę 90 dni).
- * Dni wcześniej to czas przed uruchomieniem sond — nie pokazujemy ich jako 64 szarych pól.
+ * Indeks pierwszego dnia z pomiarami w dowolnej usłudze (wszystkie usługi mają tę samą listę 90 dni) — do nagłówka
+ * „pomiary od …”. Pasek i tak pokazuje pełne 90 dni; dni wcześniej są oznaczone jako „przed uruchomieniem pomiarów”.
  */
 export function poczatekPomiarow(services: PublicServiceDto[]): number {
   const dlugosc = Math.max(0, ...services.map((s) => s.days.length));
-  for (let i = 0; i < dlugosc; i++) {
-    if (services.some((s) => s.days[i] && s.days[i].state !== 'NO_DATA')) return i;
+  return Math.min(dlugosc, ...services.map((s) => pierwszyPomiar(s.days)));
+}
+
+/** Stan dnia słownie (dymek, etykiety słupków, legenda). „przed” = dzień sprzed pierwszego pomiaru usługi. */
+export const OPIS_KLASY: Record<KlasaDnia | 'przed', string> = {
+  ok: 'działa',
+  krotkie: 'krótkie zakłócenie',
+  spowolnienie: 'spowolnienie',
+  awaria: 'awaria',
+  prace: 'planowane prace',
+  brak: 'brak pomiarów',
+  przed: 'przed uruchomieniem pomiarów',
+};
+
+export interface TrescDymka {
+  data: string;
+  klasa: KlasaDnia | 'przed';
+  stan: string;
+  szczegoly: string[];
+}
+
+/** Treść dymka dnia: pełna data, stan słownie, dostępność i średni czas odpowiedzi (albo wyjaśnienie braku). */
+export function trescDymka(d: DayDto, przed: boolean): TrescDymka {
+  const klasa = przed ? 'przed' : klasaDnia(d);
+  const szczegoly =
+    klasa === 'przed'
+      ? ['Sondy jeszcze wtedy nie działały — dzień nie wchodzi do dostępności.']
+      : klasa === 'brak'
+        ? ['Brak próbek z tego dnia — dzień nie wchodzi do dostępności.']
+        : [
+            ...(d.uptimePct !== null ? [`Dostępność ${pct(d.uptimePct)}`] : []),
+            ...(d.avgLatencyMs !== null ? [`Śr. czas odpowiedzi ${d.avgLatencyMs} ms`] : []),
+          ];
+  return { data: dataPelna(d.date), klasa, stan: OPIS_KLASY[klasa], szczegoly };
+}
+
+/** Roving tabindex paska dni: klawisz → nowy indeks (null = klawisz nie dotyczy paska). `min` = pierwszy widoczny dzień. */
+export function nastepnyIndeks(klawisz: string, i: number, n: number, min = 0): number | null {
+  switch (klawisz) {
+    case 'ArrowLeft':
+      return Math.max(min, i - 1);
+    case 'ArrowRight':
+      return Math.min(n - 1, i + 1);
+    case 'Home':
+      return min;
+    case 'End':
+      return n - 1;
+    default:
+      return null;
   }
-  return Math.max(0, dlugosc - 1);
+}
+
+/** Godziny zdarzenia w dymku dnia: „11:53”, „04:01–10:40” albo z datami, gdy przechodzi przez północ. */
+function kiedy(start: string, koniec: string): string {
+  if (dzienKlucz(start) !== dzienKlucz(koniec)) return `${dataKrotko(start)} ${godzina(start)} – ${dataKrotko(koniec)} ${godzina(koniec)}`;
+  return godzina(start) === godzina(koniec) ? godzina(start) : `${godzina(start)}–${godzina(koniec)}`;
+}
+
+/** Ile zdarzeń pokazujemy w dymku jednego dnia — reszta jako „+ N kolejnych”. */
+export const DYMEK_MAKS_ZDARZEN = 4;
+
+/**
+ * Zdarzenia usługi rozpisane na dni (czas polski) do dymka paska: incydenty z listy na stronie (trwające i ostatnie)
+ * i prace, które już się zaczęły. Wpis trafia do każdego dnia, przez który zdarzenie trwało.
+ * Lista ostatnich incydentów z API jest krótka — starsze dni pokazują sam stan, bez opisu zdarzeń.
+ */
+export function zdarzeniaDni(
+  usluga: string,
+  incydenty: PublicIncidentDto[],
+  prace: PublicMaintenanceDto[],
+  teraz: string,
+): Record<string, string[]> {
+  const wpisy: Array<{ start: string; koniec: string; tekst: string }> = [];
+  for (const z of incydenty) {
+    if (z.service !== usluga) continue;
+    const koniec = z.resolvedAt ?? teraz;
+    const minuty = z.resolvedAt ? (z.durationMinutes ?? Math.round((ms(z.resolvedAt) - ms(z.startedAt)) / 60_000)) : null;
+    const rodzaj =
+      minuty !== null && minuty <= KROTKIE_MAKS_MIN ? 'Krótkie zakłócenie' : z.severity === 'MAJOR' ? 'Awaria' : 'Spowolnienie';
+    const czas = z.resolvedAt ? `${kiedy(z.startedAt, koniec)} · ${czasTrwania(minuty ?? 0)}` : `od ${kiedy(z.startedAt, z.startedAt)}, trwa`;
+    wpisy.push({ start: z.startedAt, koniec, tekst: `${rodzaj} · ${czas}` });
+  }
+  for (const w of prace) {
+    if (ms(w.scheduledStart) > ms(teraz)) continue; // zaplanowane na później — pasek kończy się na dziś
+    const koniec = ms(w.scheduledEnd) < ms(teraz) ? w.scheduledEnd : teraz;
+    wpisy.push({ start: w.scheduledStart, koniec, tekst: `Planowane prace: ${w.title} · ${kiedy(w.scheduledStart, w.scheduledEnd)}` });
+  }
+  wpisy.sort((a, b) => ms(a.start) - ms(b.start));
+
+  const dni: Record<string, string[]> = {};
+  for (const w of wpisy) {
+    const ostatni = dzienKlucz(w.koniec);
+    // Limit pętli: zdarzenie dłuższe niż okno paska i tak nie ma więcej dni do opisania.
+    for (let d = dzienKlucz(w.start), i = 0; d <= ostatni && i < 100; d = dodajDni(d, 1), i++) (dni[d] ??= []).push(w.tekst);
+  }
+  for (const [d, lista] of Object.entries(dni)) {
+    if (lista.length <= DYMEK_MAKS_ZDARZEN) continue;
+    const reszta = lista.length - (DYMEK_MAKS_ZDARZEN - 1);
+    dni[d] = [
+      ...lista.slice(0, DYMEK_MAKS_ZDARZEN - 1),
+      `+ ${reszta} ${plForm(reszta, 'kolejne zdarzenie', 'kolejne zdarzenia', 'kolejnych zdarzeń')}`,
+    ];
+  }
+  return dni;
 }
 
 export type RodzajZdarzenia = 'krotkie' | 'spowolnienie' | 'awaria';
@@ -56,8 +164,6 @@ export interface GrupaZdarzen {
   wolniejsze: string[];
   komunikaty: string[];
 }
-
-const ms = (iso: string) => new Date(iso).getTime();
 
 /** Łączy zdarzenia, które zaczęły się w odstępie do OKNO_GRUPOWANIA_MIN od pierwszego w grupie. Najnowsze pierwsze. */
 export function grupujZdarzenia(lista: PublicIncidentDto[], oknoMin = OKNO_GRUPOWANIA_MIN): GrupaZdarzen[] {
