@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 /** Kwota w złotych z przecinkiem dziesiętnym (44,90 zł). */
 const zl = (n: number) => `${n.toFixed(2).replace('.', ',')} zł`;
 
-// Przykład z makiety: 5 firm płaci za rok hostingu (cena roczna z cennika w API; bez rabatu na start).
+// Przykład z makiety: 5 firm płaci za rok hostingu (cena roczna z cennika w API; kredyty na autoskalowanie nie zmieniają ceny).
 const FIRM = 5;
 
 const ZASADY: [string, string][] = [

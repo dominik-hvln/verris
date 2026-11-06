@@ -1,5 +1,6 @@
 import type { SubscriptionStatus } from '@verris/contracts/klient';
 import { apiFetch, ApiError } from '@/lib/api';
+import type { PulaKredytowDto } from '@/lib/kredyty-autoskalowania';
 import type { PozycjaLimitu } from '@verris/contracts/klient';
 
 export interface AutoscalingEventDto {
@@ -18,6 +19,8 @@ export interface AutoscalingChargeDto {
   amount: string;
   description: string | null;
   createdAt: string;
+  /** Decyzja 6.11.2026 — blok (część bloku) opłacony z kredytów na autoskalowanie, nie z portfela. */
+  zKredytow?: boolean;
 }
 
 export interface AutoscalingHistoryDto {
@@ -31,6 +34,8 @@ export interface AutoscalingHistoryDto {
   charges: AutoscalingChargeDto[];
   last30dSpend: string;
   currency: string;
+  /** Kredyty na autoskalowanie z pierwszego zakupu (pula klienta), null = nie przyznano. */
+  kredytyAutoskalowania?: PulaKredytowDto | null;
 }
 
 export interface ServiceDetailDto {

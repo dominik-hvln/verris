@@ -9,7 +9,8 @@ import {
   type PlatformSettingKey,
 } from './platform-settings.keys.js';
 import { ksefDozwolony, normalizujTryb, type TrybFakturowania } from '../billing/tryb-fakturowania.js';
-import type { TrialOfferConfig } from './dto/trial-offer.dto.js';
+import { MAKS_KREDYT_AUTOSKALOWANIA, type TrialOfferConfig } from './dto/trial-offer.dto.js';
+import { KREDYT_AUTOSKALOWANIA_DOMYSLNIE, WAZNOSC_KREDYTOW_AUTOSKALOWANIA_MIES } from '../autoscaling/kredyty-autoskalowania.js';
 import { wersjePhpZRaportu } from '../servers/stos-wezla.js';
 
 /** G-08 — pozycja cennika SSL: cena brutto za rok (PLN), nazwa produktu, czy wildcard. */
@@ -227,16 +228,27 @@ export class PlatformSettingsService {
   }
 
   // UX-3 — oferta okresu próbnego (czytana publicznie + edytowalna przez admina).
+  // Decyzja 6.11.2026 — zamiast rabatu na start kredyty na autoskalowanie przy pierwszym zakupie hostingu.
   async getTrialOffer(): Promise<TrialOfferConfig> {
     const map = await this.loadMap();
     return {
       freeEnabled: this.readStr(map, PLATFORM_SETTING_KEYS.TRIAL_FREE_ENABLED, '1') === '1',
       cardEnabled: this.readStr(map, PLATFORM_SETTING_KEYS.TRIAL_CARD_ENABLED, '1') === '1',
-      annualDiscountPct: this.readInt(map, PLATFORM_SETTING_KEYS.TRIAL_ANNUAL_DISCOUNT_PCT, 15, 0, 90),
-      monthlyDiscountPct: this.readInt(map, PLATFORM_SETTING_KEYS.TRIAL_MONTHLY_DISCOUNT_PCT, 10, 0, 90),
-      annualPromoCode: this.readStr(map, PLATFORM_SETTING_KEYS.TRIAL_ANNUAL_PROMO_CODE, '').trim(),
-      monthlyPromoCode: this.readStr(map, PLATFORM_SETTING_KEYS.TRIAL_MONTHLY_PROMO_CODE, '').trim(),
-      introDiscountPeriods: this.readInt(map, PLATFORM_SETTING_KEYS.TRIAL_INTRO_PERIODS, 1, 1, 24),
+      annualAutoscalingCredit: this.readInt(
+        map,
+        PLATFORM_SETTING_KEYS.TRIAL_ANNUAL_AUTOSCALING_CREDIT,
+        KREDYT_AUTOSKALOWANIA_DOMYSLNIE.rok,
+        0,
+        MAKS_KREDYT_AUTOSKALOWANIA,
+      ),
+      monthlyAutoscalingCredit: this.readInt(
+        map,
+        PLATFORM_SETTING_KEYS.TRIAL_MONTHLY_AUTOSCALING_CREDIT,
+        KREDYT_AUTOSKALOWANIA_DOMYSLNIE.miesiac,
+        0,
+        MAKS_KREDYT_AUTOSKALOWANIA,
+      ),
+      autoscalingCreditValidityMonths: WAZNOSC_KREDYTOW_AUTOSKALOWANIA_MIES,
     };
   }
 
@@ -244,24 +256,18 @@ export class PlatformSettingsService {
     input: {
       freeEnabled: boolean;
       cardEnabled: boolean;
-      annualDiscountPct: number;
-      monthlyDiscountPct: number;
-      annualPromoCode?: string;
-      monthlyPromoCode?: string;
-      introDiscountPeriods: number;
+      annualAutoscalingCredit: number;
+      monthlyAutoscalingCredit: number;
     },
     actorUserId: string,
   ): Promise<TrialOfferConfig> {
-    const periods = Math.min(Math.max(Math.round(input.introDiscountPeriods) || 1, 1), 24);
+    const kwota = (v: number) => String(Math.min(Math.max(Math.round(v) || 0, 0), MAKS_KREDYT_AUTOSKALOWANIA));
     await this.upsertMany(
       [
         [PLATFORM_SETTING_KEYS.TRIAL_FREE_ENABLED, input.freeEnabled ? '1' : '0'],
         [PLATFORM_SETTING_KEYS.TRIAL_CARD_ENABLED, input.cardEnabled ? '1' : '0'],
-        [PLATFORM_SETTING_KEYS.TRIAL_ANNUAL_DISCOUNT_PCT, String(input.annualDiscountPct)],
-        [PLATFORM_SETTING_KEYS.TRIAL_MONTHLY_DISCOUNT_PCT, String(input.monthlyDiscountPct)],
-        [PLATFORM_SETTING_KEYS.TRIAL_ANNUAL_PROMO_CODE, (input.annualPromoCode ?? '').trim()],
-        [PLATFORM_SETTING_KEYS.TRIAL_MONTHLY_PROMO_CODE, (input.monthlyPromoCode ?? '').trim()],
-        [PLATFORM_SETTING_KEYS.TRIAL_INTRO_PERIODS, String(periods)],
+        [PLATFORM_SETTING_KEYS.TRIAL_ANNUAL_AUTOSCALING_CREDIT, kwota(input.annualAutoscalingCredit)],
+        [PLATFORM_SETTING_KEYS.TRIAL_MONTHLY_AUTOSCALING_CREDIT, kwota(input.monthlyAutoscalingCredit)],
       ],
       actorUserId,
     );

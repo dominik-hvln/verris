@@ -26,13 +26,13 @@ import { ZASADA_FAKTUR } from '@/app/dashboard/billing/zasady-dokumentow';
 import { dodatekNettoIK, odczytajLimit, zlBrutto } from './ceny-zamowienia';
 import { sprawdzDomene } from './domena';
 import { InformacjePrzedumowne } from './informacje-przedumowne';
+import { korzyscZamowienia } from '@/lib/kredyty-autoskalowania';
 
-interface StartOffer {
-  cardEnabled: boolean;
-  monthlyDiscountPct: number;
-  annualDiscountPct: number;
-  /** Na ile okresów działa rabat na start (API, domyślnie 1). */
-  introDiscountPeriods?: number;
+/** Decyzja 6.11.2026 — kredyty na autoskalowanie przy pierwszym zakupie hostingu (zł brutto, z ustawień oferty). */
+interface KredytyStartowe {
+  rok: number;
+  miesiac: number;
+  waznoscMiesiecy: number;
 }
 
 interface Props {
@@ -47,8 +47,11 @@ interface Props {
   onIntervalChange?: (next: BillingInterval) => void;
   /** UX-3 — kod promo auto-stosowany dla ścieżki z kartą (rabat 1. roku). */
   initialPromo?: string;
-  /** BILL-1 — rabat startowy z ustawień (auto-naliczany z portfela, bez kuponu). */
-  startOffer?: StartOffer;
+  /**
+   * Kredyty na autoskalowanie przy pierwszym zakupie hostingu (tylko płatność z portfela, jak w API). Podane tylko,
+   * gdy klientowi przysługują — formularz pokazuje wtedy korzyść przy kwocie do zapłaty.
+   */
+  kredytyStartowe?: KredytyStartowe;
   /** O-07 — klient resellera płaci z portfela (karta odnawiałaby się ceną z cennika). */
   bezKarty?: boolean;
   /** Klient resellera — kody rabatowe Verris go nie obejmują (API odrzuca kod). */
@@ -60,21 +63,13 @@ interface Props {
 /** Sposób zapłaty w formularzu: źródło płatności usługi + „Paynow” (portfel jako źródło odnowień, zapłata teraz). */
 type SposobPlatnosci = SubscriptionPaymentSource | 'PAYNOW';
 
-/** „za pierwszy rok” / „za pierwsze 3 miesiące” — rabat na start działa przez `okresy` okresów rozliczeniowych. */
-export function okresRabatu(interval: BillingInterval, okresy = 1): string {
-  if (okresy <= 1) return interval === 'YEAR' ? 'za pierwszy rok' : 'za pierwszy miesiąc';
-  return interval === 'YEAR'
-    ? `za pierwsze ${okresy} ${plForm(okresy, 'rok', 'lata', 'lat')}`
-    : `za pierwsze ${okresy} ${plForm(okresy, 'miesiąc', 'miesiące', 'miesięcy')}`;
-}
-
 export function NewSubscriptionForm({
   plans,
   initialInterval,
   interval: intervalZZewnatrz,
   onIntervalChange,
   initialPromo,
-  startOffer,
+  kredytyStartowe,
   bezKarty,
   bezKodu,
   paynowDostepny,
@@ -187,29 +182,20 @@ export function NewSubscriptionForm({
     return interval === 'MONTH' ? selectedPlan.priceMonthly : selectedPlan.priceYearly;
   }, [selectedPlan, interval]);
 
-  // BILL-1 — rabat startowy z ustawień (tylko portfel, tylko gdy włączona ścieżka
-  // z kartą/rabatem). Naliczany automatycznie, bez kodu; odnowienie pełną kwotą.
-  const startPct =
-    paymentSource === 'WALLET' && startOffer?.cardEnabled
-      ? interval === 'YEAR'
-        ? startOffer.annualDiscountPct
-        : startOffer.monthlyDiscountPct
-      : 0;
-  const startDiscounted = useMemo(() => {
-    if (listPrice == null || startPct <= 0) return null;
-    const n = Number(listPrice);
-    if (!Number.isFinite(n)) return null;
-    return (Math.round(n * (100 - startPct)) / 100).toFixed(2);
-  }, [listPrice, startPct]);
-
-  // BILL-1 — kwota do zapłaty wg reguły „nie łączymy promocji": kod (jeśli wygrywa)
-  // → rabat startowy → cena listowa.
-  const chargePrice = promoPreview?.effectiveDiscounted ?? startDiscounted ?? listPrice;
+  // Decyzja 6.11.2026 — bez rabatu na start: do zapłaty cena z cennika albo z kodu rabatowego (promocja admina).
+  const chargePrice = promoPreview?.discountedAmount ?? listPrice;
   const showStrike =
     chargePrice != null && listPrice != null && Number(chargePrice) !== Number(listPrice);
   // P2-03 — cena odnowienia podana z góry: pełna cena z cennika, chyba że kod obejmuje też odnowienia.
-  const renewalPrice =
-    promoPreview?.codeWins && promoPreview.appliesToRenewals ? promoPreview.discountedAmount : listPrice;
+  const renewalPrice = promoPreview?.appliesToRenewals ? promoPreview.discountedAmount : listPrice;
+  // Kredyty na autoskalowanie przy pierwszym zakupie hostingu — tylko z portfela (także Paynow), jak w API.
+  const kredytStartowy =
+    kredytyStartowe && paymentSource === 'WALLET' && !newsletter && selectedPlan?.productKind === 'HOSTING'
+      ? interval === 'YEAR'
+        ? kredytyStartowe.rok
+        : kredytyStartowe.miesiac
+      : 0;
+  const korzysc = korzyscZamowienia(kredytStartowy, interval, kredytyStartowe?.waznoscMiesiecy);
 
   // P-7 — zachęta do planu rocznego: oszczędność vs 12× miesięcznie.
   const { annualSavingsPct, annualSavingsAmount } = useMemo(() => {
@@ -621,32 +607,16 @@ export function NewSubscriptionForm({
           </div>
           {promoError ? <p className="mt-2 text-sm text-rose-300" role="alert">{promoError}</p> : null}
           {promoPreview ? (
-            promoPreview.codeWins ? (
-              <div className="mt-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-4 text-sm text-emerald-100">
-                Kod <strong className="font-mono">{promoPreview.code}</strong> — rabat{' '}
-                <strong>{promoPreview.percent}%</strong>
-                {promoPreview.appliesToRenewals
-                  ? ' (również na kolejne odnowienia z portfela).'
-                  : ' (tylko pierwsza opłata).'}
-                <br />
-                Oszczędzasz{' '}
-                <strong>{formatPln(promoPreview.savingsAmount)}</strong>.
-                {promoPreview.comparisonMessage ? (
-                  <span className="mt-1 block text-xs text-emerald-200/80">
-                    {promoPreview.comparisonMessage}
-                  </span>
-                ) : null}
-              </div>
-            ) : (
-              // BILL-1 — kod gorszy od promocji startowej: nie łączymy, zostawiamy lepszą.
-              <div className="mt-3 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4 text-sm text-amber-100">
-                {promoPreview.comparisonMessage ??
-                  `Ten kod daje mniejszy rabat niż promocja na start — naliczamy korzystniejszą promocję (${promoPreview.startPercent}%).`}
-                <br />
-                Naliczona cena uwzględnia rabat startowy{' '}
-                <strong>{promoPreview.startPercent}%</strong>.
-              </div>
-            )
+            <div className="mt-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-4 text-sm text-emerald-100">
+              Kod <strong className="font-mono">{promoPreview.code}</strong> — rabat{' '}
+              <strong>{promoPreview.percent}%</strong>
+              {promoPreview.appliesToRenewals
+                ? ' (również na kolejne odnowienia z portfela).'
+                : ' (tylko pierwsza opłata).'}
+              <br />
+              Oszczędzasz{' '}
+              <strong>{formatPln(promoPreview.savingsAmount)}</strong>.
+            </div>
           ) : null}
         </section>
       ) : null}
@@ -711,6 +681,8 @@ export function NewSubscriptionForm({
           doZaplaty={chargePrice}
           odnowienie={renewalPrice}
           zKarty={paymentSource === 'STRIPE_CARD'}
+          kredytAutoskalowania={kredytStartowy}
+          waznoscKredytowMiesiecy={kredytyStartowe?.waznoscMiesiecy}
           autoskalowanie={zAutoskalowaniem ? (limit && 'kwota' in limit ? limit.kwota : 0) : null}
           rejestracjaDomeny={domainSel.mode === 'register'}
         />
@@ -807,15 +779,10 @@ export function NewSubscriptionForm({
             )}
           </p>
           {chargePrice ? <p className="text-xs text-neutral-500 mt-1">{dodatekNettoIK(chargePrice)}</p> : null}
-          {!promoPreview && startPct > 0 ? (
-            <p className="mt-1 text-xs font-medium text-emerald-300">
-              Rabat na start −{startPct}% {okresRabatu(interval, startOffer?.introDiscountPeriods)}, tylko przy
-              pierwszym zakupie.
-            </p>
-          ) : null}
+          {korzysc ? <p className="mt-1 text-xs font-medium text-emerald-300">{korzysc}</p> : null}
           {showStrike && listPrice ? (
-            // P2-03 / Omnibus (art. 4 ust. 2 ustawy o informowaniu o cenach) — przy obniżce najniższa cena z 30 dni
-            // przed obniżką. Panel nie ma historii cen: podajemy cenę z cennika, która jest ceną regularną planu.
+            // P2-03 / Omnibus (art. 4 ust. 2 ustawy o informowaniu o cenach) — przy obniżce z kodu rabatowego najniższa
+            // cena z 30 dni przed obniżką. Panel nie ma historii cen: podajemy cenę z cennika (cena regularna planu).
             <p className="mt-1 text-xs text-neutral-400">
               Najniższa cena z 30 dni przed obniżką: {zlBrutto(listPrice)}.
             </p>
@@ -823,7 +790,7 @@ export function NewSubscriptionForm({
           {renewalPrice ? (
             <p className="mt-1 text-xs text-neutral-400">
               Odnowienie {interval === 'YEAR' ? 'co rok' : 'co miesiąc'}: {zlBrutto(renewalPrice)} (cena z cennika
-              {promoPreview?.codeWins && promoPreview.appliesToRenewals ? ' z Twoim kodem' : ''}).
+              {promoPreview?.appliesToRenewals ? ' z Twoim kodem' : ''}).
             </p>
           ) : null}
           <p className="text-xs text-neutral-500 mt-1">

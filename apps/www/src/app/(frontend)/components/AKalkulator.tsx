@@ -2,7 +2,17 @@
 
 import { useState, type CSSProperties } from 'react';
 import { formatZl, PRZYKLAD_BLACK_FRIDAY } from '@/lib/kalkulator';
-import { CENY_ZAPASOWE, GODZIN_W_MIESIACU, netto, stawka, zl, type Ceny, type StawkiAutoskalowania } from '@/lib/ceny';
+import {
+  CENY_ZAPASOWE,
+  GODZIN_W_MIESIACU,
+  kwotaGodzinowa,
+  netto,
+  nettoStawki,
+  stawka,
+  zl,
+  type Ceny,
+  type StawkiAutoskalowania,
+} from '@/lib/ceny';
 
 /*
  * Grupa A — kalkulator dopłat za moc ponad pakiet (strona główna i /cennik). Ceny i stawki z propsa `ceny`
@@ -45,7 +55,10 @@ const GODZ = (max: number, step: number, start: number): Suwak => ({
 
 const fill = (v: number, s: Suwak) => ({ ['--fill']: `${((v - s.min) / (s.max - s.min)) * 100}%` }) as CSSProperties;
 
-/** Koszt godziny z dodatkową mocą (brutto): % CPU, GB RAM, GB dysku. */
+/**
+ * Koszt godziny z dodatkową mocą (brutto): % CPU, GB RAM, GB dysku. Na pełnych stawkach z API — bez zaokrąglania;
+ * do grosza zaokrąglamy dopiero kwoty do zapłaty (dopłata w miesiącu, razem z pakietem).
+ */
 export function kosztGodziny(cpuProc: number, ramGb: number, dyskGb: number, s: StawkiAutoskalowania = CENY_ZAPASOWE.stawki): number {
   return cpuProc * s.cpu + ramGb * s.ram + dyskGb * s.dysk;
 }
@@ -91,9 +104,10 @@ export function AKalkulator({ wariant, ceny = CENY_ZAPASOWE }: { wariant: 'krotk
           </div>
         ))}
         <p className="kalk-note">
-          Stawki brutto za godzinę: 1% procesora (100% = 1 vCPU) — {stawka(STAWKI.cpu)} zł · 1 GB
-          RAM — {stawka(STAWKI.ram)} zł · 1 GB dysku — {stawka(STAWKI.dysk)} zł.
-          Naliczanie w blokach po 15 minut.
+          Stawki za godzinę, brutto (netto): 1% procesora (100% = 1 vCPU) — {stawka(STAWKI.cpu)} zł (
+          {stawka(nettoStawki(STAWKI.cpu))} zł) · 1 GB RAM — {stawka(STAWKI.ram)} zł ({stawka(nettoStawki(STAWKI.ram))}{' '}
+          zł) · 1 GB dysku — {stawka(STAWKI.dysk)} zł ({stawka(nettoStawki(STAWKI.dysk))} zł). Naliczanie w blokach po 15
+          minut.
         </p>
       </div>
 
@@ -112,7 +126,9 @@ export function AKalkulator({ wariant, ceny = CENY_ZAPASOWE }: { wariant: 'krotk
           {wariant === 'pelny' && (
             <div>
               <dt>Godzina z taką mocą</dt>
-              <dd>{formatZl(godzina)} zł</dd>
+              <dd>
+                {kwotaGodzinowa(godzina)} zł <small>brutto ({kwotaGodzinowa(nettoStawki(godzina))} zł netto)</small>
+              </dd>
             </div>
           )}
           <div>
@@ -130,7 +146,10 @@ export function AKalkulator({ wariant, ceny = CENY_ZAPASOWE }: { wariant: 'krotk
           {wariant === 'pelny' && (
             <div>
               <dt>Gdyby szczyt trwał cały miesiąc ({GODZIN_W_MIESIACU} h)</dt>
-              <dd>{formatZl(godzina * GODZIN_W_MIESIACU)} zł</dd>
+              <dd>
+                {formatZl(godzina * GODZIN_W_MIESIACU)} zł{' '}
+                <small>brutto ({formatZl(netto(godzina * GODZIN_W_MIESIACU))} zł netto)</small>
+              </dd>
             </div>
           )}
         </dl>

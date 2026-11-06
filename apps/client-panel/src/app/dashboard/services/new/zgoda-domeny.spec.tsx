@@ -63,7 +63,7 @@ const HOSTING: PlanDto = {
   ioLimitKbps: 1, iopsLimit: 1, entryProcesses: 1, nprocLimit: 17, includedTransferGb: null, priceMonthly: '45.00', priceYearly: '449.00',
   currency: 'PLN', isPublic: true, isActive: true, sortOrder: 1, trialDays: 0, productKind: 'HOSTING', supportSlaHours: 0,
 };
-const OFERTA: TrialOffer = { freeEnabled: false, cardEnabled: false, annualDiscountPct: 0, monthlyDiscountPct: 0, annualPromoCode: '', monthlyPromoCode: '' };
+const OFERTA: TrialOffer = { freeEnabled: false, cardEnabled: false, annualAutoscalingCredit: 0, monthlyAutoscalingCredit: 0 };
 
 let root: Root;
 let el: HTMLDivElement;

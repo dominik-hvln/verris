@@ -131,7 +131,9 @@ function ChargeRow({ charge }: { charge: AutoscalingChargeDto }) {
       <div className="flex items-center gap-3 min-w-0">
         <Coins className="h-4 w-4 shrink-0 text-rose-300" />
         <div className="min-w-0">
-          <div className="text-sm font-semibold text-white">Naliczenie autoskalowania</div>
+          <div className="text-sm font-semibold text-white">
+            {charge.zKredytow ? 'Naliczenie z kredytów na autoskalowanie' : 'Naliczenie autoskalowania'}
+          </div>
           <div className="text-[11px] text-neutral-400 break-words">
             {charge.description ?? 'Naliczenie autoskalowania (blok 15 min)'}
           </div>

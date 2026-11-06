@@ -30,6 +30,7 @@ function stanowisko(opcje: {
   const prisma = {
     platformSetting: {
       findUnique: vi.fn(async () => ({ value: JSON.stringify({ wlaczony: true, ...(opcje.konf ?? {}) }) })),
+      findMany: vi.fn(async () => []),
     },
     asystentRozmowa: {
       findUnique: vi.fn(async () => (opcje.rozmowa ? { wiadomosci: [], ...opcje.rozmowa } : null)),

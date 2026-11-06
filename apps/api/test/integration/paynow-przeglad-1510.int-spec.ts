@@ -17,7 +17,7 @@ const SIG = 'sig-key-przeglad';
 const pusty = new Proxy({}, { get: () => async () => undefined }) as never;
 const kolejka: string[] = [];
 let kolejkaPada = false;
-let oferta: Record<string, unknown> = { cardEnabled: false, monthlyDiscountPct: 0, annualDiscountPct: 0 };
+let oferta: Record<string, unknown> = { cardEnabled: false, monthlyAutoscalingCredit: 0, annualAutoscalingCredit: 0 };
 /** Spotkanie przed kontrolą „pierwszy zakup”: każdy przebieg czeka na drugi (najwyżej 300 ms — pod blokadą drugi nie dojdzie). */
 let spotkanie: { czekaja: number; puscic?: () => void; p?: Promise<void> } | null = null;
 async function ofertaZeSpotkaniem() {
@@ -103,22 +103,23 @@ function powiadomienie(s: ReturnType<typeof serwisy>, rekId: string, pid: string
   return s.billing.handlePaynowNotification(raw, podpisPowiadomienia(SIG, raw));
 }
 
-describe('przegląd 15.10 — zakup Paynow i rabat na start', () => {
+// Decyzja 6.11.2026 — rabat na start zastąpiony kredytami na autoskalowanie: te same wyścigi o „pierwszy zakup”.
+describe('przegląd 15.10 — zakup Paynow i promocja na start (kredyty na autoskalowanie)', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     kolejka.length = 0;
     kolejkaPada = false;
     bariera = null;
     spotkanie = null;
-    oferta = { cardEnabled: false, monthlyDiscountPct: 0, annualDiscountPct: 0 };
+    oferta = { cardEnabled: false, monthlyAutoscalingCredit: 0, annualAutoscalingCredit: 0 };
     fetchMock.mockReset();
     vi.stubGlobal('fetch', fetchMock);
   });
   afterEach(() => vi.unstubAllGlobals());
   afterAll(rozlacz);
 
-  it('[1] rabat na start: dwa zamówienia Paynow złożone przed zapłatą pierwszego — rabat tylko raz', async () => {
-    oferta = { cardEnabled: true, monthlyDiscountPct: 20, annualDiscountPct: 0, introDiscountPeriods: 12 };
+  it('[1] promocja na start: dwa zamówienia Paynow złożone przed zapłatą pierwszego — kredyty tylko raz', async () => {
+    oferta = { cardEnabled: true, monthlyAutoscalingCredit: 10, annualAutoscalingCredit: 60 };
     const s = serwisy();
     const u = await prisma().user.create({ data: { email: `przg-1-${Date.now()}@test.verris.pl`, passwordHash: 'x' } });
     const plan = await utworzPlan({ priceMonthly: 45 });
@@ -128,16 +129,16 @@ describe('przegląd 15.10 — zakup Paynow i rabat na start', () => {
     await powiadomienie(s, b.rek.id, b.pid, 'CONFIRMED');
     const subs = await prisma().subscription.findMany({ where: { userId: u.id }, orderBy: { createdAt: 'asc' } });
     expect(subs.map((x) => x.status)).toEqual([SubscriptionStatus.PROVISIONING, SubscriptionStatus.PROVISIONING]);
-    // Oczekiwane: druga usługa po cenie z cennika, bez rabatu na kolejne okresy.
-    expect(subs.map((x) => [Number(x.priceAmount), x.introDiscountPct, x.introDiscountPeriodsLeft])).toEqual([
-      [36, 20, 11],
-      [45, 0, 0],
+    // Oczekiwane: obie po cenie z cennika (bez rabatu), kredyty na autoskalowanie obiecane tylko pierwszej.
+    expect(subs.map((x) => [Number(x.priceAmount), x.introDiscountPct, x.kredytAutoskalowaniaKwota === null ? null : Number(x.kredytAutoskalowaniaKwota)])).toEqual([
+      [45, 0, 10],
+      [45, 0, null],
     ]);
   });
 
   // Decyzja 15.10 (#6): dwa zamówienia złożone NARAZ (dwie karty przeglądarki) — oba widziały „brak zakupów”.
-  it('[1c] rabat na start: dwa równoległe zamówienia — rabat dostaje tylko jedno (blokada na klienta)', async () => {
-    oferta = { cardEnabled: true, monthlyDiscountPct: 20, annualDiscountPct: 0, introDiscountPeriods: 12 };
+  it('[1c] promocja na start: dwa równoległe zamówienia — kredyty dostaje tylko jedno (blokada na klienta)', async () => {
+    oferta = { cardEnabled: true, monthlyAutoscalingCredit: 10, annualAutoscalingCredit: 60 };
     const s = serwisy();
     const u = await prisma().user.create({ data: { email: `przg-1c-${Date.now()}@test.verris.pl`, passwordHash: 'x' } });
     const plan = await utworzPlan({ priceMonthly: 45 });
@@ -149,11 +150,11 @@ describe('przegląd 15.10 — zakup Paynow i rabat na start', () => {
     await Promise.all([zamow('rownolegle-a.pl'), zamow('rownolegle-b.pl')]);
     const subs = await prisma().subscription.findMany({ where: { userId: u.id } });
     expect(subs).toHaveLength(2);
-    expect(subs.map((x) => x.introDiscountPct).sort()).toEqual([0, 20]);
+    expect(subs.map((x) => Number(x.kredytAutoskalowaniaKwota ?? 0)).sort()).toEqual([0, 10]);
   });
 
-  it('[2] rabat na start: nieudane zakładanie (zwrot) zużywa rabat — klient zamawia ponownie bez rabatu', async () => {
-    oferta = { cardEnabled: true, monthlyDiscountPct: 20, annualDiscountPct: 0, introDiscountPeriods: 12 };
+  it('[2] promocja na start: nieudane zakładanie (zwrot) jej nie zużywa — klient zamawia ponownie z kredytami', async () => {
+    oferta = { cardEnabled: true, monthlyAutoscalingCredit: 10, annualAutoscalingCredit: 60 };
     const s = serwisy();
     const u = await prisma().user.create({ data: { email: `przg-2-${Date.now()}@test.verris.pl`, passwordHash: 'x', walletBalance: 100 } });
     const plan = await utworzPlan({ priceMonthly: 45 });
@@ -165,8 +166,10 @@ describe('przegląd 15.10 — zakup Paynow i rabat na start', () => {
     expect(Number((await prisma().user.findUniqueOrThrow({ where: { id: u.id } })).walletBalance)).toBe(100);
     const sub = await prisma().subscription.findFirstOrThrow({ where: { userId: u.id } });
     expect(sub.status).toBe(SubscriptionStatus.PENDING_PAYMENT);
-    // Oczekiwane: klient nie kupił jeszcze niczego — rabat na start nadal przysługuje.
-    expect(await s.subscriptions.rabatStartowy(u.id)).toEqual({ przysluguje: true });
+    // Oczekiwane: klient nie kupił jeszcze niczego — kredyty na start nadal przysługują, a cofnięte zamówienie ich nie trzyma.
+    expect(sub.kredytAutoskalowaniaKwota).toBeNull();
+    expect(await prisma().kredytAutoskalowania.count({ where: { userId: u.id } })).toBe(0);
+    expect(await s.subscriptions.kredytyStartowe(u.id)).toEqual({ przysluguje: true });
   });
 
   it('[3] dwie potwierdzone wpłaty Paynow za to samo zamówienie naraz — usługa nie może wyjść za darmo', async () => {
@@ -221,8 +224,8 @@ describe('przegląd 15.10 — zakup Paynow i rabat na start', () => {
       zakup: null,
     });
   });
-  it('[2b] zamówienie z pustego portfela (brak środków) nie trzyma rabatu: po doładowaniu nowe zamówienie z rabatem', async () => {
-    oferta = { cardEnabled: true, monthlyDiscountPct: 20, annualDiscountPct: 0, introDiscountPeriods: 12 };
+  it('[2b] zamówienie z pustego portfela (brak środków) nie trzyma promocji: po doładowaniu nowe zamówienie z kredytami', async () => {
+    oferta = { cardEnabled: true, monthlyAutoscalingCredit: 10, annualAutoscalingCredit: 60 };
     const s = serwisy();
     const u = await prisma().user.create({ data: { email: `przg-2b-${Date.now()}@test.verris.pl`, passwordHash: 'x' } });
     const plan = await utworzPlan({ priceMonthly: 45 });
@@ -232,11 +235,11 @@ describe('przegląd 15.10 — zakup Paynow i rabat na start', () => {
     await prisma().user.update({ where: { id: u.id }, data: { walletBalance: 100 } });
     await zamow('sklep-h.pl');
     const subs = await prisma().subscription.findMany({ where: { userId: u.id }, orderBy: { createdAt: 'asc' } });
-    expect(subs.map((x) => [x.status, x.introDiscountPct])).toEqual([
-      [SubscriptionStatus.PENDING_PAYMENT, 0],
-      [SubscriptionStatus.PROVISIONING, 20],
+    expect(subs.map((x) => [x.status, x.kredytAutoskalowaniaKwota === null ? null : Number(x.kredytAutoskalowaniaKwota)])).toEqual([
+      [SubscriptionStatus.PENDING_PAYMENT, null],
+      [SubscriptionStatus.PROVISIONING, 10],
     ]);
-    expect(Number(subs[1].priceAmount)).toBe(36);
+    expect(Number(subs[1].priceAmount)).toBe(45);
   });
 
   it('[4b] zwrot po nieudanym zakładaniu: wpłata nie jest raportowana jako zakup (GA4/Meta)', async () => {

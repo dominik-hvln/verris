@@ -33,7 +33,7 @@ export async function narzutResellera(
 }
 
 /**
- * Klient aktywnego resellera — promocje Verris (rabat na start, kody rabatowe przy zakupie usługi) go nie
+ * Klient aktywnego resellera — promocje Verris (kredyty na start, kody rabatowe przy zakupie usługi) go nie
  * obejmują: to nasza promocja, nie partnera (decyzja właściciela 07.10). Ten sam warunek co `/me/partner`,
  * więc panel i API mówią to samo, także przy wyłączonym narzucie.
  */

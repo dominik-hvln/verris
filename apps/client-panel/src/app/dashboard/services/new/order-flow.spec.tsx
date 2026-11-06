@@ -57,7 +57,7 @@ const PLANY = [
   plan({ id: 'n1', slug: 'newsletter-start', name: 'Newsletter Start', productKind: 'EMAIL_MARKETING', priceMonthly: '19.00', priceYearly: '190.00', emmMaxContacts: 1000, emmMonthlySends: 5000 }),
   plan({ id: 'n2', slug: 'newsletter-plus', name: 'Newsletter Plus', productKind: 'EMAIL_MARKETING', priceMonthly: '49.00', priceYearly: '490.00', emmMaxContacts: 5000, emmMonthlySends: 25000 }),
 ];
-const OFERTA: TrialOffer = { freeEnabled: false, cardEnabled: false, annualDiscountPct: 0, monthlyDiscountPct: 0, annualPromoCode: '', monthlyPromoCode: '' };
+const OFERTA: TrialOffer = { freeEnabled: false, cardEnabled: false, annualAutoscalingCredit: 0, monthlyAutoscalingCredit: 0 };
 
 let root: Root;
 let el: HTMLDivElement;
@@ -137,23 +137,24 @@ it('VPS w zamówieniu tylko, gdy API zwraca vps=true dla konta', async () => {
   expect(await pokaz('type=vps', false)).toContain('Otwórz sekcję VPS');
 });
 
-// O-07 na t1 07.10: poczta pokazała „Do zapłaty 12,49 K”, a API pobrało 11,24 K (rabat na start −10%
-// liczy się dla każdego pakietu z portfela, panel pokazywał go tylko przy hostingu).
-it('rabat na start widoczny przed zapłatą także przy poczcie', async () => {
+// O-07 na t1 07.10: panel i API muszą liczyć tak samo. Decyzja 6.11.2026 — bez rabatu na start: poczta kosztuje
+// tyle, ile w cenniku, a kredyty na autoskalowanie dotyczą tylko hostingu.
+it('poczta: do zapłaty cena z cennika, bez rabatu i bez kredytów na autoskalowanie', async () => {
   const poczta = plan({ id: 'e1', slug: 'poczta-standard', name: 'Poczta Standard', productKind: 'EMAIL', priceMonthly: '9.99', priceYearly: '99.99' });
-  const t = await pokaz('type=email', false, { ...OFERTA, cardEnabled: true, monthlyDiscountPct: 10, annualDiscountPct: 15 }, [poczta]);
-  expect(t).toContain('Rabat na start −10%');
-  expect(t).toMatch(/8,99\s?zł/);
+  const t = await pokaz('type=email', false, { ...OFERTA, cardEnabled: true, monthlyAutoscalingCredit: 10, annualAutoscalingCredit: 60 }, [poczta]);
+  expect(t).not.toContain('Rabat na start');
+  expect(t).not.toContain('na autoskalowanie przy pierwszym zakupie');
+  expect(t).toMatch(/Do zapłaty teraz9,99\s?zł/);
 });
 
-// Decyzja 07.10: rabat na start i kody to promocja Verris, nie partnera.
-it('klient resellera: bez rabatu na start i bez pola kodu rabatowego', async () => {
+// Decyzja 07.10: promocja na start (od 6.11 kredyty) i kody to promocja Verris, nie partnera.
+it('klient resellera: bez kredytów na start i bez pola kodu rabatowego', async () => {
   const poczta = plan({ id: 'e1', slug: 'poczta-standard', name: 'Poczta Standard', productKind: 'EMAIL', priceMonthly: '12.49', priceYearly: '124.99' });
   mockParams.value = new URLSearchParams('type=email&promo=START20');
   await act(async () =>
     root.render(
       <FeatureFlagsProvider>
-        <OrderFlow plans={[poczta]} offer={{ ...OFERTA, cardEnabled: true, monthlyDiscountPct: 10 }} uPartnera />
+        <OrderFlow plans={[poczta]} offer={{ ...OFERTA, cardEnabled: true, monthlyAutoscalingCredit: 10 }} uPartnera />
       </FeatureFlagsProvider>,
     ),
   );
@@ -163,22 +164,33 @@ it('klient resellera: bez rabatu na start i bez pola kodu rabatowego', async () 
   expect(t).toMatch(/Do zapłaty teraz12,49\s?zł/);
 });
 
-// E2e 14.10 (PB-05): drugi zakup tego samego klienta znów z −15%. Rabat na start tylko przy pierwszym zakupie —
-// panel nie obiecuje go klientowi, który już coś kupił (API go wtedy nie nalicza), ale kod rabatowy zostaje.
-it('klient po pierwszym zakupie: bez rabatu na start, pełna cena do zapłaty, pole kodu zostaje', async () => {
-  const poczta = plan({ id: 'e1', slug: 'poczta-standard', name: 'Poczta Standard', productKind: 'EMAIL', priceMonthly: '12.49', priceYearly: '124.99' });
-  mockParams.value = new URLSearchParams('type=email');
+// E2e 14.10 (PB-05): promocja na start tylko przy pierwszym zakupie — panel nie obiecuje kredytów na autoskalowanie
+// klientowi, który już coś kupił (API ich wtedy nie zapisuje), ale kod rabatowy zostaje.
+it('klient po pierwszym zakupie: bez kredytów na start, pełna cena do zapłaty, pole kodu zostaje', async () => {
+  const hosting = plan({ id: 'h9', slug: 'verris-hosting', name: 'Hosting Verris', priceMonthly: '45.00', priceYearly: '449.00' });
+  const oferta = { ...OFERTA, cardEnabled: true, monthlyAutoscalingCredit: 10, annualAutoscalingCredit: 60 };
+  mockParams.value = new URLSearchParams('type=hosting');
   await act(async () =>
     root.render(
       <FeatureFlagsProvider>
-        <OrderFlow plans={[poczta]} offer={{ ...OFERTA, cardEnabled: true, monthlyDiscountPct: 10 }} bezRabatuStartowego />
+        <OrderFlow plans={[hosting]} offer={oferta} bezKredytowStartowych />
       </FeatureFlagsProvider>,
     ),
   );
-  const t = el.textContent ?? '';
-  expect(t).not.toContain('Rabat na start');
+  let t = el.textContent ?? '';
+  expect(t).not.toContain('na autoskalowanie przy pierwszym zakupie');
   expect(t).toContain('Kod rabatowy');
-  expect(t).toMatch(/Do zapłaty teraz12,49\s?zł/);
+  expect(t).toMatch(/Do zapłaty teraz45,00\s?zł/);
+  // Ten sam hosting pierwszemu klientowi — korzyść widoczna.
+  await act(async () =>
+    root.render(
+      <FeatureFlagsProvider>
+        <OrderFlow plans={[hosting]} offer={oferta} />
+      </FeatureFlagsProvider>,
+    ),
+  );
+  t = el.textContent ?? '';
+  expect(t).toContain('+10 zł na autoskalowanie przy pierwszym zakupie (plan miesięczny), ważne 12 miesięcy.');
 });
 
 // 2026-10-12 (Dominik): zakup usługi BLIK-iem / przelewem — wpłata za tę usługę, nie doładowanie portfela.

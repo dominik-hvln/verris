@@ -1,6 +1,7 @@
 import {
   CENY_ZAPASOWE,
   kosztMocy,
+  kwotaGodzinowa,
   miesiecznieZRocznej,
   netto,
   opisCeny,
@@ -39,10 +40,25 @@ describe('netto i formatowanie', () => {
     expect(zl(9.9)).toBe('9,90 zł');
   });
 
-  it('stawki godzinowe do 4 cyfr znaczących', () => {
+  it('stawki godzinowe wszystkimi cyframi (do 6 znaczących), bez zer na końcu i bez notacji 1e-7', () => {
     expect(stawka(0.001323)).toBe('0,001323');
+    expect(stawka(0.001283)).toBe('0,001283');
     expect(stawka(0.0882)).toBe('0,0882');
-    expect(stawka(0.0882 / 1.23)).toBe('0,07171');
+    expect(stawka(0.0008)).toBe('0,0008');
+    // uwaga 6.11: stawka z 6 miejscami nie może się skracać (stary kod: „0,1235”)
+    expect(stawka(0.123456)).toBe('0,123456');
+    expect(stawka(0.0882 / 1.23)).toBe('0,0717073');
+    expect(stawka(0.001323 / 1.23)).toBe('0,00107561');
+    expect(stawka(0.0000005)).toBe('0,0000005');
+    expect(stawka(0.1 * 3)).toBe('0,3');
+  });
+
+  it('kwota za godzinę: poniżej 1 zł dokładnie, od 1 zł do grosza', () => {
+    expect(kwotaGodzinowa(0.001283)).toBe('0,001283');
+    expect(kwotaGodzinowa(50 * 0.001323)).toBe('0,06615');
+    expect(kwotaGodzinowa(0.4)).toBe('0,40');
+    expect(kwotaGodzinowa(0)).toBe('0,00');
+    expect(kwotaGodzinowa(1.2348)).toBe('1,23');
   });
 
   it('rabat roczny w pełnych procentach w dół: 449 zamiast 540 → 16%', () => {

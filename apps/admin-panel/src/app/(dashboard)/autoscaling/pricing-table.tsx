@@ -6,6 +6,7 @@ import { CheckCircle2, Loader2, Pencil, PowerOff, Save, XCircle } from "lucide-r
 import type { AutoscalingCatalogResource, PriceRuleDto } from "./actions";
 import { deactivatePriceRule, updatePriceRule } from "./actions";
 import { PricingSimulator } from "./pricing-simulator";
+import { formatPrice } from "./format-price";
 
 const CATALOG_ORDER: AutoscalingCatalogResource[] = ["CPU", "RAM", "DISK"];
 
@@ -339,12 +340,4 @@ function formatUnitLabel(unit: string): string {
   if (unit === "ram_mb") return "1 MB RAM (legacy)";
   if (unit === "disk_mb") return "1 MB dysku (legacy)";
   return unit;
-}
-
-function formatPrice(value: string): string {
-  const n = Number.parseFloat(value);
-  if (Number.isNaN(n)) return value;
-  if (n === 0) return "0";
-  if (n >= 0.01) return n.toFixed(4);
-  return n.toFixed(6);
 }

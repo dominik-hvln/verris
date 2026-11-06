@@ -44,7 +44,8 @@ import { accountSuspendedPaymentTemplate } from '../mail/templates/hosting-notif
 import { orderReceivedTemplate } from '../mail/templates/order-notifications.js';
 import { EcoPointsService, ECO_POINT_DELTAS } from '../eco/eco-points.service.js';
 import { KOD_U_PARTNERA, klientAktywnegoResellera, narzutResellera, zNarzutem } from '../reseller/narzut-resellera.js';
-import { przyslugujeRabatStartowy } from './rabat-startowy.js';
+import { czyPierwszyZakup } from './pierwszy-zakup.js';
+import { pulaDoApi, pulaKredytow } from '../autoscaling/kredyty-autoskalowania.js';
 import { wyslijZakupDoGa4 } from './pomiar-zakupu.js';
 import { POWODY_ZDEJMOWANE_BEZ_OBSLUGI, zawieszenieObejmujeZaleglosc } from './powody-zawieszenia.js';
 import { limityIndywidualneDlaKlienta, planZNadpisaniami } from './limity-indywidualne.js';
@@ -148,10 +149,13 @@ export class SubscriptionsService {
     private readonly vatNabywcy: VatNabywcyService,
   ) {}
 
-  /** Czy klient dostanie rabat na start przy zamówieniu (panel pokazuje go tylko wtedy). */
-  async rabatStartowy(userId: string): Promise<{ przysluguje: boolean }> {
+  /**
+   * Czy klient dostanie kredyty na autoskalowanie przy zamówieniu hostingu (decyzja 6.11.2026, zamiast rabatu na
+   * start) — panel pokazuje korzyść tylko wtedy. Kwoty: GET /platform-settings/trial-offer.
+   */
+  async kredytyStartowe(userId: string): Promise<{ przysluguje: boolean }> {
     if (await klientAktywnegoResellera(this.prisma, userId)) return { przysluguje: false };
-    return { przysluguje: await przyslugujeRabatStartowy(this.prisma, userId) };
+    return { przysluguje: await czyPierwszyZakup(this.prisma, userId) };
   }
 
   async previewSubscriptionPromo(userId: string, dto: PreviewSubscriptionPromoDto) {
@@ -168,32 +172,8 @@ export class SubscriptionsService {
     // O-07 — klient resellera widzi i płaci cenę z narzutem.
     const listPrice = zNarzutem(listPriceRaw, await narzutResellera(this.prisma, this.config, userId));
     const preview = await this.promo.previewServicePercentOff(userId, dto.code, listPrice);
-
-    // BILL-1 — reguła NIE-ŁĄCZENIA: porównaj kod z rabatem startowym z ustawień.
-    const offer = await this.platformSettings.getTrialOffer();
-    const startPercent = offer.cardEnabled && (await przyslugujeRabatStartowy(this.prisma, userId))
-      ? dto.interval === BillingInterval.MONTH
-        ? offer.monthlyDiscountPct
-        : offer.annualDiscountPct
-      : 0;
-
-    // Kod wygrywa przy remisie (klient wpisał go świadomie).
-    const codeWins = preview.percent >= startPercent;
-    const effectivePercent = Math.max(preview.percent, startPercent);
-    const effectiveDiscounted = codeWins
-      ? preview.discountedAmount
-      : this.applyPct(listPrice, startPercent);
-
-    let comparisonMessage: string | null = null;
-    if (!codeWins && startPercent > 0) {
-      comparisonMessage =
-        `Ten kod daje rabat ${preview.percent}%, a promocja na start ${startPercent}%. ` +
-        `Zostawiamy korzystniejszą promocję startową — kod nie zostanie użyty.`;
-    } else if (codeWins && startPercent > 0 && preview.percent > startPercent) {
-      comparisonMessage =
-        `Ten kod (${preview.percent}%) jest lepszy niż promocja na start (${startPercent}%) — używamy kodu.`;
-    }
-
+    // Decyzja 6.11.2026 — rabatu na start już nie ma (kredyty na autoskalowanie nie obniżają ceny), więc kod nie
+    // konkuruje z żadną promocją cenową: liczy się sam kod.
     return {
       code: preview.code,
       percent: preview.percent,
@@ -202,12 +182,6 @@ export class SubscriptionsService {
       savingsAmount: preview.savingsAmount.toFixed(2),
       appliesToRenewals: preview.appliesToRenewals,
       description: preview.description,
-      // BILL-1 — transparentność reguły „nie łączymy promocji"
-      startPercent,
-      effectivePercent,
-      effectiveDiscounted: effectiveDiscounted.toFixed(2),
-      codeWins,
-      comparisonMessage,
     };
   }
 
@@ -397,11 +371,11 @@ export class SubscriptionsService {
     }
 
     const listPrice = zNarzutem(listPriceRaw, narzutPct);
-    // PB-27 — cena operatora zastępuje cennik, kody i rabat startowy (także przy odnowieniach).
-    // Przeniesienie z opłaconym okresem (op.oplaconeDo): klient nie jest nowy — bez rabatu startowego, odnowienia
+    // PB-27 — cena operatora zastępuje cennik i kody (także przy odnowieniach); bez kredytów startowych.
+    // Przeniesienie z opłaconym okresem (op.oplaconeDo): klient nie jest nowy — bez kredytów startowych, odnowienia
     // ceną z cennika albo ceną operatora.
-    // Decyzja 15.10 (#6) — rabat na start i kod przy równoległych zamówieniach jednego klienta: kontrola „pierwszy
-    // zakup” (rabat-startowy.ts) i zapis zamówienia idą pod blokadą doradczą klienta (jak POST /api/v1/orders).
+    // Decyzja 15.10 (#6) — promocja startowa i kod przy równoległych zamówieniach jednego klienta: kontrola „pierwszy
+    // zakup” (pierwszy-zakup.ts) i zapis zamówienia idą pod blokadą doradczą klienta (jak POST /api/v1/orders).
     // Wcześniej dwa zamówienia naraz oba widziały „brak zakupów” i oba dostawały rabat. Klucz inny niż w API:
     // zamówienie przez API woła tę metodę pod własną blokadą — ten sam klucz z innego połączenia zablokowałby się.
     const { pricing, subscription, oddajKod, serviceTag } = await this.prisma.$transaction(
@@ -415,12 +389,14 @@ export class SubscriptionsService {
                 appliedPromoCodeId: null,
                 introDiscountPct: 0,
                 introDiscountPeriodsLeft: 0,
+                kredytAutoskalowaniaKwota: null,
               }
             : await this.resolveSubscriptionPricing(
                 userId,
                 listPrice,
                 dto.paymentSource,
                 dto.interval,
+                plan.productKind as string,
                 op ? undefined : dto.promoCode,
               );
 
@@ -455,6 +431,7 @@ export class SubscriptionsService {
             appliedPromoCodeId: pricing.appliedPromoCodeId,
             introDiscountPct: pricing.introDiscountPct,
             introDiscountPeriodsLeft: pricing.introDiscountPeriodsLeft,
+            kredytAutoskalowaniaKwota: pricing.kredytAutoskalowaniaKwota,
             resellerMarkupPct: narzutPct > 0 ? narzutPct : null,
             currency: plan.currency,
             paymentSource: dto.paymentSource,
@@ -592,10 +569,10 @@ export class SubscriptionsService {
             });
           } else {
             // Przegląd poprawek 15.10: zamówienie z portfela bez środków zostaje (jak dotąd), ale nie da się go już
-            // opłacić — nie może trzymać rabatu na start (rabat-startowy.ts): po doładowaniu nowe zamówienie dostaje rabat.
+            // opłacić — nie może trzymać promocji startowej (pierwszy-zakup.ts): po doładowaniu nowe zamówienie ją dostaje.
             await this.prisma.subscription.updateMany({
               where: { id: subscription.id, status: SubscriptionStatus.PENDING_PAYMENT },
-              data: { introDiscountPct: 0, introDiscountPeriodsLeft: 0 },
+              data: { introDiscountPct: 0, introDiscountPeriodsLeft: 0, kredytAutoskalowaniaKwota: null },
             });
           }
           throw err;
@@ -1434,7 +1411,7 @@ export class SubscriptionsService {
     });
     if (!subscription) throw new NotFoundException('Nie znaleziono usługi.');
 
-    const [events, charges] = await Promise.all([
+    const [events, charges, zKredytow, pula] = await Promise.all([
       this.prisma.autoscalingEvent.findMany({
         where: { subscriptionId },
         orderBy: { createdAt: 'desc' },
@@ -1446,6 +1423,13 @@ export class SubscriptionsService {
         orderBy: { createdAt: 'desc' },
         take: 100,
       }),
+      // Decyzja 6.11.2026 — część bloków opłacona kredytami na autoskalowanie (pula klienta, poza portfelem).
+      this.prisma.kredytAutoskalowaniaUzycie.findMany({
+        where: { subscriptionId, kredyt: { userId } },
+        orderBy: { createdAt: 'desc' },
+        take: 100,
+      }),
+      pulaKredytow(this.prisma, userId),
     ]);
 
     // 30-day spend total — handy for the panel header.
@@ -1477,14 +1461,26 @@ export class SubscriptionsService {
         reason: e.reason,
         createdAt: e.createdAt.toISOString(),
       })),
-      charges: charges.map((c) => ({
-        id: c.id,
-        amount: c.amount.toString(),
-        description: c.description,
-        createdAt: c.createdAt.toISOString(),
-      })),
+      charges: [
+        ...charges.map((c) => ({
+          id: c.id,
+          amount: c.amount.toString(),
+          description: c.description,
+          createdAt: c.createdAt.toISOString(),
+          zKredytow: false,
+        })),
+        ...zKredytow.map((u) => ({
+          id: u.id,
+          amount: new Prisma.Decimal(u.kwota).negated().toString(),
+          description: 'Opłacone z kredytów na autoskalowanie',
+          createdAt: u.createdAt.toISOString(),
+          zKredytow: true,
+        })),
+      ].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+      // Wydatek z portfela (limit kosztu liczy tylko pieniądze z portfela — kredyty go nie zjadają).
       last30dSpend: last30dSpend.toFixed(2),
       currency: 'PLN',
+      kredytyAutoskalowania: pulaDoApi(pula),
     };
   }
 
@@ -1574,26 +1570,19 @@ export class SubscriptionsService {
   // Helpers
   // ---------------------------------------------------------------------------
 
-  /** BILL-1 — % zniżki od ceny listowej, zaokrąglone do 2 miejsc (HALF_UP). */
-  private applyPct(listPrice: Prisma.Decimal, pct: number): Prisma.Decimal {
-    const p = Math.min(Math.max(pct, 0), 100);
-    return listPrice
-      .mul(new Prisma.Decimal(100 - p))
-      .div(100)
-      .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
-  }
-
   /**
-   * BILL-1 — wycena z regułą NIE-ŁĄCZENIA: porównujemy rabat startowy (z ustawień
-   * oferty, tylko portfel) z ewentualnym kodem rabatowym i stosujemy LEPSZY.
-   * Rabat startowy obejmuje pierwsze N okresów (introDiscountPeriods); na
-   * subskrypcji zapisujemy ile okresów rabatu zostaje po pierwszej opłacie.
+   * Wycena zamówienia: cena z cennika albo z kodu rabatowego (tylko portfel). Decyzja 6.11.2026 — rabat na start
+   * zastąpiony kredytami na autoskalowanie: przy pierwszym zakupie hostingu (pierwszy-zakup.ts; tylko portfel, jak
+   * dawny rabat, bez klientów resellera) zamówienie zapisuje kwotę kredytów z ustawień oferty, a przyznaje je
+   * dopiero założenie konta po opłacie (provisioning.service.ts). Cena pierwszego okresu = cena odnowienia.
+   * Kredyty nie są obniżką ceny, więc łączą się z kodem rabatowym.
    */
   private async resolveSubscriptionPricing(
     userId: string,
     listPrice: Prisma.Decimal,
     paymentSource: SubscriptionPaymentSource,
     interval: BillingInterval,
+    productKind: string,
     promoCode?: string,
   ): Promise<{
     listPrice: Prisma.Decimal;
@@ -1601,53 +1590,36 @@ export class SubscriptionsService {
     appliedPromoCodeId: string | null;
     introDiscountPct: number;
     introDiscountPeriodsLeft: number;
+    kredytAutoskalowaniaKwota: Prisma.Decimal | null;
   }> {
     const isWallet = paymentSource === SubscriptionPaymentSource.WALLET;
     // Promocje Verris nie obejmują klientów resellera (07.10).
     const uPartnera = await klientAktywnegoResellera(this.prisma, userId);
     if (uPartnera && promoCode?.trim()) throw new BadRequestException(KOD_U_PARTNERA);
 
-    // Rabat startowy z ustawień — tylko portfel (jak istniejący silnik promo).
     const offer = await this.platformSettings.getTrialOffer();
-    // Tylko pierwszy zakup klienta (14.10) — patrz rabat-startowy.ts.
-    const startPct =
-      isWallet && offer.cardEnabled && !uPartnera && (await przyslugujeRabatStartowy(this.prisma, userId))
-        ? interval === BillingInterval.MONTH
-          ? offer.monthlyDiscountPct
-          : offer.annualDiscountPct
-        : 0;
+    const kwota = interval === BillingInterval.MONTH ? offer.monthlyAutoscalingCredit : offer.annualAutoscalingCredit;
+    const kredytAutoskalowaniaKwota =
+      isWallet && offer.cardEnabled && !uPartnera && productKind === 'HOSTING' && kwota > 0 &&
+      (await czyPierwszyZakup(this.prisma, userId))
+        ? new Prisma.Decimal(kwota.toFixed(2))
+        : null;
 
     // Rabat z wpisanego kodu (tylko portfel).
-    let codePct = 0;
-    let codePreview: Awaited<ReturnType<PromoService['previewServicePercentOff']>> | null = null;
     if (promoCode?.trim()) {
       if (!isWallet) {
         throw new BadRequestException(
           'Kod rabatowy przy zakupie usługi działa tylko z płatnością z portfela (K).',
         );
       }
-      codePreview = await this.promo.previewServicePercentOff(userId, promoCode, listPrice);
-      codePct = codePreview.percent;
-    }
-
-    // NIE ŁĄCZYMY — wygrywa wyższy. Remis → kod (klient go wpisał świadomie).
-    if (codePreview && codePct >= startPct) {
+      const codePreview = await this.promo.previewServicePercentOff(userId, promoCode, listPrice);
       return {
         listPrice,
         chargeAmount: codePreview.discountedAmount,
         appliedPromoCodeId: codePreview.promoCodeId,
         introDiscountPct: 0,
         introDiscountPeriodsLeft: 0,
-      };
-    }
-    if (startPct > 0) {
-      return {
-        listPrice,
-        chargeAmount: this.applyPct(listPrice, startPct),
-        appliedPromoCodeId: null,
-        introDiscountPct: startPct,
-        // pierwsza opłata zużywa 1 okres rabatu
-        introDiscountPeriodsLeft: Math.max(offer.introDiscountPeriods - 1, 0),
+        kredytAutoskalowaniaKwota,
       };
     }
     return {
@@ -1656,6 +1628,7 @@ export class SubscriptionsService {
       appliedPromoCodeId: null,
       introDiscountPct: 0,
       introDiscountPeriodsLeft: 0,
+      kredytAutoskalowaniaKwota,
     };
   }
 
@@ -1820,9 +1793,9 @@ export class SubscriptionsService {
       });
       await this.prisma.subscription.update({
         where: { id: subscriptionId },
-        // Przegląd 15.10: bez okresu i bez rabatu startowego — usługa, która nie ruszyła (środki zwrócone, zamówienia nie
-        // da się już opłacić), nie liczy się jako „był zakup” ani nie trzyma rabatu na start (rabat-startowy.ts).
-        data: { status: SubscriptionStatus.PENDING_PAYMENT, currentPeriodStart: null, currentPeriodEnd: null, introDiscountPct: 0, introDiscountPeriodsLeft: 0 },
+        // Przegląd 15.10: bez okresu i bez promocji startowej — usługa, która nie ruszyła (środki zwrócone, zamówienia nie
+        // da się już opłacić), nie liczy się jako „był zakup” ani nie trzyma promocji startowej (pierwszy-zakup.ts).
+        data: { status: SubscriptionStatus.PENDING_PAYMENT, currentPeriodStart: null, currentPeriodEnd: null, introDiscountPct: 0, introDiscountPeriodsLeft: 0, kredytAutoskalowaniaKwota: null },
       });
       throw err;
     } finally {
@@ -1934,9 +1907,9 @@ export class SubscriptionsService {
       }
       await this.prisma.subscription.update({
         where: { id: subscriptionId },
-        // Przegląd 15.10: bez okresu i bez rabatu startowego — usługa, która nie ruszyła (środki zwrócone, zamówienia nie
-        // da się już opłacić), nie liczy się jako „był zakup” ani nie trzyma rabatu na start (rabat-startowy.ts).
-        data: { status: SubscriptionStatus.PENDING_PAYMENT, currentPeriodStart: null, currentPeriodEnd: null, introDiscountPct: 0, introDiscountPeriodsLeft: 0 },
+        // Przegląd 15.10: bez okresu i bez promocji startowej — usługa, która nie ruszyła (środki zwrócone, zamówienia nie
+        // da się już opłacić), nie liczy się jako „był zakup” ani nie trzyma promocji startowej (pierwszy-zakup.ts).
+        data: { status: SubscriptionStatus.PENDING_PAYMENT, currentPeriodStart: null, currentPeriodEnd: null, introDiscountPct: 0, introDiscountPeriodsLeft: 0, kredytAutoskalowaniaKwota: null },
       });
       throw err;
     }

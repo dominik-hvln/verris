@@ -1,4 +1,5 @@
 import { STOS_WEZLA } from '../servers/stos-wezla.js';
+import { KREDYT_AUTOSKALOWANIA_DOMYSLNIE } from '../autoscaling/kredyty-autoskalowania.js';
 
 /** Well-known platform configuration keys (stored in `platform_settings`). */
 export const PLATFORM_SETTING_KEYS = {
@@ -24,12 +25,13 @@ export const PLATFORM_SETTING_KEYS = {
   // UX-3 — oferta okresu próbnego (zarządzalna z panelu admina).
   TRIAL_FREE_ENABLED: 'trial.freeEnabled',
   TRIAL_CARD_ENABLED: 'trial.cardEnabled',
-  TRIAL_ANNUAL_DISCOUNT_PCT: 'trial.annualDiscountPct',
-  TRIAL_MONTHLY_DISCOUNT_PCT: 'trial.monthlyDiscountPct',
-  TRIAL_ANNUAL_PROMO_CODE: 'trial.annualPromoCode',
-  TRIAL_MONTHLY_PROMO_CODE: 'trial.monthlyPromoCode',
-  /** BILL-1 — liczba pierwszych okresów objętych rabatem startowym (1 = tylko start). */
-  TRIAL_INTRO_PERIODS: 'trial.introDiscountPeriods',
+  /**
+   * Decyzja 6.11.2026 — „rabat na start” zastąpiony kredytami na autoskalowanie przy pierwszym zakupie hostingu
+   * (zł brutto, całe złote). Dawne klucze rabatu (trial.annualDiscountPct, trial.monthlyDiscountPct,
+   * trial.introDiscountPeriods, trial.*PromoCode) nie są już czytane.
+   */
+  TRIAL_ANNUAL_AUTOSCALING_CREDIT: 'trial.annualAutoscalingCredit',
+  TRIAL_MONTHLY_AUTOSCALING_CREDIT: 'trial.monthlyAutoscalingCredit',
 
   // MON-3 — monitoring strony: interwały (min) per tier + cena płatnego.
   /** Darmowy interwał sprawdzania w minutach (default 30). */
@@ -127,11 +129,8 @@ export const PLATFORM_SETTING_DEFAULTS: Record<PlatformSettingKey, string> = {
   [PLATFORM_SETTING_KEYS.PHP_AVAILABLE_VERSIONS]: STOS_WEZLA.phpAlt.join(','),
   [PLATFORM_SETTING_KEYS.TRIAL_FREE_ENABLED]: '1',
   [PLATFORM_SETTING_KEYS.TRIAL_CARD_ENABLED]: '1',
-  [PLATFORM_SETTING_KEYS.TRIAL_ANNUAL_DISCOUNT_PCT]: '15',
-  [PLATFORM_SETTING_KEYS.TRIAL_MONTHLY_DISCOUNT_PCT]: '10',
-  [PLATFORM_SETTING_KEYS.TRIAL_ANNUAL_PROMO_CODE]: '',
-  [PLATFORM_SETTING_KEYS.TRIAL_MONTHLY_PROMO_CODE]: '',
-  [PLATFORM_SETTING_KEYS.TRIAL_INTRO_PERIODS]: '1',
+  [PLATFORM_SETTING_KEYS.TRIAL_ANNUAL_AUTOSCALING_CREDIT]: String(KREDYT_AUTOSKALOWANIA_DOMYSLNIE.rok),
+  [PLATFORM_SETTING_KEYS.TRIAL_MONTHLY_AUTOSCALING_CREDIT]: String(KREDYT_AUTOSKALOWANIA_DOMYSLNIE.miesiac),
   [PLATFORM_SETTING_KEYS.MONITORING_FREE_INTERVAL_MIN]: '30',
   [PLATFORM_SETTING_KEYS.MONITORING_PAID_INTERVAL_MIN]: '1',
   [PLATFORM_SETTING_KEYS.MONITORING_PAID_PRICE]: '5',

@@ -16,19 +16,26 @@ export async function fetchPlatformSettings(): Promise<PlatformSettingsForm> {
   return adminApi<PlatformSettingsForm>('/admin/platform-settings');
 }
 
-// UX-3 — oferta okresu próbnego
+// UX-3 — oferta okresu próbnego; decyzja 6.11.2026 — kredyty na autoskalowanie zamiast rabatu na start.
 export type TrialOfferForm = {
   freeEnabled: boolean;
   cardEnabled: boolean;
-  annualDiscountPct: number;
-  monthlyDiscountPct: number;
-  annualPromoCode: string;
-  monthlyPromoCode: string;
-  introDiscountPeriods: number;
+  /** Zł brutto przy pierwszym zakupie planu rocznego. */
+  annualAutoscalingCredit: number;
+  /** Zł brutto przy pierwszym zakupie planu miesięcznego. */
+  monthlyAutoscalingCredit: number;
+  /** Tylko odczyt — ważność kredytów (miesiące). */
+  autoscalingCreditValidityMonths?: number;
 };
 
 export async function fetchTrialOffer(): Promise<TrialOfferForm> {
   return adminApi<TrialOfferForm>('/admin/platform-settings/trial-offer');
+}
+
+/** Kwota z pola formularza: całe złote 0–1000 (jak walidacja API). */
+function kwotaKredytu(v: FormDataEntryValue | null): number {
+  const n = Math.round(Number(String(v ?? '').replace(',', '.')));
+  return Number.isFinite(n) ? Math.min(Math.max(n, 0), 1000) : 0;
 }
 
 export async function updateTrialOfferAction(
@@ -38,11 +45,8 @@ export async function updateTrialOfferAction(
   const payload: TrialOfferForm = {
     freeEnabled: formData.get('freeEnabled') === 'on',
     cardEnabled: formData.get('cardEnabled') === 'on',
-    annualDiscountPct: Number(formData.get('annualDiscountPct')),
-    monthlyDiscountPct: Number(formData.get('monthlyDiscountPct')),
-    annualPromoCode: String(formData.get('annualPromoCode') ?? '').trim(),
-    monthlyPromoCode: String(formData.get('monthlyPromoCode') ?? '').trim(),
-    introDiscountPeriods: Math.max(1, Number(formData.get('introDiscountPeriods')) || 1),
+    annualAutoscalingCredit: kwotaKredytu(formData.get('annualAutoscalingCredit')),
+    monthlyAutoscalingCredit: kwotaKredytu(formData.get('monthlyAutoscalingCredit')),
   };
   try {
     await adminApi('/admin/platform-settings/trial-offer', { method: 'PATCH', body: payload });

@@ -86,4 +86,20 @@ describe('strona główna — ceny z API', () => {
     expect(tekst).toContain('99,73%');
     expect(html).toContain('class="pdost"');
   });
+
+  it('karta z czterema liczbami ma zwykły odstęp sekcji od kreski pod hero (uwaga 6.11: przylegała)', async () => {
+    const { html } = await render(CENY_ZAPASOWE);
+    // .hero2 ma border-bottom (globals.css); sekcja liczb zaraz pod nim nie może zerować górnego paddingu .sec.
+    const sekcja = html.match(/<section[^>]*aria-label="Liczby, które możesz sprawdzić"[^>]*>/)?.[0] ?? '';
+    expect(sekcja).toContain('class="sec"');
+    expect(sekcja).not.toMatch(/padding-top|style=/);
+    expect(html.indexOf('class="hero2 gl-hero"')).toBeLessThan(html.indexOf('aria-label="Liczby, które możesz sprawdzić"'));
+  });
+
+  it('stawki autoskalowania wszystkimi cyframi z API, brutto i netto (uwaga 6.11: bez skracania)', async () => {
+    const { tekst } = await render({ ...INNE, stawki: { cpu: 0.001283, ram: 0.123456, dysk: 0.0008 } });
+    expect(tekst).toContain('0,123456 zł za 1 GB RAM/h · 0,001283 zł za 1% CPU/h');
+    // netto: 0,123456 / 1,23 = 0,100371…; 0,001283 / 1,23 = 0,00104309…
+    expect(tekst).toContain('0,100371 zł · 0,00104309 zł');
+  });
 });

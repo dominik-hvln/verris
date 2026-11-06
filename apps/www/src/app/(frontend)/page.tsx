@@ -12,6 +12,8 @@ import { HeroPodglad, type DaneHeroPodgladu } from './_glowna/HeroPodglad';
 import { PanelPodglad, type ZakladkaPanelu } from './_glowna/PanelPodglad';
 import { STYL_GLOWNEJ } from './_glowna/styl';
 import { pobierzCeny } from '@/lib/ceny-api';
+import { kredytyNaStart, type KredytyStartowe } from '@/lib/kredyty-startowe';
+import { pobierzKredytyStartowe } from '@/lib/kredyty-startowe-api';
 import { ADRES_SPRZEDAWCY, SPRZEDAWCA } from '@/lib/sprzedawca';
 import {
   GODZIN_W_MIESIACU,
@@ -188,7 +190,7 @@ const DOKUMENTY: [string, string][] = [
   ['Podprocesorzy', `${LEGAL}/privacy`],
 ];
 
-function faq(c: Ceny): [string, string][] {
+function faq(c: Ceny, k: KredytyStartowe): [string, string][] {
   const m = c.hosting.miesiecznie;
   const r = c.hosting.rocznie;
   const lista: [string, string][] = [];
@@ -206,7 +208,7 @@ function faq(c: Ceny): [string, string][] {
     ],
     [
       'Czy cena wzrośnie przy odnowieniu?',
-      `Odnowienie idzie po cenie z cennika (dziś ${zl(m)}/mies. albo ${zl(r)}/rok brutto), którą znasz przed zakupem. Przy pierwszym zakupie pierwszy rok albo miesiąc kosztuje mniej (rabat na start) — kwotę po rabacie widzisz przed zapłatą. Przed odnowieniem wyślemy przypomnienie e-mail, a z odnowienia zrezygnujesz w panelu w każdej chwili, bez opłat.`,
+      `Odnowienie idzie po cenie z cennika (dziś ${zl(m)}/mies. albo ${zl(r)}/rok brutto), którą znasz przed zakupem. ${kredytyNaStart(k)} Przed odnowieniem wyślemy przypomnienie e-mail, a z odnowienia zrezygnujesz w panelu w każdej chwili, bez opłat.`,
     ],
     [
       'Jak przenieść stronę na nowy hosting i ile to kosztuje?',
@@ -264,13 +266,13 @@ function Stopka({ opis, link, href }: { opis: string; link: string; href: string
 }
 
 export default async function HomePage() {
-  const [ceny, dostepnosc] = await Promise.all([pobierzCeny(), pobierzDostepnosc()]);
+  const [ceny, dostepnosc, kredyty] = await Promise.all([pobierzCeny(), pobierzDostepnosc(), pobierzKredytyStartowe()]);
   const cta = ctaProby(ceny);
   const proba = okresProbny(ceny);
   const m = ceny.hosting.miesiecznie;
   const r = ceny.hosting.rocznie;
   const s = ceny.stawki;
-  const pytania = faq(ceny);
+  const pytania = faq(ceny, kredyty);
   const doplataPiku = kosztMocy(s, PIK_PANEL.vcpu, PIK_PANEL.ram, 0, PIK_PANEL.godziny);
   const dyskMiesiac = s.dysk * GODZIN_W_MIESIACU;
 
@@ -326,8 +328,9 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* LICZBY DO SPRAWDZENIA */}
-      <section className="sec" aria-label="Liczby, które możesz sprawdzić" style={{ paddingTop: 0 }}>
+      {/* LICZBY DO SPRAWDZENIA — zwykły odstęp sekcji (.sec) od kreski pod hero; było paddingTop: 0 i karta
+          dotykała border-bottom .hero2 (uwaga Dominika 6.11.2026). */}
+      <section className="sec" aria-label="Liczby, które możesz sprawdzić">
         <div className="wrap">
           <div className="gl-liczby">
             {dostepnosc?.d30 != null && (

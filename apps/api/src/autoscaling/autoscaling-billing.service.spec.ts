@@ -30,11 +30,15 @@ function buildService(opts?: { debitError?: Error }) {
     subscription: { findUnique: vi.fn().mockResolvedValue({ autoscalingDiscountPct: 0, paymentSource: 'WALLET' }) },
     autoscalingEvent: { create: vi.fn().mockResolvedValue({}) },
     walletTransaction: { aggregate: vi.fn() },
+    // Decyzja 6.11.2026 — bez puli kredytów na autoskalowanie obciążenie idzie wprost z portfela (jak dotąd).
+    kredytAutoskalowaniaUzycie: { findUnique: vi.fn().mockResolvedValue(null) },
+    kredytAutoskalowania: { findFirst: vi.fn().mockResolvedValue(null) },
   };
   const walletLedger = {
     debit: opts?.debitError
       ? vi.fn().mockRejectedValue(opts.debitError)
       : vi.fn().mockResolvedValue({ id: 'tx-1' }),
+    findByIdempotencyKey: vi.fn().mockResolvedValue(null),
   };
   const service = new AutoscalingBillingService(prisma as never, walletLedger as never);
   return { service, prisma, walletLedger };

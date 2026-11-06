@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { VPS_W_SPRZEDAZY } from '@/lib/oferta';
 import { PANEL } from '@/lib/site';
-import { miesiecznieZRocznej, netto, RABAT_NA_START, rabatRocznyProcent, zl, type CenaPakietu } from '@/lib/ceny';
+import { miesiecznieZRocznej, netto, rabatRocznyProcent, zl, type CenaPakietu } from '@/lib/ceny';
+import { korzyscKredytow, KREDYTY_STARTOWE_ZAPASOWE, type KredytyStartowe } from '@/lib/kredyty-startowe';
 import { Button, SectionHead } from './ui';
 
 /*
@@ -30,7 +31,16 @@ const FEATURES = [
 ];
 
 /** `naglowek={false}` — gdy stronę otwiera już własny h1 o cenie (/cennik). */
-export function Pricing({ naglowek = true, cena }: { naglowek?: boolean; cena: CenaPakietu }) {
+export function Pricing({
+  naglowek = true,
+  cena,
+  kredyty = KREDYTY_STARTOWE_ZAPASOWE,
+}: {
+  naglowek?: boolean;
+  cena: CenaPakietu;
+  /** Decyzja 6.11.2026 — kredyty na autoskalowanie przy pierwszym zakupie (z API, lib/kredyty-startowe-api.ts). */
+  kredyty?: KredytyStartowe;
+}) {
   const [yearly, setYearly] = useState(true);
   const m = cena.miesiecznie;
   const r = cena.rocznie;
@@ -87,12 +97,15 @@ export function Pricing({ naglowek = true, cena }: { naglowek?: boolean; cena: C
                   ? `brutto (${zl(netto(r))} netto), ok. ${zl(miesiecznieZRocznej(cena))}/mies · albo ${zl(m)}/mies bez zobowiązania`
                   : `brutto (${zl(netto(m))} netto), bez zobowiązania · albo ${zl(r)}/rok (taniej o ${zl(m * 12 - r)})`}
               </p>
+              {korzyscKredytow(kredyty, yearly) ? <p className="price-sub2 mint">{korzyscKredytow(kredyty, yearly)}</p> : null}
             </div>
             <Button href={PANEL} cta="pricing" conv="checkout_intent" plan="hosting">
               Zamów hosting
             </Button>
             <p className="price-note2">
-              {RABAT_NA_START} Przed odnowieniem przypomnimy e-mailem, a zrezygnujesz z niego w panelu w każdej chwili.
+              Pierwszy okres kosztuje tyle co odnowienie — po cenie z cennika, którą podajemy tutaj. Kredyty na
+              autoskalowanie dostajesz po opłaceniu pierwszego zamówienia i wydasz je tylko na dodatkową moc. Przed
+              odnowieniem przypomnimy e-mailem, a zrezygnujesz z niego w panelu w każdej chwili.
             </p>
           </div>
         </div>

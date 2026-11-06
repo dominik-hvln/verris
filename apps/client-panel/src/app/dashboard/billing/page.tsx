@@ -22,6 +22,7 @@ import { BillingWalletRefresh } from './billing-wallet-refresh';
 import { ZakupPoPowrocie } from './zakup-po-powrocie';
 import { pobierzPartnera } from '@/app/dashboard/settings/partner-actions';
 import { JAK_ODSTAPIC } from './zasady-dokumentow';
+import { opisPuli } from '@/lib/kredyty-autoskalowania';
 
 
 export default async function BillingPage({
@@ -66,6 +67,7 @@ export default async function BillingPage({
   }
 
   const flow = mapWalletMonthlyFlow(summary?.monthlyFlowLast12 ?? []);
+  const pula = opisPuli(summary?.kredytyAutoskalowania);
 
   return (
     <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6">
@@ -138,7 +140,22 @@ export default async function BillingPage({
       ) : summary ? (
         <>
           <KpiStrip>
-            <Kpi label="Saldo portfela" value={formatCredits(summary.balance, { withUnit: false })} unit={CREDIT_SHORT} foot={<span>1 zł = 1 kredyt</span>} />
+            <Kpi
+              label="Saldo portfela"
+              value={formatCredits(summary.balance, { withUnit: false })}
+              unit={CREDIT_SHORT}
+              foot={
+                <span>
+                  1 zł = 1 kredyt
+                  {pula ? (
+                    // Decyzja 6.11.2026 — kredyty na autoskalowanie to osobna pula, poza saldem portfela.
+                    <span className="block" data-testid="kredyty-autoskalowania">
+                      + {pula.kwota} na autoskalowanie · {pula.podpis}
+                    </span>
+                  ) : null}
+                </span>
+              }
+            />
             <Kpi label="Doładowania · 30 dni" value={formatCredits(summary.totalTopupLast30d, { withUnit: false })} unit={CREDIT_SHORT} foot={<span>wpłaty i bonusy</span>} />
             <Kpi label="Wydatki · 30 dni" value={formatCredits(summary.totalChargesLast30d, { withUnit: false })} unit={CREDIT_SHORT} foot={<span>usługi, autoskalowanie, zużycie</span>} />
             <Kpi

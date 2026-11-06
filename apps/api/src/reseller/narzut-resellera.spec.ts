@@ -78,7 +78,7 @@ describe('O-07 — zakup usługi', () => {
       $executeRaw: vi.fn(async () => 1),
       $transaction: vi.fn(async (fn: (tx: unknown) => unknown) => fn(prisma)),
     };
-    const settings = { getTrialOffer: vi.fn(async () => o.oferta ?? { cardEnabled: false, monthlyDiscountPct: 0, annualDiscountPct: 0, introDiscountPeriods: 0 }) };
+    const settings = { getTrialOffer: vi.fn(async () => o.oferta ?? { cardEnabled: false, monthlyAutoscalingCredit: 0, annualAutoscalingCredit: 0 }) };
     const vat = { ustal: vi.fn(async () => ({ traktowanie: { cenaNetto: false } })) };
     const n = {} as never;
     const wezel = { sprawdzDomeneGlowna: async () => undefined, sprawdzMiejsce: async () => undefined } as never;
@@ -97,12 +97,14 @@ describe('O-07 — zakup usługi', () => {
     expect(d.resellerMarkupPct).toBe(20);
   });
 
-  // Decyzja 07.10: rabat na start to promocja Verris — klient resellera płaci pełną cenę z narzutem.
-  it('rabat startowy nie obejmuje klienta resellera', async () => {
-    const { svc, create } = zbuduj({ oferta: { cardEnabled: true, monthlyDiscountPct: 50, annualDiscountPct: 0, introDiscountPeriods: 1 } });
+  // Decyzja 07.10: promocja na start to promocja Verris — klient resellera płaci pełną cenę z narzutem i (od 6.11.2026)
+  // nie dostaje kredytów na autoskalowanie.
+  it('kredyty startowe nie obejmują klienta resellera', async () => {
+    const { svc, create } = zbuduj({ oferta: { cardEnabled: true, monthlyAutoscalingCredit: 10, annualAutoscalingCredit: 60 } });
     await expect(svc.create('u1', dto(SubscriptionPaymentSource.WALLET))).rejects.toBe(STOP);
     expect(String(zapisane(create).priceAmount)).toBe('54');
     expect(zapisane(create).introDiscountPct).toBe(0);
+    expect(zapisane(create).kredytAutoskalowaniaKwota).toBeNull();
   });
 
   it('flaga wyłączona: cennik, bez snapshotu', async () => {

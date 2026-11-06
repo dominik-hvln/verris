@@ -44,6 +44,8 @@ export interface DaneCennika {
   hosting?: { miesiecznie: number; rocznie: number; trialDays: number } | null;
   poczta?: { miesiecznie: number; rocznie: number } | null;
   stawki: { cpu?: number; ram?: number; dysk?: number };
+  /** Decyzja 6.11.2026 — kredyty na autoskalowanie przy pierwszym zakupie hostingu (zł brutto), z ustawień oferty. */
+  kredytyStartowe?: { rocznie: number; miesiecznie: number; waznoscMiesiecy: number } | null;
 }
 
 /** Cennik jako jedno źródło (ceny brutto i netto policzone tu, model ich nie liczy). */
@@ -74,6 +76,15 @@ export function zrodloCennika(d: DaneCennika): Zrodlo {
       );
     }
     linie.push(`Dodatkowa moc ponad pakiet (tylko za czas użycia, bloki 15 minut): ${czesci.join('; ')}.`);
+  }
+  const k = d.kredytyStartowe;
+  if (k && (k.rocznie > 0 || k.miesiecznie > 0)) {
+    const czesci: string[] = [];
+    if (k.rocznie > 0) czesci.push(`${zl(k.rocznie)} zł przy planie rocznym`);
+    if (k.miesiecznie > 0) czesci.push(`${zl(k.miesiecznie)} zł przy planie miesięcznym`);
+    linie.push(
+      `Przy pierwszym zakupie hostingu darmowe kredyty na autoskalowanie: ${czesci.join(', ')} (kwoty brutto, nie podlegają VAT ani fakturze). Tylko na dopłaty za dodatkową moc, ważne ${k.waznoscMiesiecy} miesięcy od przyznania (po opłaceniu zamówienia); bez zwrotu przy usunięciu konta. Rabatu na start nie ma — pierwszy okres kosztuje tyle co odnowienie.`,
+    );
   }
   linie.push('Domeny: cena rejestracji i odnowienia w cenniku domen w panelu (nie podawaj kwot domen).');
   return { id: 'cennik', tytul: 'Cennik', url: 'https://verris.pl/cennik', tresc: linie.join('\n') };

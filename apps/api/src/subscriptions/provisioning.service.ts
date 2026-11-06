@@ -18,6 +18,7 @@ import {
 import { promises as dns } from 'node:dns';
 import { ConfigService } from '@nestjs/config';
 import { EcoPointsService, ECO_POINT_DELTAS } from '../eco/eco-points.service.js';
+import { przyznajKredytyStartowe } from '../autoscaling/kredyty-autoskalowania.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CryptoService } from '../common/crypto/crypto.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
@@ -315,6 +316,11 @@ export class ProvisioningService {
           where: { id: subscription.id },
           data: { status: SubscriptionStatus.ACTIVE },
         });
+
+        // Decyzja 6.11.2026 — kredyty na autoskalowanie z pierwszego zakupu: przyznane dopiero tutaj, gdy opłacone
+        // zamówienie (kwota zapisana przy zamówieniu z portfela) ruszyło — atomowo z kontem. Nieudane zakładanie
+        // (zwrot opłaty) ich nie przyznaje; jedna pula na klienta.
+        await przyznajKredytyStartowe(tx, subscription);
 
         // H-02 — kopie „w ramach usługi” (verris.pl) od pierwszego dnia: codzienna kopia konta, 7 ostatnich.
         // Klient zmienia albo wyłącza harmonogram w zakładce kopii; istniejącego ustawienia nie ruszamy.

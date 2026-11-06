@@ -26,6 +26,7 @@ import {
   wolneDoZadysponowania,
 } from '../subscriptions/node-capacity.js';
 import { planZNadpisaniami } from '../subscriptions/limity-indywidualne.js';
+import { dostepneKredyty } from './kredyty-autoskalowania.js';
 import { MailerService } from '../mail/mailer.service.js';
 import {
   AutoscalingEndReason,
@@ -847,8 +848,11 @@ export class AutoscalingEngineService {
   ): Promise<{ allowed: true } | { allowed: false; reason: string }> {
     const balance = Number(sub.user.walletBalance);
     // PB-28 — rozliczenie poza Verris: portfel nie jest źródłem płatności.
+    // Decyzja 6.11.2026 — ważne kredyty na autoskalowanie (poza portfelem) też opłacają bloki: pusty portfel
+    // z kredytami nie blokuje skalowania. Pulę czytamy tylko, gdy sam portfel nie wystarcza.
     if (sub.paymentSource !== 'MANUAL' && balance < this.MIN_WALLET_BALANCE) {
-      return { allowed: false, reason: 'wallet_empty' };
+      const kredyty = Number(await dostepneKredyty(this.prisma, sub.userId));
+      if (balance + kredyty < this.MIN_WALLET_BALANCE) return { allowed: false, reason: 'wallet_empty' };
     }
 
     const cap = Number(sub.autoscalingMaxCost);

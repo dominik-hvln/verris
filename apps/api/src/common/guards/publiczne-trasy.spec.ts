@@ -111,6 +111,8 @@ const PUBLICZNE = [
   'NodeBootstrapAgentController.secrets',
   // Webhook OpenProvidera — klucz Bearer + podpis HMAC (sprawdzWebhookOp), na Caddy tylko adresy OpenProvidera.
   'OpenproviderWebhookController.odbierz',
+  // 6.11 — kredyty na autoskalowanie przy pierwszym zakupie (kwoty z ustawień oferty) dla verris.pl; tylko odczyt, bez danych konta.
+  'OfertaPublicznaController.kredytyStartowe',
   'PaynowPowiadomieniaController.powiadomienie',
   'PlansController.get',
   // Podgląd przed DNS (15.10): dostęp tylko z tokenem HMAC w nazwie hosta; tls-check woła Caddy wewnętrznie (api:3000),

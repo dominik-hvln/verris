@@ -5,6 +5,8 @@ import { OPUBLIKOWANE } from '@/collections/tylko-opublikowane';
 import { PORADNIKI } from '@/lib/poradniki';
 import { cenaPakietu, stawka, type Ceny } from '@/lib/ceny';
 import { pobierzCeny } from '@/lib/ceny-api';
+import { kredytyNaStart, type KredytyStartowe } from '@/lib/kredyty-startowe';
+import { pobierzKredytyStartowe } from '@/lib/kredyty-startowe-api';
 import { DANE_SPRZEDAWCY } from '@/lib/sprzedawca';
 
 /**
@@ -62,13 +64,13 @@ ${PORADNIKI.map((p) => `- [${p.h1}](${BASE}/przenies-strone/${p.slug})`).join('\
 - [Mapa strony](${BASE}/sitemap.xml)
 `;
 
-const fakty = (c: Ceny) => `
+const fakty = (c: Ceny, k: KredytyStartowe) => `
 ## Fakty
 - Operator: ${DANE_SPRZEDAWCY}.
 - SLA 99,5% z rekompensatami zapisanymi w regulaminie (kredyty wg skali niedostępności),
   przyznawanymi automatycznie, bez wniosku klienta. Verris nie deklaruje „100% uptime".
-- Cena hostingu: ${cenaPakietu(c.hosting)}; odnowienie zawsze po cenie z cennika podanej z góry; przy pierwszym
-  zakupie rabat na start na pierwszy rok albo pierwszy miesiąc, kwota po rabacie widoczna przed zapłatą.
+- Cena hostingu: ${cenaPakietu(c.hosting)}; odnowienie zawsze po cenie z cennika podanej z góry, pierwszy okres
+  kosztuje tyle co odnowienie. ${kredytyNaStart(k)} Kredyty tylko na dopłaty za autoskalowanie.
 - Stawki autoskalowania (brutto/h): CPU ${stawka(c.stawki.cpu)} zł za 1% · RAM ${stawka(c.stawki.ram)} zł za 1 GB · dysk ${stawka(c.stawki.dysk)} zł za 1 GB.
 - Migracja strony i poczty oraz certyfikat SSL Let's Encrypt: 0 zł, w ramach zamówienia hostingu.
 - „Bez limitu" stron, skrzynek i transferu oznacza brak sztywnego licznika; realnym ogranicznikiem
@@ -84,7 +86,7 @@ const fakty = (c: Ceny) => `
 `;
 
 export async function GET() {
-  const [posts, ceny] = await Promise.all([getPosts(), pobierzCeny()]);
+  const [posts, ceny, kredyty] = await Promise.all([getPosts(), pobierzCeny(), pobierzKredytyStartowe()]);
 
   const featureLines = features
     .map((f) => `- [${f.title}](${BASE}/funkcje/${f.slug}) — ${f.lead}`)
@@ -117,7 +119,7 @@ export async function GET() {
   const body = `${naglowek(ceny)}
 ## Funkcje
 ${featureLines}
-${blogSection}${fakty(ceny)}`;
+${blogSection}${fakty(ceny, kredyty)}`;
 
   return new Response(body, {
     headers: {

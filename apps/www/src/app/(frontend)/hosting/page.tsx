@@ -155,7 +155,7 @@ const pytania = (ceny: Ceny): { kat: string; q: string; my: string; rynek: strin
   {
     kat: 'Cena',
     q: 'Ile zapłacę w drugim roku?',
-    my: `Cenę z cennika, podaną z góry: ${zl(ceny.hosting.rocznie)} brutto (${zl(netto(ceny.hosting.rocznie))} netto). Rabat na start obniża tylko pierwszy zakup.`,
+    my: `Cenę z cennika, podaną z góry: ${zl(ceny.hosting.rocznie)} brutto (${zl(netto(ceny.hosting.rocznie))} netto) — tyle samo co za pierwszy rok. Przy pierwszym zakupie dostajesz jeszcze kredyty na autoskalowanie.`,
     rynek: 'Często: cena odnowienia drobnym drukiem, kilka razy wyższa.',
   },
   { kat: 'Ruch', q: 'Co, gdy przyjdzie dużo klientów?', my: 'Moc rośnie sama; limit kosztu ustawiasz, jeśli chcesz.', rynek: 'Często: zmiana na droższy pakiet.' },

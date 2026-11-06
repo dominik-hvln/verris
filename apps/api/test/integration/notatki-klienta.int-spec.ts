@@ -15,6 +15,7 @@ import { UsersAdminController } from '../../src/users/users.admin.controller.js'
 import { UsersAdminService } from '../../src/users/users.admin.service.js';
 import { NotatkiKlientaService } from '../../src/users/notatki-klienta.service.js';
 import { CustomerIamService } from '../../src/users/customer-iam.service.js';
+import { ConsentsService } from '../../src/compliance/consents.service.js';
 import { UsersService } from '../../src/users/users.service.js';
 import { HostingDiagnosticsService } from '../../src/diagnostics/hosting-diagnostics.service.js';
 import { StatusService } from '../../src/status/status.service.js';
@@ -47,6 +48,8 @@ const MIGRACJA = resolve(import.meta.dirname, '../../../../libs/database/prisma/
     { provide: StripeService, useValue: {} },
     { provide: UsersService, useValue: {} },
     { provide: HostingDiagnosticsService, useValue: {} },
+    // Paczka 109: CustomerIamService zapisuje zgody przy aktywacji subkonta — tu nieużywane.
+    { provide: ConsentsService, useValue: {} },
   ],
 })
 class Aplikacja {}

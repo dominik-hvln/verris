@@ -7,6 +7,7 @@ import {
 } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { WalletLedgerService } from '../billing/wallet-ledger.service.js';
+import { obciazAutoskalowanie } from './kredyty-autoskalowania.js';
 import {
   hourlyCostBreakdownForCatalogAmounts,
   scaledDiskMbToCatalogGb,
@@ -221,7 +222,8 @@ export class AutoscalingBillingService {
         const share = allocateShares(amount, block);
         const idempotencyKey = `autoscale-block:${account.subscriptionId}:${blockStart.getTime()}`;
         try {
-          const tx = await this.walletLedger.debit({
+          // Decyzja 6.11.2026 — najpierw kredyty na autoskalowanie (pula z pierwszego zakupu), reszta z portfela.
+          const { walletTx: tx, zPuli } = await obciazAutoskalowanie(this.prisma, this.walletLedger, {
             userId: account.userId,
             type: WalletTxType.CHARGE_AUTOSCALING,
             amount,
@@ -238,13 +240,13 @@ export class AutoscalingBillingService {
               revenueRamPln: share.ram,
               revenueDiskPln: share.disk,
             },
-          });
+          }, now);
 
           await this.prisma.autoscalingEvent.create({
             data: {
               subscriptionId: account.subscriptionId,
               direction: AutoscalingDirection.UP,
-              reason: `block_charge ${BILLING_BLOCK_MINUTES}min tx=${tx.id}`,
+              reason: `block_charge ${BILLING_BLOCK_MINUTES}min tx=${tx?.id ?? '-'}${zPuli.greaterThan(0) ? ` kredyt=${zPuli.toFixed(2)}` : ''}`,
               costSnapshot: new Prisma.Decimal(amount),
             },
           });
@@ -402,7 +404,7 @@ export class AutoscalingBillingService {
     };
     const share = allocateShares(amount, { ...przyrost, total: przyrost.cpu + przyrost.ram + przyrost.disk });
     try {
-      const tx = await this.walletLedger.debit({
+      const { walletTx: tx, zPuli } = await obciazAutoskalowanie(this.prisma, this.walletLedger, {
         userId: account.userId,
         type: WalletTxType.CHARGE_AUTOSCALING,
         amount,
@@ -423,13 +425,13 @@ export class AutoscalingBillingService {
           revenueRamPln: share.ram,
           revenueDiskPln: share.disk,
         },
-      });
+      }, now);
       // Prefiks `block_charge` — oś czasu klienta pokazuje wiersz naliczenia, nie surowy znacznik.
       await this.prisma.autoscalingEvent.create({
         data: {
           subscriptionId: account.subscriptionId,
           direction: AutoscalingDirection.UP,
-          reason: `block_charge topup tx=${tx.id}`,
+          reason: `block_charge topup tx=${tx?.id ?? '-'}${zPuli.greaterThan(0) ? ` kredyt=${zPuli.toFixed(2)}` : ''}`,
           costSnapshot: new Prisma.Decimal(amount),
         },
       });

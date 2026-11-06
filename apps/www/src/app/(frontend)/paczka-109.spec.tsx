@@ -1,6 +1,6 @@
 /**
  * Paczka 109 (testy agentami 3.11.2026) — www: fonty bez Google, /poczta → zamówienie poczty, /kontakt z prośbą
- * o telefon i danymi sprzedawcy, teksty zgodne z decyzjami Dominika (SLA automatycznie, rabat na start, autoskalowanie
+ * o telefon i danymi sprzedawcy, teksty zgodne z decyzjami Dominika (SLA automatycznie, kredyty na autoskalowanie zamiast rabatu na start, autoskalowanie
  * bez obietnicy „nie zaskoczy”, sklep: kilka minut przerwy), Black Friday na jednych założeniach, specyfikacja (PHP,
  * logi, limity PHP, API), linki partnera i cookies zgodne z faktycznymi plikami.
  */
@@ -123,7 +123,7 @@ describe('P4-11 + A2-09 — /kontakt: prośba o telefon, temat poczty, pełne da
   });
 });
 
-describe('decyzje 1, 3, 6, 13 — obietnice na www zgodne z regulaminem 1.1.0 i kodem', () => {
+describe('decyzje 1, 3 (6.11: kredyty), 6, 13 — obietnice na www zgodne z regulaminem 1.1.0 i kodem', () => {
   // Wszystko, co trafia na verris.pl jako tekst (strony, komponenty, lib, llms.txt, pricing.md).
   const zakres = [
     ...pliki(join(SRC, 'app/(frontend)'), /\.tsx?$/),
@@ -136,8 +136,9 @@ describe('decyzje 1, 3, 6, 13 — obietnice na www zgodne z regulaminem 1.1.0 i 
   ];
   const ZAKAZANE: [string, RegExp][] = [
     ['SLA na wniosek (decyzja 1: automatycznie)', /rekompensat\w*[^.'"`]{0,40}na wniosek|na wniosek[^.'"`]{0,30}rekompensat|wystarczy zgłoszenie/i],
-    ['brak promocji na start (decyzja 3: rabat na start zostaje)', /bez promocji na pierwszy|nie ma promocji na pierwszy|nie ma taniego pierwszego|bez taniego pierwszego/i],
-    ['„ta sama cena przy odnowieniu” przy rabacie na start', /ta sama cena przy odnowieniu|tyle samo co w pierwszym|odnowienie bez podwyżki/i],
+    // Decyzja 6.11.2026 — rabat na start (decyzja 3) zastąpiony kredytami na autoskalowanie: żadnego rabatu procentowego
+    // za pierwszy okres ani „najniższej ceny z 30 dni” przy nim (pierwszy okres kosztuje tyle co odnowienie).
+    ['rabat na start (decyzja 6.11: kredyty na autoskalowanie zamiast rabatu)', /rabat(em)? na start|kwot\w* po rabacie|najniższą cenę z 30 dni|−1[05] ?%/i],
     ['autoskalowanie „nie zaskoczy” (decyzja 6)', /zaskoczyć rachunkiem|nigdy więcej niż limit|miesięczny limit/i],
     ['sklep „bez przerwy w sprzedaży” (decyzja 13)', /bez przerwy w sprzedaży/i],
     ['„zwrot do 100%” zamiast rekompensaty w kredytach (A2-11)', /zwrot do 100%/i],

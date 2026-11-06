@@ -1,6 +1,7 @@
 import { formatPln } from '@/lib/credits';
 import { JAK_ODSTAPIC, ZASADA_FAKTUR, ZASADA_KREDYTOW_Z_KODU } from '@/app/dashboard/billing/zasady-dokumentow';
 import { netto } from './ceny-zamowienia';
+import { okresWaznosci, zlKredytu, ZASADA_KREDYTOW_AUTOSKALOWANIA } from '@/lib/kredyty-autoskalowania';
 
 /**
  * Dane sprzedawcy (decyzja 10 Dominika, 3.11.2026): bez numeru telefonu, kontakt e-mailem; prośba o telefon na /kontakt.
@@ -26,6 +27,8 @@ export function InformacjePrzedumowne({
   zKarty,
   autoskalowanie,
   rejestracjaDomeny,
+  kredytAutoskalowania = 0,
+  waznoscKredytowMiesiecy = 12,
 }: {
   nazwaUslugi: string;
   okres: 'MONTH' | 'YEAR';
@@ -35,6 +38,9 @@ export function InformacjePrzedumowne({
   /** null = wyłączone; liczba = limit w zł na 30 dni; 0 = bez limitu. */
   autoskalowanie: number | null;
   rejestracjaDomeny: boolean;
+  /** Decyzja 6.11.2026 — kredyty na autoskalowanie przy pierwszym zakupie hostingu (zł); 0 = nie przysługują. */
+  kredytAutoskalowania?: number;
+  waznoscKredytowMiesiecy?: number;
 }) {
   const coOkres = okres === 'YEAR' ? 'co rok' : 'co miesiąc';
   const zaOkres = okres === 'YEAR' ? 'za rok' : 'za miesiąc';
@@ -63,10 +69,21 @@ export function InformacjePrzedumowne({
           <>
             <dt className="text-neutral-400">Dodatkowa moc</dt>
             <dd>
-              Według stawek z cennika, w blokach po 15 minut, z portfela.{' '}
+              Według stawek z cennika, w blokach po 15 minut, z portfela
+              {kredytAutoskalowania > 0 ? ' (najpierw z kredytów na autoskalowanie)' : ''}.{' '}
               {autoskalowanie > 0
                 ? `Twój limit: ${formatPln(autoskalowanie)} w ciągu 30 dni.`
                 : 'Bez limitu kosztu — płacisz za faktyczne użycie. Limit ustawisz też później w panelu.'}
+            </dd>
+          </>
+        ) : null}
+        {kredytAutoskalowania > 0 ? (
+          <>
+            <dt className="text-neutral-400">Kredyty na start</dt>
+            <dd>
+              {zlKredytu(kredytAutoskalowania)} na autoskalowanie przy pierwszym zakupie, ważne{' '}
+              {okresWaznosci(waznoscKredytowMiesiecy)} od przyznania. {ZASADA_KREDYTOW_AUTOSKALOWANIA} Cena za pakiet
+              się nie zmienia: pierwszy okres kosztuje tyle co odnowienie.
             </dd>
           </>
         ) : null}

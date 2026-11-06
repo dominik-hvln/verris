@@ -28,7 +28,7 @@ describe('Drzewa — model', () => {
     expect(mies).toBe(3659);
     expect(procentDrzewa(wkladZUslugiCzesci(rok, stawka))).toBe('7,00%');
     expect(procentDrzewa(wkladZUslugiCzesci(mies, stawka))).toBe('0,70%');
-    // Rabat na start (−15% rok, −10% miesiąc) — wkład proporcjonalny do faktycznie zapłaconej kwoty netto.
+    // Dawny rabat na start (do 6.11.2026: −15% rok, −10% miesiąc) — wkład proporcjonalny do faktycznie zapłaconej kwoty netto.
     expect(wkladZUslugiCzesci(nettoZBruttoGrosze(groszeZKwoty('381.65')), stawka)).toBe(595);
     expect(wkladZUslugiCzesci(nettoZBruttoGrosze(groszeZKwoty('40.50')), stawka)).toBe(63);
   });

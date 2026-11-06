@@ -15,8 +15,9 @@ describe('lib/specyfikacja — jedno źródło dla /specyfikacja i /hosting', ()
   it('wariant netto przelicza stawki (÷1,23) i zmienia podpis', () => {
     const [p, w] = stawki(sekcjeSpecyfikacji(CENY_ZAPASOWE.stawki, true)) ?? [];
     expect(p).toBe('Stawki autoskalowania (netto)');
-    expect(w).toContain('0,001076 zł za 1% CPU/h');
-    expect(w).toContain('0,07171 zł za 1 GB RAM/h');
+    // do 6 cyfr znaczących (uwaga 6.11: stawek nie skracamy) — 0,001323 / 1,23 = 0,00107560…
+    expect(w).toContain('0,00107561 zł za 1% CPU/h');
+    expect(w).toContain('0,0717073 zł za 1 GB RAM/h');
   });
 
   it('stawka z API trafia do tekstu (nie stała)', () => {

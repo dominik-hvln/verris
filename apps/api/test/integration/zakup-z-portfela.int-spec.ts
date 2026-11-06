@@ -18,7 +18,7 @@ const kolejka: string[] = [];
 let kolejkaPada = false;
 /** true = prawdziwy wybór węzła (baza testowa nie ma węzłów); false = węzeł jest. */
 let bezWezla = false;
-let oferta = { cardEnabled: false, monthlyDiscountPct: 0, annualDiscountPct: 0 };
+let oferta = { cardEnabled: false, monthlyAutoscalingCredit: 0, annualAutoscalingCredit: 0 };
 function uslugi() {
   const p = prisma() as never;
   const ledger = new WalletLedgerService(p);
@@ -63,7 +63,7 @@ describe('X-04 zakup usługi z portfela', () => {
     kolejka.length = 0;
     kolejkaPada = false;
     bezWezla = false;
-    oferta = { cardEnabled: false, monthlyDiscountPct: 0, annualDiscountPct: 0 };
+    oferta = { cardEnabled: false, monthlyAutoscalingCredit: 0, annualAutoscalingCredit: 0 };
   });
   afterAll(rozlacz);
 
@@ -79,16 +79,20 @@ describe('X-04 zakup usługi z portfela', () => {
     expect(kolejka).toEqual([subscription.id]);
   });
 
-  it('rabat startowy obniża pierwsze obciążenie i zostaje zapisany na usłudze', async () => {
-    oferta = { cardEnabled: true, monthlyDiscountPct: 20, annualDiscountPct: 0, introDiscountPeriods: 12 } as typeof oferta;
+  // Decyzja 6.11.2026 — rabat na start zastąpiony kredytami na autoskalowanie: pierwsze obciążenie = cena z cennika,
+  // a na zamówieniu zapisana kwota kredytów (przyznanie po założeniu konta — kredyty-autoskalowania.int-spec.ts).
+  it('pierwszy zakup: pełna cena z cennika, bez rabatu, z obiecanymi kredytami na autoskalowanie', async () => {
+    oferta = { cardEnabled: true, monthlyAutoscalingCredit: 10, annualAutoscalingCredit: 60 };
     const k = await klient(100);
     const plan = await utworzPlan({ priceMonthly: 45 });
     const { subscription } = await uslugi().create(k.id, zamowienie(plan.id));
-    expect(await saldo(k.id)).toBe(64);
+    expect(await saldo(k.id)).toBe(55);
     const s = await prisma().subscription.findUniqueOrThrow({ where: { id: subscription.id } });
     expect(Number(s.listPriceAmount)).toBe(45);
-    expect(s.introDiscountPct).toBe(20);
-    expect(s.introDiscountPeriodsLeft).toBe(11);
+    expect(Number(s.priceAmount)).toBe(45);
+    expect(s.introDiscountPct).toBe(0);
+    expect(s.introDiscountPeriodsLeft).toBe(0);
+    expect(Number(s.kredytAutoskalowaniaKwota)).toBe(10);
   });
 
   // Audyt 13.10 (#8): domena główna nowego konta jak domena dodatkowa — nie może być subdomeną domeny innego
@@ -116,34 +120,34 @@ describe('X-04 zakup usługi z portfela', () => {
     expect(await prisma().subscription.count({ where: { userId: b.id } })).toBe(2);
   });
 
-  // E2e 14.10 (PB-05): klient z kupionym już hostingiem znów dostał −15% przy drugim zamówieniu. Rabat na start
-  // jest dla pierwszego zakupu klienta; zamówienie porzucone przed zapłatą go nie zużywa.
-  it('rabat na start tylko przy pierwszym zakupie klienta (porzucone zamówienie go nie zużywa)', async () => {
-    oferta = { cardEnabled: true, monthlyDiscountPct: 20, annualDiscountPct: 0, introDiscountPeriods: 1 } as typeof oferta;
+  // E2e 14.10 (PB-05): klient z kupionym już hostingiem znów dostał promocję przy drugim zamówieniu. Promocja na start
+  // (od 6.11.2026 kredyty na autoskalowanie) jest dla pierwszego zakupu klienta; porzucone zamówienie jej nie zużywa.
+  it('kredyty na start tylko przy pierwszym zakupie klienta (porzucone zamówienie ich nie zużywa)', async () => {
+    oferta = { cardEnabled: true, monthlyAutoscalingCredit: 10, annualAutoscalingCredit: 60 };
     const k = await klient(200);
     const plan = await utworzPlan({ priceMonthly: 45 });
     await prisma().subscription.create({
       data: { userId: k.id, planId: plan.id, status: SubscriptionStatus.CANCELED, interval: 'MONTH', priceAmount: 36, paymentSource: 'WALLET' },
     });
     const usl = uslugi();
-    expect(await usl.rabatStartowy(k.id)).toEqual({ przysluguje: true });
+    expect(await usl.kredytyStartowe(k.id)).toEqual({ przysluguje: true });
 
     const pierwsza = await usl.create(k.id, zamowienie(plan.id));
-    expect(await saldo(k.id)).toBe(164);
-    expect((await prisma().subscription.findUniqueOrThrow({ where: { id: pierwsza.subscription.id } })).introDiscountPct).toBe(20);
+    expect(await saldo(k.id)).toBe(155);
+    expect(Number((await prisma().subscription.findUniqueOrThrow({ where: { id: pierwsza.subscription.id } })).kredytAutoskalowaniaKwota)).toBe(10);
 
-    expect(await usl.rabatStartowy(k.id)).toEqual({ przysluguje: false });
+    expect(await usl.kredytyStartowe(k.id)).toEqual({ przysluguje: false });
     const druga = await usl.create(k.id, { ...(zamowienie(plan.id) as object), domain: 'drugi-sklep.pl' } as never);
-    expect(await saldo(k.id)).toBe(119);
+    expect(await saldo(k.id)).toBe(110);
     const s = await prisma().subscription.findUniqueOrThrow({ where: { id: druga.subscription.id } });
     expect(Number(s.priceAmount)).toBe(45);
     expect(s.introDiscountPct).toBe(0);
-    expect(s.introDiscountPeriodsLeft).toBe(0);
+    expect(s.kredytAutoskalowaniaKwota).toBeNull();
   });
 
-  // Decyzja 07.10: rabat na start i kody to promocja Verris, nie partnera — także gdy narzut jest wyłączony.
-  it('klient aktywnego resellera: bez rabatu na start, kod rabatowy odrzucony', async () => {
-    oferta = { cardEnabled: true, monthlyDiscountPct: 20, annualDiscountPct: 0, introDiscountPeriods: 12 } as typeof oferta;
+  // Decyzja 07.10: promocja na start i kody to promocja Verris, nie partnera — także gdy narzut jest wyłączony.
+  it('klient aktywnego resellera: bez kredytów na start, kod rabatowy odrzucony', async () => {
+    oferta = { cardEnabled: true, monthlyAutoscalingCredit: 10, annualAutoscalingCredit: 60 };
     const r = await klient(0);
     await prisma().resellerProfile.create({ data: { userId: r.id, status: 'ACTIVE', markupPct: 25, code: `rsl_z${Date.now()}` } });
     const k = await klient(100, { resellerOwnerId: r.id });
@@ -157,6 +161,7 @@ describe('X-04 zakup usługi z portfela', () => {
     expect(await saldo(k.id)).toBe(55);
     const s = await prisma().subscription.findUniqueOrThrow({ where: { id: subscription.id } });
     expect(s.introDiscountPct).toBe(0);
+    expect(s.kredytAutoskalowaniaKwota).toBeNull();
   });
 
   // t1 07.10: zakup poczty przy wstrzymanym węźle — pobranie, ~8 min prób, zwrot. Teraz odmowa przed pobraniem.

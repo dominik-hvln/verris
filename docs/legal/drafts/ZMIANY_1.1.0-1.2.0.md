@@ -318,7 +318,7 @@ Panel admina → **RODO** (`/compliance`) → „Opublikuj nową wersję dokumen
 | Regulamin §8 ust. 2, §9 ust. 4 | `apps/client-panel/src/app/dashboard/billing/zasady-dokumentow.ts`, `apps/api/src/billing/tryb-fakturowania.ts` |
 | Regulamin §8a | `apps/api/src/eco/drzewa-model.ts`, `eco-drzewa.service.ts`, `posadzimy.client.ts`; kolejność wydatków (ust. 2) — `apps/api/src/users/zwrot-salda.ts` |
 | Regulamin §9 ust. 5 | `apps/api/src/subscriptions` (limit autoskalowania W1), `mail/templates/autoscaling-notifications.ts` |
-| Regulamin §9 ust. 6 | `apps/api/src/subscriptions/rabat-startowy.ts` |
+| Regulamin §9 ust. 6 | `apps/api/src/autoscaling/kredyty-autoskalowania.ts`, `apps/api/src/subscriptions/pierwszy-zakup.ts` (do 6.11.2026: `rabat-startowy.ts`) |
 | Regulamin §6 ust. 5 | uprawnienia właściciela (W3, `customer-permissions.guard.ts`) |
 | Regulamin §12 ust. 8 | `apps/api/src/domains/dto/registrar.dto.ts`, `domain-registrar.service.ts` (`OSWIADCZENIE_*`, zapis przy zamówieniu), Panel: `domains/components/domain-purchase-wizard.tsx`, `services/new/form.tsx` |
 | Regulamin §7 ust. 8 | `libs/contracts/src/mail-limits.ts`, `domain-registrar.service.ts`, `trial.service.ts` |
@@ -328,3 +328,21 @@ Panel admina → **RODO** (`/compliance`) → „Opublikuj nową wersję dokumen
 | Polityka cookies pkt 4 | `apps/www/src/lib/cookie-consent.ts` (`zaladujTagiGoogle`), `apps/www/src/app/(frontend)/components/Analytics.tsx`, `apps/client-panel/src/lib/cookie-consent.ts`, `apps/client-panel/src/components/analytics-scripts.tsx` |
 | DPA §1, §12 | `apps/client-panel/src/app/dashboard/settings/umowa-powierzenia.tsx`, `app/api/dpa/route.ts` |
 | DPA §2 ust. 3 | `apps/api/src/analytics-sites/analytics-sites.service.ts` (RETENTION_DAYS = 90) |
+
+---
+
+## E. Zmiany po publikacji 1.2.0 (do wersji 1.2.1)
+
+1. **Kredyty na autoskalowanie zamiast rabatu na start (decyzja Dominika z 6.11.2026).** Regulamin §9 ust. 6 —
+   nowa treść: przy pierwszym zakupie hostingu opłaconym z portfela (także BLIK/przelew za zamówienie) nieodpłatne
+   kredyty na autoskalowanie (na dzień publikacji 60 zł przy planie rocznym, 10 zł przy miesięcznym), przyznawane po
+   opłaceniu, z chwilą uruchomienia usługi, ważne 12 miesięcy; prowadzone osobno od salda portfela, tylko na opłaty
+   za autoskalowanie (najpierw one, potem portfel; limit kosztu z ust. 5 liczy opłaty z portfela); bez faktury, bez
+   wkładu EKO, bez zwrotu. Rabatu procentowego za pierwszy okres już nie ma — pierwszy okres kosztuje tyle co
+   odnowienie, więc przy zamówieniu nie pokazujemy „najniższej ceny z 30 dni” (§9 ust. 3 dotyczy dalej promocji
+   obniżających cenę, np. kodów rabatowych). §8 ust. 4 — kredyty na autoskalowanie dopisane do kredytów
+   nieodpłatnych bez zwrotu. `consumer-info.md` — akapit o płatnościach zgodnie z §9 ust. 6. Do maila o zmianach
+   (A.1) punkt „Rabat na start” zastąpić: „**Kredyty na start:** przy pierwszym zakupie hostingu dostajesz darmowe
+   kredyty na autoskalowanie (60 zł przy planie rocznym, 10 zł przy miesięcznym), ważne 12 miesięcy”. Zamówienia
+   złożone przed zmianą z rabatem na start rozliczają się jak dotąd (rabat zapisany na usłudze).
+

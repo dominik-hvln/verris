@@ -19,25 +19,29 @@ export async function listPublicPlans(): Promise<PlanDto[]> {
 
 export interface TrialOffer {
   freeEnabled: boolean;
+  /** Promocja przy pierwszym zakupie (kredyty na autoskalowanie) włączona. */
   cardEnabled: boolean;
-  annualDiscountPct: number;
-  monthlyDiscountPct: number;
-  annualPromoCode: string;
-  monthlyPromoCode: string;
-  /** Na ile okresów rozliczeniowych działa rabat na start (API: 1–24, domyślnie 1). */
-  introDiscountPeriods?: number;
+  /** Decyzja 6.11.2026 — kredyty na autoskalowanie przy pierwszym zakupie planu rocznego (zł brutto). */
+  annualAutoscalingCredit: number;
+  /** Jak wyżej, plan miesięczny. */
+  monthlyAutoscalingCredit: number;
+  /** Ważność kredytów od przyznania (miesiące). */
+  autoscalingCreditValidityMonths?: number;
 }
 
-/** UX-3 — oferta okresu próbnego (chooser zamawiania). Fallback bezpieczny. */
-/** Rabat na start tylko przy pierwszym zakupie klienta (14.10). Błąd API = bez rabatu (API i tak liczy sam). */
-export async function czyRabatStartowy(): Promise<boolean> {
+/**
+ * Kredyty na autoskalowanie tylko przy pierwszym zakupie klienta (warunek jak dawny rabat na start, 14.10).
+ * Błąd API = bez obietnicy w panelu (API i tak liczy samo).
+ */
+export async function czyKredytyStartowe(): Promise<boolean> {
   try {
-    return (await apiFetch<{ przysluguje: boolean }>('/subscriptions/rabat-startowy')).przysluguje === true;
+    return (await apiFetch<{ przysluguje: boolean }>('/subscriptions/kredyty-startowe')).przysluguje === true;
   } catch {
     return false;
   }
 }
 
+/** UX-3 — oferta na start (chooser zamawiania). Fallback bezpieczny: bez obietnicy kredytów. */
 export async function getTrialOffer(): Promise<TrialOffer> {
   try {
     return await apiFetch<TrialOffer>('/platform-settings/trial-offer');
@@ -45,10 +49,8 @@ export async function getTrialOffer(): Promise<TrialOffer> {
     return {
       freeEnabled: true,
       cardEnabled: false,
-      annualDiscountPct: 15,
-      monthlyDiscountPct: 10,
-      annualPromoCode: '',
-      monthlyPromoCode: '',
+      annualAutoscalingCredit: 0,
+      monthlyAutoscalingCredit: 0,
     };
   }
 }

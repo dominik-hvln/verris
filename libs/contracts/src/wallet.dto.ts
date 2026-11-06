@@ -49,6 +49,11 @@ export interface WalletSummaryDto {
   monthlyFlowLast12: WalletMonthlyFlowPointDto[];
   /** 2026-10-05 — Paynow (BLIK, przelew, karta) dostępny jako domyślna bramka doładowań w PLN. */
   paynowDostepny?: boolean;
+  /**
+   * Decyzja 6.11.2026 — kredyty na autoskalowanie z pierwszego zakupu: osobna pula poza saldem (nie opłaci planu ani
+   * domeny), ważna do `wygasaAt`. null = nie przyznano.
+   */
+  kredytyAutoskalowania?: { saldo: string; kwota: string; przyznanoAt: string; wygasaAt: string; wygasla: boolean } | null;
 }
 
 export interface AdminCreditWalletInput {

@@ -4,6 +4,9 @@ import { Prisma, WalletTxStatus, WalletTxType } from '@verris/database';
  * A2-07 / decyzja 9 (3.11.2026) — zwrot salda przy usunięciu konta: zwracamy tylko kredyty opłacone pieniędzmi,
  * bez kredytów z kodów promocyjnych, prowizji z poleceń i rekompensat SLA. Klient podaje numer rachunku, powstaje
  * wniosek dla obsługi, przelew do 14 dni.
+ *
+ * Kredyty na autoskalowanie z pierwszego zakupu (decyzja 6.11.2026, autoscaling/kredyty-autoskalowania.ts) nie są
+ * w saldzie portfela ani w księdze — osobna pula, więc zwrot ich nie widzi i nie zwraca (Regulamin §8 ust. 4, §9 ust. 6).
  */
 export const TERMIN_ZWROTU_DNI = 14;
 

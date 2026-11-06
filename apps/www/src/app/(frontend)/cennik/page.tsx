@@ -3,7 +3,9 @@ import type { Metadata } from 'next';
 import { Accordion, Card, CTABand, JsonLd, SectionHead, SubHero } from '../components/ui';
 import { MobilnyPasek } from '../components/MobilnyPasek';
 import { pobierzCeny } from '@/lib/ceny-api';
-import { cenaPakietu, miesiecznieZRocznej, netto, odCeny, RABAT_NA_START, zl, type CenaPakietu } from '@/lib/ceny';
+import { cenaPakietu, miesiecznieZRocznej, netto, odCeny, zl, type CenaPakietu } from '@/lib/ceny';
+import { kredytyNaStart, type KredytyStartowe } from '@/lib/kredyty-startowe';
+import { pobierzKredytyStartowe } from '@/lib/kredyty-startowe-api';
 import { pasekHostingu } from '@/lib/proba';
 import { Pricing } from '../components/Pricing';
 import { AKalkulator } from '../components/AKalkulator';
@@ -27,14 +29,14 @@ const W_CENIE: [string, string, string][] = [
   ['Domena', 'nie', 'według cennika domen w panelu'],
 ];
 
-const faqCennika = (c: CenaPakietu): [string, string][] => [
+const faqCennika = (c: CenaPakietu, k: KredytyStartowe): [string, string][] => [
   [
     'Ile kosztuje hosting w Verris?',
     `${zl(c.miesiecznie)} miesięcznie albo ${zl(c.rocznie)} za rok (około ${zl(miesiecznieZRocznej(c))} miesięcznie). Ceny brutto; netto ${zl(netto(c.miesiecznie))} albo ${zl(netto(c.rocznie))}. Dodatkowa moc w szczycie jest opcjonalna i płatna za czas użycia, w blokach po 15 minut.`,
   ],
   [
     'Czy cena wzrośnie przy odnowieniu?',
-    `Odnowienie idzie po cenie z cennika (dziś ${cenaPakietu(c)}), a przed odnowieniem wyślemy przypomnienie e-mail. ${RABAT_NA_START}`,
+    `Odnowienie idzie po cenie z cennika (dziś ${cenaPakietu(c)}), a przed odnowieniem wyślemy przypomnienie e-mail. ${kredytyNaStart(k)}`,
   ],
   ['Czy mogę wyłączyć odnawianie?', 'Tak, w panelu w każdej chwili, bez opłat.'],
   [
@@ -48,8 +50,8 @@ const faqCennika = (c: CenaPakietu): [string, string][] => [
 ];
 
 export default async function Page() {
-  const ceny = await pobierzCeny();
-  const FAQ = faqCennika(ceny.hosting);
+  const [ceny, kredyty] = await Promise.all([pobierzCeny(), pobierzKredytyStartowe()]);
+  const FAQ = faqCennika(ceny.hosting, kredyty);
   return (
     <main>
       <JsonLd
@@ -68,7 +70,7 @@ export default async function Page() {
         lead={`Odnowienie idzie po cenie z cennika, którą widzisz tutaj. Płacisz ${zl(ceny.hosting.miesiecznie)} miesięcznie albo ${zl(ceny.hosting.rocznie)} za rok brutto (${zl(netto(ceny.hosting.miesiecznie))} albo ${zl(netto(ceny.hosting.rocznie))} netto), a dodatkową moc tylko wtedy, gdy Twoja strona naprawdę jej potrzebuje.`}
         crumbs={[{ label: 'Cennik' }]}
       />
-      <Pricing naglowek={false} cena={ceny.hosting} />
+      <Pricing naglowek={false} cena={ceny.hosting} kredyty={kredyty} />
 
       <section className="sec">
         <div className="wrap a-grid3">

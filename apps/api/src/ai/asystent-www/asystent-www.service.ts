@@ -11,6 +11,9 @@ import { createHash, createHmac } from 'crypto';
 import { AiInteractionStatus, Prisma } from '@verris/database';
 import { LIMIT_WYSYLKI_PROBY } from '@verris/contracts';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { PLATFORM_SETTING_KEYS } from '../../platform-settings/platform-settings.keys.js';
+import { MAKS_KREDYT_AUTOSKALOWANIA } from '../../platform-settings/dto/trial-offer.dto.js';
+import { KREDYT_AUTOSKALOWANIA_DOMYSLNIE, WAZNOSC_KREDYTOW_AUTOSKALOWANIA_MIES } from '../../autoscaling/kredyty-autoskalowania.js';
 import { CaptchaService } from '../../auth/captcha.service.js';
 import { AiProviderService } from '../ai-provider.service.js';
 import { KnowledgeBaseService } from '../knowledge-base.service.js';
@@ -274,7 +277,7 @@ export class AsystentWwwService {
 
   /** Źródła na to pytanie: cennik + specyfikacja + fakty (zawsze) i do 5 fragmentów bazy wiedzy CLIENT/ALL. */
   async zrodla(pytanie: string): Promise<Zrodlo[]> {
-    const [plany, reguly, fragmenty] = await Promise.all([
+    const [plany, reguly, fragmenty, oferta] = await Promise.all([
       this.prisma.plan.findMany({
         where: { isActive: true, isPublic: true },
         select: { slug: true, productKind: true, priceMonthly: true, priceYearly: true, trialDays: true },
@@ -284,6 +287,9 @@ export class AsystentWwwService {
         select: { resource: true, pricePerUnit: true },
       }),
       this.wiedza.retrieve(pytanie, 'CLIENT', 5).catch(() => []),
+      this.prisma.platformSetting
+        .findMany({ where: { key: { in: KLUCZE_KREDYTOW_STARTOWYCH } }, select: { key: true, value: true } })
+        .catch(() => [] as Array<{ key: string; value: string }>),
     ]);
     const hosting = plany.find((p) => p.slug === 'verris-hosting') ?? plany.find((p) => p.productKind === 'HOSTING');
     const poczta = plany.find((p) => p.slug === 'poczta-standard') ?? plany.find((p) => p.productKind === 'EMAIL');
@@ -297,6 +303,7 @@ export class AsystentWwwService {
         : null,
       poczta: poczta ? { miesiecznie: Number(poczta.priceMonthly), rocznie: Number(poczta.priceYearly) } : null,
       stawki: { cpu: stawka('CPU'), ram: stawka('RAM'), dysk: stawka('DISK') },
+      kredytyStartowe: kredytyStartoweZUstawien(oferta),
     };
     return [
       zrodloCennika(cennik),
@@ -412,4 +419,28 @@ export class AsystentWwwService {
       wiadomosci: r.wiadomosci,
     }));
   }
+}
+
+const KLUCZE_KREDYTOW_STARTOWYCH: string[] = [
+  PLATFORM_SETTING_KEYS.TRIAL_CARD_ENABLED,
+  PLATFORM_SETTING_KEYS.TRIAL_ANNUAL_AUTOSCALING_CREDIT,
+  PLATFORM_SETTING_KEYS.TRIAL_MONTHLY_AUTOSCALING_CREDIT,
+];
+
+/**
+ * Kredyty na autoskalowanie z ustawień oferty (te same klucze i domyślne co PlatformSettingsService.getTrialOffer),
+ * czytane wprost z tabeli — asystent nie zależy od serwisu ustawień. Promocja wyłączona → null (asystent jej nie podaje).
+ */
+export function kredytyStartoweZUstawien(wiersze: Array<{ key: string; value: string }>): DaneCennika['kredytyStartowe'] {
+  const w = new Map(wiersze.map((r) => [r.key, r.value]));
+  if ((w.get(PLATFORM_SETTING_KEYS.TRIAL_CARD_ENABLED) ?? '1') !== '1') return null;
+  const kwota = (klucz: string, dom: number) => {
+    const n = Number.parseInt(w.get(klucz) ?? '', 10);
+    return Number.isFinite(n) && n >= 0 && n <= MAKS_KREDYT_AUTOSKALOWANIA ? n : dom;
+  };
+  return {
+    rocznie: kwota(PLATFORM_SETTING_KEYS.TRIAL_ANNUAL_AUTOSCALING_CREDIT, KREDYT_AUTOSKALOWANIA_DOMYSLNIE.rok),
+    miesiecznie: kwota(PLATFORM_SETTING_KEYS.TRIAL_MONTHLY_AUTOSCALING_CREDIT, KREDYT_AUTOSKALOWANIA_DOMYSLNIE.miesiac),
+    waznoscMiesiecy: WAZNOSC_KREDYTOW_AUTOSKALOWANIA_MIES,
+  };
 }

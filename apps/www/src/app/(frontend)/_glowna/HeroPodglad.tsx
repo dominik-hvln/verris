@@ -288,8 +288,8 @@ export function HeroPodglad({ dane }: { dane: DaneHeroPodgladu }) {
               </span>
             </div>
             <span className="gl-mini">
-              Według cennika. Przy pierwszym zakupie pierwszy rok kosztuje mniej (rabat na start). Przed każdym
-              odnowieniem przypomnimy e-mailem.
+              Według cennika, każdy rok po tej samej cenie. Przy pierwszym zakupie dostajesz kredyty na
+              autoskalowanie. Przed każdym odnowieniem przypomnimy e-mailem.
             </span>
           </div>
         </div>

@@ -96,11 +96,8 @@ export class PlatformSettingsAdminController {
       {
         freeEnabled: dto.freeEnabled,
         cardEnabled: dto.cardEnabled,
-        annualDiscountPct: dto.annualDiscountPct,
-        monthlyDiscountPct: dto.monthlyDiscountPct,
-        annualPromoCode: dto.annualPromoCode,
-        monthlyPromoCode: dto.monthlyPromoCode,
-        introDiscountPeriods: dto.introDiscountPeriods,
+        annualAutoscalingCredit: dto.annualAutoscalingCredit,
+        monthlyAutoscalingCredit: dto.monthlyAutoscalingCredit,
       },
       actor.userId,
     );

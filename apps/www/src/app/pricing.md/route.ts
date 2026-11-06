@@ -1,5 +1,7 @@
 import { netto, stawka, zl, zlGrosze } from '@/lib/ceny';
 import { pobierzCeny } from '@/lib/ceny-api';
+import { kredytyNaStart } from '@/lib/kredyty-startowe';
+import { pobierzKredytyStartowe } from '@/lib/kredyty-startowe-api';
 
 /**
  * /pricing.md — cennik strukturalny dla agentów AI (linkowany z /llms.txt). Do 1.11.2026 był plikiem statycznym
@@ -8,7 +10,7 @@ import { pobierzCeny } from '@/lib/ceny-api';
 export const revalidate = 300;
 
 export async function GET() {
-  const c = await pobierzCeny();
+  const [c, kredyty] = await Promise.all([pobierzCeny(), pobierzKredytyStartowe()]);
   const h = c.hosting;
   const p = c.poczta;
   const s = c.stawki;
@@ -27,7 +29,8 @@ export async function GET() {
   przywróceniem), obsługa starych wersji PHP
 - Dodatkowa przestrzeń kopii zapasowych ponad limit Planu jest rozliczana zużyciem (§9 ust. 5 regulaminu)
 - Bez limitu liczby stron, skrzynek e-mail i transferu (w ramach zasobów konta i zasad uczciwego korzystania)
-- Model odnowień: odnowienie wg cennika z dnia odnowienia, podane z góry; rabat na start tylko przy pierwszym zakupie (pierwszy rok albo pierwszy miesiąc), kwota po rabacie widoczna przed zapłatą
+- Model odnowień: odnowienie wg cennika z dnia odnowienia, podane z góry; pierwszy okres kosztuje tyle co odnowienie (bez rabatu na start)
+- Na start: ${kredytyNaStart(kredyty)} Kredyty tylko na dopłaty za autoskalowanie, bez faktury i bez zwrotu
 
 ## Poczta bez hostingu strony
 - ${zl(p.miesiecznie)}/mies. brutto (${zl(netto(p.miesiecznie))} netto) albo ${zl(p.rocznie)}/rok brutto (${zl(netto(p.rocznie))} netto)

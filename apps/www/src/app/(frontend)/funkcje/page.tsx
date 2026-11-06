@@ -156,7 +156,7 @@ const GWARANCJE: { tag: string; title: string; text: string; href: string; more:
   {
     tag: 'cena',
     title: 'Cena odnowienia znana z góry',
-    text: '{cena}. Odnowienie po cenie z cennika; rabat na start dotyczy tylko pierwszego zakupu.',
+    text: '{cena}. Pierwszy okres i odnowienie po tej samej cenie z cennika; przy pierwszym zakupie darmowe kredyty na autoskalowanie.',
     href: '/cennik',
     more: 'Cennik',
   },

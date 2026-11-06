@@ -7,12 +7,20 @@ import { AutoscalingEngineService } from './autoscaling-engine.service.js';
  * `autoscalingMaxCost` is never enforced.
  */
 describe('AutoscalingEngineService — cap guard (F-01)', () => {
-  function buildService(opts: { thirtyDaySumNegative: string }) {
+  function buildService(opts: { thirtyDaySumNegative: string; kredyty?: string }) {
     const prisma = {
       walletTransaction: {
         aggregate: vi.fn().mockResolvedValue({
           _sum: { amount: new Prisma.Decimal(opts.thirtyDaySumNegative) },
         }),
+      },
+      // Decyzja 6.11.2026 — pula kredytów na autoskalowanie (poza portfelem).
+      kredytAutoskalowania: {
+        findUnique: vi.fn().mockResolvedValue(
+          opts.kredyty
+            ? { kwota: new Prisma.Decimal('60'), pozostalo: new Prisma.Decimal(opts.kredyty), przyznanoAt: new Date(), wygasaAt: new Date(Date.now() + 86_400_000) }
+            : null,
+        ),
       },
     };
     // Only `prisma` and pricing rules are exercised by guardScaleUp.
@@ -105,5 +113,15 @@ describe('AutoscalingEngineService — cap guard (F-01)', () => {
 
     expect(result.allowed).toBe(false);
     expect(result.reason).toBe('wallet_empty');
+  });
+
+  // Decyzja 6.11.2026 — pusty portfel z ważnymi kredytami na autoskalowanie nie blokuje skalowania.
+  it('allows scale-up with an empty wallet when autoscaling credits are available', async () => {
+    const service = buildService({ thirtyDaySumNegative: '0', kredyty: '25.00' });
+    const sub = { id: 'sub-4', userId: 'u-4', autoscalingMaxCost: new Prisma.Decimal('0'), user: { walletBalance: new Prisma.Decimal('0') } };
+    const result = await (service as never as {
+      guardScaleUp: (sub: unknown, rules: unknown, cpu: number, ram: number, disk: number) => Promise<{ allowed: boolean; reason?: string }>;
+    }).guardScaleUp(sub, rules, 25, 0, 0);
+    expect(result.allowed).toBe(true);
   });
 });

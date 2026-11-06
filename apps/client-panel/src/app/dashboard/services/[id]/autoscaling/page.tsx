@@ -10,6 +10,7 @@ import { EcoReportCard } from './eco-report-card';
 import { liczba } from '@/lib/liczba';
 import { uslugaWProbie } from '@verris/contracts/klient';
 import { OgraniczenieProby } from '@/components/panel/ograniczenie-proby';
+import { opisPuli } from '@/lib/kredyty-autoskalowania';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,6 +57,7 @@ export default async function AutoscalingPage({
   const capPct = cap > 0 ? Math.min(100, (spend / cap) * 100) : 0;
   const acc = service.account;
   const wProbie = uslugaWProbie(service);
+  const pula = opisPuli(history?.kredytyAutoskalowania);
 
   return (
     <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6">
@@ -74,7 +76,7 @@ export default async function AutoscalingPage({
 
       <PanelPageHeader
         title="Autoskalowanie i EKO"
-        description={`Gdy strona potrzebuje więcej mocy, dokładamy zasoby ponad plan i naliczamy je z portfela. Bez limitu płacisz za faktyczne użycie; limit kosztu na 30 dni ustawisz niżej.${acc?.domain ? ` Konto: ${acc.domain}.` : ''}`}
+        description={`Gdy strona potrzebuje więcej mocy, dokładamy zasoby ponad plan i naliczamy je z portfela${pula && pula.dostepne > 0 ? ' (najpierw z kredytów na autoskalowanie)' : ''}. Bez limitu płacisz za faktyczne użycie; limit kosztu na 30 dni ustawisz niżej.${acc?.domain ? ` Konto: ${acc.domain}.` : ''}`}
       />
 
       <KpiStrip>
@@ -135,6 +137,18 @@ export default async function AutoscalingPage({
           )}
         </div>
         <div className="flex min-w-0 flex-col gap-6">
+          {pula ? (
+            // Decyzja 6.11.2026 — kredyty na autoskalowanie z pierwszego zakupu: saldo i ważność przy ustawieniach.
+            <section className="rounded-[10px] border border-line bg-card px-4 py-3.5" aria-labelledby="kredyty-autoskalowania">
+              <h3 id="kredyty-autoskalowania" className="m-0 font-display text-[15px] font-bold text-foreground">
+                Kredyty na autoskalowanie: {pula.kwota}
+              </h3>
+              <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+                {pula.podpis} Dodatkową moc opłacamy najpierw z nich, dopiero potem z portfela; limit kosztu na 30 dni
+                liczy tylko dopłaty z portfela.
+              </p>
+            </section>
+          ) : null}
           <section className="rounded-[10px] border border-line bg-card px-4 py-3.5">
             <h3 className="m-0 font-display text-[15px] font-bold text-foreground">Bezpiecznik kosztów</h3>
             <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">

@@ -38,6 +38,19 @@ describe('źródła asystenta www', () => {
     expect(z.tresc).toContain('730 godzin');
   });
 
+  // Decyzja 6.11.2026 — kredyty na autoskalowanie zamiast rabatu na start: kwoty z ustawień oferty, bez rabatu.
+  it('cennik podaje kredyty na autoskalowanie z ustawień; wyłączone — nie mówi o nich', async () => {
+    const { kredytyStartoweZUstawien } = await import('./asystent-www.service.js');
+    const k = kredytyStartoweZUstawien([{ key: 'trial.annualAutoscalingCredit', value: '60' }]);
+    expect(k).toEqual({ rocznie: 60, miesiecznie: 10, waznoscMiesiecy: 12 });
+    const z = zrodloCennika({ hosting: null, poczta: null, stawki: {}, kredytyStartowe: k });
+    expect(z.tresc).toContain('darmowe kredyty na autoskalowanie: 60,00 zł przy planie rocznym, 10,00 zł przy planie miesięcznym');
+    expect(z.tresc).toContain('ważne 12 miesięcy');
+    expect(z.tresc).toContain('Rabatu na start nie ma');
+    expect(kredytyStartoweZUstawien([{ key: 'trial.cardEnabled', value: '0' }])).toBeNull();
+    expect(zrodloCennika({ hosting: null, poczta: null, stawki: {}, kredytyStartowe: null }).tresc).not.toContain('kredyty');
+  });
+
   it('bez planów w bazie cennik nie wymyśla kwot', () => {
     const z = zrodloCennika({ hosting: null, poczta: null, stawki: {} });
     expect(z.tresc).not.toMatch(/\d+,\d\d zł/);

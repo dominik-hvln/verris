@@ -537,9 +537,9 @@ export class ProvisioningQueueService implements OnModuleInit, OnModuleDestroy {
         });
         await this.prisma.subscription.update({
           where: { id: d.subscriptionId },
-          // Przegląd 15.10: bez okresu i bez rabatu startowego — usługa, która nie ruszyła (środki zwrócone), nie zużywa
-          // ani nie trzyma rabatu na start (rabat-startowy.ts).
-          data: { status: SubscriptionStatus.PENDING_PAYMENT, currentPeriodStart: null, currentPeriodEnd: null, introDiscountPct: 0, introDiscountPeriodsLeft: 0 },
+          // Przegląd 15.10: bez okresu i bez promocji startowej — usługa, która nie ruszyła (środki zwrócone), nie zużywa
+          // ani nie trzyma promocji na start (pierwszy-zakup.ts); kredyty na autoskalowanie nie zostały przyznane.
+          data: { status: SubscriptionStatus.PENDING_PAYMENT, currentPeriodStart: null, currentPeriodEnd: null, introDiscountPct: 0, introDiscountPeriodsLeft: 0, kredytAutoskalowaniaKwota: null },
         });
         // X-04 — zwrot za niezałożoną usługę oddaje też zarezerwowany kod rabatowy.
         // Najlepsza próba — błąd tutaj nie może zatrzymać obsługi zwrotu.

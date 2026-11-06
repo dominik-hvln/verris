@@ -12,6 +12,7 @@ import type { TrialOffer } from '../data';
 import { clientFeatures } from '@/lib/client-features';
 import { useFlagi } from '@/lib/feature-flags';
 import { plForm } from '@/lib/pl';
+import { okresWaznosci, zlKredytu } from '@/lib/kredyty-autoskalowania';
 
 /**
  * UX-4 — wybór TYPU usługi w osobnych kaflach (Hosting / Poczta / VPS), zamiast
@@ -24,19 +25,19 @@ export function OrderFlow({
   bezKarty,
   uPartnera,
   paynowDostepny,
-  bezRabatuStartowego,
+  bezKredytowStartowych,
 }: {
   plans: PlanDto[];
   offer: TrialOffer;
   bezKarty?: boolean;
   /** Zakup usługi BLIK-iem / przelewem (Paynow). */
   paynowDostepny?: boolean;
-  /** Klient aktywnego resellera — bez promocji Verris (rabat na start, kody), jak w API (07.10). */
+  /** Klient aktywnego resellera — bez promocji Verris (kredyty startowe, kody), jak w API (07.10). */
   uPartnera?: boolean;
-  /** Klient ma już za sobą zakup — rabat na start jest tylko przy pierwszym (14.10, jak w API). */
-  bezRabatuStartowego?: boolean;
+  /** Klient ma już za sobą zakup — kredyty na autoskalowanie są tylko przy pierwszym (14.10, jak w API). */
+  bezKredytowStartowych?: boolean;
 }) {
-  const offer = uPartnera || bezRabatuStartowego ? { ...ofertaVerris, cardEnabled: false } : ofertaVerris;
+  const offer = uPartnera || bezKredytowStartowych ? { ...ofertaVerris, cardEnabled: false } : ofertaVerris;
   // VPS ukryty do wejścia do sprzedaży (2026-09-23); włącza API per konto (FEATURE_VPS / FEATURE_VPS_TYLKO_KONTA).
   const vps = useFlagi().vps === true;
   // Q-05 — pakiety Newsletter tylko przy włączonej fladze (domyślnie wyłączona, 2026-09-28).
@@ -99,13 +100,17 @@ export function OrderFlow({
                 bezKarty={bezKarty}
                 bezKodu={uPartnera}
                 paynowDostepny={paynowDostepny}
-                // API nalicza rabat na start przy pierwszym zakupie klienta (z portfela) — klient widzi go przed zapłatą.
-                startOffer={{
-                  cardEnabled: offer.cardEnabled,
-                  monthlyDiscountPct: offer.monthlyDiscountPct,
-                  annualDiscountPct: offer.annualDiscountPct,
-                  introDiscountPeriods: offer.introDiscountPeriods,
-                }}
+                // Decyzja 6.11.2026 — przy pierwszym zakupie hostingu (z portfela) API zapisuje kredyty na autoskalowanie;
+                // klient widzi korzyść przed zapłatą. Cena pierwszego okresu = cena odnowienia.
+                kredytyStartowe={
+                  type === 'hosting' && offer.cardEnabled
+                    ? {
+                        rok: offer.annualAutoscalingCredit,
+                        miesiac: offer.monthlyAutoscalingCredit,
+                        waznoscMiesiecy: offer.autoscalingCreditValidityMonths ?? 12,
+                      }
+                    : undefined
+                }
               />
             </div>
           </>
@@ -209,7 +214,7 @@ export function OrderFlow({
   );
 }
 
-/** UX-3 — „Jak chcesz zacząć?" — darmowy trial vs ścieżka z kartą + rabat. */
+/** UX-3 — „Jak chcesz zacząć?" — darmowy trial vs zakup od razu (z kredytami na autoskalowanie przy pierwszym). */
 function StartChooser({
   offer,
   trialPlansExist,
@@ -237,21 +242,28 @@ function StartChooser({
   // Gdy tylko ścieżka darmowa (bez karty) — TrialCallout sam ją pokaże; chooser zbędny.
   if (!offer.cardEnabled) return null;
 
-  // BILL-1 — rabat na start liczy się automatycznie z ustawień (bez kuponu), więc kafelek ustawia tylko okres
-  // (ten sam stan co w formularzu — P2-02); rabat naliczy formularz i API.
+  // Decyzja 6.11.2026 — kafelek ustawia tylko okres (ten sam stan co w formularzu — P2-02); kredyty zapisze API.
   const goCard = (iv: BillingInterval) => {
     onWybierz(iv);
     setTimeout(() => document.getElementById('checkout')?.scrollIntoView({ behavior: 'smooth' }), 60);
   };
-  const jedenOkres = (offer.introDiscountPeriods ?? 1) <= 1;
+  const waznosc = okresWaznosci(offer.autoscalingCreditValidityMonths ?? 12);
+  const kafel = (kwota: number) =>
+    kwota > 0 ? (
+      <>
+        <strong className="text-white">+{zlKredytu(kwota)}</strong> na autoskalowanie, ważne {waznosc}.
+      </>
+    ) : (
+      'Cena z cennika.'
+    );
 
   return (
     <div className="rounded-[24px] border border-white/10 bg-white/[0.02] p-5">
       <h3 className="text-sm font-bold text-white">Jak chcesz zacząć?</h3>
       <p className="mt-1 text-xs text-neutral-400">
-        {showFree ? 'Wypróbuj bez zobowiązań albo zamów od razu z rabatem na start. ' : 'Przy pierwszym zakupie dostajesz rabat na start. '}
-        Rabat obejmuje {jedenOkres ? 'tylko pierwszą opłatę' : 'pierwsze opłaty'} — potem płacisz pełną cenę z cennika,
-        podaną przy zamówieniu.
+        {showFree ? 'Wypróbuj bez zobowiązań albo zamów od razu. ' : ''}
+        Przy pierwszym zakupie dostajesz darmowe kredyty na autoskalowanie — opłacą dodatkową moc w szczycie ruchu.
+        Pierwszy okres kosztuje tyle co odnowienie: cena z cennika, podana przy zamówieniu.
       </p>
       <div className="mt-4 grid gap-3 md:grid-cols-3">
         {showFree ? (
@@ -281,7 +293,7 @@ function StartChooser({
             <CalendarClock className="h-4 w-4 text-sky-300" /> Rok z góry
           </span>
           <span className="mt-1 text-xs text-sky-100/80">
-            Rabat <strong className="text-white">−{offer.annualDiscountPct}%</strong> {jedenOkres ? 'za pierwszy rok' : 'na start'} + niższa cena roczna.
+            Niższa cena roczna. {kafel(offer.annualAutoscalingCredit)}
           </span>
           <span className="mt-3 text-[11px] font-medium text-sky-300">Wybierz →</span>
         </button>
@@ -295,9 +307,7 @@ function StartChooser({
           <span className="flex items-center gap-2 text-sm font-semibold text-white">
             <CreditCard className="h-4 w-4 text-neutral-300" /> Miesięcznie
           </span>
-          <span className="mt-1 text-xs text-neutral-400">
-            Rabat <strong className="text-white">−{offer.monthlyDiscountPct}%</strong> {jedenOkres ? 'za pierwszy miesiąc' : 'na start'}.
-          </span>
+          <span className="mt-1 text-xs text-neutral-400">{kafel(offer.monthlyAutoscalingCredit)}</span>
           <span className="mt-3 text-[11px] font-medium text-neutral-300">Wybierz →</span>
         </button>
       </div>

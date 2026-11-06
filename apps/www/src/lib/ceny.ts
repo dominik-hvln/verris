@@ -76,9 +76,25 @@ export function zlGrosze(kwota: number): string {
   return `${grupuj(c)},${g} zł`;
 }
 
-/** Stawka godzinowa: do 4 cyfr znaczących, przecinek dziesiętny, bez „zł” — „0,0882”, „0,001323”, „0,07171”. */
+/**
+ * Stawka godzinowa tak, jak jest w cenniku: wszystkie cyfry (do 6 znaczących — API trzyma stawki z dokładnością
+ * 0,000001 zł), bez zer na końcu, przecinek dziesiętny, bez „zł” — „0,001283”, „0,0882”, „0,0008”, netto „0,0717073”.
+ * Uwaga 6.11.2026: stawek nie wolno skracać (wcześniej 4 cyfry znaczące: 0,123456 → „0,1235”).
+ */
 export function stawka(x: number): string {
-  return String(Number(x.toPrecision(4))).replace('.', ',');
+  return x.toLocaleString('pl-PL', { maximumSignificantDigits: 6, useGrouping: false });
+}
+
+/**
+ * Kwota za godzinę z dodatkową mocą (to jeszcze nie jest kwota do zapłaty): od 1 zł do grosza („1,23”), poniżej
+ * 1 zł z dokładnością stawek, ale co najmniej dwa miejsca („0,001283”, „0,06615”, „0,40”) — żeby 1% procesora
+ * nie pokazywał się jako „0,00 zł”. Bez „zł”.
+ */
+export function kwotaGodzinowa(x: number): string {
+  if (Math.abs(x) >= 1) return x.toFixed(2).replace('.', ',');
+  const t = stawka(x);
+  const miejsca = t.split(',')[1]?.length ?? 0;
+  return miejsca >= 2 ? t : x.toFixed(2).replace('.', ',');
 }
 
 /** Rabat za płatność roczną względem 12 × miesięczna, w pełnych procentach w dół (449 vs 540 → 16). */
@@ -115,17 +131,12 @@ export function cenaPakietu(c: CenaPakietu): string {
   return `${zl(c.miesiecznie)}/mies. albo ${zl(c.rocznie)}/rok brutto (${zl(netto(c.miesiecznie))} albo ${zl(netto(c.rocznie))} netto)`;
 }
 
-/**
- * Decyzja 3 Dominika (3.11.2026): rabat na start zostaje — pierwszy rok (płatność roczna) albo pierwszy miesiąc
- * (płatność miesięczna) taniej, tylko przy pierwszym zakupie (apps/api/src/subscriptions/rabat-startowy.ts; procenty
- * w ustawieniach platformy, domyślnie 15% i 10%). Procentów tu nie wpisujemy: ustawia je admin, a GET /plans ich
- * nie zwraca. www nie mówi „bez promocji na pierwszy rok” ani „ta sama cena przy odnowieniu”; mówi, że cena
- * odnowienia to cena z cennika podana z góry. Najniższą cenę z 30 dni panel pokazuje przy cenie po rabacie (Omnibus).
+/*
+ * Decyzja Dominika 6.11.2026: rabatu na start już nie ma — pierwszy okres kosztuje tyle co odnowienie, a przy pierwszym
+ * zakupie klient dostaje darmowe kredyty na autoskalowanie (teksty i kwoty z API: lib/kredyty-startowe.ts).
  */
-export const RABAT_NA_START =
-  'Przy pierwszym zakupie pierwszy rok albo pierwszy miesiąc kosztuje mniej (rabat na start). Kwotę po rabacie i najniższą cenę z 30 dni przed obniżką zobaczysz przed zapłatą. Odnowienie idzie po cenie z cennika, którą podajemy tutaj.';
 
-/** Krótko: cena odnowienia (zamiast „ta sama cena przy odnowieniu” — patrz RABAT_NA_START). */
+/** Krótko: cena odnowienia znana z góry. */
 export const ODNOWIENIE_Z_CENNIKA = 'cena odnowienia znana z góry';
 
 /** Krótko, do przycisków i nagłówków: „od 45 zł/mies.”. */

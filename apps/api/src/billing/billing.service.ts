@@ -14,6 +14,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { createHash } from 'crypto';
 import { Prisma, WalletTransaction, WalletTxType } from '@verris/database';
+import { pulaDoApi, pulaKredytow } from '../autoscaling/kredyty-autoskalowania.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { dopasujProwizjeDoGotowki } from '../partners/prowizje-a-cofniecia.js';
 import { AuditService } from '../common/audit/audit.service.js';
@@ -167,6 +168,8 @@ export class BillingService {
     return {
       balance: user.walletBalance.toFixed(2),
       currency: user.walletCurrency,
+      // Decyzja 6.11.2026 — kredyty na autoskalowanie z pierwszego zakupu: osobna pula poza saldem, z datą ważności.
+      kredytyAutoskalowania: pulaDoApi(await pulaKredytow(this.prisma, userId)),
       totalTopupLast30d: totalTopupLast30d.toFixed(2),
       totalChargesLast30d: totalChargesLast30d.abs().toFixed(2),
       monthlyFlowLast12,

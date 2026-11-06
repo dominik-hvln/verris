@@ -3,10 +3,11 @@ import { AuditModule } from '../common/audit/audit.module.js';
 import { PlatformSettingsService } from './platform-settings.service.js';
 import { PlatformSettingsAdminController } from './platform-settings.admin.controller.js';
 import { PlatformSettingsController } from './platform-settings.controller.js';
+import { OfertaPublicznaController } from './oferta-publiczna.controller.js';
 
 @Module({
   imports: [AuditModule],
-  controllers: [PlatformSettingsAdminController, PlatformSettingsController],
+  controllers: [PlatformSettingsAdminController, PlatformSettingsController, OfertaPublicznaController],
   providers: [PlatformSettingsService],
   exports: [PlatformSettingsService],
 })

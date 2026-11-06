@@ -12,7 +12,7 @@ import {
 import type { PriceRuleDto } from './types';
 import { hourlyRateForResource } from './pricing-math';
 import { CREDIT_SHORT } from '@/lib/credits';
-import { liczba } from '@/lib/liczba';
+import { kwotaGodzinowa, liczba } from '@/lib/liczba';
 
 interface Props {
   rules: PriceRuleDto[];
@@ -142,9 +142,9 @@ export function AutoscalingCalculator({
             </div>
 
             <div className="space-y-3 mb-8 text-sm">
-              <Row label="CPU" value={`${liczba(breakdown.cpuHourly, 4)} ${unit}/h`} />
-              <Row label="RAM" value={`${liczba(breakdown.ramHourly, 4)} ${unit}/h`} />
-              <Row label="Dysk" value={`${liczba(breakdown.diskHourly, 4)} ${unit}/h`} />
+              <Row label="CPU" value={`${kwotaGodzinowa(breakdown.cpuHourly)} ${unit}/h`} />
+              <Row label="RAM" value={`${kwotaGodzinowa(breakdown.ramHourly)} ${unit}/h`} />
+              <Row label="Dysk" value={`${kwotaGodzinowa(breakdown.diskHourly)} ${unit}/h`} />
             </div>
 
             <div className="space-y-3 mb-8">
@@ -157,7 +157,7 @@ export function AutoscalingCalculator({
               <div className="flex justify-between items-center text-sm">
                 <span className="text-neutral-400">Stawka godzinowa</span>
                 <span className="text-white font-medium">
-                  ~{liczba(breakdown.hourly, 4)} {unit}
+                  {kwotaGodzinowa(breakdown.hourly)} {unit}
                 </span>
               </div>
               <div className="flex justify-between items-center text-sm">

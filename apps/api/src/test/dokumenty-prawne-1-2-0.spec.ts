@@ -82,10 +82,14 @@ describe('Dokumenty prawne 1.2.0 — gotowe do jednej publikacji', () => {
     expect(konsument).toMatch(/Przy każdym zamówieniu rejestracji albo transferu domeny/);
   });
 
-  it('Regulamin: SLA automatycznie, rabat na start, kredyty z kodu bez faktury, limit autoskalowania na 30 dni, zwrot salda', () => {
+  it('Regulamin: SLA automatycznie, kredyty na autoskalowanie na start, kredyty z kodu bez faktury, limit autoskalowania na 30 dni, zwrot salda', () => {
     const t = tresc.terms;
     expect(t).toContain('**automatycznie, bez wniosku Klienta**');
-    expect(t).toMatch(/Rabat na start[^\n]*15% za pierwszy rok[^\n]*10% za pierwszy miesiąc/);
+    // Decyzja 6.11.2026 — kredyty na autoskalowanie zamiast rabatu na start (§9 ust. 6), spójnie z kodem i consumer-info.
+    expect(t).toMatch(/6\. Kredyty na autoskalowanie na start:[^\n]*60 zł przy okresie rocznym albo 10 zł przy okresie miesięcznym[^\n]*ważne 12 miesięcy[^\n]*wyłącznie do pokrycia opłat za autoskalowanie[^\n]*nie wystawia się za nie faktury[^\n]*zwrotowi/);
+    expect(t).toMatch(/kredyty na autoskalowanie z §9 ust\. 6\) — mają one charakter rabatu/);
+    for (const d of [t, konsument]) expect(d).not.toMatch(/Rabat na start|rabat na start|−15%|15% za pierwszy rok/);
+    expect(konsument).toMatch(/darmowe kredyty na autoskalowanie \(na dzień publikacji: 60 zł przy okresie rocznym albo 10 zł przy miesięcznym\)/);
     expect(t).toMatch(/kodu promocyjnego[^\n]*nie są zakupem — nie wystawia się za nie faktury/);
     expect(t).not.toMatch(/miesięczny limit/i);
     expect(t).toMatch(/Domyślnie autoskalowanie nie ma limitu kosztu[^\n]*sumy dopłat z ostatnich 30 dni/);

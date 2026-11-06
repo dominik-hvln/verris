@@ -61,12 +61,12 @@ export const FAKTY: Fakt[] = [
       'Gwarantowana dostępność to 99,5% w miesiącu kalendarzowym. Gdy jest niższa, rekompensata w kredytach trafia do portfela automatycznie, bez wniosku, według regulaminu: 5% opłaty poniżej 99,5%, 25% poniżej 99%, 50% poniżej 95% i 100% poniżej 90%. Każde zakłócenie widać publicznie na stronie statusu.',
     url: 'https://status.verris.pl',
   },
-  // apps/www/src/app/(frontend)/cennik/page.tsx, regulamin §7
+  // apps/www/src/app/(frontend)/cennik/page.tsx, regulamin §7 i §9 ust. 6, apps/api/src/autoscaling/kredyty-autoskalowania.ts
   {
     id: 'fakt-ceny-zasady',
     tytul: 'Zasady cen i płatności',
     tresc:
-      'Jest jeden pakiet hostingu, bez wyboru wersji. Przy pierwszym zakupie obowiązuje rabat na start: −15% za pierwszy rok przy planie rocznym albo −10% za pierwszy miesiąc przy miesięcznym; kolejne okresy kosztują tyle, ile cena odnowienia podana przy zamówieniu (wiążący jest cennik). Rozliczenie miesięczne albo roczne; przed odnowieniem przychodzi przypomnienie e-mailem, a z odnowienia można zrezygnować w panelu. Płatność: karta, BLIK, szybki przelew albo Kredyty Verris z portfela. Fakturę wystawiamy przy każdej wpłacie pieniędzy (doładowanie portfela, BLIK, przelew, karta) i klient znajduje ją w panelu; zakup z portfela nie tworzy nowej faktury, a kredyty z kodu promocyjnego to nie zakup, więc nie ma za nie faktury.',
+      'Jest jeden pakiet hostingu, bez wyboru wersji. Pierwszy okres kosztuje tyle samo co odnowienie (cena z cennika, bez rabatu na start i bez podwyżki przy odnowieniu). Przy pierwszym zakupie hostingu klient dostaje darmowe kredyty na autoskalowanie (kwoty dla planu rocznego i miesięcznego podaje cennik): można je wydać tylko na dopłaty za dodatkową moc, nie na pakiet, domeny ani dodatki; są ważne 12 miesięcy od przyznania, trafiają na konto po opłaceniu zamówienia, nie ma za nie faktury i nie podlegają zwrotowi. Rozliczenie miesięczne albo roczne; przed odnowieniem przychodzi przypomnienie e-mailem, a z odnowienia można zrezygnować w panelu. Płatność: karta, BLIK, szybki przelew albo Kredyty Verris z portfela. Fakturę wystawiamy przy każdej wpłacie pieniędzy (doładowanie portfela, BLIK, przelew, karta) i klient znajduje ją w panelu; zakup z portfela nie tworzy nowej faktury, a kredyty z kodu promocyjnego to nie zakup, więc nie ma za nie faktury.',
     url: 'https://verris.pl/cennik',
   },
   // apps/www/src/app/(frontend)/funkcje/statystyki/page.tsx

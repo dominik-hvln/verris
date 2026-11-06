@@ -53,7 +53,7 @@ const plan = (over: Partial<PlanDto>): PlanDto => ({
 });
 const HOSTING = plan({ id: 'h1', slug: 'verris-hosting', name: 'Hosting Verris', cpuLimit: 200, ramLimitMb: 8192, diskLimitMb: 51200 });
 const POCZTA = plan({ id: 'e1', slug: 'poczta-standard', name: 'Poczta Verris', productKind: 'EMAIL', cpuLimit: 100, ramLimitMb: 512, diskLimitMb: 10240, priceMonthly: '9.99', priceYearly: '99.99' });
-const OFERTA: TrialOffer = { freeEnabled: false, cardEnabled: true, annualDiscountPct: 15, monthlyDiscountPct: 10, annualPromoCode: '', monthlyPromoCode: '', introDiscountPeriods: 1 };
+const OFERTA: TrialOffer = { freeEnabled: false, cardEnabled: true, annualAutoscalingCredit: 60, monthlyAutoscalingCredit: 10, autoscalingCreditValidityMonths: 12 };
 
 let root: Root;
 let el: HTMLDivElement;
@@ -98,14 +98,15 @@ afterEach(() => act(() => root.unmount()));
 // P2-02: kafelek „Rok z góry” zmieniał tylko adres — formularz zostawał na miesiącu i klient płacił za miesiąc.
 it('P2-02: kafelek „Rok z góry” przestawia okres w formularzu i kwotę do zapłaty (i odwrotnie)', async () => {
   await pokaz('type=hosting');
-  expect(doZaplaty()).toBe('40,50');
+  // Decyzja 6.11.2026 — bez rabatu na start: do zapłaty cena z cennika.
+  expect(doZaplaty()).toBe('45,00');
   await act(async () => przycisk('Rok z góry').click());
   expect(okresBtn('Rocznie (taniej)').getAttribute('aria-pressed')).toBe('true');
   expect(przycisk('Rok z góry').getAttribute('aria-pressed')).toBe('true');
-  expect(doZaplaty()).toBe('381,65');
+  expect(doZaplaty()).toBe('449,00');
   // Wybór w formularzu też przestawia kafelek nad nim.
   await act(async () => okresBtn('Miesięcznie').click());
-  expect(doZaplaty()).toBe('40,50');
+  expect(doZaplaty()).toBe('45,00');
   expect(przycisk('Rok z góry').getAttribute('aria-pressed')).toBe('false');
   expect(mockPush).not.toHaveBeenCalled();
 });
@@ -224,14 +225,30 @@ it('P4-2/P4-8: poczta — miejsce, skrzynki i wysyłka zamiast CPU i RAM; tekst 
   expect(t).toContain('Domena może zostać tam, gdzie jest teraz');
 });
 
-// P2-03 + decyzja 3: rabat na start zostaje, ale cena odnowienia z góry i najniższa cena z 30 dni (Omnibus).
-it('P2-03: przy rabacie na start cena odnowienia z góry i najniższa cena z 30 dni', async () => {
+// Decyzja 6.11.2026 — zamiast rabatu na start kredyty na autoskalowanie: cena pierwszego okresu = cena odnowienia,
+// bez przekreślenia i „najniższej ceny z 30 dni”; korzyść przy kwocie i w informacjach przedumownych.
+it('kredyty na start: +60 zł przy rocznym, +10 zł przy miesięcznym, pierwszy okres = odnowienie, bez Omnibusa', async () => {
   await pokaz('type=hosting');
   await act(async () => przycisk('Rok z góry').click());
-  const t = el.textContent ?? '';
-  expect(t).toContain('Rabat na start −15% za pierwszy rok, tylko przy pierwszym zakupie');
-  expect(t).toMatch(/Najniższa cena z 30 dni przed obniżką: 449,00\s?zł brutto/);
+  let t = el.textContent ?? '';
+  expect(t).toContain('+60 zł na autoskalowanie przy pierwszym zakupie (plan roczny), ważne 12 miesięcy.');
   expect(t).toMatch(/Odnowienie co rok: 449,00\s?zł brutto/);
+  expect(t).toContain('Kredyty na start60 zł na autoskalowanie przy pierwszym zakupie, ważne 12 miesięcy od przyznania.');
+  expect(t).not.toMatch(/Najniższa cena z 30 dni|Rabat na start|−15%/);
+  expect(el.querySelector('.line-through')).toBeNull();
+  await act(async () => okresBtn('Miesięcznie').click());
+  t = el.textContent ?? '';
+  expect(t).toContain('+10 zł na autoskalowanie przy pierwszym zakupie (plan miesięczny), ważne 12 miesięcy.');
+  expect(doZaplaty()).toBe('45,00');
+  // Karta (Stripe) — jak dawny rabat: kredyty tylko przy płatności z portfela.
+  await act(async () => przycisk('Karta płatnicza').click());
+  expect(el.textContent).toContain('Pobieramy opłatę z karty');
+  expect(el.textContent).not.toContain('na autoskalowanie przy pierwszym zakupie');
+});
+
+it('kredyty na start: poczta ich nie daje (tylko hosting)', async () => {
+  const t = await pokaz('type=email');
+  expect(t).not.toContain('na autoskalowanie przy pierwszym zakupie');
 });
 
 // A2-08: informacje przedumowne w zamówieniu i osobne zgody zamiast zbiorczego pola.

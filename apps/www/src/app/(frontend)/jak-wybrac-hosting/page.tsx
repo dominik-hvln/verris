@@ -66,7 +66,7 @@ const PARAMETRY: [string, string][] = [
 const verris = (c: CenaPakietu): [string, string][] => [
   [
     'Cena za 3 lata',
-    `3 × ${zl(c.rocznie)} = ${zl(3 * c.rocznie)} brutto (${zl(3 * netto(c.rocznie))} netto) przy dzisiejszym cenniku — odnowienie po cenie z cennika; przy pierwszym zakupie pierwszy rok kosztuje mniej (rabat na start)`,
+    `3 × ${zl(c.rocznie)} = ${zl(3 * c.rocznie)} brutto (${zl(3 * netto(c.rocznie))} netto) przy dzisiejszym cenniku — każdy rok po cenie z cennika, bez taniego pierwszego roku i droższych odnowień; przy pierwszym zakupie darmowe kredyty na autoskalowanie`,
   ],
   ['Kopie', 'codziennie: 7 ostatnich na serwerze i kopia z każdego z 30 ostatnich dni poza serwerem; przywracasz sam w panelu'],
   ['Przeprowadzka', 'w cenie — robi ją kreator w panelu albo nasz zespół'],
