@@ -1,7 +1,6 @@
 import {
   KLUCZ_SESJI,
   akapity,
-  asystentWlaczony,
   bezpiecznyUrl,
   odczytajBlad,
   odczytajOdpowiedz,
@@ -11,13 +10,6 @@ import {
 } from './asystent-stan';
 
 describe('asystent www — logika widgetu', () => {
-  it('flaga NEXT_PUBLIC_ASYSTENT: domyślnie wyłączony', () => {
-    expect(asystentWlaczony(undefined)).toBe(false);
-    expect(asystentWlaczony('0')).toBe(false);
-    expect(asystentWlaczony('1')).toBe(true);
-    expect(asystentWlaczony('true')).toBe(true);
-  });
-
   it('błąd API: kod i komunikat (także tablica walidacji), nieznany kod pominięty', () => {
     expect(odczytajBlad(400, { kod: 'CAPTCHA_WYMAGANA', message: 'Potwierdź' })).toEqual({
       ok: false,

@@ -12,7 +12,6 @@ import {
   STOPKA_AI,
   UWAGA_AI,
   akapity,
-  asystentWlaczony,
   reakcjaNaBlad,
   wczytajSesje,
   zapiszSesje,
@@ -224,13 +223,15 @@ function KartaTelefonu({ rozmowaId }: { rozmowaId: string | null }) {
  * Asystent AI na verris.pl (makieta 1.11): przycisk w prawym dolnym rogu (na telefonie mała ikona nad paskiem zakupu),
  * okno 420 px na komputerze, pełny ekran na telefonie. Odpowiedzi tylko ze źródeł (chipy z linkami); gdy asystent nie
  * wie albo jest niedostępny — karta „Poproś o telefon” z dołączoną rozmową. Bez cookies: id i przebieg rozmowy
- * w sessionStorage. Włączany flagą `NEXT_PUBLIC_ASYSTENT=1` (domyślnie nic nie renderuje).
- * Montaż: `<AsystentWidget />` raz, w app/(frontend)/layout.tsx.
+ * w sessionStorage. Włącza się wyłącznie przełącznikiem w Admin → AI → Asystent www: layout pyta API o status
+ * (lib/asystent-status.ts) i przekazuje `wlaczony`; bez tego propa nic nie renderuje.
+ * Montaż: `<AsystentWidget wlaczony={…} />` raz, w app/(frontend)/layout.tsx.
  */
 export function AsystentWidget({
-  wlaczony = asystentWlaczony(process.env.NEXT_PUBLIC_ASYSTENT),
+  wlaczony = false,
   otwarteNaStart = false,
 }: {
+  /** Status z API (GET /public/asystent/status) — ustawia layout po stronie serwera. */
   wlaczony?: boolean;
   /** Dla testów i podglądu: okno otwarte od razu. */
   otwarteNaStart?: boolean;

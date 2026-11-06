@@ -61,6 +61,8 @@ export interface AiChatRequestDto {
 export interface AiChatSourceDto {
   docId: string;
   title: string;
+  /** Slug artykułu Bazy wiedzy (`/dashboard/knowledge?article=<slug>`); brak — źródło bez strony do otwarcia. */
+  slug?: string | null;
 }
 
 export interface AiChatResponseDto {

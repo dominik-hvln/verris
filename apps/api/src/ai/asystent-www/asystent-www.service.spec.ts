@@ -233,7 +233,59 @@ describe('AsystentWwwService', () => {
   });
 });
 
+describe('AsystentWwwService.dostepny — czy pokazać widget na verris.pl (6.11)', () => {
+  it('włączony w adminie, jest klucz, limity kosztu niewyczerpane → true, bez wywołania AI', async () => {
+    const s = stanowisko();
+    expect(await s.svc.dostepny()).toBe(true);
+    expect(s.provider.klucz).toHaveBeenCalledWith('anthropic');
+    expect(s.provider.wywolajModelem).not.toHaveBeenCalled();
+  });
+
+  it('wyłącznik w adminie → false', async () => {
+    expect(await stanowisko({ konf: { wlaczony: false } }).svc.dostepny()).toBe(false);
+  });
+
+  it('brak klucza Anthropic (ta sama logika co BRAK_KONFIGURACJI w zapytaj) → false', async () => {
+    const s = stanowisko({ klucz: null });
+    expect(await s.svc.dostepny()).toBe(false);
+    expect((await kodBledu(s.svc.zapytaj({ pytanie: 'Cześć' }, {}))).kod).toBe('BRAK_KONFIGURACJI');
+  });
+
+  it('dzienny limit kosztu wyczerpany → false (widget znika zamiast odpowiadać „niedostępny”)', async () => {
+    expect(await stanowisko({ kosztDzis: 10, konf: { limitDziennyUsd: 10 } }).svc.dostepny()).toBe(false);
+    expect(await stanowisko({ kosztDzis: 9.99, konf: { limitDziennyUsd: 10 } }).svc.dostepny()).toBe(true);
+  });
+
+  it('brak ustawienia albo błąd bazy → false (domyślnie wyłączony)', async () => {
+    const s = stanowisko();
+    s.prisma.platformSetting.findUnique.mockRejectedValueOnce(new Error('db down'));
+    expect(await s.svc.dostepny()).toBe(false);
+    const s2 = stanowisko();
+    s2.prisma.aiInteractionLog.aggregate.mockRejectedValueOnce(new Error('db down'));
+    expect(await s2.svc.dostepny()).toBe(false);
+  });
+
+  it('wynik w pamięci 30 s; zapis ustawień w adminie (wyczyscCache) odświeża od razu', async () => {
+    const s = stanowisko();
+    expect(await s.svc.dostepny()).toBe(true);
+    s.prisma.platformSetting.findUnique.mockResolvedValue({ value: JSON.stringify({ wlaczony: false }) });
+    expect(await s.svc.dostepny()).toBe(true);
+    expect(s.prisma.platformSetting.findUnique).toHaveBeenCalledTimes(1);
+    s.svc.wyczyscCache();
+    expect(await s.svc.dostepny()).toBe(false);
+  });
+});
+
 describe('AsystentWwwController', () => {
+  it('GET status: tylko { dostepny }, limit 120/min per IP', async () => {
+    const o = new Reflector().get<RateLimitOptions>(RATE_LIMIT_KEY, AsystentWwwController.prototype.status);
+    expect(o).toMatchObject({ limit: 120, windowMs: 60_000 });
+    const svc = { dostepny: vi.fn(async () => true) };
+    expect(await new AsystentWwwController(svc as never).status()).toEqual({ dostepny: true });
+    svc.dostepny.mockResolvedValueOnce(false);
+    expect(await new AsystentWwwController(svc as never).status()).toEqual({ dostepny: false });
+  });
+
   it('limit 20 pytań / 10 min per IP i odpowiedź bez kosztu', async () => {
     const o = new Reflector().get<RateLimitOptions>(RATE_LIMIT_KEY, AsystentWwwController.prototype.zapytaj);
     expect(o).toMatchObject({ limit: 20, windowMs: 600_000 });

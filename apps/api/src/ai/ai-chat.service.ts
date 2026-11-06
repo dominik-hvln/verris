@@ -17,7 +17,7 @@ export interface ChatTurn {
 export interface ChatAnswer {
   available: boolean;
   answer: string;
-  sources: { docId: string; title: string }[];
+  sources: ZrodloOdpowiedzi[];
   unavailableReason?: string;
 }
 
@@ -300,13 +300,21 @@ export class AiChatService {
   }
 }
 
-function dedupeSources(chunks: { docId: string; title: string }[]): { docId: string; title: string }[] {
+/** Źródło odpowiedzi czatu; `slug` tylko dla artykułu Bazy wiedzy — panel klienta linkuje `/dashboard/knowledge?article=<slug>`. */
+export type ZrodloOdpowiedzi = {
+  docId: string;
+  title: string;
+  slug: string | null;
+};
+
+export function dedupeSources(chunks: { docId: string; title: string; sourceRef?: string | null }[]): ZrodloOdpowiedzi[] {
   const seen = new Set<string>();
-  const out: { docId: string; title: string }[] = [];
+  const out: ZrodloOdpowiedzi[] = [];
   for (const c of chunks) {
     if (seen.has(c.docId)) continue;
     seen.add(c.docId);
-    out.push({ docId: c.docId, title: c.title });
+    const slug = c.sourceRef?.startsWith('kb-cms:') ? c.sourceRef.slice('kb-cms:'.length) || null : null;
+    out.push({ docId: c.docId, title: c.title, slug });
   }
   return out;
 }

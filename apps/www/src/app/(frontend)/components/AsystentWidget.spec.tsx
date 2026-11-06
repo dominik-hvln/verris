@@ -8,9 +8,16 @@ import { AsystentAvatar, AsystentWidget, CSS_ASYSTENTA } from './AsystentWidget'
 import { PODPOWIEDZI, STOPKA_AI, UWAGA_AI } from '@/lib/asystent-stan';
 
 describe('AsystentWidget', () => {
-  it('bez flagi NEXT_PUBLIC_ASYSTENT nic nie renderuje', () => {
-    expect(renderToStaticMarkup(<AsystentWidget />)).toBe('');
-    expect(renderToStaticMarkup(<AsystentWidget wlaczony={false} />)).toBe('');
+  it('bez statusu z API (`wlaczony`) nic nie renderuje — także przy dawnej fladze budowania', () => {
+    const flaga = process.env.NEXT_PUBLIC_ASYSTENT;
+    process.env.NEXT_PUBLIC_ASYSTENT = '1';
+    try {
+      expect(renderToStaticMarkup(<AsystentWidget />)).toBe('');
+      expect(renderToStaticMarkup(<AsystentWidget wlaczony={false} />)).toBe('');
+    } finally {
+      if (flaga === undefined) delete process.env.NEXT_PUBLIC_ASYSTENT;
+      else process.env.NEXT_PUBLIC_ASYSTENT = flaga;
+    }
   });
 
   it('przycisk: „Masz pytanie? / asystent AI odpowie od razu”, otwiera dialog', () => {

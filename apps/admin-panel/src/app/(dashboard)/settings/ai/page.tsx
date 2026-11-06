@@ -1,6 +1,7 @@
 import { bramkaStrony } from "@/lib/bramka-strony";
-import { fetchKosztyAi, fetchUstawieniaAi } from './actions';
+import { fetchAsystentWww, fetchKosztyAi, fetchUstawieniaAi } from './actions';
 import { UstawieniaAiForm } from './ustawienia-ai-form';
+import { AsystentWwwForm } from './asystent-www-form';
 import { KosztyAiPanel } from './koszty-ai';
 import { BladStrony, wynik } from "@/components/blad-strony";
 
@@ -9,7 +10,8 @@ export const dynamic = 'force-dynamic';
 export default async function UstawieniaAiPage() {
   const bramka = await bramkaStrony("/settings/ai");
   if (bramka) return bramka;
-  const w = await wynik(Promise.all([fetchUstawieniaAi(), fetchKosztyAi()]));
+  // fetchAsystentWww nie rzuca — błąd odczytu pokazuje sama sekcja, reszta strony działa.
+  const [w, asystentWww] = await Promise.all([wynik(Promise.all([fetchUstawieniaAi(), fetchKosztyAi()])), fetchAsystentWww()]);
   if (!w.ok) return <BladStrony blad={w.blad} tytul="Asystent AI" powrot={{ href: "/", label: "Pulpit" }} />;
   const [ustawienia, koszty] = w.dane;
   return (
@@ -22,6 +24,7 @@ export default async function UstawieniaAiPage() {
         </p>
       </header>
       <UstawieniaAiForm initial={ustawienia} />
+      <AsystentWwwForm initial={asystentWww} znaneModele={ustawienia.znaneModele} />
       <KosztyAiPanel koszty={koszty} />
     </div>
   );

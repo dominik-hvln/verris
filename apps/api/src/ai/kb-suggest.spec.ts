@@ -1,4 +1,4 @@
-import { AiChatService } from './ai-chat.service.js';
+import { AiChatService, dedupeSources } from './ai-chat.service.js';
 import type { RetrievedChunk } from './knowledge-base.service.js';
 
 /**
@@ -44,5 +44,25 @@ describe('N-05 — kbSuggest', () => {
 
   it('za krótkie zapytanie → brak podpowiedzi', async () => {
     await expect(serwis([chunk('d1', 'A', 'kb-cms:a')]).kbSuggest(' ')).resolves.toEqual([]);
+  });
+});
+
+/** Asystent w panelu klienta (6.11) — źródła odpowiedzi jako linki do artykułów, więc odpowiedź niesie slug. */
+describe('dedupeSources — slug artykułu Bazy wiedzy', () => {
+  it('artykuł Bazy wiedzy ma slug; inne źródła i puste slugi — null; duplikaty raz', () => {
+    expect(
+      dedupeSources([
+        { docId: 'd1', title: 'Poczta', sourceRef: 'kb-cms:konfiguracja-poczty' },
+        { docId: 'd1', title: 'Poczta', sourceRef: 'kb-cms:konfiguracja-poczty' },
+        { docId: 'd2', title: 'Notatka', sourceRef: 'upload.pdf' },
+        { docId: 'd3', title: 'Pusty', sourceRef: 'kb-cms:' },
+        { docId: 'd4', title: 'Bez źródła', sourceRef: null },
+      ]),
+    ).toEqual([
+      { docId: 'd1', title: 'Poczta', slug: 'konfiguracja-poczty' },
+      { docId: 'd2', title: 'Notatka', slug: null },
+      { docId: 'd3', title: 'Pusty', slug: null },
+      { docId: 'd4', title: 'Bez źródła', slug: null },
+    ]);
   });
 });

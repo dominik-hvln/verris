@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { RateLimit } from '../../common/guards/rate-limit.guard.js';
 import { AsystentWwwService, type OdpowiedzAsystenta } from './asystent-www.service.js';
@@ -12,6 +12,17 @@ import { PytanieAsystentaDto } from './dto/pytanie-asystenta.dto.js';
 @Controller('public/asystent')
 export class AsystentWwwController {
   constructor(private readonly asystent: AsystentWwwService) {}
+
+  /**
+   * 6.11.2026 — czy pokazać widget na verris.pl. Jedyny włącznik to przełącznik w Admin → AI → Asystent www
+   * (`ai.asystentWww.wlaczony`); www pyta o to w runtime (cache 60 s), bez flagi budowania. Tylko boolean — bez kosztów,
+   * limitów i powodu. Woła go serwer www (jeden adres), nie przeglądarka — limit z zapasem.
+   */
+  @Get('status')
+  @RateLimit({ limit: 120, windowMs: 60 * 1000, scope: 'asystent:status' })
+  async status(): Promise<{ dostepny: boolean }> {
+    return { dostepny: await this.asystent.dostepny() };
+  }
 
   @Post()
   @HttpCode(200)

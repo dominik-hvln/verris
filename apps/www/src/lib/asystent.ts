@@ -2,6 +2,7 @@
 
 import { headers } from 'next/headers';
 import { odczytajBlad, odczytajOdpowiedz, type WynikAsystenta } from './asystent-stan';
+import { adresApi } from './asystent-status';
 
 /**
  * Asystent AI na verris.pl — server actions (jak lib/submit-callback.ts): forward IP i User-Agent użytkownika,
@@ -16,10 +17,6 @@ async function naglowki(): Promise<Record<string, string>> {
     ...(xff ? { 'x-forwarded-for': xff } : {}),
     ...(ua ? { 'user-agent': ua } : {}),
   };
-}
-
-function adresApi(): string {
-  return (process.env.API_URL || 'http://api:3000').replace(/\/$/, '');
 }
 
 /** POST /public/asystent → odpowiedź albo błąd z kodem (CAPTCHA_WYMAGANA, LIMIT_*, NIEDOSTEPNY…). */

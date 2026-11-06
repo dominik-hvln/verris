@@ -95,6 +95,7 @@ export class AsystentWwwService {
   private readonly logger = new Logger(AsystentWwwService.name);
   private konf: KonfiguracjaAsystenta | null = null;
   private konfAt = 0;
+  private status: { wynik: boolean; at: number } | null = null;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -114,6 +115,30 @@ export class AsystentWwwService {
 
   wyczyscCache() {
     this.konf = null;
+    this.status = null;
+  }
+
+  /** Klucz do dostawcy, na którym działa asystent (strażnik i odpowiedź — oba modele Anthropic). */
+  maKlucz(): boolean {
+    return Boolean(this.provider.klucz('anthropic'));
+  }
+
+  /**
+   * Czy pokazać widget na verris.pl (GET /public/asystent/status, 6.11.2026 — zamiast flagi budowania
+   * NEXT_PUBLIC_ASYSTENT). Te same warunki co na początku `zapytaj`: wyłącznik, klucz, limity kosztu (dzień, miesiąc).
+   * Bez wywołań AI; koszt to najwyżej dwa zapytania SUM po indeksie (feature, createdAt), wynik w pamięci 30 s.
+   */
+  async dostepny(): Promise<boolean> {
+    if (this.status && Date.now() - this.status.at < 30_000) return this.status.wynik;
+    let wynik = false;
+    try {
+      const konf = await this.konfiguracja();
+      wynik = konf.wlaczony && this.maKlucz() && !(await this.limitKosztuPrzekroczony(konf));
+    } catch (e) {
+      this.logger.warn(`asystent www status: ${(e as Error).message}`);
+    }
+    this.status = { wynik, at: Date.now() };
+    return wynik;
   }
 
   /** HMAC adresu IP — tylko do dobowego limitu, bez przechowywania IP. */
@@ -147,7 +172,7 @@ export class AsystentWwwService {
   ): Promise<OdpowiedzAsystenta & { kosztUsd: number }> {
     const konf = await this.konfiguracja();
     if (!konf.wlaczony && !opcje.ewaluacja) throw blad(HttpStatus.SERVICE_UNAVAILABLE, 'NIEDOSTEPNY', KOMUNIKAT_NIEDOSTEPNY);
-    if (!this.provider.klucz('anthropic')) {
+    if (!this.maKlucz()) {
       throw blad(HttpStatus.SERVICE_UNAVAILABLE, 'BRAK_KONFIGURACJI', 'Asystent AI nie jest jeszcze skonfigurowany. Napisz do nas albo poproś o telefon.');
     }
 

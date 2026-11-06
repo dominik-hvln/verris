@@ -79,9 +79,11 @@
 }
 
 /* === LIGHT (:root aplikacji; w panelu także motyw jasny treści — [data-vtheme]) === */
+/* .v2-motyw-tresci — pływające elementy poza kolumną treści (asystent), które biorą jej motyw. */
 :root,
 [data-vtheme="light"] .v2-content,
-[data-vtheme="light"] [data-radix-popper-content-wrapper] {
+[data-vtheme="light"] [data-radix-popper-content-wrapper],
+[data-vtheme="light"] .v2-motyw-tresci {
   --background: var(--verris-paper);
   --foreground: var(--verris-pine);
   --card: #ffffff;
@@ -139,7 +141,8 @@
 
 /* Motyw jasny panelu: tylko kolumna treści — menu boczne zostaje ciemne (jak we wzorcu). */
 [data-vtheme="light"] .v2-content,
-[data-vtheme="light"] [data-radix-popper-content-wrapper] {
+[data-vtheme="light"] [data-radix-popper-content-wrapper],
+[data-vtheme="light"] .v2-motyw-tresci {
   --verris-body: #34413a;
   --verris-stone: #5f6a63;
   color-scheme: light;
@@ -208,6 +211,11 @@ html.dark.eco-tint {
   --accent: color-mix(in srgb, var(--verris-mid) 25%, var(--verris-card));
   --ring: var(--verris-mid);
 }
+
+/* Asystent panelu (układ z verris.pl, makieta 1.11): avatar „szuka” / „odpowiada” i kropki „pisze…”. */
+@keyframes asy-tri { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+@keyframes asy-ring { 0% { border-color: color-mix(in srgb, var(--data) 55%, transparent); transform: scale(.96); } 100% { border-color: transparent; transform: scale(1.12); } }
+@keyframes asy-dot { 0%, 60%, 100% { opacity: .25; } 30% { opacity: 1; } }
 
 @theme inline {
   --color-background: var(--background);

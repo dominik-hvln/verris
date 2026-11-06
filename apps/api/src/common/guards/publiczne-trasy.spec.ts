@@ -52,6 +52,8 @@ const PUBLICZNE = [
   'AutoscalingController.estimate',
   'AutoscalingController.list',
   // 1.11 — asystent AI na verris.pl: limit 20/10 min i 60/dobę per IP, captcha od 4. wiadomości, limity kosztu.
+  // 6.11 — czy pokazać widget (tylko boolean, bez kosztów i powodu); limit 120/min per IP.
+  'AsystentWwwController.status',
   'AsystentWwwController.zapytaj',
   // 2.11 — formularz otwartej bety (verris.pl/beta): captcha, limit 5/godz. per IP i adres, pułapka na boty,
   // jeden mail na adres na dobę; potwierdzenie — token z maila: GET pokazuje stronę z przyciskiem, POST potwierdza (A1-06).

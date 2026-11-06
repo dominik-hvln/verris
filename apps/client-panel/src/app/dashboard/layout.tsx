@@ -462,6 +462,7 @@ function DashboardLayoutInner({
   const serviceId = /^\/dashboard\/services\/([0-9a-f-]{36})(?:\/|$)/.exec(pathname)?.[1] ?? null;
   // Usługa strony do „Zgłoś uwagę” — tylko z listy /services (to samo id, co subskrypcja w zgłoszeniu).
   const uslugaRail = serviceId ? rail?.services?.find((x) => x.id === serviceId) : undefined;
+  const mozeZglaszac = navCtx ? canAccess("/dashboard/support") && canCreateTicket(navCtx) : false;
   const uslugaStrony = uslugaRail ? { id: uslugaRail.id, nazwa: uslugaRail.domain ? `${uslugaRail.name} · ${uslugaRail.domain}` : uslugaRail.name } : null;
   // P3-08 — paleta nie podsuwa stron i akcji, do których konto nie ma uprawnienia (jak menu); akcje bez adresu zostają.
   const paletteItems: PaletteItem[] = tylkoDostepne(canAccess, [
@@ -687,12 +688,13 @@ function DashboardLayoutInner({
         <TipLayer />
       </div>
       </div>
-      <HostingAssistant />
+      {/* Przy błędzie asystenta link do nowego zgłoszenia — tylko gdy konto może je zakładać. */}
+      <HostingAssistant mozeZglaszac={mozeZglaszac} />
       {/* Beta — „Zgłoś uwagę” (tester albo flaga beta.zglos-uwage); nad przyciskiem asystenta. */}
       <ZglosUwage
         flagi={flagi}
         tester={tester}
-        mozeZglaszac={navCtx ? canAccess("/dashboard/support") && canCreateTicket(navCtx) : false}
+        mozeZglaszac={mozeZglaszac}
         usluga={uslugaStrony}
       />
     </div>

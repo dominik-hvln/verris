@@ -42,11 +42,6 @@ export const UWAGA_AI = 'Rozmawiasz z asystentem AI. Nie podawaj haseł ani dany
 export const STOPKA_AI = 'Odpowiedzi mogą zawierać błędy. Wiążące są regulamin i cennik.';
 export const PODPOWIEDZI = ['Ile kosztuje hosting?', 'Przenieście moją stronę', 'Poczta bez hostingu'] as const;
 
-/** Czy widget jest włączony (flaga budowania; domyślnie wyłączony). */
-export function asystentWlaczony(flaga: string | undefined): boolean {
-  return flaga === '1' || flaga === 'true';
-}
-
 /** Treść błędu z odpowiedzi Nest (`message` bywa tablicą przy walidacji DTO). */
 export function odczytajBlad(status: number, cialo: unknown): { ok: false; status: number; kod?: KodAsystenta; komunikat?: string } {
   const b = (cialo && typeof cialo === 'object' ? cialo : {}) as { kod?: unknown; message?: unknown };

@@ -9,6 +9,7 @@ import { UstepujFormularzom } from './components/UstepujFormularzom';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { VPS_W_SPRZEDAZY, OFERTA_KROTKO } from '@/lib/oferta';
+import { asystentDostepny } from '@/lib/asystent-status';
 
 // D12 (10.10): CSP z nonce (src/proxy.ts) wymaga renderu per żądanie — layout czyta `x-nonce` przez headers(),
 // więc strony nie są już ISR. Treść z CMS dalej z cache danych: stopka przez unstable_cache (60 s, lib/globals.ts),
@@ -43,7 +44,10 @@ export const metadata: Metadata = {
 };
 
 export default async function FrontendLayout({ children }: { children: ReactNode }) {
-  const nonce = (await headers()).get('x-nonce') ?? undefined;
+  // headers() robi z layoutu render per żądanie, więc status asystenta nie zamarza z czasu builda (w CI nie ma API);
+  // fetch statusu ma własny cache danych 60 s i timeout 1,5 s (błąd = widget niewidoczny).
+  const [naglowki, asystent] = await Promise.all([headers(), asystentDostepny()]);
+  const nonce = naglowki.get('x-nonce') ?? undefined;
   return (
     <html lang="pl">
       <head>
@@ -59,8 +63,8 @@ export default async function FrontendLayout({ children }: { children: ReactNode
         <Footer />
         <CookieConsent />
         <UstepujFormularzom />
-        {/* Asystent AI — nic nie renderuje bez NEXT_PUBLIC_ASYSTENT=1 (decyzja: włączenie po zatwierdzeniu dokumentów). */}
-        <AsystentWidget />
+        {/* Asystent AI — włącza go wyłącznie przełącznik w Admin → AI → Asystent www (GET /public/asystent/status). */}
+        <AsystentWidget wlaczony={asystent} />
       </body>
     </html>
   );
