@@ -20,6 +20,13 @@ describe('AsystentWidget', () => {
     }
   });
 
+  it('6.11 (uwaga Dominika): avatar to sygnet w kółku, nie w zaokrąglonym kwadracie', () => {
+    const html = renderToStaticMarkup(<AsystentWidget wlaczony />);
+    expect(html).toContain('<circle cx="40" cy="40" r="39.5"');
+    expect(html).not.toMatch(/<rect[^>]*rx="18"/);
+    expect(html).toContain('.asy-av{position:relative;flex:none;display:inline-block;line-height:0;border-radius:50%}');
+  });
+
   it('przycisk: „Masz pytanie? / asystent AI odpowie od razu”, otwiera dialog', () => {
     const html = renderToStaticMarkup(<AsystentWidget wlaczony />);
     expect(html).toContain('Masz pytanie?');

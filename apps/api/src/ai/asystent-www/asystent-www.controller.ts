@@ -14,7 +14,7 @@ export class AsystentWwwController {
   constructor(private readonly asystent: AsystentWwwService) {}
 
   /**
-   * 6.11.2026 — czy pokazać widget na verris.pl. Jedyny włącznik to przełącznik w Admin → AI → Asystent www
+   * 6.11.2026 — czy pokazać widget na verris.pl. Jedyny włącznik to przełącznik w Admin → Konfiguracja asystenta (/settings/ai), sekcja „Asystent na verris.pl”
    * (`ai.asystentWww.wlaczony`); www pyta o to w runtime (cache 60 s), bez flagi budowania. Tylko boolean — bez kosztów,
    * limitów i powodu. Woła go serwer www (jeden adres), nie przeglądarka — limit z zapasem.
    */

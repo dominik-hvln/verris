@@ -63,7 +63,7 @@ export default async function FrontendLayout({ children }: { children: ReactNode
         <Footer />
         <CookieConsent />
         <UstepujFormularzom />
-        {/* Asystent AI — włącza go wyłącznie przełącznik w Admin → AI → Asystent www (GET /public/asystent/status). */}
+        {/* Asystent AI — włącza go wyłącznie przełącznik w Admin → Konfiguracja asystenta (/settings/ai), sekcja „Asystent na verris.pl” (GET /public/asystent/status). */}
         <AsystentWidget wlaczony={asystent} />
       </body>
     </html>

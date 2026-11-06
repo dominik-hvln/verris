@@ -52,6 +52,8 @@ describe('proxy www — CSP z nonce', () => {
     expect(csp).not.toMatch(/fonts\.(googleapis|gstatic)\.com/);
     expect(csp).toContain('frame-src https://td.doubleclick.net https://www.googletagmanager.com https://www.facebook.com');
     expect(csp).toMatch(/connect-src [^;]*https:\/\/\*\.google-analytics\.com[^;]*https:\/\/www\.facebook\.com/);
+    // 6.11: ping odbiorców GA4 (Google Signals) dla Polski — www.google.pl/ads/ga-audiences.
+    expect(csp).toMatch(/connect-src [^;]*https:\/\/www\.google\.pl[ ;]/);
     expect(cspWww('n', true)).toContain("'unsafe-eval'");
   });
 });

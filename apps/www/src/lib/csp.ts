@@ -30,7 +30,9 @@ const DYREKTYWY_STALE: ReadonlyArray<string> = [
   // A2-03 (3.11): fonty z public/fonts — Google Fonts usunięte z polityki (strona nie łączy się z nimi wcale).
   "font-src 'self' data:",
   "style-src 'self' 'unsafe-inline'",
-  "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.doubleclick.net https://*.googlesyndication.com https://www.googleadservices.com https://www.google.com https://www.facebook.com https://connect.facebook.net",
+  // 6.11: GA4 z Google Signals wysyła po zgodzie ping odbiorców na www.google.<kraj>/ads/ga-audiences — dla
+  // odwiedzających z Polski to www.google.pl (błąd CSP w konsoli). Inne domeny krajowe zostają zablokowane (tylko ten ping).
+  "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.doubleclick.net https://*.googlesyndication.com https://www.googleadservices.com https://www.google.com https://www.google.pl https://www.facebook.com https://connect.facebook.net",
   "frame-src https://td.doubleclick.net https://www.googletagmanager.com https://www.facebook.com",
 ];
 

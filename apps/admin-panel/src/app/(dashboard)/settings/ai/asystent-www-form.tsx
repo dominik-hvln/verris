@@ -17,7 +17,7 @@ function opcjeModeli(znane: UstawieniaAi['znaneModele'], biezacy: string): Selec
 }
 
 /**
- * Admin → Ustawienia → Asystent AI → „Asystent na verris.pl” (1.11; przełącznik od 6.11). Jedyny włącznik widgetu
+ * Admin → Konfiguracja asystenta (/settings/ai) → „Asystent na verris.pl” (1.11; przełącznik od 6.11). Jedyny włącznik widgetu
  * na stronie: www pyta API (GET /public/asystent/status) z cache 60 s — bez flagi przy wdrożeniu.
  */
 export function AsystentWwwForm({

@@ -243,7 +243,7 @@ Panel admina → **RODO** (`/compliance`) → „Opublikuj nową wersję dokumen
 3. Włączyć funkcje, które czekały na dokumenty: rekompensata SLA automatycznie (flaga z
    `PROPOZYCJA_ZMIANY_PAR15.md`, pkt 4 checklisty — jeśli jeszcze wyłączona); asystent AI dla wszystkich klientów
    (W8 — ustawienie zamiast listy kont testowych); asystent AI na verris.pl (włącza się przełącznikiem
-   w Admin → AI → Asystent www; pojawia się na verris.pl do ok. minuty po włączeniu, bez ponownego wdrożenia); rekrutacja testerów (kampania na verris.pl/beta); `trialDays = 14` dla planu hostingu
+   w Admin → Konfiguracja asystenta (/settings/ai), sekcja „Asystent na verris.pl”; pojawia się na verris.pl do ok. minuty po włączeniu, bez ponownego wdrożenia); rekrutacja testerów (kampania na verris.pl/beta); `trialDays = 14` dla planu hostingu
    **po wejściu §7 ust. 8 w życie**; program EKO w środowisku produkcyjnym partnera — po zawarciu umowy usługi „Sadzenie przez API” (bez umowy
    powierzenia: partner nie dostaje danych klientów, decyzja 17).
 4. Ustawienie wersji polityki cookies w banerze (`CONSENT_VERSION`) — nie zmieniamy: kategorie zgód są te same,

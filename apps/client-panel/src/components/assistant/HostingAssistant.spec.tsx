@@ -82,6 +82,10 @@ describe('Asystent w panelu klienta', () => {
     expect(przycisk.getAttribute('aria-haspopup')).toBe('dialog');
     expect(przycisk.className).toContain('h-12'); // 48 px — pigułka „Zgłoś uwagę” stoi 3.75rem nad nim
     expect(przycisk.textContent).toContain('Masz pytanie?');
+    // 6.11 (uwaga Dominika): sygnet w kółku, nie w kwadracie — jak na makiecie verris.pl.
+    const sygnet = przycisk.querySelector('svg')!;
+    expect(sygnet.querySelector('circle')).not.toBeNull();
+    expect(sygnet.querySelector('rect')).toBeNull();
 
     const okno = await otworz(el);
     expect(okno.getAttribute('aria-modal')).toBe('true');

@@ -30,7 +30,7 @@ export function AsystentAvatar({ stan = 'czeka', rozmiar = 40 }: { stan?: StanAv
   return (
     <span className={`asy-av asy-av-${stan}`} aria-hidden="true">
       <svg viewBox="0 0 80 80" width={rozmiar} height={rozmiar} focusable="false">
-        <rect x="0.5" y="0.5" width="79" height="79" rx="18" fill="#0c1a14" stroke="rgba(52,229,160,.45)" />
+        <circle cx="40" cy="40" r="39.5" fill="#0c1a14" stroke="rgba(52,229,160,.45)" />
         <g transform="translate(-2.5 -5.9) scale(0.85)">
           <path d="M26 30 L40 30 L50 52 L60 30 L74 30 L50 78 Z M44 55 L56 55 L50 69 Z" fill="#f4f4ee" fillRule="evenodd" />
           <path className="asy-tri" d="M44 55 L56 55 L50 69 Z" fill="#34e5a0" />
@@ -49,9 +49,9 @@ export const CSS_ASYSTENTA = `
 .asy-fab-t{display:grid;line-height:1.25}
 .asy-fab-t b{font-weight:600;font-size:15px}
 .asy-fab-t small{font-size:12px;color:#93A29A}
-.asy-av{position:relative;flex:none;display:inline-block;line-height:0;border-radius:23%}
+.asy-av{position:relative;flex:none;display:inline-block;line-height:0;border-radius:50%}
 .asy-av svg{display:block}
-.asy-ring{position:absolute;inset:-5px;border-radius:28%;border:2px solid rgba(52,229,160,0);pointer-events:none}
+.asy-ring{position:absolute;inset:-5px;border-radius:50%;border:2px solid rgba(52,229,160,0);pointer-events:none}
 .asy-av-szuka .asy-tri{animation:asyTri 1.1s ease-in-out infinite}
 .asy-av-odpowiada .asy-ring{animation:asyRing 1.8s ease-out infinite}
 @keyframes asyTri{0%,100%{opacity:.35}50%{opacity:1}}
@@ -223,7 +223,7 @@ function KartaTelefonu({ rozmowaId }: { rozmowaId: string | null }) {
  * Asystent AI na verris.pl (makieta 1.11): przycisk w prawym dolnym rogu (na telefonie mała ikona nad paskiem zakupu),
  * okno 420 px na komputerze, pełny ekran na telefonie. Odpowiedzi tylko ze źródeł (chipy z linkami); gdy asystent nie
  * wie albo jest niedostępny — karta „Poproś o telefon” z dołączoną rozmową. Bez cookies: id i przebieg rozmowy
- * w sessionStorage. Włącza się wyłącznie przełącznikiem w Admin → AI → Asystent www: layout pyta API o status
+ * w sessionStorage. Włącza się wyłącznie przełącznikiem w Admin → Konfiguracja asystenta (/settings/ai), sekcja „Asystent na verris.pl”: layout pyta API o status
  * (lib/asystent-status.ts) i przekazuje `wlaczony`; bez tego propa nic nie renderuje.
  * Montaż: `<AsystentWidget wlaczony={…} />` raz, w app/(frontend)/layout.tsx.
  */
