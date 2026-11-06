@@ -27,10 +27,18 @@ describe('AsystentWidget', () => {
     expect(html).toContain('.asy-av{position:relative;flex:none;display:inline-block;line-height:0;border-radius:50%}');
   });
 
-  it('przycisk: „Masz pytanie? / asystent AI odpowie od razu”, otwiera dialog', () => {
+  it('6.11: przycisk nie podskakuje na komputerze — podnosi się tylko nad widocznym paskiem ceny na telefonie', () => {
+    const html = renderToStaticMarkup(<AsystentWidget wlaczony />);
+    // Pasek ceny (.mpasek) jest ukryty od 900 px, a klasa .on przełącza się przy przewijaniu na każdej szerokości.
+    expect(html).not.toMatch(/(^|[}\n])body:has\(\.mpasek\.on\) \.asy-fab/);
+    expect(html).toContain('@media(max-width:899px){html:not([data-formularz-widoczny]) body:has(.mpasek.on):not(:has(.cc-bar)) .asy-fab{');
+  });
+
+  it('przycisk: „Masz pytanie? / Odpowiem w kilka sekund”, otwiera dialog', () => {
     const html = renderToStaticMarkup(<AsystentWidget wlaczony />);
     expect(html).toContain('Masz pytanie?');
-    expect(html).toContain('asystent AI odpowie od razu');
+    expect(html).toContain('Odpowiem w kilka sekund');
+    expect(html).not.toContain('asystent AI odpowie od razu');
     expect(html).toContain('aria-haspopup="dialog"');
     expect(html).not.toContain('role="dialog"');
   });
@@ -73,7 +81,7 @@ describe('AsystentWidget', () => {
     expect(CSS_ASYSTENTA).toContain('width:420px');
     expect(CSS_ASYSTENTA).toContain('min(760px');
     expect(CSS_ASYSTENTA).toMatch(/@media\(max-width:640px\)\{[\s\S]*\.asy-panel\{inset:0;width:100%/);
-    expect(CSS_ASYSTENTA).toContain('body:has(.mpasek.on) .asy-fab');
+    expect(CSS_ASYSTENTA).toContain('body:has(.mpasek.on):not(:has(.cc-bar)) .asy-fab');
     expect(CSS_ASYSTENTA).toMatch(/prefers-reduced-motion:reduce\)\{[^}]*animation:none/);
   });
 });

@@ -204,7 +204,7 @@ export default function HostingAssistant({ mozeZglaszac = false }: { mozeZglasza
           <AsystentAvatar stan="czeka" rozmiar={34} />
           <span className="sr-only grid leading-tight sm:not-sr-only">
             <b className="text-[14px] font-semibold">Masz pytanie?</b>
-            <small className="text-[11.5px] text-muted-foreground">asystent AI odpowie od razu</small>
+            <small className="text-[11.5px] text-muted-foreground">Odpowiem w kilka sekund</small>
           </span>
         </button>
       ) : (

@@ -101,7 +101,8 @@ export const CSS_ASYSTENTA = `
 .asy-note{font-size:11.5px;color:#93A29A;padding:0 16px 12px;margin:0}
 .asy-note button{font:inherit;background:none;border:0;padding:0;color:#34E5A0;text-decoration:underline;cursor:pointer}
 .asy-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-body:has(.mpasek.on) .asy-fab{bottom:calc(92px + env(safe-area-inset-bottom,0px))}
+@media(max-width:899px){html:not([data-formularz-widoczny]) body:has(.mpasek.on):not(:has(.cc-bar)) .asy-fab{bottom:calc(92px + env(safe-area-inset-bottom,0px))}}
+@media(prefers-reduced-motion:no-preference){.asy-fab{transition:bottom .25s ease,border-color .15s}}
 @media(max-width:640px){
 .asy-fab{padding:6px;right:max(14px,env(safe-area-inset-right,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px))}
 .asy-fab-t{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
@@ -376,7 +377,7 @@ export function AsystentWidget({
           <AsystentAvatar stan="czeka" rozmiar={40} />
           <span className="asy-fab-t">
             <b>Masz pytanie?</b>
-            <small>asystent AI odpowie od razu</small>
+            <small>Odpowiem w kilka sekund</small>
           </span>
         </button>
       )}

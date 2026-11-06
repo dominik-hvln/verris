@@ -82,6 +82,7 @@ describe('Asystent w panelu klienta', () => {
     expect(przycisk.getAttribute('aria-haspopup')).toBe('dialog');
     expect(przycisk.className).toContain('h-12'); // 48 px — pigułka „Zgłoś uwagę” stoi 3.75rem nad nim
     expect(przycisk.textContent).toContain('Masz pytanie?');
+    expect(przycisk.textContent).toContain('Odpowiem w kilka sekund'); // 6.11 — podpis wybrany przez Dominika, jak na www
     // 6.11 (uwaga Dominika): sygnet w kółku, nie w kwadracie — jak na makiecie verris.pl.
     const sygnet = przycisk.querySelector('svg')!;
     expect(sygnet.querySelector('circle')).not.toBeNull();
