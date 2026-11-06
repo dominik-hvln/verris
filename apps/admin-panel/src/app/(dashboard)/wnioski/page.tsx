@@ -40,7 +40,7 @@ async function lista(sciezka: string): Promise<{ wiersze: Wniosek[]; blad: strin
     if (e instanceof AdminApiError && e.status === 403) {
       return { wiersze: [], blad: "Twoja rola nie ma uprawnienia „Akceptacja wniosków o operację” (REQUESTS_APPROVE)." };
     }
-    return { wiersze: [], blad: "Nie udało się pobrać wniosków — spróbuj odświeżyć." };
+    return { wiersze: [], blad: "Nie udało się pobrać wniosków – spróbuj odświeżyć." };
   }
 }
 
@@ -62,12 +62,12 @@ function Karta({ w, akcje }: { w: Wniosek; akcje?: React.ReactNode }) {
             ·{" "}
           </>
         ) : null}
-        Wnioskuje: {w.wnioskujacy.nazwa ?? "—"} · {data(w.utworzono)}
+        Wnioskuje: {w.wnioskujacy.nazwa ?? "–"} · {data(w.utworzono)}
       </p>
       <p className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-neutral-300">Uzasadnienie: {w.uzasadnienie}</p>
       {w.decydujacy ? (
         <p className="text-xs text-muted-foreground">
-          Decyzja: {w.decydujacy.nazwa ?? "—"}
+          Decyzja: {w.decydujacy.nazwa ?? "–"}
           {w.rozstrzygnieto ? ` · ${data(w.rozstrzygnieto)}` : ""}
           {w.powodDecyzji ? ` · powód: ${w.powodDecyzji}` : ""}
         </p>
@@ -116,7 +116,7 @@ export default async function WnioskiPage({ searchParams }: { searchParams: Prom
       <header>
         <h1 className="text-[28px] lg:text-[34px]">Wnioski o operacje</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Pracownik bez uprawnienia zleca operację wnioskiem z uzasadnieniem. Akceptacja wykonuje ją z Twoim uprawnieniem —
+          Pracownik bez uprawnienia zleca operację wnioskiem z uzasadnieniem. Akceptacja wykonuje ją z Twoim uprawnieniem –
           w dzienniku zapisują się obie osoby. Odrzucenie wymaga powodu (wnioskujący dostaje go w powiadomieniu).
         </p>
       </header>
@@ -153,7 +153,7 @@ export default async function WnioskiPage({ searchParams }: { searchParams: Prom
 
       <section className="rounded-2xl border border-white/10 bg-black/30">
         <h2 className="border-b border-white/10 px-4 py-3 text-sm font-bold uppercase tracking-wide text-white">
-          {aktywna === "do-decyzji" ? "Czeka na decyzję" : aktywna === "moje" ? "Twoje wnioski" : "Historia"} — {wnioski(biezaca.wiersze.length)}
+          {aktywna === "do-decyzji" ? "Czeka na decyzję" : aktywna === "moje" ? "Twoje wnioski" : "Historia"} – {wnioski(biezaca.wiersze.length)}
         </h2>
         {biezaca.wiersze.length === 0 && !biezaca.blad ? (
           <p className="p-6 text-sm text-muted-foreground">{aktywna === "do-decyzji" ? "Nic nie czeka na decyzję." : "Brak wniosków."}</p>

@@ -33,7 +33,7 @@ export default async function CalculatorPage({
     <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6">
       <PanelPageHeader
         title="Kalkulator kosztów"
-        description="Sprawdź, ile zapłacisz, gdy autoskalowanie doda Ci zasoby ponad limit planu. Stawki są te same, co w portfelu — pobrane z aktualnego cennika."
+        description="Sprawdź, ile zapłacisz, gdy autoskalowanie doda Ci zasoby ponad limit planu. Stawki są te same, co w portfelu – pobrane z aktualnego cennika."
       />
 
       {!result.ok && (

@@ -131,7 +131,7 @@ export class MigracjaZaKlientaService {
     });
     if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
     if (!sub.account) {
-      throw new BadRequestException('Ta usługa nie ma konta hostingowego — nie ma dokąd przenieść danych.');
+      throw new BadRequestException('Ta usługa nie ma konta hostingowego – nie ma dokąd przenieść danych.');
     }
     if (opts.ticketId) {
       const zgl = await this.prisma.ticket.findFirst({ where: { id: opts.ticketId, userId: sub.userId }, select: { id: true } });
@@ -206,7 +206,7 @@ export class MigracjaZaKlientaService {
         to: sub.user.email,
         // userId — marka partnera dla klienta resellera (applyPartnerBrand) i EmailLog przypięty do konta.
         userId: sub.userId,
-        subject: `Przygotowaliśmy przeniesienie ${domena} — potrzebna Twoja zgoda`,
+        subject: `Przygotowaliśmy przeniesienie ${domena} – potrzebna Twoja zgoda`,
         ...this.mailProsby(sub.user.email, sub.user.firstName, {
           domena,
           zrodla,
@@ -291,7 +291,7 @@ export class MigracjaZaKlientaService {
         at: teraz.toISOString(),
       },
     });
-    await this.powiadomOperatora(req, 'Klient zgodził się na migrację', 'Migracja jest w kolejce — rusza automatycznie.');
+    await this.powiadomOperatora(req, 'Klient zgodził się na migrację', 'Migracja jest w kolejce – rusza automatycznie.');
     return summary;
   }
 
@@ -350,7 +350,7 @@ export class MigracjaZaKlientaService {
         userId: req.userId,
         details: { subscriptionId: req.subscriptionId, migrationRequestId: req.id, domain: req.targetDomain, secretsPurged: true },
       });
-      await this.powiadomOperatora(req, 'Prośba o zgodę na migrację wygasła', 'Klient nie odpowiedział w terminie — zlecenie anulowane, dane dostępowe skasowane.');
+      await this.powiadomOperatora(req, 'Prośba o zgodę na migrację wygasła', 'Klient nie odpowiedział w terminie – zlecenie anulowane, dane dostępowe skasowane.');
     }
     if (wygasle > 0) this.logger.log(`migration consent: expired ${wygasle} request(s)`);
     return { wygasle };
@@ -392,7 +392,7 @@ export class MigracjaZaKlientaService {
   private wymagajOczekujacej(req: Wiersz): void {
     if (req.consentDecidedAt) throw new BadRequestException('Ta prośba o zgodę została już rozpatrzona.');
     if (req.status !== MigrationStatus.DRAFT || req.secretsPurgedAt) {
-      throw new BadRequestException('Ta migracja została anulowana — poproś obsługę o przygotowanie jej ponownie.');
+      throw new BadRequestException('Ta migracja została anulowana – poproś obsługę o przygotowanie jej ponownie.');
     }
     if (!req.consentExpiresAt || req.consentExpiresAt <= new Date()) {
       throw new BadRequestException(
@@ -461,7 +461,7 @@ export class MigracjaZaKlientaService {
       userId: req.requestedByOperatorId,
       category: 'SYSTEM',
       severity: 'info',
-      title: `${tytul}${req.targetDomain ? ` — ${req.targetDomain}` : ''}`,
+      title: `${tytul}${req.targetDomain ? ` – ${req.targetDomain}` : ''}`,
       body: tresc,
       link: `/migrations/${req.id}`,
       dedupeKey: `migration-consent:${req.id}`,

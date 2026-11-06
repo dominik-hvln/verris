@@ -121,7 +121,7 @@ export function ServicesHealthOverview({ services }: { services: ServiceSummaryD
                     ) : null}
                   </p>
                   <p className="mt-0.5 break-words text-xs text-neutral-400">
-                    {s.account?.domain ? `${s.account.domain} — ` : ''}
+                    {s.account?.domain ? `${s.account.domain} – ` : ''}
                     {reasons.slice(0, 3).join(', ')}
                   </p>
                 </div>
@@ -131,7 +131,7 @@ export function ServicesHealthOverview({ services }: { services: ServiceSummaryD
         </div>
       ) : (
         <p className="mt-3 rounded-2xl border border-emerald-400/20 bg-emerald-400/5 px-4 py-3 text-sm text-emerald-100/90">
-          Wszystkie usługi działają prawidłowo — monitorujemy DNS, SSL, kopie zapasowe i obciążenie.
+          Wszystkie usługi działają prawidłowo – monitorujemy DNS, SSL, kopie zapasowe i obciążenie.
         </p>
       )}
     </section>

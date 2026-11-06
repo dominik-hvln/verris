@@ -1,7 +1,7 @@
 import { AutoscalingEngineService } from './autoscaling-engine.service.js';
 
 /** 1.11 — usługa w okresie próbnym nie dostaje dodatkowej mocy: silnik w ogóle jej nie bierze pod uwagę. */
-describe('Silnik autoskalowania — okres próbny', () => {
+describe('Silnik autoskalowania – okres próbny', () => {
   it('tick pomija usługi z isTrial = true', async () => {
     const findMany = vi.fn(async () => []);
     const prisma = { subscription: { findMany }, autoscalingPriceRule: { findMany: vi.fn(async () => []) } };

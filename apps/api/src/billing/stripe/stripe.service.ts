@@ -116,7 +116,7 @@ export class StripeService {
   async retrievePriceOrThrow(priceId: string): Promise<StripePrice> {
     if (!this.client) {
       throw new ServiceUnavailableException(
-        'Stripe nie jest skonfigurowany — ustaw STRIPE_SECRET_KEY zanim użyjesz Price ID.',
+        'Stripe nie jest skonfigurowany – ustaw STRIPE_SECRET_KEY zanim użyjesz Price ID.',
       );
     }
     try {

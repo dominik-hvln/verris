@@ -11,7 +11,7 @@ const { prowizjaPct, karencjaDni, minWyplataZl, bonusKredyty, bonusCoPolecen } =
 const OPIS = `Poleć Verris i dostawaj ${prowizjaPct}% od każdej płatności poleconego klienta, bez limitu czasu. Zasady i stan prowizji w panelu klienta.`;
 
 export const metadata: Metadata = {
-  title: 'Program poleceń Verris — prowizja za polecenie hostingu',
+  title: 'Program poleceń Verris – prowizja za polecenie hostingu',
   description: OPIS,
   alternates: { canonical: '/polecaj' },
 };
@@ -52,7 +52,7 @@ const KROKI = [
 ];
 
 const POWODY: [string, string][] = [
-  ['Nie wstydzisz się odnowienia', 'Znajomy zna cenę odnowienia z góry — to cena z cennika, bez drobnego druku.'],
+  ['Nie wstydzisz się odnowienia', 'Znajomy zna cenę odnowienia z góry – to cena z cennika, bez drobnego druku.'],
   ['Przeprowadzkę robimy my', 'Przeniesienie strony, baz i poczty jest w cenie. Nie musisz nikomu pomagać.'],
   ['Pomoc po polsku', 'Odpowiada człowiek, który zna się na rzeczy, a nie formułka.'],
 ];
@@ -91,7 +91,7 @@ export default async function Page() {
       <SubHero
         eyebrow="Program poleceń"
         title="Poleć Verris znajomym. Zarabiasz, kiedy oni są zadowoleni"
-        lead={`Znasz kogoś, kogo co roku denerwuje faktura za hosting? Wyślij mu swój link. Dostajesz ${prowizjaPct}% od każdej jego płatności — tak długo, jak z nami zostaje.`}
+        lead={`Znasz kogoś, kogo co roku denerwuje faktura za hosting? Wyślij mu swój link. Dostajesz ${prowizjaPct}% od każdej jego płatności – tak długo, jak z nami zostaje.`}
         crumbs={[{ label: 'Program poleceń' }]}
         primary={{ label: 'Odbierz swój link', href: ODBIERZ_LINK }}
         secondary={{ label: 'Zasady programu', href: '#zasady' }}

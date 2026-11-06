@@ -6,7 +6,7 @@ import { prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } fr
  * F2.6 — faulty limitów na prawdziwej bazie (migracja 20261011130000: Server.lveFaults/lveFaultsAt): raport agenta
  * zapisany telemetrią, odczytany listą przekroczeń floty i węzła; stary agent bez faultów niczego nie zeruje.
  */
-describe('F2.6 — faulty limitów: telemetria → lista przekroczeń', () => {
+describe('F2.6 – faulty limitów: telemetria → lista przekroczeń', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 

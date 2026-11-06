@@ -43,7 +43,7 @@ export function LoginHistorySection() {
           <History className="h-5 w-5" /> Aktywność logowania
         </h3>
         <p className="mt-1 text-sm text-neutral-400">
-          Ostatnie logowania do Twojego konta. Jeśli widzisz nieznane urządzenie lub lokalizację —
+          Ostatnie logowania do Twojego konta. Jeśli widzisz nieznane urządzenie lub lokalizację –
           natychmiast zmień hasło i użyj „Wyloguj wszystkie inne urządzenia” w sekcji Aktywne urządzenia.
         </p>
       </div>
@@ -75,7 +75,7 @@ export function LoginHistorySection() {
                 </div>
                 <div className="flex items-center gap-2 text-xs text-neutral-500">
                   <MapPin className="h-3 w-3 shrink-0" />
-                  {r.ipAddress ?? "—"}
+                  {r.ipAddress ?? "–"}
                   {r.countryCode ? ` · ${r.countryCode}` : ""}
                   <span className="text-neutral-600">·</span>
                   {METHOD_LABEL[r.loginMethod] ?? r.loginMethod}

@@ -102,7 +102,7 @@ export default function AdditionalDomains({ serviceId, onZmiana }: { serviceId: 
   return (
     <section className="mt-6 rounded-[10px] border border-line bg-raised p-4">
       <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground"><Globe className="h-4 w-4 text-data-hi" /> Domeny dodatkowe na koncie</h3>
-      <p className="mt-1 text-xs text-muted-foreground">Hostuj kilka osobnych domen w ramach jednej usługi — każda z własnym katalogiem i pocztą.</p>
+      <p className="mt-1 text-xs text-muted-foreground">Hostuj kilka osobnych domen w ramach jednej usługi – każda z własnym katalogiem i pocztą.</p>
       <form onSubmit={add} className="mt-3 flex gap-2">
         <input value={domain} onChange={(e) => setDomain(e.target.value)} aria-label="Nazwa domeny dodatkowej" placeholder="np. drugadomena.pl" className="flex-1 rounded-[7px] border border-line bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground" />
         <Button type="submit" disabled={busy} className="h-9 gap-1.5 bg-primary text-primary-foreground font-semibold hover:bg-data-hi text-xs">{busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />} Dodaj domenę</Button>
@@ -133,7 +133,7 @@ export default function AdditionalDomains({ serviceId, onZmiana }: { serviceId: 
 
       <div className="mt-5 border-t border-line pt-4">
         <h4 className="flex items-center gap-2 text-sm font-semibold text-foreground"><Link2 className="h-4 w-4 text-data-hi" /> Aliasy domeny (wskazują na stronę główną)</h4>
-        <p className="mt-1 text-xs text-muted-foreground">Alias (domena zaparkowana) pokazuje tę samą stronę co domena główna — np. wariant .com obok .pl.</p>
+        <p className="mt-1 text-xs text-muted-foreground">Alias (domena zaparkowana) pokazuje tę samą stronę co domena główna – np. wariant .com obok .pl.</p>
         <form onSubmit={addAlias} className="mt-3 flex gap-2">
           <input value={alias} onChange={(e) => setAlias(e.target.value)} aria-label="Nazwa aliasu domeny" placeholder="np. twojafirma.com" className="flex-1 rounded-[7px] border border-line bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground" />
           <Button type="submit" disabled={aBusy} className="h-9 gap-1.5 bg-raised text-foreground hover:bg-raised text-xs">{aBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />} Dodaj alias</Button>

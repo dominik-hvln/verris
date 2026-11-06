@@ -44,7 +44,7 @@ function zmapowana(klasa: string): boolean {
   return new RegExp(`\\.v2-skin [^{,]*\\.${escRe(esc(klasa))}(?![\\w-])`).test(CSS);
 }
 
-describe('PB-16 — stara paleta w panelu ma mapowanie w .v2-skin', () => {
+describe('PB-16 – stara paleta w panelu ma mapowanie w .v2-skin', () => {
   it('każda klasa ciemnej palety użyta w panelu jest przemapowana na tokeny', () => {
     const braki = new Map<string, string>();
     for (const dir of KATALOGI) {

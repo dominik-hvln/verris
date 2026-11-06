@@ -222,7 +222,7 @@ export function KnowledgeManager({
             <FileText className="mx-auto h-10 w-10 text-muted-foreground" />
             <h3 className="mt-4 text-base font-bold text-white">Pusta baza wiedzy</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Dodaj pierwszy dokument po lewej — asystent zacznie z niego korzystać od razu.
+              Dodaj pierwszy dokument po lewej – asystent zacznie z niego korzystać od razu.
             </p>
           </div>
         ) : (
@@ -250,7 +250,7 @@ export function KnowledgeManager({
                   </div>
                   <p className="mt-1 text-[11px] text-muted-foreground">
                     {doc.chunkCount} fragm. · {doc.charCount.toLocaleString("pl-PL")} {plForm(doc.charCount, "znak", "znaki", "znaków")} ·{" "}
-                    {doc.createdByEmail ?? "—"} ·{" "}
+                    {doc.createdByEmail ?? "–"} ·{" "}
                     {new Date(doc.createdAt).toLocaleDateString("pl-PL")}
                   </p>
                 </div>

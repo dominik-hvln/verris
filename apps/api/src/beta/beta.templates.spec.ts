@@ -45,7 +45,7 @@ describe('zaproszenieDoTestowTemplate', () => {
     expect(m.text).toContain('nie ma za nie faktury');
   });
 
-  it('P4-12: wariant „tylko poczta” — zamówienie poczty bez hostingu, migracji i WordPressa', () => {
+  it('P4-12: wariant „tylko poczta” – zamówienie poczty bez hostingu, migracji i WordPressa', () => {
     const p = zaproszenieDoTestowTemplate({
       to: 'zbigniew@example.pl',
       code: 'BETA-POCZTA',

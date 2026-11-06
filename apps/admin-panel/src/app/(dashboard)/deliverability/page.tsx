@@ -55,7 +55,7 @@ export default async function DeliverabilityPage() {
                     {c.email && c.name ? <div className="text-xs text-muted-foreground">{c.email}</div> : null}
                   </td>
                   <td className="px-4 py-3 text-neutral-200 [overflow-wrap:anywhere]">{c.reason}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-xs text-muted-foreground">{c.at ? new Date(c.at).toLocaleString("pl-PL") : "—"}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-xs text-muted-foreground">{c.at ? new Date(c.at).toLocaleString("pl-PL") : "–"}</td>
                   <td className="px-4 py-3 text-right">
                     {zdejmie ? (
                       <ReleaseCordonButton userId={c.userId} label={c.email ?? c.userId} />

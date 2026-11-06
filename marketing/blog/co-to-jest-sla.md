@@ -8,12 +8,12 @@ keyword: "co to jest sla"
 cluster: "Bezpieczeństwo i uptime"
 type: "spoke"
 status: "draft"
-faq: [{"q": "Czy 99,5% to dużo, czy mało?", "a": "To realny, uczciwy poziom dla hostingu współdzielonego — pod warunkiem, że jest poparty rekompensatą. Liczby w rodzaju „100%\" traktuj z ostrożnością."}, {"q": "Co dostanę, jeśli dostawca nie dotrzyma SLA?", "a": "W Verris — kredyty naliczane według skali niedostępności, zgodnie z regulaminem."}]
+faq: [{"q": "Czy 99,5% to dużo, czy mało?", "a": "To realny, uczciwy poziom dla hostingu współdzielonego – pod warunkiem, że jest poparty rekompensatą. Liczby w rodzaju „100%\" traktuj z ostrożnością."}, {"q": "Co dostanę, jeśli dostawca nie dotrzyma SLA?", "a": "W Verris – kredyty naliczane według skali niedostępności, zgodnie z regulaminem."}]
 ---
 
 # Czym jest SLA i co realnie znaczy 99,5% dostępności
 
-**W skrócie:** SLA (Service Level Agreement) to zapisane w umowie zobowiązanie dostawcy dotyczące poziomu usługi — najczęściej dostępności (uptime). „SLA 99,5%" oznacza, że dostawca gwarantuje dostępność na tym poziomie i — jeśli jej nie dotrzyma — przewiduje rekompensatę. Bez zapisu o rekompensacie sama liczba jest tylko deklaracją.
+**W skrócie:** SLA (Service Level Agreement) to zapisane w umowie zobowiązanie dostawcy dotyczące poziomu usługi – najczęściej dostępności (uptime). „SLA 99,5%" oznacza, że dostawca gwarantuje dostępność na tym poziomie i – jeśli jej nie dotrzyma – przewiduje rekompensatę. Bez zapisu o rekompensacie sama liczba jest tylko deklaracją.
 
 ## Ile to jest w praktyce
 
@@ -29,9 +29,9 @@ Wyższa liczba wygląda lepiej, ale liczy się też, **czy jest poparta rekompen
 
 ## Dlaczego rekompensata jest ważniejsza niż sama liczba
 
-„99,9% uptime" bez zapisu o rekompensacie to obietnica bez konsekwencji. Uczciwe SLA mówi wprost, co dostajesz, gdy dostawca nie dotrzyma słowa — najczęściej w postaci **kredytów** naliczanych według skali niedostępności. To zamienia marketingowy slogan w realne zobowiązanie.
+„99,9% uptime" bez zapisu o rekompensacie to obietnica bez konsekwencji. Uczciwe SLA mówi wprost, co dostajesz, gdy dostawca nie dotrzyma słowa – najczęściej w postaci **kredytów** naliczanych według skali niedostępności. To zamienia marketingowy slogan w realne zobowiązanie.
 
-W Verris obowiązuje [SLA 99,5% z rekompensatami](/funkcje/sla) zapisanymi w regulaminie — kredyty zależne od skali niedostępności, przyznawane na wniosek. Świadomie nie obiecujemy „100% uptime", bo takiej gwarancji nie da się dotrzymać uczciwie.
+W Verris obowiązuje [SLA 99,5% z rekompensatami](/funkcje/sla) zapisanymi w regulaminie – kredyty zależne od skali niedostępności, przyznawane na wniosek. Świadomie nie obiecujemy „100% uptime", bo takiej gwarancji nie da się dotrzymać uczciwie.
 
 ## Jak czytać gwarancje dostępności
 
@@ -43,10 +43,10 @@ W Verris obowiązuje [SLA 99,5% z rekompensatami](/funkcje/sla) zapisanymi w reg
 ## FAQ
 
 **Czy 99,5% to dużo, czy mało?**
-To realny, uczciwy poziom dla hostingu współdzielonego — pod warunkiem, że jest poparty rekompensatą. Liczby w rodzaju „100%" traktuj z ostrożnością.
+To realny, uczciwy poziom dla hostingu współdzielonego – pod warunkiem, że jest poparty rekompensatą. Liczby w rodzaju „100%" traktuj z ostrożnością.
 
 **Co dostanę, jeśli dostawca nie dotrzyma SLA?**
-W Verris — kredyty naliczane według skali niedostępności, zgodnie z regulaminem.
+W Verris – kredyty naliczane według skali niedostępności, zgodnie z regulaminem.
 
 ---
 

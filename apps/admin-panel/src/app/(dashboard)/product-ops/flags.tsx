@@ -29,7 +29,7 @@ export function FeatureFlags({ rows }: { rows: FeatureFlagRow[] }) {
       <p className="text-xs text-muted-foreground">
         Flagi <code>modul.*</code> włączają i wyłączają moduły panelu klienta bez wdrożenia (brak flagi = moduł
         włączony). Flagi <code>beta.*</code> włączają funkcje w becie (brak flagi = wyłączona; zakładana wyłączona).
-        Pozostałe klucze nic nie sterują — kod ich nie czyta.
+        Pozostałe klucze nic nie sterują – kod ich nie czyta.
       </p>
       <ul className="m-0 list-none space-y-2 p-0">
         {rows.map((f) => {

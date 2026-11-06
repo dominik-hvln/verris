@@ -65,7 +65,7 @@ export function MailLogPanel({ serviceId }: { serviceId: string }) {
         desc={
           stan?.wczytano
             ? `Stan z ${new Date(stan.wczytano).toLocaleString('pl-PL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}${stan.adres ? ` · adres ${stan.adres}` : ''}. Najnowsze na górze.`
-            : 'Sprawdź, czy wiadomość przyszła albo wyszła, a jeśli nie — dlaczego. Pokazujemy tylko pocztę domen tej usługi.'
+            : 'Sprawdź, czy wiadomość przyszła albo wyszła, a jeśli nie – dlaczego. Pokazujemy tylko pocztę domen tej usługi.'
         }
       />
       {bladWczytania && !stan ? <p role="alert" className="m-0 my-2 rounded-[8px] border border-line px-3 py-2 text-[13px] text-crit">Nie udało się wczytać: {bladWczytania}</p> : null}

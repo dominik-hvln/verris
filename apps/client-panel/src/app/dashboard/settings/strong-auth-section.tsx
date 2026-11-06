@@ -42,7 +42,7 @@ export function StrongAuthSection({ initialEnabled, hasFactor, showToast }: Prop
           <Lock className="h-5 w-5" /> Wymóg silnego logowania
         </h3>
         <p className="mt-1 text-sm text-neutral-400">
-          Gdy włączone, logowanie samym hasłem nie wystarczy — wymagany jest passkey lub kod 2FA.
+          Gdy włączone, logowanie samym hasłem nie wystarczy – wymagany jest passkey lub kod 2FA.
           Najmocniejsza ochrona przed przejęciem konta.
         </p>
       </div>
@@ -57,7 +57,7 @@ export function StrongAuthSection({ initialEnabled, hasFactor, showToast }: Prop
         <div className="flex items-center gap-3">
           <ShieldCheck className={`h-5 w-5 ${enabled ? "text-emerald-300" : "text-neutral-500"}`} />
           <span className="text-sm text-white">
-            {enabled ? "Włączone — logowanie wymaga 2FA/passkey" : "Wyłączone"}
+            {enabled ? "Włączone – logowanie wymaga 2FA/passkey" : "Wyłączone"}
           </span>
         </div>
         <div className="flex items-center gap-2">

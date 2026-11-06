@@ -24,7 +24,7 @@ export const AKCJE_PRZYPOMNIEN: Record<string, string> = {
   WALLET_LOW_BALANCE_NOTIFIED: 'Niskie saldo portfela',
   WALLET_AUTO_TOPUP_FAILED: 'Nieudane auto-doładowanie',
   WALLET_AUTOTOPUP_PAYMENT_FAILED: 'Karta odrzuciła auto-doładowanie',
-  SUBSCRIPTION_PAST_DUE: 'Nieudane odnowienie — usługa zaległa',
+  SUBSCRIPTION_PAST_DUE: 'Nieudane odnowienie – usługa zaległa',
   SUBSCRIPTION_SUSPENDED: 'Usługa zawieszona',
   SUBSCRIPTION_UNSUSPENDED: 'Usługa wznowiona',
   SUBSCRIPTION_EXPIRED: 'Usługa wygasła',
@@ -70,7 +70,7 @@ export function prognozaWindykacji(s: UslugaDoPrognozy, teraz: Date): Prognoza {
   const bez = (uwaga: string): Prognoza => ({ etap: 'bez-windykacji', probaOdnowienia: null, zawieszenie: null, wygasniecie: null, uwaga });
   const karta = s.paymentSource === 'STRIPE_CARD' && !!s.stripeSubscriptionId;
 
-  if (s.paymentSource === 'MANUAL') return bez('Rozliczenie poza Verris — bez przypomnień i automatycznego zawieszenia.');
+  if (s.paymentSource === 'MANUAL') return bez('Rozliczenie poza Verris – bez przypomnień i automatycznego zawieszenia.');
 
   if (s.status === 'SUSPENDED') {
     const z = s.ostatnieZawieszenie;
@@ -82,7 +82,7 @@ export function prognozaWindykacji(s: UslugaDoPrognozy, teraz: Date): Prognoza {
         probaOdnowienia: null,
         zawieszenie: z.kiedy,
         wygasniecie: null,
-        uwaga: 'Zawieszona przez obsługę, z zaległą płatnością — nie wygaśnie sama i nie wróci po wpłacie; o zaległości i końcu usługi decyduje obsługa.',
+        uwaga: 'Zawieszona przez obsługę, z zaległą płatnością – nie wygaśnie sama i nie wróci po wpłacie; o zaległości i końcu usługi decyduje obsługa.',
       };
     }
     if (!z || !POWODY_ZAWIESZENIA_ZA_PLATNOSC.some((p) => p === z.powod)) {
@@ -91,7 +91,7 @@ export function prognozaWindykacji(s: UslugaDoPrognozy, teraz: Date): Prognoza {
         probaOdnowienia: null,
         zawieszenie: z?.kiedy ?? null,
         wygasniecie: null,
-        uwaga: 'Zawieszona przez obsługę (nie za brak płatności) — nie wygaśnie sama i nie wróci po wpłacie.',
+        uwaga: 'Zawieszona przez obsługę (nie za brak płatności) – nie wygaśnie sama i nie wróci po wpłacie.',
       };
     }
     return {
@@ -117,17 +117,17 @@ export function prognozaWindykacji(s: UslugaDoPrognozy, teraz: Date): Prognoza {
       wygasniecie: null,
       uwaga:
         s.paymentPromiseUntil && s.paymentPromiseUntil > teraz
-          ? `Obietnica zapłaty — bez zawieszenia do ${s.paymentPromiseUntil.toISOString()}.`
+          ? `Obietnica zapłaty – bez zawieszenia do ${s.paymentPromiseUntil.toISOString()}.`
           : karta
-            ? 'Płatność kartą odrzucona — operator kart ponawia sam.'
-            : 'Za mało środków w portfelu — doładowanie opłaci usługę w najbliższym przebiegu.',
+            ? 'Płatność kartą odrzucona – operator kart ponawia sam.'
+            : 'Za mało środków w portfelu – doładowanie opłaci usługę w najbliższym przebiegu.',
     };
   }
 
   if (s.status !== 'ACTIVE') return bez('Usługa nie jest aktywna.');
-  if (s.isTrial) return bez('Okres próbny — jego koniec obsługuje osobny harmonogram.');
-  if (s.cancelAt) return bez('Anulowana na koniec okresu — nie odnowi się i nie będzie obciążenia.');
-  if (karta) return bez('Odnowienie kartą cykliczną — przy odmowie usługa przejdzie w zaległą (operator kart ponawia sam).');
+  if (s.isTrial) return bez('Okres próbny – jego koniec obsługuje osobny harmonogram.');
+  if (s.cancelAt) return bez('Anulowana na koniec okresu – nie odnowi się i nie będzie obciążenia.');
+  if (karta) return bez('Odnowienie kartą cykliczną – przy odmowie usługa przejdzie w zaległą (operator kart ponawia sam).');
   if (!s.currentPeriodEnd) return bez('Brak daty końca okresu.');
 
   return {
@@ -135,7 +135,7 @@ export function prognozaWindykacji(s: UslugaDoPrognozy, teraz: Date): Prognoza {
     probaOdnowienia: new Date(s.currentPeriodEnd.getTime() - OKNO_ODNOWIENIA_MS),
     zawieszenie: pozniej(new Date(s.currentPeriodEnd.getTime() + KARENCJA_PLATNOSCI_DNI * DZIEN), s.currentPeriodEnd),
     wygasniecie: null,
-    uwaga: 'Odnowienie z portfela — przy braku środków zawieszenie z końcem opłaconego okresu.',
+    uwaga: 'Odnowienie z portfela – przy braku środków zawieszenie z końcem opłaconego okresu.',
   };
 }
 

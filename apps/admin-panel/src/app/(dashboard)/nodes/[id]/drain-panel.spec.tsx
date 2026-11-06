@@ -17,7 +17,7 @@ Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 const przycisk = (tekst: string) => [...document.querySelectorAll("button")].find((b) => b.textContent?.includes(tekst))!;
 
 /** Przegląd 10.10 — „Rozpocznij wycofanie” zmieniało węzeł jednym kliknięciem, bez okna (nagłówek karty pyta). */
-describe("Wycofanie węzła — potwierdzenie", () => {
+describe("Wycofanie węzła – potwierdzenie", () => {
   let root: Root;
   let el: HTMLElement;
   beforeEach(async () => {

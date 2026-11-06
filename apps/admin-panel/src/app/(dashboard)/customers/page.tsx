@@ -207,7 +207,7 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
                       2FA
                     </Pigulka>
                   ) : (
-                    <span className="text-[13px] text-muted-foreground">—</span>
+                    <span className="text-[13px] text-muted-foreground">–</span>
                   )}
                 </span>
                 <span className="flex w-[210px] flex-wrap items-center justify-end gap-1.5">
@@ -227,7 +227,7 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
                     </Pigulka>
                   ) : null}
                   {user.anonymizedAt ? (
-                    <span className="text-[13px] text-muted-foreground" title="Dane usunięte na wniosek klienta (RODO) — brak operacji na koncie.">
+                    <span className="text-[13px] text-muted-foreground" title="Dane usunięte na wniosek klienta (RODO) – brak operacji na koncie.">
                       zanonimizowane
                     </span>
                   ) : (

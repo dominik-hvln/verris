@@ -67,7 +67,7 @@ describe('ZawieszenieOperatoraService', () => {
   });
 
   it.each(['PAYMENT_FAILED', 'GRACE_EXPIRED'])(
-    'przegląd: usługa zawieszona za brak płatności (%s) — STAFF bez BILLING_MANAGE nie odwiesza (403), z nim i ADMIN tak',
+    'przegląd: usługa zawieszona za brak płatności (%s) – STAFF bez BILLING_MANAGE nie odwiesza (403), z nim i ADMIN tak',
     async (powod) => {
       const l3 = serwis(undefined, { powodZawieszenia: powod, aktor: { role: 'STAFF', uprawnienia: ['SUBSCRIPTIONS_SUSPEND'] } });
       await expect(l3.svc.odwies({ subscriptionId: 's1', aktorUserId: 'op', aktorRola: 'STAFF', powod: 'klient obiecał zapłacić' })).rejects.toThrow(ForbiddenException);
@@ -81,14 +81,14 @@ describe('ZawieszenieOperatoraService', () => {
     },
   );
 
-  it('przegląd: zawieszenie z innego powodu (nadużycie) — L3 odwiesza bez BILLING_MANAGE', async () => {
+  it('przegląd: zawieszenie z innego powodu (nadużycie) – L3 odwiesza bez BILLING_MANAGE', async () => {
     const { svc, subs } = serwis(undefined, { powodZawieszenia: 'ABUSE', aktor: { role: 'STAFF', uprawnienia: ['SUBSCRIPTIONS_SUSPEND'] } });
     await svc.odwies({ subscriptionId: 's1', aktorUserId: 'op', aktorRola: 'STAFF' });
     expect(subs.unsuspend).toHaveBeenCalled();
   });
 
   it.each(['ADMIN', 'STAFF'])(
-    'audyt Fal 2: STAFF nie zawiesza ani nie odwiesza usługi konta zespołu (%s) — 403 przed węzłem; ADMIN tak',
+    'audyt Fal 2: STAFF nie zawiesza ani nie odwiesza usługi konta zespołu (%s) – 403 przed węzłem; ADMIN tak',
     async (wlasciciel) => {
       const { svc, subs } = serwis(undefined, { wlasciciel, aktor: { role: 'STAFF', uprawnienia: ['SUBSCRIPTIONS_SUSPEND'] } });
       await expect(svc.zawies({ subscriptionId: 's1', aktorUserId: 'op', aktorRola: 'STAFF', reason: 'ABUSE', powod: 'phishing na stronie' })).rejects.toThrow(/usługę konta zespołu/);

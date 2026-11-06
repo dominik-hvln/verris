@@ -12,7 +12,7 @@ import { ETAPY, nazwaEtapu, opisZdarzenia, type ObslugaMigracji, type PodgladRap
 const POLE = "rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs text-white";
 const PRZYCISK = "rounded-lg border px-3 py-1.5 text-xs disabled:opacity-50";
 const kiedy = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleString("pl-PL", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Warsaw" }) : "—";
+  iso ? new Date(iso).toLocaleString("pl-PL", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Warsaw" }) : "–";
 /** ISO → wartość PoleDaty („2026-10-11” albo „2026-10-11T14:30”) w czasie lokalnym przeglądarki. */
 const doPola = (iso: string | null, zGodzina = false) => {
   if (!iso) return "";
@@ -200,7 +200,7 @@ function Terminy({ o, pending, wykonaj }: Props) {
         <p
           className={`text-xs ${o.terminStan.stan === "po-terminie" ? "text-rose-300" : o.terminStan.stan === "blisko" ? "text-amber-200" : "text-muted-foreground"}`}
         >
-          {o.terminStan.stan === "po-terminie" ? "Po terminie — " : "Najbliższy termin: "}
+          {o.terminStan.stan === "po-terminie" ? "Po terminie – " : "Najbliższy termin: "}
           {o.terminStan.opis}, {kiedy(o.terminStan.data)}
         </p>
       ) : null}
@@ -260,7 +260,7 @@ function Terminy({ o, pending, wykonaj }: Props) {
           onClick={() => wykonaj("ustawienia", { przerywacz: !o.przerywacz }, o.przerywacz ? "Zdjęto Przerywacz." : "Oznaczono jako Przerywacz.")}
           className={`${PRZYCISK} ${o.przerywacz ? "border-rose-500/50 bg-rose-500/20 text-rose-100" : "border-white/15 text-muted-foreground hover:border-white/30"}`}
         >
-          {o.przerywacz ? "Przerywacz — zdejmij" : "Oznacz jako Przerywacz"}
+          {o.przerywacz ? "Przerywacz – zdejmij" : "Oznacz jako Przerywacz"}
         </button>
         <Pomoc id="przerywacz" />
       </div>
@@ -285,7 +285,7 @@ function Checklista({ o, pending, wykonaj, subscriptionId }: Props & { subscript
           onChange={(e) => wykonaj("checklista", { pole: "ttl300", wartosc: e.target.checked }, e.target.checked ? "TTL 300 odhaczone." : "TTL 300 odznaczone.")}
         />
         TTL domen zmienione na 300 <span className="text-muted-foreground">(przed zmianą DNS)</span>
-        {ttl ? <span className="text-[11px] text-muted-foreground">· {ttl.przez ?? "—"}, {kiedy(ttl.at)}</span> : null}
+        {ttl ? <span className="text-[11px] text-muted-foreground">· {ttl.przez ?? "–"}, {kiedy(ttl.at)}</span> : null}
       </label>
       {POLA_TEKSTOWE.map((p) => {
         const w = o.checklista[p.pole];
@@ -294,7 +294,7 @@ function Checklista({ o, pending, wykonaj, subscriptionId }: Props & { subscript
             <p className="text-[11px] text-muted-foreground">
               <span className={w ? "text-emerald-300" : ""}>{w ? "✓ " : ""}{p.nazwa}</span> ({p.etap}
               {p.doKlienta ? ", trafi do klienta" : ""})
-              {w ? ` · ${w.przez ?? "—"}, ${kiedy(w.at)}` : ""}
+              {w ? ` · ${w.przez ?? "–"}, ${kiedy(w.at)}` : ""}
             </p>
             <div className="flex flex-wrap items-start gap-2">
               <textarea

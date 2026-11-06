@@ -50,7 +50,7 @@ async function wybierz(el: HTMLElement, pole: string, opcja: string) {
 describe('SslPlatne', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('bez cennika i zamówień — nic nie renderuje', async () => {
+  it('bez cennika i zamówień – nic nie renderuje', async () => {
     mockFetch.mockResolvedValue({ ok: true, dane: { oferta: [], zamowienia: [] } });
     const { el, root } = await renderuj();
     expect(el.textContent).toBe('');

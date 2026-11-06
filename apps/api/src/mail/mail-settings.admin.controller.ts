@@ -54,7 +54,7 @@ export class MailSettingsAdminController {
 
     const result = await this.mailer.send({
       to,
-      subject: 'Verris — test wysyłki SMTP',
+      subject: 'Verris – test wysyłki SMTP',
       text:
         'To jest testowa wiadomość z panelu admina Verris. Jeśli ją widzisz, konfiguracja SMTP działa.',
       html: '<p>To jest <strong>testowa wiadomość</strong> z panelu admina Verris.</p>',

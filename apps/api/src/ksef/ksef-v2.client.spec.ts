@@ -29,7 +29,7 @@ const odpowiedz = (status: number, body: unknown) =>
 
 afterEach(() => vi.unstubAllGlobals());
 
-describe('KsefV2Client.sendInvoice — kod 21184 (API 2.8.0)', () => {
+describe('KsefV2Client.sendInvoice – kod 21184 (API 2.8.0)', () => {
   it('21184: otwiera nową sesję i wysyła w niej fakturę', async () => {
     const adresy: string[] = [];
     vi.stubGlobal('fetch', vi.fn(async (url: string) => {

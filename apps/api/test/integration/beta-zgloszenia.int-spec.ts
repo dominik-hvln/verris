@@ -21,7 +21,7 @@ function uslugi() {
 const formularz = (email = 'Tester@Firma.pl'): ZgloszenieBetaDto =>
   ({ imie: 'Tester', email, zakres: ['WORDPRESS'], zgoda: true, zgodaTekst: 'Chcę dostać zaproszenie do testów', utm: { source: 'facebook' } }) as ZgloszenieBetaDto;
 
-describe('Otwarta beta — zgłoszenia z verris.pl/beta', () => {
+describe('Otwarta beta – zgłoszenia z verris.pl/beta', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 
@@ -59,7 +59,7 @@ describe('Otwarta beta — zgłoszenia z verris.pl/beta', () => {
     expect(maile.filter((m) => m.tag === 'beta.invite')).toHaveLength(przed + 1);
   });
 
-  it('A1-01 — potwierdzonego zgłoszenia osoba trzecia nie nadpisze; zmiana wchodzi dopiero po linku z maila, stara zgoda w dzienniku', async () => {
+  it('A1-01 – potwierdzonego zgłoszenia osoba trzecia nie nadpisze; zmiana wchodzi dopiero po linku z maila, stara zgoda w dzienniku', async () => {
     const { zgl, maile } = uslugi();
     await zgl.zglos({ ...formularz('ofiara@firma.pl'), imie: 'Ofiara', uwagi: 'Moje uwagi' } as ZgloszenieBetaDto, { ip: '10.0.0.1' });
     const z = await prisma().betaZgloszenie.findFirstOrThrow();
@@ -83,7 +83,7 @@ describe('Otwarta beta — zgłoszenia z verris.pl/beta', () => {
     expect(await zgl.potwierdz(po.zmianaToken!)).toEqual({ stan: 'NIEAKTUALNY' });
   });
 
-  it('A1-01 — w ciągu doby od maila kolejne wysłanie nie podmienia oczekującej zmiany ani nie wysyła maila', async () => {
+  it('A1-01 – w ciągu doby od maila kolejne wysłanie nie podmienia oczekującej zmiany ani nie wysyła maila', async () => {
     const { zgl, maile } = uslugi();
     await zgl.zglos(formularz('a@b.pl'), {});
     const z = await prisma().betaZgloszenie.findFirstOrThrow();
@@ -114,7 +114,7 @@ describe('Otwarta beta — zgłoszenia z verris.pl/beta', () => {
     expect(zostaly).toEqual(['n6@t.pl', 'w30@t.pl', 'z200@t.pl']);
   });
 
-  it('usunięcie zaproszenia (kodu) nie kasuje zgłoszenia — tylko zrywa powiązanie', async () => {
+  it('usunięcie zaproszenia (kodu) nie kasuje zgłoszenia – tylko zrywa powiązanie', async () => {
     const { zgl } = uslugi();
     await zgl.zglos(formularz('a@b.pl'), {});
     const z = await prisma().betaZgloszenie.findFirstOrThrow();

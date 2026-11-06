@@ -106,7 +106,7 @@ describe('Retencja formularzy www (A2-02)', () => {
     expect(s.prisma.siteLead.deleteMany).toHaveBeenCalledWith({ where: warunekRetencjiLeadow(now) });
   });
 
-  it('progi: telefon 90 dni, kontakt 12 miesięcy, niepotwierdzona zgoda 7 dni — każdy rodzaj formularza ma okres', () => {
+  it('progi: telefon 90 dni, kontakt 12 miesięcy, niepotwierdzona zgoda 7 dni – każdy rodzaj formularza ma okres', () => {
     const now = new Date('2026-12-01T00:00:00Z');
     const lub = warunekRetencjiLeadow(now).OR as Array<Record<string, { lt?: Date } | string | object>>;
     const prog = (kind: string, status?: string) =>

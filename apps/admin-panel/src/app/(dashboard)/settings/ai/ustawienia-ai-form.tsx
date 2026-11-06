@@ -71,10 +71,10 @@ export function UstawieniaAiForm({ initial }: { initial: UstawieniaAi }) {
             Asystent AI dla wszystkich klientów
             <span className="block text-[11px] text-neutral-400">
               {(initial.kontaTestowe ?? 0) === 0
-                ? 'Lista kont testowych na serwerze jest pusta — asystent działa dla wszystkich niezależnie od tego pola.'
+                ? 'Lista kont testowych na serwerze jest pusta – asystent działa dla wszystkich niezależnie od tego pola.'
                 : konf.dlaWszystkichKlientow
-                  ? `Lista kont testowych z serwera (${initial.kontaTestowe}) nie obowiązuje — asystent dla każdego klienta.`
-                  : `Teraz tylko konta testowe z serwera (${initial.kontaTestowe}). Włącz po publikacji polityki prywatności 1.2.0 — bez zmian w konfiguracji serwera.`}
+                  ? `Lista kont testowych z serwera (${initial.kontaTestowe}) nie obowiązuje – asystent dla każdego klienta.`
+                  : `Teraz tylko konta testowe z serwera (${initial.kontaTestowe}). Włącz po publikacji polityki prywatności 1.2.0 – bez zmian w konfiguracji serwera.`}
             </span>
           </span>
         </label>
@@ -88,7 +88,7 @@ export function UstawieniaAiForm({ initial }: { initial: UstawieniaAi }) {
         return (
           <fieldset key={p} className="space-y-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
             <legend className="px-1 text-sm font-semibold text-white">
-              {p === 'szybki' ? 'Szybki — czat i podpowiedzi' : 'Analiza — prognozy i szkice obsługi'}
+              {p === 'szybki' ? 'Szybki – czat i podpowiedzi' : 'Analiza – prognozy i szkice obsługi'}
             </legend>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
@@ -104,7 +104,7 @@ export function UstawieniaAiForm({ initial }: { initial: UstawieniaAi }) {
                 />
                 {!klucze[dostawca] ? (
                   <span className="block text-[11px] text-amber-300">
-                    Brak klucza {dostawca === 'openai' ? 'AI_API_KEY' : 'ANTHROPIC_API_KEY'} na serwerze — ten poziom będzie wyłączony.
+                    Brak klucza {dostawca === 'openai' ? 'AI_API_KEY' : 'ANTHROPIC_API_KEY'} na serwerze – ten poziom będzie wyłączony.
                   </span>
                 ) : null}
               </div>
@@ -129,13 +129,13 @@ export function UstawieniaAiForm({ initial }: { initial: UstawieniaAi }) {
                 />
                 {!konf.ceny[model] && model ? (
                   <span className="block text-[11px] text-amber-300">
-                    Dodaj cenę tego modelu niżej — bez niej koszt liczony jest zawyżonym szacunkiem ($20/$100).
+                    Dodaj cenę tego modelu niżej – bez niej koszt liczony jest zawyżonym szacunkiem ($20/$100).
                   </span>
                 ) : null}
               </label>
             ) : null}
             <p className="text-[11px] text-neutral-400">
-              Szacunek: {k !== null ? <strong className="text-white">{usd(k)}</strong> : '—'} za wywołanie
+              Szacunek: {k !== null ? <strong className="text-white">{usd(k)}</strong> : '–'} za wywołanie
               {k !== null ? <> · {usd(k * 1000)} za 1000 wywołań</> : null} ({TYPOWE[p].opis}).
             </p>
           </fieldset>
@@ -173,7 +173,7 @@ export function UstawieniaAiForm({ initial }: { initial: UstawieniaAi }) {
         </label>
         <p className="text-[11px] text-neutral-400">
           Wszystkie funkcje AI razem (klienci i obsługa). Po przekroczeniu AI wyłącza się do 1. dnia miesiąca, a administratorzy
-          dostają powiadomienie. Prognoza zasobów działa dalej — bez komentarza AI.
+          dostają powiadomienie. Prognoza zasobów działa dalej – bez komentarza AI.
         </p>
       </div>
 
@@ -196,7 +196,7 @@ export function UstawieniaAiForm({ initial }: { initial: UstawieniaAi }) {
                   <td key={pole} className="py-1.5 pr-3">
                     <PoleLiczby
                       value={c[pole]}
-                      aria-label={`${m} — cena ${pole === 'wej' ? 'wejścia' : 'wyjścia'}`}
+                      aria-label={`${m} – cena ${pole === 'wej' ? 'wejścia' : 'wyjścia'}`}
                       onChange={(n) => ustawCene(m, pole, n)}
                       className={`${POLE} max-w-[120px]`}
                     />
@@ -239,7 +239,7 @@ export function UstawieniaAiForm({ initial }: { initial: UstawieniaAi }) {
           Zapisz ustawienia AI
         </button>
         <span role="status" className="text-xs">
-          {stan.ok ? <span className="text-emerald-300">Zapisano — działa od razu.</span> : null}
+          {stan.ok ? <span className="text-emerald-300">Zapisano – działa od razu.</span> : null}
           {stan.error ? <span className="text-rose-300">{stan.error}</span> : null}
         </span>
       </div>

@@ -86,7 +86,7 @@ export default async function AdminTicketsPage({ searchParams }: { searchParams:
         <div className="flex flex-col gap-2">
           <Eyebrow>Klienci i usługi</Eyebrow>
           <h1 className="text-[32px] lg:text-[40px]">Zgłoszenia</h1>
-          <span className="text-[15px] text-muted-foreground">Widok admina — odpowiadanie i przypisywanie odbywa się w panelu obsługi.</span>
+          <span className="text-[15px] text-muted-foreground">Widok admina – odpowiadanie i przypisywanie odbywa się w panelu obsługi.</span>
         </div>
         {staffPanelUrl ? (
           <a href={staffPanelUrl} target="_blank" rel="noreferrer" className={`${PRZYCISK} ml-auto`}>

@@ -243,7 +243,7 @@ export class UsersService {
       const passkeys = await this.prisma.webAuthnCredential.count({ where: { userId } });
       if (!user.isTwoFactorEnabled && passkeys === 0) {
         throw new BadRequestException(
-          'Najpierw włącz 2FA lub dodaj passkey — bez drugiego składnika nie można wymusić silnego logowania.',
+          'Najpierw włącz 2FA lub dodaj passkey – bez drugiego składnika nie można wymusić silnego logowania.',
         );
       }
     }
@@ -288,7 +288,7 @@ export class UsersService {
         throw e;
       }
     }
-    throw new BadRequestException('Nie udało się nadać unikalnego kodu polecenia — spróbuj ponownie.');
+    throw new BadRequestException('Nie udało się nadać unikalnego kodu polecenia – spróbuj ponownie.');
   }
 
   async listEcoLedger(userId: string, take = 50) {
@@ -326,7 +326,7 @@ export class UsersService {
     });
     if (!referrerEnrollment || referrerEnrollment.status !== 'APPROVED') {
       throw new BadRequestException(
-        'Ten kod polecenia nie jest jeszcze aktywny — właściciel musi dołączyć do programu partnerskiego.',
+        'Ten kod polecenia nie jest jeszcze aktywny – właściciel musi dołączyć do programu partnerskiego.',
       );
     }
 

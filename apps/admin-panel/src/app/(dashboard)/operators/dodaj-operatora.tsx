@@ -41,7 +41,7 @@ export function DodajOperatora({ role }: { role: RoleRow[] }) {
           value={roleId}
           onChange={setRoleId}
           className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
-          options={[{ value: "", label: "— rola —" }, ...role.map((r) => ({ value: r.id, label: r.name }))]}
+          options={[{ value: "", label: "– rola –" }, ...role.map((r) => ({ value: r.id, label: r.name }))]}
         />
         <button type="button" onClick={dodaj} disabled={pending} className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-500 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-400 disabled:opacity-40">
           <Plus className="h-4 w-4" /> Dodaj

@@ -29,7 +29,7 @@ export interface FakturaSzczegoly extends AdminInvoiceRow {
 }
 
 const TON_STATUSU: Record<string, "ok" | "warn" | "crit" | "muted"> = { PAID: "ok", OPEN: "warn", DRAFT: "muted", VOID: "muted", UNCOLLECTIBLE: "crit" };
-const kiedy = (iso: string | null) => (iso ? new Date(iso).toLocaleString("pl-PL", { timeZone: "Europe/Warsaw" }) : "—");
+const kiedy = (iso: string | null) => (iso ? new Date(iso).toLocaleString("pl-PL", { timeZone: "Europe/Warsaw" }) : "–");
 
 /**
  * Strona faktury (plan E, patch 10). PDF, korekta, anulowanie (z listy faktur) i ponowienie KSeF (wcześniej
@@ -114,7 +114,7 @@ export default async function FakturaPage({ params }: { params: Promise<{ invoic
               {domenaDoWyswietlenia(f.subscription.domain) ?? f.subscription.planName ?? "usługa"}
             </LinkJesli>
           ) : (
-            "—"
+            "–"
           )}
         </Para>
         {f.korygowana ? (
@@ -268,7 +268,7 @@ function Zablokowane({ powod, children }: { powod: string; children: React.React
   return (
     <span aria-disabled="true" title={powod} className={`${PRZYCISK} cursor-not-allowed self-start opacity-50`}>
       {children}
-      <span className="sr-only"> — {powod}</span>
+      <span className="sr-only"> – {powod}</span>
     </span>
   );
 }

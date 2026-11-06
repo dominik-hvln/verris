@@ -39,14 +39,14 @@ describe('KafelWydajnosci', () => {
   it('blisko planu bez autoskalowania: podpowiedź; w normie: „w normie”; brak danych: kreska', () => {
     expect(tekst(renderToStaticMarkup(
       <KafelWydajnosci wartosci={[180]} etykiety={etykiety} limitPlanu={200} autoskalowanie={false} />,
-    ))).toContain('blisko mocy planu — rozważ autoskalowanie');
+    ))).toContain('blisko mocy planu – rozważ autoskalowanie');
     expect(tekst(renderToStaticMarkup(
       <KafelWydajnosci wartosci={[40]} etykiety={etykiety} limitPlanu={200} autoskalowanie />,
     ))).toContain('w normie');
     const pusty = tekst(renderToStaticMarkup(
       <KafelWydajnosci wartosci={[]} etykiety={[]} limitPlanu={200} autoskalowanie />,
     ));
-    expect(pusty).toContain('—');
+    expect(pusty).toContain('–');
     expect(pusty).toContain('brak pomiarów z 24 h');
   });
 });

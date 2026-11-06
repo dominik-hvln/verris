@@ -13,7 +13,7 @@ export const revalidate = 300;
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const meta = docByKind((await params).kind.toUpperCase());
-  return meta ? { title: `Historia wersji: ${meta.label} — Verris` } : {};
+  return meta ? { title: `Historia wersji: ${meta.label} – Verris` } : {};
 }
 
 export default async function LegalVersionsPage({ params }: PageProps) {
@@ -43,7 +43,7 @@ export default async function LegalVersionsPage({ params }: PageProps) {
         </nav>
         <h1 className="mt-2 font-display text-3xl font-extrabold tracking-tight sm:text-4xl">Historia wersji</h1>
         <p className="mt-3 text-muted-foreground">
-          {meta.label} — pełny rejestr opublikowanych wersji dokumentu (przejrzystość wobec RODO).
+          {meta.label} – pełny rejestr opublikowanych wersji dokumentu (przejrzystość wobec RODO).
         </p>
 
         <ol className="mt-8 divide-y divide-line rounded-lg border border-line bg-card">

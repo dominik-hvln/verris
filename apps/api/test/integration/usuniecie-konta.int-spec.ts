@@ -56,7 +56,7 @@ describe('X-04 usunięcie konta (RODO)', () => {
     expect((await prisma().accountDeletionRequest.findUniqueOrThrow({ where: { userId: k.user.id } })).anonymizedAt).not.toBeNull();
   });
 
-  it('przegląd D11 — log kontaktów i checklista obsługi migracji znikają z anonimizacją; zlecenie zostaje', async () => {
+  it('przegląd D11 – log kontaktów i checklista obsługi migracji znikają z anonimizacją; zlecenie zostaje', async () => {
     const k = await zWnioskiem();
     const mig = await prisma().migrationRequest.create({
       data: {
@@ -70,7 +70,7 @@ describe('X-04 usunięcie konta (RODO)', () => {
     expect((await prisma().migrationRequest.findUniqueOrThrow({ where: { id: mig.id } })).checklista).toEqual({});
   });
 
-  it('audyt Fal 2 — notatki w wątku, tagi, powód blokady wysyłki i jawne adresy z wniosków znikają; wnioski zostają', async () => {
+  it('audyt Fal 2 – notatki w wątku, tagi, powód blokady wysyłki i jawne adresy z wniosków znikają; wnioski zostają', async () => {
     const k = await zWnioskiem();
     const p = prisma();
     const stary = k.user.email;
@@ -120,7 +120,7 @@ describe('X-04 usunięcie konta (RODO)', () => {
     expect(dzwonki.map((n) => n.body)).toEqual([`klient ${obcy}`, 'Ktoś prosi o: Zmiana adresu e-mail na [zanonimizowano] · klient [zanonimizowano]. Uzasadnienie: …']);
   });
 
-  it('przegląd poprawek — kopie uzasadnienia i powodu odrzucenia w dzwonkach i dzienniku oraz adres sprzed zmiany przez obsługę znikają', async () => {
+  it('przegląd poprawek – kopie uzasadnienia i powodu odrzucenia w dzwonkach i dzienniku oraz adres sprzed zmiany przez obsługę znikają', async () => {
     const k = await zWnioskiem();
     const p = prisma();
     const ts = Date.now();
@@ -164,11 +164,11 @@ describe('X-04 usunięcie konta (RODO)', () => {
     expect(dziennik).not.toMatch(/Nowak|600 100 200/);
   });
 
-  it('audyt Fali 3 — kopie powodów (dziennik, zdarzenia), wyniki zadań węzła kont i pliki poczty przychodzącej znikają', async () => {
+  it('audyt Fali 3 – kopie powodów (dziennik, zdarzenia), wyniki zadań węzła kont i pliki poczty przychodzącej znikają', async () => {
     const k = await zWnioskiem();
     const p = prisma();
     const op = await p.user.create({ data: { email: `op4-${Date.now()}@test.verris.pl`, passwordHash: 'x', role: 'STAFF' } });
-    const powod = 'Klient stracił pracę, zapłaci 15-go — prosił o przesunięcie (Jan Kowalski)';
+    const powod = 'Klient stracił pracę, zapłaci 15-go – prosił o przesunięcie (Jan Kowalski)';
     const zgl = await p.ticket.create({ data: { userId: k.user.id, subject: 'Faktura', message: 'x', escalationReason: powod, riskFlag: 'ABUSE', riskReason: powod } });
     await p.ticketEvent.createMany({
       data: [

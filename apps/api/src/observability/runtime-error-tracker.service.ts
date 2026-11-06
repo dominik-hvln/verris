@@ -54,7 +54,7 @@ export class RuntimeErrorTracker {
     if (this.dsn) {
       this.logger.log(`Runtime error forwarding → GlitchTip/Sentry (${this.dsn.host}).`);
     } else {
-      this.logger.log('SENTRY_DSN/GLITCHTIP_DSN brak — błędy tylko lokalnie (ring + /metrics).');
+      this.logger.log('SENTRY_DSN/GLITCHTIP_DSN brak – błędy tylko lokalnie (ring + /metrics).');
     }
   }
 
@@ -205,7 +205,7 @@ export class RuntimeErrorTracker {
         port: u.port || undefined,
       };
     } catch {
-      this.logger.warn('Nieprawidłowy SENTRY_DSN/GLITCHTIP_DSN — forwarding wyłączony.');
+      this.logger.warn('Nieprawidłowy SENTRY_DSN/GLITCHTIP_DSN – forwarding wyłączony.');
       return null;
     }
   }

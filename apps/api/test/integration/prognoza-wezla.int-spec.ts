@@ -11,7 +11,7 @@ import { prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } fr
  */
 const godzinaPl = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', hourCycle: 'h23', timeZone: 'Europe/Warsaw' });
 
-describe('Prognoza węzła — dane z UsageMetric', () => {
+describe('Prognoza węzła – dane z UsageMetric', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 
@@ -77,7 +77,7 @@ describe('Prognoza węzła — dane z UsageMetric', () => {
     expect(f.wezly.find((x) => x.id === inny.id)).toMatchObject({ dostepna: false });
   });
 
-  it('weryfikacja 11.10 — usunięte konto nie jest kandydatem; komentarz AI sprzed zmiany zapasu nie wraca', async () => {
+  it('weryfikacja 11.10 – usunięte konto nie jest kandydatem; komentarz AI sprzed zmiany zapasu nie wraca', async () => {
     const w = await utworzWezel({ name: 'nbg-01', totalCpuCores: 4, totalMemoryMb: 8192, totalDiskMb: 200_000 });
     const plan = await utworzPlan();
     const a = await utworzKonto({ serverId: w.id, planId: plan.id });

@@ -51,7 +51,7 @@ export interface Aktor {
  */
 export function bialaEtykietaRaportu(tekst: string, wezly: readonly (string | null)[] = []): string | null {
   if (zdradzaInfrastrukture(tekst, wezly)) {
-    return 'Ten tekst trafi do klienta — usuń nazwy oprogramowania serwera, dostawcy, nazwy i adresy węzłów.';
+    return 'Ten tekst trafi do klienta – usuń nazwy oprogramowania serwera, dostawcy, nazwy i adresy węzłów.';
   }
   return null;
 }
@@ -290,7 +290,7 @@ export class TablicaMigracjiService {
       where: { id, etapObslugi: s.etap },
       data: { etapObslugi: cel, etapOd: teraz, ...(poprawkiDo ? { poprawkiDo } : {}) },
     });
-    if (count === 0) throw new ConflictException('Ktoś właśnie zmienił etap tej migracji — odśwież stronę.');
+    if (count === 0) throw new ConflictException('Ktoś właśnie zmienił etap tej migracji – odśwież stronę.');
     await this.audit.record({
       action: MigrationActions.MIGRATION_STAGE_CHANGED,
       userId: m.userId,
@@ -456,7 +456,7 @@ export class TablicaMigracjiService {
       where: { id, raportWyslanyAt: m.raportWyslanyAt },
       data: { raportWyslanyAt: teraz },
     });
-    if (count === 0) throw new ConflictException('Raport właśnie wysyła ktoś inny — odśwież stronę.');
+    if (count === 0) throw new ConflictException('Raport właśnie wysyła ktoś inny – odśwież stronę.');
     const mail = this.mailRaportu(m, s);
     let wynik: { delivered: boolean } | null = null;
     try {
@@ -466,7 +466,7 @@ export class TablicaMigracjiService {
     }
     if (!wynik?.delivered) {
       await this.prisma.migrationRequest.updateMany({ where: { id, raportWyslanyAt: teraz }, data: { raportWyslanyAt: m.raportWyslanyAt } });
-      throw new BadRequestException('Nie udało się wysłać maila z raportem — spróbuj ponownie za chwilę.');
+      throw new BadRequestException('Nie udało się wysłać maila z raportem – spróbuj ponownie za chwilę.');
     }
     await this.audit.record({
       action: MigrationActions.MIGRATION_REPORT_SENT,
@@ -526,7 +526,7 @@ export class TablicaMigracjiService {
           category: 'SUPPORT',
           severity: t.stan === 'po-terminie' ? 'critical' : 'warning',
           title: `${m.przerywacz ? 'Przerywacz · ' : ''}Migracja ${domenaMigracji(m)}: ${t.stan === 'po-terminie' ? 'po terminie' : 'termin się zbliża'}`,
-          body: `${TERMIN_PL[t.rodzaj]} — ${kiedy}. Etap: ${ETAP_PL[m.etapObslugi as Etap]}.`,
+          body: `${TERMIN_PL[t.rodzaj]} – ${kiedy}. Etap: ${ETAP_PL[m.etapObslugi as Etap]}.`,
           link: `/migrations/${m.id}`,
         });
       }

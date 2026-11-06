@@ -92,7 +92,7 @@ describe('DbTransferService', () => {
       '[db-transfer] kopia bazy przed importem…',
       'VERRIS_WYNIK_PLIK=verris-bazy/klient1_sklep-przed-importem-20260924-174753-655a.sql.gz',
       "ERROR 1044 (42000) at line 1: Access denied for user 'vt_1'@'localhost' to database 'obcy_baza'",
-      '[db-transfer] BŁĄD: import przerwany — baza mogła zostać zmieniona częściowo. Przywrócisz ją importem pliku ~/verris-bazy/x.sql.gz',
+      '[db-transfer] BŁĄD: import przerwany – baza mogła zostać zmieniona częściowo. Przywrócisz ją importem pliku ~/verris-bazy/x.sql.gz',
     ].join('\n');
     expect(wynikZLogu(log)).toBe('verris-bazy/klient1_sklep-przed-importem-20260924-174753-655a.sql.gz');
     expect(wynikZLogu('VERRIS_WYNIK_PLIK=/etc/shadow')).toBeNull();

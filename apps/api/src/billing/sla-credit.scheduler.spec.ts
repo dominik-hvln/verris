@@ -13,7 +13,7 @@ const iv = (startIso: string, endIso: string): Interval => ({
   end: new Date(endIso),
 });
 
-describe('tierPercent — tabela progów §15 ust. 2', () => {
+describe('tierPercent – tabela progów §15 ust. 2', () => {
   it('nie przyznaje rekompensaty przy dostępności ≥ 99,5%', () => {
     expect(tierPercent(10000)).toBe(0); // 100%
     expect(tierPercent(9950)).toBe(0); // dokładnie 99,50% — SLA dotrzymane
@@ -105,7 +105,7 @@ describe('clipIntervals', () => {
   });
 });
 
-describe('intersectIntervals — wyłączenia z §15 ust. 5', () => {
+describe('intersectIntervals – wyłączenia z §15 ust. 5', () => {
   it('zwraca wyłącznie część przestoju pokrytą oknem konserwacyjnym', () => {
     const outages = [iv('2026-06-01T10:00:00Z', '2026-06-01T14:00:00Z')]; // 240 min
     const maintenance = [iv('2026-06-01T09:00:00Z', '2026-06-01T11:00:00Z')]; // pokrywa 60 min
@@ -142,7 +142,7 @@ describe('previousMonthUtc', () => {
   });
 });
 
-describe('scenariusz łączny — trzy awarie w miesiącu', () => {
+describe('scenariusz łączny – trzy awarie w miesiącu', () => {
   /**
    * Regresja wobec starej implementacji, w której limit działał PER INCYDENT:
    * trzy awarie po 4320 min dawały 3 × 100% = 300% opłaty miesięcznej.

@@ -69,7 +69,7 @@ export default async function ReferralEnrollmentsPage({
       <header>
         <h1 className="flex items-center gap-2 text-[28px] lg:text-[34px]">
           <UserPlus className="h-7 w-7 text-emerald-400" aria-hidden />
-          Program partnerski — zgłoszenia
+          Program partnerski – zgłoszenia
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Akceptacja lub odrzucenie zgłoszeń do programu poleceń. Po akceptacji klient otrzymuje kod
@@ -153,7 +153,7 @@ export default async function ReferralEnrollmentsPage({
                     {row.user.referralCode ? (
                       <span className="text-emerald-300">{row.user.referralCode}</span>
                     ) : (
-                      <span className="text-neutral-500">—</span>
+                      <span className="text-neutral-500">–</span>
                     )}
                     <p className="mt-1 font-sans text-neutral-500">{row.user.ecoPoints} pkt EKO</p>
                   </td>

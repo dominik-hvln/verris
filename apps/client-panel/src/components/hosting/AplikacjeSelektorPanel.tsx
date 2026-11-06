@@ -97,7 +97,7 @@ export function AplikacjeSelektorPanel({ serviceId }: { serviceId: string }) {
     if (co === 'destroy' && !(await potwierdz(`Usunąć aplikację ${a.root}? Serwer przestanie ją uruchamiać; pliki w katalogu ${a.root} zostają.`, { akcja: 'Usuń' }))) return;
     start(async () => {
       const r = przyjmij(await akcjaAplikacji(serviceId, a.interpreter, a.root, co));
-      if (r.ok) toast.success('Zlecone — wynik pojawi się za chwilę.');
+      if (r.ok) toast.success('Zlecone – wynik pojawi się za chwilę.');
     });
   };
 
@@ -140,7 +140,7 @@ export function AplikacjeSelektorPanel({ serviceId }: { serviceId: string }) {
     <section className="mt-8">
       <SectionHead
         title="Aplikacje Node.js i Python"
-        desc="Własna aplikacja (np. Express, Next.js, Django, Flask) pod wybraną domeną. Kod trzymasz w katalogu poza public_html — wgrasz go menedżerem plików, FTP albo z Gita."
+        desc="Własna aplikacja (np. Express, Next.js, Django, Flask) pod wybraną domeną. Kod trzymasz w katalogu poza public_html – wgrasz go menedżerem plików, FTP albo z Gita."
         action={
           <div className="flex gap-2">
             <button type="button" className={BTN} disabled={zajete} onClick={() => start(async () => void przyjmij(await odswiezAplikacje(serviceId)))}>
@@ -218,7 +218,7 @@ export function AplikacjeSelektorPanel({ serviceId }: { serviceId: string }) {
         ) : null}
 
         {stan && stan.aplikacje === null && !stan.wToku ? (
-          <p className="m-0 px-4 py-3 text-[13px] text-muted-foreground">Nie odczytano jeszcze aplikacji z serwera — kliknij „Odśwież”.</p>
+          <p className="m-0 px-4 py-3 text-[13px] text-muted-foreground">Nie odczytano jeszcze aplikacji z serwera – kliknij „Odśwież”.</p>
         ) : apps.length === 0 && stan?.aplikacje ? (
           <p className="m-0 px-4 py-3 text-[13px] text-muted-foreground">Nie masz jeszcze aplikacji Node.js ani Python.</p>
         ) : (

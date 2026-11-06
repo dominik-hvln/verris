@@ -22,7 +22,7 @@ function badgeEmbedHtml(src: string, height: number, alt: string): string {
 
 /** Opis programu bez ogólnych twierdzeń środowiskowych (A2-10): punkty, drzewa z certyfikatem partnera. */
 const OPIS_PROGRAMU =
-  'Punkty za korzystanie z Verris. Wymienisz je na saldo portfela albo na drzewa sadzone przez partnera — z certyfikatem.';
+  'Punkty za korzystanie z Verris. Wymienisz je na saldo portfela albo na drzewa sadzone przez partnera – z certyfikatem.';
 
 export default async function EcoProgramPage() {
   // N-12: przełącznik build-time + flaga operatora.
@@ -136,7 +136,7 @@ export default async function EcoProgramPage() {
             Odznaka na stronę
           </div>
           <p className="text-sm text-neutral-400">
-            Statyczny obrazek z linkiem — działa w każdym kreatorze i w mailach. Odznaka „Verris — posadzone drzewa”
+            Statyczny obrazek z linkiem – działa w każdym kreatorze i w mailach. Odznaka „Verris – posadzone drzewa”
             pokazuje tylko drzewa z certyfikatem partnera; wybierz, czy liczyć wszystkie drzewa Verris, czy Twoje.
             Każde unikalne wyświetlenie na zewnętrznej stronie przybliża Cię do kolejnego punktu EKO. Interaktywne
             odznaki (pieczęć, dostępność na żywo, polecenie) znajdziesz w usłudze hostingu, w zakładce „Badge na stronę”.
@@ -176,7 +176,7 @@ export default async function EcoProgramPage() {
             ))}
           </div>
         ) : (
-          <p className="text-center text-sm text-amber-200/80">Brak tokenu badge — odśwież stronę za chwilę.</p>
+          <p className="text-center text-sm text-amber-200/80">Brak tokenu badge – odśwież stronę za chwilę.</p>
         )}
       </section>
 
@@ -189,7 +189,7 @@ export default async function EcoProgramPage() {
           <p className="text-sm text-neutral-500">{ledger.length} {plForm(ledger.length, 'wpis', 'wpisy', 'wpisów')}</p>
         </div>
         {ledger.length === 0 ? (
-          <p className="text-center text-sm text-neutral-500 py-8">Brak wpisów — zacznij zbierać punkty EKO.</p>
+          <p className="text-center text-sm text-neutral-500 py-8">Brak wpisów – zacznij zbierać punkty EKO.</p>
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2">
             {ledger.map((row) => (

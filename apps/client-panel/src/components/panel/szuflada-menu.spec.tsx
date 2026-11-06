@@ -94,7 +94,7 @@ describe('szuflada menu panelu (A3-3)', () => {
     expect(document.activeElement).toBe(przycisk);
   });
 
-  it('szeroki ekran: menu stałe — bez inert i bez roli okna', () => {
+  it('szeroki ekran: menu stałe – bez inert i bez roli okna', () => {
     ustawEkran(false);
     wyrenderuj();
     const aside = kontener.querySelector('aside')!;

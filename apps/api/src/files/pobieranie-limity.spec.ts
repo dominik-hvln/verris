@@ -18,7 +18,7 @@ function stanowisko(o: { wpis?: string | null; pobierz?: () => Promise<Buffer> }
   return { svc, klient };
 }
 
-describe('Menedżer plików — pobieranie bez nieograniczonego bufora', () => {
+describe('Menedżer plików – pobieranie bez nieograniczonego bufora', () => {
   it('nieznany rozmiar (brak w listingu) → 404 bez pobierania (download i read)', async () => {
     const s = stanowisko({ wpis: null });
     await expect(s.svc.download('s1', 'u1', '/public_html/plik.txt')).rejects.toBeInstanceOf(NotFoundException);

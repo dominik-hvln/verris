@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     locale: 'pl_PL',
     type: 'article',
     siteName: 'Verris',
-    images: [{ url: '/og-default.png', width: 1200, height: 630, alt: 'Jak wybrać hosting — przewodnik Verris' }],
+    images: [{ url: '/og-default.png', width: 1200, height: 630, alt: 'Jak wybrać hosting – przewodnik Verris' }],
   },
 };
 
@@ -38,20 +38,20 @@ const RODZAJE: [string, string, string][] = [
   ['Blog, strona z treściami', 'hosting z szybkim serwerem', 'pamięć podręczna, aktualne PHP 8, dyski NVMe'],
   ['Sklep internetowy', 'hosting z zapasem mocy w szczytach', 'RAM, Redis i to, co się dzieje przy dużym ruchu'],
   ['Kilka stron klientów', 'hosting bez limitu stron albo program dla agencji', 'izolacja kont, jeden panel do wszystkich stron'],
-  ['Aplikacja, własne usługi', 'serwer VPS z dostępem root', 'serwerem administrujesz sam — aktualizacje i bezpieczeństwo są po Twojej stronie'],
+  ['Aplikacja, własne usługi', 'serwer VPS z dostępem root', 'serwerem administrujesz sam – aktualizacje i bezpieczeństwo są po Twojej stronie'],
 ];
 
 const PYTANIA: [string, string][] = [
   ['Ile zapłacę za 3 lata?', 'Pierwszy rok plus dwa odnowienia. Dopiero ta liczba pozwala uczciwie porównać oferty.'],
   ['Czy kopie są codzienne i czy sam je przywrócę?', 'Kopia, której nie da się szybko przywrócić bez zgłoszenia, niewiele daje w kryzysie.'],
-  ['Czy przeprowadzka jest w cenie?', 'Część dostawców liczy przeniesienie strony osobno — zapytaj przed zakupem.'],
+  ['Czy przeprowadzka jest w cenie?', 'Część dostawców liczy przeniesienie strony osobno – zapytaj przed zakupem.'],
   ['Jakie są limity?', '„Bez limitu” zawsze ma jakiś limit. Szukaj liczb: RAM, CPU, procesy, miejsce na dysku.'],
-  ['Co się stanie przy dużym ruchu?', 'Strona zwolni, przestanie działać czy dostanie więcej mocy — i ile to kosztuje?'],
+  ['Co się stanie przy dużym ruchu?', 'Strona zwolni, przestanie działać czy dostanie więcej mocy – i ile to kosztuje?'],
   ['Czy SSL jest w cenie także przy odnowieniu?', 'Darmowy certyfikat Let’s Encrypt wystarczy większości firmowych stron i sklepów.'],
   ['Czy dostępność jest w umowie?', 'SLA z rekompensatą zapisaną w regulaminie to coś innego niż procent na banerze.'],
   ['Jak wygląda pomoc?', 'Kto odpowiada, którędy (zgłoszenie, mail, telefon) i w jakim języku.'],
   ['Czy domena odnawia się sama?', 'Sprawdź, czy o odnowieniu decydujesz Ty, czy karta zostanie obciążona automatycznie.'],
-  ['Czy dostanę umowę powierzenia (RODO)?', 'Firma potrzebuje jej, gdy na stronie są dane klientów — formularze, zamówienia, konta.'],
+  ['Czy dostanę umowę powierzenia (RODO)?', 'Firma potrzebuje jej, gdy na stronie są dane klientów – formularze, zamówienia, konta.'],
 ];
 
 const PARAMETRY: [string, string][] = [
@@ -66,15 +66,15 @@ const PARAMETRY: [string, string][] = [
 const verris = (c: CenaPakietu): [string, string][] => [
   [
     'Cena za 3 lata',
-    `3 × ${zl(c.rocznie)} = ${zl(3 * c.rocznie)} brutto (${zl(3 * netto(c.rocznie))} netto) przy dzisiejszym cenniku — każdy rok po cenie z cennika, bez taniego pierwszego roku i droższych odnowień; przy pierwszym zakupie darmowe kredyty na autoskalowanie`,
+    `3 × ${zl(c.rocznie)} = ${zl(3 * c.rocznie)} brutto (${zl(3 * netto(c.rocznie))} netto) przy dzisiejszym cenniku – każdy rok po cenie z cennika, bez taniego pierwszego roku i droższych odnowień; przy pierwszym zakupie darmowe kredyty na autoskalowanie`,
   ],
   ['Kopie', 'codziennie: 7 ostatnich na serwerze i kopia z każdego z 30 ostatnich dni poza serwerem; przywracasz sam w panelu'],
-  ['Przeprowadzka', 'w cenie — robi ją kreator w panelu albo nasz zespół'],
+  ['Przeprowadzka', 'w cenie – robi ją kreator w panelu albo nasz zespół'],
   ['Limity', '50 GB NVMe, 8 GB RAM, 2 vCPU; z autoskalowaniem do 1000 GB, 64 GB RAM i 24 vCPU'],
   ['Duży ruch', 'autoskalowanie rozliczane w blokach po 15 minut, z limitem kosztu, który ustawiasz sam'],
   ['Dostępność', 'SLA 99,5% w miesiącu; rekompensata w kredytach od 5% do całej opłaty za miesiąc, przyznawana automatycznie, zapisana w regulaminie'],
   ['SSL', 'Let’s Encrypt w cenie, także wildcard, odnawiany automatycznie'],
-  ['Domeny', 'bez automatycznych odnowień — przypomnienia 30, 14 i 7 dni przed wygaśnięciem'],
+  ['Domeny', 'bez automatycznych odnowień – przypomnienia 30, 14 i 7 dni przed wygaśnięciem'],
   ['RODO', 'umowa powierzenia do akceptacji w panelu, dane w UE'],
 ];
 
@@ -133,7 +133,7 @@ export default async function Page() {
             </h1>
             <p className="lead">
               Na rynku są dziesiątki ofert, które wyglądają prawie tak samo. Ten przewodnik pomoże Ci w kwadrans odsiać
-              obietnice od faktów — niezależnie od tego, czy wybierzesz nas.
+              obietnice od faktów – niezależnie od tego, czy wybierzesz nas.
             </p>
             <div className="hero2-cta">
               <Button href="#lista" cta="hero-lista">
@@ -205,7 +205,7 @@ export default async function Page() {
             id="b-lista"
             eyebrow="Krok 2"
             title="Lista kontrolna: 10 pytań przed zakupem"
-            lead="Zadaj je każdemu dostawcy, którego rozważasz — także nam."
+            lead="Zadaj je każdemu dostawcy, którego rozważasz – także nam."
           />
           <ol className="b-kroki">
             {PYTANIA.map(([q, a], i) => (
@@ -264,7 +264,7 @@ export default async function Page() {
             </tbody>
           </table>
           <p className="b-przypis">
-            Celowo nie porównujemy cen innych firm — zmieniają się często. Użyj listy kontrolnej i sprawdź je sam.
+            Celowo nie porównujemy cen innych firm – zmieniają się często. Użyj listy kontrolnej i sprawdź je sam.
             Szczegóły znajdziesz w <Link href="/specyfikacja">specyfikacji</Link>, opisie{' '}
             <Link href="/funkcje/kopie-zapasowe">kopii zapasowych</Link> i <Link href="/funkcje/sla">SLA</Link>, a o
             darmowym przeniesieniu strony przeczytasz na stronie <Link href="/przenies-strone">przeprowadzki</Link>.

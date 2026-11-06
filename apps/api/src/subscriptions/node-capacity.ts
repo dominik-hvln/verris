@@ -552,7 +552,7 @@ export function bladWspolczynnika(
     return (
       `${nazwa} musi być z zakresu ${MIN_OVERCOMMIT}–${maks}. ` +
       (nazwa === 'overcommitDisk'
-        ? 'Dysk ma niższy limit niż CPU i RAM, bo quota dyskowa jest realnie egzekwowana — ' +
+        ? 'Dysk ma niższy limit niż CPU i RAM, bo quota dyskowa jest realnie egzekwowana – ' +
           'klient może ją wypełnić w całości, a wtedy miejsca nie da się odzyskać bez migracji kont.'
         : 'Wartość 1 oznacza brak nadsubskrypcji (zachowanie sprzed Z-12).')
     );

@@ -115,7 +115,7 @@ describe('Gotowe dopiero po potwierdzeniu serwera (uwaga właściciela 01.10)', 
   });
 });
 
-describe('stan odtwarzania dla klienta — bez surowego błędu serwera (white label)', () => {
+describe('stan odtwarzania dla klienta – bez surowego błędu serwera (white label)', () => {
   const SUROWY = 'Serwer zgłosił błąd odtwarzania: DirectAdmin CMD_API_SITE_BACKUP failed at 10.0.0.5:2222';
   function zJobem(error: string | null) {
     const job = {
@@ -139,8 +139,8 @@ describe('stan odtwarzania dla klienta — bez surowego błędu serwera (white l
 
   it('własne komunikaty o wstrzymaniu przywracania zachowują informację, że dane nie zostały zmienione', async () => {
     for (const wlasny of [
-      'Kopia bezpieczeństwa nie powstała w ciągu 15 minut — przywracanie wstrzymane, dane nie zostały zmienione.',
-      'Nie da się odczytać listy kopii — przywracanie wstrzymane, dane nie zostały zmienione.',
+      'Kopia bezpieczeństwa nie powstała w ciągu 15 minut – przywracanie wstrzymane, dane nie zostały zmienione.',
+      'Nie da się odczytać listy kopii – przywracanie wstrzymane, dane nie zostały zmienione.',
     ]) {
       expect((await zJobem(wlasny).latestForSubscription('s1', 'u1', false))?.error).toBe(wlasny);
     }
@@ -152,7 +152,7 @@ describe('stan odtwarzania dla klienta — bez surowego błędu serwera (white l
 });
 
 /** PB-44 — odtworzenie zlecone przez operatora zapisuje w dzienniku jego powód. */
-describe('zlecenie odtworzenia — powód operatora w dzienniku', () => {
+describe('zlecenie odtworzenia – powód operatora w dzienniku', () => {
   it('reason trafia do szczegółów HOSTING_RESTORE_QUEUED', async () => {
     const audit = { record: vi.fn() };
     const prisma = {
@@ -166,14 +166,14 @@ describe('zlecenie odtworzenia — powód operatora w dzienniku', () => {
     };
     const da = { listHostingBackups: vi.fn().mockResolvedValue({ rows: [{ id: 'b1', fileName: 'a.tar.zst' }], fetchError: null }) };
     const svc = new (HostingRestoreService as unknown as new (...a: unknown[]) => HostingRestoreService)(prisma, audit, da);
-    await svc.enqueue('s1', 'op', { backupId: 'b1', isAdmin: true, reason: '  Zgłoszenie #77 — wczorajsza kopia  ' });
+    await svc.enqueue('s1', 'op', { backupId: 'b1', isAdmin: true, reason: '  Zgłoszenie #77 – wczorajsza kopia  ' });
     expect(audit.record).toHaveBeenCalledWith(
-      expect.objectContaining({ action: 'HOSTING_RESTORE_QUEUED', userId: 'u1', actorUserId: 'op', details: expect.objectContaining({ reason: 'Zgłoszenie #77 — wczorajsza kopia' }) }),
+      expect.objectContaining({ action: 'HOSTING_RESTORE_QUEUED', userId: 'u1', actorUserId: 'op', details: expect.objectContaining({ reason: 'Zgłoszenie #77 – wczorajsza kopia' }) }),
     );
   });
 });
 
-describe('Weryfikacja 11.10 — kopię administratora konta przywraca obsługa, nie klient', () => {
+describe('Weryfikacja 11.10 – kopię administratora konta przywraca obsługa, nie klient', () => {
   function kolejka(fileName: string) {
     const prisma = {
       subscription: { findUnique: vi.fn().mockResolvedValue({ id: 's1', account: { userId: 'u1', domain: 'd3.hvln.pl' } }) },

@@ -185,7 +185,7 @@ describe('X-04 zmiana planu z portfela', () => {
   });
 });
 
-describe('audyt Fali 3 — zmiana planu po przedłużeniu okresu gratis', () => {
+describe('audyt Fali 3 – zmiana planu po przedłużeniu okresu gratis', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     limityDA.length = 0;

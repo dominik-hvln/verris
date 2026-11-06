@@ -115,7 +115,7 @@ export function StaffShell({
           </div>
         ))}
         {dostep.nieOdczytano ? (
-          <p className="px-3 pt-2 text-[11.5px] text-[#f2b84b]">Nie udało się wczytać uprawnień — menu ograniczone. Odśwież stronę.</p>
+          <p className="px-3 pt-2 text-[11.5px] text-[#f2b84b]">Nie udało się wczytać uprawnień – menu ograniczone. Odśwież stronę.</p>
         ) : null}
         {grafanaSsoHref() && canShowGrafanaLink(session) ? (
           <div className="flex flex-col gap-0.5">

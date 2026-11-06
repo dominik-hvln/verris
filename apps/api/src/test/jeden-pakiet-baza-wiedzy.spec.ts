@@ -10,7 +10,7 @@ const KORZEN = join(import.meta.dirname, '..', '..', '..', '..');
 const SEEDY = ['apps/api/src/cli/seed-kb-cms.ts', 'apps/api/src/cli/seed-knowledge-base.ts'];
 const OBIETNICE = [/rekomendacj/i, /\bupgrade\b/i, /\bdowngrade\b/i, /bywa wyższy plan/i, /rozważ wyższy plan/i, /wybierz nowy plan/i];
 
-describe('Baza wiedzy — jeden pakiet, bez obietnic wyższego planu', () => {
+describe('Baza wiedzy – jeden pakiet, bez obietnic wyższego planu', () => {
   it.each(SEEDY)('%s nie obiecuje wyższego planu ani rekomendacji zmiany planu', (plik) => {
     const linie = readFileSync(join(KORZEN, plik), 'utf8').split('\n');
     const trafienia = linie.flatMap((l, i) =>

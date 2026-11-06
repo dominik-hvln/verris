@@ -108,7 +108,7 @@ export default async function KomunikatyPage({ searchParams }: { searchParams?: 
                     {k.pominieto ? <span className="block text-xs text-muted-foreground">{k.pominieto} pominiętych</span> : null}
                   </td>
                   <td className="px-4 py-2 text-xs text-muted-foreground">
-                    {k.autor ?? "—"}
+                    {k.autor ?? "–"}
                     <span className="block">{kiedy(k.utworzono)}</span>
                   </td>
                   <td className="px-4 py-2 text-right">{k.status === "WYSYLANY" ? <ZatrzymajKomunikat id={k.id} /> : null}</td>

@@ -109,7 +109,7 @@ export class AuthController {
         throw new BadRequestException({
           statusCode: 400,
           code: 'CAPTCHA_WYMAGANA',
-          message: 'Kilka nieudanych prób logowania — potwierdź, że nie jesteś robotem, i zaloguj się ponownie.',
+          message: 'Kilka nieudanych prób logowania – potwierdź, że nie jesteś robotem, i zaloguj się ponownie.',
         });
       }
       await this.captcha.verify(dto.captchaToken, ctx.ip, 'login');
@@ -430,7 +430,7 @@ export class AuthController {
 type Osoba2fa = { userId: string; principalUserId?: string; impersonatedBy?: string };
 
 function wlasne2fa(user: Osoba2fa): string {
-  if (user.impersonatedBy) throw new ForbiddenException('Drugi składnik ustawia wyłącznie klient — nie w sesji wsparcia.');
+  if (user.impersonatedBy) throw new ForbiddenException('Drugi składnik ustawia wyłącznie klient – nie w sesji wsparcia.');
   return user.principalUserId ?? user.userId;
 }
 
@@ -438,7 +438,7 @@ function wlasne2fa(user: Osoba2fa): string {
 // „Zaloguj jako klient” (impersonacja, PB-41) dałby operatorowi trwały dostęp do konta klienta poza 30-min
 // limitem (albo odciął klienta od jego klucza). Zarządza nimi WYŁĄCZNIE właściciel, jak przy 2FA (wlasne2fa).
 function wlasnyPasskey(user: Osoba2fa): string {
-  if (user.impersonatedBy) throw new ForbiddenException('Klucze passkey ustawia wyłącznie klient — nie w sesji wsparcia.');
+  if (user.impersonatedBy) throw new ForbiddenException('Klucze passkey ustawia wyłącznie klient – nie w sesji wsparcia.');
   return user.principalUserId ?? user.userId;
 }
 

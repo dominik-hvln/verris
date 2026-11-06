@@ -9,7 +9,7 @@ import { plForm } from '@/lib/pl';
 export function komunikatSkrzynekZBledem(domeny: readonly string[] | null | undefined): string | null {
   const lista = (domeny ?? []).filter(Boolean);
   if (!lista.length) return null;
-  return `Nie udało się wczytać skrzynek ${plForm(lista.length, 'domeny', 'domen', 'domen')} ${lista.join(', ')} — spróbuj ponownie za chwilę.`;
+  return `Nie udało się wczytać skrzynek ${plForm(lista.length, 'domeny', 'domen', 'domen')} ${lista.join(', ')} – spróbuj ponownie za chwilę.`;
 }
 
 /** Skrzynki tej domeny są nieznane (błąd całej listy albo tej domeny) — liczba 0 byłaby nieprawdą. */

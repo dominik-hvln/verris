@@ -20,7 +20,7 @@ function stanowisko(o: { phpVersion?: string | null; wToku?: unknown } = {}) {
 const payload = (s: ReturnType<typeof stanowisko>) =>
   (s.prisma.nodeTask.create.mock.calls[0] as unknown as [{ data: { payload: Record<string, unknown> } }])[0].data.payload;
 
-describe('PhpService — rozszerzenia (B-04)', () => {
+describe('PhpService – rozszerzenia (B-04)', () => {
   it('zleca PHP_APPLY z listami dla bieżącej wersji konta i wpisem w dzienniku', async () => {
     const s = stanowisko();
     await s.svc.setExtensionsForSubscription('s1', 'u1', { enable: ['Intl', 'intl', 'imagick'], disable: ['xsl'] });

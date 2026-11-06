@@ -238,7 +238,7 @@ export function polaczTls(o: { host: string; port: number; odcisk?: string; time
         const fp = normalizujOdcisk(s.getPeerCertificate()?.fingerprint256 ?? '');
         if (fp !== przypiety) {
           s.destroy();
-          reject(new BladImap('Certyfikat serwera IMAP nie zgadza się z przypiętym odciskiem — przerwano przed logowaniem.'));
+          reject(new BladImap('Certyfikat serwera IMAP nie zgadza się z przypiętym odciskiem – przerwano przed logowaniem.'));
           return;
         }
       }

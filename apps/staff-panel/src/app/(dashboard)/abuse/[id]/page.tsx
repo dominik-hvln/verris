@@ -45,7 +45,7 @@ export default async function AbuseDetail({ params }: { params: Promise<{ id: st
         {wiersz("Przyjęte", new Date(r.createdAt).toLocaleString("pl-PL"))}
         {wiersz("Zgłaszający", `${r.reporterName ? `${r.reporterName} · ` : ""}${r.reporterEmail}${r.goodFaith ? " · oświadczenie o dobrej wierze" : ""}`)}
         {wiersz("Opis", <span className="whitespace-pre-wrap">{r.description}</span>)}
-        {wiersz("Klient", r.klient ? <Link href={`/crm/${r.klient.id}`} className="text-indigo-300 hover:underline">{r.klient.email}</Link> : "nie dopasowano — sprawdź, czy domena jest u nas")}
+        {wiersz("Klient", r.klient ? <Link href={`/crm/${r.klient.id}`} className="text-indigo-300 hover:underline">{r.klient.email}</Link> : "nie dopasowano – sprawdź, czy domena jest u nas")}
         {r.decision ? wiersz("Uzasadnienie decyzji", <span className="whitespace-pre-wrap">{r.decision}</span>) : null}
         {r.decidedAt ? wiersz("Decyzja z", new Date(r.decidedAt).toLocaleString("pl-PL")) : null}
         {r.customerNotifiedAt ? wiersz("Klient powiadomiony", new Date(r.customerNotifiedAt).toLocaleString("pl-PL")) : null}

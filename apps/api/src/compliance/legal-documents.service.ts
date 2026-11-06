@@ -132,7 +132,7 @@ export class LegalDocumentsService {
     });
     if (istniejaca && istniejaca.contentMarkdown !== input.contentMarkdown) {
       throw new ConflictException(
-        `Wersja ${input.version} dokumentu ${input.kind} jest już opublikowana z inną treścią — nadaj nowy numer wersji.`,
+        `Wersja ${input.version} dokumentu ${input.kind} jest już opublikowana z inną treścią – nadaj nowy numer wersji.`,
       );
     }
 

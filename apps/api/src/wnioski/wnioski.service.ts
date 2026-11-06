@@ -179,11 +179,11 @@ export class WnioskiService {
     const uzasadnienie = dto.uzasadnienie?.trim() ?? '';
     if (uzasadnienie.length < 5) throw new BadRequestException('Napisz uzasadnienie wniosku (min. 5 znaków).');
     if (op.role === 'ADMIN') {
-      throw new BadRequestException({ code: 'WYKONAJ_BEZPOSREDNIO', message: 'Administrator wykonuje tę operację bezpośrednio — wniosek nie jest potrzebny.' });
+      throw new BadRequestException({ code: 'WYKONAJ_BEZPOSREDNIO', message: 'Administrator wykonuje tę operację bezpośrednio – wniosek nie jest potrzebny.' });
     }
     const perms = await this.uprawnienia(op);
     const wykonajBezposrednio = () =>
-      new BadRequestException({ code: 'WYKONAJ_BEZPOSREDNIO', message: 'Masz uprawnienie do tej operacji — wykonaj ją bezpośrednio, bez wniosku.' });
+      new BadRequestException({ code: 'WYKONAJ_BEZPOSREDNIO', message: 'Masz uprawnienie do tej operacji – wykonaj ją bezpośrednio, bez wniosku.' });
     const maUprawnienie = mozeWykonac(def, perms);
     if (maUprawnienie && !def.wymagaWnioskuMimoUprawnien) throw wykonajBezposrednio();
     if (!maUprawnienie && !perms.includes(def.doZlozenia)) throw new ForbiddenException('Twoja rola nie pozwala składać wniosków o tę operację.');
@@ -205,7 +205,7 @@ export class WnioskiService {
       select: { id: true, payload: true },
     });
     if (oczekujace.some((o) => kanoniczny(o.payload) === kanoniczny(payload))) {
-      throw new ConflictException('Taki sam wniosek już czeka na decyzję — znajdziesz go w „Moje wnioski”.');
+      throw new ConflictException('Taki sam wniosek już czeka na decyzję – znajdziesz go w „Moje wnioski”.');
     }
 
     const w = await this.prisma.operatorRequest.create({

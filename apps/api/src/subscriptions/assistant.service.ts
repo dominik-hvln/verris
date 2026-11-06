@@ -109,7 +109,7 @@ export class AssistantService {
     const report = await this.deliverability.forSubscription(subscriptionId, userId);
     const s = report.checks.find((c) => c.key === key)?.suggestion;
     if (!report.domain || !s || s.inZone || report.usesPlatformDns === false) {
-      throw new BadRequestException('Tej poprawki nie da się już zrobić automatycznie — odśwież stronę.');
+      throw new BadRequestException('Tej poprawki nie da się już zrobić automatycznie – odśwież stronę.');
     }
     const domain = report.domain;
     const created: Rec = { name: s.host, type: s.type, value: s.value };
@@ -134,7 +134,7 @@ export class AssistantService {
       throw new NotFoundException('Nie znaleziono tej poprawki.');
     }
     if (Date.now() - log.createdAt.getTime() > UNDO_WINDOW_MS) {
-      throw new BadRequestException('Poprawkę można cofnąć do 7 dni — zmień rekord ręcznie w zakładce DNS.');
+      throw new BadRequestException('Poprawkę można cofnąć do 7 dni – zmień rekord ręcznie w zakładce DNS.');
     }
     const done = await this.prisma.auditLog.findFirst({
       where: { action: ASSISTANT_FIX_UNDONE, userId, details: { path: ['appliedId'], equals: undoId } },

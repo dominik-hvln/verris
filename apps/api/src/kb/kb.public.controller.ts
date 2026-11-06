@@ -46,7 +46,7 @@ export class KbPublicController {
     this.html(
       res,
       renderPublicPage({
-        title: 'Baza wiedzy Verris — pomoc hostingu, domen i poczty',
+        title: 'Baza wiedzy Verris – pomoc hostingu, domen i poczty',
         description: 'Poradniki Verris: hosting, domeny, poczta, DNS, SSL, WordPress, bezpieczeństwo, rozliczenia. Szybkie odpowiedzi i instrukcje krok po kroku.',
         canonical: base + '/',
         baseUrl: base,
@@ -56,7 +56,7 @@ export class KbPublicController {
         jsonLd: {
           '@context': 'https://schema.org',
           '@type': 'WebSite',
-          name: 'Verris — Baza wiedzy',
+          name: 'Verris – Baza wiedzy',
           url: base + '/',
         },
       }),
@@ -88,8 +88,8 @@ export class KbPublicController {
     this.html(
       res,
       renderPublicPage({
-        title: `${cat.name} — Baza wiedzy Verris`,
-        description: cat.description ?? `${cat.name} — poradniki i instrukcje Verris.`,
+        title: `${cat.name} – Baza wiedzy Verris`,
+        description: cat.description ?? `${cat.name} – poradniki i instrukcje Verris.`,
         canonical: `${base}/c/${cat.slug}`,
         baseUrl: base,
         breadcrumbs: [{ label: 'Baza wiedzy', url: base + '/' }, { label: cat.name }],
@@ -121,7 +121,7 @@ export class KbPublicController {
       <div class="card">${renderMarkdown(article.bodyMarkdown)}</div>
       ${renderFaq(faq)}
       ${renderRelated(base, related)}`;
-    const desc = article.seoDescription || article.excerpt || `${article.title} — Baza wiedzy Verris.`;
+    const desc = article.seoDescription || article.excerpt || `${article.title} – Baza wiedzy Verris.`;
     const published = (article.publishedAt ?? article.createdAt)?.toISOString?.();
     const modified = article.updatedAt?.toISOString?.();
 
@@ -160,7 +160,7 @@ export class KbPublicController {
     this.html(
       res,
       renderPublicPage({
-        title: (article.seoTitle || article.title) + ' — Verris',
+        title: (article.seoTitle || article.title) + ' – Verris',
         description: desc,
         canonical: `${base}/a/${article.slug}`,
         baseUrl: base,
@@ -206,7 +206,7 @@ export class KbPublicController {
     const base = this.base();
     const arts = await this.kb.llmsData();
     const lines = [
-      '# Verris — Baza wiedzy',
+      '# Verris – Baza wiedzy',
       '',
       '> Hosting nowej generacji (Polska): hosting, domeny, poczta, DNS, SSL, WordPress, bezpieczeństwo, rozliczenia, migracja od konkurencji. Poradniki i FAQ.',
       '',
@@ -255,7 +255,7 @@ export class KbPublicController {
 
   private notFound(base: string): string {
     return renderPublicPage({
-      title: 'Nie znaleziono — Baza wiedzy Verris',
+      title: 'Nie znaleziono – Baza wiedzy Verris',
       description: 'Nie znaleziono strony.',
       canonical: base + '/',
       baseUrl: base,

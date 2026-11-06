@@ -6,8 +6,8 @@ import { opisKopii, rozmiarKopii } from "@verris/contracts";
  * Weryfikacja 11.10 — „Kopia do odtworzenia” pokazywała same nazwy, a te się powtarzają (user.admin.<login>.tar.zst):
  * operator nie wiedział, którą wersję odtwarza. Pozycja ma datę zapisu i rozmiar z API (GET hosting-backups).
  */
-describe("Kopia do odtworzenia — data i rozmiar przy pozycji", () => {
-  it("nazwa · data (czas polski) · rozmiar; bez metadanych — sama nazwa", () => {
+describe("Kopia do odtworzenia – data i rozmiar przy pozycji", () => {
+  it("nazwa · data (czas polski) · rozmiar; bez metadanych – sama nazwa", () => {
     expect(opisKopii({ id: "list0", fileName: "user.admin.d3.tar.zst", utworzono: "2026-10-11T14:19:00Z", rozmiarBajty: 385001672 })).toBe(
       "user.admin.d3.tar.zst · 11.10.2026, 16:19 · 367,2 MB",
     );

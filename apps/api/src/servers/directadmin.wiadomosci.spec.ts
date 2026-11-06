@@ -62,7 +62,7 @@ describe('parseDaMessage', () => {
   });
 });
 
-describe('DirectAdminClient — wywołania', () => {
+describe('DirectAdminClient – wywołania', () => {
   function klient(data: unknown) {
     const k = new DirectAdminClient({ host: 'da.test', port: 2222, username: 'klient1', loginKey: 'x', secure: true });
     const get = vi.fn(async (_p: string, _c?: unknown) => ({ data }));

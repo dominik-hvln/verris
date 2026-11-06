@@ -58,11 +58,11 @@ function zgl(zmiany: Partial<StaffTicketDetail> = {}): StaffTicketDetail {
 const render = (t: StaffTicketDetail) =>
   tekst(renderToStaticMarkup(<TicketDetailPanel ticket={t} agents={[]} context={null} mojeOceny={null} teraz={TERAZ} />));
 
-describe("F2.5 — notatki wewnętrzne w wątku", () => {
+describe("F2.5 – notatki wewnętrzne w wątku", () => {
   it("notatka wyróżniona i opisana „klient jej nie widzi”; przycisk „Zapisz jako notatkę”", () => {
     const html = renderToStaticMarkup(
       <TicketDetailPanel
-        ticket={zgl({ replies: [{ id: "r1", message: "Klient VIP — nie zamykać bez telefonu.", createdAt: h(-1), isStaff: true, internal: true, authorId: "s1" }] })}
+        ticket={zgl({ replies: [{ id: "r1", message: "Klient VIP – nie zamykać bez telefonu.", createdAt: h(-1), isStaff: true, internal: true, authorId: "s1" }] })}
         agents={[{ id: "s1", email: "p@verris.pl", firstName: "Piotr", lastName: "Kowal" }]}
         context={null}
         mojeOceny={null}
@@ -76,7 +76,7 @@ describe("F2.5 — notatki wewnętrzne w wątku", () => {
   });
 });
 
-describe("F2.5 — tagi, eskalacja z cofnięciem, zdejmowana flaga ryzyka, kroki runbooka", () => {
+describe("F2.5 – tagi, eskalacja z cofnięciem, zdejmowana flaga ryzyka, kroki runbooka", () => {
   it("bez eskalacji i flagi: „Eskaluj” i „Oznacz ryzyko” (wymagają powodu); tagi z listą", () => {
     const html = renderToStaticMarkup(<TicketDetailPanel ticket={zgl({ tags: ["vip", "poczta"] })} agents={[]} context={null} mojeOceny={null} teraz={TERAZ} />);
     const t = tekst(html);
@@ -153,8 +153,8 @@ describe("X-05 szczegół zgłoszenia (obsługa)", () => {
   });
 });
 
-describe("F3.7 — makra, scalanie, obecność", () => {
-  const makro = { id: "m1", title: "Rozwiązane — DNS", content: "Dzień dobry Anno, poprawione.", makroStan: "CLOSED", makroTagi: ["dns"], makroPrzypisz: "JA" };
+describe("F3.7 – makra, scalanie, obecność", () => {
+  const makro = { id: "m1", title: "Rozwiązane – DNS", content: "Dzień dobry Anno, poprawione.", makroStan: "CLOSED", makroTagi: ["dns"], makroPrzypisz: "JA" };
   const kandydat = { id: "t2000000-0000-4000-8000-000000000002", subject: "Drugie zgłoszenie", status: "OPEN", createdAt: h(-5) };
   const html = (t: StaffTicketDetail, o: { makra?: typeof makro[] | null; mozeScalic?: boolean } = {}) =>
     renderToStaticMarkup(
@@ -163,18 +163,18 @@ describe("F3.7 — makra, scalanie, obecność", () => {
 
   it("makra: nazwa i co zrobią (odpowiedź, stan, tagi, przypisanie); błąd wczytania mówi to wprost", () => {
     const t = tekst(html(zgl()));
-    expect(t).toContain("Rozwiązane — DNS");
+    expect(t).toContain("Rozwiązane – DNS");
     expect(t).toContain("odpowiedź · stan: zamknięte · tagi: dns · przypisz do mnie");
     expect(tekst(html(zgl(), { makra: null }))).toContain("Nie udało się wczytać makr");
   });
 
-  it("scalanie: L1/L2 — „Wyślij wniosek” TICKET_MERGE; L3 — powód, „rozumiem” i „Scal zgłoszenia”", () => {
+  it("scalanie: L1/L2 – „Wyślij wniosek” TICKET_MERGE; L3 – powód, „rozumiem” i „Scal zgłoszenia”", () => {
     const bez = html(zgl());
     expect(bez).toContain('data-karta="scalanie"');
     expect(bez).toContain('data-wniosek="TICKET_MERGE"');
     expect(tekst(bez)).not.toContain("Scal zgłoszenia");
     const l3 = tekst(html(zgl(), { mozeScalic: true }));
-    expect(l3).toContain("Rozumiem — scalenia nie da się cofnąć");
+    expect(l3).toContain("Rozumiem – scalenia nie da się cofnąć");
     expect(l3).toContain("Scal zgłoszenia");
     expect(l3).toContain("#t2000000 · Drugie zgłoszenie");
   });
@@ -186,10 +186,10 @@ describe("F3.7 — makra, scalanie, obecność", () => {
     });
     const out = html(t);
     expect(out).toContain("data-scalone");
-    expect(tekst(out)).toContain("Scalone z #t3000000 — rozmowa toczy się tam.");
+    expect(tekst(out)).toContain("Scalone z #t3000000 – rozmowa toczy się tam.");
     expect(out).not.toContain('data-karta="scalanie"');
-    expect(tekst(out)).toContain("Zgłoszenie scalone — makra stosuj w docelowym.");
-    expect(tekst(out)).toContain("Scalone z innym zgłoszeniem #t3000000 — duplikat z maila");
+    expect(tekst(out)).toContain("Zgłoszenie scalone – makra stosuj w docelowym.");
+    expect(tekst(out)).toContain("Scalone z innym zgłoszeniem #t3000000 – duplikat z maila");
     // przegląd F3.7 — stanu scalonego nie zmienia się (API odmawia), priorytet tak
     expect(out).toMatch(/id="[^"]*-status"[^>]*disabled=""/);
     expect(out).not.toMatch(/id="[^"]*-prio"[^>]*disabled=""/);

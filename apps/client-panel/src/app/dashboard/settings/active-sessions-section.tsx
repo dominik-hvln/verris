@@ -96,7 +96,7 @@ export function ActiveSessionsSection({
         </h3>
         <p className="mt-1 text-sm text-neutral-400">
           Urządzenia, na których jesteś zalogowany. Nie poznajesz któregoś? Wyloguj je jednym
-          kliknięciem — pełna kontrola nad dostępem do konta.
+          kliknięciem – pełna kontrola nad dostępem do konta.
         </p>
       </div>
 
@@ -138,9 +138,9 @@ export function ActiveSessionsSection({
                 </p>
                 <p className="flex items-center gap-1.5 text-[11px] text-neutral-500">
                   <MapPin className="h-3 w-3" />
-                  {s.ipAddress ?? "—"}
+                  {s.ipAddress ?? "–"}
                   <span className="text-neutral-600">·</span>
-                  {METHOD[s.loginMethod ?? ""] ?? s.loginMethod ?? "—"}
+                  {METHOD[s.loginMethod ?? ""] ?? s.loginMethod ?? "–"}
                   <span className="text-neutral-600">·</span>
                   aktywna {fmt(s.lastSeenAt)}
                 </p>

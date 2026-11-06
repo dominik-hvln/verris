@@ -8,7 +8,7 @@ import { AsystentAvatar, AsystentWidget, CSS_ASYSTENTA } from './AsystentWidget'
 import { PODPOWIEDZI, STOPKA_AI, UWAGA_AI } from '@/lib/asystent-stan';
 
 describe('AsystentWidget', () => {
-  it('bez statusu z API (`wlaczony`) nic nie renderuje — także przy dawnej fladze budowania', () => {
+  it('bez statusu z API (`wlaczony`) nic nie renderuje – także przy dawnej fladze budowania', () => {
     const flaga = process.env.NEXT_PUBLIC_ASYSTENT;
     process.env.NEXT_PUBLIC_ASYSTENT = '1';
     try {
@@ -27,7 +27,7 @@ describe('AsystentWidget', () => {
     expect(html).toContain('.asy-av{position:relative;flex:none;display:inline-block;line-height:0;border-radius:50%}');
   });
 
-  it('6.11: przycisk nie podskakuje na komputerze — podnosi się tylko nad widocznym paskiem ceny na telefonie', () => {
+  it('6.11: przycisk nie podskakuje na komputerze – podnosi się tylko nad widocznym paskiem ceny na telefonie', () => {
     const html = renderToStaticMarkup(<AsystentWidget wlaczony />);
     // Pasek ceny (.mpasek) jest ukryty od 900 px, a klasa .on przełącza się przy przewijaniu na każdej szerokości.
     expect(html).not.toMatch(/(^|[}\n])body:has\(\.mpasek\.on\) \.asy-fab/);

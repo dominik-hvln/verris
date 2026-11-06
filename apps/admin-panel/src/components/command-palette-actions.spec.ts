@@ -20,7 +20,7 @@ it("przekazuje wyniki i pominięte typy", async () => {
   expect(mockApi).toHaveBeenCalledWith("/admin/search?q=t1");
 });
 
-it("403 — wszystkie typy pominięte; inny błąd — pusto z flagą błędu", async () => {
+it("403 – wszystkie typy pominięte; inny błąd – pusto z flagą błędu", async () => {
   mockApi.mockRejectedValue(new AdminApiError("Brak uprawnień", 403));
   expect((await globalSearchAction("t1")).pominiete).toHaveLength(8);
   mockApi.mockRejectedValue(new AdminApiError("Błąd", 500));

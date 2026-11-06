@@ -223,7 +223,7 @@ export function HeroPodglad({ dane }: { dane: DaneHeroPodgladu }) {
                 <span className="gl-etap-t">
                   <b>
                     {e.t}
-                    <span className="gl-sr">{e.s === 'ok' ? ' — gotowe' : e.s === 'teraz' ? ' — w toku' : ' — czeka'}</span>
+                    <span className="gl-sr">{e.s === 'ok' ? ' – gotowe' : e.s === 'teraz' ? ' – w toku' : ' – czeka'}</span>
                   </b>
                   <span>{e.m}</span>
                 </span>

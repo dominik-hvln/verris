@@ -29,7 +29,7 @@ async function zlecenie(opts: { preBackupAt: Date | null; status: MigrationStatu
   return { req, job, serverId: wezel.id };
 }
 
-describe('Migracja — bez kopii konta docelowego nie ma workera', () => {
+describe('Migracja – bez kopii konta docelowego nie ma workera', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 

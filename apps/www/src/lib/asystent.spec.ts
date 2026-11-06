@@ -6,7 +6,7 @@ import { poprosOTelefonZRozmowy, zapytajAsystenta } from './asystent';
 
 type Wywolanie = [string, { headers: Record<string, string>; body: string }];
 
-describe('asystent www — server actions', () => {
+describe('asystent www – server actions', () => {
   const fetchOrig = global.fetch;
   let odp: { status: number; body: unknown };
   const fetchMock = jest.fn(async (...a: unknown[]) => (void a, {

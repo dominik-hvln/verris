@@ -22,10 +22,10 @@ const op = (o: Partial<OperatorRow> = {}): OperatorRow => ({
   id: "op1", email: "jan@verris.pl", firstName: "Jan", lastName: null, role: "STAFF", staffRoleId: "l2", ...o,
 });
 
-describe("PB-47 — role operatora w panelu admina", () => {
+describe("PB-47 – role operatora w panelu admina", () => {
   beforeEach(() => api.mockReset());
 
-  it("przy operatorze widać wszystkie jego role; bez ról — ostrzeżenie o braku dostępu", () => {
+  it("przy operatorze widać wszystkie jego role; bez ról – ostrzeżenie o braku dostępu", () => {
     const html = tekst(renderToStaticMarkup(<WyborRolOperatora operator={op({ roleIds: ["l2", "fin"] })} role={role} />));
     expect(html).toContain("L2 Specjalista techniczny");
     expect(html).toContain("Finanse i księgowość");

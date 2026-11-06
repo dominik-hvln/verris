@@ -18,7 +18,7 @@ const literal = (nazwa: string) => {
 describe('parytet pakietów DirectAdmina: API ↔ skrypt naprawczy', () => {
   const wSkrypcie = literal('PACKAGE_POLICY') as Record<string, Record<string, unknown>>;
 
-  it.each(['verris-hosting', 'starter', 'pro', 'business'])('%s — te same limity', (slug) => {
+  it.each(['verris-hosting', 'starter', 'pro', 'business'])('%s – te same limity', (slug) => {
     expect(wSkrypcie[slug]).toEqual(packagePolicyForSlug(slug));
   });
 

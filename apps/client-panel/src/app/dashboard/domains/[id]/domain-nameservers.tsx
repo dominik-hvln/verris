@@ -25,7 +25,7 @@ export function DomainNameservers({ domainId, nameservers, defaults }: { domainI
     const lista = (edycja ?? '').split(/[\s,]+/).map((s) => s.trim()).filter(Boolean);
     if (lista.length < 2) return toast.error('Podaj co najmniej 2 serwery nazw');
     const ok = await potwierdz(
-      `Nowe serwery: ${lista.join(', ')}. Zmiana rozchodzi się w internecie do 24–48 godzin — w tym czasie strona i poczta mogą działać z przerwami.`,
+      `Nowe serwery: ${lista.join(', ')}. Zmiana rozchodzi się w internecie do 24–48 godzin – w tym czasie strona i poczta mogą działać z przerwami.`,
       { tytul: 'Zmienić serwery nazw?', akcja: 'Zmień serwery' },
     );
     if (!ok) return;
@@ -59,7 +59,7 @@ export function DomainNameservers({ domainId, nameservers, defaults }: { domainI
       ) : null}
       {edycja !== null ? (
         <div className="space-y-2 border-t border-white/10 pt-3">
-          <label htmlFor={poleId} className="block text-neutral-400">Serwery nazw — jeden w wierszu (od 2 do 8)</label>
+          <label htmlFor={poleId} className="block text-neutral-400">Serwery nazw – jeden w wierszu (od 2 do 8)</label>
           <textarea
             id={poleId}
             value={edycja}

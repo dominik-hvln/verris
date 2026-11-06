@@ -57,7 +57,7 @@ describe('BetaService', () => {
     expect(s.prisma.betaInvite.update).toHaveBeenCalled();
   });
 
-  it('awaria poczty nie kasuje zaproszenia — kod zostaje, oznaczony jako niewysłany', async () => {
+  it('awaria poczty nie kasuje zaproszenia – kod zostaje, oznaczony jako niewysłany', async () => {
     const s = stanowisko({ mail: 'throw' });
     const r = await s.svc.zapros({ email: 'a@b.pl' }, 'admin1', teraz);
     expect(r.mailWyslany).toBe(false);
@@ -95,7 +95,7 @@ describe('BetaService', () => {
     expect(l[0]).toMatchObject({ aktywneUslugi: 1, zgloszenia: 2, zgloszeniaOtwarte: 1, konto: { email: 'a@b.pl' } });
   });
 
-  it('lista: postęp testera ze strony „Testy (beta)” — tylko znane kroki; bez użytego kodu brak postępu', async () => {
+  it('lista: postęp testera ze strony „Testy (beta)” – tylko znane kroki; bez użytego kodu brak postępu', async () => {
     const s = stanowisko();
     s.prisma.betaInvite.findMany.mockResolvedValueOnce([
       { id: '1', email: 'a@b.pl', name: null, sentAt: null, promoCode: { code: 'BETA-AAAAAA', active: true, validTo: null, redemptions: [{ redeemedAt: new Date(), user: { id: 'u1', email: 'a@b.pl' } }] } },
@@ -144,7 +144,7 @@ describe('BetaService', () => {
     expect(s.prisma.promoCode.update).toHaveBeenCalledWith({ where: { id: 'p1' }, data: { active: false } });
   });
 
-  it('P1-11: zaproszenie na adres konta — tylko ważny, niewykorzystany i aktywny kod; brak konta → false', async () => {
+  it('P1-11: zaproszenie na adres konta – tylko ważny, niewykorzystany i aktywny kod; brak konta → false', async () => {
     const s = stanowisko({ aktywne: true });
     const user = { findUnique: vi.fn(async () => ({ email: ' Jan@Firma.PL ' })) };
     Object.assign(s.prisma, { user });

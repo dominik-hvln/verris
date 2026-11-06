@@ -2,7 +2,7 @@ import { BadRequestException } from '@nestjs/common';
 
 vi.mock('./migration-net.util.js', () => ({
   resolvePublicHost: vi.fn(async (host: string) => {
-    if (host.endsWith('.wewn')) throw new BadRequestException('Host wskazuje na sieć prywatną — odrzucono.');
+    if (host.endsWith('.wewn')) throw new BadRequestException('Host wskazuje na sieć prywatną – odrzucono.');
     return '203.0.113.5';
   }),
 }));
@@ -70,7 +70,7 @@ describe('test połączenia plików', () => {
 
   it('SFTP z rsync → „SFTP + rsync”; samo FTP → ostrzeżenie o braku szyfrowania', async () => {
     const a = await zbuduj({ 'sftp:22': 'ok' }, { rsync: true }).svc.testPolaczenia(dostep, kto);
-    expect(a).toMatchObject({ protocol: 'sftp', rsync: true, metoda: 'SFTP + rsync — najszybciej, z dosyłaniem zmian' });
+    expect(a).toMatchObject({ protocol: 'sftp', rsync: true, metoda: 'SFTP + rsync – najszybciej, z dosyłaniem zmian' });
     const b = await zbuduj({ 'ftp:21': 'ok' }).svc.testPolaczenia(dostep, kto);
     expect(b).toMatchObject({ protocol: 'ftp', nieszyfrowane: true });
   });

@@ -88,7 +88,7 @@ export function PasskeysSection({
       <div>
         <h3 className="text-lg font-semibold text-white">Passkeys (klucze dostępu)</h3>
         <p className="text-sm text-muted-foreground mt-1">
-          Loguj się odciskiem palca, Face ID lub kluczem sprzętowym — bez hasła. Passkey jest
+          Loguj się odciskiem palca, Face ID lub kluczem sprzętowym – bez hasła. Passkey jest
           odporny na phishing i wyciek hasła. Możesz dodać kilka (telefon, laptop, klucz USB).
         </p>
       </div>

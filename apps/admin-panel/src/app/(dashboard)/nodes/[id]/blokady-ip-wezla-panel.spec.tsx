@@ -69,7 +69,7 @@ it("lista: adres, powód z jailem, stała blokada, biała lista, wynik ostatniej
   expect(q('[data-operacja="wynik"]')!.textContent).toContain("zdjęto 2 blokady");
 });
 
-it("odblokowanie i biała lista: wymagają adresu i powodu, z potwierdzeniem; anulowanie — nic", async () => {
+it("odblokowanie i biała lista: wymagają adresu i powodu, z potwierdzeniem; anulowanie – nic", async () => {
   await klik(q<HTMLButtonElement>('[data-blokada="203.0.113.7"] button')!);
   expect(q('[data-akcja="odblokuj"]')!.disabled).toBe(true);
   await wpisz(k.querySelector<HTMLInputElement>('input[aria-label="Powód"]')!, "Biuro klienta za NAT, zgłoszenie #ab12cd34");

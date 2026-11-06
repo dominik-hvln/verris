@@ -12,7 +12,7 @@ import { plForm } from "@/lib/pl";
 const obsluga = process.env.NEXT_PUBLIC_STAFF_PANEL_URL?.trim() || "https://staff.verris.pl";
 const zgloszenieHref = (id: string) => new URL(`/tickets/${id}`, obsluga).toString();
 const kiedy = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleString("pl-PL", { timeZone: "Europe/Warsaw", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—";
+  iso ? new Date(iso).toLocaleString("pl-PL", { timeZone: "Europe/Warsaw", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "–";
 
 type StanSla = "po-terminie" | "zagrozone" | "w-terminie" | "brak";
 type WierszZgl = { id: string; temat: string; status: string; priorytet: string; klient: string | null; termin: string | null; rodzajTerminu: "odpowiedz" | "rozwiazanie" | null; stan: StanSla };
@@ -33,7 +33,7 @@ function ListaZgloszen({ wiersze, pusto }: { wiersze: WierszZgl[]; pusto: string
           <span className="flex min-w-0 flex-1 flex-col text-sm">
             <span className="truncate font-semibold">{z.temat}</span>
             <span className="text-[12.5px] text-muted-foreground">
-              #{z.id.slice(0, 8)} · {z.klient ?? "—"} · {etykieta(TICKET_PRIORITY_PL, z.priorytet)} · {etykieta(TICKET_STATUS_PL, z.status).toLowerCase()}
+              #{z.id.slice(0, 8)} · {z.klient ?? "–"} · {etykieta(TICKET_PRIORITY_PL, z.priorytet)} · {etykieta(TICKET_STATUS_PL, z.status).toLowerCase()}
             </span>
           </span>
           <span className="flex flex-col items-end gap-1 text-right">
@@ -63,7 +63,7 @@ export function PulpitObslugi({ d }: { d: PulpitObslugiDane }) {
       </RzadKpi>
       <section className={KARTA} aria-labelledby="moje-zgl">
         <h2 id="moje-zgl" className="px-[18px] pt-3.5 text-base font-semibold">
-          Moje zgłoszenia — najbliższe terminy
+          Moje zgłoszenia – najbliższe terminy
         </h2>
         <ListaZgloszen wiersze={d.moje.lista} pusto="Nie masz przypisanych otwartych zgłoszeń." />
       </section>
@@ -106,7 +106,7 @@ export function PulpitNoc({ d }: { d: PulpitNocDane }) {
         <h2 id="alerty-noc" className="px-[18px] pt-3.5 text-base font-semibold">
           Alerty
         </h2>
-        {alertow === 0 ? <div className={`${WIERSZ} text-sm text-muted-foreground`}>Brak alertów — usługi działają, węzły odpowiadają.</div> : null}
+        {alertow === 0 ? <div className={`${WIERSZ} text-sm text-muted-foreground`}>Brak alertów – usługi działają, węzły odpowiadają.</div> : null}
         {d.alerty.uslugi.map((u) => (
           <Link key={`${u.serverId}-${u.usluga}`} href={`/nodes/${u.serverId}?sekcja=uslugi`} className={`${WIERSZ} hover:bg-raised`} data-alert-usluga={u.usluga}>
             <Pigulka ton="crit" className="!text-xs">
@@ -199,7 +199,7 @@ export function PulpitFinansow({ d }: { d: PulpitFinansowDane }) {
   return (
     <div className="flex flex-col gap-5" data-pulpit="finanse">
       <RzadKpi etykieta="Finanse">
-        <Kpi etykieta="Nieudane płatności (7 dni)" wartosc={d.nieudanePlatnosci?.tydzien ?? "—"} opis={d.nieudanePlatnosci?.ucieto ? "lista ucięta — zobacz pełną" : "karta, przelew online, auto-doładowanie"} />
+        <Kpi etykieta="Nieudane płatności (7 dni)" wartosc={d.nieudanePlatnosci?.tydzien ?? "–"} opis={d.nieudanePlatnosci?.ucieto ? "lista ucięta – zobacz pełną" : "karta, przelew online, auto-doładowanie"} />
         <Kpi etykieta="KSeF odrzucone" wartosc={d.ksef.odrzucone} opis={`${d.ksef.doDoslania} do dosłania (tryb offline)`} />
         <Kpi etykieta="Do zapłaty" wartosc={d.doZaplaty.dokumentow} opis={`${zl(d.doZaplaty.kwota)} · ${d.doZaplaty.poTerminie} po terminie`} />
         <Kpi
@@ -222,7 +222,7 @@ export function PulpitFinansow({ d }: { d: PulpitFinansowDane }) {
             <Link key={p.id} href={p.klient ? `/customers/${p.klient.id}?sekcja=rozliczenia` : "/billing/nieudane"} className={`${WIERSZ} hover:bg-raised`}>
               <span className="w-[92px] shrink-0 font-mono text-xs text-muted-foreground">{kiedy(p.kiedy)}</span>
               <span className="flex min-w-0 flex-1 flex-col text-sm">
-                <b className="truncate">{p.klient?.email ?? "—"}</b>
+                <b className="truncate">{p.klient?.email ?? "–"}</b>
                 <span className="truncate text-[12.5px] text-muted-foreground">{p.powod}</span>
               </span>
               <span className="font-mono text-sm">{zl(p.kwota)}</span>

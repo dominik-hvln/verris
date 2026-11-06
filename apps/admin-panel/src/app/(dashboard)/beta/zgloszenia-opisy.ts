@@ -20,7 +20,7 @@ export const opisZakresu = (zakres: string[]) => zakres.map((z) => ETYKIETY_ZAKR
 
 /** Źródło z UTM: „meta / meta-leadgen-hosting-202611 / b-firmy” (utm_content = kreacja i zestaw); bez UTM — kreska. */
 export const zrodloZgloszenia = (z: Pick<ZgloszenieRow, "zrodlo">) =>
-  [z.zrodlo?.source, z.zrodlo?.campaign, z.zrodlo?.content].filter(Boolean).join(" / ") || "—";
+  [z.zrodlo?.source, z.zrodlo?.campaign, z.zrodlo?.content].filter(Boolean).join(" / ") || "–";
 
 /** Link do strony testera tylko dla http(s) — adres pochodzi z formularza publicznego. */
 export const bezpiecznyLink = (url: string | null) => (url && /^https?:\/\//i.test(url) ? url : null);

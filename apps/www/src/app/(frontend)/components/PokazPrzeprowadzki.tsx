@@ -9,7 +9,7 @@ import { useState } from 'react';
  */
 const EKRANY: { podpis: string; wiersze: [string, string][] }[] = [
   {
-    podpis: 'Domena docelowa — z Twojego konta',
+    podpis: 'Domena docelowa – z Twojego konta',
     wiersze: [
       ['sklep-ogrodowy.pl', '✓ domena konta'],
       ['blog.sklep-ogrodowy.pl', ''],

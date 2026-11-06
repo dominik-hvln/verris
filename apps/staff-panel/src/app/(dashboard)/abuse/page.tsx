@@ -23,7 +23,7 @@ export default async function AbusePage({ searchParams }: { searchParams: Promis
       <div>
         <h1 className="text-3xl font-bold text-white">Nadużycia</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Zgłoszenia z formularza na verris.pl. Każde dostaje decyzję z uzasadnieniem — zgłaszający dostaje je mailem,
+          Zgłoszenia z formularza na verris.pl. Każde dostaje decyzję z uzasadnieniem – zgłaszający dostaje je mailem,
           a klient, gdy ograniczamy jego usługę. Decyduje człowiek, nie automat.
         </p>
       </div>

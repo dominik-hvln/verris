@@ -1,8 +1,8 @@
 import { NodeTaskStatus } from '@verris/database';
 import { limitZLogu, stanZadan, statystykiPocztyZLogu } from './poczta-wezla.js';
 
-describe('F3.1 — odczyt wyników poczty węzła', () => {
-  it('limit konta: wartość, domyślny, nieczytelny plik; obcy format — null', () => {
+describe('F3.1 – odczyt wyników poczty węzła', () => {
+  it('limit konta: wartość, domyślny, nieczytelny plik; obcy format – null', () => {
     expect(limitZLogu('x\nVERRIS_MQ_LIMIT klient1 250 1000\n')).toEqual({ login: 'klient1', limit: 250, nieczytelny: false, domyslny: 1000 });
     expect(limitZLogu('VERRIS_MQ_LIMIT klient1 domyslny -')).toEqual({ login: 'klient1', limit: null, nieczytelny: false, domyslny: null });
     expect(limitZLogu('VERRIS_MQ_LIMIT klient1 ? 1000')).toMatchObject({ limit: null, nieczytelny: true });
@@ -30,7 +30,7 @@ describe('F3.1 — odczyt wyników poczty węzła', () => {
   });
 });
 
-describe('przegląd poprawek Fali 3 — wynik wyczyszczony retencją', () => {
+describe('przegląd poprawek Fali 3 – wynik wyczyszczony retencją', () => {
   it('statystyki węzła z wyczyszczonym wynikiem to „nie wczytano”, nie pusta lista z datą sprzed miesiąca', () => {
     const stare = new Date('2026-08-01T10:00:00Z');
     const z = { id: 't', status: NodeTaskStatus.COMPLETED, payload: { mode: 'stats' }, outputLog: null, errorMessage: null, createdAt: stare, completedAt: stare };

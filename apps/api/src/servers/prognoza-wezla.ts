@@ -22,7 +22,7 @@ const DZIEN = 86_400_000;
 const AI_CACHE_MS = DZIEN;
 const MIN_PUNKTOW = 6;
 const r1 = (n: number) => Math.round(n * 10) / 10;
-const BRAK_DANYCH = 'Za mało danych telemetrycznych — prognoza pojawi się po zebraniu kilku godzin metryk.';
+const BRAK_DANYCH = 'Za mało danych telemetrycznych – prognoza pojawi się po zebraniu kilku godzin metryk.';
 
 export type Ton = 'warn' | 'crit';
 export interface Sygnal {
@@ -118,7 +118,7 @@ export function liniaKarty(resources: ServiceForecastResourceDto[], dostepna: bo
 
 /** Podsumowanie floty bez AI. */
 export function opisFloty(wezly: { nazwa: string; wPuli: boolean; resources: ServiceForecastResourceDto[]; zapas: Zapas | null }[]): string {
-  if (!wezly.length) return 'Brak węzłów hostujących — nie ma czego prognozować.';
+  if (!wezly.length) return 'Brak węzłów hostujących – nie ma czego prognozować.';
   const najblizszy = wezly
     .flatMap((w) => w.resources.filter((r) => r.daysToLimit !== null && r.daysToLimit <= 30).map((r) => ({ w, r })))
     .sort((a, b) => a.r.daysToLimit! - b.r.daysToLimit!)[0];
@@ -126,7 +126,7 @@ export function opisFloty(wezly: { nazwa: string; wPuli: boolean; resources: Ser
   const pierwsze = najblizszy
     ? najblizszy.r.daysToLimit === 0
       ? `${najblizszy.w.nazwa}: ${ZASOB_M[najblizszy.r.resource]} na limicie.`
-      : `Najbliżej limitu: ${najblizszy.w.nazwa} — ${ZASOB[najblizszy.r.resource]} za ok. ${dni(najblizszy.r.daysToLimit!)}.`
+      : `Najbliżej limitu: ${najblizszy.w.nazwa} – ${ZASOB[najblizszy.r.resource]} za ok. ${dni(najblizszy.r.daysToLimit!)}.`
     : 'Wszystkie węzły w normie przez 30 dni.';
   return `${pierwsze} Pula floty zmieści jeszcze ok. ${kont(zapas)} w pakiecie standardowym.`;
 }
@@ -150,20 +150,20 @@ export function podstawDomeny(tekst: string, domeny: Map<number, string>): strin
 const SYSTEM_WEZEL = [
   'Jesteś asystentem operatora hostingu Verris. Dostajesz GOTOWE liczby prognozy jednego węzła (procent pojemności węzła,',
   'najcichsza godzina, zapas puli w standardowych kontach, konta o największym udziale w CPU, sygnały, węzły z zapasem).',
-  'Nie zmieniaj ani nie wymyślaj liczb. Niczego nie wykonujesz — decyzję i operację podejmuje operator.',
+  'Nie zmieniaj ani nie wymyślaj liczb. Niczego nie wykonujesz – decyzję i operację podejmuje operator.',
   'Zwracasz WYŁĄCZNIE JSON: {"podsumowanie": string, "zalecenia": [string]}.',
   'podsumowanie: 1–2 zdania po polsku. zalecenia: najwyżej 4 konkretne kroki uzasadnione liczbami, np. przenieś konto N',
   'na węzeł z zapasem (podaj jego nazwę), zaplanuj aktualizację na HH:00, zamów nowy węzeł za ok. N tygodni, sprawdź kopię.',
-  'Konta nazywaj dokładnie „konto N”, tak jak w danych. Gdy wszystko jest w normie — zwróć pustą listę zaleceń.',
+  'Konta nazywaj dokładnie „konto N”, tak jak w danych. Gdy wszystko jest w normie – zwróć pustą listę zaleceń.',
 ].join('\n');
 
 const SYSTEM_FLOTA = [
   'Jesteś asystentem operatora hostingu Verris. Dostajesz GOTOWE liczby prognozy wszystkich węzłów floty',
   '(procent pojemności teraz i za 7 dni, dni do limitu, zapas puli w standardowych kontach, tempo nowych kont, sygnały).',
-  'Nie zmieniaj ani nie wymyślaj liczb. Niczego nie wykonujesz — decyzję podejmuje operator.',
+  'Nie zmieniaj ani nie wymyślaj liczb. Niczego nie wykonujesz – decyzję podejmuje operator.',
   'Zwracasz WYŁĄCZNIE JSON: {"podsumowanie": string, "zalecenia": [string]}.',
   'podsumowanie: 1–2 zdania po polsku o stanie floty. zalecenia: najwyżej 4 konkretne kroki uzasadnione liczbami, np. który węzeł',
-  'zapełni się pierwszy, czy i kiedy zamówić kolejny węzeł, gdzie kierować nowe konta. Gdy wszystko w normie — pusta lista.',
+  'zapełni się pierwszy, czy i kiedy zamówić kolejny węzeł, gdzie kierować nowe konta. Gdy wszystko w normie – pusta lista.',
 ].join('\n');
 
 const POLA = {

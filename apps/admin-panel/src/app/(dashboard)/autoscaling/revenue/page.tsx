@@ -85,7 +85,7 @@ export default async function AutoscalingRevenuePage() {
                 <tbody>
                   {report.scaleEvents.map((row, i) => (
                     <tr key={i} className="border-b border-white/5">
-                      <td className="py-2 text-white">{row.resource ?? '—'}</td>
+                      <td className="py-2 text-white">{row.resource ?? '–'}</td>
                       <td className="py-2 text-neutral-300">{row.direction}</td>
                       <td className="py-2 text-right font-mono">{row.count}</td>
                     </tr>

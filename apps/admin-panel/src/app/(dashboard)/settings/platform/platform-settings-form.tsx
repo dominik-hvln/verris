@@ -17,7 +17,7 @@ export function PlatformSettingsForm({ initial }: { initial: PlatformSettingsFor
           name="ecoPointsPerTree"
           label="Punkty na 1 drzewo"
           defaultValue={initial.ecoPointsPerTree}
-          hint="Domyślnie 300 (1% drzewa = 3 pkt) — klient widzi postęp w panelu."
+          hint="Domyślnie 300 (1% drzewa = 3 pkt) – klient widzi postęp w panelu."
         />
         <NumberField
           name="ecoBadgeImpressionsPerPoint"

@@ -10,7 +10,7 @@ import { LEGAL_DOCS, formatDate, type LegalDocument } from "./dokumenty";
 import { LegalShell } from "./legal-shell";
 
 export const metadata: Metadata = {
-  title: "Dokumenty prawne — Verris",
+  title: "Dokumenty prawne – Verris",
   description:
     "Regulamin, polityka prywatności, polityka cookies i umowa powierzenia (DPA) hostingu Verris.",
 };
@@ -28,7 +28,7 @@ export default async function LegalIndexPage() {
       <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:py-14">
         <h1 className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">Dokumenty prawne</h1>
         <p className="mt-3 max-w-[62ch] text-muted-foreground">
-          Regulamin, polityki i umowa powierzenia danych — zawsze w aktualnej wersji, z pełną historią poprzednich
+          Regulamin, polityki i umowa powierzenia danych – zawsze w aktualnej wersji, z pełną historią poprzednich
           wersji.
         </p>
 

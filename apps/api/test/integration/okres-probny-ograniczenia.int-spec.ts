@@ -44,11 +44,11 @@ async function proba(opts: { saldo?: number; mailSendLimit?: number | null } = {
 const zadaniaLimitu = (accountId: string) =>
   prisma().nodeTask.findMany({ where: { accountId, kind: 'MAIL_QUEUE' }, orderBy: { createdAt: 'asc' } });
 
-describe('1.11 — ograniczenia okresu próbnego', () => {
+describe('1.11 – ograniczenia okresu próbnego', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 
-  it('uzgadnianie zleca węzłowi limit 100/dobę kontu próbnemu — raz, bez dubli', async () => {
+  it('uzgadnianie zleca węzłowi limit 100/dobę kontu próbnemu – raz, bez dubli', async () => {
     const k = await proba();
     const { limit } = uslugi();
     await expect(limit.uzgodnij()).resolves.toBe(1);
@@ -59,7 +59,7 @@ describe('1.11 — ograniczenia okresu próbnego', () => {
     expect(t[0].serverId).toBe(k.account.serverId);
   });
 
-  it('konto z potwierdzonym limitem próby i płatna usługa — bez zadań', async () => {
+  it('konto z potwierdzonym limitem próby i płatna usługa – bez zadań', async () => {
     await proba({ mailSendLimit: LIMIT_WYSYLKI_PROBY });
     const platna = await proba();
     await prisma().subscription.update({ where: { id: platna.subscription.id }, data: { isTrial: false } });
@@ -67,7 +67,7 @@ describe('1.11 — ograniczenia okresu próbnego', () => {
     expect(await prisma().nodeTask.count()).toBe(0);
   });
 
-  it('węzeł nie potwierdził (FAILED) — ponowienie dopiero po 6 godzinach, błąd zostaje widoczny', async () => {
+  it('węzeł nie potwierdził (FAILED) – ponowienie dopiero po 6 godzinach, błąd zostaje widoczny', async () => {
     const k = await proba();
     const { limit } = uslugi();
     await limit.uzgodnij();
@@ -90,7 +90,7 @@ describe('1.11 — ograniczenia okresu próbnego', () => {
     await expect(limit.uzgodnij()).resolves.toBe(0);
   });
 
-  it('konwersja, zanim limit próby był zlecony — nic do przywracania', async () => {
+  it('konwersja, zanim limit próby był zlecony – nic do przywracania', async () => {
     const k = await proba({ saldo: 100 });
     await uslugi().trial.convertFromWallet(k.user.id, k.subscription.id);
     expect(await zadaniaLimitu(k.account.id)).toHaveLength(0);

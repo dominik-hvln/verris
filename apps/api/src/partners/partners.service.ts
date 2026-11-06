@@ -329,7 +329,7 @@ export class PartnersService {
     if (zarezerwowane.lessThan(cfg.minPayout) || zarezerwowane.lessThanOrEqualTo(0)) {
       await this.commissions.updateMany({ where: { payoutId: payout.id }, data: { payoutId: null } });
       await this.payouts.delete({ where: { id: payout.id } });
-      throw new BadRequestException('Prowizje zostały właśnie przypisane do innej wypłaty — odśwież stronę.');
+      throw new BadRequestException('Prowizje zostały właśnie przypisane do innej wypłaty – odśwież stronę.');
     }
     const total = zarezerwowane;
     await this.payouts.update({ where: { id: payout.id }, data: { amount: total } });

@@ -64,7 +64,7 @@ async function usluga(userId: string, extra: Record<string, unknown> = {}) {
 const saldo = async (id: string) => Number((await prisma().user.findUniqueOrThrow({ where: { id } })).walletBalance);
 const sub = (id: string) => prisma().subscription.findUniqueOrThrow({ where: { id } });
 
-describe('PB-27 / PB-28 — indywidualne warunki i rozliczenie poza Verris', () => {
+describe('PB-27 / PB-28 – indywidualne warunki i rozliczenie poza Verris', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     kolejka.length = 0;
@@ -134,7 +134,7 @@ describe('PB-27 / PB-28 — indywidualne warunki i rozliczenie poza Verris', () 
     const plan = await utworzPlan({ priceYearly: 449 });
     const doKiedy = new Date(Date.now() + 200 * 86400000);
     const wynik = await uslugi().warunki.zalozUsluge(op.id, k.id, {
-      planId: plan.id, interval: 'YEAR', domain: 'z-pleska.pl', powod: 'migracja z Pleska — opłacone do', oplaconeDo: doKiedy.toISOString(),
+      planId: plan.id, interval: 'YEAR', domain: 'z-pleska.pl', powod: 'migracja z Pleska – opłacone do', oplaconeDo: doKiedy.toISOString(),
     });
     const s = await sub(wynik.subscription.id);
     expect(s).toMatchObject({ paymentSource: 'WALLET', status: 'PROVISIONING', individualPrice: null });
@@ -151,7 +151,7 @@ describe('PB-27 / PB-28 — indywidualne warunki i rozliczenie poza Verris', () 
     expect(await saldo(k.id)).toBe(51);
   });
 
-  it('przeniesienie z opłaconym okresem: tylko administrator; data za blisko albo ponad rok — odmowa bez usługi', async () => {
+  it('przeniesienie z opłaconym okresem: tylko administrator; data za blisko albo ponad rok – odmowa bez usługi', async () => {
     const k = await klient(0);
     const plan = await utworzPlan();
     const staff = await prisma().user.create({ data: { email: `pb27-staff-${Date.now()}@test.verris.pl`, passwordHash: 'x', role: 'STAFF' } });

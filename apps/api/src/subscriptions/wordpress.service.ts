@@ -143,7 +143,7 @@ export class WordpressService {
       adminUrl: `https://${domena}/wp-admin`,
       adminUser,
       adminPassword: adminPass,
-      note: 'Zapisz hasło administratora — nie pokażemy go ponownie. Instalacja potrwa ~1 minutę.',
+      note: 'Zapisz hasło administratora – nie pokażemy go ponownie. Instalacja potrwa ~1 minutę.',
     };
   }
 

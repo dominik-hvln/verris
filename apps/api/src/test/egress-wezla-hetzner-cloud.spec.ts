@@ -14,7 +14,7 @@ const SKRYPT = readFileSync(
 );
 const REGULY = SKRYPT.slice(SKRYPT.indexOf('chain output'), SKRYPT.indexOf('\nEOF', SKRYPT.indexOf('chain output')));
 
-describe('Egress węzła — Hetzner Cloud', () => {
+describe('Egress węzła – Hetzner Cloud', () => {
   it('przepuszcza DHCP (udp 67) i DNS/NTP', () => {
     expect(SKRYPT).toMatch(/COMMON_ALLOW_UDP="\{ 53, 67, 123, 547 \}"/);
   });

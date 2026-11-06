@@ -7,7 +7,7 @@ import { RATE_LIMIT_KEY, type RateLimitOptions } from '../common/guards/rate-lim
  * Audyt bezpieczeństwa 13.10: publiczny formularz leadów wysyłał maile Verris z tekstem nadawcy (pole „imię”)
  * na dowolny adres, bez limitu na odbiorcę.
  */
-describe('Formularz leadów — nadużycia wysyłki', () => {
+describe('Formularz leadów – nadużycia wysyłki', () => {
   function stanowisko(poprzedni: boolean) {
     const prisma = {
       siteLead: {
@@ -24,7 +24,7 @@ describe('Formularz leadów — nadużycia wysyłki', () => {
 
   it('potwierdzenie kontaktu nie powtarza pola „imię”', async () => {
     const s = stanowisko(false);
-    await s.svc.submit({ kind: 'CONTACT', email: 'ofiara@example.com', name: 'Twoje konto zablokowane — wejdź na zly.example' } as never, {});
+    await s.svc.submit({ kind: 'CONTACT', email: 'ofiara@example.com', name: 'Twoje konto zablokowane – wejdź na zly.example' } as never, {});
     await vi.waitFor(() => expect(doNadawcy(s.mailer)).toHaveLength(1));
     const m = doNadawcy(s.mailer)[0][0];
     expect(`${m.text}${m.html}`).not.toContain('zly.example');

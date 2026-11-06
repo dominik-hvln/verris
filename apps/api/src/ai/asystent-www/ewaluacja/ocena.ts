@@ -40,7 +40,7 @@ export function ocen(p: PytanieEwaluacji, w: WynikDoOceny): string[] {
   const { nieWiem, zrodlaJedenZ, zawiera } = p.oczekiwane;
   if (typeof nieWiem === 'boolean' && w.nieWiem !== nieWiem) bledy.push(`nieWiem=${w.nieWiem}, oczekiwano ${nieWiem}`);
   if (!w.nieWiem && zrodlaJedenZ?.length && !w.zrodla.some((z) => zrodlaJedenZ.includes(z.id))) {
-    bledy.push(`brak źródła z [${zrodlaJedenZ.join(', ')}] (są: ${w.zrodla.map((z) => z.id).join(', ') || '—'})`);
+    bledy.push(`brak źródła z [${zrodlaJedenZ.join(', ')}] (są: ${w.zrodla.map((z) => z.id).join(', ') || '–'})`);
   }
   if (!w.nieWiem) for (const f of zawiera ?? []) if (!tekst.includes(f.toLowerCase())) bledy.push(`brak „${f}”`);
   return bledy;

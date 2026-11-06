@@ -98,7 +98,7 @@ export class StripeWebhookPonowieniaScheduler {
       } catch (err) {
         // `przetworzPonownie` zapisało już stan FAILED i kolejny termin.
         this.logger.warn(
-          `Ponowienie nieudane: ${z.eventId} — ${err instanceof Error ? err.message : String(err)}`,
+          `Ponowienie nieudane: ${z.eventId} – ${err instanceof Error ? err.message : String(err)}`,
         );
       }
     }

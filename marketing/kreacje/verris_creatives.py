@@ -167,7 +167,7 @@ def save(surf, rel):
 
 PRICE = "45 zł/mies lub 399 zł/rok brutto"
 CLAIM1 = [[("Zmień hosting ", PAPER)], [("bez stresu", MINT), (".", PAPER)]]
-SUB = "Przeniesiemy Twoją stronę za darmo — albo zrobisz to sam migratorem w panelu."
+SUB = "Przeniesiemy Twoją stronę za darmo – albo zrobisz to sam migratorem w panelu."
 
 def sub_text(ctx, x, y, fs, maxw, color=BODY):
     """Prosty word-wrap dla substringu."""

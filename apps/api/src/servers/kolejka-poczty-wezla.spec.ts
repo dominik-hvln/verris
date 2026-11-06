@@ -16,7 +16,7 @@ function wezel(o: { status?: string; zadania?: unknown[] } = {}) {
   return { svc: new KolejkaPocztyWezlaService(prisma as never, audit as never), utworzone, audit };
 }
 
-describe('F3.1 — kolejka poczty węzła', () => {
+describe('F3.1 – kolejka poczty węzła', () => {
   it('odczyt: zadanie MAIL_QUEUE bez konta, tryb list z frazą; wpis w dzienniku', async () => {
     const { svc, utworzone, audit } = wezel();
     await svc.wczytaj('w1', 'noc1', 'gmail.com');
@@ -28,12 +28,12 @@ describe('F3.1 — kolejka poczty węzła', () => {
   it('wypchnięcie: exim -qff przez zadanie flush, tylko z powodem; węzeł nieaktywny i trwająca operacja → odmowa', async () => {
     const ok = wezel();
     await expect(ok.svc.wypchnij('w1', 'noc1', 'krótki')).rejects.toMatchObject({ status: 400 });
-    await ok.svc.wypchnij('w1', 'noc1', 'Po zdjęciu z RBL — wysyłamy zaległe');
+    await ok.svc.wypchnij('w1', 'noc1', 'Po zdjęciu z RBL – wysyłamy zaległe');
     expect(ok.utworzone[0]!.data.payload).toEqual({ mode: 'flush' });
     expect(ok.audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'NODE_MAIL_QUEUE_FLUSHED' }));
     await expect(wezel({ status: 'OFFLINE' }).svc.wczytaj('w1', 'noc1')).rejects.toMatchObject({ status: 400 });
     const trwa = wezel({ zadania: [{ id: 't', status: NodeTaskStatus.RUNNING, payload: { mode: 'list' }, outputLog: null, errorMessage: null, createdAt: new Date(), completedAt: null }] });
-    await expect(trwa.svc.wypchnij('w1', 'noc1', 'Po zdjęciu z RBL — wysyłamy zaległe')).rejects.toMatchObject({ status: 409 });
+    await expect(trwa.svc.wypchnij('w1', 'noc1', 'Po zdjęciu z RBL – wysyłamy zaległe')).rejects.toMatchObject({ status: 409 });
     expect(trwa.utworzone).toEqual([]);
   });
 
@@ -44,7 +44,7 @@ describe('F3.1 — kolejka poczty węzła', () => {
   });
 });
 
-describe('F3.1 — usunięcie wiadomości konta: tylko z podglądu sprzed najwyżej godziny', () => {
+describe('F3.1 – usunięcie wiadomości konta: tylko z podglądu sprzed najwyżej godziny', () => {
   const ID = '1tAbCd-000000001bo-D342';
   const z = { subscriptionId: 's1', operatorUserId: 'op', operatorRole: 'STAFF', powod: 'Spam z formularza kontaktowego' };
   function konto(minutTemu: number) {

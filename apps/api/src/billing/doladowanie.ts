@@ -51,7 +51,7 @@ export async function utworzDokumentDoladowania(
     {
       name: d.nazwaPozycji?.trim()
         ? d.nazwaPozycji.trim().slice(0, MAKS_NAZWA_POZYCJI)
-        : `Doładowanie konta Verris — ${d.kredytK.toFixed(2)} K do wykorzystania na usługi hostingowe` +
+        : `Doładowanie konta Verris – ${d.kredytK.toFixed(2)} K do wykorzystania na usługi hostingowe` +
           (d.proformaNumer ? ` (wpłata do proformy ${d.proformaNumer})` : ''),
       quantity: 1,
       unitNet: r.netto.toFixed(2),

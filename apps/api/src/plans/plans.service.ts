@@ -248,7 +248,7 @@ export class PlansService {
     const subskrypcje = await this.prisma.subscription.count({ where: { planId: id } });
     if (subskrypcje > 0) {
       throw new ConflictException(
-        `Planu „${current.name}” nie można usunąć — ma ${subskrypcje} subskrypcji (także zakończonych), potrzebnych do faktur i historii. Wyłącz go ze sprzedaży.`,
+        `Planu „${current.name}” nie można usunąć – ma ${subskrypcje} subskrypcji (także zakończonych), potrzebnych do faktur i historii. Wyłącz go ze sprzedaży.`,
       );
     }
     await this.prisma.plan.delete({ where: { id } });
@@ -299,7 +299,7 @@ export class PlansService {
     }
     if (stripe.type !== 'recurring' || !stripe.recurring) {
       throw new BadRequestException(
-        `Stripe Price "${priceId}" nie jest recurring — zaczepiamy go jako subskrypcję.`,
+        `Stripe Price "${priceId}" nie jest recurring – zaczepiamy go jako subskrypcję.`,
       );
     }
     if (stripe.recurring.interval !== ctx.expectedInterval || stripe.recurring.interval_count !== 1) {
@@ -309,7 +309,7 @@ export class PlansService {
     }
     if (stripe.recurring.usage_type !== 'licensed') {
       throw new BadRequestException(
-        `Stripe Price "${priceId}" jest typu metered — w naszej integracji używamy tylko licensed.`,
+        `Stripe Price "${priceId}" jest typu metered – w naszej integracji używamy tylko licensed.`,
       );
     }
     const expectedCurrency = ctx.expectedCurrency.toLowerCase();
@@ -321,7 +321,7 @@ export class PlansService {
     const expectedMinor = Math.round(ctx.expectedAmountPln * 100);
     if (stripe.unit_amount === null) {
       throw new BadRequestException(
-        `Stripe Price "${priceId}" nie ma kwoty (unit_amount=null) — niewspierane.`,
+        `Stripe Price "${priceId}" nie ma kwoty (unit_amount=null) – niewspierane.`,
       );
     }
     if (stripe.unit_amount !== expectedMinor) {
@@ -348,7 +348,7 @@ export class PlansService {
   ): Promise<Plan> {
     if (!this.stripe.isConfigured()) {
       this.logger.warn(
-        `Plan ${plan.slug}: pominięto auto-sync Stripe (${trigger}) — brak STRIPE_SECRET_KEY`,
+        `Plan ${plan.slug}: pominięto auto-sync Stripe (${trigger}) – brak STRIPE_SECRET_KEY`,
       );
       return plan;
     }

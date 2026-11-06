@@ -39,8 +39,8 @@ export function SslPricesForm({ dane }: { dane: { produkty: SslProduktAdminDto[]
                 <td className="py-2 text-white">
                   {p.name} <span className="text-neutral-500">{p.brand}{p.wildcard ? ' · wildcard' : ''}</span>
                 </td>
-                <td className="py-2 text-neutral-300">{p.costAmount ? `${kwota(p.costAmount)} ${p.costCurrency}` : '—'}</td>
-                <td className="py-2 text-neutral-300">{p.suggestedGross ? `${kwota(p.suggestedGross)} K` : '—'}</td>
+                <td className="py-2 text-neutral-300">{p.costAmount ? `${kwota(p.costAmount)} ${p.costCurrency}` : '–'}</td>
+                <td className="py-2 text-neutral-300">{p.suggestedGross ? `${kwota(p.suggestedGross)} K` : '–'}</td>
                 <td className="py-2">
                   <input
                     type="text"

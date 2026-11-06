@@ -20,8 +20,8 @@ export function isPrivateIp(ip: string): boolean {
 export { isControlPlaneIp, ustawZrodloAdresowWezlow };
 
 function odrzucZakazany(ip: string, wezly: string[]): void {
-  if (isPrivateIp(ip)) throw new BadRequestException('Host wskazuje na sieć prywatną — odrzucono.');
-  if (isControlPlaneIp(ip) || naLiscie(ip, wezly)) throw new BadRequestException('Host wskazuje na serwer Verris — podaj adres starego hostingu.');
+  if (isPrivateIp(ip)) throw new BadRequestException('Host wskazuje na sieć prywatną – odrzucono.');
+  if (isControlPlaneIp(ip) || naLiscie(ip, wezly)) throw new BadRequestException('Host wskazuje na serwer Verris – podaj adres starego hostingu.');
 }
 
 export async function assertPublicHost(host: string): Promise<void> {

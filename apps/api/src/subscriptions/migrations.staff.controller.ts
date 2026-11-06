@@ -123,7 +123,7 @@ export class MigrationsStaffController {
   async katalogiZrodlaZaKlienta(@Body() dto: KatalogiZrodlaZaKlientaDto) {
     const { subscriptionId, ...dostep } = dto;
     await this.zaKlienta.wlascicielUslugi(subscriptionId);
-    if (!dostep.protocol) throw new BadRequestException('Najpierw sprawdź połączenie — podgląd katalogów używa wykrytego protokołu.');
+    if (!dostep.protocol) throw new BadRequestException('Najpierw sprawdź połączenie – podgląd katalogów używa wykrytego protokołu.');
     return this.zrodloPlikow.katalogi({ ...dostep, protocol: dostep.protocol }, { zHaslemBazy: false });
   }
 

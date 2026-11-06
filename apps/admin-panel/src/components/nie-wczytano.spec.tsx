@@ -33,14 +33,14 @@ describe("NieWczytano", () => {
     expect(przycisk().textContent).toBe("Spróbuj ponownie");
   });
 
-  it("bez onPonow — „Spróbuj ponownie” odświeża dane strony (router.refresh)", async () => {
+  it("bez onPonow – „Spróbuj ponownie” odświeża dane strony (router.refresh)", async () => {
     await act(async () => root.render(<NieWczytano />));
     expect(el.textContent).toContain("Nie udało się wczytać.");
     await act(async () => przycisk().click());
     expect(refresh).toHaveBeenCalledTimes(1);
   });
 
-  it("z onPonow — woła go zamiast odświeżania strony", async () => {
+  it("z onPonow – woła go zamiast odświeżania strony", async () => {
     const onPonow = jest.fn();
     await act(async () => root.render(<NieWczytano co="kategorii" onPonow={onPonow} />));
     await act(async () => przycisk().click());

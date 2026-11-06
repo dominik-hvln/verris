@@ -25,8 +25,8 @@ const zad = (o: Partial<{ id: string; status: NodeTaskStatus; payload: unknown; 
   completedAt: new Date(Date.now() - (o.minut ?? 0) * 60_000),
 });
 
-describe('F3.2 — blokady IP: odczyt i adresy', () => {
-  it('kanonicznyIp: IPv4/IPv6 w postaci kanonicznej, reszta — null', () => {
+describe('F3.2 – blokady IP: odczyt i adresy', () => {
+  it('kanonicznyIp: IPv4/IPv6 w postaci kanonicznej, reszta – null', () => {
     expect(kanonicznyIp(' 203.0.113.7 ')).toBe('203.0.113.7');
     expect(kanonicznyIp('2001:db8::5')).toBe('2001:db8::5');
     for (const zly of ['203.0.113.07', '2001:DB8::5', '2001:db8:0:0:0:0:0:5', '1.2.3.4/24', '1.2.3.4 5.6.7.8', '$(id)', '', 'fe80::1%eth0', '256.1.1.1']) {
@@ -87,7 +87,7 @@ function wezel(o: { status?: string; zadania?: unknown[] } = {}) {
   return { svc: new BlokadyIpWezlaService(prisma as never, audit as never), utworzone, audit };
 }
 
-describe('F3.2 — blokady IP węzła (NOC)', () => {
+describe('F3.2 – blokady IP węzła (NOC)', () => {
   const POWOD = 'Klient z biura, blokada po zmianie hasła';
 
   it('odczyt: zadanie IP_BLOCKS list bez konta i adresu; wpis w dzienniku', async () => {

@@ -11,7 +11,7 @@ import { fetchKsefZalegle, zakolejkujKsefZalegle } from "./actions";
 import { KsefZalegleSekcja } from "./ksef-zalegle";
 
 /** Przegląd 15.10 — faktury VAT panelu sprzed okna automatu KSeF (7 dni), których nie ma w kolejce. */
-describe("KSeF — zaległe faktury", () => {
+describe("KSeF – zaległe faktury", () => {
   beforeEach(() => adminApi.mockReset());
 
   it("akcje: podgląd GET /admin/ksef/zalegle, kolejkowanie POST z liczbą z podglądu; błąd API → komunikat", async () => {
@@ -27,7 +27,7 @@ describe("KSeF — zaległe faktury", () => {
 
   const zalegle = { liczba: 12, przyklady: [{ id: "f1", number: "VFV/2026/09/0001", issuedAt: "2026-09-01T10:00:00.000Z" }] };
 
-  it("brak zaległych — nic się nie pokazuje", () => {
+  it("brak zaległych – nic się nie pokazuje", () => {
     expect(renderToStaticMarkup(<KsefZalegleSekcja zalegle={{ liczba: 0, przyklady: [] }} env="prod" enabled onDone={() => undefined} />)).toBe("");
   });
 

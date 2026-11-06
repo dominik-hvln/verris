@@ -25,14 +25,14 @@ const zad = (o: Partial<ZadanieUslug> & { payload: unknown }): ZadanieUslug => (
   ...o,
 });
 
-describe('audyt Fali 3 — log usługi wyczyszczony retencją', () => {
+describe('audyt Fali 3 – log usługi wyczyszczony retencją', () => {
   it('ukończony log bez wyniku (30 dni) to „nie wczytano”, nie pusty log', () => {
     expect(stanUslug([zad({ payload: { mode: 'log', name: 'exim-main', lines: '200' }, outputLog: null })], true).log).toBeNull();
   });
 });
 
-describe('F3.4 — wynik zadania NODE_SERVICES', () => {
-  it('stan usług w kolejności białej listy; jednostka spoza listy usługi i usługa spoza listy — odrzucone', () => {
+describe('F3.4 – wynik zadania NODE_SERVICES', () => {
+  it('stan usług w kolejności białej listy; jednostka spoza listy usługi i usługa spoza listy – odrzucone', () => {
     const u = uslugiZLogu(wynikStatusu);
     expect(u.map((x) => [x.klucz, x.stan])).toEqual([
       ['www', 'dziala'],
@@ -56,7 +56,7 @@ describe('F3.4 — wynik zadania NODE_SERVICES', () => {
     expect(stanUslug(zadania, true).log!.linie[0]).toBe('<= jan@firma.pl password=•••');
   });
 
-  it('przegląd: log agenta (wynik starszego skryptu) — API pokazuje tylko wiersze agenta, także ADMIN-owi', () => {
+  it('przegląd: log agenta (wynik starszego skryptu) – API pokazuje tylko wiersze agenta, także ADMIN-owi', () => {
     const log = [
       'VERRIS_LOG_ZRODLO agent|/var/log/verris-tasks.log|3|3|0',
       'VERRIS_LOG [verris-tasks] Dispatching MAIL_LOG task t1',
@@ -69,7 +69,7 @@ describe('F3.4 — wynik zadania NODE_SERVICES', () => {
     }
   });
 
-  it('przegląd: filtr ADMIN-a z adresem albo IP — STAFF widzi go zamaskowanego (każdy log, decyzja 14.10), ADMIN w całości', () => {
+  it('przegląd: filtr ADMIN-a z adresem albo IP – STAFF widzi go zamaskowanego (każdy log, decyzja 14.10), ADMIN w całości', () => {
     const log = 'VERRIS_LOG_ZRODLO exim-main|/var/log/exim/mainlog|1|1|0\nVERRIS_LOG <= jan@firma.pl';
     const zadania = [zad({ payload: { mode: 'log', name: 'exim-main', mask: '0', lines: '200', filter: 'jan@firma.pl' }, outputLog: log })];
     expect(stanUslug(zadania, false).log!.filtr).toBe('•••@firma.pl');
@@ -110,14 +110,14 @@ describe('F3.4 — wynik zadania NODE_SERVICES', () => {
 
   it('stan: ostatni udany odczyt usług, ostatni restart z błędem skryptu, „w toku” per tryb', () => {
     const zadania = [
-      zad({ payload: { mode: 'restart', name: 'exim' }, status: NodeTaskStatus.FAILED, outputLog: '[services] BŁĄD: usługa nie działa po restarcie (stan: failed/failed) — sprawdź jej log' }),
+      zad({ payload: { mode: 'restart', name: 'exim' }, status: NodeTaskStatus.FAILED, outputLog: '[services] BŁĄD: usługa nie działa po restarcie (stan: failed/failed) – sprawdź jej log' }),
       zad({ payload: { mode: 'status' }, status: NodeTaskStatus.QUEUED }),
       zad({ payload: { mode: 'status' }, outputLog: wynikStatusu }),
     ];
     const s = stanUslug(zadania, false);
     expect(s.wToku).toEqual({ status: true, restart: false, log: false });
     expect(s.uslugi!.lista).toHaveLength(5);
-    expect(s.restart).toMatchObject({ usluga: 'exim', etykieta: 'Poczta SMTP (Exim)', blad: 'usługa nie działa po restarcie (stan: failed/failed) — sprawdź jej log' });
+    expect(s.restart).toMatchObject({ usluga: 'exim', etykieta: 'Poczta SMTP (Exim)', blad: 'usługa nie działa po restarcie (stan: failed/failed) – sprawdź jej log' });
   });
 });
 
@@ -141,8 +141,8 @@ function srodowisko(o: { status?: string; zadania?: Array<{ status: NodeTaskStat
 const NOC = { userId: 'noc', role: 'STAFF' };
 const ADM = { userId: 'adm', role: 'ADMIN' };
 
-describe('F3.4 — UslugiWezlaService', () => {
-  it('NOC: usługa wspólna — tylko „uruchom, gdy stoi” (onlyDown=1); pomocnicza — zwykły restart', async () => {
+describe('F3.4 – UslugiWezlaService', () => {
+  it('NOC: usługa wspólna – tylko „uruchom, gdy stoi” (onlyDown=1); pomocnicza – zwykły restart', async () => {
     const s = srodowisko();
     await s.svc.restart('w1', NOC, 'mariadb', 'baza nie odpowiada od 5 min');
     expect(s.utworzone[0].payload).toEqual({ mode: 'restart', name: 'mariadb', onlyDown: '1' });
@@ -152,7 +152,7 @@ describe('F3.4 — UslugiWezlaService', () => {
     expect(t.audyt[0]).toMatchObject({ action: 'NODE_SERVICE_RESTART_QUEUED', details: { usluga: 'fail2ban', powod: 'fail2ban zawiesił się', tylkoGdyStoi: false } });
   });
 
-  it('restart: bez powodu, usługa tylko do podglądu, węzeł nieaktywny — odmowa bez zadania', async () => {
+  it('restart: bez powodu, usługa tylko do podglądu, węzeł nieaktywny – odmowa bez zadania', async () => {
     const s = srodowisko();
     await expect(s.svc.restart('w1', NOC, 'exim', 'krótko')).rejects.toBeInstanceOf(BadRequestException);
     await expect(s.svc.restart('w1', NOC, 'sshd', 'restart ssh na prośbę')).rejects.toThrow(/nie restartuje się/);
@@ -188,7 +188,7 @@ describe('F3.4 — UslugiWezlaService', () => {
     await expect(srodowisko().svc.log('w1', NOC, '/etc/shadow', 100, undefined)).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('14.10 — filtry domeny, użytkownika i czasu trafiają do zadania (czas w sekundach epoki); dziennik bez pełnych adresów', async () => {
+  it('14.10 – filtry domeny, użytkownika i czasu trafiają do zadania (czas w sekundach epoki); dziennik bez pełnych adresów', async () => {
     const s = srodowisko();
     await s.svc.log('w1', ADM, 'www-domena', 100, '203.0.113.7', {
       domena: ' Firma.PL. ',
@@ -220,15 +220,15 @@ describe('F3.4 — UslugiWezlaService', () => {
     ['ssh', { uzytkownik: 'jan kowalski' }, /Użytkownik/],
     ['ssh', { uzytkownik: 'jan@firma.pl' }, /Użytkownik/],
     ['ssh', { od: '2026-10-14T02:00:00Z', do: '2026-10-14T01:00:00Z' }, /„od” jest po „do”/],
-  ])('log %s z filtrami %j — odmowa przed zleceniem', async (log, filtry, blad) => {
+  ])('log %s z filtrami %j – odmowa przed zleceniem', async (log, filtry, blad) => {
     const s = srodowisko();
     await expect(s.svc.log('w1', NOC, log, 100, undefined, filtry)).rejects.toThrow(blad);
     expect(s.utworzone).toEqual([]);
   });
 });
 
-describe('F3.4 — ponowienie z listy zadań węzła', () => {
-  it('zadania NODE_SERVICES nie ponawiają się z listy (ominęłoby powód, potwierdzenie i wniosek); inne — jak dotąd', async () => {
+describe('F3.4 – ponowienie z listy zadań węzła', () => {
+  it('zadania NODE_SERVICES nie ponawiają się z listy (ominęłoby powód, potwierdzenie i wniosek); inne – jak dotąd', async () => {
     const { NodeTasksService } = await import('./node-tasks.service.js');
     const { NodeTaskKind } = await import('@verris/database');
     const zmiany: unknown[] = [];

@@ -21,7 +21,7 @@ const pf = (o: Partial<ProformaDto>): ProformaDto => ({
 /** K4 — proformy w Płatnościach: „Zapłać” tylko przy proformie do zapłaty, błąd API widoczny przy proformie. */
 describe('Proformy (panel klienta)', () => {
   it('Zapłać tylko przy WYSTAWIONEJ; opłacona pokazuje dokument; wskazana z linku wyróżniona; błąd przy proformie', async () => {
-    zaplacProformeAction.mockResolvedValue({ ok: false, error: 'Ta proforma została anulowana — nie trzeba jej płacić.' });
+    zaplacProformeAction.mockResolvedValue({ ok: false, error: 'Ta proforma została anulowana – nie trzeba jej płacić.' });
     const el = document.createElement('div');
     document.body.appendChild(el);
     const root = createRoot(el);

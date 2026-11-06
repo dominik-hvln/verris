@@ -22,7 +22,7 @@ import AiKnowledgePage from "./page";
  * Przegląd Fali 2A — dokumenty „Wiedzy AI” czyta chatbot w panelu klienta. Strona jest dla DASHBOARD_VIEW (L1, audytor,
  * NOC), a dodawanie, archiwizacja i usuwanie wymagają KB_MANAGE (API: ai-knowledge.admin.controller.ts).
  */
-describe("Wiedza AI — zapis tylko z KB_MANAGE", () => {
+describe("Wiedza AI – zapis tylko z KB_MANAGE", () => {
   const strona = async (dostep: unknown) => {
     (fetchStaffAccess as jest.Mock).mockResolvedValueOnce(dostep);
     return renderToStaticMarkup(await AiKnowledgePage());

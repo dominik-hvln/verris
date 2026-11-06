@@ -116,7 +116,7 @@ export function ReConsentModal() {
               <FileText aria-hidden className="mt-0.5 h-5 w-5 shrink-0 text-data-hi" />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-foreground">
-                  {KIND_LABELS[doc.kind]} — wersja {doc.currentVersion}
+                  {KIND_LABELS[doc.kind]} – wersja {doc.currentVersion}
                 </p>
                 {doc.userVersion && (
                   <p className="mt-0.5 text-xs text-muted-foreground">

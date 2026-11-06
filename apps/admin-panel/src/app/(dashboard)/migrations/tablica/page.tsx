@@ -40,7 +40,7 @@ export default async function TablicaMigracjiPage({ searchParams }: { searchPara
             Tablica migracji <Pomoc id="tablica-migracji" />
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Etap przesuwasz na karcie migracji — dalej przechodzi dopiero po checkliście.
+            Etap przesuwasz na karcie migracji – dalej przechodzi dopiero po checkliście.
           </p>
         </div>
         <div className="flex flex-wrap gap-2 text-xs">
@@ -101,7 +101,7 @@ function Karta({ k }: { k: KartaMigracji }) {
           {k.domena}
         </span>
       </div>
-      <p className="truncate text-muted-foreground">{k.klient ?? "—"}</p>
+      <p className="truncate text-muted-foreground">{k.klient ?? "–"}</p>
       <p className="text-muted-foreground">
         Automat: {k.statusOpis}
         {k.needsAttention ? " · wymaga uwagi" : ""}
@@ -109,7 +109,7 @@ function Karta({ k }: { k: KartaMigracji }) {
       {k.termin ? (
         <p className={`rounded border px-1.5 py-0.5 ${KOLOR_TERMINU[k.termin.stan]}`}>
           {k.termin.stan === "po-terminie" ? "Po terminie: " : ""}
-          {k.termin.opis} — {kiedy(k.termin.data)}
+          {k.termin.opis} – {kiedy(k.termin.data)}
         </p>
       ) : null}
       <p className="text-muted-foreground">Prowadzi: {k.przypisany?.email ?? "nikt"}</p>

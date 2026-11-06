@@ -167,10 +167,10 @@ export class InvoicePdfService {
     pdf.setAuthor(ctx.seller.name);
     pdf.setSubject(
       proforma
-        ? `Faktura proforma — ${ctx.number}`
+        ? `Faktura proforma – ${ctx.number}`
         : rozliczeniowy
-          ? `Dokument rozliczeniowy — ${ctx.number}`
-          : `Faktura VAT — ${ctx.number}`,
+          ? `Dokument rozliczeniowy – ${ctx.number}`
+          : `Faktura VAT – ${ctx.number}`,
     );
     pdf.setCreator('Verris');
     pdf.setProducer('Verris Panel');

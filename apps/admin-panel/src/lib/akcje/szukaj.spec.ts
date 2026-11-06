@@ -4,8 +4,8 @@ const ADMIN = { isAdmin: true, permissions: [] };
 const FLOTA_PODGLAD = { isAdmin: false, permissions: ["NODES_VIEW"] };
 const aktywny = { id: "n1", status: "ACTIVE" };
 
-describe("Cmd+K — rejestr działań", () => {
-  it("„onboard t1” → działanie i węzeł; samo działanie albo sam węzeł — null", () => {
+describe("Cmd+K – rejestr działań", () => {
+  it("„onboard t1” → działanie i węzeł; samo działanie albo sam węzeł – null", () => {
     expect(rozbierzZapytanie("onboard t1")).toEqual({ dzialanie: "onboard", obiekt: "t1" });
     expect(rozbierzZapytanie("t1 drain")).toEqual({ dzialanie: "drain", obiekt: "t1" });
     expect(rozbierzZapytanie("onboard live pl-waw-1")).toEqual({ dzialanie: "onboard live", obiekt: "pl-waw-1" });
@@ -56,7 +56,7 @@ describe("Cmd+K — rejestr działań", () => {
     expect(akcjeWezlaDlaZapytania(aktywny, "mainlog", ADMIN)[0]).toMatchObject({ id: "logi-wezla", zablokowane: null });
   });
 
-  it("bez uprawnień — wyszarzone z powodem, nie ukryte", () => {
+  it("bez uprawnień – wyszarzone z powodem, nie ukryte", () => {
     const [onboard] = akcjeWezlaDlaZapytania(aktywny, "onboard", FLOTA_PODGLAD);
     expect(onboard).toMatchObject({ id: "onboard-live", href: "/nodes/n1?sekcja=aktualizacje#onboard-live", zablokowane: "Wymaga NODES_MANAGE" });
     expect(akcjeWezlaDlaZapytania(aktywny, "zadania", FLOTA_PODGLAD)[0]?.zablokowane).toBeNull();
@@ -76,7 +76,7 @@ describe("Cmd+K — rejestr działań", () => {
   });
 });
 
-describe("Cmd+K — tryb obiekt → działanie dla klienta, usługi i faktury (plan E, patche 9–11)", () => {
+describe("Cmd+K – tryb obiekt → działanie dla klienta, usługi i faktury (plan E, patche 9–11)", () => {
   const ids = (o: Parameters<typeof akcjeObiektuDlaZapytania>[0], q = "", d = ADMIN) => akcjeObiektuDlaZapytania(o, q, d).map((a) => a.id);
 
   it("klient: działania z karty, w tym reseller, blokada poczty i program partnerski; odpowiedź → zakładka zgłoszeń", () => {
@@ -103,7 +103,7 @@ describe("Cmd+K — tryb obiekt → działanie dla klienta, usługi i faktury (p
     expect(ksef[0]).toMatchObject({ id: "ksef", href: "/invoices/f1#ksef", zablokowane: "Wymaga roli administratora" });
   });
 
-  it("inne typy (zgłoszenie, migracja) — bez trybu działań", () => {
+  it("inne typy (zgłoszenie, migracja) – bez trybu działań", () => {
     expect(ids({ type: "ticket", id: "t1" })).toEqual([]);
   });
 });

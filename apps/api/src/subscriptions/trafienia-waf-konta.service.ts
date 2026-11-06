@@ -28,7 +28,7 @@ export class TrafieniaWafKontaService {
     if (!sub) throw new NotFoundException('Usługa nie istnieje.');
     if (!sub.account) throw new NotFoundException('Usługa nie ma konta hostingowego.');
     if (operatorRole !== 'ADMIN' && sub.user?.role !== 'USER') {
-      throw new ForbiddenException('Personel widzi trafienia WAF wyłącznie usług klientów — usługę konta zespołu sprawdza administrator.');
+      throw new ForbiddenException('Personel widzi trafienia WAF wyłącznie usług klientów – usługę konta zespołu sprawdza administrator.');
     }
     return { userId: sub.userId, account: sub.account };
   }
@@ -51,11 +51,11 @@ export class TrafieniaWafKontaService {
     const { account } = await this.konto(subscriptionId, operatorRole);
     if (account.status === 'DELETED' || account.status === 'PROVISIONING') throw new BadRequestException('Konto hostingowe nie działa na serwerze.');
     const zadania = await this.zadania(account.id);
-    if (stanTrafien(zadania).wToku) throw new ConflictException('Trafienia WAF już się wczytują — chwila.');
+    if (stanTrafien(zadania).wToku) throw new ConflictException('Trafienia WAF już się wczytują – chwila.');
     const { domains, fetchError } = await this.directAdmin.listHostingDomainsForSubscription(subscriptionId, wlascicielId);
     // Audyt Fali 3 — błąd odczytu domen to błąd, nie odczyt samej domeny głównej: inaczej zadanie kończy się
     // „brak trafień” dla domen dodatkowych (fałszywie negatywna diagnoza). Jak domenyKonta kolejki poczty.
-    if (fetchError) throw new ServiceUnavailableException('Nie udało się odczytać domen konta z serwera — trafienia WAF nie zostały wczytane. Spróbuj za chwilę.');
+    if (fetchError) throw new ServiceUnavailableException('Nie udało się odczytać domen konta z serwera – trafienia WAF nie zostały wczytane. Spróbuj za chwilę.');
     const domeny = [...new Set([account.domain, ...domains.map((d) => d.name)].map((d) => d.toLowerCase()))].slice(0, 200);
     await this.zamknijWiszace(zadania);
     await this.prisma.nodeTask.create({

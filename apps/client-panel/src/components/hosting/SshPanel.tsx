@@ -59,7 +59,7 @@ export function SshPanel({ serviceId }: { serviceId: string }) {
       const r = await setSsh(serviceId, wlacz);
       if (r.ok) {
         setStan(r.status);
-        toast.success(wlacz ? 'Włączanie SSH zlecone — gotowe w ciągu minuty.' : 'Wyłączanie SSH zlecone.');
+        toast.success(wlacz ? 'Włączanie SSH zlecone – gotowe w ciągu minuty.' : 'Wyłączanie SSH zlecone.');
       } else toast.error(r.error);
     });
   };
@@ -70,7 +70,7 @@ export function SshPanel({ serviceId }: { serviceId: string }) {
       const r = await setSshKeys(serviceId, lista);
       if (r.ok) {
         setStan(r.status);
-        toast.success('Klucze zapisane — zaczną działać w ciągu minuty.');
+        toast.success('Klucze zapisane – zaczną działać w ciągu minuty.');
       } else toast.error(r.error);
     });
 
@@ -80,7 +80,7 @@ export function SshPanel({ serviceId }: { serviceId: string }) {
         <div className="min-w-0">
           <h3 className="m-0 text-[15px] font-bold text-foreground">Dostęp SSH</h3>
           <p className="m-0 mt-0.5 text-[12.5px] text-muted-foreground">
-            Powłoka w odizolowanym środowisku — widzisz tylko pliki swojego konta. Przydaje się do WP-CLI, Composera i Gita.
+            Powłoka w odizolowanym środowisku – widzisz tylko pliki swojego konta. Przydaje się do WP-CLI, Composera i Gita.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -92,7 +92,7 @@ export function SshPanel({ serviceId }: { serviceId: string }) {
       <div className="space-y-2 px-4 py-3 text-[13px]">
         {wlaczony && polaczenie?.sshHost ? (
           <p className="m-0 text-muted-foreground">
-            Połączenie: <span className="font-mono text-foreground">ssh {'<login konta>'}@{polaczenie.sshHost}{polaczenie.sshPort && polaczenie.sshPort !== 22 ? ` -p ${polaczenie.sshPort}` : ''}</span> — logujesz się kluczem dodanym poniżej (login konta jest w przeglądzie usługi, w „Dane dostępowe”). Jeśli plik klucza
+            Połączenie: <span className="font-mono text-foreground">ssh {'<login konta>'}@{polaczenie.sshHost}{polaczenie.sshPort && polaczenie.sshPort !== 22 ? ` -p ${polaczenie.sshPort}` : ''}</span> – logujesz się kluczem dodanym poniżej (login konta jest w przeglądzie usługi, w „Dane dostępowe”). Jeśli plik klucza
             ma inną nazwę niż domyślna (id_ed25519, id_rsa), wskaż go: <span className="font-mono text-foreground">ssh -i ~/.ssh/nazwa_klucza …</span>
           </p>
         ) : (

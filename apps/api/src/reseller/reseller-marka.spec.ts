@@ -1,7 +1,7 @@
 import { blokPartnera, typLogo, wstawMarke, ZNACZNIK_PARTNERA_DO, ZNACZNIK_PARTNERA_OD } from './reseller-marka.js';
 import { renderEmailShell } from '../mail/templates/_layouts/email-shell.js';
 
-describe('O-09 — marka resellera', () => {
+describe('O-09 – marka resellera', () => {
   it('logo rozpoznaje po sygnaturze pliku, SVG i HTML odrzuca', () => {
     expect(typLogo(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0]))).toBe('image/png');
     expect(typLogo(Buffer.from([0xff, 0xd8, 0xff, 0xe0]))).toBe('image/jpeg');
@@ -17,7 +17,7 @@ describe('O-09 — marka resellera', () => {
     expect(w.html).toContain('Studio &lt;Nowak&gt;');
     expect(w.html).toContain('na infrastrukturze Verris');
     expect(w.html).not.toContain('Skaluj świadomie</span>\n                <!--/verris');
-    expect(w.text).toMatch(/— Studio <Nowak>, na infrastrukturze Verris$/);
+    expect(w.text).toMatch(/– Studio <Nowak>, na infrastrukturze Verris$/);
   });
 
   it('mail bez znaczników zostaje bez zmian', () => {

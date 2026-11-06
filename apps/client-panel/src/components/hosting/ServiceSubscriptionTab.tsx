@@ -52,7 +52,7 @@ const BILLING_EVENT_TYPES = new Set([
 ]);
 
 function formatDate(iso: string | null) {
-  if (!iso) return '—';
+  if (!iso) return '–';
   return new Date(iso).toLocaleDateString('pl-PL', {
     day: 'numeric',
     month: 'long',
@@ -178,7 +178,7 @@ export default function ServiceSubscriptionTab({ serviceId }: { serviceId: strin
               <a
                 href={`/api/services/${serviceId}/proforma`}
                 className={BTN}
-                title="PDF z kwotą najbliższego odnowienia — np. do akceptacji w księgowości przed płatnością"
+                title="PDF z kwotą najbliższego odnowienia – np. do akceptacji w księgowości przed płatnością"
               >
                 Proforma na odnowienie
               </a>
@@ -225,7 +225,7 @@ export default function ServiceSubscriptionTab({ serviceId }: { serviceId: strin
             ))}
           </ul>
           <p className="mt-2 text-xs text-muted-foreground">
-            Te limity ustaliła z Tobą obsługa Verris. Pozostałe są takie jak w planie {service.plan.name}. Zmianę planu przeprowadzi obsługa — napisz zgłoszenie.
+            Te limity ustaliła z Tobą obsługa Verris. Pozostałe są takie jak w planie {service.plan.name}. Zmianę planu przeprowadzi obsługa – napisz zgłoszenie.
           </p>
         </section>
       ) : null}
@@ -251,7 +251,7 @@ export default function ServiceSubscriptionTab({ serviceId }: { serviceId: strin
         <section className="rounded-[10px] border border-warn/30 bg-warn-soft px-4 py-3.5">
           <h3 className="m-0 font-display text-[15px] font-bold text-foreground">Rezygnacja zaplanowana</h3>
           <p className="mt-1 text-[13px] text-muted-foreground">
-            Usługa działa do {formatDate(termin.data)} i nie odnowi się — nie pobierzemy kolejnej opłaty. Chcesz ją jednak
+            Usługa działa do {formatDate(termin.data)} i nie odnowi się – nie pobierzemy kolejnej opłaty. Chcesz ją jednak
             zachować? Napisz do nas przed tą datą w{' '}
             <Link href="/dashboard/support" className="font-semibold text-primary underline underline-offset-[3px]">
               Centrum pomocy
@@ -294,7 +294,7 @@ export default function ServiceSubscriptionTab({ serviceId }: { serviceId: strin
         title="Zrezygnować z usługi?"
         description={
           cancelImmediate
-            ? 'Hosting zostanie zawieszony od razu. Opłata za bieżący okres nie podlega automatycznemu zwrotowi — w razie wątpliwości napisz do wsparcia.'
+            ? 'Hosting zostanie zawieszony od razu. Opłata za bieżący okres nie podlega automatycznemu zwrotowi – w razie wątpliwości napisz do wsparcia.'
             : 'Usługa pozostanie aktywna do końca opłaconego okresu, potem nie będzie odnawiana. Nie pobierzemy kolejnej opłaty.'
         }
       >

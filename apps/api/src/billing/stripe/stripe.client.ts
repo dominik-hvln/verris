@@ -234,7 +234,7 @@ export function getSubscriptionPeriod(sub: StripeSubscription): { start: number;
     return { start: sub.current_period_start, end: sub.current_period_end };
   }
   throw new Error(
-    `Cannot read billing period from subscription ${sub.id} — neither items.data[0].current_period_* nor root current_period_* present. Make sure items.data is included in webhook payload (Basil+) or use Stripe-Version <= 2025-02-24.acacia.`,
+    `Cannot read billing period from subscription ${sub.id} – neither items.data[0].current_period_* nor root current_period_* present. Make sure items.data is included in webhook payload (Basil+) or use Stripe-Version <= 2025-02-24.acacia.`,
   );
 }
 

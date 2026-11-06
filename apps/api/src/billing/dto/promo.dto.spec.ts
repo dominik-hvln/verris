@@ -11,7 +11,7 @@ const bledy = (v: Record<string, unknown>) =>
   }).map((e) => e.property);
 
 describe('AdminUpdatePromoDto', () => {
-  it('active: null — błąd walidacji (400), nie 500 z bazy', () => {
+  it('active: null – błąd walidacji (400), nie 500 z bazy', () => {
     expect(bledy({ active: null })).toEqual(['active']);
   });
 

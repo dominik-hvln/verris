@@ -44,7 +44,7 @@ function faktura(over: Partial<StanFaktury> = {}): StanFaktury {
   };
 }
 
-describe('M-06 — dopuszczalność korekty', () => {
+describe('M-06 – dopuszczalność korekty', () => {
   it('zwykłą opłaconą fakturę wolno skorygować', () => {
     expect(bladKorygowalnosci(faktura())).toBeNull();
   });
@@ -63,7 +63,7 @@ describe('M-06 — dopuszczalność korekty', () => {
   });
 });
 
-describe('M-06 — korekta wartościowa', () => {
+describe('M-06 – korekta wartościowa', () => {
   it('liczy różnicę jako po minus przed', () => {
     const w = przeliczKorekte(faktura(), [
       { nazwa: 'Abonament', ilosc: 1, cenaBrutto: '61.50' },
@@ -151,7 +151,7 @@ describe('M-06 — korekta wartościowa', () => {
   });
 });
 
-describe('M-06 — korekta formalna', () => {
+describe('M-06 – korekta formalna', () => {
   it('nie zmienia kwot i daje zerową różnicę', () => {
     const w = korektaFormalna(faktura());
     expect(w.przed.brutto.toFixed(2)).toBe('123.00');
@@ -174,11 +174,11 @@ describe('M-06 — korekta formalna', () => {
   });
 });
 
-describe('M-06 — opis dokumentu', () => {
+describe('M-06 – opis dokumentu', () => {
   it('mówi wprost, ile i w którą stronę', () => {
     const zwrot = przeliczKorekte(faktura(), [{ nazwa: 'A', ilosc: 1, cenaBrutto: '61.50' }]);
     expect(opisKorekty('WARTOSCIOWA', 'VFV/2026/08/0001', zwrot.roznica, 'PLN')).toBe(
-      'Korekta faktury VFV/2026/08/0001 — zwrot 61.50 PLN',
+      'Korekta faktury VFV/2026/08/0001 – zwrot 61.50 PLN',
     );
 
     const doplata = przeliczKorekte(faktura(), [{ nazwa: 'A', ilosc: 1, cenaBrutto: '200.00' }]);

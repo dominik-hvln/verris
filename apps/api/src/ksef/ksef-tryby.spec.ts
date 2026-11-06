@@ -24,7 +24,7 @@ import {
 const PONIEDZIALEK = new Date('2026-08-24T10:00:00Z');
 const PIATEK = new Date('2026-08-28T10:00:00Z');
 
-describe('M-16 — dni robocze', () => {
+describe('M-16 – dni robocze', () => {
   it('sobota i niedziela nie są dniami roboczymi', () => {
     expect(czyDzienRoboczy(new Date('2026-08-29T10:00:00Z'))).toBe(false); // sobota
     expect(czyDzienRoboczy(new Date('2026-08-30T10:00:00Z'))).toBe(false); // niedziela
@@ -49,7 +49,7 @@ describe('M-16 — dni robocze', () => {
   });
 });
 
-describe('M-16 — terminy per tryb', () => {
+describe('M-16 – terminy per tryb', () => {
   it('ONLINE nie ma terminu awaryjnego', () => {
     expect(terminPrzeslania({ tryb: 'ONLINE', wystawiono: PONIEDZIALEK })).toBeNull();
     expect(terminNieznany({ tryb: 'ONLINE', wystawiono: PONIEDZIALEK })).toBe(false);
@@ -61,7 +61,7 @@ describe('M-16 — terminy per tryb', () => {
     expect(stanTerminu(w, new Date('2027-01-01T00:00:00Z'))).toBe('brak-obowiazku');
   });
 
-  it('OFFLINE24 liczy się od WYSTAWIENIA — następny dzień roboczy', () => {
+  it('OFFLINE24 liczy się od WYSTAWIENIA – następny dzień roboczy', () => {
     const termin = terminPrzeslania({ tryb: 'OFFLINE24', wystawiono: PONIEDZIALEK });
     expect(termin?.toISOString().slice(0, 10)).toBe('2026-08-25');
   });
@@ -84,7 +84,7 @@ describe('M-16 — terminy per tryb', () => {
   });
 });
 
-describe('M-16 — „brak obowiązku" to nie „nie wiemy"', () => {
+describe('M-16 – „brak obowiązku" to nie „nie wiemy"', () => {
   it('AWARIA bez daty zakończenia przerwy daje termin NIEZNANY, nie brak obowiązku', () => {
     const w = { tryb: 'AWARIA' as const, wystawiono: PONIEDZIALEK, przerwaZakonczona: null };
     expect(terminPrzeslania(w)).toBeNull();
@@ -101,7 +101,7 @@ describe('M-16 — „brak obowiązku" to nie „nie wiemy"', () => {
   });
 });
 
-describe('M-16 — tryb niesklasyfikowany', () => {
+describe('M-16 – tryb niesklasyfikowany', () => {
   it('dostaje NAJKRÓTSZY możliwy termin, nie najdłuższy', () => {
     const nieskl = terminPrzeslania({ tryb: 'NIESKLASYFIKOWANY', wystawiono: PONIEDZIALEK })!;
     const awaria = terminPrzeslania({
@@ -116,14 +116,14 @@ describe('M-16 — tryb niesklasyfikowany', () => {
     );
   });
 
-  it('nie jest kategorią prawną — wymaga zaklasyfikowania', () => {
+  it('nie jest kategorią prawną – wymaga zaklasyfikowania', () => {
     // Gdyby ktoś kiedyś nadał mu `dniRobocze: null`, faktura po awarii
     // przestałaby być pilnowana i nikt by tego nie zauważył.
     expect(TRYBY.NIESKLASYFIKOWANY.dniRobocze).not.toBeNull();
   });
 });
 
-describe('M-16 — przekroczenie terminu i kody QR', () => {
+describe('M-16 – przekroczenie terminu i kody QR', () => {
   it('wykrywa przekroczenie terminu', () => {
     const w = { tryb: 'OFFLINE24' as const, wystawiono: PONIEDZIALEK };
     expect(stanTerminu(w, new Date('2026-08-25T12:00:00Z'))).toBe('w-terminie');
@@ -137,7 +137,7 @@ describe('M-16 — przekroczenie terminu i kody QR', () => {
     expect(wymagaKodowQr('AWARIA_CALKOWITA')).toBe(false);
   });
 
-  it('kontrola strażnika — każdy tryb ma spójny opis', () => {
+  it('kontrola strażnika – każdy tryb ma spójny opis', () => {
     for (const [klucz, opis] of Object.entries(TRYBY)) {
       expect(opis.tryb).toBe(klucz);
       expect(opis.etykieta.length).toBeGreaterThan(0);

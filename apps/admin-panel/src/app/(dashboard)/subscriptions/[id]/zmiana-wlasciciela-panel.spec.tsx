@@ -19,7 +19,7 @@ import { ZmianaWlascicielaPanel } from "./zmiana-wlasciciela-panel";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
-const POWOD = "Sprzedaż firmy — prośba obu stron";
+const POWOD = "Sprzedaż firmy – prośba obu stron";
 const OK = {
   ok: true,
   wynik: { usluga: { id: "s1", domena: "strona.pl", obecnyWlasciciel: "stary@firma.pl" }, nowyWlasciciel: { id: "u2", email: "nowy@firma.pl", imie: "Ala" }, odmowy: [], uwagi: ["Płatne dodatki (autoskalowanie) od przeniesienia obciążają portfel nowego właściciela."] },
@@ -81,7 +81,7 @@ it("zły adres w potwierdzeniu albo anulowanie okna → nic nie wysyłamy", asyn
 });
 
 it("odmowy z API: pokazane, bez pola powodu i bez przycisku zmiany", async () => {
-  podglad.mockResolvedValue({ ok: true, wynik: { ...OK.wynik, odmowy: ["Usługa ma zaległą płatność — najpierw rozlicz ją u obecnego właściciela (zaległość nie przechodzi na nowego)."] } });
+  podglad.mockResolvedValue({ ok: true, wynik: { ...OK.wynik, odmowy: ["Usługa ma zaległą płatność – najpierw rozlicz ją u obecnego właściciela (zaległość nie przechodzi na nowego)."] } });
   await render();
   await wpisz(pole("email"), "nowy@firma.pl");
   await klik(przycisk("sprawdz")!);
@@ -89,7 +89,7 @@ it("odmowy z API: pokazane, bez pola powodu i bez przycisku zmiany", async () =>
   expect(przycisk("zmien-wlasciciela")).toBeNull();
 });
 
-it("zmiana adresu po sprawdzeniu unieważnia podgląd — trzeba sprawdzić ponownie", async () => {
+it("zmiana adresu po sprawdzeniu unieważnia podgląd – trzeba sprawdzić ponownie", async () => {
   await render();
   await wpisz(pole("email"), "nowy@firma.pl");
   await klik(przycisk("sprawdz")!);

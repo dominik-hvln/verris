@@ -111,7 +111,7 @@ export class HostingDiagnosticsService {
         throw new BadRequestException(
           any
             ? `Domena musi być dokładnie domeną główną konta hostingowego (np. ${any.domain}).`
-            : 'Klient nie ma konta hostingowego — brak domeny do sprawdzenia.',
+            : 'Klient nie ma konta hostingowego – brak domeny do sprawdzenia.',
         );
       }
       hostname = want;

@@ -38,7 +38,7 @@ export const Pricing: GlobalConfig = {
       type: 'textarea',
       label: 'Nota (fair use / autoskalowanie)',
       defaultValue:
-        '„Bez limitu" oznacza brak sztywnego licznika — realnym ogranicznikiem są zasoby konta (CPU/RAM/dysk) i zasady uczciwego korzystania. Autoskalowanie ponad bazę rozliczane jest godzinowo według stawek z cennika.',
+        '„Bez limitu" oznacza brak sztywnego licznika – realnym ogranicznikiem są zasoby konta (CPU/RAM/dysk) i zasady uczciwego korzystania. Autoskalowanie ponad bazę rozliczane jest godzinowo według stawek z cennika.',
     },
   ],
 };

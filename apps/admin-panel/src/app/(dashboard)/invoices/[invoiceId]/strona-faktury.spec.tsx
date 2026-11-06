@@ -102,7 +102,7 @@ describe("strona faktury", () => {
     }
   });
 
-  it("fala 1B: przyjęta przez KSeF — „Pobierz UPO” (admin); odrzucona — bez UPO", async () => {
+  it("fala 1B: przyjęta przez KSeF – „Pobierz UPO” (admin); odrzucona – bez UPO", async () => {
     const przyjeta = await render(faktura({ ksef: { status: "ACCEPTED", numer: "KSEF-1", blad: null, wyslano: null, przyjeto: "2026-10-01T10:06:00Z", terminDo: null } }));
     expect(przyjeta).toContain('href="/api/invoices-upo/f1"');
     expect(await render(faktura())).not.toContain("/api/invoices-upo/");

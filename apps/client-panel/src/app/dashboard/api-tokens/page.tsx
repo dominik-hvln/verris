@@ -14,7 +14,7 @@ export default async function ApiTokensPage() {
     <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6">
       <PanelPageHeader
         title="API i integracje"
-        description="Tokeny dostępu do publicznego API Verris i webhooki — do CI/CD, Terraform i własnych skryptów. Działają tylko w obrębie Twojego konta."
+        description="Tokeny dostępu do publicznego API Verris i webhooki – do CI/CD, Terraform i własnych skryptów. Działają tylko w obrębie Twojego konta."
       />
       <ApiTokensClient mozeTworzyc={!session?.isSubaccount} />
       <WebhooksClient />

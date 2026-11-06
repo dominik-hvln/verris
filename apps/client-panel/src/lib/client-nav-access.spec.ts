@@ -59,9 +59,9 @@ describe('client-nav-access', () => {
   });
 });
 
-describe('PB-20 — zakres usług w nawigacji', () => {
+describe('PB-20 – zakres usług w nawigacji', () => {
   const ctx = { isSubaccount: true, customerPermissions: ['SERVICES_READ', 'FILES_MANAGE', 'BILLING_READ', 'DOMAINS_READ', 'TICKETS_READ'], serviceScope: ['s1'] };
-  it('zostają ekrany usługi i pomoc, znikają zasoby całego konta — mimo uprawnień', () => {
+  it('zostają ekrany usługi i pomoc, znikają zasoby całego konta – mimo uprawnień', () => {
     expect(canAccessDashboardRoute('/dashboard/services', ctx)).toBe(true);
     expect(canAccessDashboardRoute('/dashboard/file-manager', ctx)).toBe(true);
     expect(canAccessDashboardRoute('/dashboard/support', ctx)).toBe(true);
@@ -71,7 +71,7 @@ describe('PB-20 — zakres usług w nawigacji', () => {
   });
 });
 
-it('PB-20 — przy zakresie usług nie ma zamawiania nowych', () => {
+it('PB-20 – przy zakresie usług nie ma zamawiania nowych', () => {
   const ctx = { isSubaccount: true, customerPermissions: ['SERVICES_MANAGE'], serviceScope: ['s1'] };
   expect(canAccessDashboardRoute('/dashboard/services/new', ctx)).toBe(false);
   // Bez zakresu — nadal potrzebne oba uprawnienia jak w API (POST /subscriptions).
@@ -79,7 +79,7 @@ it('PB-20 — przy zakresie usług nie ma zamawiania nowych', () => {
   expect(canAccessDashboardRoute('/dashboard/services/new', { ...ctx, serviceScope: [], customerPermissions: ['SERVICES_MANAGE', 'BILLING_MANAGE'] })).toBe(true);
 });
 
-it('26.09 — „Usługi: podgląd” nie otwiera zamówienia usługi ani zakupu domeny', () => {
+it('26.09 – „Usługi: podgląd” nie otwiera zamówienia usługi ani zakupu domeny', () => {
   const ctx = { isSubaccount: true, customerPermissions: ['SERVICES_READ'] };
   expect(canAccessDashboardRoute('/dashboard/services', ctx)).toBe(true);
   expect(canAccessDashboardRoute('/dashboard/services/new', ctx)).toBe(false);
@@ -88,7 +88,7 @@ it('26.09 — „Usługi: podgląd” nie otwiera zamówienia usługi ani zakupu
   expect(canAccessDashboardRoute('/dashboard/domains/buy', { isSubaccount: true, customerPermissions: ['DOMAINS_MANAGE', 'BILLING_MANAGE'] })).toBe(true);
 });
 
-describe('PB-28 — rozliczenie poza Verris', () => {
+describe('PB-28 – rozliczenie poza Verris', () => {
   const ctx = { isSubaccount: false, customerPermissions: null, billingOutside: true };
   it('chowa portfel, płatności i zamawianie; reszta panelu zostaje', () => {
     expect(canAccessDashboardRoute('/dashboard/billing', ctx)).toBe(false);
@@ -102,7 +102,7 @@ describe('PB-28 — rozliczenie poza Verris', () => {
   });
 });
 
-describe('Beta „Zgłoś uwagę” — kto może założyć zgłoszenie', () => {
+describe('Beta „Zgłoś uwagę” – kto może założyć zgłoszenie', () => {
   it('właściciel tak; subkonto tylko z TICKETS_MANAGE (jak POST /tickets w API)', () => {
     expect(canCreateTicket({ isSubaccount: false, customerPermissions: null })).toBe(true);
     expect(canCreateTicket({ isSubaccount: true, customerPermissions: ['TICKETS_READ'] })).toBe(false);

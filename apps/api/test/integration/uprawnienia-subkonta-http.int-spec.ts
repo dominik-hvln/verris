@@ -79,7 +79,7 @@ describe('O-03/Z-10 uprawnienia subkonta przez HTTP', () => {
   });
   beforeEach(wyczyscBaze);
 
-  it('podgląd usług: lista tak, zakup usługi i domeny nie — odmowa w dzienniku właściciela', async () => {
+  it('podgląd usług: lista tak, zakup usługi i domeny nie – odmowa w dzienniku właściciela', async () => {
     const k = await konta(['SERVICES_READ']);
     expect(await zadanie('GET', '/subscriptions', k.sub)).toBe(200);
     expect(await zadanie('POST', '/subscriptions', k.sub)).toBe(403);

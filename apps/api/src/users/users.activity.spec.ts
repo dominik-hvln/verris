@@ -22,7 +22,7 @@ describe('UsersService.listMyActivity', () => {
     expect(r.events.map((e) => e.actor)).toEqual(['anna@firma.pl', 'obsługa Verris', null, 'obsługa Verris']);
     expect(r.events[2].context).toBe('k_db');
   });
-  it('D3 (10.10): działanie obsługi ze zgłoszenia — „obsługa Verris (zgłoszenie #…)”, bez nazwiska, e-maila i notatki operatora', async () => {
+  it('D3 (10.10): działanie obsługi ze zgłoszenia – „obsługa Verris (zgłoszenie #…)”, bez nazwiska, e-maila i notatki operatora', async () => {
     const rows = [
       {
         id: '1',

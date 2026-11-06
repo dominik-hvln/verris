@@ -11,6 +11,6 @@ export function jestIdZasobu(x: unknown): x is string {
 
 /** UUID zakodowany do segmentu ścieżki; inna wartość → błąd z polskim komunikatem dla klienta. */
 export function idZasobu(x: unknown): string {
-  if (!jestIdZasobu(x)) throw new Error('Link jest niepoprawny — otwórz go jeszcze raz z maila albo przejdź do zakładki Migracje.');
+  if (!jestIdZasobu(x)) throw new Error('Link jest niepoprawny – otwórz go jeszcze raz z maila albo przejdź do zakładki Migracje.');
   return encodeURIComponent(x);
 }

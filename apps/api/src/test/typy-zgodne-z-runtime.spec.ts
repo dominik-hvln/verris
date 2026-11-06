@@ -110,7 +110,7 @@ function wczytajPaczki(): Array<{ plik: string; zaleznosci: Record<string, strin
   });
 }
 
-describe('X-21 — typy zgodne z runtime', () => {
+describe('X-21 – typy zgodne z runtime', () => {
   describe('strażnik ma czego pilnować', () => {
     it('widzi package.json całego monorepo, nie tylko API', () => {
       const paczki = wczytajPaczki();
@@ -145,7 +145,7 @@ describe('X-21 — typy zgodne z runtime', () => {
     expect(
       rozjazdy.length === 0
         ? ''
-        : `Typy opisują inną wersję biblioteki niż zainstalowana — typecheck przepuści\n` +
+        : `Typy opisują inną wersję biblioteki niż zainstalowana – typecheck przepuści\n` +
           `kod, którego runtime nie ma (patrz X-21, archiver 7 vs 8):\n${opis}`,
     ).toBe('');
   });
@@ -168,7 +168,7 @@ describe('X-21 — typy zgodne z runtime', () => {
     expect(rozjazdy).toEqual([]);
   });
 
-  it('engines.node nie schodzi poniżej 22.12 — poniżej require(esm) nie działa', () => {
+  it('engines.node nie schodzi poniżej 22.12 – poniżej require(esm) nie działa', () => {
     const korzen = JSON.parse(readFileSync(join(KORZEN, 'package.json'), 'utf8')) as {
       engines?: { node?: string };
     };
@@ -176,7 +176,7 @@ describe('X-21 — typy zgodne z runtime', () => {
     const m = /(\d+)\.(\d+)/.exec(zakres);
     expect(
       m === null
-        ? `engines.node w korzeniu ("${zakres}") nie podaje wersji minorowej — ` +
+        ? `engines.node w korzeniu ("${zakres}") nie podaje wersji minorowej – ` +
           `archiver 8 jest czystym ESM-em i wymaga require(esm) z Node ≥ 22.12`
         : '',
     ).toBe('');
@@ -190,7 +190,7 @@ describe('X-21 — typy zgodne z runtime', () => {
   });
 });
 
-describe('X-21 — archiver: kod woła API, które runtime faktycznie ma', () => {
+describe('X-21 – archiver: kod woła API, które runtime faktycznie ma', () => {
   /**
    * Introspekcja w osobnym procesie Node'a, nie przez `require` w jeście.
    *
@@ -268,7 +268,7 @@ describe('X-21 — archiver: kod woła API, które runtime faktycznie ma', () =>
     expect(
       winne.length === 0
         ? ''
-        : `Wywołanie usuniętej fabryki archivera — użyj new archiver.ZipArchive(…) ` +
+        : `Wywołanie usuniętej fabryki archivera – użyj new archiver.ZipArchive(…) ` +
           `albo new archiver.TarArchive(…):\n  ${winne.join('\n  ')}`,
     ).toBe('');
   });
@@ -335,7 +335,7 @@ describe('X-21 — archiver: kod woła API, które runtime faktycznie ma', () =>
     ostrzezenia?: string[];
   };
 
-  it('ZIP powstaje ze stringa, JSON-a i strumienia — tak jak w eksporcie RODO', () => {
+  it('ZIP powstaje ze stringa, JSON-a i strumienia – tak jak w eksporcie RODO', () => {
     expect(smoke.blad ?? '').toBe('');
     expect(smoke.ostrzezenia).toEqual([]);
     expect(smoke.zipBajtow ?? 0).toBeGreaterThan(200);
@@ -353,7 +353,7 @@ describe('X-21 — archiver: kod woła API, które runtime faktycznie ma', () =>
     expect(tekst).toContain('PK\x05\x06');
   });
 
-  it('tar.gz powstaje z katalogu — tak jak paczka domyślnej strony hostingowej', () => {
+  it('tar.gz powstaje z katalogu – tak jak paczka domyślnej strony hostingowej', () => {
     expect(smoke.tarBajtow ?? 0).toBeGreaterThan(100);
   });
 

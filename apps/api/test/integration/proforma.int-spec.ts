@@ -68,7 +68,7 @@ const powiadomienie = (externalId: string, paymentId: string) => {
   return [raw, podpisPowiadomienia(SIG, raw)] as const;
 };
 
-describe('K4 — proforma z linkiem do płatności', () => {
+describe('K4 – proforma z linkiem do płatności', () => {
   const fetchMock = vi.fn();
   beforeEach(async () => {
     await wyczyscBaze();
@@ -156,7 +156,7 @@ describe('K4 — proforma z linkiem do płatności', () => {
     expect(await prisma().notification.count({ where: { title: { contains: 'proformy' } } })).toBe(1);
   });
 
-  it('wyścig: anulowanie i powiadomienie o wpłacie równocześnie — dokładnie jedno wygrywa, stan spójny', async () => {
+  it('wyścig: anulowanie i powiadomienie o wpłacie równocześnie – dokładnie jedno wygrywa, stan spójny', async () => {
     for (let i = 0; i < 4; i += 1) {
       const k = await klient();
       const { billing, proforma } = serwisy();
@@ -205,7 +205,7 @@ describe('K4 — proforma z linkiem do płatności', () => {
     await expect(rozliczenia.zaksiegujPrzelew({ ...przelew, referencja: 'BANK-K4-0002', kwota: 123.5 })).rejects.toThrow('nie jest do zapłaty');
   });
 
-  it('odnowienie usługi z portfela: proforma na kwotę odnowienia, po wpłacie odnawia istniejący harmonogram — jedno obciążenie, jeden dokument', async () => {
+  it('odnowienie usługi z portfela: proforma na kwotę odnowienia, po wpłacie odnawia istniejący harmonogram – jedno obciążenie, jeden dokument', async () => {
     const k = await klient(0);
     const plan = await utworzPlan();
     const sub = await prisma().subscription.create({

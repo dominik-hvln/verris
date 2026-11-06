@@ -35,24 +35,24 @@ function zrodlo(rel: string): string {
 /** Cztery serwisy, które prowadzą księgę pojemności węzła. */
 const PISARZE_KSIEGI = [
   {
-    nazwa: 'provisioning — konto powstaje',
+    nazwa: 'provisioning – konto powstaje',
     plik: 'apps/api/src/subscriptions/provisioning.service.ts',
   },
   {
-    nazwa: 'autoskalowanie — nadwyżka rośnie i maleje',
+    nazwa: 'autoskalowanie – nadwyżka rośnie i maleje',
     plik: 'apps/api/src/autoscaling/autoscaling-engine.service.ts',
   },
   {
-    nazwa: 'zmiana planu — baza się zmienia, nadwyżka znika',
+    nazwa: 'zmiana planu – baza się zmienia, nadwyżka znika',
     plik: 'apps/api/src/subscriptions/plan-change.service.ts',
   },
   {
-    nazwa: 'usunięcie konta — wszystko wraca',
+    nazwa: 'usunięcie konta – wszystko wraca',
     plik: 'apps/api/src/compliance/account-deletion.service.ts',
   },
   {
     // 13.10 — H-16: przepięcie konta na inny węzeł bez księgi cofnęło wdrożenie na asercji Z-16.
-    nazwa: 'przeniesienie konta na inny węzeł — limity idą za kontem',
+    nazwa: 'przeniesienie konta na inny węzeł – limity idą za kontem',
     plik: 'apps/api/src/servers/node-tasks.service.ts',
   },
 ];
@@ -61,7 +61,7 @@ const SELEKTOR = 'apps/api/src/subscriptions/node-selector.service.ts';
 const MIGRACJA =
   'libs/database/prisma/migrations/20260822150000_uzgodnienie_ksiegi_wezla/migration.sql';
 
-describe('księga pojemności węzła — okablowanie', () => {
+describe('księga pojemności węzła – okablowanie', () => {
   describe('nikt nie liczy księgi po swojemu', () => {
     it.each(PISARZE_KSIEGI)('$nazwa używa wspólnej arytmetyki', ({ plik }) => {
       const s = zrodlo(plik);
@@ -102,7 +102,7 @@ describe('księga pojemności węzła — okablowanie', () => {
         nazwa: 'usunięcie konta',
         plik: 'apps/api/src/compliance/account-deletion.service.ts',
       },
-    ])('$nazwa — server.update i account.update w jednym $transaction', ({ plik }) => {
+    ])('$nazwa – server.update i account.update w jednym $transaction', ({ plik }) => {
       const s = zrodlo(plik);
       const tx = s.indexOf('$transaction');
       expect(tx).toBeGreaterThan(-1);
@@ -132,7 +132,7 @@ describe('księga pojemności węzła — okablowanie', () => {
       expect(s()).toContain('limityEfektywne(oldPlan, account)');
     });
 
-    it('stan PO to sama baza nowego planu — nadwyżka jest zerowana', () => {
+    it('stan PO to sama baza nowego planu – nadwyżka jest zerowana', () => {
       const t = s();
       expect(t).toContain('limityEfektywne(target)');
       expect(t).toContain('scaledCpu: 0');
@@ -169,7 +169,7 @@ describe('księga pojemności węzła — okablowanie', () => {
       expect(sql()).toContain(`a."status" <> 'DELETED'`);
     });
 
-    it('obejmuje też węzły bez kont — LEFT JOIN, nie JOIN', () => {
+    it('obejmuje też węzły bez kont – LEFT JOIN, nie JOIN', () => {
       // Węzeł, z którego usunięto wszystkie konta, ma allocated* > 0 przez
       // przeciek sprzed Z-16. Zwykły JOIN by go pominął i przeciek by został.
       expect(sql()).toContain('LEFT JOIN "Account"');

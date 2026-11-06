@@ -45,7 +45,7 @@ export default async function LiveReadinessPage() {
             <Rocket className={`h-8 w-8 ${res.data.go ? "text-emerald-300" : "text-rose-300"}`} />
             <div>
               <p className="text-lg font-bold text-white">
-                {res.data.go ? "GO — brak blokerów" : "NO-GO — są blokery do usunięcia"}
+                {res.data.go ? "GO – brak blokerów" : "NO-GO – są blokery do usunięcia"}
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {res.data.counts.ok} OK · {res.data.counts.warn} {plForm(res.data.counts.warn, "ostrzeżenie", "ostrzeżenia", "ostrzeżeń")} ·{" "}

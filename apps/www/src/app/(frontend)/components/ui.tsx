@@ -17,7 +17,7 @@ export function JsonLd({ data }: { data: object }) {
 /** Emblemat biały na ciemnym tle (decyzja 07.10, jak w Verris Poczta); zielony tylko w przyszłym jasnym motywie. */
 export function Logo() {
   return (
-    <Link className="logo" href="/" aria-label="Verris — strona główna">
+    <Link className="logo" href="/" aria-label="Verris – strona główna">
       <svg viewBox="20 24 60 60" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <path
           d="M26 30 L40 30 L50 52 L60 30 L74 30 L50 78 Z M44 55 L56 55 L50 69 Z"

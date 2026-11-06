@@ -5,7 +5,7 @@ import { czescOplaconaPieniedzmi, maskaRachunku, normalizujRachunek, saldoDoZwro
 describe('saldoDoZwrotu', () => {
   const t = (type: WalletTxType, amount: number, idempotencyKey?: string) => ({ type, amount, idempotencyKey });
 
-  it('same wpłaty bez wydatków — całe saldo', () => {
+  it('same wpłaty bez wydatków – całe saldo', () => {
     expect(saldoDoZwrotu(100, [t(WalletTxType.TOPUP, 100)]).toNumber()).toBe(100);
   });
   it('kod, prowizja z poleceń i rekompensata SLA nie podlegają zwrotowi', () => {
@@ -30,7 +30,7 @@ describe('saldoDoZwrotu', () => {
     // Kolejność z bazy bez sortowania nie ma znaczenia, gdy jest createdAt.
     expect(saldoDoZwrotu(65, [...tx].reverse()).toNumber()).toBe(0);
   });
-  it('saldo zero albo ujemne — nic', () => {
+  it('saldo zero albo ujemne – nic', () => {
     expect(saldoDoZwrotu(0, [t(WalletTxType.TOPUP, 10)]).toNumber()).toBe(0);
     expect(saldoDoZwrotu(-5, []).toNumber()).toBe(0);
   });
@@ -40,7 +40,7 @@ describe('saldoDoZwrotu', () => {
 describe('czescOplaconaPieniedzmi', () => {
   const t = (type: WalletTxType, amount: number, idempotencyKey?: string) => ({ type, amount, idempotencyKey });
 
-  it('obciążenie w całości z kodu BETA — 0 zł z pieniędzy', () => {
+  it('obciążenie w całości z kodu BETA – 0 zł z pieniędzy', () => {
     expect(czescOplaconaPieniedzmi(-449, [t(WalletTxType.PROMO_CREDIT, 500)]).toNumber()).toBe(0);
   });
   it('najpierw schodzą darmowe: kod 100 zł + wpłata 400 zł, obciążenie 449 zł → 349 zł z pieniędzy', () => {
@@ -50,7 +50,7 @@ describe('czescOplaconaPieniedzmi', () => {
     const przed = [t(WalletTxType.TOPUP, 449), t(WalletTxType.CHARGE_SUBSCRIPTION, -449), t(WalletTxType.ADJUSTMENT, 45, 'sla-s1-2026-10'), t(WalletTxType.TOPUP, 45)];
     expect(czescOplaconaPieniedzmi(-45, przed).toNumber()).toBe(0);
   });
-  it('darmowe zjedzone wcześniejszymi wydatkami — całe obciążenie z pieniędzy', () => {
+  it('darmowe zjedzone wcześniejszymi wydatkami – całe obciążenie z pieniędzy', () => {
     const przed = [t(WalletTxType.PROMO_CREDIT, 50), t(WalletTxType.TOPUP, 500), t(WalletTxType.CHARGE_SUBSCRIPTION, -50)];
     expect(czescOplaconaPieniedzmi(-45, przed).toNumber()).toBe(45);
   });

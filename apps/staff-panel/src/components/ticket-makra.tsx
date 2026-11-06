@@ -31,7 +31,7 @@ export function TicketMakra({ ticketId, makra, zablokowane }: { ticketId: string
     <Karta>
       <div className="flex flex-col gap-2 px-4 py-3.5" data-karta="makra">
         <h2 className="font-display text-[15px] font-bold">Makra</h2>
-        {makra === null ? <p className="text-[12.5px] text-crit">Nie udało się wczytać makr — odśwież stronę.</p> : null}
+        {makra === null ? <p className="text-[12.5px] text-crit">Nie udało się wczytać makr – odśwież stronę.</p> : null}
         {zablokowane ? <p className="text-[12.5px] text-muted-foreground">{zablokowane}</p> : null}
         {!wybrane
           ? (makra ?? []).map((m) => (

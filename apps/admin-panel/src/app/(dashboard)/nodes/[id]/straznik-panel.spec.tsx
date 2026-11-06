@@ -33,9 +33,9 @@ beforeEach(() => {
       restartWezla: true,
       zdarzenia: [
         {
-          id: "z1", rodzaj: "lve", nazwa: "izolacja kont (LVE) — strony PHP nie działają", stan: "naprawiono",
+          id: "z1", rodzaj: "lve", nazwa: "izolacja kont (LVE) – strony PHP nie działają", stan: "naprawiono",
           objaw: "Procesy kont nie wchodzą do LVE: 3 błędów w logu LiteSpeed, 0 w jądrze.",
-          kroki: [{ at: "x", krok: "1. restart LiteSpeed", wynik: "wykonany" }, { at: "y", krok: "sprawdzenie d3.hvln.pl", wynik: "HTTP 200 — OK" }],
+          kroki: [{ at: "x", krok: "1. restart LiteSpeed", wynik: "wykonany" }, { at: "y", krok: "sprawdzenie d3.hvln.pl", wynik: "HTTP 200 – OK" }],
           katalog: "/var/log/verris-straznik/zdarzenia/20261013-044100-lve",
           wykrytoAt: "2026-10-13T02:41:00Z", zakonczonoAt: "2026-10-13T02:42:00Z", updatedAt: "2026-10-13T02:42:00Z",
         },
@@ -53,7 +53,7 @@ it("zdarzenie z krokami; diagnoza wczytywana po kliknięciu", async () => {
   const t = el.textContent ?? "";
   expect(t).toContain("naprawione");
   expect(t).toContain("1. restart LiteSpeed: wykonany");
-  expect(t).toContain("sprawdzenie d3.hvln.pl: HTTP 200 — OK");
+  expect(t).toContain("sprawdzenie d3.hvln.pl: HTTP 200 – OK");
   expect(t).toContain("Restart węzła przez strażnika: włączony");
   expect(przycisk("Wyłącz")).toBeUndefined();
   await act(async () => void przycisk("Pokaż diagnozę").click());

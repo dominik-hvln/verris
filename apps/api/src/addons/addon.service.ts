@@ -28,7 +28,7 @@ const CATALOG: Record<string, AddonDef> = {
   manual_setup: {
     slug: 'manual_setup',
     name: 'Konfiguracja przez specjalistę',
-    description: 'Nasz zespół skonfiguruje dla Ciebie stronę / pocztę / DNS — jednorazowo.',
+    description: 'Nasz zespół skonfiguruje dla Ciebie stronę / pocztę / DNS – jednorazowo.',
     price: 99,
     mode: 'workorder',
   },
@@ -72,7 +72,7 @@ export async function aktywnyDodatekCzasowy(
  */
 export function odmowaAktywnegoDodatku(nazwa: string, aktywnyDo: Date): string {
   const po = new Date(aktywnyDo.getTime() + PRIORITY_DAYS * DZIEN_MS);
-  return `„${nazwa}” jest już aktywne do ${dzienPl(aktywnyDo)} — drugi raz go nie dodasz. Możesz je przedłużyć o ${PRIORITY_DAYS} dni (do ${dzienPl(po)}): wybierz „Przedłuż”.`;
+  return `„${nazwa}” jest już aktywne do ${dzienPl(aktywnyDo)} – drugi raz go nie dodasz. Możesz je przedłużyć o ${PRIORITY_DAYS} dni (do ${dzienPl(po)}): wybierz „Przedłuż”.`;
 }
 
 /** F3.5 — dodatki z katalogu (walidacja wniosku i formularza operatora). */
@@ -124,7 +124,7 @@ const STAN_ZAKUPU_PL: Record<string, string> = {
   REFUNDED: 'odrzucony ze zwrotem',
 };
 const juzZamkniete = (status: string | undefined) =>
-  `Tego zlecenia nie da się już zamknąć — jest ${STAN_ZAKUPU_PL[status ?? ''] ?? status ?? 'usunięte'}. Odśwież stronę.`;
+  `Tego zlecenia nie da się już zamknąć – jest ${STAN_ZAKUPU_PL[status ?? ''] ?? status ?? 'usunięte'}. Odśwież stronę.`;
 const kwotaPl = (d: Prisma.Decimal) => `${d.toFixed(2).replace('.', ',')} zł`;
 
 /**
@@ -230,7 +230,7 @@ export class AddonService {
       duplikat: true as const,
       note:
         def?.mode === 'workorder'
-          ? 'Ten dodatek jest już wykupiony — zlecenie dla zespołu czeka w zgłoszeniu. Nie pobraliśmy opłaty drugi raz.'
+          ? 'Ten dodatek jest już wykupiony – zlecenie dla zespołu czeka w zgłoszeniu. Nie pobraliśmy opłaty drugi raz.'
           : 'Ten dodatek jest już aktywny. Nie pobraliśmy opłaty drugi raz.',
     };
   }
@@ -291,23 +291,23 @@ export class AddonService {
     // Przegląd F3.5 — ta sama reguła co przy złożeniu wniosku ADDON_ADD, ale w API (trasa bezpośrednia L4/ADMIN):
     // zakończona usługa nie dostaje dodatku ani obciążenia portfela.
     if (sub.status === 'CANCELED' || sub.status === 'EXPIRED') {
-      throw new BadRequestException('Usługa jest zakończona — dodatku nie dodasz.');
+      throw new BadRequestException('Usługa jest zakończona – dodatku nie dodasz.');
     }
     if (i.operator.role !== 'ADMIN' && sub.user.role !== 'USER') {
-      throw new ForbiddenException('Personel może zmieniać wyłącznie usługi klientów — usługę konta zespołu zmienia administrator.');
+      throw new ForbiddenException('Personel może zmieniać wyłącznie usługi klientów – usługę konta zespołu zmienia administrator.');
     }
     const powod = (i.powod ?? '').trim();
-    if (powod.length < MIN_POWOD) throw new BadRequestException(`Podaj powód (min. ${MIN_POWOD} znaków) — zapisze się w dzienniku.`);
+    if (powod.length < MIN_POWOD) throw new BadRequestException(`Podaj powód (min. ${MIN_POWOD} znaków) – zapisze się w dzienniku.`);
     const zgloszenieId = await zgloszenieKlienta(this.prisma, sub.userId, i.zgloszenie);
     if (i.platnosc === 'PORTFEL' && !zgloszenieId) {
-      throw new BadRequestException('Obciążenie portfela klienta tylko na jego zamówienie — podaj numer jego zgłoszenia albo dodaj gratis.');
+      throw new BadRequestException('Obciążenie portfela klienta tylko na jego zamówienie – podaj numer jego zgłoszenia albo dodaj gratis.');
     }
     // Audyt Fali 3 — zamówienie to wiadomość klienta z panelu, nie zgłoszenie założone przez obsługę ani mail.
     if (i.platnosc === 'PORTFEL') await wymagajProsbyKlienta(this.prisma, zgloszenieId!, 'Obciążenie portfela klienta', { subscriptionId: sub.id });
     // Audyt Fali 3 — zawieszona usługa nie działa: obciążenie portfela za dodatek do niej (także z wniosku złożonego,
     // gdy była aktywna) to płatność za nic. Wariant zachowawczy — gratis można, z portfela po odwieszeniu.
     if (i.platnosc === 'PORTFEL' && sub.status === 'SUSPENDED') {
-      throw new BadRequestException('Usługa jest zawieszona — dodatek z portfela klienta dodasz po odwieszeniu (gratis można teraz).');
+      throw new BadRequestException('Usługa jest zawieszona – dodatek z portfela klienta dodasz po odwieszeniu (gratis można teraz).');
     }
     const gratis = i.platnosc === 'GRATIS';
     const klucz = i.klucz
@@ -399,12 +399,12 @@ export class AddonService {
     const tekst = (i.tekst ?? '').trim();
     if (tekst.length > MAX_TEKST_ZAMKNIECIA) throw new BadRequestException(`Tekst dla klienta może mieć najwyżej ${MAX_TEKST_ZAMKNIECIA} znaków.`);
     if (odmowa && tekst.length < MIN_POWOD) {
-      throw new BadRequestException(`Podaj powód odmowy (min. ${MIN_POWOD} znaków) — klient zobaczy go w zgłoszeniu i w historii dodatków.`);
+      throw new BadRequestException(`Podaj powód odmowy (min. ${MIN_POWOD} znaków) – klient zobaczy go w zgłoszeniu i w historii dodatków.`);
     }
     const rekord = await this.prisma.purchasedAddon.findUnique({ where: { id: i.zakupId }, include: { user: { select: { role: true } } } });
     if (!rekord) throw new NotFoundException('Nie ma takiego zakupu dodatku.');
     if (i.operator.role !== 'ADMIN' && rekord.user.role !== 'USER') {
-      throw new ForbiddenException('Personel zamyka wyłącznie zlecenia klientów — zlecenie konta zespołu zamyka administrator.');
+      throw new ForbiddenException('Personel zamyka wyłącznie zlecenia klientów – zlecenie konta zespołu zamyka administrator.');
     }
     if (rekord.status !== 'QUEUED') throw new ConflictException(juzZamkniete(rekord.status));
 
@@ -430,7 +430,7 @@ export class AddonService {
           subscriptionId: rekord.subscriptionId ?? undefined,
         });
       } catch (e) {
-        this.logger.error(`Zwrot za dodatek ${rekord.id} nie wszedł — zlecenie wraca do kolejki: ${(e as Error).message}`);
+        this.logger.error(`Zwrot za dodatek ${rekord.id} nie wszedł – zlecenie wraca do kolejki: ${(e as Error).message}`);
         await this.prisma.purchasedAddon.updateMany({
           where: { id: rekord.id, status: 'REFUNDED' },
           data: { status: 'QUEUED', resolvedNote: null, resolvedAt: null, resolvedById: null },
@@ -444,7 +444,7 @@ export class AddonService {
     // panel mówi, że trzeba dopisać ręcznie.
     const wiadomosc = odmowa
       ? `Nie możemy zrealizować dodatku „${rekord.name}”.\n\nPowód: ${tekst}\n\n${
-          zwrot ? `Zwróciliśmy ${kwotaPl(rekord.amount)} na Twój portfel — środki są już dostępne.` : 'Dodatek był bez opłaty, więc nic nie pobraliśmy.'
+          zwrot ? `Zwróciliśmy ${kwotaPl(rekord.amount)} na Twój portfel – środki są już dostępne.` : 'Dodatek był bez opłaty, więc nic nie pobraliśmy.'
         }`
       : `Zrealizowaliśmy dodatek „${rekord.name}”.${tekst ? `\n\n${tekst}` : ''}\n\nJeśli coś nie działa tak, jak powinno, odpisz w tym zgłoszeniu.`;
     let wZgloszeniu = false;
@@ -492,10 +492,10 @@ export class AddonService {
       zwrot: zwrot ? rekord.amount.toString() : null,
       wZgloszeniu,
       note: odmowa
-        ? `${zwrot ? `Zwrócono ${kwotaPl(rekord.amount)} na portfel klienta.` : 'Dodatek był bez opłaty — bez zwrotu.'}${
-            wZgloszeniu ? ' Klient dostał powód w zgłoszeniu.' : rekord.ticketId ? ' Odpowiedź w zgłoszeniu nie weszła — napisz do klienta ręcznie.' : ''
+        ? `${zwrot ? `Zwrócono ${kwotaPl(rekord.amount)} na portfel klienta.` : 'Dodatek był bez opłaty – bez zwrotu.'}${
+            wZgloszeniu ? ' Klient dostał powód w zgłoszeniu.' : rekord.ticketId ? ' Odpowiedź w zgłoszeniu nie weszła – napisz do klienta ręcznie.' : ''
           }`
-        : `Zlecenie zamknięte.${wZgloszeniu ? ' Klient dostał informację w zgłoszeniu.' : rekord.ticketId ? ' Odpowiedź w zgłoszeniu nie weszła — napisz do klienta ręcznie.' : ''}`,
+        : `Zlecenie zamknięte.${wZgloszeniu ? ' Klient dostał informację w zgłoszeniu.' : rekord.ticketId ? ' Odpowiedź w zgłoszeniu nie weszła – napisz do klienta ręcznie.' : ''}`,
     };
   }
 
@@ -524,7 +524,7 @@ export class AddonService {
       if ((e as { code?: string })?.code !== 'P2002') throw e;
       const istniejacy = await this.prisma.purchasedAddon.findUnique({ where: { idempotencyKey: klucz } });
       if (!istniejacy) throw e;
-      this.logger.log(`Powtórzony zakup dodatku (klucz=${klucz}, id=${istniejacy.id}) — bez opłaty`);
+      this.logger.log(`Powtórzony zakup dodatku (klucz=${klucz}, id=${istniejacy.id}) – bez opłaty`);
       return this.odpowiedzZRekordu(istniejacy);
     }
 
@@ -575,7 +575,7 @@ export class AddonService {
           // Klient widzi to zgłoszenie jako swoje — wiadomość automatyczna, bez identyfikatorów wewnętrznych.
           message: `${z.operator ? `Obsługa Verris dodała do Twojej usługi dodatek „${def.name}"${gratis ? ' (bez opłaty)' : ''}.` : `Przyjęliśmy zamówienie dodatku „${def.name}".`} ${def.description}${
             domenaUslugi ? `\n\nUsługa: ${domenaUslugi}.` : ''
-          }\n\nVerris założył to zgłoszenie automatycznie${z.operator ? '' : ' po zakupie'}. Nic nie musisz robić — zespół zajmie się realizacją i napisze tu, gdy skończy.`,
+          }\n\nVerris założył to zgłoszenie automatycznie${z.operator ? '' : ' po zakupie'}. Nic nie musisz robić – zespół zajmie się realizacją i napisze tu, gdy skończy.`,
           department: 'TECHNICAL',
           topic: 'OTHER',
           priority: 'HIGH',
@@ -586,7 +586,7 @@ export class AddonService {
         status = 'QUEUED';
       }
     } catch (e) {
-      this.logger.error(`Dodatek ${def.slug} opłacony, realizacja padła — zwrot: ${(e as Error).message}`);
+      this.logger.error(`Dodatek ${def.slug} opłacony, realizacja padła – zwrot: ${(e as Error).message}`);
       if (!gratis) await this.wallet.credit({
         userId,
         type: WalletTxType.REFUND,
@@ -602,7 +602,7 @@ export class AddonService {
     // Historia dodatków klienta i obsługi: przedłużenie widać jako przedłużenie, nie drugi taki sam dodatek.
     const record = await this.prisma.purchasedAddon.update({
       where: { id: rekord.id },
-      data: { status, ticketId, ...(przedluzenie ? { name: `${def.name} — przedłużenie` } : {}) },
+      data: { status, ticketId, ...(przedluzenie ? { name: `${def.name} – przedłużenie` } : {}) },
     });
 
     // Klient widzi wpis w „Aktywności konta” (nazwa dodatku); dodany przez obsługę — „obsługa Verris (zgłoszenie #…)”.
@@ -632,7 +632,7 @@ export class AddonService {
       aktywnyDo: aktywnyDo?.toISOString() ?? null,
       note:
         def.mode === 'workorder'
-          ? 'Utworzyliśmy zlecenie dla naszego zespołu — odezwiemy się przez zgłoszenie.'
+          ? 'Utworzyliśmy zlecenie dla naszego zespołu – odezwiemy się przez zgłoszenie.'
           : przedluzenie && aktywnyDo
             ? `Przedłużone do ${dzienPl(aktywnyDo)}.`
             : 'Dodatek aktywny od teraz.',

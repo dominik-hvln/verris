@@ -21,7 +21,7 @@ import { komunikatPominietych, szukajStron, type StronaMenu } from "./command-pa
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
-describe("Menu admina — żadna strona nie jest ukryta", () => {
+describe("Menu admina – żadna strona nie jest ukryta", () => {
   let root: Root;
   let el: HTMLElement;
   const render = (permissions: string[] = [], isAdmin = true) =>
@@ -91,7 +91,7 @@ describe("Menu admina — żadna strona nie jest ukryta", () => {
     expect(menu().querySelector('a[href="/plans"]')).not.toBeNull();
   });
 
-  it("Flota → Kopie (kopie floty, F3.3) z NODES_VIEW — API: admin/servers/kopie; bez NODES_VIEW — nie", async () => {
+  it("Flota → Kopie (kopie floty, F3.3) z NODES_VIEW – API: admin/servers/kopie; bez NODES_VIEW – nie", async () => {
     sciezka = "/nodes";
     await render(["TICKETS_VIEW"], false);
     expect(menu().querySelector('a[href="/nodes/kopie"]')).toBeNull();
@@ -131,7 +131,7 @@ describe("Menu admina — żadna strona nie jest ukryta", () => {
     expect(menu().querySelector(`a[href="${href}"]`)).toBeNull();
   });
 
-  it("weryfikacja 11.10: L1 (CUSTOMERS_VIEW bez SUBSCRIPTIONS_MANAGE) ma „Usługi” w menu; bez obu — nie", async () => {
+  it("weryfikacja 11.10: L1 (CUSTOMERS_VIEW bez SUBSCRIPTIONS_MANAGE) ma „Usługi” w menu; bez obu – nie", async () => {
     sciezka = "/";
     await render(["DASHBOARD_VIEW", "CUSTOMERS_VIEW", "TICKETS_VIEW", "TICKETS_MANAGE", "BILLING_VIEW"], false);
     expect(menu().querySelector('a[href="/subscriptions"]')?.textContent).toBe("Usługi");
@@ -139,7 +139,7 @@ describe("Menu admina — żadna strona nie jest ukryta", () => {
     expect(menu().querySelector('a[href="/subscriptions"]')).toBeNull();
   });
 
-  it("weryfikacja 11.10: z sekcji zostaje jedna strona — link ma nazwę strony (L1: „Program partnerski”, nie „Partnerzy”)", async () => {
+  it("weryfikacja 11.10: z sekcji zostaje jedna strona – link ma nazwę strony (L1: „Program partnerski”, nie „Partnerzy”)", async () => {
     sciezka = "/";
     await render(["DASHBOARD_VIEW", "CUSTOMERS_VIEW", "TICKETS_VIEW", "TICKETS_MANAGE", "BILLING_VIEW"], false);
     expect(menu().querySelector('a[href="/partners"]')?.textContent).toBe("Program partnerski");
@@ -208,7 +208,7 @@ describe("Wyszukiwarka stron", () => {
 });
 
 describe("Komunikat przy braku uprawnień", () => {
-  it("lista typów w dopełniaczu; wszystkie — tylko strony; żadnego — null", () => {
+  it("lista typów w dopełniaczu; wszystkie – tylko strony; żadnego – null", () => {
     expect(komunikatPominietych([])).toBeNull();
     expect(komunikatPominietych(["node"])).toBe("Brak wyników. Twoja rola nie przeszukuje węzłów.");
     expect(komunikatPominietych(["user", "node", "invoice"])).toBe("Brak wyników. Twoja rola nie przeszukuje klientów, węzłów ani faktur.");
@@ -216,7 +216,7 @@ describe("Komunikat przy braku uprawnień", () => {
   });
 });
 
-describe("Cmd+K — słowa kluczowe i strony spoza menu", () => {
+describe("Cmd+K – słowa kluczowe i strony spoza menu", () => {
   let root: Root;
   let el: HTMLElement;
   const otworz = async (permissions: string[] = [], isAdmin = true) => {
@@ -297,14 +297,14 @@ describe("Cmd+K — słowa kluczowe i strony spoza menu", () => {
     expect(await wpisz("vps")).toContain("Strona · Oferta");
   });
 
-  it("strona menu o adresie działania pojawia się raz — jako działanie", async () => {
+  it("strona menu o adresie działania pojawia się raz – jako działanie", async () => {
     await otworz();
     await wpisz("kreator");
     const pozycje = [...document.querySelectorAll('[role="dialog"] button')].filter((b) => b.textContent?.startsWith("Dodaj węzeł"));
     expect(pozycje).toHaveLength(1);
   });
 
-  it("puste wyniki z powodu uprawnień — komunikat zamiast „Brak wyników”", async () => {
+  it("puste wyniki z powodu uprawnień – komunikat zamiast „Brak wyników”", async () => {
     odpowiedziApi["zzz9"] = { results: [], pominiete: ["node", "invoice"] };
     await otworz(["CUSTOMERS_VIEW"], false);
     await wpisz("zzz9");

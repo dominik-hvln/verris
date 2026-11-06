@@ -34,7 +34,7 @@ describe('Cena na liście usług = kwota odnowienia', () => {
  * i stan „działa”: lista nie dostawała `cancelAt`, więc panel nie mógł odróżnić usługi, która się nie odnowi.
  */
 describe('Lista usług niesie stan rezygnacji (cancelAt)', () => {
-  it('cancelAt z bazy trafia do listy; bez rezygnacji — null', async () => {
+  it('cancelAt z bazy trafia do listy; bez rezygnacji – null', async () => {
     const anulowana = { ...sub, id: 's2', currentPeriodEnd: new Date('2026-11-08T10:00:00Z'), cancelAt: new Date('2026-11-08T10:00:00Z') };
     const prisma = { subscription: { findMany: vi.fn(async () => [anulowana, { ...sub, cancelAt: null }]) } };
     const promo = new PromoService(null as never, null as never, null as never, null as never, null as never);

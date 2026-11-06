@@ -78,7 +78,7 @@ export function HostingSslForms({ serviceId }: Props) {
           onChange={setDomain}
           disabled={loadingDomains || domains.length === 0}
           aria-label="Domena (konto hostingowe)"
-          placeholder="—"
+          placeholder="–"
           options={domains.map((d) => ({ value: d.name, label: d.name }))}
         />
       </div>
@@ -90,7 +90,7 @@ export function HostingSslForms({ serviceId }: Props) {
             Let&apos;s Encrypt
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Zlecenie wystawienia certyfikatu na serwerze. Może potrwać do ok. 2–3 minut — nie zamykaj
+            Zlecenie wystawienia certyfikatu na serwerze. Może potrwać do ok. 2–3 minut – nie zamykaj
             karty w tym czasie.
           </p>
           <label className="flex items-center gap-2 text-sm text-[color:var(--verris-body)] cursor-pointer select-none">
@@ -109,7 +109,7 @@ export function HostingSslForms({ serviceId }: Props) {
               onChange={(e) => setWildcard(e.target.checked)}
             />
             <span>
-              Wildcard <span className="font-mono text-[color:var(--verris-body)]">*.{domain || 'domena'}</span> — pokrywa wszystkie subdomeny.
+              Wildcard <span className="font-mono text-[color:var(--verris-body)]">*.{domain || 'domena'}</span> – pokrywa wszystkie subdomeny.
               <span className="mt-0.5 block text-[11px] text-warn">
                 Wymaga, aby DNS domeny był hostowany na tym serwerze (walidacja DNS-01).
               </span>
@@ -142,7 +142,7 @@ export function HostingSslForms({ serviceId }: Props) {
                     ? 'Zlecono wystawienie certyfikatu wildcard (w tle). Walidacja DNS-01 wymaga, aby strefa ' +
                       'DNS domeny była na tym serwerze. Status zaktualizuje się tu po wydaniu (zwykle do kilku minut).'
                     : 'Zlecono wystawienie certyfikatu (w tle). Aby się powiodło, domena musi już ' +
-                      'wskazywać na nasz serwer (rekord A) — inaczej walidacja Let’s Encrypt nie przejdzie. ' +
+                      'wskazywać na nasz serwer (rekord A) – inaczej walidacja Let’s Encrypt nie przejdzie. ' +
                       'Status zaktualizuje się tu po wydaniu (zwykle do kilku minut).',
                 });
               } else {

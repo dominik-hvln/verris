@@ -11,8 +11,8 @@ const RESOURCE_LABELS: Record<string, string> = {
   CPU: "CPU (% / godz.)",
   RAM: "RAM (GB / godz.)",
   DISK: "Dysk (GB / godz.)",
-  IO: "I/O (kbps) — wycofane",
-  TRANSFER: "Transfer (GB) — wycofane",
+  IO: "I/O (kbps) – wycofane",
+  TRANSFER: "Transfer (GB) – wycofane",
 };
 
 export default async function AutoscalingPricingPage() {
@@ -30,7 +30,7 @@ export default async function AutoscalingPricingPage() {
             Cennik autoskalowania
           </h1>
           <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
-            Stawki za dodatkowe CPU, RAM i dysk ponad plan bazowy. Zmiany wchodzą natychmiast —
+            Stawki za dodatkowe CPU, RAM i dysk ponad plan bazowy. Zmiany wchodzą natychmiast –
             nowe naliczenia użyją zaktualizowanych cen; pozycje już zaksięgowane w portfelu
             pozostają bez zmian.
           </p>

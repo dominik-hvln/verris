@@ -39,7 +39,7 @@ function updateZApplyConsent(c: CookieConsent): Record<string, unknown> {
 
 const ciasteczko = (c: CookieConsent) => `x=1; ${CONSENT_COOKIE}=${encodeURIComponent(JSON.stringify(c))}`;
 
-describe("CL-05 Consent Mode v2 — default przed GTM (panel)", () => {
+describe("CL-05 Consent Mode v2 – default przed GTM (panel)", () => {
   it("default: wszystko „denied” poza security_storage", () => {
     const dl = uruchomInline("");
     expect(dl.map((a) => a[1])).toEqual(["default"]);

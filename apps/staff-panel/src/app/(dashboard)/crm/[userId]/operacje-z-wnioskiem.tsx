@@ -26,7 +26,7 @@ export async function OperacjeZWnioskiem({
     <section className="rounded-2xl border border-white/10 bg-black/30 p-5" data-karta="operacje-wnioski">
       <h2 className="text-sm font-bold uppercase tracking-wide text-white">Operacje wymagające uprawnień</h2>
       <p className="mt-1 text-xs text-muted-foreground">
-        Bez uprawnienia operację zlecasz wnioskiem — akceptuje ją kierownik zmiany albo administrator, a w dzienniku
+        Bez uprawnienia operację zlecasz wnioskiem – akceptuje ją kierownik zmiany albo administrator, a w dzienniku
         zapisują się obie osoby.
       </p>
       <OperacjeKlienta

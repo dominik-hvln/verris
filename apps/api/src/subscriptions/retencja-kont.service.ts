@@ -200,7 +200,7 @@ export class RetencjaKontService {
     actorUserId: string,
   ): Promise<{ kontoUsuniete: boolean; blad: string | null }> {
     const powod = dto.powod?.trim() ?? '';
-    if (powod.length < 3) throw new BadRequestException('Podaj powód (min. 3 znaki) — trafia do audytu.');
+    if (powod.length < 3) throw new BadRequestException('Podaj powód (min. 3 znaki) – trafia do audytu.');
     const sub = await this.prisma.subscription.findUnique({
       where: { id: subscriptionId },
       select: { id: true, serviceTag: true, account: { select: { id: true, domain: true, status: true } } },

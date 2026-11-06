@@ -70,7 +70,7 @@ function stanowisko(o: { kontoZDomena?: boolean; limity?: Error; zapis?: Error; 
   return { svc, daClient, prisma, akcje, le, daSvc };
 }
 
-describe('emailKontaDa — DA nie pisze do klientów sam', () => {
+describe('emailKontaDa – DA nie pisze do klientów sam', () => {
   it('węzeł z nazwą hosta → lokalny alias bez doręczenia; bez nazwy → e-mail klienta (profil przestawi)', () => {
     expect(emailKontaDa({ hostname: 'T1.verris.pl ' }, 'jan@firma.pl')).toBe('verris-da-powiadomienia@t1.verris.pl');
     expect(emailKontaDa({ hostname: null }, 'jan@firma.pl')).toBe('jan@firma.pl');
@@ -78,7 +78,7 @@ describe('emailKontaDa — DA nie pisze do klientów sam', () => {
   });
 });
 
-describe('ProvisioningService — zakładanie konta DA', () => {
+describe('ProvisioningService – zakładanie konta DA', () => {
   it('pakiet → konto (login = handle usługi, IP „shared” dla 0.0.0.0, NS platformy) → limity → zapis', async () => {
     const s = stanowisko();
     const r = await s.svc.provisionForSubscription('sub-1', { domain: ' Firma.PL ' });

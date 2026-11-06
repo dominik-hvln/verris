@@ -4,7 +4,7 @@ import { MigrationWorkerScheduler } from './migration-worker.scheduler.js';
  * PB-44 (D3 13.10) — zgłoszenie migracji wewnętrznej widzi klient: bez notatki operatora i nazwy węzła,
  * a o kopii piszemy „zleciliśmy” — w chwili tworzenia zgłoszenia kopia jest dopiero zlecona, nie gotowa.
  */
-describe('Migracja wewnętrzna — treść zgłoszenia dla klienta', () => {
+describe('Migracja wewnętrzna – treść zgłoszenia dla klienta', () => {
   const s = new MigrationWorkerScheduler({} as never, {} as never, {} as never, {} as never, {} as never, {} as never);
   const tresc = (s as unknown as { buildTicketMessage: (t: string, d: unknown, dom: string | null) => string }).buildTicketMessage(
     'MIGRATION_INTERNAL_REQUESTED',

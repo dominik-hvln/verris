@@ -49,7 +49,7 @@ function uruchom(o: { konto: boolean; backupDziala: boolean }) {
   return { r, arch, adir: join(home, 'admin', 'admin_backups') };
 }
 
-describe('node-account-restore.sh — archiwum konta-sieroty (H-16)', () => {
+describe('node-account-restore.sh – archiwum konta-sieroty (H-16)', () => {
   it('archiwum w katalogu roota, nie w admin_backups; znacznik dla panelu', () => {
     const { r, arch, adir } = uruchom({ konto: true, backupDziala: true });
     expect(r.status).toBe(0);

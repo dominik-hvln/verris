@@ -31,7 +31,7 @@ const wezel = (id: string, aktualizacje: unknown, godzinTemu: number | null) => 
   aktualizacjeAt: godzinTemu === null ? null : new Date(TERAZ.getTime() - godzinTemu * 3600_000),
 });
 
-describe('AktualizacjeWezlowService — podsumowanie floty', () => {
+describe('AktualizacjeWezlowService – podsumowanie floty', () => {
   it('poprawki zgrupowane po advisory (ważniejsze pierwsze), węzły bez świeżych danych osobno, nie jako „aktualne”', async () => {
     const s = stanowisko([
       wezel('t1', raport({ dnf: { poprawki: [PHP, KERNEL] } }), 2),
@@ -64,14 +64,14 @@ describe('AktualizacjeWezlowService — podsumowanie floty', () => {
     await expect(s.svc.podsumowanie('nie-cve', TERAZ)).rejects.toThrow(BadRequestException);
   });
 
-  it('raport o nieznanym kształcie nie udaje „brak poprawek” — liczy się jak brak danych', async () => {
+  it('raport o nieznanym kształcie nie udaje „brak poprawek” – liczy się jak brak danych', async () => {
     const s = stanowisko([wezel('dziwny', { cos: 1 }, 1)]);
     const r = await s.svc.podsumowanie(undefined, TERAZ);
     expect(r.wezly[0].dane).toBe('brak');
   });
 });
 
-describe('AktualizacjeWezlowService — instalacja', () => {
+describe('AktualizacjeWezlowService – instalacja', () => {
   it('fala w trybie bezpieczeństwa z CVE (bez duplikatów), CustomBuild i wybranymi węzłami; zły CVE → 400', async () => {
     const s = stanowisko([]);
     await s.svc.zainstaluj('admin', { cve: ['CVE-2026-109618', 'cve-2026-109618'], custombuild: true, serwery: ['a', 'a'] });

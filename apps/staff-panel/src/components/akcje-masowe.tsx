@@ -47,7 +47,7 @@ export function AkcjeMasowe({ agenci }: { agenci: AgentOption[] }) {
       else {
         const czesci = [`Zmieniono ${r.zmienione} ${plForm(r.zmienione, "zgłoszenie", "zgłoszenia", "zgłoszeń")}`];
         if (r.bezZmian) czesci.push(`bez zmian ${r.bezZmian}`);
-        if (r.bledy.length) czesci.push(`błędy: ${r.bledy.map((b) => `#${b.id.slice(0, 8)} — ${b.blad}`).join("; ")}`);
+        if (r.bledy.length) czesci.push(`błędy: ${r.bledy.map((b) => `#${b.id.slice(0, 8)} – ${b.blad}`).join("; ")}`);
         setWynik({ ok: !r.bledy.length, tekst: czesci.join(" · ") });
         router.refresh();
       }
@@ -121,7 +121,7 @@ export function AkcjeMasowe({ agenci }: { agenci: AgentOption[] }) {
         <span className="flex flex-wrap items-center gap-2 text-[13px]" data-masowe="potwierdzenie">
           <b>
             {potwierdz.length} {plForm(potwierdz.length, "zgłoszenie", "zgłoszenia", "zgłoszeń")}
-            {akcja === "stan" && stan === "CLOSED" ? " — klienci dostaną podziękowanie z prośbą o ocenę" : ""}. Na pewno?
+            {akcja === "stan" && stan === "CLOSED" ? " – klienci dostaną podziękowanie z prośbą o ocenę" : ""}. Na pewno?
           </b>
           <button type="button" disabled={pending} onClick={() => wykonaj(potwierdz)} className="inline-flex h-8 items-center rounded-[9px] border border-primary bg-primary px-3 text-[12.5px] font-semibold text-primary-foreground disabled:opacity-50">
             Tak, wykonaj

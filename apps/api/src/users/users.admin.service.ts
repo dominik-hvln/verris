@@ -919,14 +919,14 @@ export class UsersAdminService {
       throw new ForbiddenException({
         code: 'WYMAGA_WNIOSKU',
         operacja: 'CUSTOMER_PASSWORD_RESET',
-        message: `Obsługa zmieniła adres e-mail tego klienta w ciągu ostatnich ${BLOKADA_RESETU_PO_ZMIANIE_EMAILA_H} h — reset hasła tylko przez wniosek (akceptuje kierownik zmiany albo administrator).`,
+        message: `Obsługa zmieniła adres e-mail tego klienta w ciągu ostatnich ${BLOKADA_RESETU_PO_ZMIANIE_EMAILA_H} h – reset hasła tylko przez wniosek (akceptuje kierownik zmiany albo administrator).`,
       });
     }
     // Przegląd poprawek — druga para oczu to ktoś inny niż ten, kto zmienił adres: kierownik zmiany, który sam
     // przestawił e-mail na swój, nie zatwierdza resetu z wniosku złożonego przez kolegę.
     if (zmienili.includes(actorUserId)) {
       throw new ForbiddenException(
-        `Adres e-mail tego klienta zmieniłeś Ty w ciągu ostatnich ${BLOKADA_RESETU_PO_ZMIANIE_EMAILA_H} h — reset hasła zatwierdza inna osoba (kierownik zmiany albo administrator).`,
+        `Adres e-mail tego klienta zmieniłeś Ty w ciągu ostatnich ${BLOKADA_RESETU_PO_ZMIANIE_EMAILA_H} h – reset hasła zatwierdza inna osoba (kierownik zmiany albo administrator).`,
       );
     }
     // Hasło nieużywalne: losowe, nikt go nie zna — logowanie dopiero po ustawieniu nowego z linku. Otwarte sesje

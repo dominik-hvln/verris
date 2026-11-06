@@ -226,13 +226,13 @@ export class MigrationOrchestratorService {
     if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
     // PB-44: wcześniej wniosek przechodził bez konta i z dowolnym ID węzła — worker robił kopię i zakładał
     // zgłoszenie do przeniesienia na węzeł, którego nie ma, który nie przyjmuje kont albo na ten sam.
-    if (!sub.account) throw new BadRequestException('Usługa nie ma konta hostingowego — nie ma czego przenosić.');
+    if (!sub.account) throw new BadRequestException('Usługa nie ma konta hostingowego – nie ma czego przenosić.');
     if (sub.account.serverId === dto.targetServerId) {
-      throw new BadRequestException('Konto już jest na tym węźle — wybierz inny węzeł docelowy.');
+      throw new BadRequestException('Konto już jest na tym węźle – wybierz inny węzeł docelowy.');
     }
     const cel = await this.prisma.server.findUnique({ where: { id: dto.targetServerId }, select: { status: true } });
     if (!cel) throw new BadRequestException('Docelowy węzeł nie istnieje.');
-    if (cel.status !== 'ACTIVE') throw new BadRequestException('Docelowy węzeł nie jest aktywny — wybierz aktywny węzeł.');
+    if (cel.status !== 'ACTIVE') throw new BadRequestException('Docelowy węzeł nie jest aktywny – wybierz aktywny węzeł.');
 
     // PB-44 (recenzja) — zlecić może każdy operator z SUBSCRIPTIONS_MANAGE, a stan „zlecono” w formularzu żyje tylko
     // do przeładowania strony. Drugi wniosek dawał drugą kopię konta, drugie zgłoszenie i drugi e-mail do klienta.
@@ -260,7 +260,7 @@ export class MigrationOrchestratorService {
           )
         LIMIT 1`;
       if (otwarte.length > 0) {
-        throw new ConflictException('Migracja tej usługi jest już zlecona — poczekaj na zamknięcie zgłoszenia przeniesienia.');
+        throw new ConflictException('Migracja tej usługi jest już zlecona – poczekaj na zamknięcie zgłoszenia przeniesienia.');
       }
       return tx.subscriptionEvent.create({
         data: {
@@ -353,7 +353,7 @@ export class MigrationOrchestratorService {
     const bezDanych = (dto.mysql ?? []).find((m) => !m.username || !m.password);
     if (bezDanych && !dto.ftp) {
       throw new BadRequestException(
-        `Podaj użytkownika i hasło bazy ${bezDanych.database} — bez plików strony nie odczytamy ich z wp-config.php.`,
+        `Podaj użytkownika i hasło bazy ${bezDanych.database} – bez plików strony nie odczytamy ich z wp-config.php.`,
       );
     }
 
@@ -377,7 +377,7 @@ export class MigrationOrchestratorService {
       }
       await this.directAdmin.assertDomainOwnedBySubscription(subscriptionId, userId, dto.targetDomain).catch((e: unknown) => {
         if (e instanceof BadRequestException && /nie należy/.test(e.message)) {
-          throw new BadRequestException(`Domena ${dto.targetDomain} nie należy do tej usługi — stronę przenosimy tylko na domenę tego konta.`);
+          throw new BadRequestException(`Domena ${dto.targetDomain} nie należy do tej usługi – stronę przenosimy tylko na domenę tego konta.`);
         }
         throw e;
       });
@@ -399,7 +399,7 @@ export class MigrationOrchestratorService {
       }
       await this.directAdmin.assertDomainOwnedBySubscription(subscriptionId, userId, domena).catch((e: unknown) => {
         if (e instanceof BadRequestException && /nie należy/.test(e.message)) {
-          throw new BadRequestException(`Skrzynka ${cel} nie należy do domen tej usługi — pocztę przenosimy tylko do skrzynek na tym koncie.`);
+          throw new BadRequestException(`Skrzynka ${cel} nie należy do domen tej usługi – pocztę przenosimy tylko do skrzynek na tym koncie.`);
         }
         throw e;
       });
@@ -411,7 +411,7 @@ export class MigrationOrchestratorService {
     );
     if (nieudane.length) {
       throw new BadRequestException(
-        `Nie udało się zalogować do skrzynki u poprzedniego dostawcy: ${nieudane.map((r) => `${r.target} — ${r.message}`).join('; ')}`,
+        `Nie udało się zalogować do skrzynki u poprzedniego dostawcy: ${nieudane.map((r) => `${r.target} – ${r.message}`).join('; ')}`,
       );
     }
 
@@ -672,7 +672,7 @@ export class MigrationOrchestratorService {
     const czekaNaZgode = request.status === MigrationStatus.DRAFT;
     if (czekaNaZgode && opts.status !== MigrationStatus.CANCELED) {
       throw new BadRequestException(
-        'Ta migracja czeka na zgodę klienta — wystartuje dopiero po jego kliknięciu „Zgadzam się”. Możesz ją tylko anulować.',
+        'Ta migracja czeka na zgodę klienta – wystartuje dopiero po jego kliknięciu „Zgadzam się”. Możesz ją tylko anulować.',
       );
     }
     if (opts.status === MigrationStatus.CANCELED) {
@@ -717,7 +717,7 @@ export class MigrationOrchestratorService {
       },
     }).catch((e: unknown) => {
       if (czekaNaZgode && e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2025') {
-        throw new BadRequestException('Klient właśnie zdecydował w sprawie tej migracji — odśwież widok.');
+        throw new BadRequestException('Klient właśnie zdecydował w sprawie tej migracji – odśwież widok.');
       }
       throw e;
     });
@@ -1018,7 +1018,7 @@ export class MigrationOrchestratorService {
           where: { id: job.id },
           data: {
             status: MigrationWorkerJobStatus.RETRYING,
-            lastError: `Watchdog: brak sygnału od workera przez ${MIGRATION_STALL_MINUTES} min — ponawiam.`,
+            lastError: `Watchdog: brak sygnału od workera przez ${MIGRATION_STALL_MINUTES} min – ponawiam.`,
           },
         });
         requeued += 1;
@@ -1132,13 +1132,13 @@ export class MigrationOrchestratorService {
     req: { id: string; targetDomain: string | null },
     co: 'wygasaja' | 'usuniete',
   ): Promise<void> {
-    const domena = req.targetDomain ?? '—';
+    const domena = req.targetDomain ?? '–';
     const zostalo = MIGRATION_SECRET_TTL_ATTENTION_DAYS - MIGRATION_SECRET_PRZYPOMNIENIE_ATTENTION_DAYS;
     const tresc =
       co === 'wygasaja'
         ? {
             title: `Migracja ${domena}: hasła starego hostingu znikną za ${zostalo} dni`,
-            body: `Zlecenie czeka na zespół od ${MIGRATION_SECRET_PRZYPOMNIENIE_ATTENTION_DAYS} dni. Po ${MIGRATION_SECRET_TTL_ATTENTION_DAYS} dniach od przekazania usuwamy zapisane hasła źródła — dokończ migrację albo zamknij zlecenie.`,
+            body: `Zlecenie czeka na zespół od ${MIGRATION_SECRET_PRZYPOMNIENIE_ATTENTION_DAYS} dni. Po ${MIGRATION_SECRET_TTL_ATTENTION_DAYS} dniach od przekazania usuwamy zapisane hasła źródła – dokończ migrację albo zamknij zlecenie.`,
             severity: 'warning' as const,
           }
         : {
@@ -1175,14 +1175,14 @@ export class MigrationOrchestratorService {
     });
     if (!request || request.needsAttention) return;
 
-    const domain = request.targetDomain ?? request.subscription.account?.domain ?? '—';
+    const domain = request.targetDomain ?? request.subscription.account?.domain ?? '–';
     let ticketId = request.ticketId;
     if (!ticketId) {
       // Przez TicketsService — opiekun, termin SLA i potwierdzenie dla klienta jak przy zwykłym zgłoszeniu.
       // Treść widzi klient jako swoją wiadomość: bez powodu technicznego (jest w kolejce migracji staff).
       const ticket = await this.tickets.create(request.userId, {
         subject: `Przeniesienie strony ${domain} dokończy nasz zespół`,
-        message: `Przenoszenie strony ${domain} zatrzymało się — Verris założył to zgłoszenie automatycznie, żeby zespół dokończył je ręcznie. Nic nie musisz robić, napiszemy tu, gdy skończymy.`,
+        message: `Przenoszenie strony ${domain} zatrzymało się – Verris założył to zgłoszenie automatycznie, żeby zespół dokończył je ręcznie. Nic nie musisz robić, napiszemy tu, gdy skończymy.`,
         department: 'TECHNICAL',
         priority: 'URGENT',
         // PB-43 — obsługa ma przy rozmowie kartę usługi i diagnostykę. Warunek: eskalacja nie może paść na walidacji
@@ -1381,7 +1381,7 @@ export class MigrationOrchestratorService {
     }
     if (request.secretsPurgedAt) {
       throw new BadRequestException(
-        'Dane dostępowe tej migracji zostały usunięte po okresie retencji — delta-sync nie jest już możliwy. ' +
+        'Dane dostępowe tej migracji zostały usunięte po okresie retencji – delta-sync nie jest już możliwy. ' +
           'Zleć nową migrację, jeśli potrzebujesz dograć zmiany.',
       );
     }

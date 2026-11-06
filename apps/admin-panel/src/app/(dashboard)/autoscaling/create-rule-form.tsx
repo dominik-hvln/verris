@@ -17,7 +17,7 @@ const DEFAULT_PRICE: Record<AutoscalingCatalogResource, string> = {
 const HINTS: Record<AutoscalingCatalogResource, string> = {
   CPU: "Cena za 1% CPU na godzinę. Przykład: 0,0002 zł × 100% × 24 h ≈ 0,48 zł/dobę.",
   RAM: "Cena za 1 GB RAM na godzinę. Przykład: 0,12 zł × 1 GB × 24 h ≈ 2,88 zł/dobę.",
-  DISK: "Cena za 1 GB dysku na godzinę — osobna stawka, niezależna od RAM.",
+  DISK: "Cena za 1 GB dysku na godzinę – osobna stawka, niezależna od RAM.",
 };
 
 const UNIT_LABEL: Record<AutoscalingCatalogResource, string> = {
@@ -85,7 +85,7 @@ export function CreateRuleForm() {
       <div>
         <h2 className="text-lg font-bold text-white">Nowa reguła cennika</h2>
         <p className="mt-1 text-xs text-muted-foreground">
-          CPU, RAM i dysk — każda reguła to jeden zasób. Możesz dodać kilka progów (tier
+          CPU, RAM i dysk – każda reguła to jeden zasób. Możesz dodać kilka progów (tier
           pricing); przy naliczaniu wybierana jest reguła z najwyższym progiem, który klient
           spełnia.
         </p>

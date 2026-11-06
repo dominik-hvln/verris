@@ -85,7 +85,7 @@ export function ListaTestowBeta({ poczatkowy }: { poczatkowy: PostepBetaDto }) {
             </div>
             <p className="mt-1.5 text-[13.5px] text-muted-foreground">
               {zrobione === wszystkie
-                ? "Wszystko odhaczone — dziękujemy! Uwagi możesz dopisywać do końca testów."
+                ? "Wszystko odhaczone – dziękujemy! Uwagi możesz dopisywać do końca testów."
                 : ostatnio
                   ? `Ostatni zapis: ${ostatnio}. Zapisujemy na bieżąco, możesz wrócić w dowolnej chwili.`
                   : "Zapisujemy na bieżąco, możesz przerwać i wrócić w dowolnej chwili."}
@@ -100,7 +100,7 @@ export function ListaTestowBeta({ poczatkowy }: { poczatkowy: PostepBetaDto }) {
         <Meter pct={pct} />
         <p className="mt-3 text-[13px] text-muted-foreground" data-sciezka-poczta>
           Testujesz tylko pocztę? Zamów „Poczta e-mail” zamiast hostingu i przejdź scenariusze oznaczone „Też przy samej poczcie”
-          ({SCENARIUSZE_BETA_POCZTA.length}) — resztę możesz pominąć.
+          ({SCENARIUSZE_BETA_POCZTA.length}) – resztę możesz pominąć.
         </p>
       </section>
 
@@ -116,7 +116,7 @@ export function ListaTestowBeta({ poczatkowy }: { poczatkowy: PostepBetaDto }) {
               <span className="font-mono text-[11.5px] text-muted-foreground">{s.czas}</span>
               {s.opcjonalny ? (
                 <span className="rounded-full border border-line px-2 py-0.5 text-[11.5px] text-muted-foreground" data-opcjonalny={s.id}>
-                  Opcjonalnie — dla osób technicznych
+                  Opcjonalnie – dla osób technicznych
                 </span>
               ) : null}
               {s.poczta ? (
@@ -167,7 +167,7 @@ export function ListaTestowBeta({ poczatkowy }: { poczatkowy: PostepBetaDto }) {
               <div className="flex items-center justify-between gap-3">
                 <label htmlFor={`${s.id}-uwaga`} className="text-[13px] font-semibold text-foreground">Twoje uwagi</label>
                 <span className="text-[12px] text-muted-foreground" aria-live="polite">
-                  {stan === "zapisywanie" ? "Zapisywanie…" : stan === "zapisano" ? "Zapisano" : stan === "blad" ? "Nie zapisano — spróbuj jeszcze raz" : ""}
+                  {stan === "zapisywanie" ? "Zapisywanie…" : stan === "zapisano" ? "Zapisano" : stan === "blad" ? "Nie zapisano – spróbuj jeszcze raz" : ""}
                 </span>
               </div>
               <textarea

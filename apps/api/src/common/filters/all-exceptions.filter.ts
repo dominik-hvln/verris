@@ -31,7 +31,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
           : HttpStatus.INTERNAL_SERVER_ERROR;
 
     const surowy = zlyJson
-      ? 'Treść żądania nie jest poprawnym JSON-em — sprawdź nawiasy, cudzysłowy i przecinki.'
+      ? 'Treść żądania nie jest poprawnym JSON-em – sprawdź nawiasy, cudzysłowy i przecinki.'
       : nieznanaTrasa
         ? `Nie ma takiej ścieżki API: ${request.method} ${request.url.split('?')[0]}.`
         : normalizeExceptionMessage(

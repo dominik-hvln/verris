@@ -88,7 +88,7 @@ export default async function AdminDashboardHomePage({ searchParams }: { searchP
         (np. `http://localhost:3000`).
       </p>
       <p className="text-xs text-rose-200/90">
-        Endpoint `GET /admin/dashboard/overview` wymaga roli z uprawnieniem do pulpitu — po zalogowaniu
+        Endpoint `GET /admin/dashboard/overview` wymaga roli z uprawnieniem do pulpitu – po zalogowaniu
         cookie `admin_session` musi być ustawiane przez panel.
       </p>
     </div>

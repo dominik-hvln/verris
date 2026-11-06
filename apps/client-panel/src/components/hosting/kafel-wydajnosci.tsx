@@ -31,20 +31,20 @@ export function KafelWydajnosci({
   return (
     <Kpi
       label="Wydajność konta · 24 h"
-      value={procent ?? '—'}
+      value={procent ?? '–'}
       unit={procent != null ? '% planu · szczyt' : undefined}
       foot={
         ponadPlan ? (
           autoskalowanie ? (
             <span>dodatkowa moc w ramach Twojego limitu kosztów</span>
           ) : (
-            <span className="text-warn">autoskalowanie wyłączone — przy kolejnym skoku strona może zwolnić</span>
+            <span className="text-warn">autoskalowanie wyłączone – przy kolejnym skoku strona może zwolnić</span>
           )
         ) : blisko ? (
           autoskalowanie ? (
-            <span className="text-warn">blisko mocy planu — autoskalowanie doda moc, gdy trzeba</span>
+            <span className="text-warn">blisko mocy planu – autoskalowanie doda moc, gdy trzeba</span>
           ) : (
-            <span className="text-warn">blisko mocy planu — rozważ autoskalowanie</span>
+            <span className="text-warn">blisko mocy planu – rozważ autoskalowanie</span>
           )
         ) : (
           <span>{wartosci.length ? 'w normie' : 'brak pomiarów z 24 h'}</span>

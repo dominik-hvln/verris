@@ -38,8 +38,8 @@ async function load(env: Partial<Record<(typeof ENV_KEYS)[number], string>> = {}
   return mod;
 }
 
-describe('X-05 client-features — przełączniki build-time', () => {
-  it('bez zmiennych: EKO, polecenia i IAM włączone, e-mail marketing ukryty (VPS i narzut — z API)', async () => {
+describe('X-05 client-features – przełączniki build-time', () => {
+  it('bez zmiennych: EKO, polecenia i IAM włączone, e-mail marketing ukryty (VPS i narzut – z API)', async () => {
     const { clientFeatures } = await load();
     expect(clientFeatures).toEqual({ eco: true, iam: true, referral: true, emailMarketing: false });
   });
@@ -58,7 +58,7 @@ describe('X-05 client-features — przełączniki build-time', () => {
   });
 });
 
-describe('X-05 czyModul / trasaWidoczna — co jest w menu', () => {
+describe('X-05 czyModul / trasaWidoczna – co jest w menu', () => {
   it('brak flagi operatora = moduł widoczny', async () => {
     const { czyModul, trasaWidoczna } = await load();
     expect(czyModul({}, 'modul.eco')).toBe(true);

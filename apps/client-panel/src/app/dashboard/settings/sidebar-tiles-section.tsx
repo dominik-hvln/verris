@@ -22,7 +22,7 @@ export function SidebarTilesSection({ initialLinks }: { initialLinks: string[] }
         return prev.filter((h) => h !== href);
       }
       if (prev.length >= 4) {
-        toast.message('Masz już 4 skróty — odznacz jeden, aby dodać inny.');
+        toast.message('Masz już 4 skróty – odznacz jeden, aby dodać inny.');
         return prev;
       }
       return [...prev, href];

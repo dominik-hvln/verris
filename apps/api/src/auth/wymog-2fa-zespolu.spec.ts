@@ -15,7 +15,7 @@ const ustawienie = (value: string | null) => ({
   platformSetting: { findUnique: vi.fn(async () => (value === null ? null : { value })) },
 });
 
-describe('D10 — stan wymogu 2FA', () => {
+describe('D10 – stan wymogu 2FA', () => {
   it('env: „1” i „true” włączają, reszta nie', () => {
     expect(wymog2faZEnv({ REQUIRE_2FA_FOR_STAFF: '1' })).toBe(true);
     expect(wymog2faZEnv({ REQUIRE_2FA_FOR_STAFF: 'true' })).toBe(true);
@@ -30,7 +30,7 @@ describe('D10 — stan wymogu 2FA', () => {
   });
 });
 
-describe('D10 — logowanie hasłem operatora bez 2FA', () => {
+describe('D10 – logowanie hasłem operatora bez 2FA', () => {
   const HASLO = 'Poprawne-Haslo-2026!';
   const env = process.env.REQUIRE_2FA_FOR_STAFF;
   afterEach(() => {
@@ -72,7 +72,7 @@ describe('D10 — logowanie hasłem operatora bez 2FA', () => {
   });
 });
 
-describe('D10 — przełącznik w panelu (tylko ADMIN, w dzienniku)', () => {
+describe('D10 – przełącznik w panelu (tylko ADMIN, w dzienniku)', () => {
   const env = process.env.REQUIRE_2FA_FOR_STAFF;
   afterEach(() => {
     if (env === undefined) delete process.env.REQUIRE_2FA_FOR_STAFF;
@@ -108,7 +108,7 @@ describe('D10 — przełącznik w panelu (tylko ADMIN, w dzienniku)', () => {
     );
   });
 
-  it('administrator bez TOTP i passkey nie włączy (zamknąłby sobie logowanie); z samym passkey — może', async () => {
+  it('administrator bez TOTP i passkey nie włączy (zamknąłby sobie logowanie); z samym passkey – może', async () => {
     delete process.env.REQUIRE_2FA_FOR_STAFF;
     await expect(serwis({ totp: false }).svc.ustawWymog2fa(true, 'adm')).rejects.toBeInstanceOf(BadRequestException);
     await expect(serwis({ totp: false, passkeys: 1 }).svc.ustawWymog2fa(true, 'adm')).resolves.toMatchObject({ wlaczony: true });

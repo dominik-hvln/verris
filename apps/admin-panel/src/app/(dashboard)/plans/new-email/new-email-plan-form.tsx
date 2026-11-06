@@ -109,7 +109,7 @@ export function NewEmailPlanForm() {
             value={form.description}
             onChange={(e) => setField("description", e.target.value)}
             rows={2}
-            placeholder="np. Profesjonalna poczta w Twojej domenie — webmail, IMAP/SMTP, antyspam."
+            placeholder="np. Profesjonalna poczta w Twojej domenie – webmail, IMAP/SMTP, antyspam."
             className="form-input"
           />
         </Field>

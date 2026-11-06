@@ -14,7 +14,7 @@ export function AktualizujWezelButton({ serverId }: { serverId: string }) {
     if (!(await potwierdz("Zaktualizować stos tego węzła (DirectAdmin, CloudLinux, LiteSpeed) do najnowszych stabilnych wersji? Strony klientów działają w trakcie; część usług może się na chwilę zrestartować.", { akcja: "Aktualizuj węzeł", niebezpieczne: true }))) return;
     start(async () => {
       const r = await updateNode(serverId);
-      setMsg(r.data ? { ok: true, text: "Zadanie aktualizacji w kolejce — postęp w zakładce Zadania." } : { ok: false, text: r.error ?? "Błąd." });
+      setMsg(r.data ? { ok: true, text: "Zadanie aktualizacji w kolejce – postęp w zakładce Zadania." } : { ok: false, text: r.error ?? "Błąd." });
     });
   };
   return (

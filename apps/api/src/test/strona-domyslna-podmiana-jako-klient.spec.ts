@@ -54,7 +54,7 @@ function uruchom(opcje: { hostnameBezI?: boolean } = {}) {
   return wynik;
 }
 
-describe('strona domyślna Verris — podmiana istniejącej strony zapisuje klient', () => {
+describe('strona domyślna Verris – podmiana istniejącej strony zapisuje klient', () => {
   it('index.html i assets trafiają do public_html przez runuser (tar), bez chown roota; tokeny uzupełnione', () => {
     const w = uruchom();
     expect(w.r.status, w.r.stderr).toBe(0);
@@ -66,7 +66,7 @@ describe('strona domyślna Verris — podmiana istniejącej strony zapisuje klie
   });
 
   // CI 15.10 (ubuntu-26.04): `hostname` bez opcji -I przy `set -o pipefail` kończył skrypt kodem 1 przed podmianą strony.
-  it('hostname bez -I (inna implementacja) nie przerywa podmiany — adres IP zostaje pusty', () => {
+  it('hostname bez -I (inna implementacja) nie przerywa podmiany – adres IP zostaje pusty', () => {
     const w = uruchom({ hostnameBezI: true });
     expect(w.r.status, w.r.stderr).toBe(0);
     expect(w.runuser).toMatch(/^u1 :: tar -C .*\/public_html -xpf -/m);

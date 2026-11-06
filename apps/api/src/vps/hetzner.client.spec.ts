@@ -21,7 +21,7 @@ function klient(odpowiedz: { status?: number; body?: unknown }) {
 
 const akcja = { id: 77, command: 'x', status: 'running', progress: 0, resources: [], error: null };
 
-describe('HetznerClient — snapshoty, rebuild, konsola', () => {
+describe('HetznerClient – snapshoty, rebuild, konsola', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('createSnapshot: POST /servers/{id}/actions/create_image z type=snapshot, opisem i etykietą', async () => {

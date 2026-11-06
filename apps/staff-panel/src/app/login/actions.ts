@@ -82,7 +82,7 @@ export async function staffSubmitLogin(
     (data as { twoFactorRequired?: boolean }).twoFactorRequired === true
   ) {
     const challenge = (data as { challengeToken?: string }).challengeToken;
-    if (!challenge) return { error: "Brak tokenu 2FA — spróbuj ponownie." };
+    if (!challenge) return { error: "Brak tokenu 2FA – spróbuj ponownie." };
     return { twoFactorRequired: true, challengeToken: challenge, email };
   }
 

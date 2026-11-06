@@ -92,7 +92,7 @@ describe('każdy spec ma runner', () => {
       .filter((p) => !skrypty(p).test)
       .map((p) => {
         const ile = specy(join(KORZEN, p)).length;
-        return `  ${p}: ${ile} spec(ów), brak skryptu \`test\` — nikt ich nie uruchamia`;
+        return `  ${p}: ${ile} spec(ów), brak skryptu \`test\` – nikt ich nie uruchamia`;
       });
     expect(osierocone.join('\n')).toBe('');
   });
@@ -177,7 +177,7 @@ describe('paczka testów integracyjnych też ma nazwany runner', () => {
     return zebrane;
   }
 
-  it('istnieją testy integracyjne — inaczej ten strażnik nie ma czego pilnować', () => {
+  it('istnieją testy integracyjne – inaczej ten strażnik nie ma czego pilnować', () => {
     expect(pliki(join(API, 'test'), /\.int-spec\.ts$/).length).toBeGreaterThan(0);
   });
 
@@ -194,7 +194,7 @@ describe('paczka testów integracyjnych też ma nazwany runner', () => {
     expect(yaml).not.toMatch(/jest\s+--config\s+jest\.integration\.cjs/);
   });
 
-  it('kontrola strażnika — wykrywa brak skryptu', () => {
+  it('kontrola strażnika – wykrywa brak skryptu', () => {
     const udawany = { scripts: { test: 'jest' } };
     expect(Object.keys(udawany.scripts)).not.toContain('test:int');
   });

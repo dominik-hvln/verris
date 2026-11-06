@@ -11,7 +11,7 @@ import ClientTicketChat from './client-ticket-chat';
  * 06.10 — automatyczne „Wciąż pracujemy” z kolejnych dni (raz na dobę) wyglądały jak 11 wiadomości z jednej
  * półgodziny, bo wpis pokazywał samą godzinę. Wpis automatyczny ma datę jak każda inna wiadomość.
  */
-describe('ClientTicketChat — wiadomości automatyczne z datą', () => {
+describe('ClientTicketChat – wiadomości automatyczne z datą', () => {
   it('„Wciąż pracujemy” z różnych dni ma dzień i godzinę', () => {
     const odp = (id: string, iso: string) => ({ id, message: 'Wciąż pracujemy nad zgłoszeniem.', isStaff: true, automatic: 'WCIAZ_PRACUJEMY', createdAt: iso, attachments: [] });
     const ticket = {
@@ -26,7 +26,7 @@ describe('ClientTicketChat — wiadomości automatyczne z datą', () => {
 });
 
 /** F2.5 — zgłoszenie założone przez obsługę: pierwsza wiadomość od „Obsługa Verris”, nie podpisana „Ty”. */
-describe('ClientTicketChat — zgłoszenie założone przez obsługę', () => {
+describe('ClientTicketChat – zgłoszenie założone przez obsługę', () => {
   const baza = { id: 't2', subject: 'Awaria poczty', message: 'Wykryliśmy problem z pocztą na Twoim koncie.', status: 'WAITING_CUSTOMER', priority: 'NORMAL', createdAt: '2026-10-10T10:00:00Z', replies: [], attachments: [] };
   it('zalozylaObsluga → „Obsługa Verris”, bez „Ty”', () => {
     const html = renderToStaticMarkup(<ClientTicketChat ticket={{ ...baza, zalozylaObsluga: true } as never} />);
@@ -42,9 +42,9 @@ describe('ClientTicketChat — zgłoszenie założone przez obsługę', () => {
 });
 
 /** F3.7 — zgłoszenie połączone z innym: zamiast pola odpowiedzi link do zgłoszenia, w którym toczy się rozmowa. */
-describe('ClientTicketChat — zgłoszenie scalone', () => {
+describe('ClientTicketChat – zgłoszenie scalone', () => {
   const baza = { id: 't3', subject: 'Poczta', message: 'x', status: 'CLOSED', priority: 'NORMAL', createdAt: '2026-10-10T10:00:00Z', attachments: [],
-    replies: [{ id: 'r1', message: 'Połączyliśmy to zgłoszenie z #abcd1234 — dalsza rozmowa toczy się tam.', isStaff: true, automatic: 'SCALONE', createdAt: '2026-10-10T11:00:00Z', attachments: [] }] };
+    replies: [{ id: 'r1', message: 'Połączyliśmy to zgłoszenie z #abcd1234 – dalsza rozmowa toczy się tam.', isStaff: true, automatic: 'SCALONE', createdAt: '2026-10-10T11:00:00Z', attachments: [] }] };
   it('scalonoDoId → bez pola odpowiedzi, link do celu; informacja o połączeniu jako wpis w osi', () => {
     const html = renderToStaticMarkup(<ClientTicketChat ticket={{ ...baza, scalonoDoId: 'abcd1234-0000-4000-8000-000000000000' } as never} />);
     expect(html).toContain('data-scalone');
@@ -52,7 +52,7 @@ describe('ClientTicketChat — zgłoszenie scalone', () => {
     expect(html).not.toContain('<textarea');
     expect(html).toContain('Połączyliśmy to zgłoszenie z #abcd1234');
   });
-  it('bez scalenia — pole odpowiedzi jest', () => {
+  it('bez scalenia – pole odpowiedzi jest', () => {
     expect(renderToStaticMarkup(<ClientTicketChat ticket={baza as never} />)).toContain('<textarea');
   });
 });

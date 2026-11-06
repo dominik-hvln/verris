@@ -54,7 +54,7 @@ export function MailSettingsForm({ initial }: { initial: MailSettingsForm }) {
           />
           <p className="text-xs text-muted-foreground">
             W skrzynce klienta widać np. <strong className="text-white">Verris</strong> zamiast
-            samego adresu — pole „Nazwa widoczna”. Adres powinien być w domenie ze SPF/DKIM (np.
+            samego adresu – pole „Nazwa widoczna”. Adres powinien być w domenie ze SPF/DKIM (np.
             @verris.pl). Maile idą przez Postfix na serwerze panelu.
           </p>
         </fieldset>
@@ -78,7 +78,7 @@ export function MailSettingsForm({ initial }: { initial: MailSettingsForm }) {
             <span>
               <span id={`${radioId}-local`} className="block text-sm font-medium text-white">Lokalny serwer (Postfix)</span>
               <span id={`${radioId}-local-desc`} className="text-xs text-muted-foreground">
-                API przekazuje wiadomości na localhost:25 — zalecane na start LIVE.
+                API przekazuje wiadomości na localhost:25 – zalecane na start LIVE.
               </span>
             </span>
           </label>
@@ -97,7 +97,7 @@ export function MailSettingsForm({ initial }: { initial: MailSettingsForm }) {
             <span>
               <span id={`${radioId}-external`} className="block text-sm font-medium text-white">Zewnętrzny relay SMTP</span>
               <span id={`${radioId}-external-desc`} className="text-xs text-muted-foreground">
-                Osobny serwer pocztowy — opcjonalnie, gdy będzie osobny MTA.
+                Osobny serwer pocztowy – opcjonalnie, gdy będzie osobny MTA.
               </span>
             </span>
           </label>
@@ -167,7 +167,7 @@ export function MailSettingsForm({ initial }: { initial: MailSettingsForm }) {
               className="w-full rounded-xl border border-white/10 bg-black/50 px-4 py-2.5 text-white focus:border-emerald-500/40 focus:outline-none"
             />
             <span className="text-xs text-muted-foreground">
-              Konto admina (np. @verris.pl) może nie mieć skrzynki — wpisz adres, który realnie
+              Konto admina (np. @verris.pl) może nie mieć skrzynki – wpisz adres, który realnie
               odbierasz.
             </span>
           </label>

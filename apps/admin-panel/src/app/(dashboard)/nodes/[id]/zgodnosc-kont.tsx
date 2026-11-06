@@ -28,14 +28,14 @@ export function ZgodnoscKontKarta({ dane }: { dane: ZgodnoscKont }) {
                     <code className="font-mono">{s.daUsername}</code>
                     {s.gdzieIndziej ? (
                       <>
-                        {" "}— usługa jest teraz na węźle{" "}
+                        {" "}– usługa jest teraz na węźle{" "}
                         <Link className="underline" href={`/nodes/${s.gdzieIndziej.serverId}`}>
                           {s.gdzieIndziej.serverName ?? s.gdzieIndziej.serverId}
                         </Link>
                         ; to pozostałość po przeniesieniu (odpowiada za DNS i pocztę, dopóki istnieje).
                       </>
                     ) : (
-                      " — nie ma go w panelu."
+                      " – nie ma go w panelu."
                     )}
                   </li>
                 ))}

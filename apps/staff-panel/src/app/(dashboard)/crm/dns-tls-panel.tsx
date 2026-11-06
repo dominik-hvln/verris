@@ -67,7 +67,7 @@ export function StaffDnsTlsPanel({ userId, subscriptions }: Props) {
               options={
                 withAccount.length === 0
                   ? [{ value: "", label: "Brak konta z domeną" }]
-                  : withAccount.map((s) => ({ value: s.id, label: `${s.plan.name} — ${domenaDoWyswietlenia(s.account?.domain)}` }))
+                  : withAccount.map((s) => ({ value: s.id, label: `${s.plan.name} – ${domenaDoWyswietlenia(s.account?.domain)}` }))
               }
             />
           </div>

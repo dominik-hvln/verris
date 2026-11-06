@@ -43,7 +43,7 @@ export default function FtpTab({ serviceId }: { serviceId: string }) {
     const res = await changeHostingFtpPasswordAction(serviceId, u, pwValue);
     setPwSaving(false);
     if (!res.ok) return toast.error('Nie udało się zmienić hasła', { description: daErrorMessage(res.error) });
-    toast.success('Hasło FTP zmienione', { description: `${u} — zaktualizuj je w programie FTP.` });
+    toast.success('Hasło FTP zmienione', { description: `${u} – zaktualizuj je w programie FTP.` });
     setPwFor(null);
     setPwValue('');
   };
@@ -102,7 +102,7 @@ export default function FtpTab({ serviceId }: { serviceId: string }) {
       <HostingHelpHint
         help={{
           blurb:
-            'Konto FTP to dostęp do plików strony z programu typu FileZilla. Tworzysz login i hasło — to bezpieczne i w każdej chwili możesz je usunąć.',
+            'Konto FTP to dostęp do plików strony z programu typu FileZilla. Tworzysz login i hasło – to bezpieczne i w każdej chwili możesz je usunąć.',
           kbQuery: 'konto FTP',
         }}
       />

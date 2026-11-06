@@ -55,7 +55,7 @@ export class GeoIpService implements OnApplicationBootstrap {
         const t = zbudujTablice(gunzipSync(gz).toString('utf8'));
         const n = liczbaZakresow(t);
         if (n < MIN_ZAKRESOW) {
-          this.logger.warn(`GeoIP DB-IP: tylko ${n} zakresów w ${adresPlikuDbip(miesiac)} — pomijam`);
+          this.logger.warn(`GeoIP DB-IP: tylko ${n} zakresów w ${adresPlikuDbip(miesiac)} – pomijam`);
           continue;
         }
         this.tablica = t;

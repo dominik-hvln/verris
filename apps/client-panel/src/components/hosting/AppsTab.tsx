@@ -28,7 +28,7 @@ export default function AppsTab({ serviceId }: { serviceId: string }) {
   return (
     <div className="space-y-8">
       <WpOverviewPanel serviceId={serviceId} />
-      <SectionHead title="Aplikacje 1-click" desc="Instalacja WordPressa i innych aplikacji na wybranej domenie — bez wgrywania plików." />
+      <SectionHead title="Aplikacje 1-click" desc="Instalacja WordPressa i innych aplikacji na wybranej domenie – bez wgrywania plików." />
       <WordpressTab serviceId={serviceId} />
 
       <div>

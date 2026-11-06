@@ -64,11 +64,11 @@ export function RegistrantFields({
       </div>
       {nazwaZablokowana ? (
         <p className="text-xs text-neutral-500">
-          Imię, nazwisko i firmę abonenta zmienia tylko cesja domeny — napisz zgłoszenie. Pozostałe dane zmienisz tutaj.
+          Imię, nazwisko i firmę abonenta zmienia tylko cesja domeny – napisz zgłoszenie. Pozostałe dane zmienisz tutaj.
         </p>
       ) : (
         <p className="text-xs text-neutral-500">
-          To dane właściciela domeny — trafiają do rejestru domen. Domena jest zarejestrowana na Ciebie, nie na Verris.
+          To dane właściciela domeny – trafiają do rejestru domen. Domena jest zarejestrowana na Ciebie, nie na Verris.
         </p>
       )}
     </div>

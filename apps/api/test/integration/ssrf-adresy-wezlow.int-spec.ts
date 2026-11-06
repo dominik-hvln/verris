@@ -7,7 +7,7 @@ import { prisma, rozlacz, utworzWezel, wyczyscBaze } from './setup.js';
  * Server.ipv6Address), niezależnie od VERRIS_CONTROL_PLANE_IPS. Rejestr czyta bazę przy każdym
  * sprawdzeniu, więc węzeł dodany po starcie API jest chroniony od razu.
  */
-describe('SSRF migratora — adresy węzłów z bazy', () => {
+describe('SSRF migratora – adresy węzłów z bazy', () => {
   const rejestr = new AdresyWezlowRejestr(prisma() as never);
   beforeEach(async () => {
     await wyczyscBaze();

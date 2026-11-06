@@ -11,7 +11,7 @@ const DOBA = 24 * 60 * 60 * 1000;
  * z wynikiem każdego konta → stan kont, widok „Kopie floty”, metryka verris_backup_accounts_stale i status kopii
  * widziany przez klienta. Raport starego skryptu (bez listy kont) niczego w kontach nie zmienia.
  */
-describe('F3.3 — kopie floty: raport węzła per konto → widok, metryka, status klienta', () => {
+describe('F3.3 – kopie floty: raport węzła per konto → widok, metryka, status klienta', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 

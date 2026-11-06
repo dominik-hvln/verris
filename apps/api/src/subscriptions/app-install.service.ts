@@ -39,14 +39,14 @@ export const CATALOG: Record<string, AppCatalogEntry> = {
   joomla: {
     slug: 'joomla',
     name: 'Joomla',
-    description: 'System zarządzania treścią — strony firmowe, portale, blogi.',
+    description: 'System zarządzania treścią – strony firmowe, portale, blogi.',
     needsDb: true,
     adminPath: '/administrator',
   },
   mediawiki: {
     slug: 'mediawiki',
     name: 'MediaWiki',
-    description: 'Wiki jak Wikipedia — baza wiedzy, dokumentacja, intranet.',
+    description: 'Wiki jak Wikipedia – baza wiedzy, dokumentacja, intranet.',
     needsDb: true,
     adminPath: '/',
   },
@@ -146,7 +146,7 @@ export class AppInstallService {
     const podaneHaslo = (input.adminPassword || '').trim();
     if (podaneHaslo && !/^[A-Za-z0-9!#%+,.:;=?@^_~*()[\]{}-]{12,72}$/.test(podaneHaslo)) {
       throw new BadRequestException(
-        'Hasło administratora: 12–72 znaki — litery, cyfry i ! # % + , . : ; = ? @ ^ _ ~ * ( ) [ ] { } - (bez spacji, cudzysłowów, \\, $ i `).',
+        'Hasło administratora: 12–72 znaki – litery, cyfry i ! # % + , . : ; = ? @ ^ _ ~ * ( ) [ ] { } - (bez spacji, cudzysłowów, \\, $ i `).',
       );
     }
 
@@ -206,7 +206,7 @@ export class AppInstallService {
       adminUrl: `https://${domena}${app.slug === 'prestashop' ? katalogPaneluPrestaShop(db.database, adminPass) : app.adminPath}`,
       adminUser,
       adminPassword: adminPass,
-      note: 'Zapisz hasło administratora — nie pokażemy go ponownie. Instalacja potrwa 1-3 min.',
+      note: 'Zapisz hasło administratora – nie pokażemy go ponownie. Instalacja potrwa 1-3 min.',
     };
   }
 

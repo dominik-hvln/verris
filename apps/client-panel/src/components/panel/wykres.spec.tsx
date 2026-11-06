@@ -31,7 +31,7 @@ afterEach(() => {
   document.body.innerHTML = '';
 });
 
-describe('Wykres — dymek myszą i z klawiatury', () => {
+describe('Wykres – dymek myszą i z klawiatury', () => {
   it('ruch kursora pokazuje wartość i czas najbliższego punktu, wyjście chowa dymek', () => {
     const obraz = zamontuj();
     expect(dymek()).toBeNull();

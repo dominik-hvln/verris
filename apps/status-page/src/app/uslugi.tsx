@@ -80,7 +80,7 @@ export function Uslugi({
                 pierwszyPomiar={start}
                 zdarzenia={zdarzeniaDni(s.name, zdarzenia, prace, teraz)}
               />
-              <span className="sv-ms st-mono">{s.avgLatencyMs !== null ? `${s.avgLatencyMs} ms` : '—'}</span>
+              <span className="sv-ms st-mono">{s.avgLatencyMs !== null ? `${s.avgLatencyMs} ms` : '–'}</span>
               <span className="sv-proc" title={okres}>
                 <span className="st-sr">{okres}: </span>
                 {pct(s.uptime90Pct)}

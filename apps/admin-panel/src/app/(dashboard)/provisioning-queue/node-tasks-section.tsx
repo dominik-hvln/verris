@@ -57,7 +57,7 @@ const KIND_LABEL: Record<string, string> = {
 };
 
 function fmt(iso: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return "–";
   return new Date(iso).toLocaleString("pl-PL");
 }
 

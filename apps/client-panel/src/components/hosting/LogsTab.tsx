@@ -24,7 +24,7 @@ const komunikat = (e: unknown) => hostingFetchErrorMessage(e instanceof Error ? 
 type Rodzaj = 'access' | 'error';
 const RODZAJE: { id: Rodzaj; label: string; opis: string }[] = [
   { id: 'access', label: 'Dostęp', opis: 'Kto i kiedy otwierał Twoją stronę (adres IP, adres strony, kod odpowiedzi).' },
-  { id: 'error', label: 'Błędy', opis: 'Błędy serwera WWW i PHP — tu zwykle widać przyczynę „białej strony” lub błędu 500.' },
+  { id: 'error', label: 'Błędy', opis: 'Błędy serwera WWW i PHP – tu zwykle widać przyczynę „białej strony” lub błędu 500.' },
 ];
 const ILE = [100, 500, 1000] as const;
 
@@ -166,7 +166,7 @@ export default function LogsTab({ serviceId, domena: stalaDomena }: { serviceId:
         <p className="m-0 rounded-[10px] border border-line bg-card px-4 py-3 text-sm text-muted-foreground">Konto nie ma jeszcze domeny.</p>
       ) : linie.length === 0 ? (
         <p className="m-0 rounded-[10px] border border-line bg-card px-4 py-3 text-sm text-muted-foreground">
-          {rodzaj === 'error' ? 'Brak wpisów w logu błędów — serwer nie zgłosił problemów.' : 'Brak wpisów — nikt jeszcze nie otwierał strony.'}
+          {rodzaj === 'error' ? 'Brak wpisów w logu błędów – serwer nie zgłosił problemów.' : 'Brak wpisów – nikt jeszcze nie otwierał strony.'}
         </p>
       ) : (
         <>

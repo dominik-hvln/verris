@@ -28,7 +28,7 @@ const RAPORT = {
   decision: null, decidedAt: null, customerNotifiedAt: null, createdAt: "2026-10-10T10:00:00Z", klient: { id: "u1", email: "k@sklep.pl" },
 };
 
-describe("F2.3 — zawieszenie z decyzji abuse", () => {
+describe("F2.3 – zawieszenie z decyzji abuse", () => {
   beforeEach(() => api.mockReset());
 
   it("formularz: działająca usługa i uprawnienie → opcja „zawieś usługę sklep.pl”", () => {
@@ -37,7 +37,7 @@ describe("F2.3 — zawieszenie z decyzji abuse", () => {
     expect(html).toContain("zawieś usługę sklep.pl");
   });
 
-  it("formularz: bez uprawnienia — podpowiedź o wniosku z karty usługi; zawieszona — informacja, bez opcji", () => {
+  it("formularz: bez uprawnienia – podpowiedź o wniosku z karty usługi; zawieszona – informacja, bez opcji", () => {
     const bez = renderToStaticMarkup(<DecisionForm id="r1" maKlienta usluga={{ domena: "sklep.pl", status: "ACTIVE" }} mozeZawiesic={false} />);
     expect(bez).not.toContain('data-zawies="opcja"');
     expect(bez).toContain("SUBSCRIPTIONS_SUSPEND");
@@ -48,7 +48,7 @@ describe("F2.3 — zawieszenie z decyzji abuse", () => {
     expect(brak).not.toContain("data-zawies");
   });
 
-  it("audyt Fal 2: usługa zawieszona za brak płatności (albo przez partnera) — opcja dopisania nadużycia, bez blokady wysyłki", () => {
+  it("audyt Fal 2: usługa zawieszona za brak płatności (albo przez partnera) – opcja dopisania nadużycia, bez blokady wysyłki", () => {
     const html = renderToStaticMarkup(
       <DecisionForm id="r1" maKlienta usluga={{ domena: "sklep.pl", status: "SUSPENDED", zawieszonaBezDecyzjiObslugi: true }} mozeZawiesic mozeBlokowac />,
     );
@@ -102,7 +102,7 @@ describe("F2.3 — zawieszenie z decyzji abuse", () => {
     expect(api.mock.calls[1][1].body).not.toHaveProperty("blockSending");
   });
 
-  it("F3.1: strona — opcja blokady według /staff/me/access", async () => {
+  it("F3.1: strona – opcja blokady według /staff/me/access", async () => {
     api.mockImplementation(async (p: string) => {
       if (p === "/staff/abuse/r1") return { ...RAPORT, usluga: { domena: "sklep.pl", status: "ACTIVE" } };
       if (p === "/staff/me/access") return { isAdmin: false, permissions: ["ABUSE_MANAGE", "MAIL_SEND_BLOCK"] };

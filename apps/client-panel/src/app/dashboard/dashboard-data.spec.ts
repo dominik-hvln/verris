@@ -42,8 +42,8 @@ beforeEach(() => {
   allOk();
 });
 
-describe('X-05 getDashboardSnapshot — błędy nie udają zera (X-39)', () => {
-  it('26.09 — subkonto bez uprawnień (403) to nie awaria: brak dostępu zamiast czerwonej ramki', async () => {
+describe('X-05 getDashboardSnapshot – błędy nie udają zera (X-39)', () => {
+  it('26.09 – subkonto bez uprawnień (403) to nie awaria: brak dostępu zamiast czerwonej ramki', async () => {
     const zakaz = Object.assign(new Error('Forbidden resource'), { status: 403 });
     getWalletSummary.mockRejectedValue(zakaz);
     fetchTickets.mockRejectedValue(zakaz);
@@ -56,7 +56,7 @@ describe('X-05 getDashboardSnapshot — błędy nie udają zera (X-39)', () => {
     expect(s.bezDostepu).toEqual({ domains: true, wallet: true, tickets: true });
   });
 
-  it('PB-20 — dostęp do wybranych usług: 403 z programu EKO to brak uprawnień, nie „dane chwilowo niedostępne”', async () => {
+  it('PB-20 – dostęp do wybranych usług: 403 z programu EKO to brak uprawnień, nie „dane chwilowo niedostępne”', async () => {
     const zakaz = Object.assign(new Error('Masz dostęp tylko do wybranych usług tego konta.'), { status: 403 });
     apiFetch.mockImplementation(async (path: string) => {
       if (path.startsWith('/users/me/eco')) throw zakaz;
@@ -114,7 +114,7 @@ describe('X-05 getDashboardSnapshot — błędy nie udają zera (X-39)', () => {
   });
 });
 
-describe('X-05 getDashboardSnapshot — otwarte zgłoszenia', () => {
+describe('X-05 getDashboardSnapshot – otwarte zgłoszenia', () => {
   it('liczy OPEN, IN_PROGRESS i WAITING_CUSTOMER, pomija CLOSED', async () => {
     fetchTickets.mockResolvedValue(
       ['OPEN', 'IN_PROGRESS', 'WAITING_CUSTOMER', 'CLOSED', 'CLOSED'].map((status, i) => ({ id: String(i), status })),

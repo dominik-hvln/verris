@@ -12,14 +12,14 @@ const tekst = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/&nbsp;|\s
 // Stawki z sześcioma miejscami (tyle trzyma API: Decimal(12, 6)). Suwaki startowe: +400% CPU, +8 GB RAM, 36 h.
 const CENY: Ceny = { ...CENY_ZAPASOWE, stawki: { cpu: 0.001283, ram: 0.012345, dysk: 0.0008 }, zrodlo: 'api' };
 
-describe('AKalkulator — stawki i godzina bez zaokrąglania do 2 miejsc', () => {
+describe('AKalkulator – stawki i godzina bez zaokrąglania do 2 miejsc', () => {
   const t = tekst(renderToStaticMarkup(<AKalkulator wariant="pelny" ceny={CENY} />));
 
   it('stawki wszystkimi cyframi, brutto i netto', () => {
-    expect(t).toContain('1% procesora (100% = 1 vCPU) — 0,001283 zł (0,00104309 zł)');
+    expect(t).toContain('1% procesora (100% = 1 vCPU) – 0,001283 zł (0,00104309 zł)');
     // stary kod: „0,01235” (4 cyfry znaczące)
-    expect(t).toContain('1 GB RAM — 0,012345 zł (0,0100366 zł)');
-    expect(t).toContain('1 GB dysku — 0,0008 zł (0,000650407 zł)');
+    expect(t).toContain('1 GB RAM – 0,012345 zł (0,0100366 zł)');
+    expect(t).toContain('1 GB dysku – 0,0008 zł (0,000650407 zł)');
   });
 
   it('godzina z taką mocą poniżej 1 zł pokazana dokładnie (400 × 0,001283 + 8 × 0,012345 = 0,61196 zł)', () => {

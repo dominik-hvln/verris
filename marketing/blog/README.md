@@ -1,4 +1,4 @@
-# Verris — drafty bloga (32 wpisy, wszystkie klastry domknięte)
+# Verris – drafty bloga (32 wpisy, wszystkie klastry domknięte)
 
 Pełne, gotowe do publikacji wpisy (Markdown z frontmatter). Każdy ma: blok „W skrócie" (40–60 słów,
 pod AI Overviews i cytowania), H2/H3 sformułowane jak zapytania użytkownika, tabele/listy tam gdzie
@@ -21,14 +21,14 @@ konkurentów. Przed publikacją → `marketing:brand-review`.
 
 ## Narzędzia
 
-**Obrazki wyróżniające** — cover 1200×630 w `images/<slug>.png` (kanoniczny pattern marki z
+**Obrazki wyróżniające** – cover 1200×630 w `images/<slug>.png` (kanoniczny pattern marki z
 `apps/www/public/pattern.svg`, logo, kategoria w ramce, tytuł, stopka):
 
 ```bash
 python3 generate_covers.py     # generuje dla wszystkich wpisów
 ```
 
-**FAQ → schema FAQPage** — wyciąga sekcję `## FAQ` do pola `faq` we frontmatterze (JSON):
+**FAQ → schema FAQPage** – wyciąga sekcję `## FAQ` do pola `faq` we frontmatterze (JSON):
 
 ```bash
 python3 extract_faq.py         # aktualizuje frontmatter wszystkich wpisów
@@ -53,4 +53,4 @@ Wpisy celują w **jedną frazę główną** (`keyword`) plus jej naturalne waria
 Świadomie **nie upychamy** słów kluczowych: wg badań GEO (Princeton, KDD 2024) keyword stuffing
 obniża widoczność o **−10%**, podczas gdy cytowanie źródeł daje +40%, statystyki +37%,
 a poprawa klarowności +20%. Google traktuje upychanie jako spam. Dlatego optymalizacja idzie przez
-pokrycie tematu, strukturę i dane — nie przez gęstość fraz.
+pokrycie tematu, strukturę i dane – nie przez gęstość fraz.

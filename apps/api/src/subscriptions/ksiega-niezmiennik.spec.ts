@@ -305,7 +305,7 @@ describe('niezmiennik księgi pojemności węzła', () => {
   });
 });
 
-describe('arytmetyka delt — przypadki, na których łatwo się pomylić', () => {
+describe('arytmetyka delt – przypadki, na których łatwo się pomylić', () => {
   it('kolejność argumentów ma znaczenie i jest jawna', () => {
     const male = { cpu: 100, ramMb: 1024, diskMb: 10240 };
     const duze = { cpu: 200, ramMb: 8192, diskMb: 51200 };

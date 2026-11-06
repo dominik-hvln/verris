@@ -249,7 +249,7 @@ export function MigrationWizard({ serviceId, onQueued, zakres }: Props) {
     );
     setDiscovering(false);
     if ('error' in res) {
-      setMsg({ type: 'err', text: `${res.error} — możesz też przejść dalej i wpisać dane ręcznie.` });
+      setMsg({ type: 'err', text: `${res.error} – możesz też przejść dalej i wpisać dane ręcznie.` });
       return;
     }
     const d = res.result as DiscoveryResult;
@@ -534,7 +534,7 @@ const OPIS_ZAKRESU: Record<Zakres, string> = {
   strona: 'Przeniesiemy całą stronę: pliki i bazy danych (WordPress, sklep).',
   pliki: 'Przeniesiemy same pliki z serwera FTP/SFTP starego hostingu.',
   baza: 'Przeniesiemy bazę danych MySQL ze starego hostingu.',
-  wszystko: 'Przeniesiemy wszystko naraz: pliki strony, bazy danych i skrzynki pocztowe — brakujące skrzynki założymy u nas.',
+  wszystko: 'Przeniesiemy wszystko naraz: pliki strony, bazy danych i skrzynki pocztowe – brakujące skrzynki założymy u nas.',
 };
 
 function StepMethod(props: {
@@ -570,7 +570,7 @@ function StepMethod(props: {
           className={`rounded-2xl border p-4 text-left transition ${method === 'auto' ? 'border-cyan-400/60 bg-cyan-500/[0.08]' : 'border-cyan-500/25 bg-cyan-500/[0.04] hover:border-cyan-400/50'}`}
         >
           <p className="font-semibold text-white">Automatycznie (zalecane)</p>
-          <p className="mt-1 text-xs text-neutral-400">Podaj login do panelu starego hostingu — sami wykryjemy dane serwera i bazy.</p>
+          <p className="mt-1 text-xs text-neutral-400">Podaj login do panelu starego hostingu – sami wykryjemy dane serwera i bazy.</p>
         </button>
         <button
           type="button"
@@ -728,13 +728,13 @@ function StepSources(props: {
               aria-label="Strona do przeniesienia"
               options={sites.map((x) => ({
                 value: x.domain,
-                label: `${x.domain} — ${RODZAJ_STRONY[x.kind]}${x.konto && x.konto !== x.domain ? ` (konto ${x.konto})` : ''}`,
+                label: `${x.domain} – ${RODZAJ_STRONY[x.kind]}${x.konto && x.konto !== x.domain ? ` (konto ${x.konto})` : ''}`,
               }))}
             />
           </div>
           <p className="text-xs text-neutral-500">
             Na starym hostingu {plForm(sites.length, 'jest', 'są', 'jest')} {sites.length} {plForm(sites.length, 'strona', 'strony', 'stron')}.
-            Przeniesiemy tylko wybraną —{' '}
+            Przeniesiemy tylko wybraną –{' '}
             {wybrana?.ftpPath ? <>pliki z katalogu <span className="text-neutral-300">{wybrana.ftpPath}</span></> : 'katalog znajdziemy sami'}
             {discovery?.databases.length ? ', zaznacz poniżej jej bazy.' : '.'} Kolejną stronę przeniesiesz osobną migracją.
           </p>
@@ -808,7 +808,7 @@ function StepSources(props: {
             </label>
             <label className="space-y-1.5 block">
               <span className={labelText}>Ścieżka na serwerze</span>
-              <input value={props.ftpPath} onChange={(e) => props.setFtpPath(e.target.value)} className={input} placeholder="zostaw puste — sami znajdziemy katalog strony" />
+              <input value={props.ftpPath} onChange={(e) => props.setFtpPath(e.target.value)} className={input} placeholder="zostaw puste – sami znajdziemy katalog strony" />
             </label>
           </div>
           <NarzedziaZrodlaPlikow
@@ -873,14 +873,14 @@ function StepSources(props: {
         ))}
         {props.dbs.some((d) => d.wykryta) && !props.dbs.some((d) => d.wlaczona) ? (
           <p className="text-xs text-amber-200/80">
-            Zaznacz bazę wybranej strony — przy WordPressie jej nazwę znajdziesz w pliku wp-config.php (DB_NAME).
+            Zaznacz bazę wybranej strony – przy WordPressie jej nazwę znajdziesz w pliku wp-config.php (DB_NAME).
           </p>
         ) : null}
         {props.dbs.length === 0 ? (
           <p className="text-xs text-neutral-500">Brak baz. Dodaj, jeśli Twoja strona ich używa (np. WordPress, sklep).</p>
         ) : includeFiles ? (
           <p className="text-xs text-neutral-500">
-            Nie znasz loginu i hasła bazy? Przy WordPressie, Joomli, PrestaShopie, Magento i Drupalu zostaw je puste —
+            Nie znasz loginu i hasła bazy? Przy WordPressie, Joomli, PrestaShopie, Magento i Drupalu zostaw je puste –
             odczytamy je z pliku konfiguracji strony po skopiowaniu plików, a po imporcie wpiszemy tam nową bazę.
           </p>
         ) : null}
@@ -914,7 +914,7 @@ function StepSources(props: {
             </div>
           ))}
           {props.skrzynki.length === 0 ? (
-            <p className="text-xs text-neutral-500">Brak skrzynek. Dodaj te, które chcesz przenieść — podaj adres i hasło u obecnego dostawcy.</p>
+            <p className="text-xs text-neutral-500">Brak skrzynek. Dodaj te, które chcesz przenieść – podaj adres i hasło u obecnego dostawcy.</p>
           ) : (
             <p className="text-xs text-neutral-500">Skrzynki bez hasła pominiemy. Port 993 to standard (IMAP z szyfrowaniem).</p>
           )}
@@ -925,7 +925,7 @@ function StepSources(props: {
               className="mt-0.5 h-4 w-4 shrink-0 accent-cyan-500"
             />
             <span>
-              Załóż u nas skrzynki, których jeszcze nie ma — z tym samym hasłem co u obecnego dostawcy. Adres musi być
+              Załóż u nas skrzynki, których jeszcze nie ma – z tym samym hasłem co u obecnego dostawcy. Adres musi być
               na domenie tej usługi.
             </span>
           </label>
@@ -962,17 +962,17 @@ function StepPreflight({
             {preflight.ok
               ? 'Wszystko wygląda dobrze ✓'
               : preflight.checks.some((c) => c.status === 'blocked')
-                ? 'Tego adresu nie można użyć jako źródła migracji — wróć krok wstecz i podaj adres serwera starego hostingu'
+                ? 'Tego adresu nie można użyć jako źródła migracji – wróć krok wstecz i podaj adres serwera starego hostingu'
                 : preflight.checks.some((c) => c.status === 'auth_failed')
-                ? 'Serwer odrzucił login lub hasło — wróć krok wstecz, popraw dane oznaczone czerwoną kropką i sprawdź ponownie'
-                : 'Część źródeł wymaga uwagi — możesz kontynuować, resztę dokończymy po naszej stronie'}
+                ? 'Serwer odrzucił login lub hasło – wróć krok wstecz, popraw dane oznaczone czerwoną kropką i sprawdź ponownie'
+                : 'Część źródeł wymaga uwagi – możesz kontynuować, resztę dokończymy po naszej stronie'}
           </p>
           <ul className="mt-1.5 space-y-1">
             {preflight.checks.map((c, i) => (
               <li key={i} className="flex items-start gap-2">
                 <span className={preflightDot(c.status)}>●</span>
                 <span className="text-neutral-300">
-                  <strong>{c.target}</strong> — {c.message}
+                  <strong>{c.target}</strong> – {c.message}
                 </span>
               </li>
             ))}
@@ -981,11 +981,11 @@ function StepPreflight({
             zakres === 'baza' ? (
               <p className="mt-2 text-amber-200/90">
                 Stary hosting nie wpuszcza połączeń do bazy z zewnątrz. Włącz u niego zdalny dostęp do MySQL albo wybierz
-                „Cała strona” — wtedy bazę pobierzemy razem z plikami.
+                „Cała strona” – wtedy bazę pobierzemy razem z plikami.
               </p>
             ) : (
             <p className="mt-2 text-neutral-500">
-              Brak zdalnego dostępu do bazy to normalne na hostingach współdzielonych — bazę pobierzemy inną drogą
+              Brak zdalnego dostępu do bazy to normalne na hostingach współdzielonych – bazę pobierzemy inną drogą
               (przez SSH albo jednorazowo przez stronę). Możesz spokojnie przejść dalej.
             </p>
             )
@@ -1017,7 +1017,7 @@ function StepStart(props: {
         {props.zakres !== 'baza' ? (
           <li className="flex items-center gap-2">
             <span className={props.ftpHost.trim() ? 'text-emerald-400' : 'text-neutral-600'}>●</span>
-            <span className="text-neutral-200">Pliki strony {props.ftpHost.trim() ? `(${props.ftpHost.trim()})` : '— pominięte'}</span>
+            <span className="text-neutral-200">Pliki strony {props.ftpHost.trim() ? `(${props.ftpHost.trim()})` : '– pominięte'}</span>
           </li>
         ) : null}
         {props.zakres !== 'pliki' ? (
@@ -1051,7 +1051,7 @@ function StepStart(props: {
       </label>
       <p className="rounded-lg border border-cyan-500/20 bg-cyan-500/[0.05] px-3 py-2 text-xs text-cyan-100/90">
         Hasła szyfrujemy, używamy tylko na czas transferu i kasujemy po zakończeniu. Twoja obecna
-        strona działa bez przerwy aż do przełączenia DNS — ten krok wykonasz sam(a) na końcu.
+        strona działa bez przerwy aż do przełączenia DNS – ten krok wykonasz sam(a) na końcu.
       </p>
 
       {/* Zgoda / upoważnienie (RODO) — wymagane do startu. */}
@@ -1124,14 +1124,14 @@ export function RozpoznajZDns({ serviceId, onHost }: { serviceId: string; onHost
       {blad ? <p className="text-sm text-rose-300">{blad}</p> : null}
       {wynik ? (
         <p className="text-xs text-neutral-400" data-wynik-dns>
-          {wynik.juzUNas ? 'Ta domena już wskazuje na hosting Verris — sprawdź, czy strona nie jest już przeniesiona. ' : null}
+          {wynik.juzUNas ? 'Ta domena już wskazuje na hosting Verris – sprawdź, czy strona nie jest już przeniesiona. ' : null}
           {wynik.juzUNas ? null : wynik.a.length ? `Strona: ${wynik.a.join(', ')}. ` : 'Domena nie wskazuje na żaden serwer. '}
           {wynik.mx.length ? `Poczta: ${wynik.mx.join(', ')}. ` : ''}
           {wynik.juzUNas
             ? null
             : wynik.podpowiedzHosta
-              ? `Wpisaliśmy adres panelu: ${wynik.podpowiedzHosta} — popraw, jeśli dostawca podał inny.`
-              : 'Nie znaleźliśmy nazwy serwera — adres panelu znajdziesz w mailu powitalnym od dostawcy.'}
+              ? `Wpisaliśmy adres panelu: ${wynik.podpowiedzHosta} – popraw, jeśli dostawca podał inny.`
+              : 'Nie znaleźliśmy nazwy serwera – adres panelu znajdziesz w mailu powitalnym od dostawcy.'}
         </p>
       ) : null}
     </div>

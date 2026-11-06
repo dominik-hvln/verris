@@ -33,7 +33,7 @@ const pastDue = {
   introDiscountPeriodsLeft: 0, introDiscountPct: 0, priceAmount: 45, listPriceAmount: 45, appliedPromoCodeId: null,
 };
 
-describe('RenewalScheduler — Z-07', () => {
+describe('RenewalScheduler – Z-07', () => {
   it('przebieg godzinowy bierze też PAST_DUE', async () => {
     const { s, prisma } = zbuduj({ saldoOk: true, subs: [] });
     await (s as unknown as { runRenewalWindow(): Promise<void> }).runRenewalWindow();
@@ -86,8 +86,8 @@ describe('RenewalScheduler — Z-07', () => {
  * Noc 15.10 — niestabilny test integracyjny odnowienia-wyscig („Opłać teraz” równo z cronem): cron obciążył, a „Opłać
  * teraz” trafił w to obciążenie po kluczu i pierwszy przesunął okres — bez zużycia okresu rabatu startowego.
  */
-describe('RenewalScheduler — rabat startowy przy trafieniu w cudze obciążenie', () => {
-  it('przesunięcie okresu po trafieniu idempotentnym zużywa okres rabatu (warunkowo — tylko ten, kto przesunął)', async () => {
+describe('RenewalScheduler – rabat startowy przy trafieniu w cudze obciążenie', () => {
+  it('przesunięcie okresu po trafieniu idempotentnym zużywa okres rabatu (warunkowo – tylko ten, kto przesunął)', async () => {
     const { s, prisma, walletLedger } = zbuduj({ saldoOk: true, subs: [{ ...pastDue, introDiscountPeriodsLeft: 3, introDiscountPct: 20 }] });
     walletLedger.findByIdempotencyKey.mockImplementation((async (k: string) => (k === 'sub-s1-renew-2026-09-20' ? { id: 'tx-crona', amount: -36 } : null)) as never);
     await expect(s.retryPastDueNow('u1', 's1')).resolves.toEqual({ status: 'ACTIVE' });

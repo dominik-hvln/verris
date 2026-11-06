@@ -46,13 +46,13 @@ const trasy = (m: Record<string, unknown>) =>
     throw new Error(`nieoczekiwane ${s}`);
   });
 
-describe("PB-48 — strona „Wnioski o operacje”", () => {
+describe("PB-48 – strona „Wnioski o operacje”", () => {
   beforeEach(() => api.mockReset());
 
   it("do decyzji: lista z akceptuj / odrzuć, liczba z odmianą, link do karty klienta", async () => {
     trasy({ "/staff/me/access": { isAdmin: true }, "/admin/wnioski/do-decyzji": [wniosek()] });
     const html = renderToStaticMarkup(await WnioskiPage({ searchParams: Promise.resolve({}) }));
-    expect(tekst(html)).toContain("Czeka na decyzję — 1 wniosek");
+    expect(tekst(html)).toContain("Czeka na decyzję – 1 wniosek");
     expect(tekst(html)).toContain("Akceptuj i wykonaj");
     expect(html).toContain('href="/customers/k1"');
     // Administrator nie ma zakładki „Moje”.
@@ -69,7 +69,7 @@ describe("PB-48 — strona „Wnioski o operacje”", () => {
     });
     const t = tekst(renderToStaticMarkup(await WnioskiPage({ searchParams: Promise.resolve({ zakladka: "historia", status: "REJECTED" }) })));
     expect(api).toHaveBeenCalledWith("/admin/wnioski/historia?status=REJECTED");
-    expect(t).toContain("Historia — 2 wnioski");
+    expect(t).toContain("Historia – 2 wnioski");
     expect(t).toContain("Decyzja: Dominik");
     expect(t).toContain("powód: Klient płaci.");
     expect(t).toContain("Konto oznaczone jako wewnętrzne.");
@@ -87,7 +87,7 @@ describe("PB-48 — strona „Wnioski o operacje”", () => {
     expect(t).toContain("Moje");
   });
 
-  it("D1 — operator bez REQUESTS_APPROVE: od razu „Moje”, bez zakładek decyzji (wcześniej błąd 403)", async () => {
+  it("D1 – operator bez REQUESTS_APPROVE: od razu „Moje”, bez zakładek decyzji (wcześniej błąd 403)", async () => {
     trasy({ "/staff/me/access": { isAdmin: false, permissions: ["CUSTOMERS_VIEW"] }, "/admin/wnioski/moje": [wniosek()] });
     const html = renderToStaticMarkup(await WnioskiPage({ searchParams: Promise.resolve({ zakladka: "historia" }) }));
     expect(api).toHaveBeenCalledWith("/admin/wnioski/moje");
@@ -103,10 +103,10 @@ describe("PB-48 — strona „Wnioski o operacje”", () => {
   });
 });
 
-describe("PB-48 — wniosek z przełącznika „konto wewnętrzne”", () => {
+describe("PB-48 – wniosek z przełącznika „konto wewnętrzne”", () => {
   beforeEach(() => api.mockReset());
 
-  it("bez uprawnienia przy znanym kliencie: „Wyślij wniosek” zamiast samej podpowiedzi; z uprawnieniem — brak", () => {
+  it("bez uprawnienia przy znanym kliencie: „Wyślij wniosek” zamiast samej podpowiedzi; z uprawnieniem – brak", () => {
     const bez = renderToStaticMarkup(<PoleKontaWewnetrznego userId="k1" checked={false} onChange={() => undefined} dozwolone={false} />);
     expect(tekst(bez)).toContain("Wyślij wniosek");
     expect(bez).toContain('data-wniosek="CUSTOMER_INTERNAL_FLAG"');
@@ -124,8 +124,8 @@ describe("PB-48 — wniosek z przełącznika „konto wewnętrzne”", () => {
   });
 });
 
-describe("PB-48 — komunikat po decyzji", () => {
-  it("FAILED (operacja nie przeszła) — kolor błędu, nie sukcesu; zaakceptowany — zielony", () => {
+describe("PB-48 – komunikat po decyzji", () => {
+  it("FAILED (operacja nie przeszła) – kolor błędu, nie sukcesu; zaakceptowany – zielony", () => {
     const blad = renderToStaticMarkup(<WynikDecyzji wynik={wynikDecyzji({ status: "FAILED", wynik: { blad: "Dokument już opłacony." } })} />);
     expect(blad).toContain("text-rose-300");
     expect(blad).not.toContain("text-emerald-300");

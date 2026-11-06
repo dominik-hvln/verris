@@ -1,7 +1,7 @@
 import { WebAuthnService } from './webauthn.service.js';
 
 // G-18 (07.10): dodanie/usunięcie passkey nie zostawiało śladu w dzienniku konta — tylko mail.
-describe('passkey — dziennik konta', () => {
+describe('passkey – dziennik konta', () => {
   it('usunięcie passkey zapisuje PASSKEY_REMOVED z nazwą urządzenia', async () => {
     const prisma = {
       webAuthnCredential: { findFirst: vi.fn(async () => ({ id: 'c1', name: 'MacBook' })), delete: vi.fn(async () => ({})) },

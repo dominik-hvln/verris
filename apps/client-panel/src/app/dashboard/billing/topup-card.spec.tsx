@@ -29,10 +29,10 @@ const przyciskMetody = (el: HTMLElement, tekst: string) =>
   [...el.querySelectorAll('[aria-label="Sposób płatności"] button')].find((b) => b.textContent?.includes(tekst)) as HTMLButtonElement;
 
 /** 2026-10-05 — Paynow główną bramką doładowań w PLN; Stripe zostaje jako opcja (karta, EUR/USD). */
-describe('TopupCard — wybór bramki', () => {
+describe('TopupCard – wybór bramki', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('Paynow włączony: dla PLN domyślnie „BLIK, przelew, karta — przez Paynow”, Stripe do wyboru', async () => {
+  it('Paynow włączony: dla PLN domyślnie „BLIK, przelew, karta – przez Paynow”, Stripe do wyboru', async () => {
     const { el, root } = await renderuj({ balance: '10.00', paynowDostepny: true });
     const paynow = przyciskMetody(el, 'BLIK, przelew, karta');
     expect(paynow.textContent).toContain('przez Paynow');
@@ -86,7 +86,7 @@ it('klient resellera: bez pola kodu promocyjnego przy doładowaniu', async () =>
 
 // P1-01 / P4-1 (beta 3.11): pole kodu przy doładowaniu było drugim <form> wewnątrz formularza doładowania —
 // „Sprawdź” wysyłał formularz GET-em, strona się przeładowywała, a kod znikał bez komunikatu.
-describe('P1-01 — kod przy doładowaniu bez zagnieżdżonego formularza', () => {
+describe('P1-01 – kod przy doładowaniu bez zagnieżdżonego formularza', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('w karcie jest dokładnie jeden <form>, „Sprawdź” nie wysyła doładowania, kod zostaje', async () => {

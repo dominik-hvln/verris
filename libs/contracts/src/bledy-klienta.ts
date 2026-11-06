@@ -19,12 +19,12 @@ const RULES: { test: RegExp; message: string }[] = [
   {
     test: /could not execute your request/i,
     message:
-      'Serwer hostingowy nie mógł wykonać tej operacji. Spróbuj ponownie za chwilę — jeśli problem wraca, napisz do pomocy.',
+      'Serwer hostingowy nie mógł wykonać tej operacji. Spróbuj ponownie za chwilę – jeśli problem wraca, napisz do pomocy.',
   },
   { test: /already exists|exists already|duplicate/i, message: 'Taki element już istnieje.' },
   {
     test: /(cannot|could not).*(delete|remove)|in use|is being used/i,
-    message: 'Nie można usunąć — element jest w użyciu lub powiązany z inną usługą.',
+    message: 'Nie można usunąć – element jest w użyciu lub powiązany z inną usługą.',
   },
   {
     // „exceeded” tylko przy limicie/quocie — gołe „exceed” złapałoby „timeout exceeded”.
@@ -38,7 +38,7 @@ const RULES: { test: RegExp; message: string }[] = [
   },
   {
     test: /a valid ip was not provided|ip.*not.*(provided|found)/i,
-    message: 'Problem konfiguracji adresu IP na serwerze — zgłoś to do pomocy technicznej.',
+    message: 'Problem konfiguracji adresu IP na serwerze – zgłoś to do pomocy technicznej.',
   },
   {
     test: /not configured|nie jest skonfigurowan|no hosting account|konto hostingowe nie/i,

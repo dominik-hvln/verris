@@ -93,7 +93,7 @@ export function DomainRegistrarBox({ domainId, transferLock }: { domainId: strin
           </button>
         )}
       </div>
-      {kod && lock ? <p className="text-amber-200">Przed transferem odblokuj domenę — z blokadą nowy rejestrator jej nie przejmie.</p> : null}
+      {kod && lock ? <p className="text-amber-200">Przed transferem odblokuj domenę – z blokadą nowy rejestrator jej nie przejmie.</p> : null}
 
       <div className="space-y-3 border-t border-white/10 pt-4">
         <div className="flex flex-wrap items-center justify-between gap-3">

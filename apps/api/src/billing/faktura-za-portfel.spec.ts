@@ -27,7 +27,7 @@ import {
 
 const D = (v: string | number) => new Prisma.Decimal(v);
 
-describe('Z-01 — rozbicie VAT', () => {
+describe('Z-01 – rozbicie VAT', () => {
   it('netto plus VAT zawsze daje brutto, co do grosza', () => {
     // Deterministyczny przemiał przez zakres kwot, w tym takie, które przy
     // niezależnym liczeniu VAT-u (brutto × 23/123) rozjeżdżają się o grosz.
@@ -68,7 +68,7 @@ describe('Z-01 — rozbicie VAT', () => {
   });
 });
 
-describe('Z-01 — tryb faktury', () => {
+describe('Z-01 – tryb faktury', () => {
   it('sprzedaż powyżej progu dostaje fakturę od razu', () => {
     expect(trybFaktury(WalletTxType.CHARGE_SUBSCRIPTION, D('45.00'))).toBe('natychmiast');
     expect(trybFaktury(WalletTxType.CHARGE_DOMAIN, D('80.00'))).toBe('natychmiast');
@@ -117,13 +117,13 @@ describe('Z-01 — tryb faktury', () => {
     expect(
       brakujace.length === 0
         ? ''
-        : `Typy obciążeniowe spoza TYPY_SPRZEDAZY — obciążenie bez dokumentu ` +
+        : `Typy obciążeniowe spoza TYPY_SPRZEDAZY – obciążenie bez dokumentu ` +
           `księgowego (Z-01): ${brakujace.join(', ')}`,
     ).toBe('');
   });
 });
 
-describe('Z-01 — faktura zbiorcza', () => {
+describe('Z-01 – faktura zbiorcza', () => {
   const auto = (b: string) => ({
     typ: WalletTxType.CHARGE_AUTOSCALING,
     brutto: D(b),
@@ -165,8 +165,8 @@ describe('Z-01 — faktura zbiorcza', () => {
   });
 
   it('nazwa pozycji bierze się z opisu obciążenia, a domyślna z typu', () => {
-    expect(nazwaPozycji(WalletTxType.CHARGE_DOMAIN, 'Domena example.pl — 1 rok')).toBe(
-      'Domena example.pl — 1 rok',
+    expect(nazwaPozycji(WalletTxType.CHARGE_DOMAIN, 'Domena example.pl – 1 rok')).toBe(
+      'Domena example.pl – 1 rok',
     );
     expect(nazwaPozycji(WalletTxType.CHARGE_SUBSCRIPTION, null)).toBe('Abonament hostingowy');
     expect(nazwaPozycji(WalletTxType.CHARGE_SUBSCRIPTION, '   ')).toBe('Abonament hostingowy');
@@ -178,7 +178,7 @@ describe('Z-01 — faktura zbiorcza', () => {
   });
 });
 
-describe('Z-01 — faktura ręczna', () => {
+describe('Z-01 – faktura ręczna', () => {
   it('liczy brutto z ceny jednostkowej i ilości, a netto z brutto', () => {
     const { pozycje, suma } = pozycjeReczne([
       { nazwa: 'Konfiguracja serwera', ilosc: 3, cenaBrutto: '123.45' },
@@ -212,7 +212,7 @@ describe('Z-01 — faktura ręczna', () => {
   });
 });
 
-describe('Z-01 — okres zbiorczy', () => {
+describe('Z-01 – okres zbiorczy', () => {
   it('bierze poprzedni pełny miesiąc', () => {
     const o = okresZbiorczy(new Date('2026-09-01T04:00:00Z'));
     expect(o.od.toISOString()).toBe('2026-08-01T00:00:00.000Z');
@@ -240,7 +240,7 @@ describe('Z-01 — okres zbiorczy', () => {
   });
 });
 
-describe('Z-01 — ponawianie finalizacji', () => {
+describe('Z-01 – ponawianie finalizacji', () => {
   const T0 = new Date('2026-08-22T12:00:00.000Z');
 
   it('odstępy rosną', () => {

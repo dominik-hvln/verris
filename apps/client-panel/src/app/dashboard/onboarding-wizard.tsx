@@ -99,7 +99,7 @@ export function OnboardingWizard({ snapshot, hidden, navCtx = null }: { snapshot
   if (!snapshot.hasService) {
     return (
       <Box title="Pierwsze kroki" onDismiss={dismiss}>
-        <p className="px-4 pt-1.5 text-[13.5px] text-muted-foreground">Uruchom pierwszą usługę — zajmie chwilę.</p>
+        <p className="px-4 pt-1.5 text-[13.5px] text-muted-foreground">Uruchom pierwszą usługę – zajmie chwilę.</p>
         <div className="px-4 pb-4 pt-3">
           <Link href="/dashboard/services/new" className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground">
             <Rocket className="h-4 w-4" /> Zamów hosting lub pocztę
@@ -147,8 +147,8 @@ export function OnboardingWizard({ snapshot, hidden, navCtx = null }: { snapshot
         <p className="m-0 flex items-center gap-2 border-t border-line px-4 py-2.5 font-mono text-[11px] text-muted-foreground">
           <span className="block h-3 w-3 flex-none rounded-full border border-dashed border-line-strong" />
           {p.nieznane === 1
-            ? 'Krok oznaczony kreską sprawdź samodzielnie — nie wliczamy go do postępu.'
-            : 'Kroki oznaczone kreską sprawdź samodzielnie — nie wliczamy ich do postępu.'}
+            ? 'Krok oznaczony kreską sprawdź samodzielnie – nie wliczamy go do postępu.'
+            : 'Kroki oznaczone kreską sprawdź samodzielnie – nie wliczamy ich do postępu.'}
         </p>
       ) : null}
       {!snapshot.provisioning ? <DobrePraktyki serviceId={snapshot.serviceId} poczta={snapshot.isEmailProduct} /> : null}
@@ -164,7 +164,7 @@ function DobrePraktyki({ serviceId, poczta }: { serviceId: string | null; poczta
   const q = serviceId ? `?serviceId=${serviceId}` : '';
   const linki = [
     { href: `/dashboard/backups${q}`, tekst: 'Sprawdź kopie zapasowe i odtwarzanie' },
-    { href: `/dashboard/email${q}`, tekst: 'SPF, DKIM i DMARC — żeby poczta nie trafiała do spamu' },
+    { href: `/dashboard/email${q}`, tekst: 'SPF, DKIM i DMARC – żeby poczta nie trafiała do spamu' },
     ...(clientFeatures.iam ? [{ href: '/dashboard/iam', tekst: 'Dostęp dla współpracownika' }] : []),
     ...(!poczta ? [{ href: '/dashboard/migrations', tekst: 'Przenieś stronę z innego hostingu' }] : []),
   ];
@@ -189,7 +189,7 @@ function Box({ title, counter, onDismiss, children }: { title: string; counter?:
         <h3 className="m-0 font-display text-[15px] font-bold text-foreground">{title}</h3>
         <span className="flex items-center gap-2">
           {counter ? <span className="font-mono text-xs text-muted-foreground">{counter}</span> : null}
-          <button type="button" onClick={onDismiss} className="rounded p-1 text-muted-foreground hover:bg-raised hover:text-foreground" aria-label="Schowaj pierwsze kroki" data-tip="Schowaj — wrócisz do nich z paska konfiguracji w menu">
+          <button type="button" onClick={onDismiss} className="rounded p-1 text-muted-foreground hover:bg-raised hover:text-foreground" aria-label="Schowaj pierwsze kroki" data-tip="Schowaj – wrócisz do nich z paska konfiguracji w menu">
             <X className="h-3.5 w-3.5" />
           </button>
         </span>

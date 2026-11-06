@@ -41,7 +41,7 @@ export function TicketScalanie({
       <details className="px-4 py-3.5" data-karta="scalanie">
         <summary className="cursor-pointer font-display text-[15px] font-bold">Scal z innym zgłoszeniem</summary>
         {kandydaci === null ? (
-          <p className="mt-2 text-[12.5px] text-crit">Nie udało się wczytać zgłoszeń klienta — odśwież stronę.</p>
+          <p className="mt-2 text-[12.5px] text-crit">Nie udało się wczytać zgłoszeń klienta – odśwież stronę.</p>
         ) : (
           <div className="mt-2 flex flex-col gap-2">
             <p className="text-[12.5px] text-muted-foreground">
@@ -63,7 +63,7 @@ export function TicketScalanie({
                 userId={userId}
                 payload={{ zrodloId: ticketId, celId }}
                 gotowe={!!celId}
-                podpowiedz="Scalenie jest nieodwracalne — robi je L3 albo kierownik. Wybierz zgłoszenie i wyślij wniosek."
+                podpowiedz="Scalenie jest nieodwracalne – robi je L3 albo kierownik. Wybierz zgłoszenie i wyślij wniosek."
               />
             ) : (
               <>
@@ -79,7 +79,7 @@ export function TicketScalanie({
                   className="resize-y rounded-lg border border-line-strong bg-background px-2.5 py-2 text-[13px] text-foreground outline-none focus:border-data"
                 />
                 <label className="flex items-center gap-2 text-[12.5px]">
-                  <Checkbox checked={rozumiem} onChange={(e) => setRozumiem(e.target.checked)} /> Rozumiem — scalenia nie da się cofnąć
+                  <Checkbox checked={rozumiem} onChange={(e) => setRozumiem(e.target.checked)} /> Rozumiem – scalenia nie da się cofnąć
                 </label>
                 <button
                   type="button"

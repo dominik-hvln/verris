@@ -65,7 +65,7 @@ export class ProvisioningQueueAdminController {
     @Body() body: PowodDecyzjiDto,
   ) {
     if (!this.queue.isAsync()) {
-      throw new BadRequestException('Brak Redisa — retry niedostępne (sync mode).');
+      throw new BadRequestException('Brak Redisa – retry niedostępne (sync mode).');
     }
     const reason = body.reason?.trim();
     if (!reason) {
@@ -100,7 +100,7 @@ export class ProvisioningQueueAdminController {
     @Body() body: PowodDecyzjiDto,
   ) {
     if (!this.queue.isAsync()) {
-      throw new BadRequestException('Brak Redisa — odrzucanie niedostępne (sync mode).');
+      throw new BadRequestException('Brak Redisa – odrzucanie niedostępne (sync mode).');
     }
     const reason = body.reason?.trim();
     if (!reason) {

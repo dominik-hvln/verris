@@ -31,7 +31,7 @@ import { setAuthCookie } from '@/lib/auth';
 import { submitLogin, submitTwoFactor } from './actions';
 
 /** Decyzja 15.10 (#12) — konto zespołu nie dostaje sesji w panelu klienta (hasło i 2FA). */
-describe('logowanie — tylko konta klienckie', () => {
+describe('logowanie – tylko konta klienckie', () => {
   const f = (pola: Record<string, string>) => {
     const d = new FormData();
     for (const [k, v] of Object.entries(pola)) d.set(k, v);
@@ -55,7 +55,7 @@ describe('logowanie — tylko konta klienckie', () => {
 });
 
 /** PB-45 — po zalogowaniu (hasło i 2FA) wracamy na `next` z linku w mailu, ale tylko do ścieżek panelu. */
-describe('logowanie — powrót na next', () => {
+describe('logowanie – powrót na next', () => {
   const link = '/dashboard/migrations/zgoda?serviceId=s1&id=m1&token=abc';
   const formularz = (pola: Record<string, string>) => {
     const f = new FormData();
@@ -96,7 +96,7 @@ describe('logowanie — powrót na next', () => {
 });
 
 /** Decyzja 14.10 — miękka captcha: widget pojawia się, gdy API zażąda (CAPTCHA_WYMAGANA), i zostaje do skutku. */
-describe('logowanie — captcha dopiero po progu nieudanych prób', () => {
+describe('logowanie – captcha dopiero po progu nieudanych prób', () => {
   const f = (pola: Record<string, string>) => {
     const d = new FormData();
     for (const [k, v] of Object.entries(pola)) d.set(k, v);
@@ -106,14 +106,14 @@ describe('logowanie — captcha dopiero po progu nieudanych prób', () => {
 
   it('400 CAPTCHA_WYMAGANA → komunikat z API i flaga widgetu (nie „Nieprawidłowe dane logowania”)', async () => {
     (apiFetch as jest.Mock).mockRejectedValueOnce(
-      new ApiError('Kilka nieudanych prób logowania — potwierdź, że nie jesteś robotem, i zaloguj się ponownie.', 400, { code: 'CAPTCHA_WYMAGANA' }),
+      new ApiError('Kilka nieudanych prób logowania – potwierdź, że nie jesteś robotem, i zaloguj się ponownie.', 400, { code: 'CAPTCHA_WYMAGANA' }),
     );
     const stan = await submitLogin(undefined, f({ email: 'a@b.pl', password: 'x' }));
     expect(stan).toMatchObject({ captchaWymagana: true, email: 'a@b.pl' });
     expect(stan.error).toContain('nie jesteś robotem');
   });
 
-  it('złe hasło po pokazaniu widgetu — widget zostaje; bez wcześniejszego żądania — brak widgetu', async () => {
+  it('złe hasło po pokazaniu widgetu – widget zostaje; bez wcześniejszego żądania – brak widgetu', async () => {
     (apiFetch as jest.Mock).mockRejectedValue(new ApiError('Invalid credentials', 401));
     expect(await submitLogin({ captchaWymagana: true }, f({ email: 'a@b.pl', password: 'x' }))).toMatchObject({ captchaWymagana: true });
     expect((await submitLogin(undefined, f({ email: 'a@b.pl', password: 'x' }))).captchaWymagana).toBeUndefined();
@@ -121,7 +121,7 @@ describe('logowanie — captcha dopiero po progu nieudanych prób', () => {
 });
 
 /** P3-09 — wyłączone subkonto (API: 401 po poprawnym haśle) dostaje prawdziwy powód, nie „Nieprawidłowe dane”. */
-describe('logowanie — subkonto wyłączone przez właściciela', () => {
+describe('logowanie – subkonto wyłączone przez właściciela', () => {
   it('komunikat o wyłączonym dostępie; złe hasło dalej ogólne', async () => {
     const d = (pola: Record<string, string>) => {
       const f = new FormData();
@@ -137,7 +137,7 @@ describe('logowanie — subkonto wyłączone przez właściciela', () => {
 });
 
 /** P4-4 — klient zarejestrował się z „Załóż firmową pocztę” na verris.pl i loguje się po potwierdzeniu e-maila. */
-describe('logowanie — cel zapamiętany przy rejestracji', () => {
+describe('logowanie – cel zapamiętany przy rejestracji', () => {
   const f = (pola: Record<string, string>) => {
     const d = new FormData();
     for (const [k, v] of Object.entries(pola)) d.set(k, v);

@@ -115,7 +115,7 @@ export default async function AutoscalingPage({
           {wProbie ? (
             <OgraniczenieProby
               tytul="Dodatkowa moc po opłaceniu hostingu"
-              tresc="W czasie okresu próbnego autoskalowanie jest wyłączone — strona działa na zasobach pakietu. Opłać hosting, żeby włączyć dodatkową moc w szczycie."
+              tresc="W czasie okresu próbnego autoskalowanie jest wyłączone – strona działa na zasobach pakietu. Opłać hosting, żeby włączyć dodatkową moc w szczycie."
               uslugaProbnaId={service.id}
             />
           ) : null}
@@ -155,8 +155,8 @@ export default async function AutoscalingPage({
               {cap > 0
                 ? `Nie zapłacisz więcej niż ${liczba(cap, 2)} zł w 30 dni. Po osiągnięciu limitu zasoby wracają do planu, a strona działa dalej.`
                 : service.autoscalingEnabled
-                  ? 'Limit nie jest ustawiony — płacisz za faktyczne użycie dodatkowej mocy, bez górnej granicy. Jeśli chcesz ją mieć, wpisz „Limit kosztu na 30 dni” w formularzu.'
-                  : 'Autoskalowanie jest wyłączone — nic nie naliczamy.'}
+                  ? 'Limit nie jest ustawiony – płacisz za faktyczne użycie dodatkowej mocy, bez górnej granicy. Jeśli chcesz ją mieć, wpisz „Limit kosztu na 30 dni” w formularzu.'
+                  : 'Autoskalowanie jest wyłączone – nic nie naliczamy.'}
             </p>
             {acc ? (
               <Link href={calculatorPrefillHref(acc)} className="mt-3 inline-flex items-center gap-2 text-[13px] font-medium text-data-hi underline">

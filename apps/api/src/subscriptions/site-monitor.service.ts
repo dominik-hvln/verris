@@ -258,7 +258,7 @@ export class SiteMonitorService {
             userId,
             type: WalletTxType.CHARGE_USAGE,
             amount: price,
-            description: `Płatny monitoring strony (${sub.account!.domain}) — 1 mies.`,
+            description: `Płatny monitoring strony (${sub.account!.domain}) – 1 mies.`,
             idempotencyKey: `monitor-paid-${subscriptionId}-activate-${new Date()
               .toISOString()
               .slice(0, 10)}`,
@@ -373,7 +373,7 @@ export class SiteMonitorService {
             userId: m.subscription.userId,
             type: WalletTxType.CHARGE_USAGE,
             amount: price,
-            description: `Płatny monitoring strony (${domain}) — 1 mies.`,
+            description: `Płatny monitoring strony (${domain}) – 1 mies.`,
             idempotencyKey: `monitor-paid-${m.id}-${periodKey}`,
             subscriptionId: m.subscriptionId,
           });
@@ -406,7 +406,7 @@ export class SiteMonitorService {
         });
         this.notifyPaidLapsed(m, domain, cfg);
         this.logger.warn(
-          `Płatny monitoring dla sub=${m.subscriptionId} wrócił do darmowego — brak środków.`,
+          `Płatny monitoring dla sub=${m.subscriptionId} wrócił do darmowego – brak środków.`,
         );
       }
     }
@@ -508,7 +508,7 @@ export class SiteMonitorService {
               category: 'SSL',
               severity: daysLeft <= 3 ? 'critical' : 'warning',
               title: 'Certyfikat SSL wkrótce wygaśnie',
-              body: `Certyfikat dla ${domain} wygasa za ${daysLeft} dni. Odnów go (Let's Encrypt zwykle odnawia automatycznie — sprawdź zakładkę SSL).`,
+              body: `Certyfikat dla ${domain} wygasa za ${daysLeft} dni. Odnów go (Let's Encrypt zwykle odnawia automatycznie – sprawdź zakładkę SSL).`,
               link: `/dashboard/services/${m.subscriptionId}`,
               subscriptionId: m.subscriptionId,
             });
@@ -842,7 +842,7 @@ export async function probeUrl(
   // lookupBezpieczny: prywatne i control-plane zakazane, węzeł na :443 dozwolony), więc DNS rebinding
   // między sprawdzeniem a połączeniem nie działa.
   if (!(await hostPubliczny(new URL(url).hostname))) {
-    return { up: false, reason: 'domena wskazuje na adres prywatny lub zastrzeżony — nie sprawdzamy' };
+    return { up: false, reason: 'domena wskazuje na adres prywatny lub zastrzeżony – nie sprawdzamy' };
   }
   const startedAt = Date.now();
   try {

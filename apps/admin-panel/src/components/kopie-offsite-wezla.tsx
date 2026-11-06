@@ -92,7 +92,7 @@ export function KopieOffsiteWezla({ serverId }: { serverId: string }) {
       <p className="text-xs text-zinc-400">
         Wspólne dane floty dają rootowi każdego węzła dostęp do kopii wszystkich węzłów. Załóż w konsoli Hetznera dwa
         subkonta Storage Boxa z katalogiem tego węzła: jedno do zapisu, drugie tylko do odczytu (to drugie posłuży do
-        odtworzenia konta na innym węźle). Hasło i sól szyfrowania wygeneruj tutaj i zapisz w sejfie — bez nich kopii
+        odtworzenia konta na innym węźle). Hasło i sól szyfrowania wygeneruj tutaj i zapisz w sejfie – bez nich kopii
         tego węzła nikt nie odczyta. Pola haseł zostaw puste, żeby nie zmieniać zapisanych.
       </p>
       <div className="grid gap-3 sm:grid-cols-2">
@@ -128,7 +128,7 @@ export function KopieOffsiteWezla({ serverId }: { serverId: string }) {
             className="inline-flex items-center gap-1 text-zinc-300 hover:text-white"
             onClick={() => {
               void navigator.clipboard
-                .writeText(`Verris — kopie off-site węzła ${serverId} (rclone crypt)\nHasło szyfrowania: ${f.cryptPass}\nSól szyfrowania: ${f.cryptSalt}\n`)
+                .writeText(`Verris – kopie off-site węzła ${serverId} (rclone crypt)\nHasło szyfrowania: ${f.cryptPass}\nSól szyfrowania: ${f.cryptSalt}\n`)
                 .then(() => { setSkopiowano(true); setTimeout(() => setSkopiowano(false), 2000); });
             }}
           >

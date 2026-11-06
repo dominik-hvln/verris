@@ -9,7 +9,7 @@ import {
   zapiszSesje,
 } from './asystent-stan';
 
-describe('asystent www — logika widgetu', () => {
+describe('asystent www – logika widgetu', () => {
   it('błąd API: kod i komunikat (także tablica walidacji), nieznany kod pominięty', () => {
     expect(odczytajBlad(400, { kod: 'CAPTCHA_WYMAGANA', message: 'Potwierdź' })).toEqual({
       ok: false,

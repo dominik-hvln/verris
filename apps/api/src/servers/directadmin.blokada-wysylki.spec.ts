@@ -45,7 +45,7 @@ describe('parseEmailBlacklist', () => {
   });
 });
 
-describe('F3.1 — blokada wysyłki konta na węźle (DirectAdmin blacklist_usernames)', () => {
+describe('F3.1 – blokada wysyłki konta na węźle (DirectAdmin blacklist_usernames)', () => {
   it('blokada: dokładnie ciało z dokumentacji, potem potwierdzenie odczytem', async () => {
     const { svc, post, get, wyslane, lista } = wezel();
     expect(await svc.ustawBlokadeWysylki('w1', 'klient1', true)).toEqual({ zmieniono: true });

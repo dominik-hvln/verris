@@ -103,7 +103,7 @@ export class PublicApiOrdersController {
   async zamow(@Req() req: Request, @Body() body: ZamowienieApiDto, @Headers('idempotency-key') klucz?: string) {
     if (process.env.API_ZAMOWIENIA !== '1') throw new NotFoundException('Zamówienia przez API nie są jeszcze dostępne.');
     if (!klucz || !KLUCZ_RE.test(klucz)) {
-      throw new BadRequestException('Wymagany nagłówek Idempotency-Key (8–100 znaków: litery, cyfry, „-” i „_”) — ten sam przy ponowieniu.');
+      throw new BadRequestException('Wymagany nagłówek Idempotency-Key (8–100 znaków: litery, cyfry, „-” i „_”) – ten sam przy ponowieniu.');
     }
     const { userId, tokenId } = (req as unknown as { apiAuth: { userId: string; tokenId: string } }).apiAuth;
     // Blokada doradcza na klienta w transakcji: zamówienia jednego klienta idą po kolei we wszystkich instancjach API.
@@ -130,7 +130,7 @@ export class PublicApiOrdersController {
     const wynik = wpisy.find((w) => w.action === 'API_ORDER_CREATED');
     if (wynik) return (wynik.details as { odpowiedz: unknown }).odpowiedz;
     if (wpisy[0]?.action === 'API_ORDER_STARTED') {
-      throw new ConflictException('Zamówienie z tym kluczem jest w toku albo zostało przerwane — sprawdź listę usług (GET /api/v1/services), zanim zamówisz z nowym kluczem.');
+      throw new ConflictException('Zamówienie z tym kluczem jest w toku albo zostało przerwane – sprawdź listę usług (GET /api/v1/services), zanim zamówisz z nowym kluczem.');
     }
 
     const godzinaTemu = new Date(Date.now() - 60 * 60 * 1000);
@@ -153,7 +153,7 @@ export class PublicApiOrdersController {
         const sub = await this.prisma.subscription.findUnique({ where: { id }, select: { id: true, status: true } });
         // PENDING_PAYMENT po zamówieniu z API = zwrot po nieudanym zakładaniu — wolno zamówić ponownie.
         if (sub && (sub.status === SubscriptionStatus.PROVISIONING || sub.status === SubscriptionStatus.ACTIVE)) {
-          throw new ConflictException(`Usługa dla domeny ${domena} jest już zamówiona (id ${sub.id}) — sprawdź GET /api/v1/services/${sub.id}.`);
+          throw new ConflictException(`Usługa dla domeny ${domena} jest już zamówiona (id ${sub.id}) – sprawdź GET /api/v1/services/${sub.id}.`);
         }
       }
     }

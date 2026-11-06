@@ -8,7 +8,7 @@ import { EMAIL_MARKETING_W_SPRZEDAZY, PAKIETY_NEWSLETTER } from '@/lib/oferta';
 const liczba = (n: number) => n.toLocaleString('pl-PL');
 
 export const metadata: Metadata = {
-  title: 'E-mail marketing — wysyłki do własnych list | Verris',
+  title: 'E-mail marketing – wysyłki do własnych list | Verris',
   description:
     'Usługa e-mail marketingu Verris: wysyłki do własnych list odbiorców prosto z panelu, z naciskiem na dostarczalność. Zgody odbiorców po stronie klienta, każdy mail z linkiem rezygnacji (PKE/RODO).',
   alternates: { canonical: '/email-marketing' },
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 const KROKI: Step[] = [
   { label: '01', title: 'Budujesz kampanię', text: 'Budujesz kampanię i wysyłasz do własnej listy odbiorców z panelu.' },
-  { label: '02', title: 'Dbamy o dostarczalność', text: 'Stawiamy na dostarczalność — poprawną konfigurację nadawcy i reputację.' },
+  { label: '02', title: 'Dbamy o dostarczalność', text: 'Stawiamy na dostarczalność – poprawną konfigurację nadawcy i reputację.' },
   { label: '03', title: 'Zgody zostają u Ciebie', text: 'Zgody odbiorców zbierasz i przechowujesz Ty (jako administrator swoich danych).' },
 ];
 
@@ -48,7 +48,7 @@ export default function Page() {
         <div className="wrap hero2-grid">
           <div>
             <Breadcrumbs items={[{ label: 'E-mail marketing' }]} />
-            <h1>Wysyłki do własnych list — z jednego panelu</h1>
+            <h1>Wysyłki do własnych list – z jednego panelu</h1>
             <p className="lead">
               Docieraj do swoich odbiorców e-mailem, z naciskiem na dostarczalność. Narzędzie dajemy my; zgody odbiorców
               i treść zostają po Twojej stronie.
@@ -104,7 +104,7 @@ export default function Page() {
         <div className="wrap narrow">
           <SectionHead
             eyebrow="Zgodność (PKE / RODO)"
-            title="Zgody i rezygnacja — wymóg prawny"
+            title="Zgody i rezygnacja – wymóg prawny"
             lead="E-mail marketing wymaga uprzedniej zgody odbiorcy (rekomendowany double opt-in), a każda wiadomość musi zawierać działający link rezygnacji i dane nadawcy. Nie używaj kupionych ani cudzych baz adresowych."
           />
           <Accordion items={FAQ.map(([q, a], i) => ({ title: q, body: <p>{a}</p>, open: i === 0 }))} />

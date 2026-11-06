@@ -87,12 +87,12 @@ function gb(mb: number): string {
 function metricText(m: ConnectionMetricDto, kind: 'mb' | 'count'): { used: string; limit: string } {
   if (kind === 'mb') {
     return {
-      used: m.used == null ? '—' : gb(m.used),
+      used: m.used == null ? '–' : gb(m.used),
       limit: m.limit == null ? '∞' : gb(m.limit),
     };
   }
   return {
-    used: m.used == null ? '—' : String(Math.round(m.used)),
+    used: m.used == null ? '–' : String(Math.round(m.used)),
     limit: m.limit == null ? '∞' : String(Math.round(m.limit)),
   };
 }
@@ -239,12 +239,12 @@ export default function ServiceConnectionCard({
       </div>
 
       <div className="rounded-[10px] border border-line bg-background px-3 py-1 divide-y divide-line">
-        <InfoRow icon={Server} label="IP serwera" value={info.ipv4 ?? '—'} copy={info.ipv4} />
+        <InfoRow icon={Server} label="IP serwera" value={info.ipv4 ?? '–'} copy={info.ipv4} />
         {/* FTP/SSH dotyczą hostingu WWW — ukrywamy dla usług poczty. */}
         {!isEmail ? (
-          <InfoRow icon={Wifi} label="Serwer FTP" value={info.ftpHost ?? '—'} copy={info.ftpHost} />
+          <InfoRow icon={Wifi} label="Serwer FTP" value={info.ftpHost ?? '–'} copy={info.ftpHost} />
         ) : null}
-        <InfoRow icon={Mail} label="Poczta" value={info.mailHost ?? '—'} copy={info.mailHost} />
+        <InfoRow icon={Mail} label="Poczta" value={info.mailHost ?? '–'} copy={info.mailHost} />
         {!isEmail ? (
           <InfoRow
             icon={TerminalSquare}

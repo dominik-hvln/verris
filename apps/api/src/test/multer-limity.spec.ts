@@ -32,7 +32,7 @@ const KORZEN = resolve(import.meta.dirname, '../../../..');
  * multera jest w drzewie i czy KAŻDA jest załatana". Pytanie o wersję
  * bezpośredniej zależności przeszłoby na zepsutym drzewie.
  */
-describe('SEC-07 — multipart nie kładzie procesu', () => {
+describe('SEC-07 – multipart nie kładzie procesu', () => {
   const lock = readFileSync(resolve(KORZEN, 'pnpm-lock.yaml'), 'utf-8');
   const pkgApi = JSON.parse(readFileSync(resolve(KORZEN, 'apps/api/package.json'), 'utf-8'));
 
@@ -46,7 +46,7 @@ describe('SEC-07 — multipart nie kładzie procesu', () => {
         wersjeMultera.length === 1
           ? ''
           : 'Druga kopia multera to najprawdopodobniej pin 2.2.0 z @nestjs/platform-express. ' +
-            'To ta kopia obsługuje multipart — podniesienie zależności bezpośredniej jej nie dotyka. ' +
+            'To ta kopia obsługuje multipart – podniesienie zależności bezpośredniej jej nie dotyka. ' +
             'Napraw przez overrides w pnpm-workspace.yaml, nie przez bump w apps/api.',
     }).toEqual({ wersje: expect.arrayContaining([expect.any(String)]), podpowiedz: '' });
     expect(wersjeMultera).toHaveLength(1);
@@ -60,7 +60,7 @@ describe('SEC-07 — multipart nie kładzie procesu', () => {
     });
   });
 
-  it('override w korzeniu istnieje — to on wymusza jedną kopię mimo pinu Nesta', () => {
+  it('override w korzeniu istnieje – to on wymusza jedną kopię mimo pinu Nesta', () => {
     // PB-38: od pnpm 11 overrides żyją w pnpm-workspace.yaml (nie w package.json → pnpm).
     const workspace = readFileSync(resolve(KORZEN, 'pnpm-workspace.yaml'), 'utf-8');
     const override = /^overrides:\n(?:[ \t]+.*\n)*?[ \t]+"?multer"?:\s*"([^"]+)"/m.exec(workspace)?.[1];
@@ -68,7 +68,7 @@ describe('SEC-07 — multipart nie kładzie procesu', () => {
     expect(override).toMatch(/\^?2\.[3-9]|\^?[3-9]/);
   });
 
-  it('opcje uploadu niosą fieldArrayIndexLimit — sama wersja NIE wystarcza', () => {
+  it('opcje uploadu niosą fieldArrayIndexLimit – sama wersja NIE wystarcza', () => {
     // GHSA-535w-7cp7-47q4: „upgrade to 2.3.0 AND configure limits.fieldArrayIndexLimit".
     // Bez tego pola podniesienie wersji zamyka dwie podatności z trzech.
     const opcje = opcjeUploaduDoPamieci(1234) as unknown as {
@@ -104,7 +104,7 @@ describe('SEC-07 — multipart nie kładzie procesu', () => {
     }).toEqual({ omijajace: [], podpowiedz: '' });
   });
 
-  it('rzutowanie w multer-limity.ts ma termin — przypomni o sobie przy bumpie @types/multer', () => {
+  it('rzutowanie w multer-limity.ts ma termin – przypomni o sobie przy bumpie @types/multer', () => {
     // X-21: deklaracje typów mają opisywać tę wersję biblioteki, która jest
     // zainstalowana. @types/multer 2.2.0 nie zna fieldArrayIndexLimit, a `limits`
     // jest tam typem literalnym, więc nie da się go rozszerzyć deklaracją —
@@ -115,8 +115,8 @@ describe('SEC-07 — multipart nie kładzie procesu', () => {
       typy: pkgApi.devDependencies?.['@types/multer'] ?? pkgApi.dependencies?.['@types/multer'],
       podpowiedz:
         'Jeśli ten test upadł po podniesieniu @types/multer: sprawdź, czy Options.limits zna już ' +
-        'fieldArrayIndexLimit. Jeśli tak — usuń rzutowanie z apps/api/src/common/upload/multer-limity.ts ' +
-        'i zaktualizuj tę asercję. Jeśli nie — podnieś tylko oczekiwaną wersję.',
+        'fieldArrayIndexLimit. Jeśli tak – usuń rzutowanie z apps/api/src/common/upload/multer-limity.ts ' +
+        'i zaktualizuj tę asercję. Jeśli nie – podnieś tylko oczekiwaną wersję.',
     }).toEqual({ typy: '^2.2.0', podpowiedz: expect.any(String) });
   });
 });

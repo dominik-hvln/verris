@@ -7,7 +7,7 @@ import { AuthController } from '../auth.controller.js';
  * NIE może zarządzać passkey klienta: token impersonacji ma impersonatedBy, więc zarejestrowanie albo
  * usunięcie klucza dałoby trwały dostęp poza 30-min limitem. Zarządza nimi wyłącznie właściciel (jak 2FA).
  */
-describe('passkey — zarządzanie zablokowane w sesji impersonacji', () => {
+describe('passkey – zarządzanie zablokowane w sesji impersonacji', () => {
   function kontroler() {
     const webauthn = {
       registrationOptions: vi.fn(async () => ({ ok: true })),

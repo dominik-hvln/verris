@@ -8,7 +8,7 @@ import { plForm } from '@/lib/pl';
 /**
  * P-12 (przejście klawiaturą i czytnikiem, 12.10): słupki pulpitu czytały „1 nowych zgłoszeń” — jednostka bez odmiany.
  */
-describe('MiniBars — odmiana jednostki', () => {
+describe('MiniBars – odmiana jednostki', () => {
   it('jednostka jako funkcja: „1 nowe zgłoszenie”, „3 nowe zgłoszenia”, „5 nowych zgłoszeń”', () => {
     const html = renderToStaticMarkup(
       <MiniBars values={[1, 3, 5]} labels={['pon.', 'wt.', 'śr.']} unit={(v) => plForm(v, 'nowe zgłoszenie', 'nowe zgłoszenia', 'nowych zgłoszeń')} />,
@@ -24,7 +24,7 @@ describe('MiniBars — odmiana jednostki', () => {
 });
 
 /** A3-4 — pulpit: ~57 przystanków Tab w wykresach, z czego 24 niewidoczne (prostokąty SVG w role="img"). */
-describe('wykresy — przystanki Tab', () => {
+describe('wykresy – przystanki Tab', () => {
   it('MiniBars: tabindex tylko na słupkach z wartością, zero dalej ma etykietę dla czytnika', () => {
     const html = renderToStaticMarkup(<MiniBars values={[0, 2, 0]} labels={['pon.', 'wt.', 'śr.']} unit="pkt EKO" />);
     expect(html.match(/tabindex="0"/g)).toHaveLength(1);

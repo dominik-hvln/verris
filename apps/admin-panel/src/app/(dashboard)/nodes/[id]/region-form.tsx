@@ -36,8 +36,8 @@ export function RegionForm({ serverId, region }: { serverId: string; region: str
           onChange={setWartosc}
           className="form-input max-w-md"
           options={[
-            { value: "", label: "— nie wybrano —" },
-            ...Object.entries(REGIONY_DANYCH).map(([kod, opis]) => ({ value: kod, label: `${kod} — ${opis}` })),
+            { value: "", label: "– nie wybrano –" },
+            ...Object.entries(REGIONY_DANYCH).map(([kod, opis]) => ({ value: kod, label: `${kod} – ${opis}` })),
           ]}
         />
         <button

@@ -68,7 +68,7 @@ export default function DbAccessHosts({ serviceId, db }: { serviceId: string; db
           ) : err ? (
             <p className="mt-2 text-[11px] text-warn">{hostingFetchErrorMessage(err)}</p>
           ) : hosts.length === 0 ? (
-            <p className="mt-2 text-[11px] text-muted-foreground">Brak dodatkowych hostów — baza dostępna tylko lokalnie.</p>
+            <p className="mt-2 text-[11px] text-muted-foreground">Brak dodatkowych hostów – baza dostępna tylko lokalnie.</p>
           ) : (
             <div className="mt-2 flex flex-wrap gap-1.5">
               {hosts.map((h) => (

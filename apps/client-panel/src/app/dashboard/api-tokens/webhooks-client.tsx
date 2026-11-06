@@ -13,7 +13,7 @@ const OPIS: Record<string, string> = {
   'task.failed': 'Zadanie na stronie nie powiodło się',
   'invoice.issued': 'Wystawiliśmy fakturę (numer, kwota)',
   'subscription.renewed': 'Usługa odnowiona na kolejny okres',
-  'subscription.past_due': 'Odnowienie nie powiodło się — usługa czeka na płatność',
+  'subscription.past_due': 'Odnowienie nie powiodło się – usługa czeka na płatność',
   ping: 'Test',
 };
 const STATUS = { SENT: 'dostarczone', PENDING: 'w kolejce', FAILED: 'nie dostarczone' } as const;
@@ -72,7 +72,7 @@ export function WebhooksClient() {
     start(async () => {
       const r = await testWebhook(id);
       if (r.ok) {
-        toast.success('Test w kolejce — wynik pojawi się w ciągu minuty.');
+        toast.success('Test w kolejce – wynik pojawi się w ciągu minuty.');
         setTimeout(() => void odswiez(), 65_000);
       } else toast.error(r.error);
     });
@@ -88,7 +88,7 @@ export function WebhooksClient() {
         {blad ? <p role="alert" className="m-0 border-b border-line px-4 py-2 text-[13px] text-crit">Nie udało się wczytać: {blad}</p> : null}
         {sekret ? (
           <div className="border-b border-line bg-warn-soft px-4 py-3 text-[13px] text-foreground">
-            <b>Sekret webhooka — skopiuj go teraz, później już go nie pokażemy:</b>
+            <b>Sekret webhooka – skopiuj go teraz, później już go nie pokażemy:</b>
             <code data-prywatne className="mt-1 block break-all font-mono text-[12.5px]">{sekret}</code>
             <button type="button" className="mt-2 text-[12px] underline" onClick={() => setSekret(null)}>
               Zapisałem, ukryj
@@ -105,7 +105,7 @@ export function WebhooksClient() {
               <div key={z} className="flex items-center gap-2 text-[13px] text-foreground">
                 <Switch checked={wybrane.includes(z)} onChange={(v) => przelacz(z, v)} label={z} disabled={pending} />
                 <span className="font-mono text-[12px]">{z}</span>
-                <span className="text-muted-foreground">— {OPIS[z] ?? ''}</span>
+                <span className="text-muted-foreground">– {OPIS[z] ?? ''}</span>
               </div>
             ))}
           </div>

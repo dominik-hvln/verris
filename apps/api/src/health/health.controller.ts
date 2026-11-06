@@ -30,7 +30,7 @@ export class HealthController {
     } catch (err) {
       // Treść błędu tylko w logu: /readyz jest publiczne (sonda strony statusu), a komunikat bazy
       // zawiera adres i port serwera danych (07.10).
-      this.logger.warn(`readyz: baza niedostępna — ${err instanceof Error ? err.message : 'unknown'}`);
+      this.logger.warn(`readyz: baza niedostępna – ${err instanceof Error ? err.message : 'unknown'}`);
       throw new ServiceUnavailableException({ status: 'degraded', database: 'down' });
     }
   }

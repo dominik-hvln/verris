@@ -108,7 +108,7 @@ export const SERVICE_EVENT_PL: Record<string, string> = {
   CANCEL_REVOKED: 'Rezygnacja cofnięta',
   RENEWAL_DATE_CHANGED: 'Zmieniono datę odnowienia',
   PAYMENT_PROMISE: 'Wstrzymano zawieszenie do terminu płatności',
-  OPLACONE_NIEURUCHOMIONE: 'Płatność przyjęta — uruchomienie usługi sprawdza obsługa',
+  OPLACONE_NIEURUCHOMIONE: 'Płatność przyjęta – uruchomienie usługi sprawdza obsługa',
   OKRES_OPLACONY_U_POPRZEDNIEGO: 'Usługa przeniesiona z okresem opłaconym u poprzedniego usługodawcy',
   PAYMENT_PROMISE_REVOKED: 'Odwołano wstrzymanie zawieszenia',
   // K2 (PB-53.5) — administrator przeniósł usługę na inne konto; oś widzi tylko obecny właściciel.
@@ -143,7 +143,7 @@ export const SERVICE_EVENT_PL: Record<string, string> = {
   MIGRATION_ESCALATED: 'Przenoszenie dokończy nasz zespół',
   MIGRATION_CANCELED: 'Przenoszenie anulowane',
   // PB-45 — migracja przygotowana przez obsługę, start dopiero po zgodzie klienta.
-  MIGRATION_CONSENT_REQUESTED: 'Przygotowaliśmy przeniesienie strony — czeka na Twoją zgodę',
+  MIGRATION_CONSENT_REQUESTED: 'Przygotowaliśmy przeniesienie strony – czeka na Twoją zgodę',
   MIGRATION_CONSENT_REJECTED: 'Odrzucono przygotowane przeniesienie strony',
   MIGRATION_CONSENT_EXPIRED: 'Prośba o zgodę na przeniesienie wygasła',
   MIGRATION_DELTA_SYNC_QUEUED: 'Dogrywamy najnowsze pliki i pocztę',
@@ -156,7 +156,7 @@ export const SERVICE_EVENT_PL: Record<string, string> = {
 
 /** Etykieta albo — gdy mapa nie zna wartości — sam kod, żeby nic nie zniknęło z ekranu. */
 export function etykieta(mapa: Record<string, string>, kod: string | null | undefined): string {
-  if (!kod) return '—';
+  if (!kod) return '–';
   return mapa[kod] ?? kod;
 }
 

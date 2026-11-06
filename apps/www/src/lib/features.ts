@@ -26,8 +26,8 @@ export const features: Feature[] = [
     slug: 'autoskalowanie',
     eyebrow: 'Funkcja',
     title: 'Autoskalowanie zasobów',
-    lead: 'Baza jest w abonamencie, a nadwyżkę płacisz według stawek godzinowych, w blokach po 15 minut — tylko za czas, w którym strona naprawdę potrzebuje więcej mocy.',
-    metaTitle: 'Autoskalowanie hostingu — płać za realne użycie | Verris',
+    lead: 'Baza jest w abonamencie, a nadwyżkę płacisz według stawek godzinowych, w blokach po 15 minut – tylko za czas, w którym strona naprawdę potrzebuje więcej mocy.',
+    metaTitle: 'Autoskalowanie hostingu – płać za realne użycie | Verris',
     metaDescription:
       'Jak działa autoskalowanie w Verris: limity pakietu 50 GB dysku oraz limit 8 GB RAM i 2 vCPU, skalowanie do 1000 GB, 64 GB RAM i 24 vCPU, rozliczenie w blokach 15 minut. Płacisz za realne użycie, nie za pakiet na zapas.',
     sections: [
@@ -40,9 +40,9 @@ export const features: Feature[] = [
         h: 'Zakres skalowania',
         ul: [
           'Limity pakietu: 50 GB NVMe, 8 GB RAM i 2 vCPU (limity izolowanego konta, nie rezerwacja).',
-          'Maksymalnie: 1000 GB dysku, 64 GB RAM, 24 vCPU — do 12× mocy CPU względem bazy.',
+          'Maksymalnie: 1000 GB dysku, 64 GB RAM, 24 vCPU – do 12× mocy CPU względem bazy.',
           'Krok skalowania dobierany automatycznie; po piku zasoby wracają do bazy.',
-          'Stawki godzinowe brutto, naliczane w blokach po 15 minut — płacisz tylko za faktyczny czas nadwyżki.',
+          'Stawki godzinowe brutto, naliczane w blokach po 15 minut – płacisz tylko za faktyczny czas nadwyżki.',
           'Limit kosztu na 30 dni (suma dopłat z ostatnich 30 dni) jest opcjonalny: ustawisz go przy zamówieniu albo w panelu. Bez limitu płacisz za faktyczne użycie.',
         ],
       },
@@ -65,10 +65,10 @@ export const features: Feature[] = [
     slug: 'migracja',
     eyebrow: 'Funkcja',
     title: 'Migracja strony i poczty za 0 zł',
-    lead: 'Przeprowadzkę bierzemy na siebie. Zespół przenosi stronę i pocztę obok działającej witryny — bez przestoju i bez limitu plików.',
+    lead: 'Przeprowadzkę bierzemy na siebie. Zespół przenosi stronę i pocztę obok działającej witryny – bez przestoju i bez limitu plików.',
     metaTitle: 'Darmowa migracja strony i poczty na inny hosting | Verris',
     metaDescription:
-      'Przeniesiemy Twoją stronę i pocztę za 0 zł — zespół albo migrator w panelu. Migracja obok działającej strony, bez przestoju, przełączenie przez DNS. Bez limitu plików i dopłat za bazy.',
+      'Przeniesiemy Twoją stronę i pocztę za 0 zł – zespół albo migrator w panelu. Migracja obok działającej strony, bez przestoju, przełączenie przez DNS. Bez limitu plików i dopłat za bazy.',
     sections: [
       {
         p: [
@@ -86,7 +86,7 @@ export const features: Feature[] = [
     ],
     cta: {
       title: 'Przenieś stronę bez stresu',
-      text: 'Załóż konto, przekaż dostępy — resztą zajmiemy się my. Za 0 zł.',
+      text: 'Załóż konto, przekaż dostępy – resztą zajmiemy się my. Za 0 zł.',
       primaryLabel: 'Przejdź do migracji',
       primaryHref: '/przenies-strone',
       secondary: { label: 'Zobacz cennik', href: '/cennik' },
@@ -99,11 +99,11 @@ export const features: Feature[] = [
     lead: 'Szyfrowanie HTTPS bez dopłat. Certyfikat Let’s Encrypt wystawiany i odnawiany automatycznie.',
     metaTitle: 'Darmowy certyfikat SSL Let’s Encrypt w hostingu | Verris',
     metaDescription:
-      'Certyfikat SSL Let’s Encrypt w cenie hostingu Verris — bez dopłat przy odnowieniu. Szyfrowanie HTTPS dla strony, koszyka i płatności, wystawianie i odnawianie automatyczne.',
+      'Certyfikat SSL Let’s Encrypt w cenie hostingu Verris – bez dopłat przy odnowieniu. Szyfrowanie HTTPS dla strony, koszyka i płatności, wystawianie i odnawianie automatyczne.',
     sections: [
       {
         p: [
-          'HTTPS to dziś standard — wpływa na zaufanie odwiedzających i na SEO. W Verris certyfikat Let’s Encrypt jest w cenie hostingu i nie pojawia się jako niespodzianka na fakturze odnowieniowej.',
+          'HTTPS to dziś standard – wpływa na zaufanie odwiedzających i na SEO. W Verris certyfikat Let’s Encrypt jest w cenie hostingu i nie pojawia się jako niespodzianka na fakturze odnowieniowej.',
         ],
       },
       {
@@ -111,7 +111,7 @@ export const features: Feature[] = [
         ul: [
           'Szyfrowanie całej strony, formularzy i płatności.',
           'Automatyczne wystawianie i odnawianie certyfikatu.',
-          'Brak dopłat przy odnowieniu — inaczej niż u części dostawców.',
+          'Brak dopłat przy odnowieniu – inaczej niż u części dostawców.',
         ],
       },
     ],
@@ -125,10 +125,10 @@ export const features: Feature[] = [
     slug: 'kopie-zapasowe',
     eyebrow: 'Funkcja',
     title: 'Kopie zapasowe z odtwarzaniem',
-    lead: 'Backup i przywracanie z panelu Verris — samodzielnie, bez czekania na support i bez dopłat.',
+    lead: 'Backup i przywracanie z panelu Verris – samodzielnie, bez czekania na support i bez dopłat.',
     metaTitle: 'Kopie zapasowe i odtwarzanie w hostingu | Verris',
     metaDescription:
-      'Kopie zapasowe z samodzielnym odtwarzaniem w panelu Verris. Przywróć pliki i bazę, gdy aktualizacja pójdzie nie tak — bez czekania na support i bez dopłat.',
+      'Kopie zapasowe z samodzielnym odtwarzaniem w panelu Verris. Przywróć pliki i bazę, gdy aktualizacja pójdzie nie tak – bez czekania na support i bez dopłat.',
     sections: [
       {
         p: [
@@ -139,10 +139,10 @@ export const features: Feature[] = [
         h: 'Jak to działa',
         ul: [
           'Kopie tworzone w ramach usługi hostingu.',
-          'Samodzielne odtwarzanie w panelu — bez zgłoszenia do supportu.',
-          'Wybierasz zakres przywracania: pliki, bazy danych, poczta — osobno lub razem.',
+          'Samodzielne odtwarzanie w panelu – bez zgłoszenia do supportu.',
+          'Wybierasz zakres przywracania: pliki, bazy danych, poczta – osobno lub razem.',
           'Domyślnie przed przywróceniem system wykonuje kopię bezpieczeństwa stanu obecnego, więc nieudane odtworzenie da się cofnąć. Możesz to wyłączyć, jeśli wiesz, co robisz.',
-          'Przywrócenie wymaga potwierdzenia nazwą domeny — żeby nie zrobić tego przez pomyłkę.',
+          'Przywrócenie wymaga potwierdzenia nazwą domeny – żeby nie zrobić tego przez pomyłkę.',
           'Kopie Verris mają charakter pomocniczy (§10 ust. 5 regulaminu) i nie zastępują Twoich własnych kopii danych krytycznych.',
         ],
       },
@@ -157,14 +157,14 @@ export const features: Feature[] = [
     slug: 'domeny-bez-auto-odnowien',
     eyebrow: 'Funkcja',
     title: 'Domeny bez automatycznych odnowień',
-    lead: 'Domena odnawia się dopiero, gdy ją opłacisz. Żadnego cichego obciążenia karty — zamiast tego przypomnienia 30, 14 i 7 dni przed wygaśnięciem.',
-    metaTitle: 'Domeny bez auto-odnowień — odnawiasz, gdy chcesz | Verris',
+    lead: 'Domena odnawia się dopiero, gdy ją opłacisz. Żadnego cichego obciążenia karty – zamiast tego przypomnienia 30, 14 i 7 dni przed wygaśnięciem.',
+    metaTitle: 'Domeny bez auto-odnowień – odnawiasz, gdy chcesz | Verris',
     metaDescription:
       'W Verris domena nie odnawia się sama. Odnowienie następuje po opłaceniu, a wcześniej dostajesz przypomnienia 30, 14 i 7 dni przed wygaśnięciem. Bez cichego pobierania środków.',
     sections: [
       {
         p: [
-          'Standardem na rynku jest auto-odnowienie włączone domyślnie: karta zostaje obciążona, zanim zdążysz się zastanowić, czy domena jest Ci jeszcze potrzebna. U nas jest odwrotnie — odnowienie wymaga Twojej decyzji i opłaty.',
+          'Standardem na rynku jest auto-odnowienie włączone domyślnie: karta zostaje obciążona, zanim zdążysz się zastanowić, czy domena jest Ci jeszcze potrzebna. U nas jest odwrotnie – odnowienie wymaga Twojej decyzji i opłaty.',
         ],
       },
       {
@@ -172,13 +172,13 @@ export const features: Feature[] = [
         ul: [
           'Auto-odnowienie jest domyślnie wyłączone dla każdej domeny.',
           'Przypomnienia e-mail 30, 14 i 7 dni przed datą wygaśnięcia.',
-          'Odnowienie następuje wyłącznie po opłaceniu — świadomie, nie automatycznie.',
+          'Odnowienie następuje wyłącznie po opłaceniu – świadomie, nie automatycznie.',
         ],
       },
       {
         h: 'Uczciwie o kompromisie',
         p: [
-          'To rozwiązanie wymaga od Ciebie uwagi: jeśli zignorujesz przypomnienia i nie opłacisz odnowienia, domena wygaśnie. Uznaliśmy, że kontrola nad własnym portfelem jest warta tej ceny — ale mówimy o tym wprost, zamiast ukrywać to w regulaminie.',
+          'To rozwiązanie wymaga od Ciebie uwagi: jeśli zignorujesz przypomnienia i nie opłacisz odnowienia, domena wygaśnie. Uznaliśmy, że kontrola nad własnym portfelem jest warta tej ceny – ale mówimy o tym wprost, zamiast ukrywać to w regulaminie.',
         ],
       },
     ],
@@ -193,7 +193,7 @@ export const features: Feature[] = [
     eyebrow: 'Funkcja',
     title: 'RODO, DPA i podprocesorzy',
     lead: 'Komplet dokumentów dostępny online: polityka prywatności, umowa powierzenia (DPA) do akceptacji w panelu i lista podprocesorów.',
-    metaTitle: 'RODO i DPA w hostingu — dokumenty online | Verris',
+    metaTitle: 'RODO i DPA w hostingu – dokumenty online | Verris',
     metaDescription:
       'Verris udostępnia komplet dokumentów RODO online: politykę prywatności, DPA (umowę powierzenia) do samodzielnej akceptacji w panelu oraz listę podprocesorów. Serwery w UE (EOG).',
     sections: [
@@ -207,7 +207,7 @@ export const features: Feature[] = [
         ul: [
           'DPA do samodzielnej akceptacji w panelu klienta.',
           'Aktualna lista podprocesorów.',
-          'Infrastruktura w UE — dane w EOG.',
+          'Infrastruktura w UE – dane w EOG.',
         ],
       },
     ],
@@ -223,20 +223,20 @@ export const features: Feature[] = [
     slug: 'sla',
     eyebrow: 'Funkcja',
     title: 'SLA 99,5% z rekompensatami',
-    lead: 'Nie „obiecujemy" dostępności — gwarantujemy ją w umowie. Za niedostępność poniżej 99,5% przyznajemy kredyty według regulaminu — automatycznie, bez wniosku.',
-    metaTitle: 'SLA 99,5% z rekompensatami — gwarancja w umowie | Verris',
+    lead: 'Nie „obiecujemy" dostępności – gwarantujemy ją w umowie. Za niedostępność poniżej 99,5% przyznajemy kredyty według regulaminu – automatycznie, bez wniosku.',
+    metaTitle: 'SLA 99,5% z rekompensatami – gwarancja w umowie | Verris',
     metaDescription:
       'Verris gwarantuje SLA 99,5% z rekompensatami zapisanymi w regulaminie (kredyty zależne od skali niedostępności, przyznawane automatycznie). Bez obietnic „100% uptime".',
     sections: [
       {
         p: [
-          'Uczciwa gwarancja to taka, która ma pokrycie w umowie. Verris deklaruje SLA na poziomie 99,5% i — co ważniejsze — przewiduje rekompensaty za jego niedotrzymanie w postaci kredytów, których wysokość zależy od skali niedostępności.',
+          'Uczciwa gwarancja to taka, która ma pokrycie w umowie. Verris deklaruje SLA na poziomie 99,5% i – co ważniejsze – przewiduje rekompensaty za jego niedotrzymanie w postaci kredytów, których wysokość zależy od skali niedostępności.',
         ],
       },
       {
         h: 'Zasady wprost',
         ul: [
-          'SLA 99,5% — realny poziom, nie marketingowe „100%".',
+          'SLA 99,5% – realny poziom, nie marketingowe „100%".',
           'Rekompensaty = kredyty wg regulaminu, przyznawane automatycznie, bez wniosku, w ciągu 7 dni po zakończeniu miesiąca.',
           'Status usług na żywo pod status.verris.pl.',
         ],

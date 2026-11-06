@@ -17,7 +17,7 @@ const rekord = (o: Record<string, unknown> = {}) => ({
   ...o,
 });
 
-describe('I-07 — podatności WordPressa (Wordfence Scanner Feed v3)', () => {
+describe('I-07 – podatności WordPressa (Wordfence Scanner Feed v3)', () => {
   it.each([
     ['1.2.3', '1.2.3', 0],
     ['1.2', '1.2.0', 0],
@@ -73,7 +73,7 @@ describe('I-07 — podatności WordPressa (Wordfence Scanner Feed v3)', () => {
     expect(tx.wpPodatnosc.deleteMany).toHaveBeenCalled();
   });
 
-  it('start API: z kluczem i pustą bazą pobiera feed od razu; z danymi albo bez klucza — nie', async () => {
+  it('start API: z kluczem i pustą bazą pobiera feed od razu; z danymi albo bez klucza – nie', async () => {
     const odswiez = vi.fn(async () => 1200);
     const zBaza = (n: number, klucz?: string) => {
       const svc = new WpPodatnosciService({ wpPodatnosc: { count: vi.fn(async () => n) } } as never, { get: () => klucz } as never);
@@ -101,7 +101,7 @@ describe('I-07 — podatności WordPressa (Wordfence Scanner Feed v3)', () => {
     expect(w[0].poprawione).toEqual(['1.2.4', '2.0.6']);
   });
 
-  it('cron: błąd sieci nie ucieka do Schedulera — log „Wordfence feed: …” i null (D3 02.10)', async () => {
+  it('cron: błąd sieci nie ucieka do Schedulera – log „Wordfence feed: …” i null (D3 02.10)', async () => {
     global.fetch = vi.fn(async () => {
       throw new TypeError('fetch failed', { cause: Object.assign(new Error(''), { code: 'ETIMEDOUT' }) });
     }) as unknown as typeof fetch;
@@ -123,6 +123,6 @@ describe('I-07 — podatności WordPressa (Wordfence Scanner Feed v3)', () => {
 
   it('opis błędu sieci: nazwa i powód z cause, nie pusty komunikat (D3 01.10)', () => {
     expect(opisBledu(new TypeError('fetch failed', { cause: Object.assign(new Error(''), { code: 'ENOTFOUND' }) }))).toBe('TypeError: fetch failed (ENOTFOUND)');
-    expect(opisBledu(new AggregateError([], ''))).toBe('AggregateError: —');
+    expect(opisBledu(new AggregateError([], ''))).toBe('AggregateError: –');
   });
 });

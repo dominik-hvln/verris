@@ -136,7 +136,7 @@ export function TrialCallout({ plans }: { plans: PlanDto[] }) {
         <p className="mt-1.5 text-[11px] text-neutral-400">
           Ograniczenia znikają od razu po opłaceniu hostingu. Po {selected.trialDays}{' '}
           {plForm(selected.trialDays, 'dniu', 'dniach', 'dniach')} bez opłaty usługa zostaje zawieszona, a dane czekają na Ciebie
-          jeszcze {DNI_NA_OPLACENIE} dni — potem je usuwamy.
+          jeszcze {DNI_NA_OPLACENIE} dni – potem je usuwamy.
         </p>
       </div>
     </div>

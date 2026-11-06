@@ -62,7 +62,7 @@ export function DomainWhoisPrivacy({
             ? 'W publicznym WHOIS zamiast Twoich danych widać dane zastępcze.'
             : `Twoje dane abonenta nie będą widoczne publicznie. ${darmowe ? 'Bezpłatnie.' : `${liczba(cena, 2)} K za rok.`}`}
         </p>
-        <p className="text-neutral-500">Niektóre rejestry (np. .pl) nie pozwalają ukryć danych — dane osób prywatnych i tak nie są tam publikowane.</p>
+        <p className="text-neutral-500">Niektóre rejestry (np. .pl) nie pozwalają ukryć danych – dane osób prywatnych i tak nie są tam publikowane.</p>
       </div>
       <button
         type="button"

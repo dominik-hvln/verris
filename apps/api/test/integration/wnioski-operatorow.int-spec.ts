@@ -147,7 +147,7 @@ async function operator(uprawnienia: string[], rola: 'STAFF' | 'ADMIN' = 'STAFF'
 }
 const klient = () => prisma().user.create({ data: { email: `k-${t()}@test.verris.pl`, passwordHash: 'x', role: 'USER' } });
 
-describe('PB-48 — wnioski o operację (PostgreSQL)', () => {
+describe('PB-48 – wnioski o operację (PostgreSQL)', () => {
   beforeAll(async () => {
     app = await NestFactory.create(Aplikacja, { logger: false });
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
@@ -182,7 +182,7 @@ describe('PB-48 — wnioski o operację (PostgreSQL)', () => {
       uzasadnienie: 'Klient czekał 3 dni na przywrócenie poczty.',
     });
     expect(zl.status).toBe(201);
-    expect(zl.body).toMatchObject({ status: 'PENDING', typ: 'WALLET_CREDIT', opis: 'Zasilenie portfela: 25,50 K — Rekompensata za awarię' });
+    expect(zl.body).toMatchObject({ status: 'PENDING', typ: 'WALLET_CREDIT', opis: 'Zasilenie portfela: 25,50 K – Rekompensata za awarię' });
     const id = zl.body.id as string;
 
     // Powiadomienia: obaj kierownicy z BILLING_MANAGE, nie wnioskujący i nie operator bez uprawnienia operacji.
@@ -237,7 +237,7 @@ describe('PB-48 — wnioski o operację (PostgreSQL)', () => {
 
     const zl = await zadanie('POST', '/admin/wnioski', noc, { typ: 'NODE_SERVICE_RESTART', payload: { serverId: wezel.id, usluga: 'exim' }, uzasadnienie: 'Kolejka poczty stoi od godziny.' });
     expect(zl.status).toBe(201);
-    expect(zl.body).toMatchObject({ status: 'PENDING', klient: null, opis: `Restart: Poczta SMTP (Exim) na węźle ${wezel.id.slice(0, 8)} — przerwa dla wszystkich kont węzła` });
+    expect(zl.body).toMatchObject({ status: 'PENDING', klient: null, opis: `Restart: Poczta SMTP (Exim) na węźle ${wezel.id.slice(0, 8)} – przerwa dla wszystkich kont węzła` });
     const id = zl.body.id as string;
     // Powiadomienie tylko do administratora (żadna rola systemowa nie ma NODE_SERVICES_RESTART_SHARED).
     expect((await prisma().notification.findMany({ where: { link: '/wnioski' } })).map((n) => n.userId)).toEqual([admin.id]);
@@ -461,7 +461,7 @@ describe('PB-48 — wnioski o operację (PostgreSQL)', () => {
     expect(aktywnosc.events.find((x) => x.action === 'SUBSCRIPTION_RENEWAL_DATE_CHANGED')).toMatchObject({ actor: 'obsługa Verris' });
   });
 
-  it('audyt Fali 3 — uzasadnienie 5–9 znaków: wniosek o datę odnowienia przechodzi przy złożeniu i przy akceptacji (powód z numerem wniosku)', async () => {
+  it('audyt Fali 3 – uzasadnienie 5–9 znaków: wniosek o datę odnowienia przechodzi przy złożeniu i przy akceptacji (powód z numerem wniosku)', async () => {
     const l2 = await operator(['CUSTOMERS_VIEW', 'SUBSCRIPTIONS_MANAGE']);
     const l4 = await operator(['REQUESTS_APPROVE', 'SUBSCRIPTIONS_MANAGE', 'BILLING_MANAGE']);
     const plan = await utworzPlan();
@@ -487,7 +487,7 @@ describe('PB-48 — wnioski o operację (PostgreSQL)', () => {
     });
   });
 
-  it('audyt Fali 3 — dodatek z portfela: usługa zakończona między złożeniem a akceptacją → FAILED, bez obciążenia', async () => {
+  it('audyt Fali 3 – dodatek z portfela: usługa zakończona między złożeniem a akceptacją → FAILED, bez obciążenia', async () => {
     const l2 = await operator(['CUSTOMERS_VIEW', 'SUBSCRIPTIONS_MANAGE']);
     const l4 = await operator(['REQUESTS_APPROVE', 'SUBSCRIPTIONS_MANAGE', 'BILLING_MANAGE']);
     const plan = await utworzPlan();
@@ -519,7 +519,7 @@ describe('PB-48 — wnioski o operację (PostgreSQL)', () => {
     expect(await prisma().purchasedAddon.count({ where: { userId: k.id } })).toBe(0);
   });
 
-  it('audyt Fali 3 — data odnowienia: okres zmienił się po złożeniu (odnowienie) → akceptacja FAILED, opłacony okres nie skrócony; wniosek bez „przed” — 400', async () => {
+  it('audyt Fali 3 – data odnowienia: okres zmienił się po złożeniu (odnowienie) → akceptacja FAILED, opłacony okres nie skrócony; wniosek bez „przed” – 400', async () => {
     const l2 = await operator(['CUSTOMERS_VIEW', 'SUBSCRIPTIONS_MANAGE']);
     const l4 = await operator(['REQUESTS_APPROVE', 'SUBSCRIPTIONS_MANAGE', 'BILLING_MANAGE']);
     const plan = await utworzPlan();
@@ -593,7 +593,7 @@ describe('PB-48 — wnioski o operację (PostgreSQL)', () => {
     expect((await prisma().account.findUniqueOrThrow({ where: { id: k.account.id } })).status).not.toBe('SUSPENDED');
   });
 
-  it('przegląd F2.3: usługa zawieszona za brak płatności — decydujący bez BILLING_MANAGE nie odwiesza (FAILED), z BILLING_MANAGE tak', async () => {
+  it('przegląd F2.3: usługa zawieszona za brak płatności – decydujący bez BILLING_MANAGE nie odwiesza (FAILED), z BILLING_MANAGE tak', async () => {
     const l2 = await operator(['CUSTOMERS_VIEW', 'SUBSCRIPTIONS_MANAGE']);
     const l3kier = await operator(['REQUESTS_APPROVE', 'SUBSCRIPTIONS_SUSPEND']);
     const l4 = await operator(['REQUESTS_APPROVE', 'SUBSCRIPTIONS_SUSPEND', 'BILLING_MANAGE']);
@@ -627,7 +627,7 @@ describe('PB-48 — wnioski o operację (PostgreSQL)', () => {
     const k = await klient();
     const nowy = `przejety-${t()}@test.verris.pl`;
 
-    const zm = await zadanie('POST', `/admin/users/${k.id}/email`, l3, { newEmail: nowy, reason: 'Zgłoszenie #77 — klient zmienił skrzynkę.' });
+    const zm = await zadanie('POST', `/admin/users/${k.id}/email`, l3, { newEmail: nowy, reason: 'Zgłoszenie #77 – klient zmienił skrzynkę.' });
     expect(zm.status).toBe(200);
     const po = await prisma().user.findUniqueOrThrow({ where: { id: k.id } });
     expect(po.email).toBe(nowy);
@@ -666,7 +666,7 @@ describe('PB-48 — wnioski o operację (PostgreSQL)', () => {
     const l4 = await operator(['CUSTOMERS_VIEW', 'CUSTOMERS_MANAGE', 'REQUESTS_APPROVE']);
     const k = await klient();
     const nowy = `przejety-${t()}@test.verris.pl`;
-    expect((await zadanie('POST', `/admin/users/${k.id}/email`, l4, { newEmail: nowy, reason: 'Zgłoszenie #78 — nowa skrzynka.' })).status).toBe(200);
+    expect((await zadanie('POST', `/admin/users/${k.id}/email`, l4, { newEmail: nowy, reason: 'Zgłoszenie #78 – nowa skrzynka.' })).status).toBe(200);
     maile.length = 0;
 
     // Formularz publiczny na nowy adres — bez linku (tylko informacja), bez tokenu.
@@ -701,7 +701,7 @@ describe('PB-48 — wnioski o operację (PostgreSQL)', () => {
     expect((await zadanie('POST', '/admin/wnioski', { id: k.id, role: 'USER' }, { typ: 'WALLET_CREDIT', userId: k.id, payload: { amount: 5 }, uzasadnienie: 'Proszę o środki.' })).status).toBe(403);
   });
 
-  it('F3.7 — scalenie zgłoszeń przez wniosek: L1 składa, kierownik z TICKETS_MERGE akceptuje, wątek przechodzi raz; bez TICKETS_MERGE 403', async () => {
+  it('F3.7 – scalenie zgłoszeń przez wniosek: L1 składa, kierownik z TICKETS_MERGE akceptuje, wątek przechodzi raz; bez TICKETS_MERGE 403', async () => {
     const l1 = await operator(['TICKETS_VIEW', 'TICKETS_MANAGE']);
     const l3 = await operator(['TICKETS_VIEW', 'TICKETS_MANAGE', 'TICKETS_MERGE']);
     const kier = await operator(['REQUESTS_APPROVE', 'TICKETS_MANAGE', 'TICKETS_MERGE']);

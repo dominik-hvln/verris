@@ -94,7 +94,7 @@ const rola = (name: string, permissions: string[]) => prisma().staffRole.create(
 const operator = (t: string, staffRoleId?: string) =>
   prisma().user.create({ data: { email: `op-${t}@test.verris.pl`, passwordHash: 'x', role: 'STAFF', staffRoleId: staffRoleId ?? null } });
 
-describe('PB-47 — role operatorów (PostgreSQL)', () => {
+describe('PB-47 – role operatorów (PostgreSQL)', () => {
   beforeAll(async () => {
     app = await NestFactory.create(Aplikacja, { logger: false });
     await app.listen(0);
@@ -125,7 +125,7 @@ describe('PB-47 — role operatorów (PostgreSQL)', () => {
     for (const s of stare) expect(s.isSystem).toBe(false);
   });
 
-  it('wgranie ról systemowych 2× — bez duplikatów, z aktualnymi uprawnieniami; rola własna o tej nazwie nietknięta', async () => {
+  it('wgranie ról systemowych 2× – bez duplikatów, z aktualnymi uprawnieniami; rola własna o tej nazwie nietknięta', async () => {
     await prisma().staffRole.deleteMany({ where: { name: 'Marketing' } });
     const wlasna = await prisma().staffRole.create({ data: { name: 'Marketing', permissions: ['PROMO_MANAGE'], isSystem: false } });
     // Rola systemowa „zepsuta” ręcznie w bazie — wgranie przywraca definicję z kodu.
@@ -172,7 +172,7 @@ describe('PB-47 — role operatorów (PostgreSQL)', () => {
     await expect(svc.deleteRole(b.id, { userId: 'adm', role: 'ADMIN' })).rejects.toThrow(/odepnij/);
   });
 
-  it('dwie równoczesne zmiany ról tego samego operatora idą po kolei — wynik to lista z późniejszej, nie suma', async () => {
+  it('dwie równoczesne zmiany ról tego samego operatora idą po kolei – wynik to lista z późniejszej, nie suma', async () => {
     const t = znacznik();
     const x = await rola(`x-${t}`, ['TICKETS_VIEW']);
     const a = await rola(`a-${t}`, ['CUSTOMERS_VIEW']);

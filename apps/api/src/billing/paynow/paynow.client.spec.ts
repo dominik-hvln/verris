@@ -18,7 +18,7 @@ import {
 const API_KEY = '97a55694-5478-43b5-b406-fb49ebfdd2b5';
 const SIG_KEY = 'b305b996-bca5-4404-a0b7-2ccea3d2b64b';
 
-describe('Paynow — podpis żądania v3', () => {
+describe('Paynow – podpis żądania v3', () => {
   it('wektor z dokumentacji: GET metod płatności (pusta treść, brak parametrów)', () => {
     expect(
       podpisZadania({ apiKey: API_KEY, signatureKey: SIG_KEY, idempotencyKey: 'd243fdb3-c287-484a-bb9c-58536f2794c1', body: '' }),
@@ -46,7 +46,7 @@ describe('Paynow — podpis żądania v3', () => {
   });
 });
 
-describe('Paynow — podpis powiadomienia', () => {
+describe('Paynow – podpis powiadomienia', () => {
   // Treść z przykładu curl w dokumentacji (wcięcie 4 spacje, zamykający nawias bez wcięcia).
   const tresc = Buffer.from(
     '{\n    "paymentId": "NOLV-8F9-08K-WGD",\n    "externalId": "9fea23c7-cd5c-4884-9842-6f8592be65df",\n    "status": "CONFIRMED",\n    "modifiedAt": "2018-12-12T13:24:52"\n}',
@@ -65,7 +65,7 @@ describe('Paynow — podpis powiadomienia', () => {
   });
 });
 
-describe('PaynowClient — żądania HTTP', () => {
+describe('PaynowClient – żądania HTTP', () => {
   const fetchMock = vi.fn();
   beforeEach(() => {
     fetchMock.mockReset();
@@ -110,7 +110,7 @@ describe('PaynowClient — żądania HTTP', () => {
     expect(fetchMock.mock.calls[0][0]).toBe('https://api.sandbox.paynow.pl/v3/payments/NOLV-8F9-08K-WGD/refunds');
   });
 
-  it('12.10 — zwrot: 2xx bez JSON-a albo bez refundId → PaynowBezTresci, nie „sukces” z undefined', async () => {
+  it('12.10 – zwrot: 2xx bez JSON-a albo bez refundId → PaynowBezTresci, nie „sukces” z undefined', async () => {
     const c = new PaynowClient(API_KEY, SIG_KEY, 'https://api.paynow.pl');
     fetchMock.mockResolvedValueOnce({ ok: true, status: 201, json: async () => { throw new SyntaxError('Unexpected end of JSON input'); } });
     await expect(c.zwrot('NOLV-8F9-08K-WGD', { amount: 246, reason: 'OTHER' }, 'k1')).rejects.toBeInstanceOf(PaynowBezTresci);

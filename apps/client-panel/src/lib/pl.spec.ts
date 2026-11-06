@@ -9,7 +9,7 @@ import { days, plForm, plural, services } from './pl';
  * niczego — po prostu każdy klient zobaczy „12 domeny", więc łapiemy go tutaj.
  */
 
-describe('X-05 plForm — polska odmiana', () => {
+describe('X-05 plForm – polska odmiana', () => {
   const f = (n: number) => plForm(n, 'one', 'few', 'many');
 
   it('1 → forma pojedyncza, 0 → mnoga', () => {

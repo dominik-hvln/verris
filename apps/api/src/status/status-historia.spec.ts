@@ -15,8 +15,8 @@ import {
 
 const k = (total: number, success: number, latencyWeighted = 0) => ({ total, success, latencyWeighted });
 
-describe('status — paski dni i dostępność z surowych próbek', () => {
-  it('dzień bez próbek to NO_DATA, a nie „działa” — nic nie jest zmyślane', () => {
+describe('status – paski dni i dostępność z surowych próbek', () => {
+  it('dzień bez próbek to NO_DATA, a nie „działa” – nic nie jest zmyślane', () => {
     const [d] = paskiDni(['2026-10-07'], new Map());
     expect(d).toEqual({ date: '2026-10-07', state: 'NO_DATA', uptimePct: null, avgLatencyMs: null });
     expect(procentDostepnosci([undefined])).toBeNull();
@@ -72,7 +72,7 @@ describe('status — paski dni i dostępność z surowych próbek', () => {
   });
 });
 
-describe('status — zdarzenia dla klienta', () => {
+describe('status – zdarzenia dla klienta', () => {
   const z = (id: string, od: string, do_: string | null, extra: Partial<ZdarzenieDto> = {}): ZdarzenieDto => ({
     id,
     service: 'Strony klientów',
@@ -113,8 +113,8 @@ describe('status — zdarzenia dla klienta', () => {
   });
 });
 
-describe('status — sondy platformy i planowane prace', () => {
-  it('sonda bez węzła trafia do usługi platformy po grupie; z węzłem — po rodzaju', () => {
+describe('status – sondy platformy i planowane prace', () => {
+  it('sonda bez węzła trafia do usługi platformy po grupie; z węzłem – po rodzaju', () => {
     expect(uslugaSondy({ serverId: null, grupa: 'panel', kind: 'HTTPS' })?.name).toBe('Panel klienta');
     expect(uslugaSondy({ serverId: null, grupa: 'www', kind: 'HTTPS' })?.name).toBe('Strona verris.pl');
     expect(uslugaSondy({ serverId: null, grupa: 'api', kind: 'HTTP' })?.name).toBe('API');

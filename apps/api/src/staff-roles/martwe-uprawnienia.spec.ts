@@ -36,8 +36,8 @@ const STAFF = { role: 'STAFF', userId: 'op' };
 const ADMIN = { role: 'ADMIN', userId: 'adm' };
 const INNE = ['DASHBOARD_VIEW', 'CUSTOMERS_VIEW', 'TICKETS_VIEW', 'TICKETS_MANAGE', 'BILLING_VIEW', 'BILLING_MANAGE', 'NODES_MANAGE'];
 
-describe('pozycja 13 — martwe uprawnienia podpięte do strażników', () => {
-  it('AUDIT_VIEW: dziennik tylko do odczytu — wszystkie trasy to GET, STAFF z uprawnieniem czyta, bez — 403', async () => {
+describe('pozycja 13 – martwe uprawnienia podpięte do strażników', () => {
+  it('AUDIT_VIEW: dziennik tylko do odczytu – wszystkie trasy to GET, STAFF z uprawnieniem czyta, bez – 403', async () => {
     const t = trasy(AuditAdminController);
     expect(t.sort()).toEqual(['exportCsv', 'list']);
     for (const m of t) {

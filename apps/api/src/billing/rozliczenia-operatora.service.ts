@@ -98,15 +98,15 @@ export class RozliczeniaOperatoraService {
     });
     if (!u || u.anonymizedAt) throw new NotFoundException('Klient nie istnieje.');
     if (operator.role !== 'ADMIN' && u.role !== 'USER') {
-      throw new ForbiddenException('Personel widzi i zmienia wyłącznie portfele klientów — konto zespołu obsługuje administrator.');
+      throw new ForbiddenException('Personel widzi i zmienia wyłącznie portfele klientów – konto zespołu obsługuje administrator.');
     }
-    if (zmiana && u.customerOwnerId) throw new BadRequestException('To subkonto — portfel należy do właściciela konta.');
+    if (zmiana && u.customerOwnerId) throw new BadRequestException('To subkonto – portfel należy do właściciela konta.');
     return u;
   }
 
   private powod(p: string | null | undefined): string {
     const t = (p ?? '').trim();
-    if (t.length < MIN_POWOD_ROZLICZEN) throw new BadRequestException(`Podaj powód (min. ${MIN_POWOD_ROZLICZEN} znaków) — zapisze się w dzienniku.`);
+    if (t.length < MIN_POWOD_ROZLICZEN) throw new BadRequestException(`Podaj powód (min. ${MIN_POWOD_ROZLICZEN} znaków) – zapisze się w dzienniku.`);
     return t;
   }
 
@@ -193,7 +193,7 @@ export class RozliczeniaOperatoraService {
         status: p.status,
         powod: p.status === 'EXPIRED' || p.status === 'ABANDONED' ? 'Klient nie dokończył płatności.' : 'Płatność odrzucona przez bank lub operatora płatności.',
         referencja: p.paymentId,
-        ponowienie: { mozliwe: false, uwaga: 'Płatność online ponawia klient — w panelu zleca nowe doładowanie.' },
+        ponowienie: { mozliwe: false, uwaga: 'Płatność online ponawia klient – w panelu zleca nowe doładowanie.' },
       });
     }
 
@@ -261,7 +261,7 @@ export class RozliczeniaOperatoraService {
           kwota: fv ? fv.amount.toFixed(2) : null,
           waluta: fv?.currency ?? 'PLN',
           status: fv?.status === 'PAID' ? 'OPLACONA_POZNIEJ' : 'ODRZUCONA',
-          powod: `Odnowienie kartą${usluga ? ` — ${usluga}` : ''}`,
+          powod: `Odnowienie kartą${usluga ? ` – ${usluga}` : ''}`,
           referencja: fv?.number ?? ref,
           ponowienie: {
             mozliwe: false,
@@ -297,8 +297,8 @@ export class RozliczeniaOperatoraService {
       status: wynik.status,
       komunikat:
         wynik.status === 'succeeded'
-          ? 'Płatność przyjęta — portfel zostanie uznany po potwierdzeniu od operatora kart.'
-          : `Płatność zlecona (status: ${wynik.status}) — wynik pojawi się na liście.`,
+          ? 'Płatność przyjęta – portfel zostanie uznany po potwierdzeniu od operatora kart.'
+          : `Płatność zlecona (status: ${wynik.status}) – wynik pojawi się na liście.`,
     };
   }
 
@@ -331,9 +331,9 @@ export class RozliczeniaOperatoraService {
     const juz = (w: WalletTransaction) => {
       const wplata = (w.metadata as { wplata?: { kwota?: string } } | null)?.wplata;
       if (w.userId !== z.userId || wplata?.kwota !== kwota.toFixed(2)) {
-        throw new ConflictException('Przelew o tej referencji jest już zaksięgowany z inną kwotą albo na innym koncie — sprawdź wyciąg.');
+        throw new ConflictException('Przelew o tej referencji jest już zaksięgowany z inną kwotą albo na innym koncie – sprawdź wyciąg.');
       }
-      return { duplikat: true as const, walletTxId: w.id, kredytK: new Prisma.Decimal(w.amount).toFixed(2), komunikat: 'Ten przelew był już zaksięgowany — nic nie zmieniono.' };
+      return { duplikat: true as const, walletTxId: w.id, kredytK: new Prisma.Decimal(w.amount).toFixed(2), komunikat: 'Ten przelew był już zaksięgowany – nic nie zmieniono.' };
     };
     const istniejacy = await this.ledger.findByIdempotencyKey(klucz);
     if (istniejacy) return juz(istniejacy);
@@ -346,9 +346,9 @@ export class RozliczeniaOperatoraService {
         })
       : null;
     if (z.proformaId && !proforma) throw new NotFoundException('Nie znaleziono proformy tego klienta.');
-    if (proforma && proforma.status !== 'WYSTAWIONA') throw new ConflictException(`Proforma ${proforma.number} nie jest do zapłaty (${proforma.status === 'OPLACONA' ? 'opłacona' : 'anulowana'}) — zaksięguj przelew bez proformy.`);
+    if (proforma && proforma.status !== 'WYSTAWIONA') throw new ConflictException(`Proforma ${proforma.number} nie jest do zapłaty (${proforma.status === 'OPLACONA' ? 'opłacona' : 'anulowana'}) – zaksięguj przelew bez proformy.`);
     if (proforma && !new Prisma.Decimal(proforma.amount).eq(kwota)) {
-      throw new ConflictException(`Kwota przelewu ${kwota.toFixed(2)} zł różni się od kwoty proformy ${proforma.number} (${new Prisma.Decimal(proforma.amount).toFixed(2)} zł) — zaksięguj bez proformy.`);
+      throw new ConflictException(`Kwota przelewu ${kwota.toFixed(2)} zł różni się od kwoty proformy ${proforma.number} (${new Prisma.Decimal(proforma.amount).toFixed(2)} zł) – zaksięguj bez proformy.`);
     }
     // Przegląd 15.10 — proforma „odnowienie” nieaktualna (okres odnowiony z salda albo inną proformą, zmiana planu/ceny,
     // usługa anulowana): dokument VAT „odnowienie” opisywałby sprzedaż, której nie będzie.
@@ -356,7 +356,7 @@ export class RozliczeniaOperatoraService {
       ? await powodNieaktualnejProformy({ prisma: this.prisma, promo: this.promo, ustal: (u) => this.doladowanie.ustalTraktowanie(u) }, proforma)
       : null;
     if (proforma && powod) {
-      throw new ConflictException(`Proforma ${proforma.number} jest nieaktualna: ${powod} — zaksięguj przelew bez proformy (doładowanie) i wyjaśnij z klientem.`);
+      throw new ConflictException(`Proforma ${proforma.number} jest nieaktualna: ${powod} – zaksięguj przelew bez proformy (doładowanie) i wyjaśnij z klientem.`);
     }
 
     const { wpis, kredytK, nowy } = await this.doladowanie.zaksieguj({
@@ -369,7 +369,7 @@ export class RozliczeniaOperatoraService {
       idempotencyKey: klucz,
       paymentRef: referencja,
       paymentProvider: 'PRZELEW',
-      opis: `Wpłata przelewem — ${tytul}`,
+      opis: `Wpłata przelewem – ${tytul}`,
       zaplaconoAt: z.dataWplaty,
       metadata: {
         channel: 'przelew', tytul, dataWplaty: z.dataWplaty.toISOString(),
@@ -404,7 +404,7 @@ export class RozliczeniaOperatoraService {
     const oProformie = proforma
       ? proformaOplacona
         ? ` Proforma ${proforma.number} opłacona.`
-        : ` Proforma ${proforma.number} nie była już do zapłaty — wpłata weszła jako zwykłe doładowanie.`
+        : ` Proforma ${proforma.number} nie była już do zapłaty – wpłata weszła jako zwykłe doładowanie.`
       : '';
     return {
       duplikat: false as const,
@@ -433,16 +433,16 @@ export class RozliczeniaOperatoraService {
     const kwota = this.kwota(z.kwota);
     const powod = this.powod(z.powod);
     if (z.kierunek !== 'plus' && z.kierunek !== 'minus') throw new BadRequestException('Kierunek korekty: plus albo minus.');
-    if (!/^[A-Za-z0-9-]{8,64}$/.test(z.klucz ?? '')) throw new BadRequestException('Brak klucza operacji — odśwież formularz.');
+    if (!/^[A-Za-z0-9-]{8,64}$/.test(z.klucz ?? '')) throw new BadRequestException('Brak klucza operacji – odśwież formularz.');
     const zgloszenieId = await zgloszenieKlienta(this.prisma, z.userId, z.zgloszenie);
     const klucz = `korekta:${z.klucz}`;
     const zeZnakiem = z.kierunek === 'plus' ? kwota : kwota.negated();
 
     const juz = (w: WalletTransaction) => {
       if (w.userId !== z.userId || !new Prisma.Decimal(w.amount).eq(zeZnakiem)) {
-        throw new ConflictException('Ten klucz operacji użyto już do innej korekty — odśwież formularz.');
+        throw new ConflictException('Ten klucz operacji użyto już do innej korekty – odśwież formularz.');
       }
-      return { duplikat: true as const, walletTxId: w.id, saldo: new Prisma.Decimal(w.balanceAfter).toFixed(2), komunikat: 'Ta korekta była już zapisana — nic nie zmieniono.' };
+      return { duplikat: true as const, walletTxId: w.id, saldo: new Prisma.Decimal(w.balanceAfter).toFixed(2), komunikat: 'Ta korekta była już zapisana – nic nie zmieniono.' };
     };
     const istniejacy = await this.ledger.findByIdempotencyKey(klucz);
     if (istniejacy) return juz(istniejacy);
@@ -457,7 +457,7 @@ export class RozliczeniaOperatoraService {
             amount: kwota,
             type: WalletTxType.ADJUSTMENT,
             // Klient widzi opis w historii portfela — bez powodu i bez nazwiska (D3); powód jest w dzienniku zespołu.
-            description: `Korekta salda — obsługa Verris${zgl(zgloszenieId)}`,
+            description: `Korekta salda – obsługa Verris${zgl(zgloszenieId)}`,
             idempotencyKey: klucz,
             paymentProvider: 'MANUAL',
             metadata: bezPustych({ korekta: z.kierunek, zgloszenieId }),
@@ -475,7 +475,7 @@ export class RozliczeniaOperatoraService {
       if (err instanceof ConflictException) {
         const teraz = await this.prisma.user.findUnique({ where: { id: z.userId }, select: { walletBalance: true } });
         throw new ConflictException(
-          `Saldo klienta (${new Prisma.Decimal(teraz?.walletBalance ?? u.walletBalance).toFixed(2)} K) jest mniejsze niż kwota korekty — portfel nie może zejść poniżej zera.`,
+          `Saldo klienta (${new Prisma.Decimal(teraz?.walletBalance ?? u.walletBalance).toFixed(2)} K) jest mniejsze niż kwota korekty – portfel nie może zejść poniżej zera.`,
         );
       }
       throw err;

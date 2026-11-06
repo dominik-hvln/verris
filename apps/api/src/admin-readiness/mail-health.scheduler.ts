@@ -97,7 +97,7 @@ export class MailHealthScheduler {
         details: { failed, total, ratePct, windowMinutes: WINDOW_MINUTES, topError },
       });
       this.logger.warn(
-        `Mail failure watchdog: ${failed}/${total} (${ratePct}%) w ${WINDOW_MINUTES} min — zaalarmowano ${admins.length} adm.`,
+        `Mail failure watchdog: ${failed}/${total} (${ratePct}%) w ${WINDOW_MINUTES} min – zaalarmowano ${admins.length} adm.`,
       );
     } catch (err) {
       this.logger.error(

@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { proxy } from './proxy';
 
 /** CSP z nonce (09.10) — wcześniej Caddy dawał `script-src 'unsafe-inline'`. */
-describe('proxy — CSP z nonce', () => {
+describe('proxy – CSP z nonce', () => {
   const scriptSrc = (csp: string) => csp.split(';').map((d) => d.trim()).find((d) => d.startsWith('script-src ')) ?? '';
   const nonceZ = (csp: string) => /'nonce-([^']+)'/.exec(scriptSrc(csp))?.[1];
   const strona = (naglowki: Record<string, string> = {}) => proxy(new NextRequest('http://localhost/login', { headers: naglowki }));

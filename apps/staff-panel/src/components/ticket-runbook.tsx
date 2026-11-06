@@ -96,7 +96,7 @@ export function TicketRunbook({
             type="button"
             disabled={pending || odhaczone.length === 0}
             onClick={zapiszKroki}
-            title="Notatka wewnętrzna z odhaczonymi krokami — klient jej nie widzi"
+            title="Notatka wewnętrzna z odhaczonymi krokami – klient jej nie widzi"
             className="inline-flex h-8 items-center rounded-[9px] border border-dashed border-warn/60 bg-warn-soft px-2.5 text-[12.5px] font-semibold text-warn disabled:opacity-50"
           >
             Zapisz kroki w wątku

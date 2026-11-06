@@ -16,7 +16,7 @@ describe("Ustawienia → Kopie offsite", () => {
     expect(html).toContain('data-formularz="offsite"');
   });
 
-  it("operator (także gdy API uprawnień nie odpowiada) — bez formularza", async () => {
+  it("operator (także gdy API uprawnień nie odpowiada) – bez formularza", async () => {
     (fetchStaffAccess as jest.Mock).mockResolvedValueOnce({ role: "STAFF", isAdmin: false, permissions: [], niedostepne: true });
     const html = renderToStaticMarkup(await KopieOffsitePage());
     expect(html).not.toContain("data-formularz");

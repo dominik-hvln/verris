@@ -85,7 +85,7 @@ const PRAWDZIWE_BLEDY_PRZEJSCIOWE = [
   'fetch failed',
 ];
 
-describe('Z-18 — klasyfikujemy błąd, nie jego prozę', () => {
+describe('Z-18 – klasyfikujemy błąd, nie jego prozę', () => {
   it('strażnik czyta właściwy plik', () => {
     expect(typeof kategoriaBledu).toBe('function');
     expect(typeof categorizeProvisioningError).toBe('function');
@@ -115,7 +115,7 @@ describe('Z-18 — klasyfikujemy błąd, nie jego prozę', () => {
   it('błąd trwały pozostaje trwały', () => {
     const err = new BladEtapuProvisioningu(
       'createAccount',
-      'DirectAdmin API Error: Unable to Create User — A valid IP was not provided',
+      'DirectAdmin API Error: Unable to Create User – A valid IP was not provided',
       'Failed to create the hosting account on the selected node.',
     );
     expect(kategoriaBledu(err)).toBe('permanent');
@@ -150,7 +150,7 @@ describe('Z-18 — klasyfikujemy błąd, nie jego prozę', () => {
   });
 });
 
-describe('Z-18 — żaden etap nie wypiera prawdziwej przyczyny', () => {
+describe('Z-18 – żaden etap nie wypiera prawdziwej przyczyny', () => {
   const usluga = kod(USLUGA);
   const kolejka = kod(KOLEJKA);
 
@@ -168,7 +168,7 @@ describe('Z-18 — żaden etap nie wypiera prawdziwej przyczyny', () => {
       const doKonca = blok.slice(0, blok.indexOf('\n  }\n') + 1 || undefined);
       if (doKonca.includes('throw new ServiceUnavailableException')) {
         throw new Error(
-          'Blok catch rzuca ServiceUnavailableException zamiast BladEtapuProvisioningu — ' +
+          'Blok catch rzuca ServiceUnavailableException zamiast BladEtapuProvisioningu – ' +
             'prawdziwa przyczyna zostanie wyprana, a klasyfikator retry dostanie zmyśloną.',
         );
       }
@@ -206,7 +206,7 @@ describe('Z-18 — żaden etap nie wypiera prawdziwej przyczyny', () => {
   });
 });
 
-describe('Z-18 — D3 na t1 (03.10): ponowienie musi przeżyć bezpiecznik węzła', () => {
+describe('Z-18 – D3 na t1 (03.10): ponowienie musi przeżyć bezpiecznik węzła', () => {
   // Jedno odrzucone połączenie otwiera bezpiecznik na NODE_DOWN_MS; próby w tym oknie odpadają
   // bez łączenia się z węzłem („kolejna próba za 115 s”). Przy 5 s opóźnienia wszystkie 3 próby
   // padały w 15 s i zlecenie kończyło się twardą porażką.

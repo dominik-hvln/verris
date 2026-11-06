@@ -56,7 +56,7 @@ export default async function ProvisioningQueuePage({
       <header>
         <h1 className="text-[28px] lg:text-[34px]">Kolejka zadań</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Zakładanie kont na węzłach po zakupie — ponowienia, błędy i odrzucone zadania.
+          Zakładanie kont na węzłach po zakupie – ponowienia, błędy i odrzucone zadania.
         </p>
       </header>
 

@@ -12,7 +12,7 @@ import { UserServicesController } from './services.controller.js';
 const selectWezla = (arg: unknown) =>
   (arg as { include: { account: { include: { server: { select: Record<string, boolean> } } } } }).include.account.include.server.select;
 
-describe('P5-11 — usługa dla klienta bez nazwy i regionu węzła', () => {
+describe('P5-11 – usługa dla klienta bez nazwy i regionu węzła', () => {
   it('GET /subscriptions/:id (getForUser): select węzła = tylko id', async () => {
     const findFirst = vi.fn(async () => ({ id: 's1', plan: {}, account: { id: 'a1', domain: 'firma.pl', server: { id: 'w1' } } }));
     const svc = Object.create(SubscriptionsService.prototype) as SubscriptionsService;

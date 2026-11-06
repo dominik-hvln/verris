@@ -43,7 +43,7 @@ it("TOTP, passkey ×N i BRAK TOTP (sam passkey to nie drugi składnik); podsumow
 });
 
 /** D10 (10.10) — przełącznik wymuszenia 2FA na stronie zespołu: tylko administrator; env wymusza → nieaktywny. */
-describe("D10 — wymuś 2FA dla zespołu", () => {
+describe("D10 – wymuś 2FA dla zespołu", () => {
   it("administrator: przełącznik ze stanem z API", async () => {
     odpowiedzi(ADMIN, { wlaczony: true, wymuszonyEnv: false, obowiazuje: true });
     const html = renderToStaticMarkup(await Strona({ searchParams: Promise.resolve({}) }));

@@ -146,7 +146,7 @@ describe('X-04 VPS z portfela', () => {
     expect(hetznerLog).toContain(`delete:${v.hetznerServerId}`);
   });
 
-  describe('Q-08 snapshoty — opłata przy odnowieniu', () => {
+  describe('Q-08 snapshoty – opłata przy odnowieniu', () => {
     const cena = (v: string) =>
       prisma().platformSetting.create({ data: { key: 'vps.snapshotPricePerGbMonthly', value: v } });
     const snapshot = (vpsInstanceId: string, hetznerImageId: string, data: { createdAt: Date; deletedAt?: Date; sizeGb?: number }) =>
@@ -174,7 +174,7 @@ describe('X-04 VPS z portfela', () => {
       expect(Number((await prisma().vpsSnapshot.findFirstOrThrow({ where: { hetznerImageId: '101' } })).sizeGb)).toBe(6);
     });
 
-    it('bez ceny (snapshoty wyłączone) — tylko VPS', async () => {
+    it('bez ceny (snapshoty wyłączone) – tylko VPS', async () => {
       const u = await klient(100);
       const p = await plan();
       const v = await vpsPoOkresie(u.id, p.id, 0);
@@ -200,7 +200,7 @@ describe('X-04 VPS z portfela', () => {
     });
   });
 
-  describe('VPS 15.10 — błędy dostawcy nie są połykane', () => {
+  describe('VPS 15.10 – błędy dostawcy nie są połykane', () => {
     const zamow = (userId: string, planId: string) =>
       uslugi().vps.order(userId, { planId, immediatePerformanceConsent: true } as never);
     const cofnijCzas = (id: string, minut: number) =>

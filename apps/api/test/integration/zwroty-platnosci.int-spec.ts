@@ -48,7 +48,7 @@ describe('X-04 zwroty i spory płatności za doładowanie', () => {
     expect(await prisma().notification.count({ where: { userId: admin.id } })).toBe(1);
   });
 
-  it('zwroty częściowe narastająco: 50%, potem całość — łącznie cofnięte dokładnie 100 K', async () => {
+  it('zwroty częściowe narastająco: 50%, potem całość – łącznie cofnięte dokładnie 100 K', async () => {
     const { u, pi } = await klientPoDoladowaniu(100);
     const s = serwis();
     await s.handleStripeWebhook(zdarzenie('evt_p1', 'charge.refunded', { payment_intent: pi, amount_refunded: 6150 }), 'sig');

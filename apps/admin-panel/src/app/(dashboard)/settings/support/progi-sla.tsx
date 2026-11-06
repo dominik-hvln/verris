@@ -26,7 +26,7 @@ export function ProgiSlaEdytor({ widok }: { widok: WidokSla }) {
   const zapisz = () =>
     start(async () => {
       const r = await zapiszProgiSla(progi);
-      setInfo(r.ok ? { ok: true, tekst: "Zapisano — obowiązuje dla nowych zgłoszeń i przy zmianie priorytetu." } : { ok: false, tekst: r.error });
+      setInfo(r.ok ? { ok: true, tekst: "Zapisano – obowiązuje dla nowych zgłoszeń i przy zmianie priorytetu." } : { ok: false, tekst: r.error });
     });
 
   return (

@@ -33,7 +33,7 @@ function stanowisko(blad: Error | null, opcje: { status?: string; dniPoTerminie?
   return { svc, hetzner, prisma, wallet };
 }
 
-describe('VpsRenewalScheduler — karencja tylko przy braku środków', () => {
+describe('VpsRenewalScheduler – karencja tylko przy braku środków', () => {
   it('brak środków po karencji → serwer usunięty', async () => {
     const s = stanowisko(new ConflictException('Insufficient wallet balance for this charge'));
     await s.svc.tick();
@@ -49,7 +49,7 @@ describe('VpsRenewalScheduler — karencja tylko przy braku środków', () => {
   });
 });
 
-describe('VpsRenewalScheduler — błędy dostawcy nie są połykane (15.10)', () => {
+describe('VpsRenewalScheduler – błędy dostawcy nie są połykane (15.10)', () => {
   const pada = () => vi.fn(async () => Promise.reject(new BadGatewayException('x')));
 
   it('nieudane wyłączenie przy braku środków → bez STOPPED (ponowimy jutro)', async () => {

@@ -47,22 +47,22 @@ afterEach(async () => {
 });
 
 it("podgląd → „Wyślij do 2 klientów” dopiero z powodem → potwierdzenie → zlecenie", async () => {
-  await wpisz(pole<HTMLInputElement>('input[aria-label="Temat"]'), "Awaria serwera — pracujemy nad tym");
+  await wpisz(pole<HTMLInputElement>('input[aria-label="Temat"]'), "Awaria serwera – pracujemy nad tym");
   await wpisz(pole<HTMLTextAreaElement>('textarea[aria-label="Treść"]'), TRESC);
   expect(k.querySelector('[data-akcja="wyslij"]')).toBeNull();
   await act(async () => pole<HTMLButtonElement>('[data-akcja="podglad"]').click());
-  expect(podglad).toHaveBeenCalledWith({ zakres: "WEZEL", celId: "w1", temat: "Awaria serwera — pracujemy nad tym", tresc: TRESC });
+  expect(podglad).toHaveBeenCalledWith({ zakres: "WEZEL", celId: "w1", temat: "Awaria serwera – pracujemy nad tym", tresc: TRESC });
   expect(pole("[data-podglad]").textContent).toContain("a@firma.pl");
   expect(pole<HTMLButtonElement>('[data-akcja="wyslij"]').disabled).toBe(true);
   await wpisz(pole<HTMLInputElement>('input[aria-label="Powód"]'), "awaria dysku, incydent #12");
   expect(pole('[data-akcja="wyslij"]').textContent).toBe("Wyślij do 2 klientów");
   await act(async () => pole<HTMLButtonElement>('[data-akcja="wyslij"]').click());
   expect(potwierdz).toHaveBeenCalled();
-  expect(zlec).toHaveBeenCalledWith({ zakres: "WEZEL", celId: "w1", temat: "Awaria serwera — pracujemy nad tym", tresc: TRESC, powod: "awaria dysku, incydent #12" });
+  expect(zlec).toHaveBeenCalledWith({ zakres: "WEZEL", celId: "w1", temat: "Awaria serwera – pracujemy nad tym", tresc: TRESC, powod: "awaria dysku, incydent #12" });
 });
 
 it("zmiana treści po podglądzie unieważnia podgląd; treść promocyjna blokuje podgląd", async () => {
-  await wpisz(pole<HTMLInputElement>('input[aria-label="Temat"]'), "Awaria serwera — pracujemy nad tym");
+  await wpisz(pole<HTMLInputElement>('input[aria-label="Temat"]'), "Awaria serwera – pracujemy nad tym");
   await act(async () => pole<HTMLButtonElement>('[data-akcja="podglad"]').click());
   await wpisz(pole<HTMLTextAreaElement>('textarea[aria-label="Treść"]'), `${TRESC}\n\nPS. Promocja na domeny!`);
   expect(k.querySelector("[data-podglad]")).toBeNull();

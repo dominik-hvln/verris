@@ -150,7 +150,7 @@ describe('PlanChangeService (admin)', () => {
     expect(walletLedger.debit).toHaveBeenCalled();
   });
 
-  it('Z-11: klucz zawiera plan źródłowy i stan subskrypcji — ponowna zmiana po zmianie stanu to nowy wpis', async () => {
+  it('Z-11: klucz zawiera plan źródłowy i stan subskrypcji – ponowna zmiana po zmianie stanu to nowy wpis', async () => {
     const debit = vi.fn().mockResolvedValue({ id: 'tx-1' });
     const { service, prisma } = createService({ wallet: { debit, credit: vi.fn() } });
     await service.changeForAdmin('admin-1', Role.ADMIN, 'sub-1', 'plan-b', 'Upgrade', false);
@@ -163,7 +163,7 @@ describe('PlanChangeService (admin)', () => {
     expect(klucze[0]).toContain('plan-a>plan-b');
   });
 
-  it('Q-05: hosting nie przechodzi na plan newslettera — pakiet DA nie zmienia się, portfel nietknięty; lista celów tylko z tego samego produktu', async () => {
+  it('Q-05: hosting nie przechodzi na plan newslettera – pakiet DA nie zmienia się, portfel nietknięty; lista celów tylko z tego samego produktu', async () => {
     const debit = vi.fn();
     const setAccountLimits = vi.fn();
     const { service, prisma } = createService({ wallet: { debit, credit: vi.fn() }, da: { setAccountLimits } });

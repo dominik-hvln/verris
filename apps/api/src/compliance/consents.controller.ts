@@ -74,7 +74,7 @@ class UpdateMarketingPrefsDto {
  */
 export function tylkoKlient(user: { impersonatedBy?: string; customerOwnerId?: string | null }): void {
   if (user.impersonatedBy) {
-    throw new ForbiddenException('Zgody akceptuje wyłącznie klient — nie w sesji wsparcia.');
+    throw new ForbiddenException('Zgody akceptuje wyłącznie klient – nie w sesji wsparcia.');
   }
   // Subkonto / członkostwo działa na koncie właściciela (userId = właściciel): wpis byłby zgodą
   // właściciela złożoną przez inną osobę (w tym wyłączenie jego alertów logowania).
@@ -164,7 +164,7 @@ export class ConsentsController {
   @Header('Content-Type', 'text/html; charset=utf-8')
   @Header('Content-Security-Policy', CSP_STRONY_LINKU)
   async unsubscribe(@Query('token') token?: string): Promise<string> {
-    if (!token?.trim()) throw new BadRequestException('Brak tokenu wypisu — użyj linku z wiadomości.');
+    if (!token?.trim()) throw new BadRequestException('Brak tokenu wypisu – użyj linku z wiadomości.');
     if (!(await this.marketingPrefs.tokenWypisuIstnieje(token))) {
       return stronaLinku('Link nieaktualny', 'Ten link do wypisu jest nieprawidłowy. Zgody na wiadomości zmienisz też w panelu: Ustawienia → Prywatność.', undefined, true);
     }
@@ -186,7 +186,7 @@ export class ConsentsController {
   @Header('Content-Security-Policy', CSP_STRONY_LINKU)
   async unsubscribePost(@Query('token') tokenZAdresu: string | undefined, @Body() body: WypisDto, @Req() req: Request): Promise<string> {
     const token = tokenZAdresu?.trim() || body?.token?.trim();
-    if (!token) throw new BadRequestException('Brak tokenu wypisu — użyj linku z wiadomości.');
+    if (!token) throw new BadRequestException('Brak tokenu wypisu – użyj linku z wiadomości.');
     await this.marketingPrefs.oneClickUnsubscribe(token, extractRequestContext(req));
     return stronaLinku('Wypisano ✓', 'Nie będziemy już wysyłać Ci wiadomości marketingowych. Zgody zmienisz w każdej chwili w panelu: Ustawienia → Prywatność.');
   }

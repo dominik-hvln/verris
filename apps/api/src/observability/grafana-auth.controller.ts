@@ -113,7 +113,7 @@ export class GrafanaAuthController {
   @Get('grafana-sso')
   async sso(@Req() req: Request, @Query('code') code: string, @Query('to') to?: string) {
     const token = odbierzKodPrzekazania(code);
-    if (!token) throw new UnauthorizedException('Kod wygasł albo został już użyty — otwórz Grafanę ponownie z panelu.');
+    if (!token) throw new UnauthorizedException('Kod wygasł albo został już użyty – otwórz Grafanę ponownie z panelu.');
     await this.sprawdz(token, ['grafana']);
     const res = req.res as unknown as { cookie: (n: string, v: string, o: Record<string, unknown>) => void; redirect: (s: number, u: string) => void };
     res.cookie(CIASTECZKO, token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/', maxAge: SESJA_S * 1000 });

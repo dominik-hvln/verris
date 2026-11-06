@@ -74,7 +74,7 @@ export class OdtworzenieNaWezleService {
   ) {
     const { sub, account } = await this.konto(subscriptionId);
     const src = prefiks(account.server?.hostname);
-    if (!src) throw new BadRequestException('Węzeł źródłowy nie ma nazwy hosta — nie da się ustalić, gdzie leżą jego kopie off-site.');
+    if (!src) throw new BadRequestException('Węzeł źródłowy nie ma nazwy hosta – nie da się ustalić, gdzie leżą jego kopie off-site.');
     if (targetServerId === account.serverId) throw new BadRequestException('Wybierz inny węzeł niż obecny.');
     const cel = await this.prisma.server.findUnique({ where: { id: targetServerId } });
     if (!cel || cel.status !== ServerStatus.ACTIVE) throw new BadRequestException('Węzeł docelowy musi być aktywny.');
@@ -129,7 +129,7 @@ export function przyczynaBledu(...zrodla: (string | null | undefined)[]): string
   }
   for (const z of zrodla) {
     const rc = /End: \S+ rc=(\d+)/.exec(z ?? '')?.[1];
-    if (rc) return `Skrypt na węźle zakończył się kodem ${rc} bez komunikatu — log zadania na węźle (/var/log/verris-tasks).`;
+    if (rc) return `Skrypt na węźle zakończył się kodem ${rc} bez komunikatu – log zadania na węźle (/var/log/verris-tasks).`;
   }
   return null;
 }

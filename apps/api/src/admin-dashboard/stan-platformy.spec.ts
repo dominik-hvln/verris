@@ -1,7 +1,7 @@
 import { czasTrwania, sygnal } from './stan-platformy.js';
 
 describe('PB-34 czas po ludzku na pulpicie', () => {
-  it('minuty, godziny, dni — bez „107106 min”', () => {
+  it('minuty, godziny, dni – bez „107106 min”', () => {
     expect(czasTrwania(45)).toBe('45 min');
     expect(czasTrwania(119)).toBe('119 min');
     expect(czasTrwania(5 * 60)).toBe('5 h');

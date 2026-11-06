@@ -72,7 +72,7 @@ export function loadStraznikScript(): string {
 }
 
 const NAZWA_RODZAJU: Record<string, string> = {
-  lve: 'izolacja kont (LVE) — strony PHP nie działają',
+  lve: 'izolacja kont (LVE) – strony PHP nie działają',
   strony: 'seria błędów 503 stron',
   dysk: 'dysk prawie pełny',
   rsyslog: 'rsyslog nie zapisuje logów systemowych (/var/log/messages, /var/log/secure)',
@@ -89,7 +89,7 @@ export function trescAlarmu(z: { objaw: string; kroki: unknown }): string {
     'Kroki strażnika:',
     ...kroki.slice(-8).map((k) => `- ${k.krok ?? '?'}: ${k.wynik ?? ''}`),
     '',
-    'Pełna diagnoza (zapisana przed naprawą) — w panelu admina, karta węzła → Strażnik.',
+    'Pełna diagnoza (zapisana przed naprawą) – w panelu admina, karta węzła → Strażnik.',
   ].join('\n');
 }
 
@@ -153,7 +153,7 @@ export class StraznikWezlaService {
     const co = nazwaRodzaju(z.rodzaj);
     const tytuly: Record<string, [string, WagaAlarmu] | undefined> = {
       naprawiono: [`Węzeł ${wezel}: awaria naprawiona automatycznie (${co})`, 'info'],
-      nie_naprawiono: [`Węzeł ${wezel}: AWARIA — strażnik nie naprawił (${co})`, 'krytyczny'],
+      nie_naprawiono: [`Węzeł ${wezel}: AWARIA – strażnik nie naprawił (${co})`, 'krytyczny'],
       restart: [`Węzeł ${wezel}: strażnik restartuje węzeł (${co})`, 'krytyczny'],
       tylko_alarm: [`Węzeł ${wezel}: ${co}`, 'ostrzezenie'],
     };

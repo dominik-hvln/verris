@@ -21,7 +21,7 @@ function zbuduj(opts: { wczesniej: number; znane: boolean; alerty?: boolean | nu
 }
 const poczekaj = () => new Promise((r) => setImmediate(r));
 
-describe('LoginEventService — G-22', () => {
+describe('LoginEventService – G-22', () => {
   it('nowe urządzenie po wcześniejszych logowaniach → mail bezpieczeństwa', async () => {
     const { mailer, prisma, zaloguj } = zbuduj({ wczesniej: 3, znane: false });
     await zaloguj();

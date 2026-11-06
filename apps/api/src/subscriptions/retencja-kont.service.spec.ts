@@ -109,7 +109,7 @@ function stanowisko(konta: ReturnType<typeof konto>[], daBlad?: (username: strin
   return { svc, audyt, deleteAccount, mailer, subs };
 }
 
-describe('RetencjaKontService — usuwanie po 14 dniach', () => {
+describe('RetencjaKontService – usuwanie po 14 dniach', () => {
   it('13 dni po anulowaniu → nic', async () => {
     const k = konto('a', { status: 'CANCELED', canceledAt: dniTemu(13) });
     const s = stanowisko([k]);
@@ -172,7 +172,7 @@ describe('RetencjaKontService — usuwanie po 14 dniach', () => {
   });
 });
 
-describe('RetencjaKontService — przypomnienie 3 dni przed usunięciem', () => {
+describe('RetencjaKontService – przypomnienie 3 dni przed usunięciem', () => {
   it('dzień 11 → jeden mail z domeną i datą; kolejne przebiegi nie wysyłają drugiego', async () => {
     const k = konto('a', { status: 'CANCELED', canceledAt: dniTemu(11) });
     const s = stanowisko([k]);
@@ -205,7 +205,7 @@ describe('RetencjaKontService — przypomnienie 3 dni przed usunięciem', () => 
   });
 });
 
-describe('Admin — zakończ usługę i usuń konto od razu', () => {
+describe('Admin – zakończ usługę i usuń konto od razu', () => {
   it('DTO bez powodu → 400 (ValidationPipe jak w main.ts)', async () => {
     const pipe = new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true });
     await expect(

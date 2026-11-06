@@ -35,7 +35,7 @@ it("okres z adresu idzie do API (nieznany → 30 dni); kafle, priorytety i osoby
   expect(t).toContain("Mediana 1. odpowiedzi 2 h 15 min");
   expect(t).toContain("12 zgłoszeń w okresie");
   expect(t).toContain("4,4/5");
-  expect(t).toContain("Pilny 50% (1/2) —");
+  expect(t).toContain("Pilny 50% (1/2) –");
   expect(t).toContain("Anna Nowak 21 2 dni 2 h 6 4,7/5 (3)");
   await RaportyObslugi({ searchParams: Promise.resolve({ dni: "365" }) });
   expect(api).toHaveBeenLastCalledWith("/admin/support/raporty?dni=30");

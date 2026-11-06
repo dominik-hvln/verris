@@ -10,7 +10,7 @@ describe('TicketsController (RBAC metadata)', () => {
 });
 
 /** Audyt Fali 3 — źródło wiadomości z panelu klienta: podgląd konta przez obsługę (impersonacja) to nie klient. */
-describe('TicketsController — źródło wiadomości klienta', () => {
+describe('TicketsController – źródło wiadomości klienta', () => {
   function zbuduj() {
     const svc = {
       create: vi.fn(async () => ({ id: 't1' })),

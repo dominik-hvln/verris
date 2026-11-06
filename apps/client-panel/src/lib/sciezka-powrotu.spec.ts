@@ -1,6 +1,6 @@
 import { sciezkaPowrotu } from './sciezka-powrotu';
 
-describe('sciezkaPowrotu — powrót po zalogowaniu bez otwartego przekierowania', () => {
+describe('sciezkaPowrotu – powrót po zalogowaniu bez otwartego przekierowania', () => {
   it('przepuszcza ścieżki panelu razem z parametrami (link do zgody na migrację)', () => {
     const link = '/dashboard/migrations/zgoda?serviceId=s1&id=m1&token=abc_-123';
     expect(sciezkaPowrotu(link)).toBe(link);

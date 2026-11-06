@@ -43,7 +43,7 @@ async function ludzie() {
   return { agent, klient };
 }
 
-describe('F2.5 — notatki wewnętrzne w wątku zgłoszenia', () => {
+describe('F2.5 – notatki wewnętrzne w wątku zgłoszenia', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     maile.length = 0;
@@ -107,7 +107,7 @@ describe('F2.5 — notatki wewnętrzne w wątku zgłoszenia', () => {
     const t = await tickets.create(klient.id, { subject: 'Domena', message: 'Domena nie odpowiada.' });
     await tickets.adminAddNote(t.id, agent.id, NOTATKA);
     await tickets.adminUpdateTicket(t.id, { status: 'IN_PROGRESS' }, agent.id);
-    await tickets.adminAddReply(t.id, agent.id, { message: 'Domena wygasła u rejestratora — odnawiamy.' });
+    await tickets.adminAddReply(t.id, agent.id, { message: 'Domena wygasła u rejestratora – odnawiamy.' });
     await tickets.adminUpdateTicket(t.id, { status: 'CLOSED' }, agent.id);
     await opieka.wyslij(t.id, 'WCIAZ_PRACUJEMY');
     expect(maile.length).toBeGreaterThan(0);

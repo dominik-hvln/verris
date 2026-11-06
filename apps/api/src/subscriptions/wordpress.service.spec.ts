@@ -28,7 +28,7 @@ function stanowisko(domenyUslugi: string[], ostatnie: Record<string, unknown> | 
   return { svc, prisma, client, wejscie };
 }
 
-describe('WordpressService — domena instalacji', () => {
+describe('WordpressService – domena instalacji', () => {
   it('druga domena usługi → zadanie, tytuł i adres wp-admin na tej domenie', async () => {
     const s = stanowisko(['firma.pl', 'sklep.pl']);
     const r = await s.svc.install('sub1', 'u1', { ...s.wejscie, domain: 'Sklep.pl' });

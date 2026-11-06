@@ -6,7 +6,7 @@ import { AnalyticsScripts } from "@/components/analytics-scripts";
 import { CookieConsentManager } from "@/components/cookie-consent";
 
 export const metadata: Metadata = {
-  title: "Verris — Panel klienta",
+  title: "Verris – Panel klienta",
   description: "Hosting, który liczy realne zużycie.",
 };
 

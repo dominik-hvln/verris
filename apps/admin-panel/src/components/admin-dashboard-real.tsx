@@ -217,7 +217,7 @@ export function AdminDashboardReal({ o, dostep }: { o: AdminDashboardOverview; d
           </div>
           {o.flota.wezly.length === 0 ? (
             <div className="border-t border-line px-[18px] py-[13px] text-sm text-muted-foreground">
-              Brak węzłów — dodaj pierwszy kreatorem.
+              Brak węzłów – dodaj pierwszy kreatorem.
             </div>
           ) : (
             o.flota.wezly.map((w) => (
@@ -258,7 +258,7 @@ export function AdminDashboardReal({ o, dostep }: { o: AdminDashboardOverview; d
                   {e.tekst}
                   {e.czego ? (
                     <>
-                      {" — "}
+                      {" – "}
                       {e.href ? (
                         <Link href={e.href} className="font-bold hover:underline">
                           {e.czego}

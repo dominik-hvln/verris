@@ -31,7 +31,7 @@ async function render(node: React.ReactElement) {
 
 /** 1.11 — ograniczenia okresu próbnego widoczne w panelu, zanim klient trafi na odmowę z API. */
 describe('okres próbny w panelu', () => {
-  it('tylkoProbneUslugi: próba bez płatnej usługi blokuje domeny; płatna obok próby albo brak usług — nie', () => {
+  it('tylkoProbneUslugi: próba bez płatnej usługi blokuje domeny; płatna obok próby albo brak usług – nie', () => {
     const proba = { isTrial: true, status: 'ACTIVE' as const };
     const platna = { isTrial: false, status: 'ACTIVE' as const };
     expect(tylkoProbneUslugi([proba])).toBe(true);

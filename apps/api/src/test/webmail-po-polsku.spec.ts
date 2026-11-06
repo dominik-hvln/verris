@@ -48,7 +48,7 @@ function wezel(opcje: { marka: boolean }) {
   return { k, przebieg, czytaj };
 }
 
-describe('Profil węzła — webmail po polsku i w marce Verris', () => {
+describe('Profil węzła – webmail po polsku i w marce Verris', () => {
   it('pakiet marki + blok konfiguracji → jedna przebudowa, wynikowy config z marką, językiem i bazą', () => {
     const w = wezel({ marka: true });
     const wyjscie = w.przebieg();
@@ -66,7 +66,7 @@ describe('Profil węzła — webmail po polsku i w marce Verris', () => {
     expect(wyjscie).toContain('[OK] Webmail w marce Verris Poczta');
   });
 
-  it('drugi przebieg bez zmian — bez przebudowy i bez podwójnego bloku', () => {
+  it('drugi przebieg bez zmian – bez przebudowy i bez podwójnego bloku', () => {
     const w = wezel({ marka: true });
     w.przebieg();
     w.przebieg();
@@ -74,7 +74,7 @@ describe('Profil węzła — webmail po polsku i w marce Verris', () => {
     expect(w.czytaj('da/custom/roundcube/config.inc.php').match(/>>> Verris/g)).toHaveLength(1);
   });
 
-  it('bez pakietu marki — sam język, ostrzeżenie, bez pluginu w konfiguracji', () => {
+  it('bez pakietu marki – sam język, ostrzeżenie, bez pluginu w konfiguracji', () => {
     const w = wezel({ marka: false });
     const wyjscie = w.przebieg();
     const custom = w.czytaj('da/custom/roundcube/config.inc.php');

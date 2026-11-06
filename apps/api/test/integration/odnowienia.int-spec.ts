@@ -56,7 +56,7 @@ async function usluga(userId: string, extra: Record<string, unknown> = {}) {
 const saldo = async (id: string) => Number((await prisma().user.findUniqueOrThrow({ where: { id } })).walletBalance);
 const sub = (id: string) => prisma().subscription.findUniqueOrThrow({ where: { id } });
 
-describe('X-04 — odnowienia z portfela (RenewalScheduler)', () => {
+describe('X-04 – odnowienia z portfela (RenewalScheduler)', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     zawieszone.length = 0;
@@ -146,7 +146,7 @@ describe('X-04 — odnowienia z portfela (RenewalScheduler)', () => {
     expect(await prisma().walletTransaction.count({ where: { userId: k.id, type: WalletTxType.CHARGE_SUBSCRIPTION } })).toBe(1);
   });
 
-  it('„Opłać z portfela” przy zawieszeniu: za brak płatności wraca od razu, ręczne zawieszenie — nie', async () => {
+  it('„Opłać z portfela” przy zawieszeniu: za brak płatności wraca od razu, ręczne zawieszenie – nie', async () => {
     const k = await klient(100);
     const u = await usluga(k.id, { status: SubscriptionStatus.SUSPENDED, currentPeriodEnd: new Date(Date.now() - 86400000) });
     await prisma().subscriptionEvent.create({ data: { subscriptionId: u.id, type: 'SUSPENDED', details: { reason: 'GRACE_EXPIRED' } } });

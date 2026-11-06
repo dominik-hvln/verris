@@ -14,7 +14,7 @@ export function WebhookOpForm() {
       </p>
       <p className="text-xs text-neutral-400">
         Zgłasza OpenProviderowi adres API z kluczem i sekretem z .env.prod (prod-ustaw-klucze.sh openprovider).
-        OpenProvider od razu wysyła zdarzenie testowe — widać je w dzienniku jako REGISTRAR_WEBHOOK.
+        OpenProvider od razu wysyła zdarzenie testowe – widać je w dzienniku jako REGISTRAR_WEBHOOK.
       </p>
       <div className="flex items-center gap-3">
         <button

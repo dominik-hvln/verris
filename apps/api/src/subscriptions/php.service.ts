@@ -85,7 +85,7 @@ export class PhpService {
         status: { in: [NodeTaskStatus.QUEUED, NodeTaskStatus.RUNNING] },
       },
     });
-    if (inflight) throw new ConflictException('Zmiana PHP jest już w toku — poczekaj na jej zakończenie.');
+    if (inflight) throw new ConflictException('Zmiana PHP jest już w toku – poczekaj na jej zakończenie.');
 
     const [task] = await this.prisma.$transaction([
       this.prisma.nodeTask.create({

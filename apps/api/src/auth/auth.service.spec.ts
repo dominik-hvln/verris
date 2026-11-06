@@ -44,7 +44,7 @@ const klient = (extra: Record<string, unknown> = {}) => ({
   emailVerifiedAt: new Date(), loginBlocked: false, customerOwnerId: null, subaccountDisabledAt: null, anonymizedAt: null, ...extra,
 });
 
-describe('AuthService.login — X-06', () => {
+describe('AuthService.login – X-06', () => {
   it('nieznany e-mail i złe hasło dają ten sam komunikat (brak wyliczania kont)', async () => {
     const a = zbuduj({ user: null });
     const b = zbuduj({ user: klient() });
@@ -71,7 +71,7 @@ describe('AuthService.login — X-06', () => {
   });
 });
 
-describe('AuthService — reset hasła (X-06)', () => {
+describe('AuthService – reset hasła (X-06)', () => {
   it('prośba o reset dla nieznanego adresu, operatora i konta zablokowanego: ok, bez tokenu i maila', async () => {
     for (const user of [null, klient({ role: 'STAFF' }), klient({ loginBlocked: true }), klient({ anonymizedAt: new Date() })]) {
       const { svc, prisma, mailer } = zbuduj({ user });
@@ -140,7 +140,7 @@ describe('AuthService — reset hasła (X-06)', () => {
   });
 });
 
-describe('AuthService.register — X-06 / A1-07', () => {
+describe('AuthService.register – X-06 / A1-07', () => {
   // A1-07 (paczka 109) — zajęty adres nie daje już 409 „Email already exists”: odpowiedź jak przy sukcesie, a właściciel
   // adresu dostaje maila (szczegóły: auth.bez-wyliczania-kont.spec.ts).
   it('zajęty adres → ta sama odpowiedź co przy nowym koncie, bez zakładania konta', async () => {
@@ -150,7 +150,7 @@ describe('AuthService.register — X-06 / A1-07', () => {
   });
 });
 
-describe('AuthService.logoutCurrentSession — G-19', () => {
+describe('AuthService.logoutCurrentSession – G-19', () => {
   function zbudujWyl(count: number) {
     const prisma = { userSession: { updateMany: vi.fn(async () => ({ count })) } };
     const audit = { record: vi.fn(async () => undefined) };
@@ -169,7 +169,7 @@ describe('AuthService.logoutCurrentSession — G-19', () => {
     expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'SESSION_LOGOUT' }));
   });
 
-  it('token bez sesji (np. impersonacja) — nic nie rusza; sesja już zamknięta — bez audytu', async () => {
+  it('token bez sesji (np. impersonacja) – nic nie rusza; sesja już zamknięta – bez audytu', async () => {
     const a = zbudujWyl(0);
     await a.svc.logoutCurrentSession('u1', undefined);
     expect(a.prisma.userSession.updateMany).not.toHaveBeenCalled();

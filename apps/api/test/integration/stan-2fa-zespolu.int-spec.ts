@@ -6,11 +6,11 @@ import { prisma, rozlacz, wyczyscBaze } from './setup.js';
  * pokazuje, kto w zespole ma 2FA i ile passkey. Liczba passkey liczona jednym groupBy na prawdziwym
  * PostgreSQL tylko dla kont STAFF/ADMIN; klienci na tej samej liście nie dostają nowego pola (null).
  */
-describe('Fala 1B — stan 2FA i passkey zespołu na liście użytkowników', () => {
+describe('Fala 1B – stan 2FA i passkey zespołu na liście użytkowników', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 
-  it('passkey policzone dla STAFF i ADMIN, klient — null', async () => {
+  it('passkey policzone dla STAFF i ADMIN, klient – null', async () => {
     const t = Date.now();
     const staff = await prisma().user.create({ data: { email: `staff-${t}@test.verris.pl`, passwordHash: 'x', role: 'STAFF', isTwoFactorEnabled: true } });
     const admin = await prisma().user.create({ data: { email: `admin-${t}@test.verris.pl`, passwordHash: 'x', role: 'ADMIN' } });

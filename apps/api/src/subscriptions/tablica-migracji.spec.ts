@@ -27,7 +27,7 @@ const m = (o: Partial<StanMigracji> = {}): StanMigracji => ({
   ...o,
 });
 
-describe('D11 — przejścia etapów tablicy migracji', () => {
+describe('D11 – przejścia etapów tablicy migracji', () => {
   it('Nowa → Testy u nas tylko, gdy automat przeniósł dane (status COMPLETED)', () => {
     expect(przejscie(m({ status: 'RUNNING' }), 'TESTY')).toEqual({ ok: false, bledy: ['Automat nie skończył przenoszenia danych (stan: w toku)'] });
     expect(przejscie(m({ status: 'ATTENTION' }), 'TESTY').ok).toBe(false);
@@ -53,7 +53,7 @@ describe('D11 — przejścia etapów tablicy migracji', () => {
   it('„Po przełączeniu” wymaga potwierdzonego przełączenia DNS (cutoverAt)', () => {
     expect(przejscie(m({ etap: 'DO_ZMIANY_DNS' }), 'PO_PRZELACZENIU')).toEqual({
       ok: false,
-      bledy: ['DNS nie wskazuje jeszcze na nas — użyj „Sprawdź DNS”'],
+      bledy: ['DNS nie wskazuje jeszcze na nas – użyj „Sprawdź DNS”'],
     });
     expect(przejscie(m({ etap: 'DO_ZMIANY_DNS', cutoverAt: T0 }), 'PO_PRZELACZENIU').ok).toBe(true);
   });
@@ -77,20 +77,20 @@ describe('D11 — przejścia etapów tablicy migracji', () => {
     expect(przejscie({ ...po, checklista: komplet, raportWyslanyAt: T0 }, 'ZAMKNIETA')).toEqual({ ok: true, kierunek: 'naprzod' });
   });
 
-  it('etapów nie przeskakujemy; to samo miejsce — błąd; anulowanej nie prowadzimy dalej', () => {
-    expect(przejscie(m(), 'DO_ZMIANY_DNS')).toEqual({ ok: false, bledy: ['Najpierw „Testy u nas” — etapów nie przeskakujemy'] });
+  it('etapów nie przeskakujemy; to samo miejsce – błąd; anulowanej nie prowadzimy dalej', () => {
+    expect(przejscie(m(), 'DO_ZMIANY_DNS')).toEqual({ ok: false, bledy: ['Najpierw „Testy u nas” – etapów nie przeskakujemy'] });
     expect(przejscie(m(), 'NOWA').ok).toBe(false);
     expect(przejscie(m({ status: 'CANCELED' }), 'TESTY')).toEqual({ ok: false, bledy: ['Migracja jest anulowana'] });
   });
 
-  it('cofnięcie o dowolną liczbę etapów — tylko z powodem (min. 10 znaków), bez checklisty', () => {
+  it('cofnięcie o dowolną liczbę etapów – tylko z powodem (min. 10 znaków), bez checklisty', () => {
     const zamknieta = m({ etap: 'ZAMKNIETA' });
     expect(przejscie(zamknieta, 'TESTY')).toEqual({ ok: false, bledy: ['Podaj powód cofnięcia (min. 10 znaków)'] });
     expect(przejscie(zamknieta, 'TESTY', 'krótko')).toMatchObject({ ok: false });
     expect(przejscie(zamknieta, 'TESTY', 'Klient zgłosił błąd formularza po przełączeniu')).toEqual({ ok: true, kierunek: 'wstecz' });
   });
 
-  it('brakiDoEtapu dla Nowej — brak warunków', () => {
+  it('brakiDoEtapu dla Nowej – brak warunków', () => {
     expect(brakiDoEtapu(m({ status: 'QUEUED' }), 'NOWA')).toEqual([]);
   });
 
@@ -101,7 +101,7 @@ describe('D11 — przejścia etapów tablicy migracji', () => {
   });
 });
 
-describe('D11 — twarde terminy i alert', () => {
+describe('D11 – twarde terminy i alert', () => {
   it('termin domyślny = utworzenie + 3 dni; alert dobę przed', () => {
     expect(terminMigracji(m(), T0)).toEqual({ rodzaj: 'sla', data: godz(72), stan: 'ok' });
     expect(terminMigracji(m(), godz(48))).toMatchObject({ rodzaj: 'sla', stan: 'blisko' });
@@ -116,14 +116,14 @@ describe('D11 — twarde terminy i alert', () => {
     expect(terminMigracji({ ...stary, domenaWygasaAt: godz(24 * 2) }, T0)).toMatchObject({ rodzaj: 'domena', stan: 'blisko' });
   });
 
-  it('po przełączeniu liczy się koniec okna poprawek; zamknięta i anulowana — bez terminu', () => {
+  it('po przełączeniu liczy się koniec okna poprawek; zamknięta i anulowana – bez terminu', () => {
     const po = m({ etap: 'PO_PRZELACZENIU', poprawkiDo: godz(24 * 7), wygasaUStaregoAt: godz(1) });
     expect(terminMigracji(po, T0)).toEqual({ rodzaj: 'okno-poprawek', data: godz(24 * 7), stan: 'ok' });
     expect(terminMigracji(m({ etap: 'ZAMKNIETA' }), T0)).toBeNull();
     expect(terminMigracji(m({ status: 'CANCELED' }), T0)).toBeNull();
   });
 
-  it('audyt Fal 2 — nieudana (FAILED, stan końcowy automatu) nie ma terminu ani alertu', () => {
+  it('audyt Fal 2 – nieudana (FAILED, stan końcowy automatu) nie ma terminu ani alertu', () => {
     expect(terminMigracji(m({ status: 'FAILED' }), godz(24 * 30))).toBeNull();
     expect(terminMigracji(m({ status: 'FAILED', wygasaUStaregoAt: godz(1) }), godz(2))).toBeNull();
   });

@@ -100,7 +100,7 @@ export class DirectAdminService {
 
     if (!server.daHost || !server.daPort || !server.daUsername || !server.daPasswordEnc) {
       throw new BadRequestException(
-        'Serwer hostingowy nie jest jeszcze skonfigurowany — napisz do nas, dokończymy konfigurację.',
+        'Serwer hostingowy nie jest jeszcze skonfigurowany – napisz do nas, dokończymy konfigurację.',
       );
     }
 
@@ -146,7 +146,7 @@ export class DirectAdminService {
       orderBy: { createdAt: 'desc' },
       select: { id: true, userId: true, daUsername: true, domain: true },
     });
-    if (!konto) throw new BadRequestException('Na węźle nie ma aktywnego konta — sonda potrzebuje jednego do odczytów poziomu konta.');
+    if (!konto) throw new BadRequestException('Na węźle nie ma aktywnego konta – sonda potrzebuje jednego do odczytów poziomu konta.');
     const surowy = (c: DirectAdminClient) => (c as unknown as { client?: SurowyKlientDa }).client;
     const klienci = {
       konto: surowy(await this.getClientForHostingAccount(konto.id, konto.userId)),
@@ -372,7 +372,7 @@ export class DirectAdminService {
       const poDodaniu = await this.listHostingDnsRecords(subscriptionId, userId, d.name, domeny);
       const jest = (n: string) => poDodaniu.records.some((r) => r.type.toUpperCase() === 'NS' && nazwaRekorduDns(r.name, d.name) === '@' && bez(r.value) === n);
       if (poDodaniu.fetchError || !nowe.every(jest)) {
-        throw new BadRequestException(`Strefa ${d.name}: serwer DNS nie zapisał nowych NS — stare zostawione.`);
+        throw new BadRequestException(`Strefa ${d.name}: serwer DNS nie zapisał nowych NS – stare zostawione.`);
       }
       for (const r of stare) {
         await this.deleteHostingDnsRecord(subscriptionId, userId, { domain: d.name, name: r.name, type: 'NS', value: r.value });
@@ -412,7 +412,7 @@ export class DirectAdminService {
       // HTTP na port TLS DirectAdmina (:2222) daje gołe „400” — bez podpowiedzi wyglądało to na zły klucz.
       if (/status code 400/.test(msg)) {
         const s = await this.prisma.server.findUnique({ where: { id: serverId }, select: { daUseTls: true } });
-        if (s && !s.daUseTls) msg += ' — DirectAdmin przyjmuje tylko HTTPS: zaznacz „Wymuszaj HTTPS (TLS)” i zapisz.';
+        if (s && !s.daUseTls) msg += ' – DirectAdmin przyjmuje tylko HTTPS: zaznacz „Wymuszaj HTTPS (TLS)” i zapisz.';
       }
       return { ok: false, error: msg };
     }
@@ -441,7 +441,7 @@ export class DirectAdminService {
         ok: false,
         sampleCount,
         scope,
-        error: `Login key działa, ale brakuje uprawnień (scope) — ${scopeErrors.join('; ')}. Wygeneruj klucz ze scope: packages + accounts.`,
+        error: `Login key działa, ale brakuje uprawnień (scope) – ${scopeErrors.join('; ')}. Wygeneruj klucz ze scope: packages + accounts.`,
       };
     }
     return { ok: true, sampleCount, scope };
@@ -459,7 +459,7 @@ export class DirectAdminService {
     if (!account) throw new NotFoundException('Nie znaleziono konta hostingowego.');
     if (!account.daPasswordEnc) {
       throw new BadRequestException(
-        'Konto hostingowe nie jest jeszcze w pełni gotowe (brak danych dostępowych do serwera). Napisz do nas — dokończymy konfigurację.',
+        'Konto hostingowe nie jest jeszcze w pełni gotowe (brak danych dostępowych do serwera). Napisz do nas – dokończymy konfigurację.',
       );
     }
     const server = account.server;
@@ -968,7 +968,7 @@ export class DirectAdminService {
   private assertAccountMutable(account: { status: string }): void {
     if (account.status === 'SUSPENDED' || account.status === 'DELETED') {
       throw new BadRequestException(
-        'Konto hostingowe jest zawieszone — operacja niedostępna. Skontaktuj się z pomocą.',
+        'Konto hostingowe jest zawieszone – operacja niedostępna. Skontaktuj się z pomocą.',
       );
     }
   }
@@ -1480,7 +1480,7 @@ export class DirectAdminService {
     // Sukces liczymy dopiero, gdy konta nie ma na liście — „OK” serwera bez efektu nie może być sukcesem klienta.
     const po = await this.listHostingFtpAccounts(subscriptionId, userId);
     if (po.fetchError === null && po.rows.some((r) => r.username.split('@')[0] === login)) {
-      throw new BadRequestException('Serwer nie usunął konta FTP — spróbuj ponownie albo napisz do nas.');
+      throw new BadRequestException('Serwer nie usunął konta FTP – spróbuj ponownie albo napisz do nas.');
     }
     await this.audit.record({
       action: HostingResourceActions.HOSTING_FTP_DELETED,
@@ -1536,7 +1536,7 @@ export class DirectAdminService {
       dodatkowe = (await client.getDomains()).filter((d) => d.toLowerCase() !== domain.toLowerCase());
     } catch (err) {
       this.logger.warn(`listHostingEmailAccounts sub=${subscriptionId} lista domen: ${err instanceof Error ? err.message : String(err)}`);
-      bladListyDomen = 'Nie udało się wczytać listy domen konta — widać tylko skrzynki domeny głównej. Spróbuj ponownie za chwilę.';
+      bladListyDomen = 'Nie udało się wczytać listy domen konta – widać tylko skrzynki domeny głównej. Spróbuj ponownie za chwilę.';
     }
     const rows: { id: string; email: string; quotaMb: number | null }[] = [];
     const byly = new Set<string>();
@@ -1641,7 +1641,7 @@ export class DirectAdminService {
     this.assertAccountMutable(account);
     const quotaMb = await client.getEmailAccountQuotaMb(domena, user);
     if (quotaMb == null) {
-      throw new BadRequestException('Serwer nie podał rozmiaru skrzynki — hasło zostaje bez zmian. Spróbuj ponownie albo napisz do nas.');
+      throw new BadRequestException('Serwer nie podał rozmiaru skrzynki – hasło zostaje bez zmian. Spróbuj ponownie albo napisz do nas.');
     }
     await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_POP', {
       action: 'modify',
@@ -1830,7 +1830,7 @@ export class DirectAdminService {
    * Wszystko realnie na koncie klienta — bez mocków. */
   private readonly WT_STATE_DIR = 'public_html';
   private readonly WT_STATE_FILE = '.verris-webtools.json';
-  private readonly WT_BEGIN = '# BEGIN VERRIS WEBTOOLS (zarządzane przez panel — nie edytuj ręcznie)';
+  private readonly WT_BEGIN = '# BEGIN VERRIS WEBTOOLS (zarządzane przez panel – nie edytuj ręcznie)';
   private readonly WT_END = '# END VERRIS WEBTOOLS';
 
   /**
@@ -2122,7 +2122,7 @@ export class DirectAdminService {
       }),
     ]);
     if (konto || rejestracja) {
-      throw new BadRequestException('Ta domena jest już używana na innym koncie w Verris. Jeśli jest Twoja, napisz do pomocy — przeniesiemy ją.');
+      throw new BadRequestException('Ta domena jest już używana na innym koncie w Verris. Jeśli jest Twoja, napisz do pomocy – przeniesiemy ją.');
     }
   }
 
@@ -2189,7 +2189,7 @@ export class DirectAdminService {
         });
       } catch (err) {
         pozostale += 1;
-        this.logger.warn(`delegacja ${domena}: ${r.type} ${r.value} — ${err instanceof Error ? err.message : String(err)}`);
+        this.logger.warn(`delegacja ${domena}: ${r.type} ${r.value} – ${err instanceof Error ? err.message : String(err)}`);
       }
     }
     if (delegacja.length) {
@@ -2286,7 +2286,7 @@ export class DirectAdminService {
         }
         const po = await this.listHostingDnsRecords(rodzic.subscriptionId, rodzic.userId, rodzic.domena);
         const jest = (n: string) => po.records.some((r) => r.type.toUpperCase() === 'NS' && nazwaRekorduDns(r.name, rodzic.domena) === etykieta && bez(r.value) === n);
-        if (po.fetchError || !nowe.every(jest)) throw new Error('serwer DNS nie zapisał nowych NS — stare zostawione');
+        if (po.fetchError || !nowe.every(jest)) throw new Error('serwer DNS nie zapisał nowych NS – stare zostawione');
         for (const r of doUsuniecia) {
           await this.deleteHostingDnsRecord(rodzic.subscriptionId, rodzic.userId, { domain: rodzic.domena, name: r.name, type: 'NS', value: r.value });
         }
@@ -2764,7 +2764,7 @@ export class DirectAdminService {
     const names = res.domains.map((d) => d.name.toLowerCase());
     // Serwer nie odpowiedział — to nie jest „cudza domena”; klient ma wiedzieć, co się stało naprawdę.
     if (!names.length && res.fetchError) {
-      throw new BadRequestException('Serwer hostingowy jest chwilowo niedostępny — nie możemy potwierdzić domen konta. Spróbuj ponownie za chwilę.');
+      throw new BadRequestException('Serwer hostingowy jest chwilowo niedostępny – nie możemy potwierdzić domen konta. Spróbuj ponownie za chwilę.');
     }
     if (!names.includes(wanted)) {
       throw new BadRequestException('Domena nie należy do tej usługi.');
@@ -2790,7 +2790,7 @@ export class DirectAdminService {
       if (parseDaSubdomainList(raw).some((x) => x.toLowerCase() === sub)) return { nazwa: wanted, domena: rodzic, sub };
     }
     if (!domeny.length && lista.fetchError) {
-      throw new BadRequestException('Serwer hostingowy jest chwilowo niedostępny — nie możemy potwierdzić domen konta. Spróbuj ponownie za chwilę.');
+      throw new BadRequestException('Serwer hostingowy jest chwilowo niedostępny – nie możemy potwierdzić domen konta. Spróbuj ponownie za chwilę.');
     }
     throw new BadRequestException('Domena nie należy do tej usługi.');
   }
@@ -2914,7 +2914,7 @@ export class DirectAdminService {
       const nazwa = katalog.slice(katalog.lastIndexOf('/') + 1);
       const wpisy = await client.listDir(`/domains/${dom}/public_html${rodzic ? `/${rodzic}` : ''}`).catch(() => []);
       if (!wpisy.some((w) => w.name === nazwa && w.type === 'dir')) {
-        throw new BadRequestException(`Nie ma katalogu public_html/${katalog} — utwórz go w menedżerze plików.`);
+        throw new BadRequestException(`Nie ma katalogu public_html/${katalog} – utwórz go w menedżerze plików.`);
       }
     }
     const obecny = await this.czytajCustomHttpd(account.serverId, dom);
@@ -2949,7 +2949,7 @@ export class DirectAdminService {
     const wynik = trescCustomHttpd(res?.data);
     if ('blad' in wynik) {
       this.logger.warn(`CUSTOM_HTTPD ${domain} server=${serverId}: ${wynik.blad}`);
-      throw new BadRequestException('Nie udało się odczytać konfiguracji domeny na serwerze — spróbuj ponownie albo napisz do pomocy.');
+      throw new BadRequestException('Nie udało się odczytać konfiguracji domeny na serwerze – spróbuj ponownie albo napisz do pomocy.');
     }
     const config = wynik.config;
     return config;
@@ -2983,12 +2983,12 @@ export class DirectAdminService {
   /* ===================== B-05: ustawienia PHP per domena (.user.ini) ===================== */
 
   private readonly HT_PHP_ZNACZNIKI = {
-    begin: '# BEGIN VERRIS PHP (zarządzane przez panel — nie edytuj ręcznie)',
+    begin: '# BEGIN VERRIS PHP (zarządzane przez panel – nie edytuj ręcznie)',
     end: '# END VERRIS PHP',
   };
 
   private readonly INI_ZNACZNIKI = {
-    begin: '; BEGIN VERRIS PHP (zarządzane przez panel — nie edytuj ręcznie)',
+    begin: '; BEGIN VERRIS PHP (zarządzane przez panel – nie edytuj ręcznie)',
     end: '; END VERRIS PHP',
   };
 
@@ -3269,7 +3269,7 @@ export class DirectAdminService {
       });
       const daUsername = sub?.account?.daUsername;
       if (!daUsername) {
-        throw new BadRequestException('Konto hostingowe nie ma jeszcze loginu na serwerze — konfiguracja jeszcze trwa.');
+        throw new BadRequestException('Konto hostingowe nie ma jeszcze loginu na serwerze – konfiguracja jeszcze trwa.');
       }
       const suffix = label.replace(/-/g, '').slice(0, 12) || 'staging';
       const password = generateDbPassword();
@@ -3556,7 +3556,7 @@ export class DirectAdminService {
     const none: HostingSslRowDto = {
       id: domain,
       domain,
-      issuer: '—',
+      issuer: '–',
       status: 'NONE',
       expiresAt: null,
       isLetsEncrypt: false,
@@ -3990,7 +3990,7 @@ function parseCertOrg(issuer: string): string {
     const idx = line.indexOf('=');
     if (idx > 0) fields[line.slice(0, idx).trim().toUpperCase()] = line.slice(idx + 1).trim();
   }
-  return fields.O || fields.CN || issuer.replace(/\s+/g, ' ').trim() || '—';
+  return fields.O || fields.CN || issuer.replace(/\s+/g, ' ').trim() || '–';
 }
 
 /** Parses a DirectAdmin numeric value; returns null for empty/non-numeric. */
@@ -4188,7 +4188,7 @@ export function linkSsoNaNazweHosta(url: string, ip: string | null, hostname: st
     throw new BadRequestException(
       // bez nazwy panelu w treści (white label — ten serwis obsługuje też klientów); naprawa: faza TLS bootstrapu
       // albo ops/scripts/node-directadmin-tls-http01.sh na węźle
-      'Panel serwera węzła działa bez HTTPS (ssl=0) — najpierw faza TLS bootstrapu węzła.',
+      'Panel serwera węzła działa bez HTTPS (ssl=0) – najpierw faza TLS bootstrapu węzła.',
     );
   }
   const host = hostname?.trim().toLowerCase().replace(/\.$/, '');

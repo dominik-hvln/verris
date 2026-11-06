@@ -66,7 +66,7 @@ describe('UsersAdminService.createCustomerByOperator (A-24)', () => {
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
-  it('awaria maila nie cofa konta — operator widzi mailSent=false', async () => {
+  it('awaria maila nie cofa konta – operator widzi mailSent=false', async () => {
     const { svc } = zbuduj({ mailPada: true });
     await expect(svc.createCustomerByOperator('op1', dto, {})).resolves.toMatchObject({ mailSent: false });
   });

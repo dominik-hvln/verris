@@ -332,7 +332,7 @@ export class NodeTasksService {
     const server = await this.prisma.server.findUnique({ where: { id: serverId } });
     if (!server) throw new NotFoundException('Nie znaleziono węzła.');
     if (!server.identityToken) {
-      throw new BadRequestException('Węzeł nie ma jeszcze agenta — najpierw bootstrap (krok 2).');
+      throw new BadRequestException('Węzeł nie ma jeszcze agenta – najpierw bootstrap (krok 2).');
     }
     await this.reclaimStaleRunningTasks(serverId);
     const inflight = await this.prisma.nodeTask.findFirst({
@@ -412,7 +412,7 @@ export class NodeTasksService {
       where: { kind: 'FLEET_UPDATE' as NodeTaskKind, status: { in: [NodeTaskStatus.QUEUED, NodeTaskStatus.RUNNING] } },
       select: { id: true },
     });
-    if (trwa) throw new BadRequestException('Aktualizacja floty już trwa — poczekaj na jej koniec.');
+    if (trwa) throw new BadRequestException('Aktualizacja floty już trwa – poczekaj na jej koniec.');
 
     const servers = await this.prisma.server.findMany({
       // 21.10 — fala poprawek może objąć tylko wskazane węzły (np. te z oczekującą poprawką na dany CVE)
@@ -543,7 +543,7 @@ export class NodeTasksService {
       });
       await this.powiadomAdminow(
         'Fala aktualizacji zatrzymana',
-        `Aktualizacja węzła ${fala.nr}/${fala.razem} nie powiodła się — pozostałe ${fala.kolejka.length} węzłów czeka. Sprawdź log zadania i uruchom falę ponownie po naprawie.`,
+        `Aktualizacja węzła ${fala.nr}/${fala.razem} nie powiodła się – pozostałe ${fala.kolejka.length} węzłów czeka. Sprawdź log zadania i uruchom falę ponownie po naprawie.`,
         `/nodes/${task.serverId}`,
       );
       return;
@@ -685,7 +685,7 @@ export class NodeTasksService {
     // F3.4 — restart usługi węzła ma powód, potwierdzenie i (dla usług wspólnych) decyzję administratora albo wniosek;
     // ponowienie z listy zadań ominęłoby to wszystko. Odczyt logu z ponowienia nie miałby wpisu w dzienniku.
     if (task.kind === NodeTaskKind.NODE_SERVICES) {
-      throw new BadRequestException('Usług i logów węzła nie ponawia się z listy zadań — zleć to jeszcze raz z zakładki „Usługi i logi” węzła.');
+      throw new BadRequestException('Usług i logów węzła nie ponawia się z listy zadań – zleć to jeszcze raz z zakładki „Usługi i logi” węzła.');
     }
     // Audyt Fali 3 — operacje operatora z Fali 3 mają własne uprawnienia (IP_BLOCKS_NODE, MAIL_SEND_BLOCK,
     // ACCOUNT_ACTIONS, ACCOUNT_DIAGNOSTICS_VIEW), powód, regułę „STAFF tylko na usługach klientów” i wpis klienta
@@ -694,7 +694,7 @@ export class NodeTasksService {
     // Takie zadania zleca się od nowa z karty usługi albo węzła; skan i lista skanera (bez zmian w plikach) — można.
     const operacjaOperatora = OPERACJE_BEZ_PONOWIENIA[task.kind as keyof typeof OPERACJE_BEZ_PONOWIENIA];
     if (operacjaOperatora && !(task.kind === NodeTaskKind.MALWARE_SCAN && ['scan', 'list'].includes(String((task.payload as { mode?: unknown } | null)?.mode)))) {
-      throw new BadRequestException(`${operacjaOperatora} nie ponawia się z listy zadań — zleć ją jeszcze raz z karty usługi albo węzła (uprawnienia, powód i dziennik).`);
+      throw new BadRequestException(`${operacjaOperatora} nie ponawia się z listy zadań – zleć ją jeszcze raz z karty usługi albo węzła (uprawnienia, powód i dziennik).`);
     }
     await this.prisma.nodeTask.update({
       where: { id: taskId },
@@ -814,7 +814,7 @@ export class NodeTasksService {
           serverId: opts.serverId,
           taskId: opts.taskId,
           outputLog: opts.outputLog,
-          error: 'Serwer nie potwierdził nowego limitu — zaktualizuj węzeł („Aktualizuj węzeł”) i spróbuj ponownie',
+          error: 'Serwer nie potwierdził nowego limitu – zaktualizuj węzeł („Aktualizuj węzeł”) i spróbuj ponownie',
         });
       }
     }
@@ -1083,7 +1083,7 @@ export class NodeTasksService {
     try {
       const d = await this.directAdmin.przepnijDelegacjePoPrzeniesieniu(accountId, staryServerId);
       rodzicNaStarym = d.rodzicNaStarymWezle;
-      if (d.bledy.length) await this.alarmPorzadku(staryServerId, `Delegacja NS po przeniesieniu konta ${daUser} — do poprawienia ręcznie:\n${d.bledy.join('\n')}`);
+      if (d.bledy.length) await this.alarmPorzadku(staryServerId, `Delegacja NS po przeniesieniu konta ${daUser} – do poprawienia ręcznie:\n${d.bledy.join('\n')}`);
     } catch (err) {
       await this.alarmPorzadku(staryServerId, `Delegacja NS po przeniesieniu konta ${daUser} nie została przepięta: ${(err as Error).message}`);
     }
@@ -1121,7 +1121,7 @@ export class NodeTasksService {
           await this.zapiszStanSieroty(task.id, p, { stanSieroty: 'czeka-na-dns', archiwum, domenyNaStarym: nadalTam.join(',') });
           await this.alarmPorzadku(
             serverId,
-            `Konto ${p.daUser} przeniesione, ale ${nadalTam.join(', ')} nadal wskazuje na stary węzeł (NS albo A). Stare konto zostaje aktywne, dopóki DNS nie przejdzie — zmień serwery nazw u rejestratora.`,
+            `Konto ${p.daUser} przeniesione, ale ${nadalTam.join(', ')} nadal wskazuje na stary węzeł (NS albo A). Stare konto zostaje aktywne, dopóki DNS nie przejdzie – zmień serwery nazw u rejestratora.`,
           );
           return;
         }
@@ -1203,7 +1203,7 @@ export class NodeTasksService {
         usuniete += 1;
       } catch (err) {
         await this.zapiszStanSieroty(t.id, p, { stanSieroty: 'blad' });
-        await this.alarmPorzadku(t.serverId, `Konto-sierota ${p.daUser} nie zostało usunięte po dobie: ${(err as Error).message}. Zostaje zawieszone — sprawdź ręcznie.`);
+        await this.alarmPorzadku(t.serverId, `Konto-sierota ${p.daUser} nie zostało usunięte po dobie: ${(err as Error).message}. Zostaje zawieszone – sprawdź ręcznie.`);
       }
     }
     return usuniete;
@@ -1286,7 +1286,7 @@ export class NodeTasksService {
     if (log.length <= MAX_LOG_CHARS) return log;
     const tail = log.slice(-MAX_LOG_CHARS);
     if (!summary) return tail;
-    return `${summary}\n\n[… log obcięty — pełny na węźle: /var/log/verris-tasks/<task-id>.log …]\n\n${tail}`;
+    return `${summary}\n\n[… log obcięty – pełny na węźle: /var/log/verris-tasks/<task-id>.log …]\n\n${tail}`;
   }
 
   /** Lines emitted at end of profile + default page — survive tail truncation in DB. */

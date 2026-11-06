@@ -27,7 +27,7 @@ const ZGL = {
   reporterEmail: 'Zglaszajacy@Example.com', goodFaith: true,
 };
 
-describe('N-13 — zgłoszenia nadużyć', () => {
+describe('N-13 – zgłoszenia nadużyć', () => {
   it('host z adresu: bez www, małe litery; śmieci → null', () => {
     expect(hostZAdresu('https://WWW.Sklep.Example.pl/a?b')).toBe('sklep.example.pl');
     expect(hostZAdresu('sklep.example.pl/x')).toBe('sklep.example.pl');
@@ -96,7 +96,7 @@ describe('N-13 — zgłoszenia nadużyć', () => {
     ['GRACE_EXPIRED', true],
     ['RESELLER', true],
     ['ABUSE', false],
-  ])('audyt Fal 2: szczegóły — usługa zawieszona z powodu %s → zawieszonaBezDecyzjiObslugi=%s', async (powod, oczekiwane) => {
+  ])('audyt Fal 2: szczegóły – usługa zawieszona z powodu %s → zawieszonaBezDecyzjiObslugi=%s', async (powod, oczekiwane) => {
     const b = zbuduj({ raport: { id: 'r1', userId: null, subscriptionId: 's1' } });
     (b.prisma as Record<string, unknown>).subscription = {
       findUnique: vi.fn().mockResolvedValue({ id: 's1', status: 'SUSPENDED', account: { domain: 'sklep.pl' }, events: [{ details: { reason: powod } }] }),
@@ -106,7 +106,7 @@ describe('N-13 — zgłoszenia nadużyć', () => {
   });
 
   /** F2.3 (D2, 10.10) — decyzja abuse może zawiesić usługę (te same uprawnienia co z karty) albo tylko powiadomić. */
-  describe('F2.3 — zawieszenie z decyzji', () => {
+  describe('F2.3 – zawieszenie z decyzji', () => {
     const UZ = 'Podstrona phishingowa potwierdzona, usługa zawieszona do wyjaśnienia.';
     function zZawieszeniem(o: { uprawnienia?: string[]; subscriptionId?: string | null; blad?: Error } = {}) {
       const raport = { id: 'r1abcdef99', url: ZGL.url, category: 'PHISHING', reporterEmail: 'z@example.com', userId: 'u1', assignedToId: null, subscriptionId: o.subscriptionId === undefined ? 's1' : o.subscriptionId };

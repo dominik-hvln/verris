@@ -22,7 +22,7 @@ const baza = { to: 'jan@firma.pl', userId: 'u1', subject: 's', text: 't', catego
 const zakonczone = (reason: 'RELAXED' | 'CAP_REACHED' | 'WALLET_EMPTY') =>
   autoscalingEndedTemplate({ to: 'jan@firma.pl', userId: 'u1', firstName: null, domain: 'firma.pl', durationMinutes: 30, totalCostPln: 1.5, reason, panelUrl: 'https://panel.verris.pl', autoscalingUrl: 'https://panel.verris.pl/x' });
 
-describe('N-10 — powiadomienia operacyjne', () => {
+describe('N-10 – powiadomienia operacyjne', () => {
   it('autoskalowanie i zmiana planu to maile transakcyjne (nie PRODUCT_UPDATE), bez stopki marketingowej', () => {
     const a = zakonczone('RELAXED');
     const p = planChangedTemplate({ to: 'jan@firma.pl', userId: 'u1', firstName: null, domain: 'firma.pl', fromPlanName: 'A', toPlanName: 'B', serviceUrl: 'https://panel.verris.pl/s', panelUrl: 'https://panel.verris.pl' } as never);
@@ -30,7 +30,7 @@ describe('N-10 — powiadomienia operacyjne', () => {
     expect(a.html).not.toContain('komunikację marketingową');
   });
 
-  it('wyłączone autoskalowanie: start/koniec nie wychodzą, zatrzymanie przez limit i pusty portfel — zawsze', async () => {
+  it('wyłączone autoskalowanie: start/koniec nie wychodzą, zatrzymanie przez limit i pusty portfel – zawsze', async () => {
     const s = stanowisko({ autoscalingEmail: false });
     expect((await s.svc.send({ ...baza, tag: 'autoscaling.started' })).suppressedReason).toBe('OPTED_OUT');
     expect((await s.svc.send(zakonczone('RELAXED'))).delivered).toBe(false);

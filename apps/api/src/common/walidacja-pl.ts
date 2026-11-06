@@ -12,7 +12,7 @@ export const KOD_WALIDACJI = 'VALIDATION_ERROR';
 const liczba = (m: string) => m.match(/(-?\d+(?:\.\d+)?)/)?.[1] ?? '';
 
 const SZABLONY: Record<string, (pole: string, oryginal: string) => string> = {
-  whitelistValidation: (p) => `Nieznane pole „${p}” — usuń je z żądania.`,
+  whitelistValidation: (p) => `Nieznane pole „${p}” – usuń je z żądania.`,
   isDefined: (p) => `Pole „${p}” jest wymagane.`,
   isNotEmpty: (p) => `Pole „${p}” jest wymagane.`,
   isString: (p) => `Pole „${p}” musi być tekstem.`,

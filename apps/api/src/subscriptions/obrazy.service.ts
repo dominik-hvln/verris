@@ -33,7 +33,7 @@ export class ObrazyService {
     const wToku = await this.prisma.nodeTask.findFirst({
       where: { accountId: account.id, kind: NodeTaskKind.IMAGE_OPTIMIZE, status: { in: [NodeTaskStatus.QUEUED, NodeTaskStatus.RUNNING] } },
     });
-    if (wToku) throw new ConflictException('Optymalizacja obrazów już trwa — poczekaj na wynik.');
+    if (wToku) throw new ConflictException('Optymalizacja obrazów już trwa – poczekaj na wynik.');
     const task = await this.prisma.nodeTask.create({
       data: {
         serverId: account.serverId,
@@ -91,5 +91,5 @@ export function wynikZLogu(log: string | null): { plikow: number; przed: number;
 function bladZLogu(log: string | null): string {
   const p = '[obrazy] BŁĄD: ';
   const l = (log ?? '').split('\n').reverse().find((x) => x.startsWith(p));
-  return l ? l.slice(p.length).slice(0, 300) : 'Optymalizacja nie powiodła się. Napisz do nas — sprawdzimy to.';
+  return l ? l.slice(p.length).slice(0, 300) : 'Optymalizacja nie powiodła się. Napisz do nas – sprawdzimy to.';
 }

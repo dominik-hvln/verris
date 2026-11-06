@@ -32,7 +32,7 @@ export type StanKolejki = {
 };
 
 export const POLE = "w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white";
-export const kiedy = (iso: string | null) => (iso ? new Date(iso).toLocaleString("pl-PL") : "—");
+export const kiedy = (iso: string | null) => (iso ? new Date(iso).toLocaleString("pl-PL") : "–");
 
 const wiadomosci = (n: number) => `${n} ${plForm(n, "wiadomość", "wiadomości", "wiadomości")}`;
 
@@ -114,7 +114,7 @@ export function TabelaKolejki({
                 </td>
                 <td className="px-2 py-1 font-mono break-all">{m.nadawca || "<> (zwrot)"}</td>
                 <td className="px-2 py-1 font-mono break-all">{m.odbiorcy}</td>
-                <td className="px-2 py-1 break-all">{m.temat || "—"}</td>
+                <td className="px-2 py-1 break-all">{m.temat || "–"}</td>
                 <td className="px-2 py-1 font-mono">{m.rozmiar}</td>
                 <td className="px-2 py-1 font-mono text-muted-foreground">{m.id}</td>
               </tr>

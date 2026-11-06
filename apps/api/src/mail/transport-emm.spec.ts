@@ -34,7 +34,7 @@ const kampania = {
 
 afterEach(() => vi.restoreAllMocks());
 
-describe('Q-05 — osobny transport kampanii (EMM_SMTP_URL)', () => {
+describe('Q-05 – osobny transport kampanii (EMM_SMTP_URL)', () => {
   it('bez EMM_SMTP_URL: odmowa mimo swallowErrors, SMTP platformy nietknięty, nic w EmailLog', async () => {
     const s = stanowisko({});
     expect(s.svc.emmTransportConfigured()).toBe(false);
@@ -43,7 +43,7 @@ describe('Q-05 — osobny transport kampanii (EMM_SMTP_URL)', () => {
     expect(s.prisma.emailLog.create).not.toHaveBeenCalled();
   });
 
-  it('niepełny adres (zdalny host bez hasła) też nie jest transportem — nie „wysyła” do logu', async () => {
+  it('niepełny adres (zdalny host bez hasła) też nie jest transportem – nie „wysyła” do logu', async () => {
     const s = stanowisko({ EMM_SMTP_URL: 'smtp://emm.example.com:587' });
     expect(s.svc.emmTransportConfigured()).toBe(false);
     await expect(s.svc.send(kampania)).rejects.toBeInstanceOf(EmmTransportNiedostepnyError);

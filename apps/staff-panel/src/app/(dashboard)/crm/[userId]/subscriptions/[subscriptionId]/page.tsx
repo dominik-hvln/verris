@@ -125,7 +125,7 @@ export default async function StaffSubscriptionReadonlyPage({
             <dd className="mt-1 text-sm text-white">
               {sub.currentPeriodEnd
                 ? new Date(sub.currentPeriodEnd).toLocaleString("pl-PL")
-                : "—"}
+                : "–"}
             </dd>
           </div>
           <div>
@@ -137,11 +137,11 @@ export default async function StaffSubscriptionReadonlyPage({
 
       {dostep.nieOdczytano ? (
         <p className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-sm text-amber-200">
-          Nie udało się odczytać uprawnień — karta w trybie podglądu. Odśwież stronę za chwilę.
+          Nie udało się odczytać uprawnień – karta w trybie podglądu. Odśwież stronę za chwilę.
         </p>
       ) : !mozeZmieniacUsluge ? (
         <p className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-muted-foreground">
-          {`Podgląd usługi. Zmiany w usłudze (${zmianyDlaL2}) wykonuje obsługa od poziomu L2 — jeśli klient o nie prosi, przekaż zgłoszenie dalej.`}
+          {`Podgląd usługi. Zmiany w usłudze (${zmianyDlaL2}) wykonuje obsługa od poziomu L2 – jeśli klient o nie prosi, przekaż zgłoszenie dalej.`}
         </p>
       ) : null}
 
@@ -209,7 +209,7 @@ export default async function StaffSubscriptionReadonlyPage({
           <PlanChangeTicketTemplate
             domain={sub.account.domain}
             fromPlan={sub.plan.name}
-            toPlan="[nowy plan — uzupełnij po zmianie]"
+            toPlan="[nowy plan – uzupełnij po zmianie]"
           />
         </section>
       ) : null}

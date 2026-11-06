@@ -28,7 +28,7 @@ async function przygotuj(priority = 'NORMAL') {
   return { tickets, op, klient, t };
 }
 
-describe('F2.5 — tagi, eskalacja, ryzyko, runbook', () => {
+describe('F2.5 – tagi, eskalacja, ryzyko, runbook', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 
@@ -83,7 +83,7 @@ describe('F2.5 — tagi, eskalacja, ryzyko, runbook', () => {
     expect((await prisma().ticket.findUniqueOrThrow({ where: { id: t.id } })).escalatedAt).not.toBeNull();
   });
 
-  it('flaga ryzyka: ustawienie z opisem, zdjęcie z powodem (dziennik i oś); bez powodu — odmowa', async () => {
+  it('flaga ryzyka: ustawienie z opisem, zdjęcie z powodem (dziennik i oś); bez powodu – odmowa', async () => {
     const { tickets, op, t } = await przygotuj();
     await expect(tickets.adminSetRiskFlag(t.id, op.id, null, 'Ryzyko minęło po rozmowie')).rejects.toThrow(/nie ma flagi/);
     await expect(tickets.adminSetRiskFlag(t.id, op.id, 'SUPPORT_RISK', '')).rejects.toThrow(/Opisz ryzyko/);
@@ -99,12 +99,12 @@ describe('F2.5 — tagi, eskalacja, ryzyko, runbook', () => {
     expect(wpisy.at(-1)!.details).toMatchObject({ riskFlag: null, from: 'SUPPORT_RISK', reason: 'Rozmowa z klientem, zostaje z nami' });
   });
 
-  it('kroki runbooka: notatka wewnętrzna z krokami z katalogu; zły klucz/krok — odmowa; klient nie widzi', async () => {
+  it('kroki runbooka: notatka wewnętrzna z krokami z katalogu; zły klucz/krok – odmowa; klient nie widzi', async () => {
     const { tickets, op, klient, t } = await przygotuj();
     const rb = RUNBOOKI.find((r) => r.klucz === 'poczta')!;
     const n = await tickets.adminRunbookSteps(t.id, op.id, 'poczta', [2, 0, 2]);
     expect(n.internal).toBe(true);
-    expect(n.message).toBe([`Runbook „${rb.nazwa}” — wykonane 2 z ${rb.kroki.length}:`, `✓ ${rb.kroki[0]}`, `✓ ${rb.kroki[2]}`].join('\n'));
+    expect(n.message).toBe([`Runbook „${rb.nazwa}” – wykonane 2 z ${rb.kroki.length}:`, `✓ ${rb.kroki[0]}`, `✓ ${rb.kroki[2]}`].join('\n'));
     const ev = await prisma().ticketEvent.findFirstOrThrow({ where: { ticketId: t.id, type: 'INTERNAL_NOTE' } });
     expect(ev.meta).toEqual({ zrodlo: 'runbook:poczta' });
     await expect(tickets.adminRunbookSteps(t.id, op.id, 'nie-ma', [0])).rejects.toThrow(/Nieznany runbook/);

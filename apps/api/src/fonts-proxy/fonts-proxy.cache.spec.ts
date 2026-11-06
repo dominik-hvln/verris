@@ -1,7 +1,7 @@
 import { FontsProxyService } from './fonts-proxy.service.js';
 
 /** Audyt bezpieczeństwa 13.10: cache CSS proxy fontów nie może rosnąć bez końca od kluczy anonimowego klienta. */
-describe('FontsProxyService — limit cache CSS', () => {
+describe('FontsProxyService – limit cache CSS', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('N+1 unikalnych zapytań → w pamięci najwyżej MAX_CSS_ENTRIES wpisów, najnowszy zostaje', async () => {

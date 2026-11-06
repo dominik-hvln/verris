@@ -15,7 +15,7 @@ function Karta({ w, zmienne }: { w: AutoWiadomosc; zmienne: string[] }) {
   const zapisz = () =>
     start(async () => {
       const r = await zapiszAutoWiadomosc(w.rodzaj, { wlaczone, tresc });
-      setInfo(r.ok ? { ok: true, tekst: "Zapisano — obowiązuje od następnego zgłoszenia." } : { ok: false, tekst: r.error });
+      setInfo(r.ok ? { ok: true, tekst: "Zapisano – obowiązuje od następnego zgłoszenia." } : { ok: false, tekst: r.error });
     });
 
   return (

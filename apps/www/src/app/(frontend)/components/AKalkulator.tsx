@@ -104,9 +104,9 @@ export function AKalkulator({ wariant, ceny = CENY_ZAPASOWE }: { wariant: 'krotk
           </div>
         ))}
         <p className="kalk-note">
-          Stawki za godzinę, brutto (netto): 1% procesora (100% = 1 vCPU) — {stawka(STAWKI.cpu)} zł (
-          {stawka(nettoStawki(STAWKI.cpu))} zł) · 1 GB RAM — {stawka(STAWKI.ram)} zł ({stawka(nettoStawki(STAWKI.ram))}{' '}
-          zł) · 1 GB dysku — {stawka(STAWKI.dysk)} zł ({stawka(nettoStawki(STAWKI.dysk))} zł). Naliczanie w blokach po 15
+          Stawki za godzinę, brutto (netto): 1% procesora (100% = 1 vCPU) – {stawka(STAWKI.cpu)} zł (
+          {stawka(nettoStawki(STAWKI.cpu))} zł) · 1 GB RAM – {stawka(STAWKI.ram)} zł ({stawka(nettoStawki(STAWKI.ram))}{' '}
+          zł) · 1 GB dysku – {stawka(STAWKI.dysk)} zł ({stawka(nettoStawki(STAWKI.dysk))} zł). Naliczanie w blokach po 15
           minut.
         </p>
       </div>

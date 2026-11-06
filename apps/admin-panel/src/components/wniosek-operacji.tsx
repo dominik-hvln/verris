@@ -36,7 +36,7 @@ export function WyslijWniosek({
   if (wyslany) {
     return (
       <p className="text-xs text-emerald-300" data-wniosek="wyslany">
-        Wniosek wysłany. Dostaniesz powiadomienie o decyzji — status w panelu obsługi: „Wnioski → Moje”.
+        Wniosek wysłany. Dostaniesz powiadomienie o decyzji – status w panelu obsługi: „Wnioski → Moje”.
       </p>
     );
   }

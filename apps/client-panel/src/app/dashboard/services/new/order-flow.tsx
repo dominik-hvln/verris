@@ -71,7 +71,7 @@ export function OrderFlow({
         >
           <ArrowLeft className="h-4 w-4" /> Zmień typ usługi
         </button>
-        <h2 className="text-xl font-bold text-white">{title} — wybierz wariant</h2>
+        <h2 className="text-xl font-bold text-white">{title} – wybierz wariant</h2>
         {typed.length === 0 ? (
           <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-8 text-center text-neutral-400">
             Brak dostępnych wariantów {title.toLowerCase()}. Spróbuj później.
@@ -138,7 +138,7 @@ export function OrderFlow({
             </div>
             <div className="min-w-0">
               <p className="text-sm text-neutral-300">
-                Serwery VPS uruchamiane w chmurze — pełen root przez SSH, skalowalne zasoby,
+                Serwery VPS uruchamiane w chmurze – pełen root przez SSH, skalowalne zasoby,
                 rozliczenie miesięczne z portfela. Zarządzanie cyklem życia (start/stop/reinstalacja)
                 i kluczami SSH odbywa się w dedykowanej sekcji VPS.
               </p>
@@ -262,7 +262,7 @@ function StartChooser({
       <h3 className="text-sm font-bold text-white">Jak chcesz zacząć?</h3>
       <p className="mt-1 text-xs text-neutral-400">
         {showFree ? 'Wypróbuj bez zobowiązań albo zamów od razu. ' : ''}
-        Przy pierwszym zakupie dostajesz darmowe kredyty na autoskalowanie — opłacą dodatkową moc w szczycie ruchu.
+        Przy pierwszym zakupie dostajesz darmowe kredyty na autoskalowanie – opłacą dodatkową moc w szczycie ruchu.
         Pierwszy okres kosztuje tyle co odnowienie: cena z cennika, podana przy zamówieniu.
       </p>
       <div className="mt-4 grid gap-3 md:grid-cols-3">

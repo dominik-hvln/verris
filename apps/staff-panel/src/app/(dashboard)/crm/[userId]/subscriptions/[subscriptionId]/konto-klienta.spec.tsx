@@ -21,7 +21,7 @@ const widok = (w: DaneSekcji) => tekst(renderToStaticMarkup(<WidokSekcjiKonta wy
 
 beforeEach(() => staffApi.mockReset());
 
-describe("PB-42 karta usługi — konto klienta (staff)", () => {
+describe("PB-42 karta usługi – konto klienta (staff)", () => {
   it("wejście na kartę pokazuje zakładki i nie woła serwera", () => {
     const html = tekst(renderToStaticMarkup(<KontoKlientaPanel subscriptionId="s1" />));
     for (const z of ["Domeny", "DNS", "Poczta", "Bazy danych", "PHP", "SSL", "Cron", "Logi WWW", "Logi poczty"]) expect(html).toContain(z);
@@ -52,7 +52,7 @@ describe("PB-42 karta usługi — konto klienta (staff)", () => {
     expect(html).not.toContain("Brak zadań cron.");
   });
 
-  it("poczta, bazy, SSL, PHP, logi — dane z odpowiedzi", () => {
+  it("poczta, bazy, SSL, PHP, logi – dane z odpowiedzi", () => {
     expect(
       widok({
         sekcja: "poczta",
@@ -90,7 +90,7 @@ describe("PB-42 karta usługi — konto klienta (staff)", () => {
     expect(logi).toContain("PHP Fatal error: x");
   });
 
-  it("logi poczty bez wczytanego dziennika — wyjaśnienie zamiast pustej tabeli; wczytanie robi obsługa, nie klient", () => {
+  it("logi poczty bez wczytanego dziennika – wyjaśnienie zamiast pustej tabeli; wczytanie robi obsługa, nie klient", () => {
     const html = widok({ sekcja: "logi-poczty", dane: { wToku: false, wczytano: null, adres: null, wpisy: [], blad: null } });
     expect(html).toContain("Dziennik poczty nie był jeszcze wczytany");
     expect(html).toContain("Wczytaj z serwera");
@@ -118,7 +118,7 @@ describe("PB-42 karta usługi — konto klienta (staff)", () => {
     expect(await wczytajSekcjeKontaAction("s1", "../users" as never)).toEqual({ ok: false, error: "Nieznana sekcja konta." });
   });
 
-  it("akcja: zlecenie świeżego dziennika poczty — POST z opcjonalnym adresem, konflikt jako komunikat", async () => {
+  it("akcja: zlecenie świeżego dziennika poczty – POST z opcjonalnym adresem, konflikt jako komunikat", async () => {
     staffApi.mockResolvedValueOnce({ wToku: true, wczytano: null, adres: null, wpisy: [], blad: null });
     const ok = await zlecDziennikPocztyAction("s1", " jan@klient.pl ");
     expect(staffApi).toHaveBeenCalledWith("/admin/subscriptions/s1/konto/logi-poczty", { method: "POST", body: { address: "jan@klient.pl" } });
@@ -128,8 +128,8 @@ describe("PB-42 karta usługi — konto klienta (staff)", () => {
     await zlecDziennikPocztyAction("s1", "");
     expect(staffApi).toHaveBeenLastCalledWith("/admin/subscriptions/s1/konto/logi-poczty", { method: "POST", body: {} });
 
-    staffApi.mockRejectedValueOnce(new StaffApiError("Dziennik już się wczytuje — chwila.", 409));
-    expect(await zlecDziennikPocztyAction("s1")).toEqual({ ok: false, error: "Dziennik już się wczytuje — chwila." });
+    staffApi.mockRejectedValueOnce(new StaffApiError("Dziennik już się wczytuje – chwila.", 409));
+    expect(await zlecDziennikPocztyAction("s1")).toEqual({ ok: false, error: "Dziennik już się wczytuje – chwila." });
     staffApi.mockRejectedValueOnce(new StaffApiError("Forbidden", 403));
     expect(await zlecDziennikPocztyAction("s1")).toEqual({ ok: false, error: expect.stringContaining("Podgląd konta klienta") });
   });

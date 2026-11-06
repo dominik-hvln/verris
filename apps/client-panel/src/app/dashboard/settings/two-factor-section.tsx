@@ -100,7 +100,7 @@ export function TwoFactorSection({ showToast }: Props) {
       setStage('enabled');
       setDisablePassword('');
       setDisableCode('');
-      showToast('Nowe kody zapasowe gotowe — poprzednie przestały działać.', 'success');
+      showToast('Nowe kody zapasowe gotowe – poprzednie przestały działać.', 'success');
       await reload();
     });
   };
@@ -165,7 +165,7 @@ export function TwoFactorSection({ showToast }: Props) {
               Włączone od{' '}
               {status.enrolledAt
                 ? new Date(status.enrolledAt).toLocaleString('pl-PL')
-                : '—'}
+                : '–'}
               . Pozostało <strong>{status.recoveryCodesRemaining}</strong> kodów
               zapasowych.
             </p>
@@ -206,7 +206,7 @@ export function TwoFactorSection({ showToast }: Props) {
             <p className="font-semibold text-white mb-1">Nowe kody zapasowe</p>
             <p className="text-sm text-neutral-400 leading-relaxed">
               Podaj <strong>hasło</strong> i aktualny <strong>6-cyfrowy kod</strong> z aplikacji. Poprzednie kody
-              przestaną działać, a nowe pokażemy tylko raz — nie wysyłamy ich e-mailem.
+              przestaną działać, a nowe pokażemy tylko raz – nie wysyłamy ich e-mailem.
             </p>
           </div>
         </div>
@@ -287,7 +287,7 @@ export function TwoFactorSection({ showToast }: Props) {
               autoComplete="current-password"
             />
           </label>
-          <div className="text-xs text-neutral-500 text-center">— lub —</div>
+          <div className="text-xs text-neutral-500 text-center">– lub –</div>
           <label className="block">
             <span className="text-xs font-bold uppercase tracking-widest text-neutral-500">
               Kod TOTP
@@ -452,7 +452,7 @@ function RecoveryCodesPanel({
       </p>
       <p className="text-xs text-amber-200/80 mb-4">
         Każdy kod może być użyty <strong>tylko raz</strong>, gdy zgubisz dostęp do
-        aplikacji TOTP. Wydrukuj je albo zapisz w menedżerze haseł — po opuszczeniu
+        aplikacji TOTP. Wydrukuj je albo zapisz w menedżerze haseł – po opuszczeniu
         tej strony już ich nie zobaczysz.
       </p>
       <div data-prywatne className="grid grid-cols-2 gap-2 mb-4 font-mono text-sm">

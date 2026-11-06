@@ -27,8 +27,8 @@ describe('maskowanie linków jednorazowych w dzienniku poczty', () => {
   });
 
   it('zwykłe linki i tekst zostają czytelne', () => {
-    expect(maskujTekst('Faktura VFV/2026/10/0001 — https://verris.pl/pomoc/a/poczta')).toBe(
-      'Faktura VFV/2026/10/0001 — https://verris.pl/pomoc/a/poczta',
+    expect(maskujTekst('Faktura VFV/2026/10/0001 – https://verris.pl/pomoc/a/poczta')).toBe(
+      'Faktura VFV/2026/10/0001 – https://verris.pl/pomoc/a/poczta',
     );
   });
 
@@ -75,7 +75,7 @@ describe('EmailLogService.detail', () => {
 });
 
 /** D9 (10.10) — maile klienta dla STAFF z CUSTOMERS_VIEW: tylko konta klientów, każdy odczyt w dzienniku. */
-describe('D9 — odczyt korespondencji klienta przez operatora', () => {
+describe('D9 – odczyt korespondencji klienta przez operatora', () => {
   const zrob = (rolaKonta: string | null, wpisUserId: string | null = 'u1') => {
     const audit = { record: vi.fn(async () => undefined) };
     const prisma = {
@@ -96,7 +96,7 @@ describe('D9 — odczyt korespondencji klienta przez operatora', () => {
     expect(audit.record).toHaveBeenCalledWith({ action: 'OPERATOR_CUSTOMER_CARD_VIEWED', userId: 'u1', actorUserId: 'op1', details: { sekcja: 'komunikacja' } });
   });
 
-  it('STAFF: maile operatora albo nieistniejącego konta — 403 i bez wpisu', async () => {
+  it('STAFF: maile operatora albo nieistniejącego konta – 403 i bez wpisu', async () => {
     for (const rola of ['STAFF', 'ADMIN', null]) {
       const { svc, audit } = zrob(rola);
       await expect(svc.listForUser('x', 50, STAFF)).rejects.toBeInstanceOf(ForbiddenException);
@@ -104,7 +104,7 @@ describe('D9 — odczyt korespondencji klienta przez operatora', () => {
     }
   });
 
-  it('STAFF: podgląd wpisu klienta → dziennik z id maila; wpis bez konta (np. do zespołu) — 403', async () => {
+  it('STAFF: podgląd wpisu klienta → dziennik z id maila; wpis bez konta (np. do zespołu) – 403', async () => {
     const { svc, audit } = zrob('USER');
     await svc.detail('e1', STAFF);
     expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ userId: 'u1', actorUserId: 'op1', details: { sekcja: 'mail', emailLogId: 'e1' } }));

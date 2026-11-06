@@ -80,7 +80,7 @@ export class PromoService {
         where: { userId, promoCode: { betaInvite: { isNot: null } } },
         select: { id: true },
       });
-      if (innyBeta) throw new BadRequestException('Masz już na koncie kredyt z zaproszenia do testów — kolejny kod BETA nie zostanie dopisany.');
+      if (innyBeta) throw new BadRequestException('Masz już na koncie kredyt z zaproszenia do testów – kolejny kod BETA nie zostanie dopisany.');
     }
 
     if (promo.maxRedemptions != null && promo.redemptionCount >= promo.maxRedemptions) {
@@ -89,12 +89,12 @@ export class PromoService {
 
     if (promo.kind === PromoKind.PERCENT_BONUS) {
       throw new BadRequestException(
-        'Kody procentowe stosuje się przy doładowaniu portfela — wpisz kod w koszyku doładowania, a bonus zostanie naliczony po zaksięgowaniu wpłaty.',
+        'Kody procentowe stosuje się przy doładowaniu portfela – wpisz kod w koszyku doładowania, a bonus zostanie naliczony po zaksięgowaniu wpłaty.',
       );
     }
     if (promo.kind === PromoKind.SERVICE_PERCENT_OFF) {
       throw new BadRequestException(
-        'Ten kod rabatowy stosuje się przy zakupie usługi hostingowej — wpisz go w kreatorze nowej usługi.',
+        'Ten kod rabatowy stosuje się przy zakupie usługi hostingowej – wpisz go w kreatorze nowej usługi.',
       );
     }
 
@@ -485,7 +485,7 @@ export class PromoService {
     }
     if (promo.kind !== PromoKind.SERVICE_PERCENT_OFF) {
       throw new BadRequestException(
-        'Ten kod nie jest rabatem na zakup usługi — sprawdź, czy wpisujesz go we właściwym miejscu (portfel vs. nowa usługa).',
+        'Ten kod nie jest rabatem na zakup usługi – sprawdź, czy wpisujesz go we właściwym miejscu (portfel vs. nowa usługa).',
       );
     }
     const now = new Date();
@@ -535,7 +535,7 @@ export class PromoService {
     const percent = new Prisma.Decimal(promo.value);
     if (percent.lessThanOrEqualTo(0) || percent.greaterThan(100)) {
       throw new BadRequestException(
-        'Kod ma nieprawidłową wartość procentową — skontaktuj się z supportem.',
+        'Kod ma nieprawidłową wartość procentową – skontaktuj się z supportem.',
       );
     }
     const bonus = topupAmount.times(percent).dividedBy(100).toDecimalPlaces(2);

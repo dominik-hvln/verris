@@ -169,16 +169,16 @@ export function DirectAdminConfigForm({
           <span>
             Akceptuj niezweryfikowany certyfikat TLS (self-signed){" "}
             <span className="text-amber-300">
-              — tylko na czas onboardingu. Docelowo wdroż certyfikat na :2222 (skrypt{" "}
+              – tylko na czas onboardingu. Docelowo wdroż certyfikat na :2222 (skrypt{" "}
               <code className="text-amber-200">node-directadmin-tls-http01.sh</code>) i wyłącz tę
-              opcję — połączenie bez weryfikacji jest podatne na MITM.
+              opcję – połączenie bez weryfikacji jest podatne na MITM.
             </span>
           </span>
         </label>
         {daAllowInvalidCert && (
           <div className="md:col-span-2 flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
             <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-            Weryfikacja certyfikatu DA jest WYŁĄCZONA dla tego węzła — audyt węzła będzie to
+            Weryfikacja certyfikatu DA jest WYŁĄCZONA dla tego węzła – audyt węzła będzie to
             flagował do czasu wdrożenia poprawnego certyfikatu.
           </div>
         )}

@@ -113,7 +113,7 @@ export function trescAlarmuPoprawek(wezel: string, poprawki: PoprawkaDnf[]): { t
   const krytyczne = poprawki.some((p) => p.waga === 'Critical');
   const tytul = `Węzeł ${wezel}: ${advisory.length === 1 ? 'nowa poprawka' : `${advisory.length} nowe poprawki`} bezpieczeństwa${krytyczne ? ' (krytyczne)' : ''}`;
   const linie = poprawki.slice(0, MAKS_W_TRESCI).map((p) => {
-    const cve = p.cve.length ? ` — ${p.cve.slice(0, 4).join(', ')}${p.cve.length > 4 ? ` i ${p.cve.length - 4} innych` : ''}` : '';
+    const cve = p.cve.length ? ` – ${p.cve.slice(0, 4).join(', ')}${p.cve.length > 4 ? ` i ${p.cve.length - 4} innych` : ''}` : '';
     return `• ${p.advisory} (${p.waga}): ${p.pakiet}${cve}`;
   });
   if (poprawki.length > MAKS_W_TRESCI) linie.push(`• …i ${poprawki.length - MAKS_W_TRESCI} kolejnych`);

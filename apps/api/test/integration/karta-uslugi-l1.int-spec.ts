@@ -92,7 +92,7 @@ async function operatorZRola(nazwaRoli: string) {
   return op;
 }
 
-describe('L1-KARTA — karta usługi przez HTTP dla ról systemowych', () => {
+describe('L1-KARTA – karta usługi przez HTTP dla ról systemowych', () => {
   beforeAll(async () => {
     app = await NestFactory.create(Aplikacja, { logger: false });
     await app.listen(0);
@@ -108,7 +108,7 @@ describe('L1-KARTA — karta usługi przez HTTP dla ról systemowych', () => {
     wywolania.length = 0;
   });
 
-  it('L1 Konsultant: karta, zasoby, historia migracji i diagnostyka — 200; plany, odtworzenie i kopie z węzła — 403', async () => {
+  it('L1 Konsultant: karta, zasoby, historia migracji i diagnostyka – 200; plany, odtworzenie i kopie z węzła – 403', async () => {
     const k = await utworzKonto({ serverId: (await utworzWezel()).id, planId: (await utworzPlan()).id });
     const l1 = await operatorZRola('L1 Konsultant');
     const s = `/admin/subscriptions/${k.subscription.id}`;
@@ -124,7 +124,7 @@ describe('L1-KARTA — karta usługi przez HTTP dla ról systemowych', () => {
     expect((await zadanie('GET', `${s}/plan/eligible-plans`, l1.id, 'STAFF')).status).toBe(403);
     expect((await zadanie('GET', `${s}/hosting-backups`, l1.id, 'STAFF')).status).toBe(403);
     expect(
-      (await zadanie('POST', `${s}/hosting-restore`, l1.id, 'STAFF', { backupId: 'b1', reason: 'Zgłoszenie #1 — prośba klienta o kopię' })).status,
+      (await zadanie('POST', `${s}/hosting-restore`, l1.id, 'STAFF', { backupId: 'b1', reason: 'Zgłoszenie #1 – prośba klienta o kopię' })).status,
     ).toBe(403);
     expect(wywolania).not.toContain('plany');
     expect(wywolania).not.toContain('kopie');
@@ -146,7 +146,7 @@ describe('L1-KARTA — karta usługi przez HTTP dla ról systemowych', () => {
     expect((await zadanie('GET', `${s}/hosting-backups`, noc.id, 'STAFF')).status).toBe(200);
   });
 
-  it('przegląd poprawek Fali 3 (D3): kopie z węzła, diagnostyka, odtworzenie, migracja wewnętrzna i zmiana planu usługi konta zespołu — 403 dla STAFF, ADMIN może', async () => {
+  it('przegląd poprawek Fali 3 (D3): kopie z węzła, diagnostyka, odtworzenie, migracja wewnętrzna i zmiana planu usługi konta zespołu – 403 dla STAFF, ADMIN może', async () => {
     const wezel = (await utworzWezel()).id;
     const plan = (await utworzPlan()).id;
     const noc = await operatorZRola('Inżynier infrastruktury (NOC/DevOps)');
@@ -157,8 +157,8 @@ describe('L1-KARTA — karta usługi przez HTTP dla ról systemowych', () => {
       const s = `/admin/subscriptions/${k.subscription.id}`;
       expect((await zadanie('GET', `${s}/hosting-backups`, noc.id, 'STAFF')).status).toBe(403);
       expect((await zadanie('GET', `${s}/diagnostics`, noc.id, 'STAFF')).status).toBe(403);
-      expect((await zadanie('POST', `${s}/hosting-restore`, noc.id, 'STAFF', { backupId: 'b1', reason: 'Zgłoszenie #1 — prośba o kopię' })).status).toBe(403);
-      expect((await zadanie('POST', `${s}/internal-migration`, noc.id, 'STAFF', { targetServerId: wezel, notes: 'Rozładowanie węzła — plan NOC.' })).status).toBe(403);
+      expect((await zadanie('POST', `${s}/hosting-restore`, noc.id, 'STAFF', { backupId: 'b1', reason: 'Zgłoszenie #1 – prośba o kopię' })).status).toBe(403);
+      expect((await zadanie('POST', `${s}/internal-migration`, noc.id, 'STAFF', { targetServerId: wezel, notes: 'Rozładowanie węzła – plan NOC.' })).status).toBe(403);
       expect((await zadanie('POST', `${s}/plan`, noc.id, 'STAFF', { targetPlanId: plan, reason: 'Zmiana planu na prośbę.' })).status).toBe(403);
       expect(wywolania).toEqual([]);
       expect(await prisma().auditLog.count({ where: { action: 'OPERATOR_ACCOUNT_VIEWED', userId: k.user.id } })).toBe(0);
@@ -170,10 +170,10 @@ describe('L1-KARTA — karta usługi przez HTTP dla ról systemowych', () => {
     const k = await utworzKonto({ serverId: wezel, planId: plan });
     const s = `/admin/subscriptions/${k.subscription.id}`;
     expect((await zadanie('GET', `${s}/hosting-backups`, noc.id, 'STAFF')).status).toBe(200);
-    expect((await zadanie('POST', `${s}/internal-migration`, noc.id, 'STAFF', { targetServerId: wezel, notes: 'Rozładowanie węzła — plan NOC.' })).status).toBe(200);
+    expect((await zadanie('POST', `${s}/internal-migration`, noc.id, 'STAFF', { targetServerId: wezel, notes: 'Rozładowanie węzła – plan NOC.' })).status).toBe(200);
   });
 
-  it('audyt Fal 2: L3 zawiesza i odwiesza usługę klienta, ale nie usługę konta zespołu (ADMIN/STAFF) — 403 przed węzłem', async () => {
+  it('audyt Fal 2: L3 zawiesza i odwiesza usługę klienta, ale nie usługę konta zespołu (ADMIN/STAFF) – 403 przed węzłem', async () => {
     const wezel = (await utworzWezel()).id;
     const plan = (await utworzPlan()).id;
     const l3 = await operatorZRola('L3 Starszy specjalista');

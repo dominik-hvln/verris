@@ -73,7 +73,7 @@ export function bladKorygowalnosci(f: StanFaktury): string | null {
     return 'Nie koryguje się korekty. Skoryguj fakturę pierwotną albo wystaw korektę do niej.';
   }
   if (f.status === 'DRAFT') {
-    return 'Faktura w wersji roboczej nie została wprowadzona do obrotu — popraw ją zamiast korygować.';
+    return 'Faktura w wersji roboczej nie została wprowadzona do obrotu – popraw ją zamiast korygować.';
   }
   if (f.status === 'VOID') {
     return 'Faktura anulowana nie podlega korekcie.';
@@ -207,7 +207,7 @@ export function opisKorekty(
   }
   const zwrot = kwotaDoZwrotu(roznica);
   if (zwrot.greaterThan(0)) {
-    return `Korekta faktury ${numerPierwotnej} — zwrot ${zwrot.toFixed(2)} ${waluta}`;
+    return `Korekta faktury ${numerPierwotnej} – zwrot ${zwrot.toFixed(2)} ${waluta}`;
   }
-  return `Korekta faktury ${numerPierwotnej} — dopłata ${roznica.brutto.toFixed(2)} ${waluta}`;
+  return `Korekta faktury ${numerPierwotnej} – dopłata ${roznica.brutto.toFixed(2)} ${waluta}`;
 }

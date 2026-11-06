@@ -8,7 +8,7 @@ describe('kalendarz pola daty', () => {
     expect(wrzesien[1]).toEqual({ rok: 2026, miesiac: 8, dzien: 1 });
   });
 
-  it('wartość w formacie natywnego pola — w obie strony', () => {
+  it('wartość w formacie natywnego pola – w obie strony', () => {
     expect(zloz({ rok: 2026, miesiac: 0, dzien: 5 })).toBe('2026-01-05');
     expect(zloz({ rok: 2026, miesiac: 0, dzien: 5 }, 9, 7)).toBe('2026-01-05T09:07');
     expect(rozbierz('2026-01-05T09:07')).toEqual({ dzien: { rok: 2026, miesiac: 0, dzien: 5 }, godzina: 9, minuta: 7 });

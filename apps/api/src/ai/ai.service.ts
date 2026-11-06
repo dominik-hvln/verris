@@ -79,7 +79,7 @@ export class AiService {
       GROUP BY 1 ORDER BY 1`;
     if (pomiary.length < 6) {
       return unavailableForecast(
-        'Za mało danych telemetrycznych — prognoza pojawi się po zebraniu kilku godzin metryk.',
+        'Za mało danych telemetrycznych – prognoza pojawi się po zebraniu kilku godzin metryk.',
       );
     }
 
@@ -102,7 +102,7 @@ export class AiService {
       'Jesteś asystentem hostingu Verris. Dostajesz GOTOWE liczby prognozy zasobów konta (procent limitu planu).',
       'Nie zmieniaj liczb. Zwracasz WYŁĄCZNIE JSON: {"summary": string, "recommendations": [string], "notes": {"CPU"|"RAM"|"DISK"|"IO": string}}.',
       'summary: 1–2 zdania po polsku dla klienta nietechnicznego. recommendations: do 4 konkretnych kroków',
-      '(np. cache, optymalizacja wtyczek, porządek w plikach, autoskalowanie) — tylko gdy uzasadnione liczbami. Verris ma jeden pakiet: nie polecaj wyższego planu.',
+      '(np. cache, optymalizacja wtyczek, porządek w plikach, autoskalowanie) – tylko gdy uzasadnione liczbami. Verris ma jeden pakiet: nie polecaj wyższego planu.',
       'notes: krótka uwaga tylko dla zasobów z trendem "up" albo daysToLimit ≤ 30.',
     ].join('\n');
     // Historia godzinowa jest dla wykresu — AI dostaje tylko gotowe liczby (mały prompt).

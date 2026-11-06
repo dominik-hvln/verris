@@ -49,14 +49,14 @@ describe('parser maili przychodzących', () => {
     expect(zgloszenieZNaglowkow(m.watek, 'verris.pl')).toBeNull();
   });
 
-  it('spam (X-Spam: Yes z filtra serwera) — rozpoznany już z samych nagłówków', async () => {
+  it('spam (X-Spam: Yes z filtra serwera) – rozpoznany już z samych nagłówków', async () => {
     const naglowki = eml('spam.eml').subarray(0, eml('spam.eml').indexOf('\r\n\r\n'));
     const n = await parsujNaglowki(naglowki);
     expect(n.messageId).toBe('<spam-001@tani-towar.example>');
     expect(powodSpamu(n.naglowki)).toBe('x-spam: Yes');
   });
 
-  it('automaty: autoresponder (Auto-Submitted), zwrotka (pusty Return-Path), lista, nasza domena — bez zgłoszenia', async () => {
+  it('automaty: autoresponder (Auto-Submitted), zwrotka (pusty Return-Path), lista, nasza domena – bez zgłoszenia', async () => {
     expect(powodAutomatu(await parsujMail(eml('autoresponder.eml')), DOMENY)).toMatch(/Auto-Submitted/);
     expect(powodAutomatu(await parsujMail(eml('zwrotka.eml')), DOMENY)).toMatch(/raport doręczenia|zwrotka/);
     const zwykly = await parsujMail(eml('nowe-zgloszenie.eml'));
@@ -65,7 +65,7 @@ describe('parser maili przychodzących', () => {
     expect(powodAutomatu({ ...zwykly, naglowki: [...zwykly.naglowki, { key: 'auto-submitted', value: 'no' }] }, DOMENY)).toBeNull();
   });
 
-  it('obcy nadawca z plikami: JPG tak; ZIP i „PDF” z treścią wykonywalną — nie', async () => {
+  it('obcy nadawca z plikami: JPG tak; ZIP i „PDF” z treścią wykonywalną – nie', async () => {
     const m = await parsujMail(eml('obcy-z-plikami.eml'));
     expect(m.doAdresy).toEqual(['abuse@verris.pl']);
     expect(m.zalaczniki.map((z) => z.nazwa)).toEqual(['zrzut.jpg']);
@@ -83,7 +83,7 @@ describe('parser maili przychodzących', () => {
     expect(a.tekst).toContain('Proszę o fakture za październik.');
   });
 
-  it('cytat: „On … wrote:”, „-----Original Message-----”, blok „>” na końcu; sam cytat — cała treść zostaje', () => {
+  it('cytat: „On … wrote:”, „-----Original Message-----”, blok „>” na końcu; sam cytat – cała treść zostaje', () => {
     expect(odetnijCytat('Nowe.\n\nOn Mon, Oct 12, 2026 at 10:00 AM Verris <support@verris.pl> wrote:\n> stare')).toBe('Nowe.');
     expect(odetnijCytat('Nowe.\n-----Original Message-----\nFrom: x')).toBe('Nowe.');
     expect(odetnijCytat('Nowe.\n\n> stare\n> stare2\n')).toBe('Nowe.');
@@ -120,7 +120,7 @@ describe('parser maili przychodzących', () => {
     expect([n.temat, n.nadawcaNazwa, ...n.naglowki.map((h) => h.value)].some((v) => v?.includes('\u0000'))).toBe(false);
   });
 
-  it('data otrzymania: rok -10000 i data z przyszłości → teraz; ostatni rok — z nagłówka', async () => {
+  it('data otrzymania: rok -10000 i data z przyszłości → teraz; ostatni rok – z nagłówka', async () => {
     const teraz = new Date('2026-10-11T12:00:00Z');
     const m = await parsujMail(eml('nul-i-zla-data.eml'));
     expect(m.data!.getUTCFullYear()).toBe(-10000);

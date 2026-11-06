@@ -35,7 +35,7 @@ async function l2() {
   return prisma().user.create({ data: { email: `l2-${Date.now()}-${Math.random().toString(36).slice(2, 6)}@test.verris.pl`, passwordHash: 'x', role: 'STAFF', staffRoleId: rola.id } });
 }
 
-describe('audyt Fali 3 — dowód klienta: źródło wiadomości zgłoszenia', () => {
+describe('audyt Fali 3 – dowód klienta: źródło wiadomości zgłoszenia', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 

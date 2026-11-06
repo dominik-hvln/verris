@@ -30,7 +30,7 @@ async function lista(sciezka: string): Promise<{ wiersze: Wniosek[]; blad: strin
     return { wiersze: await staffApi<Wniosek[]>(sciezka), blad: null };
   } catch (e) {
     if (e instanceof StaffApiError && e.status === 401) redirect("/login");
-    return { wiersze: [], blad: e instanceof StaffApiError && e.status === 403 ? null : "Nie udało się pobrać wniosków — spróbuj odświeżyć." };
+    return { wiersze: [], blad: e instanceof StaffApiError && e.status === 403 ? null : "Nie udało się pobrać wniosków – spróbuj odświeżyć." };
   }
 }
 
@@ -52,12 +52,12 @@ function Karta({ w, akcje }: { w: Wniosek; akcje?: React.ReactNode }) {
             ·{" "}
           </>
         ) : null}
-        Wnioskuje: {w.wnioskujacy.nazwa ?? "—"} · {data(w.utworzono)}
+        Wnioskuje: {w.wnioskujacy.nazwa ?? "–"} · {data(w.utworzono)}
       </p>
       <p className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-neutral-300">Uzasadnienie: {w.uzasadnienie}</p>
       {w.decydujacy ? (
         <p className="text-xs text-muted-foreground">
-          Decyzja: {w.decydujacy.nazwa ?? "—"}
+          Decyzja: {w.decydujacy.nazwa ?? "–"}
           {w.rozstrzygnieto ? ` · ${data(w.rozstrzygnieto)}` : ""}
           {w.powodDecyzji ? ` · powód: ${w.powodDecyzji}` : ""}
         </p>
@@ -118,7 +118,7 @@ export default async function WnioskiPage({ searchParams }: { searchParams: Prom
 
       <section className="rounded-2xl border border-white/10 bg-black/30">
         <h2 className="border-b border-white/10 px-4 py-3 text-sm font-bold uppercase tracking-wide text-white">
-          {aktywna === "moje" ? `Twoje wnioski — ${wnioski(moje.wiersze.length)}` : `Czeka na Twoją decyzję — ${wnioski(doDecyzji.wiersze.length)}`}
+          {aktywna === "moje" ? `Twoje wnioski – ${wnioski(moje.wiersze.length)}` : `Czeka na Twoją decyzję – ${wnioski(doDecyzji.wiersze.length)}`}
         </h2>
         {biezaca.wiersze.length === 0 && !biezaca.blad ? (
           <p className="p-6 text-sm text-muted-foreground">

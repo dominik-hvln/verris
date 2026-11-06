@@ -224,7 +224,7 @@ export default function ClientTicketChat({ ticket }: { ticket: TicketDetail }) {
           <Link href={`/dashboard/support/${ticket.scalonoDoId}`} className="font-semibold">
             #{ticket.scalonoDoId.slice(0, 8)}
           </Link>
-          {" "}— napisz tam.
+          {" "}– napisz tam.
         </div>
       ) : (
       <div className="p-4 border-t border-border/50 bg-background rounded-b-xl">

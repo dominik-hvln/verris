@@ -29,7 +29,7 @@ export function DnssecPanel({ serviceId, domain }: { serviceId: string; domain: 
 
   const wlacz = async () => {
     const ok = await potwierdz(
-      `Podpisać strefę ${domain} (DNSSEC)? Po włączeniu dostaniesz rekordy DS do wpisania u rejestratora domeny — dopiero wtedy ochrona działa w internecie.`,
+      `Podpisać strefę ${domain} (DNSSEC)? Po włączeniu dostaniesz rekordy DS do wpisania u rejestratora domeny – dopiero wtedy ochrona działa w internecie.`,
       { akcja: 'Włącz DNSSEC' },
     );
     if (!ok) return;
@@ -44,7 +44,7 @@ export function DnssecPanel({ serviceId, domain }: { serviceId: string; domain: 
 
   const wylacz = async () => {
     const ok = await potwierdz(
-      `Wyłączyć DNSSEC dla ${domain}? Najpierw usuń rekordy DS u rejestratora i odczekaj dobę — jeśli DS zostaną, domena przestanie działać w części sieci.`,
+      `Wyłączyć DNSSEC dla ${domain}? Najpierw usuń rekordy DS u rejestratora i odczekaj dobę – jeśli DS zostaną, domena przestanie działać w części sieci.`,
       { akcja: 'Wyłącz DNSSEC', niebezpieczne: true },
     );
     if (!ok) return;
@@ -52,7 +52,7 @@ export function DnssecPanel({ serviceId, domain }: { serviceId: string; domain: 
       const r = await wylaczDnssec(serviceId, domain);
       if (r.ok) {
         setStan(r.stan);
-        toast.success('DNSSEC wyłączony — strefa bez podpisu.');
+        toast.success('DNSSEC wyłączony – strefa bez podpisu.');
       } else toast.error(r.error);
     });
   };
@@ -62,7 +62,7 @@ export function DnssecPanel({ serviceId, domain }: { serviceId: string; domain: 
       await navigator.clipboard.writeText(tekst);
       toast.success('Skopiowano rekordy DS.');
     } catch {
-      toast.error('Nie udało się skopiować — zaznacz tekst ręcznie.');
+      toast.error('Nie udało się skopiować – zaznacz tekst ręcznie.');
     }
   };
 

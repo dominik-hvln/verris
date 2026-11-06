@@ -70,7 +70,7 @@ describe('Kopia teraz (CMD_API_SITE_BACKUP action=backup)', () => {
   });
 });
 
-describe('Odtworzenie kopii (action=restore) — nadpisuje dane na żywym koncie', () => {
+describe('Odtworzenie kopii (action=restore) – nadpisuje dane na żywym koncie', () => {
   const selecty = (pola: Record<string, string>) =>
     Object.keys(pola).filter((k) => k.startsWith('select')).map((k) => pola[k]);
 
@@ -137,8 +137,8 @@ describe('Lista kopii', () => {
   });
 
   it.each([
-    ['JSON — goła tablica', ['backup-Sep-29-2026-1.tar.zst']],
-    ['tekst — list[]=', 'list[]=backup-Sep-29-2026-1.tar.zst'],
+    ['JSON – goła tablica', ['backup-Sep-29-2026-1.tar.zst']],
+    ['tekst – list[]=', 'list[]=backup-Sep-29-2026-1.tar.zst'],
   ])('DA 1.710 (%s): istniejąca kopia jest na liście, a nie „Brak kopii”', async (_n, body) => {
     const s = stanowisko({ get: { '/CMD_API_SITE_BACKUP': body } });
     expect((await s.svc.listHostingBackups('s1', 'u1')).rows).toEqual([{ id: 'list0', fileName: 'backup-Sep-29-2026-1.tar.zst' }]);
@@ -212,7 +212,7 @@ describe('Lista kopii', () => {
   });
 });
 
-describe('Retencja kopii (pruneHostingBackups) — kasuje pliki', () => {
+describe('Retencja kopii (pruneHostingBackups) – kasuje pliki', () => {
   const katalog = (wpisy: Array<[string, string, string]>) =>
     new URLSearchParams(wpisy.map(([n, typ, data]): [string, string] => [`/backups/${n}`, new URLSearchParams({ type: typ, size: '1', date: data }).toString()])).toString();
   const BACKUPS = katalog([
@@ -261,7 +261,7 @@ describe('Retencja kopii (pruneHostingBackups) — kasuje pliki', () => {
   });
 });
 
-describe('Tryb EKO — harmonogram crona kopii (applyEcoModeBackupCronPolicy)', () => {
+describe('Tryb EKO – harmonogram crona kopii (applyEcoModeBackupCronPolicy)', () => {
   // Format DA (changelog 1.21.3): `idcrona=min godz dzień mies dzieńTyg komenda`.
   const CRON = new URLSearchParams({
     '0': '15 3 * * * /usr/local/bin/da-cli CMD_API_SITE_BACKUP',

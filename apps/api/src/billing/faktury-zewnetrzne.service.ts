@@ -82,7 +82,7 @@ export class FakturyZewnetrzneService {
     if (!dok) throw new NotFoundException(`Nie ma dokumentu ${input.invoiceId}`);
     if (dok.rodzajPrawny !== RODZAJ_DOKUMENT_ROZLICZENIOWY) {
       throw new BadRequestException(
-        `${dok.number} jest fakturą VAT wystawioną przez panel — nie dopisuje się do niej faktury zewnętrznej.`,
+        `${dok.number} jest fakturą VAT wystawioną przez panel – nie dopisuje się do niej faktury zewnętrznej.`,
       );
     }
     if (dok.externalInvoiceNumber) {

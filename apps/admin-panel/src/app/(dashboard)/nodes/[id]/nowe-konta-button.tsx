@@ -21,7 +21,7 @@ export function NoweKontaButton({ serverId, przyjmuje }: { serverId: string; prz
   };
   return (
     <button type="button" onClick={() => void przelacz()} disabled={pending} className={PRZYCISK} title={blad ?? undefined}>
-      {blad ? "Błąd — spróbuj ponownie" : przyjmuje ? "Wstrzymaj nowe konta" : "Wznów nowe konta"}
+      {blad ? "Błąd – spróbuj ponownie" : przyjmuje ? "Wstrzymaj nowe konta" : "Wznów nowe konta"}
     </button>
   );
 }

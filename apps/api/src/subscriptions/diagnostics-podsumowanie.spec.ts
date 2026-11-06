@@ -1,10 +1,10 @@
 import { podsumowanieDiagnostyki } from './diagnostics.service.js';
 
 /** PB-43 — podsumowanie diagnostyki stoi w panelu obsługi pod nagłówkiem z plForm; liczebniki muszą się zgadzać. */
-describe('podsumowanieDiagnostyki — odmiana liczebników', () => {
+describe('podsumowanieDiagnostyki – odmiana liczebników', () => {
   const ust = (...statusy: string[]) => statusy.map((status) => ({ status }));
 
-  it('bez ustaleń — zdanie „brak problemów”', () => {
+  it('bez ustaleń – zdanie „brak problemów”', () => {
     expect(podsumowanieDiagnostyki([])).toMatch(/^Nie wykryto problemów/);
   });
 

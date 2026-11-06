@@ -10,7 +10,7 @@ import { MeFeatureFlagsController } from '../product-ops/me-feature-flags.contro
 const konfig = (w: Record<string, string>) => ({ get: (k: string) => w[k] });
 const prismaZEmailem = (email: string | null) => ({ user: { findUnique: vi.fn(async () => (email ? { email } : null)) } });
 
-describe('funkcje testowe — reguła per konto', () => {
+describe('funkcje testowe – reguła per konto', () => {
   it('brak zmiennych: wyłączone dla każdego', () => {
     expect(funkcjaDlaKonta(konfig({}), 'FEATURE_VPS', 'test@hvln.pl')).toBe(false);
     expect(funkcjaDlaKonta(konfig({ FEATURE_VPS: 'false' }), 'FEATURE_VPS', 'test@hvln.pl')).toBe(false);
@@ -45,7 +45,7 @@ describe('funkcje testowe — reguła per konto', () => {
   });
 });
 
-describe('VPS dla klienta — odmowa bez flagi', () => {
+describe('VPS dla klienta – odmowa bez flagi', () => {
   const ctx = (userId?: string) =>
     ({ switchToHttp: () => ({ getRequest: () => ({ user: userId ? { userId } : undefined }) }) }) as unknown as ExecutionContext;
   const straznik = (w: Record<string, string>, email: string | null) => new VpsDostepGuard(konfig(w) as never, prismaZEmailem(email) as never);
@@ -63,7 +63,7 @@ describe('VPS dla klienta — odmowa bez flagi', () => {
   });
 });
 
-describe('/me/feature-flags — panel dostaje vps i resellerMarkup dla zalogowanego konta', () => {
+describe('/me/feature-flags – panel dostaje vps i resellerMarkup dla zalogowanego konta', () => {
   const prisma = (email: string) => ({
     featureFlag: { findMany: vi.fn(async () => []) },
     subscription: { findMany: vi.fn(async () => []) },

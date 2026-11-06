@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { BanerIncydentow } from "./baner-incydentow";
 
 /** F3.8 (ON-05) — baner „czy to awaria u was?”: nic nie trwa — brak baneru; incydent i prace z węzłem i liczbą kont. */
-it("pusto albo bez danych — nic", () => {
+it("pusto albo bez danych – nic", () => {
   expect(renderToStaticMarkup(<BanerIncydentow stan={null} />)).toBe("");
   expect(renderToStaticMarkup(<BanerIncydentow stan={{ incydenty: [], prace: [] }} />)).toBe("");
 });

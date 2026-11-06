@@ -63,7 +63,7 @@ it("z placeholderem: wartość '' pokazuje placeholder, a wybór PIERWSZEJ opcji
   expect(widoczne()).toBe("Dedykowane IP");
 });
 
-it("bez placeholdera: jak natywny select — pierwsza opcja widoczna i wysyłana, jej ponowny wybór bez onChange", async () => {
+it("bez placeholdera: jak natywny select – pierwsza opcja widoczna i wysyłana, jej ponowny wybór bez onChange", async () => {
   await act(async () => root.render(<Test name="slug" />));
   expect(widoczne()).toBe("Dedykowane IP");
   expect(k.querySelector<HTMLInputElement>('input[name="slug"]')!.value).toBe("dedicated_ip");

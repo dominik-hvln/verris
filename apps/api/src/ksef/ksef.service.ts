@@ -278,11 +278,11 @@ export class KsefService {
       // konfiguracji po naszej stronie, nie niedostępność KSeF — bez wpisu o przerwie i bez trybu offline.
       if (!bladDostepnosciKsef(err)) {
         const powod = err instanceof Error ? err.message : String(err);
-        this.logger.error(`KSeF: uwierzytelnienie odrzucone — sprawdź token i uprawnienia (faktury czekają): ${powod}`);
+        this.logger.error(`KSeF: uwierzytelnienie odrzucone – sprawdź token i uprawnienia (faktury czekają): ${powod}`);
         await this.audit.record({ action: 'KSEF_UWIERZYTELNIENIE_ODRZUCONE', details: { powod: powod.slice(0, 500) } });
         // Przegląd poprawek 15.10: bez śladu na fakturach kolejka stała po cichu (np. token PROD bez uprawnień
         // w dniu przełączenia) — powód widać na fakturze i w Ustawienia → Firma → KSeF („czekają z błędem”).
-        await this.zapiszBladWKolejce(pending, `Uwierzytelnienie KSeF odrzucone — sprawdź token i uprawnienia: ${powod}`);
+        await this.zapiszBladWKolejce(pending, `Uwierzytelnienie KSeF odrzucone – sprawdź token i uprawnienia: ${powod}`);
         return;
       }
       // M-16 — KSeF nie odpowiada. Do dziś w tym miejscu było tylko ostrzeżenie
@@ -328,7 +328,7 @@ export class KsefService {
         } catch (err) {
           // Błąd pojedynczej faktury nie zatrzymuje partii.
           this.logger.error(
-            `KSeF: faktura ${inv.number} — ${err instanceof Error ? err.message : String(err)}`,
+            `KSeF: faktura ${inv.number} – ${err instanceof Error ? err.message : String(err)}`,
           );
         }
       }
@@ -374,27 +374,27 @@ export class KsefService {
       if (korygowana?.ksefNumber && korygowana.ksefSrodowisko) {
         if (normalizujSrodowiskoKsef(korygowana.ksefSrodowisko) !== env) {
           throw new FaXmlValidationError(
-            `Faktura korygowana ${korygowana.number} jest w KSeF ${korygowana.ksefSrodowisko}, a wysyłka idzie do ${env} — korekty nie da się wysłać do innego środowiska.`,
+            `Faktura korygowana ${korygowana.number} jest w KSeF ${korygowana.ksefSrodowisko}, a wysyłka idzie do ${env} – korekty nie da się wysłać do innego środowiska.`,
           );
         }
       }
       if (korygowana && !korygowana.ksefNumber && STATUSY_Z_PLIKIEM_KSEF.includes(korygowana.ksefStatus)) {
         throw new KorygowanaBezNumeruKsef(
-          `Faktura korygowana ${korygowana.number} czeka na numer KSeF — korekta pójdzie po nim.`,
+          `Faktura korygowana ${korygowana.number} czeka na numer KSeF – korekta pójdzie po nim.`,
         );
       }
       // Przegląd 15.10: odrzucona pierwotna wraca do KSeF po poprawie danych („Ponów”) — korekta wysłana teraz
       // z NrKSeFN („poza KSeF”) zostałaby w KSeF z nieprawdą na zawsze. Czeka na numer jak wyżej.
       if (korygowana && !korygowana.ksefNumber && korygowana.ksefStatus === KsefStatus.REJECTED) {
         throw new KorygowanaBezNumeruKsef(
-          `Faktura korygowana ${korygowana.number} została odrzucona przez KSeF — popraw ją i ponów; korekta pójdzie po nadaniu numeru.`,
+          `Faktura korygowana ${korygowana.number} została odrzucona przez KSeF – popraw ją i ponów; korekta pójdzie po nadaniu numeru.`,
         );
       }
       // Przegląd poprawek 15.10: pierwotna to faktura VAT panelu, która powinna być w KSeF, a nie trafiła do kolejki
       // (zaległa spoza okna automatu) — ta sama nieprawda co wyżej. Czeka, aż operator zakolejkuje zaległe.
       if (korygowana && korygowana.ksefStatus === KsefStatus.NOT_APPLICABLE && this.qualifies(korygowana)) {
         throw new KorygowanaBezNumeruKsef(
-          `Faktura korygowana ${korygowana.number} nie została wysłana do KSeF (zaległa) — zakolejkuj zaległe faktury; korekta pójdzie po nadaniu numeru.`,
+          `Faktura korygowana ${korygowana.number} nie została wysłana do KSeF (zaległa) – zakolejkuj zaległe faktury; korekta pójdzie po nadaniu numeru.`,
         );
       }
     }
@@ -437,7 +437,7 @@ export class KsefService {
         return;
       }
       if (err instanceof KorygowanaBezNumeruKsef) {
-        this.logger.log(`KSeF: ${inv.number} — ${err.message}`);
+        this.logger.log(`KSeF: ${inv.number} – ${err.message}`);
         // Przegląd poprawek 15.10: czekająca korekta ma widoczny powód (wcześniej tylko log).
         await this.zapiszBladWKolejce([inv], err.message);
         return;
@@ -499,7 +499,7 @@ export class KsefService {
       return { ...plik, numerKsef: inv.ksefNumber, przyjeto: inv.ksefAcceptedAt, numer: inv.number };
     } catch (err) {
       if (err instanceof FaXmlValidationError || err instanceof KorygowanaBezNumeruKsef) {
-        this.logger.warn(`KSeF: brak pliku do wizualizacji ${inv.number} — ${err.message}`);
+        this.logger.warn(`KSeF: brak pliku do wizualizacji ${inv.number} – ${err.message}`);
         return null;
       }
       throw err;
@@ -598,7 +598,7 @@ export class KsefService {
     }
 
     this.logger.warn(
-      `KSeF niedostępny — ${oznaczone} faktur(y) oznaczone jako OFFLINE ` +
+      `KSeF niedostępny – ${oznaczone} faktur(y) oznaczone jako OFFLINE ` +
         `(tryb do zaklasyfikowania): ${powod}`,
     );
     if (oznaczone > 0) {
@@ -697,11 +697,11 @@ export class KsefService {
    */
   async zakwalifikujZalegle(actorUserId: string, oczekiwanaLiczba: number): Promise<{ zakolejkowane: number; srodowisko: string }> {
     const rt = await this.settings.getKsefRuntimeConfig();
-    if (!rt.enabled) throw new ConflictException('KSeF jest wyłączony — najpierw włącz wysyłkę i sprawdź środowisko.');
+    if (!rt.enabled) throw new ConflictException('KSeF jest wyłączony – najpierw włącz wysyłkę i sprawdź środowisko.');
     const where = warunekNiezakolejkowanych({ lt: poczatekOknaAuto() });
     const teraz = await this.prisma.invoice.count({ where });
     if (teraz !== oczekiwanaLiczba) {
-      throw new ConflictException(`Liczba zaległych faktur zmieniła się (${teraz}, a podgląd pokazywał ${oczekiwanaLiczba}) — odśwież i sprawdź ponownie.`);
+      throw new ConflictException(`Liczba zaległych faktur zmieniła się (${teraz}, a podgląd pokazywał ${oczekiwanaLiczba}) – odśwież i sprawdź ponownie.`);
     }
     const r = await this.prisma.invoice.updateMany({ where, data: { ksefStatus: KsefStatus.PENDING } });
     await this.audit.record({
@@ -788,7 +788,7 @@ export class KsefService {
         ksefStatus: KsefStatus.UNCERTAIN,
         ksefSubmittedAt: new Date(),
         ksefSrodowisko: env,
-        ksefError: `Wysyłka bez potwierdzenia KSeF (${err.message.slice(0, 300)}). Sprawdź w KSeF, czy faktura jest — dopiero potem wyślij ponownie.`,
+        ksefError: `Wysyłka bez potwierdzenia KSeF (${err.message.slice(0, 300)}). Sprawdź w KSeF, czy faktura jest – dopiero potem wyślij ponownie.`,
       },
     });
     await this.audit.record({
@@ -803,7 +803,7 @@ export class KsefService {
         category: 'SYSTEM',
         severity: 'warning',
         title: `KSeF: ${inv.number} do wyjaśnienia`,
-        body: 'KSeF nie potwierdził wysyłki faktury — mogła dojść. Sprawdź ją w KSeF (środowisko ' + env + ') i rozstrzygnij na stronie faktury.',
+        body: 'KSeF nie potwierdził wysyłki faktury – mogła dojść. Sprawdź ją w KSeF (środowisko ' + env + ') i rozstrzygnij na stronie faktury.',
         link: `/invoices/${inv.id}#ksef`,
       })),
     });

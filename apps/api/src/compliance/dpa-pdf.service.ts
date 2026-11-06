@@ -108,7 +108,7 @@ export class DpaPdfService {
     }
 
     const company: CompanyData = {
-      companyName: user.companyName ?? '—',
+      companyName: user.companyName ?? '–',
       nip: user.nip,
       address: user.address,
       city: user.city,
@@ -182,7 +182,7 @@ export class DpaPdfService {
     acceptanceId: string;
   }): Promise<Uint8Array> {
     const doc = await PDFDocument.create();
-    doc.setTitle(`Verris — DPA ${input.dpaVersion}`);
+    doc.setTitle(`Verris – DPA ${input.dpaVersion}`);
     doc.setAuthor('Verris');
     doc.setSubject('Umowa Powierzenia Przetwarzania Danych Osobowych');
     doc.setProducer('Verris Panel');
@@ -206,7 +206,7 @@ export class DpaPdfService {
     drawHeader(ctx, 'Umowa Powierzenia Przetwarzania Danych Osobowych');
     drawParagraph(
       ctx,
-      `(Data Processing Agreement / DPA — wersja ${input.dpaVersion})`,
+      `(Data Processing Agreement / DPA – wersja ${input.dpaVersion})`,
       { font: ctx.fontBody, size: FONT_BODY, color: rgb(0.4, 0.4, 0.4) },
     );
     moveBy(ctx, 16);
@@ -516,7 +516,7 @@ function finalizePages(ctx: PageContext, dpaVersion: string, acceptanceId: strin
   const total = ctx.doc.getPageCount();
   for (let p = 0; p < total; p++) {
     const page = ctx.doc.getPage(p);
-    const footer = `Verris — DPA ${dpaVersion}  |  Akceptacja: ${acceptanceId}  |  Strona ${p + 1} / ${total}`;
+    const footer = `Verris – DPA ${dpaVersion}  |  Akceptacja: ${acceptanceId}  |  Strona ${p + 1} / ${total}`;
     page.drawText(footer, {
       x: MARGIN_X,
       y: 28,

@@ -30,7 +30,7 @@ it("trasy: stan wysyłki, kolejka, blokada, odczyt z frazą, usunięcie z identy
   ]);
 });
 
-it("nieznana akcja albo sekcja — bez API; 403 — nazwa uprawnienia", async () => {
+it("nieznana akcja albo sekcja – bez API; 403 – nazwa uprawnienia", async () => {
   expect(await zapisPocztyAction("s1", "constructor" as never, {})).toEqual({ ok: false, error: "Nieznana akcja." });
   expect(await odczytPocztyAction("s1", "../users" as never)).toEqual({ ok: false, error: "Nieznana sekcja poczty." });
   expect(api).not.toHaveBeenCalled();

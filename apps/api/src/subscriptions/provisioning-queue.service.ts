@@ -96,7 +96,7 @@ export class ProvisioningQueueService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit() {
     if (!this.isAsync()) {
-      this.logger.log('REDIS_URL not set — provisioning requests stay synchronous.');
+      this.logger.log('REDIS_URL not set – provisioning requests stay synchronous.');
       return;
     }
     const url = process.env.REDIS_URL!.trim();
@@ -356,7 +356,7 @@ export class ProvisioningQueueService implements OnModuleInit, OnModuleDestroy {
       return {
         ok: false,
         powod:
-          `Odrzucić można tylko joba w stanie "failed" — ten jest w stanie "${stan}". ` +
+          `Odrzucić można tylko joba w stanie "failed" – ten jest w stanie "${stan}". ` +
           'Usunięcie joba w trakcie osierociłoby provisioning na węźle.',
       };
     }
@@ -425,7 +425,7 @@ export class ProvisioningQueueService implements OnModuleInit, OnModuleDestroy {
     // Przegląd poprawek 15.10: job „wallet” zamówienia, za które pieniądze już wróciły (twarda porażka), nie może
     // założyć usługi przy „Ponów” z panelu — byłaby aktywna bez opłaty (a po cofnięciu bez końca okresu: bez odnowień).
     if (d.type === 'wallet' && (await this.walletLedger.findByIdempotencyKey(`sub-${d.subscriptionId}-initial-refund`))) {
-      const msg = 'Opłata za to zamówienie została zwrócona do portfela — zakładanie wymaga nowego zamówienia.';
+      const msg = 'Opłata za to zamówienie została zwrócona do portfela – zakładanie wymaga nowego zamówienia.';
       await this.markStage(d.subscriptionId, ProvisioningStage.FAILED, { error: msg, attempt: (job.attemptsMade ?? 0) + 1 });
       throw new UnrecoverableError(msg);
     }
@@ -449,7 +449,7 @@ export class ProvisioningQueueService implements OnModuleInit, OnModuleDestroy {
       });
       if (existing) {
         this.logger.warn(
-          `Provisioning sub=${d.subscriptionId} job=${job.id} already has account=${existing.id} — promoting subscription do ACTIVE.`,
+          `Provisioning sub=${d.subscriptionId} job=${job.id} already has account=${existing.id} – promoting subscription do ACTIVE.`,
         );
         await this.prisma.subscription.update({
           where: { id: d.subscriptionId },
@@ -564,7 +564,7 @@ export class ProvisioningQueueService implements OnModuleInit, OnModuleDestroy {
                 category: 'SYSTEM',
                 severity: 'warning',
                 title: 'Opłacone zamówienie nie zostało zrealizowane',
-                body: `Klient zapłacił przez Paynow za nową usługę, ale zakładanie konta się nie udało (${msg.slice(0, 200)}). Środki wróciły do portfela klienta — sprawdź usługę i skontaktuj się z klientem.`,
+                body: `Klient zapłacił przez Paynow za nową usługę, ale zakładanie konta się nie udało (${msg.slice(0, 200)}). Środki wróciły do portfela klienta – sprawdź usługę i skontaktuj się z klientem.`,
                 link: `/customers/${d.userId}`,
               })),
             });

@@ -57,7 +57,7 @@ export const Posts: CollectionConfig = {
       label: 'FAQ (schema FAQPage)',
       admin: {
         description:
-          'Pytania i odpowiedzi z końca wpisu — zasilają rich results i cytowania w AI. Format: [{"q":"Pytanie?","a":"Odpowiedź."}]',
+          'Pytania i odpowiedzi z końca wpisu – zasilają rich results i cytowania w AI. Format: [{"q":"Pytanie?","a":"Odpowiedź."}]',
       },
     },
     { name: 'excerpt', type: 'textarea', label: 'Zajawka', maxLength: 300 },

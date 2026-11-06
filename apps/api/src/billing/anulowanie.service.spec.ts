@@ -26,7 +26,7 @@ function setup(inv: Record<string, unknown> | null, opts: { stripeFails?: boolea
 const base = { id: 'f1', number: 'VDR/2026/09/0003', userId: 'u1', provider: null, providerRef: null };
 const run = (s: AnulowanieService) => s.anuluj({ invoiceId: 'f1', powod: 'błędnie wystawiony', aktorUserId: 'a1' });
 
-describe('M-08 — anulowanie dokumentu', () => {
+describe('M-08 – anulowanie dokumentu', () => {
   it('nieopłacony dokument panelu: VOID + audyt z powodem, bez Stripe', async () => {
     const t = setup({ ...base, status: 'OPEN' });
     await expect(run(t.svc)).resolves.toMatchObject({ status: 'VOID' });

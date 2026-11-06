@@ -3,7 +3,7 @@ import { KartaWPaneluOperatora } from "./karta-w-panelu-operatora";
 import { adresPaneluOperatora, kartaKlientaOperatora, kartaUslugiOperatora } from "@/lib/panel-operatora";
 
 /** D1 (10.10) — karty klienta i usługi w panelu obsługi prowadzą do kart w panelu operatora i są oznaczone jako przestarzałe. */
-describe("D1 — link do panelu operatora", () => {
+describe("D1 – link do panelu operatora", () => {
   it("adres z ADMIN_PANEL_URL (bez końcowego ukośnika), domyślnie https://admin.verris.pl", () => {
     expect(adresPaneluOperatora({})).toBe("https://admin.verris.pl");
     expect(adresPaneluOperatora({ ADMIN_PANEL_URL: " https://admin.test/ " })).toBe("https://admin.test");

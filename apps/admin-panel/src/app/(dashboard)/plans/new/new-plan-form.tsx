@@ -210,20 +210,20 @@ export function NewPlanForm() {
           <ToggleRow
             checked={stripeManual}
             onChange={setStripeManual}
-            description="Ręczne Price ID z Dashboard — wyłącza auto-sync przy tworzeniu."
+            description="Ręczne Price ID z Dashboard – wyłącza auto-sync przy tworzeniu."
           />
         </div>
         {stripeManual ? (
           <>
             <PriceIdField
-              label="Stripe Price ID — miesięcznie"
+              label="Stripe Price ID – miesięcznie"
               value={form.stripePriceMonthlyId}
               onChange={(v) => setField("stripePriceMonthlyId", v)}
               onValidate={() => validateStripe("month")}
               feedback={monthlyCheck}
             />
             <PriceIdField
-              label="Stripe Price ID — rocznie"
+              label="Stripe Price ID – rocznie"
               value={form.stripePriceYearlyId}
               onChange={(v) => setField("stripePriceYearlyId", v)}
               onValidate={() => validateStripe("year")}
@@ -244,12 +244,12 @@ export function NewPlanForm() {
         <NumField label="Okres próbny (dni, 0 = brak)" value={form.trialDays} onChange={(v) => setField("trialDays", v)} />
         <NumField label="SLA wsparcia (h, 0=brak)" value={form.supportSlaHours} onChange={(v) => setField("supportSlaHours", v)} />
         <NumField
-          label="Kopie poza serwerem — maks. dni do wyboru"
+          label="Kopie poza serwerem – maks. dni do wyboru"
           value={form.offsiteRetentionMaxDays}
           onChange={(v) => setField("offsiteRetentionMaxDays", v)}
           min={KOPIE_OFFSITE_DNI}
           max={KOPIE_OFFSITE_MAX_DNI}
-          hint={`${KOPIE_OFFSITE_DNI} = klient ma stałe ${KOPIE_OFFSITE_DNI} dni; więcej — sam wybiera w panelu (do ${KOPIE_OFFSITE_MAX_DNI}).`}
+          hint={`${KOPIE_OFFSITE_DNI} = klient ma stałe ${KOPIE_OFFSITE_DNI} dni; więcej – sam wybiera w panelu (do ${KOPIE_OFFSITE_MAX_DNI}).`}
         />
       </Card>
 

@@ -70,7 +70,7 @@ export function DbTransferPanel({ serviceId, databases }: { serviceId: string; d
       const r = await exportDb(serviceId, baza);
       if (r.ok) {
         setStan(r.status);
-        toast.success('Eksport zlecony — plik pojawi się poniżej.');
+        toast.success('Eksport zlecony – plik pojawi się poniżej.');
       } else toast.error(r.error);
     });
 
@@ -111,7 +111,7 @@ export function DbTransferPanel({ serviceId, databases }: { serviceId: string; d
       const r = await measureDbSizes(serviceId);
       if (r.ok) {
         setStan(r.status);
-        toast.success('Liczę rozmiary baz — wynik za chwilę.');
+        toast.success('Liczę rozmiary baz – wynik za chwilę.');
       } else toast.error(r.error);
     });
 
@@ -145,7 +145,7 @@ export function DbTransferPanel({ serviceId, databases }: { serviceId: string; d
         <h3 className="m-0 text-[15px] font-bold text-foreground">Eksport i import bazy</h3>
         <p className="m-0 mt-0.5 text-[12.5px] text-muted-foreground">
           Pliki trafiają do katalogu <span className="font-mono">{stan?.katalog ?? 'verris-bazy'}</span> na koncie. Plik do importu (.sql
-          albo .sql.gz) wgrasz tam menedżerem plików, a duży — przez FTP.
+          albo .sql.gz) wgrasz tam menedżerem plików, a duży – przez FTP.
         </p>
       </header>
 

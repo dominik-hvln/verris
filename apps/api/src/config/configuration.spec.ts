@@ -7,7 +7,7 @@ import { loadConfig } from './configuration.js';
  * Pusta lista = strażnik SSRF (migration-net.util) nie odróżnia własnego adresu serwera
  * od hosta klienta, a połączenie na własny adres idzie lokalnie i omija zaporę.
  */
-describe('loadConfig — VERRIS_CONTROL_PLANE_IPS', () => {
+describe('loadConfig – VERRIS_CONTROL_PLANE_IPS', () => {
   const zapis = { ...process.env };
   const PROD = {
     NODE_ENV: 'production',
@@ -30,22 +30,22 @@ describe('loadConfig — VERRIS_CONTROL_PLANE_IPS', () => {
     Object.assign(process.env, zapis);
   });
 
-  it.each(['', ' , '])('produkcja z VERRIS_CONTROL_PLANE_IPS=%j — start zatrzymany czytelnym błędem', (wartosc) => {
+  it.each(['', ' , '])('produkcja z VERRIS_CONTROL_PLANE_IPS=%j – start zatrzymany czytelnym błędem', (wartosc) => {
     Object.assign(process.env, PROD, { VERRIS_CONTROL_PLANE_IPS: wartosc });
-    expect(() => loadConfig()).toThrow(/Brak VERRIS_CONTROL_PLANE_IPS — w produkcji API nie wystartuje/);
+    expect(() => loadConfig()).toThrow(/Brak VERRIS_CONTROL_PLANE_IPS – w produkcji API nie wystartuje/);
   });
 
-  it('produkcja bez zmiennej — start zatrzymany', () => {
+  it('produkcja bez zmiennej – start zatrzymany', () => {
     Object.assign(process.env, PROD);
     expect(() => loadConfig()).toThrow('VERRIS_CONTROL_PLANE_IPS');
   });
 
-  it('produkcja z adresami control-plane — start', () => {
+  it('produkcja z adresami control-plane – start', () => {
     Object.assign(process.env, PROD, { VERRIS_CONTROL_PLANE_IPS: '203.0.113.10,2001:db8::/64' });
     expect(loadConfig().nodeEnv).toBe('production');
   });
 
-  it('dev/test bez zmiennej — bez zmian (start)', () => {
+  it('dev/test bez zmiennej – bez zmian (start)', () => {
     process.env.NODE_ENV = 'test';
     expect(() => loadConfig()).not.toThrow();
   });

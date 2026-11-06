@@ -15,7 +15,7 @@ export function FleetUpdateButton({ id }: { id?: string } = {}) {
   const [pending, start] = useTransition();
 
   const run = async () => {
-    if (!(await potwierdz("Uruchomić falę aktualizacji stacku (DA/CloudLinux/LiteSpeed)? Najpierw węzeł kanarkowy (najmniej kont), potem pozostałe po jednym — każdy następny dopiero po udanej aktualizacji poprzedniego, błąd zatrzymuje falę.", { akcja: 'Uruchom falę', niebezpieczne: true }))) {
+    if (!(await potwierdz("Uruchomić falę aktualizacji stacku (DA/CloudLinux/LiteSpeed)? Najpierw węzeł kanarkowy (najmniej kont), potem pozostałe po jednym – każdy następny dopiero po udanej aktualizacji poprzedniego, błąd zatrzymuje falę.", { akcja: 'Uruchom falę', niebezpieczne: true }))) {
       return;
     }
     setMsg(null);

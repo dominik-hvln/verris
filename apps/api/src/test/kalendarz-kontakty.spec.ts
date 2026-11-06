@@ -20,13 +20,13 @@ describe('E-23 kalendarz i kontakty w profilu węzła', () => {
     expect(profil).toContain('--server-key=/run/verris-radicale/key.pem');
   });
 
-  it('certyfikat kopiowany przy starcie, profil sprawdza, że usługa żyje — t1 03.10: LoadCredential bez pliku, [OK] przy failed', () => {
+  it('certyfikat kopiowany przy starcie, profil sprawdza, że usługa żyje – t1 03.10: LoadCredential bez pliku, [OK] przy failed', () => {
     expect(profil).not.toMatch(/^LoadCredential=/m);
     expect(profil).toContain('ExecStartPre=+/usr/bin/install -m 0640 -o root -g radicale /usr/local/directadmin/conf/cakey.pem /run/verris-radicale/key.pem');
     expect(profil).toMatch(/systemctl restart verris-radicale[^\n]*&& sleep 3 && systemctl is-active --quiet verris-radicale/);
   });
 
-  it('osobne gniazdo auth Dovecota dla Radicale (grupa radicale), auth-client nietknięty — test D3 29.09', () => {
+  it('osobne gniazdo auth Dovecota dla Radicale (grupa radicale), auth-client nietknięty – test D3 29.09', () => {
     expect(profil).toMatch(/unix_listener auth-verris-radicale \{\n\s+mode = 0660\n\s+user = root\n\s+group = radicale\n\s+type = auth\n/);
     expect(profil).toContain('dovecot_socket = /var/run/dovecot/auth-verris-radicale');
     expect(profil).not.toMatch(/chmod[^\n]*auth-client|dovecot_socket = \/var\/run\/dovecot\/auth-client/);

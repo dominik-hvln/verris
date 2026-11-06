@@ -48,7 +48,7 @@ describe('podmiana adresów', () => {
   });
 });
 
-describe('PodgladService — przez proxy do węzła konta', () => {
+describe('PodgladService – przez proxy do węzła konta', () => {
   let wezel: Server;
   let api: Server;
   let svc: PodgladService;
@@ -291,7 +291,7 @@ describe('PodgladService — przez proxy do węzła konta', () => {
     expect(svc.trwajace).toBe(0);
   });
 
-  it('przeglądarka zrywa połączenie w trakcie — semafor wraca do zera', async () => {
+  it('przeglądarka zrywa połączenie w trakcie – semafor wraca do zera', async () => {
     const { host, cookie } = await wejdz();
     await new Promise<void>((ok) => {
       const r = httpRequest({ host: '127.0.0.1', port: apiPort, path: '/podglad-proxy/wolno', headers: { host, cookie } }, (odp) => {

@@ -44,7 +44,7 @@ it('podpowiedź z DNS wpisuje adres panelu i pokazuje, gdzie stoi strona i poczt
   expect(el.querySelector('[data-wynik-dns]')!.textContent).toContain('Wpisaliśmy adres panelu: serwer123.stary.pl');
 });
 
-it('bez podpowiedzi — adresu panelu nie zmieniamy i mówimy, gdzie go szukać', async () => {
+it('bez podpowiedzi – adresu panelu nie zmieniamy i mówimy, gdzie go szukać', async () => {
   mockRozpoznaj.mockResolvedValue({ ok: true, result: { domena: 'firma.pl', a: [], mx: [], ns: [], podpowiedzHosta: null } });
   const onHost = jest.fn();
   await montuj(onHost);

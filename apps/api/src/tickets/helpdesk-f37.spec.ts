@@ -9,7 +9,7 @@ import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 
 /** F3.7 cz. 2 — logika makr, obecności, raportów, działów i scalenia (bez bazy; baza — test/integration). */
-describe('F3.7 — makra', () => {
+describe('F3.7 – makra', () => {
   const m = (o: Partial<{ makroStan: string | null; makroTagi: string[]; makroPrzypisz: string | null }> = {}) => ({
     makroStan: null, makroTagi: [], makroPrzypisz: null, ...o,
   });
@@ -20,7 +20,7 @@ describe('F3.7 — makra', () => {
     expect(czyMakro(m({ makroPrzypisz: 'JA' }))).toBe(true);
   });
 
-  it('stan: czekaj/W realizacji przez samą odpowiedź, OPEN i CLOSED — zmiana po odpowiedzi', () => {
+  it('stan: czekaj/W realizacji przez samą odpowiedź, OPEN i CLOSED – zmiana po odpowiedzi', () => {
     expect(planMakra(m(), 'ja')).toEqual({ czekaj: 'tak', zmiana: null, tagi: [] });
     expect(planMakra(m({ makroStan: 'WAITING_CUSTOMER' }), 'ja')).toEqual({ czekaj: 'tak', zmiana: null, tagi: [] });
     expect(planMakra(m({ makroStan: 'IN_PROGRESS' }), 'ja')).toEqual({ czekaj: 'nie', zmiana: null, tagi: [] });
@@ -37,7 +37,7 @@ describe('F3.7 — makra', () => {
   });
 });
 
-describe('F3.7 — obecność w zgłoszeniu', () => {
+describe('F3.7 – obecność w zgłoszeniu', () => {
   it('widzę innych (nie siebie), „pisze” się aktualizuje, znacznik wygasa, wyjście znika od razu', () => {
     const r = new RejestrObecnosci();
     expect(r.zglos('t1', 'anna', false, 0)).toEqual([]);
@@ -53,7 +53,7 @@ describe('F3.7 — obecność w zgłoszeniu', () => {
   });
 });
 
-describe('F3.7 — raporty: terminy SLA i mediana', () => {
+describe('F3.7 – raporty: terminy SLA i mediana', () => {
   const d = (h: number) => new Date(Date.UTC(2026, 9, 1, h));
   it('ocenTermin: dotrzymane, przekroczone, w toku, bez terminu; zamknięte bez odpowiedzi po terminie = przekroczone', () => {
     expect(ocenTermin(d(12), d(11), null, d(20))).toBe('dotrzymane');
@@ -75,13 +75,13 @@ describe('F3.7 — raporty: terminy SLA i mediana', () => {
   });
 });
 
-describe('F3.7 — działy w skrzynce, scalone zgłoszenie, akcje masowe', () => {
+describe('F3.7 – działy w skrzynce, scalone zgłoszenie, akcje masowe', () => {
   it('filtr działu: znany dział → warunek, nieznany → 400 (nie pusta lista)', () => {
     expect(warunkiListyZgloszen({ dzial: 'BILLING' }, 'op', new Date())).toEqual({ AND: [{ department: 'BILLING' }] });
     expect(() => warunkiListyZgloszen({ dzial: 'ABUSE' }, 'op', new Date())).toThrow(BadRequestException);
   });
 
-  it('do scalonego zgłoszenia nie da się pisać — komunikat z numerem celu', () => {
+  it('do scalonego zgłoszenia nie da się pisać – komunikat z numerem celu', () => {
     expect(() => odmowaScalonego({ scalonoDoId: null })).not.toThrow();
     expect(() => odmowaScalonego({ scalonoDoId: 'abcdef12-0000-4000-8000-000000000000' })).toThrow(/#abcdef12/);
   });

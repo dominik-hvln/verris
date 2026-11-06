@@ -46,13 +46,13 @@ function wpisOsi(item: { kind: string; title: string; code: string; meta: string
 }
 
 function formatAuditSnippet(details: unknown): string {
-  if (details === null || details === undefined) return "—";
+  if (details === null || details === undefined) return "–";
   if (typeof details === "string") return details.length > 120 ? `${details.slice(0, 117)}…` : details;
   try {
     const s = JSON.stringify(details);
     return s.length > 140 ? `${s.slice(0, 137)}…` : s;
   } catch {
-    return "—";
+    return "–";
   }
 }
 
@@ -145,7 +145,7 @@ export default async function StaffCustomerProfilePage({
             {statusPageOpenIncidents.map((i) => (
               <li key={i.id}>
                 <span className="font-mono text-amber-100/80">{i.severity}</span> · {i.title} ·{" "}
-                {i.serverName} — {i.probeTarget} (
+                {i.serverName} – {i.probeTarget} (
                 {new Date(i.startedAt).toLocaleString("pl-PL")})
               </li>
             ))}
@@ -257,7 +257,7 @@ export default async function StaffCustomerProfilePage({
                         </span>
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        {s.cancelAt || s.currentPeriodEnd ? new Date((s.cancelAt ?? s.currentPeriodEnd)!).toLocaleDateString("pl-PL") : "—"}
+                        {s.cancelAt || s.currentPeriodEnd ? new Date((s.cancelAt ?? s.currentPeriodEnd)!).toLocaleDateString("pl-PL") : "–"}
                       </span>
                       <span className="rounded border border-white/10 bg-white/5 px-2 py-0.5 text-xs">{SUB_STATUS_PL[s.status] ?? s.status}</span>
                     </Link>
@@ -329,7 +329,7 @@ export default async function StaffCustomerProfilePage({
                   Szczegóły
                 </Link>
               </div>
-              <Para k="Sposób" v={zrodla.join(", ") || "—"} />
+              <Para k="Sposób" v={zrodla.join(", ") || "–"} />
               <Para k="Warunki indywidualne" v={indywidualne.length ? services(indywidualne.length) : "brak"} />
               <Para k="Dane do faktury" v={user.companyName && user.nip ? `komplet · NIP ${user.nip}` : user.nip ? `NIP ${user.nip} · bez nazwy firmy` : "osoba prywatna / brak NIP"} />
               <Para k="Metoda płatności" v={domyslna ? `${domyslna.brand ?? "karta"} •••• ${domyslna.last4 ?? ""}` : "brak zapisanej"} />
@@ -402,23 +402,23 @@ export default async function StaffCustomerProfilePage({
                               <div className="text-muted-foreground">DA: {s.account.daUsername}</div>
                             </>
                           ) : (
-                            <span className="text-muted-foreground">—</span>
+                            <span className="text-muted-foreground">–</span>
                           )}
                         </td>
                         <td className="px-4 py-3 text-xs text-muted-foreground">
                           {s.account?.server ? (
                             <>
-                              {s.account.server.name ?? s.account.server.hostname ?? "—"}
+                              {s.account.server.name ?? s.account.server.hostname ?? "–"}
                               <div className="font-mono">{s.account.server.ipAddress}</div>
                             </>
                           ) : (
-                            "—"
+                            "–"
                           )}
                         </td>
                         <td className="px-4 py-3 text-xs text-muted-foreground">
                           {s.currentPeriodEnd
                             ? new Date(s.currentPeriodEnd).toLocaleDateString("pl-PL")
-                            : "—"}
+                            : "–"}
                         </td>
                         <td className="px-4 py-3 text-right">
                           <Link
@@ -488,7 +488,7 @@ export default async function StaffCustomerProfilePage({
                         {formatPlnAndCredits(w.balanceAfter, w.currency)}
                       </td>
                       <td className="max-w-xs truncate px-4 py-2 text-xs text-neutral-400">
-                        {w.description ?? "—"}
+                        {w.description ?? "–"}
                       </td>
                     </tr>
                   ))}
@@ -540,7 +540,7 @@ export default async function StaffCustomerProfilePage({
                 {paymentMethods.map((pm) => (
                   <li key={pm.id} className="px-2 py-2 text-sm">
                     <span className="text-white">
-                      {(pm.brand ?? pm.provider ?? "").toUpperCase()} ·••• {pm.last4 ?? "—"}
+                      {(pm.brand ?? pm.provider ?? "").toUpperCase()} ·••• {pm.last4 ?? "–"}
                     </span>
                     {pm.expMonth != null && pm.expYear != null ? (
                       <span className="ml-2 text-xs text-muted-foreground">
@@ -603,9 +603,9 @@ export default async function StaffCustomerProfilePage({
           <section className={`${KARTA} space-y-2 p-5`} data-karta="dostep">
             <h2 className="text-sm font-bold uppercase tracking-wide text-white">Dostęp do konta</h2>
             <Para k="Logowanie dwuetapowe (2FA)" v={user.isTwoFactorEnabled ? "włączone" : "wyłączone"} />
-            <Para k="Logowanie" v={user.loginBlocked ? `zablokowane${user.loginBlockedReason ? ` — ${user.loginBlockedReason}` : ""}` : "dozwolone"} />
+            <Para k="Logowanie" v={user.loginBlocked ? `zablokowane${user.loginBlockedReason ? ` – ${user.loginBlockedReason}` : ""}` : "dozwolone"} />
             <Para k="Rejestracja" v={new Date(user.createdAt).toLocaleString("pl-PL")} />
-            <Para k="Klient Stripe" v={user.stripeCustomerId ?? "—"} mono />
+            <Para k="Klient Stripe" v={user.stripeCustomerId ?? "–"} mono />
             <Para k="ID konta" v={user.id} mono />
             <p className="pt-2 text-xs text-muted-foreground">
               Reset hasła, zmianę adresu e-mail i usunięcie konta (RODO) wykonuje administrator.
@@ -639,7 +639,7 @@ export default async function StaffCustomerProfilePage({
                     </td>
                     <td className="px-4 py-2 font-mono text-xs">{a.action}</td>
                     <td className="px-4 py-2 font-mono text-[11px] text-neutral-400">
-                      {a.actorUserId ?? "—"}
+                      {a.actorUserId ?? "–"}
                     </td>
                     <td className="max-w-md px-4 py-2 font-mono text-[11px] text-neutral-300">
                       {formatAuditSnippet(a.details)}

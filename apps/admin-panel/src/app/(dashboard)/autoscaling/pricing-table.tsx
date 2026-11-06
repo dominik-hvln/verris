@@ -49,7 +49,7 @@ export function PricingTable({ rules, resourceLabels }: Props) {
       <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-10 text-center">
         <p className="text-base font-semibold text-white">Brak reguł cennika</p>
         <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto">
-          Dodaj pierwszą stawkę po prawej — bez aktywnych reguł silnik autoskalowania nie zaczyna
+          Dodaj pierwszą stawkę po prawej – bez aktywnych reguł silnik autoskalowania nie zaczyna
           naliczać kosztów za CPU/RAM/dysk.
         </p>
       </div>
@@ -71,7 +71,7 @@ export function PricingTable({ rules, resourceLabels }: Props) {
                 {resourceLabels[resource] ?? resource}
               </h3>
               <p className="mt-1 text-xs text-muted-foreground">
-                Brak reguł — dodaj stawkę w formularzu po prawej.
+                Brak reguł – dodaj stawkę w formularzu po prawej.
               </p>
             </section>
           );
@@ -111,7 +111,7 @@ export function PricingTable({ rules, resourceLabels }: Props) {
           <div className="border-b border-amber-500/20 px-5 py-3">
             <h3 className="text-sm font-bold text-amber-100">Archiwum (I/O, transfer)</h3>
             <p className="text-xs text-amber-200/70 mt-0.5">
-              Wycofane z katalogu — pozostają tylko do podglądu historycznego.
+              Wycofane z katalogu – pozostają tylko do podglądu historycznego.
             </p>
           </div>
           <table className="w-full text-sm opacity-80">
@@ -236,7 +236,7 @@ function RuleRow({ rule, readonly = false }: { rule: PriceRuleDto; readonly?: bo
           />
         ) : (
           <span className="text-xs text-muted-foreground line-clamp-2">
-            {rule.notes || "—"}
+            {rule.notes || "–"}
           </span>
         )}
       </td>

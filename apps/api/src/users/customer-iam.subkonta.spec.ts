@@ -37,7 +37,7 @@ function przygotuj(member: typeof PIOTR | null = PIOTR) {
   return { prisma, audit, mailer, svc };
 }
 
-describe('P3-01 — subkonto: wyłączenie odwracalne, usunięcie zwalnia adres', () => {
+describe('P3-01 – subkonto: wyłączenie odwracalne, usunięcie zwalnia adres', () => {
   it('włącz ponownie: zdejmuje subaccountDisabledAt i zapisuje w dzienniku, kogo dotyczy', async () => {
     const { prisma, audit, svc } = przygotuj({ ...PIOTR, subaccountDisabledAt: new Date() });
     await svc.enableMember('owner_1', 'owner_1', 'sub_1');
@@ -83,7 +83,7 @@ describe('P3-01 — subkonto: wyłączenie odwracalne, usunięcie zwalnia adres'
   });
 });
 
-describe('P3-09 — mail po odebraniu dostępu', () => {
+describe('P3-09 – mail po odebraniu dostępu', () => {
   it('wyłączenie aktywnego subkonta wysyła mail do współpracownika z nazwą właściciela', async () => {
     const { mailer, svc } = przygotuj();
     await svc.disableMember('owner_1', 'owner_1', 'sub_1');
@@ -108,7 +108,7 @@ describe('P3-09 — mail po odebraniu dostępu', () => {
   });
 });
 
-describe('P3-10 — mail z zaproszeniem współpracownika', () => {
+describe('P3-10 – mail z zaproszeniem współpracownika', () => {
   it('kto zaprasza (nazwa + adres), lista uprawnień prostym językiem, jeden termin ważności', async () => {
     const { iamSubaccountInviteTemplate } = await import('../mail/templates/iam-invite-notification.js');
     const m = iamSubaccountInviteTemplate({

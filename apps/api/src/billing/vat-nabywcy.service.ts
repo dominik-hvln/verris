@@ -46,7 +46,7 @@ export class VatNabywcyService {
       pozaUeZweryfikowany: weryfikacjaPozaUeAktualna(user),
     });
     if (traktowanie.wymagaOss) {
-      this.logger.error(`OSS: sprzedaż konsumentom z UE przekroczyła próg — włącz OSS po rejestracji (user=${userId})`);
+      this.logger.error(`OSS: sprzedaż konsumentom z UE przekroczyła próg – włącz OSS po rejestracji (user=${userId})`);
     }
     return { traktowanie, vies };
   }

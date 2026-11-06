@@ -54,7 +54,7 @@ export class ResellerPrzypomnienieScheduler {
           category: 'SUPPORT',
           severity: 'warning',
           title: `Usługa wstrzymana przez resellera od ponad ${DNI} dni`,
-          body: `${s.account?.domain ?? s.id} — sprawdź z resellerem i klientem, czy wstrzymanie jest nadal zasadne.`,
+          body: `${s.account?.domain ?? s.id} – sprawdź z resellerem i klientem, czy wstrzymanie jest nadal zasadne.`,
           link: `/subscriptions/${s.id}`,
         });
       }

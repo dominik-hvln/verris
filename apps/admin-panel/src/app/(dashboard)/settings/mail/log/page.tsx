@@ -2,7 +2,7 @@ import { bramkaStrony } from "@/lib/bramka-strony";
 import { ScrollText } from 'lucide-react';
 import { EmailLogClient } from './email-log-client';
 
-export const metadata = { title: 'Dziennik poczty — admin Verris' };
+export const metadata = { title: 'Dziennik poczty – admin Verris' };
 
 export default async function EmailLogPage() {
   const bramka = await bramkaStrony("/settings/mail/log");

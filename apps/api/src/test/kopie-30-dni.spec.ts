@@ -20,7 +20,7 @@ const skrypt = () => readFileSync(join(KORZEN, 'ops', 'scripts', 'node-offsite-b
 const bledy = (klasa: new () => object, v: Record<string, unknown>) =>
   validateSync(plainToInstance(klasa, v)).map((e) => e.property);
 
-describe('kopie poza serwerem — 30 dni', () => {
+describe('kopie poza serwerem – 30 dni', () => {
   it('RETENTION_DAYS w skrypcie węzła = KOPIE_OFFSITE_DNI', () => {
     expect(skrypt()).toContain(`RETENTION_DAYS="\${RETENTION_DAYS:-${KOPIE_OFFSITE_DNI}}"`);
   });

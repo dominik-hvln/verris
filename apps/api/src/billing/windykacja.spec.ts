@@ -16,7 +16,7 @@ const usluga = (o: Partial<UslugaDoPrognozy> = {}): UslugaDoPrognozy => ({
   ...o,
 });
 
-describe('F3.6 — prognoza windykacji (lustro renewal.scheduler.ts)', () => {
+describe('F3.6 – prognoza windykacji (lustro renewal.scheduler.ts)', () => {
   it('progi pokazują to, co zaszyte w harmonogramach: T-7/T-3/T-1, karencja 0, 14 + 14 dni', () => {
     expect(PROGI_WINDYKACJI).toEqual({ przypomnieniaDniPrzed: [7, 3, 1], karencjaDni: 0, zawieszenieDoWygasnieciaDni: 14, retencjaKontaDni: 14 });
   });
@@ -47,7 +47,7 @@ describe('F3.6 — prognoza windykacji (lustro renewal.scheduler.ts)', () => {
     expect(p.zawieszenie?.toISOString()).toBe('2026-10-10T10:00:00.000Z');
   });
 
-  it('zawieszona za brak płatności: wygaśnięcie 14 dni po zawieszeniu; zawieszona przez obsługę — bez wygaśnięcia', () => {
+  it('zawieszona za brak płatności: wygaśnięcie 14 dni po zawieszeniu; zawieszona przez obsługę – bez wygaśnięcia', () => {
     const zaPlatnosc = prognozaWindykacji(usluga({ status: 'SUSPENDED', ostatnieZawieszenie: { kiedy: d('2026-10-05T09:00:00Z'), powod: 'GRACE_EXPIRED' } }), teraz);
     expect(zaPlatnosc.etap).toBe('zawieszona');
     expect(zaPlatnosc.wygasniecie?.toISOString()).toBe('2026-10-19T09:00:00.000Z');
@@ -56,7 +56,7 @@ describe('F3.6 — prognoza windykacji (lustro renewal.scheduler.ts)', () => {
     expect(reczne.uwaga).toMatch(/nie za brak płatności/);
   });
 
-  it('audyt Fali 3 — nadużycie dopisane do zawieszenia za brak płatności: prognoza mówi o zaległości, nie „nie za brak płatności”', () => {
+  it('audyt Fali 3 – nadużycie dopisane do zawieszenia za brak płatności: prognoza mówi o zaległości, nie „nie za brak płatności”', () => {
     const p = prognozaWindykacji(usluga({ status: 'SUSPENDED', ostatnieZawieszenie: { kiedy: d('2026-10-05T09:00:00Z'), powod: 'ABUSE', zaleglosc: true } }), teraz);
     expect(p.etap).toBe('zawieszona');
     expect(p.wygasniecie).toBeNull();
@@ -77,7 +77,7 @@ describe('F3.6 — prognoza windykacji (lustro renewal.scheduler.ts)', () => {
   });
 });
 
-describe('F3.6 — scalanie prób auto-doładowania', () => {
+describe('F3.6 – scalanie prób auto-doładowania', () => {
   it('odmowa karty (wpis z obciążenia + wpis z webhooka w ciągu 15 min) to jedna nieudana płatność; inny klient i inna godzina zostają', () => {
     const w = (id: string, userId: string, iso: string, akcja: 'WALLET_AUTO_TOPUP_FAILED' | 'WALLET_AUTOTOPUP_PAYMENT_FAILED') => ({ id, userId, kiedy: d(iso), akcja, powod: null, referencja: null });
     const wynik = scalProbyAutoDoladowania([

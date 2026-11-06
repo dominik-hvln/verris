@@ -22,7 +22,7 @@ export default async function ZgodaMigracjiPage({
   let blad: string | null = null;
   // Noc 15.10 — identyfikatory z linku tylko jako UUID (inaczej żądanie z Twoim tokenem mogłoby trafić gdzie indziej).
   if (!jestIdZasobu(serviceId) || !jestIdZasobu(id)) {
-    blad = 'Link jest niekompletny — otwórz go jeszcze raz z maila albo przejdź do zakładki Migracje.';
+    blad = 'Link jest niekompletny – otwórz go jeszcze raz z maila albo przejdź do zakładki Migracje.';
   } else {
     try {
       prosba = await getProsbaOZgodeMigracji(serviceId, id, token);

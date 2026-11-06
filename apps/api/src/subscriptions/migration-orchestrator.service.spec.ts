@@ -215,7 +215,7 @@ describe('MigrationOrchestratorService', () => {
     expect(prisma.migrationRequest.create).not.toHaveBeenCalled();
   });
 
-  it('14.10: domena docelowa — tylko poprawna nazwa i tylko domena tej usługi (ścieżki na węźle, rsync --delete)', async () => {
+  it('14.10: domena docelowa – tylko poprawna nazwa i tylko domena tej usługi (ścieżki na węźle, rsync --delete)', async () => {
     prisma.subscription.findFirst.mockResolvedValue({ id: 'sub_1', userId: 'user_1', account: { domain: 'target.example' } });
     const ftp = { protocol: 'sftp' as const, host: 'old.example', port: 22, username: 'u', password: 'p' };
     for (const zla of ['../../home', 'target.example/../x', 'http://target.example', '-x.pl']) {
@@ -233,7 +233,7 @@ describe('MigrationOrchestratorService', () => {
   it('Z-09: odrzuca zlecenie, gdy którykolwiek host źródła wskazuje na sieć prywatną', async () => {
     prisma.subscription.findFirst.mockResolvedValue({ id: 'sub_1', userId: 'user_1', account: { domain: 'target.example' } });
     (resolvePublicHost as Mock).mockImplementation(async (h: string) => {
-      if (h === '127.0.0.1') throw new BadRequestException('Host wskazuje na sieć prywatną — odrzucono.');
+      if (h === '127.0.0.1') throw new BadRequestException('Host wskazuje na sieć prywatną – odrzucono.');
       return '203.0.113.10';
     });
     await expect(
@@ -272,7 +272,7 @@ describe('MigrationOrchestratorService', () => {
     expect(prisma.migrationRequest.create).not.toHaveBeenCalled();
   });
 
-  it('E-21: skrzynka = adres + host + hasło — port 993 i login = adres; do kolejki dopiero po udanym logowaniu', async () => {
+  it('E-21: skrzynka = adres + host + hasło – port 993 i login = adres; do kolejki dopiero po udanym logowaniu', async () => {
     prisma.subscription.findFirst.mockResolvedValue({ id: 'sub_1', userId: 'user_1', account: { domain: 'target.example' } });
     preflight.sprawdzSkrzynke.mockResolvedValueOnce({
       kind: 'imap', target: 'imap://imap.stary.pl:993 (biuro@target.example)', status: 'auth_failed',
@@ -755,7 +755,7 @@ function buildWorkerLifecycleMocks(
 }
 
 /** PB-44 — migracja wewnętrzna zlecana z panelu obsługi: wniosek tylko na istniejący, aktywny, inny węzeł. */
-describe('requestInternalMigrationByAdmin — walidacja węzła docelowego (PB-44)', () => {
+describe('requestInternalMigrationByAdmin – walidacja węzła docelowego (PB-44)', () => {
   function przygotuj(opts: { konto?: { serverId: string; domain: string; daUsername: string } | null; cel?: { status: string } | null; otwarty?: boolean }) {
     const prisma = {
       subscription: {
@@ -775,9 +775,9 @@ describe('requestInternalMigrationByAdmin — walidacja węzła docelowego (PB-4
 
   it('aktywny inny węzeł → wniosek i wpis w dzienniku z powodem', async () => {
     const { svc, prisma, audit } = przygotuj({});
-    await expect(svc.requestInternalMigrationByAdmin('s1', 'op', { targetServerId: 'n2', notes: 'Węzeł n1 przeciążony — zgłoszenie #12' })).resolves.toEqual({ ok: true, migrationId: 'ev1' });
+    await expect(svc.requestInternalMigrationByAdmin('s1', 'op', { targetServerId: 'n2', notes: 'Węzeł n1 przeciążony – zgłoszenie #12' })).resolves.toEqual({ ok: true, migrationId: 'ev1' });
     expect(prisma.subscriptionEvent.create).toHaveBeenCalled();
-    expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ actorUserId: 'op', userId: 'u1', details: expect.objectContaining({ targetServerId: 'n2', notes: 'Węzeł n1 przeciążony — zgłoszenie #12' }) }));
+    expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ actorUserId: 'op', userId: 'u1', details: expect.objectContaining({ targetServerId: 'n2', notes: 'Węzeł n1 przeciążony – zgłoszenie #12' }) }));
   });
 
   it.each([

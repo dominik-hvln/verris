@@ -103,7 +103,7 @@ export class AutoscalingEngineService {
 
     if (subs.length === 0) return;
 
-    this.logger.debug(`Autoscaling engine tick — evaluating ${subs.length} subscription(s)`);
+    this.logger.debug(`Autoscaling engine tick – evaluating ${subs.length} subscription(s)`);
 
     const rules = await this.prisma.autoscalingPriceRule.findMany({
       where: { isActive: true },
@@ -270,11 +270,11 @@ export class AutoscalingEngineService {
 
       if (limit.obciete && !juzZapisane) {
         this.logger.warn(
-          `Autoscaling: węzeł ${limit.serverId} nie ma pełnej nadwyżki dla sub=${sub.id} — ` +
+          `Autoscaling: węzeł ${limit.serverId} nie ma pełnej nadwyżki dla sub=${sub.id} – ` +
             `przyznano cpu=${limit.przyznane.cpu}/${nextScaledCpu - scaledCpu}, ` +
             `ram=${limit.przyznane.ramMb}/${nextScaledRamMb - scaledRamMb}MB, ` +
             `disk=${limit.przyznane.diskMb}/${nextScaledDiskMb - scaledDiskMb}MB` +
-            (limit.telemetriaSwieza ? '' : ' (telemetria nieświeża — nadsubskrypcja zdegradowana)'),
+            (limit.telemetriaSwieza ? '' : ' (telemetria nieświeża – nadsubskrypcja zdegradowana)'),
         );
         await this.audit.record({
           action: 'AUTOSCALING_OGRANICZONE_POJEMNOSCIA_WEZLA',
@@ -294,7 +294,7 @@ export class AutoscalingEngineService {
             },
             telemetriaSwieza: limit.telemetriaSwieza,
             note:
-              'Konto nie dostało pełnej nadwyżki, bo węzeł jej nie ma. To sygnał do dołożenia węzła — klient nie jest niczemu winien.',
+              'Konto nie dostało pełnej nadwyżki, bo węzeł jej nie ma. To sygnał do dołożenia węzła – klient nie jest niczemu winien.',
           } as Prisma.InputJsonValue,
         });
         // Z-17 — klient płaci za autoskalowanie i musi widzieć, że w szczycie dostał mniej.
@@ -348,7 +348,7 @@ export class AutoscalingEngineService {
                 heldScaledDiskMb: heldDiskMb,
                 baseDiskMb: baseDisk,
                 note:
-                  'Wymuszony powrót do baseline zatrzymany na poziomie faktycznego zużycia dysku — wymaga kontaktu BOK (zwolnienie miejsca lub upgrade planu).',
+                  'Wymuszony powrót do baseline zatrzymany na poziomie faktycznego zużycia dysku – wymaga kontaktu BOK (zwolnienie miejsca lub upgrade planu).',
               },
             });
           }

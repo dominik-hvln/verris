@@ -144,7 +144,7 @@ export function KbManager({ blokada = null }: { blokada?: string | null } = {}) 
         {bladKat ? (
           <NieWczytano co="kategorii" onPonow={() => void reloadCats()} />
         ) : tops.length === 0 ? (
-          <p className="text-xs text-white/55">Brak kategorii — dodaj pierwszą.</p>
+          <p className="text-xs text-white/55">Brak kategorii – dodaj pierwszą.</p>
         ) : null}
         <ul className="space-y-1">
           {tops.map((c) => (
@@ -261,7 +261,7 @@ function CtaPanel({ blokada }: { blokada: string | null }) {
           <input className={inputCls} value={cta.headline} onChange={(e) => upd('headline', e.target.value)} /></label>
         <label className="space-y-1 sm:col-span-2"><span className="text-xs text-white/70">Podtytuł</span>
           <input className={inputCls} value={cta.subtext} onChange={(e) => upd('subtext', e.target.value)} /></label>
-        <label className="space-y-1 sm:col-span-2"><span className="text-xs text-white/70">Bullety (po jednym w linii) — cena, parametry, SLA</span>
+        <label className="space-y-1 sm:col-span-2"><span className="text-xs text-white/70">Bullety (po jednym w linii) – cena, parametry, SLA</span>
           <textarea className={`${inputCls} min-h-[80px]`} value={cta.bullets.join('\n')} onChange={(e) => upd('bullets', e.target.value.split('\n').map((s) => s.trim()).filter(Boolean))} /></label>
         <label className="space-y-1"><span className="text-xs text-white/70">Tekst przycisku</span>
           <input className={inputCls} value={cta.buttonLabel} onChange={(e) => upd('buttonLabel', e.target.value)} /></label>
@@ -327,12 +327,12 @@ export function Editor({ form, set, setForm, cats, busy, isNew, onSave, onDelete
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="space-y-1"><span className="text-xs font-medium text-white/70">Tytuł</span>
           <input className={inputCls} value={form.title} onChange={set('title')} placeholder="Jak podpiąć domenę do hostingu" /></label>
-        <label className="space-y-1"><span className="text-xs font-medium text-white/70">Slug (opcjonalnie — auto z tytułu)</span>
+        <label className="space-y-1"><span className="text-xs font-medium text-white/70">Slug (opcjonalnie – auto z tytułu)</span>
           <input className={inputCls} value={form.slug ?? ''} onChange={set('slug')} placeholder="jak-podpiac-domene" /></label>
         {/* Etykiety obok, nie owijające — klik w listę nie może ponownie aktywować przycisku. */}
         <div className="space-y-1"><label htmlFor={`${kbFieldId}-cat`} className="text-xs font-medium text-white/70">Kategoria</label>
           <Select id={`${kbFieldId}-cat`} className={inputCls} value={form.categoryId} onChange={(v) => setForm((f) => ({ ...f, categoryId: v }))}
-            options={cats.map((c) => ({ value: c.id, label: `${c.parentId ? '— ' : ''}${c.name}` }))} /></div>
+            options={cats.map((c) => ({ value: c.id, label: `${c.parentId ? '– ' : ''}${c.name}` }))} /></div>
         <div className="space-y-1"><label htmlFor={`${kbFieldId}-status`} className="text-xs font-medium text-white/70">Status</label>
           <Select id={`${kbFieldId}-status`} className={inputCls} value={form.status} onChange={(v) => setForm((f) => ({ ...f, status: v as ArticleInput['status'] }))}
             options={[{ value: 'DRAFT', label: 'Szkic' }, { value: 'PUBLISHED', label: 'Opublikowany' }]} /></div>
@@ -391,7 +391,7 @@ export function Editor({ form, set, setForm, cats, busy, isNew, onSave, onDelete
       </div>
 
       <label className="block space-y-1">
-        <span className="text-xs font-medium text-white/70">Powiązane artykuły — slugi po przecinku (puste = auto po kategorii)</span>
+        <span className="text-xs font-medium text-white/70">Powiązane artykuły – slugi po przecinku (puste = auto po kategorii)</span>
         <input
           className={inputCls}
           value={(form.relatedSlugs ?? []).join(', ')}
@@ -401,7 +401,7 @@ export function Editor({ form, set, setForm, cats, busy, isNew, onSave, onDelete
       </label>
 
       <details className="rounded-2xl border border-white/10 bg-black/20 p-4">
-        <summary className="cursor-pointer text-sm font-semibold text-white/80">SEO (opcjonalnie — nadpisuje tytuł/opis)</summary>
+        <summary className="cursor-pointer text-sm font-semibold text-white/80">SEO (opcjonalnie – nadpisuje tytuł/opis)</summary>
         <div className="mt-3 space-y-3">
           <label className="block space-y-1"><span className="text-xs font-medium text-white/70">SEO title</span>
             <input className={inputCls} value={form.seoTitle ?? ''} onChange={set('seoTitle')} /></label>

@@ -48,7 +48,7 @@ export class RedisAccessService {
     const wToku = await this.prisma.nodeTask.findFirst({
       where: { accountId: account.id, kind: S.kind, status: { in: [NodeTaskStatus.QUEUED, NodeTaskStatus.RUNNING] } },
     });
-    if (wToku) throw new ConflictException(`Zmiana ${S.nazwa} jest już w toku — poczekaj na wynik.`);
+    if (wToku) throw new ConflictException(`Zmiana ${S.nazwa} jest już w toku – poczekaj na wynik.`);
     const task = await this.prisma.nodeTask.create({
       data: {
         serverId: account.serverId,
@@ -105,5 +105,5 @@ export function gniazdoZLogu(log: string | null, silnik: Silnik = 'redis'): stri
 function bladZLogu(log: string | null, silnik: Silnik = 'redis'): string {
   const p = `[${silnik}] BŁĄD: `;
   const l = (log ?? '').split('\n').reverse().find((x) => x.startsWith(p));
-  return l ? l.slice(p.length).slice(0, 300) : 'Zmiana nie powiodła się. Napisz do nas — sprawdzimy to.';
+  return l ? l.slice(p.length).slice(0, 300) : 'Zmiana nie powiodła się. Napisz do nas – sprawdzimy to.';
 }

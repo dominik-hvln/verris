@@ -73,7 +73,7 @@ export function KlientResellera({ klient, aktywny, onOdpiety }: { klient: Resell
     setZajety(null);
     if (r.ok) {
       setDane(r.data);
-      toast.success(wznow ? 'Usługa wznowiona.' : 'Usługa wstrzymana — klient dostał e-mail.');
+      toast.success(wznow ? 'Usługa wznowiona.' : 'Usługa wstrzymana – klient dostał e-mail.');
     } else toast.error(r.error);
   };
 
@@ -81,13 +81,13 @@ export function KlientResellera({ klient, aktywny, onOdpiety }: { klient: Resell
     setZajety('link');
     const r = await linkHaslaKlienta(klient.id);
     setZajety(null);
-    if (r.ok) toast.success(r.data.mailWyslany ? `Link wysłany na ${klient.email}.` : 'Link przygotowany, ale mail nie wyszedł — napisz do nas.');
+    if (r.ok) toast.success(r.data.mailWyslany ? `Link wysłany na ${klient.email}.` : 'Link przygotowany, ale mail nie wyszedł – napisz do nas.');
     else toast.error(r.error);
   };
 
   const odepnij = async () => {
     const ok = await potwierdz(
-      `Odpiąć ${klient.email} od Twojego programu? Klient zostanie bezpośrednim klientem Verris — konto, usługi i dane zostają bez zmian, a on dostanie e-mail. Tej operacji nie cofniesz sam.`,
+      `Odpiąć ${klient.email} od Twojego programu? Klient zostanie bezpośrednim klientem Verris – konto, usługi i dane zostają bez zmian, a on dostanie e-mail. Tej operacji nie cofniesz sam.`,
       { akcja: 'Odepnij', niebezpieczne: true, tytul: 'Odpięcie klienta' },
     );
     if (!ok) return;
@@ -135,7 +135,7 @@ export function KlientResellera({ klient, aktywny, onOdpiety }: { klient: Resell
                     <div className="min-w-0">
                       <p className="font-medium text-foreground">{u.domena ?? u.plan ?? 'Usługa'}</p>
                       <p className="text-xs text-muted-foreground">
-                        {u.plan ?? '—'} · stan: {ZDROWIE[u.zdrowie]}
+                        {u.plan ?? '–'} · stan: {ZDROWIE[u.zdrowie]}
                         {u.odnowienie
                           ? u.nieOdnowiSie
                             ? ` · działa do ${new Date(u.odnowienie).toLocaleDateString('pl-PL')} · nie odnowi się`
@@ -145,7 +145,7 @@ export function KlientResellera({ klient, aktywny, onOdpiety }: { klient: Resell
                         {narzutWlaczony ? ` · ${liczba(u.cenaDetaliczna, 2)} ${u.waluta === 'PLN' ? 'K' : u.waluta} detal` : ''}
                       </p>
                       {u.status === 'SUSPENDED' && !u.wstrzymanaPrzezCiebie ? (
-                        <p className="mt-0.5 text-xs text-warn">Wstrzymana przez Verris (płatność albo decyzja obsługi) — wznawia klient albo nasza obsługa.</p>
+                        <p className="mt-0.5 text-xs text-warn">Wstrzymana przez Verris (płatność albo decyzja obsługi) – wznawia klient albo nasza obsługa.</p>
                       ) : null}
                     </div>
                     <div className="flex items-center gap-2">
@@ -173,7 +173,7 @@ export function KlientResellera({ klient, aktywny, onOdpiety }: { klient: Resell
             </button>
           </div>
           <p className="mt-2 text-[11.5px] text-muted-foreground">
-            Widzisz tylko usługi i ich stan — bez plików, poczty, faktur i salda klienta. Jeśli masz pracować przy stronie, poproś klienta o dostęp w jego panelu (IAM i subkonta).
+            Widzisz tylko usługi i ich stan – bez plików, poczty, faktur i salda klienta. Jeśli masz pracować przy stronie, poproś klienta o dostęp w jego panelu (IAM i subkonta).
           </p>
         </div>
       ) : null}

@@ -200,7 +200,7 @@ export function TopupCard({ balance, paynowDostepny = false, bezKodu = false }: 
               {promoState.status === 'applied' && promoState.preview ? (
                 <>
                   {' '}+ <strong>{liczba(bonus, 2)} {CREDIT_SHORT}</strong> bonusu z
-                  kodu „{promoState.preview.code}” ({promoState.preview.percent}%) — łącznie{' '}
+                  kodu „{promoState.preview.code}” ({promoState.preview.percent}%) – łącznie{' '}
                   <strong>{liczba(kredyt + bonus, 2)} {CREDIT_SHORT}</strong>.
                 </>
               ) : null}
@@ -253,7 +253,7 @@ function PromoSubform({
         <div className="flex items-center gap-2">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
           <span>
-            Kod <strong>{promoState.preview.code}</strong> ({promoState.preview.percent}%) — bonus{' '}
+            Kod <strong>{promoState.preview.code}</strong> ({promoState.preview.percent}%) – bonus{' '}
             +{promoState.preview.bonusAmount} {CREDIT_SHORT}.
           </span>
         </div>
@@ -328,7 +328,7 @@ export const KOD_GDZIE_INDZIEJ = 'Kod testera albo kod na kredyty wpisz w karcie
 function VatInfo({ quote, currency }: { quote: TopupQuoteDto; currency: WalutaWplaty }) {
   const linie: string[] = [];
   if (quote.vatKod === 'OO') {
-    linie.push('Dokument bez polskiego VAT (odwrotne obciążenie) — numer VAT-UE potwierdzony w VIES.');
+    linie.push('Dokument bez polskiego VAT (odwrotne obciążenie) – numer VAT-UE potwierdzony w VIES.');
   } else if (quote.vatKod === 'POZA_UE') {
     linie.push('Klient spoza UE: dokument bez polskiego VAT.');
   } else if (quote.vatKod === 'OSS') {
@@ -336,7 +336,7 @@ function VatInfo({ quote, currency }: { quote: TopupQuoteDto; currency: WalutaWp
   } else {
     linie.push('Dokument z VAT 23%.');
     if (quote.viesWazny === false) {
-      linie.push('Numer VAT-UE z profilu nie przeszedł weryfikacji VIES — sprawdź go w Ustawieniach → Dane do faktury.');
+      linie.push('Numer VAT-UE z profilu nie przeszedł weryfikacji VIES – sprawdź go w Ustawieniach → Dane do faktury.');
     }
   }
   if (quote.cenaNetto) linie.push(`Płacisz cenę netto: za każde 1 zł wpłaty dostajesz 1,23 ${CREDIT_SHORT}.`);
@@ -344,7 +344,7 @@ function VatInfo({ quote, currency }: { quote: TopupQuoteDto; currency: WalutaWp
     linie.push(
       quote.kurs
         ? `Kurs NBP dziś: ${liczba(quote.kurs, 4)} PLN za 1 ${currency}; ostateczny z dnia poprzedzającego płatność.`
-        : 'Kurs NBP chwilowo niedostępny — kwotę w K zobaczysz po zaksięgowaniu.',
+        : 'Kurs NBP chwilowo niedostępny – kwotę w K zobaczysz po zaksięgowaniu.',
     );
   }
   return (

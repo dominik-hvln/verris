@@ -75,7 +75,7 @@ function wpisz(el: HTMLTextAreaElement, v: string) {
   el.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
-describe("PB-46 formularz admina — zapis tylko zmienionych pól", () => {
+describe("PB-46 formularz admina – zapis tylko zmienionych pól", () => {
   it("samo przełączenie blokady nie wysyła notatki ani flagi konta wewnętrznego", async () => {
     act(() => pola()[0].click());
     await zapisz();
@@ -83,7 +83,7 @@ describe("PB-46 formularz admina — zapis tylko zmienionych pól", () => {
     expect(zapis).toHaveBeenCalledWith(UID, { loginBlocked: true, loginBlockedReason: null });
   });
 
-  it("F2.4 — bez pola notatki (notatki są na Przeglądzie); zapis blokady nie dotyka notatki", async () => {
+  it("F2.4 – bez pola notatki (notatki są na Przeglądzie); zapis blokady nie dotyka notatki", async () => {
     expect(obszary()).toHaveLength(1);
     act(() => wpisz(obszary()[0], "  spam  "));
     await zapisz();
@@ -96,7 +96,7 @@ describe("PB-46 formularz admina — zapis tylko zmienionych pól", () => {
     expect(zapis).toHaveBeenCalledWith(UID, { isInternal: true });
   });
 
-  it("bez zmian — nic nie idzie do API, komunikat zamiast pustego zapisu", async () => {
+  it("bez zmian – nic nie idzie do API, komunikat zamiast pustego zapisu", async () => {
     await zapisz();
     expect(zapis).not.toHaveBeenCalled();
     expect(sekcja().textContent).toContain("Brak zmian do zapisania.");
@@ -109,7 +109,7 @@ describe("PB-46 formularz admina — zapis tylko zmienionych pól", () => {
 });
 
 /** D9 (10.10) — e-mail i hasło: L3 (CUSTOMERS_MANAGE) bezpośrednio, L1/L2 „Wyślij wniosek”; hasła nikt nie widzi. */
-describe("D9 — zmiana e-maila i reset hasła na karcie klienta", () => {
+describe("D9 – zmiana e-maila i reset hasła na karcie klienta", () => {
   const L1 = { isAdmin: false, permissions: ["CUSTOMERS_VIEW"] };
   const L3 = { isAdmin: false, permissions: ["CUSTOMERS_VIEW", "CUSTOMERS_MANAGE"] };
   const render = async (dostep: { isAdmin: boolean; permissions: string[] }) => {
@@ -120,7 +120,7 @@ describe("D9 — zmiana e-maila i reset hasła na karcie klienta", () => {
   const s = (id: string) => k.querySelector(`[data-karta="${id}"]`)!;
   const przyciski = (id: string) => [...s(id).querySelectorAll("button")].map((b) => b.textContent?.trim());
 
-  it("L1: zamiast zmiany e-maila i resetu — „Wyślij wniosek”; blokada wyszarzona; bez usunięcia konta", async () => {
+  it("L1: zamiast zmiany e-maila i resetu – „Wyślij wniosek”; blokada wyszarzona; bez usunięcia konta", async () => {
     await render(L1);
     expect(s("email").querySelector('[data-wniosek="CUSTOMER_EMAIL_CHANGE"]')).not.toBeNull();
     expect(przyciski("email")).not.toContain("Zmień e-mail");
@@ -130,7 +130,7 @@ describe("D9 — zmiana e-maila i reset hasła na karcie klienta", () => {
     expect(k.querySelector('[data-karta="usuniecie"]')).toBeNull();
   });
 
-  it("L3: wykonuje sam — link do klienta, bez hasła na ekranie; usunięcie konta nadal tylko administrator", async () => {
+  it("L3: wykonuje sam – link do klienta, bez hasła na ekranie; usunięcie konta nadal tylko administrator", async () => {
     await render(L3);
     expect(s("reset").querySelector("[data-wniosek]")).toBeNull();
     const reset = resetCustomerPasswordAction as jest.Mock;

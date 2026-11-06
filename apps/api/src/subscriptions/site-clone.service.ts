@@ -101,5 +101,5 @@ export class SiteCloneService {
 
 function bladZLogu(log: string): string {
   const l = log.split('\n').reverse().find((x) => x.startsWith('[site-clone] BŁĄD: '));
-  return l ? l.slice('[site-clone] BŁĄD: '.length).slice(0, 300) : 'Kopiowanie nie powiodło się. Napisz do nas — sprawdzimy to.';
+  return l ? l.slice('[site-clone] BŁĄD: '.length).slice(0, 300) : 'Kopiowanie nie powiodło się. Napisz do nas – sprawdzimy to.';
 }

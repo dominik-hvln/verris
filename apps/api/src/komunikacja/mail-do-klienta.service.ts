@@ -37,7 +37,7 @@ export class MailDoKlientaService {
     });
     if (!klient) throw new NotFoundException('Klient nie istnieje.');
     if (klient.role !== 'USER') throw new ForbiddenException('Mail z szablonu wysyłamy tylko do klientów.');
-    if (klient.anonymizedAt) throw new BadRequestException('Konto klienta jest zanonimizowane — nie ma adresu.');
+    if (klient.anonymizedAt) throw new BadRequestException('Konto klienta jest zanonimizowane – nie ma adresu.');
     // Mail do jednego klienta — jego adres IP (np. odblokowany) może paść w treści; adresy węzłów nadal nie.
     const { temat, tresc } = sprawdzTrescSerwisowa(dto.temat, dto.tresc, await wezlyDoSprawdzenia(this.prisma), { adresyIp: false });
     const zgloszenieId = await zgloszenieKlienta(this.prisma, klient.id, dto.zgloszenie);
@@ -60,8 +60,8 @@ export class MailDoKlientaService {
       details: { szablon: s.id, temat, zgloszenieId, emailLogId: r.emailLogId, wynik: r.delivered ? 'wyslany' : (r.suppressedReason ?? 'blad') },
     });
     if (!r.delivered) {
-      if (r.suppressedReason) throw new BadRequestException('Mail nie wyszedł — klient nie ma aktywnego adresu.');
-      throw new BadGatewayException('Mail nie wyszedł — serwer poczty odrzucił wysyłkę. Spróbuj ponownie za chwilę.');
+      if (r.suppressedReason) throw new BadRequestException('Mail nie wyszedł – klient nie ma aktywnego adresu.');
+      throw new BadGatewayException('Mail nie wyszedł – serwer poczty odrzucił wysyłkę. Spróbuj ponownie za chwilę.');
     }
     return { wyslany: true, emailLogId: r.emailLogId };
   }

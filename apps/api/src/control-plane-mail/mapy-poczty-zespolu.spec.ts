@@ -7,7 +7,7 @@ import { PostfixMapSyncService } from './postfix-map-sync.service.js';
  * adresy jako zaufane — tabulator/koniec linii dopisywał własne wiersze do map Postfixa/Dovecota, a ścieżka
  * skrzynki szła do skryptu roota (mkdir/chown).
  */
-describe('Poczta zespołu — domena skrzynki i mapy Postfixa', () => {
+describe('Poczta zespołu – domena skrzynki i mapy Postfixa', () => {
   it('nowa skrzynka spoza domeny zespołu → 400 bez zapisu', async () => {
     const prisma = { controlPlaneMailbox: { findUnique: vi.fn(async () => null) }, $transaction: vi.fn() };
     const svc = new ControlPlaneMailService(prisma as never, { record: vi.fn() } as never, {} as never, {} as never, {} as never, { get: () => undefined } as never);

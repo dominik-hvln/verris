@@ -4,7 +4,7 @@ import { BillingService } from './billing.service.js';
  * Przegląd 15.10 — zwrot albo spór (chargeback) za płatność kartą, która NIE była doładowaniem portfela (np. faktura
  * subskrypcji kartą): wcześniej `brak doładowania — pomijam` i zdarzenie PROCESSED, usługa działała dalej.
  */
-describe('Stripe — zwrot/spór bez doładowania', () => {
+describe('Stripe – zwrot/spór bez doładowania', () => {
   function stanowisko() {
     const svc = Object.create(BillingService.prototype) as Record<string, unknown>;
     const createMany = vi.fn(async () => ({ count: 1 }));
@@ -38,7 +38,7 @@ describe('Stripe — zwrot/spór bez doładowania', () => {
     expect(dane[0].link).toBe('/customers/u1');
   });
 
-  it('zwrot (charge.refunded) bez doładowania — też zgłoszony, z kwotą zwróconą', async () => {
+  it('zwrot (charge.refunded) bez doładowania – też zgłoszony, z kwotą zwróconą', async () => {
     const { zwrot, record } = stanowisko();
     await zwrot({ id: 'evt_2', type: 'charge.refunded', data: { object: { payment_intent: 'pi_sub', amount: 4500, amount_refunded: 2000, customer: 'cus_1' } } });
     expect(record).toHaveBeenCalledWith(expect.objectContaining({ action: 'STRIPE_PLATNOSC_ZWROT', details: expect.objectContaining({ kwota: '20.00' }) }));

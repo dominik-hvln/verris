@@ -5,14 +5,14 @@ import { ServiceHealthService, WYSYLKA_WSTRZYMANA, zWstrzymanaWysylka } from './
  * w nagłówku karty usługi „Wszystko działa”: zdrowie liczyły same sondy (DNS, TLS, serwer poczty) z migawki,
  * a blokada per konto jest tylko w bazie. Stan blokady nakładamy przy każdym odczycie.
  */
-describe('zdrowie usługi — wysyłka poczty wstrzymana przez obsługę', () => {
+describe('zdrowie usługi – wysyłka poczty wstrzymana przez obsługę', () => {
   const zdrowa = { score: 100, label: 'healthy' as const, checkedAt: null, summary: 'Wszystkie sprawdzone parametry w normie.' };
 
-  it('bez blokady — wynik bez zmian', () => {
+  it('bez blokady – wynik bez zmian', () => {
     expect(zWstrzymanaWysylka(zdrowa, null)).toBe(zdrowa);
   });
 
-  it('zdrowa usługa z blokadą — „wymaga uwagi” z opisem dla klienta, bez powodu obsługi', () => {
+  it('zdrowa usługa z blokadą – „wymaga uwagi” z opisem dla klienta, bez powodu obsługi', () => {
     const h = zWstrzymanaWysylka(zdrowa, new Date());
     expect(h).toMatchObject({ label: 'attention', summary: WYSYLKA_WSTRZYMANA, wysylkaWstrzymana: true, score: 100 });
     expect(h.summary).not.toMatch(/DirectAdmin|exim|blacklist/i);

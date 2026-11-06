@@ -25,7 +25,7 @@ const WARSTWY: { tag: string; title: string; text: string }[] = [
   {
     tag: '7 kopii',
     title: 'Codziennie na serwerze',
-    text: 'Każdego dnia kopiujemy pliki, bazy danych i pocztę. Trzymamy 7 ostatnich kopii — na szybkie „cofnij” prosto z panelu.',
+    text: 'Każdego dnia kopiujemy pliki, bazy danych i pocztę. Trzymamy 7 ostatnich kopii – na szybkie „cofnij” prosto z panelu.',
   },
   {
     tag: '30 dni',
@@ -52,7 +52,7 @@ const SYTUACJE: [string, string][] = [
   ['Włamanie przez stary motyw', 'Wracasz do wersji sprzed ataku i od razu aktualizujesz motyw.'],
   [
     'Zniknął jeden plik',
-    'Przeglądasz zawartość kopii i odtwarzasz wybrany plik albo katalog do osobnego folderu — nic na koncie nie zostaje nadpisane.',
+    'Przeglądasz zawartość kopii i odtwarzasz wybrany plik albo katalog do osobnego folderu – nic na koncie nie zostaje nadpisane.',
   ],
 ];
 
@@ -80,7 +80,7 @@ export default async function Page() {
         data={howToSchema({
           kotwice: false,
           name: 'Jak przywrócić stronę z kopii zapasowej w Verris',
-          description: 'Przywracanie plików, baz danych i poczty z kopii na serwerze — samodzielnie w panelu Verris.',
+          description: 'Przywracanie plików, baz danych i poczty z kopii na serwerze – samodzielnie w panelu Verris.',
           path: '/funkcje/kopie-zapasowe',
           steps: KROKI.map((k) => ({ name: k.title, text: String(k.text) })),
         })}
@@ -98,7 +98,7 @@ export default async function Page() {
             <h1>Zepsuta aktualizacja? Cofnij stronę do wczoraj</h1>
             <p className="lead">
               Każdy kiedyś kliknął „aktualizuj” i zobaczył biały ekran. Z Verris wracasz do działającej wersji sam, z
-              panelu — bez zgłoszenia i bez czekania na kogokolwiek.
+              panelu – bez zgłoszenia i bez czekania na kogokolwiek.
             </p>
             <div className="hero2-cta">
               <Button href={ZAMOW} cta="subhero">
@@ -111,7 +111,7 @@ export default async function Page() {
           </div>
           <Card className="c-prev">
             <div className="c-prev-h">
-              <span>Przywracanie — podgląd</span>
+              <span>Przywracanie – podgląd</span>
               <span>ilustracja</span>
             </div>
             <div className="c-prev-b">
@@ -133,7 +133,7 @@ export default async function Page() {
                 <span className="chip chip-sm">poczta</span>
               </div>
               <p className="c-note">
-                Przed przywróceniem robimy kopię obecnego stanu — jeśli coś pójdzie nie tak, możesz wrócić.
+                Przed przywróceniem robimy kopię obecnego stanu – jeśli coś pójdzie nie tak, możesz wrócić.
               </p>
             </div>
           </Card>
@@ -193,7 +193,7 @@ export default async function Page() {
 
       <CTABand
         title="Śpij spokojnie, nawet po aktualizacji"
-        text={`Kopie z 30 dni i przywracanie z panelu są w cenie hostingu — ${cenaPakietu(c)}.`}
+        text={`Kopie z 30 dni i przywracanie z panelu są w cenie hostingu – ${cenaPakietu(c)}.`}
         secondary={{ label: 'Wszystkie funkcje', href: '/funkcje' }}
       />
     </main>

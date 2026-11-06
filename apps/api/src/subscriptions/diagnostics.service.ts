@@ -37,7 +37,7 @@ function liczba(n: number, one: string, few: string, many: string): string {
 /** Jednozdaniowe podsumowanie diagnostyki (karta usługi i rozmowa w obsłudze) — z poprawną odmianą liczebników. */
 export function podsumowanieDiagnostyki(findings: readonly { status: string }[]): string {
   if (findings.length === 0) {
-    return 'Nie wykryto problemów — subskrypcja, konto, węzeł i parametry usługi wyglądają poprawnie.';
+    return 'Nie wykryto problemów – subskrypcja, konto, węzeł i parametry usługi wyglądają poprawnie.';
   }
   const krytyczne = findings.filter((f) => f.status === 'critical').length;
   const ostrzezenia = findings.filter((f) => f.status === 'warn').length;
@@ -73,7 +73,7 @@ export class DiagnosticsService {
         area: 'SUBSCRIPTION',
         status: 'critical',
         title: 'Usługa zawieszona',
-        detail: 'Subskrypcja ma status SUSPENDED — usługa nie działa do czasu wznowienia.',
+        detail: 'Subskrypcja ma status SUSPENDED – usługa nie działa do czasu wznowienia.',
         action: 'Sprawdź powód zawieszenia (płatność/nadużycie) i wznów usługę po jego ustąpieniu.',
       });
     } else if (sub.status === 'PENDING_PAYMENT' || sub.status === 'PAST_DUE') {

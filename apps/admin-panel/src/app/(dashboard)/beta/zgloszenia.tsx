@@ -18,7 +18,7 @@ export function DecyzjaZgloszenia({ z }: { z: Pick<ZgloszenieRow, "id" | "imie" 
     start(async () => {
       const r = await zaprosZgloszenieAction(z.id);
       if (!r.ok) return void (await potwierdz(r.error, { akcja: "OK", tytul: "Nie udało się" }));
-      setWynik(r.mailWyslany ? `Wysłane — kod ${r.code}.` : `Kod ${r.code} utworzony, mail nie wyszedł — przekaż go osobiście.`);
+      setWynik(r.mailWyslany ? `Wysłane – kod ${r.code}.` : `Kod ${r.code} utworzony, mail nie wyszedł – przekaż go osobiście.`);
     });
   };
 

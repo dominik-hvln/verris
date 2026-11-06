@@ -41,12 +41,12 @@ function uklad(opcje: { rolaKlienta?: string; zgloszenia?: { id: string }[] } = 
 const z = (o: Partial<ZlecenieDomeny> = {}): ZlecenieDomeny => ({
   operatorUserId: OPERATOR,
   operatorRole: 'STAFF',
-  powod: 'Klient prosi o kod — przenosi domenę',
+  powod: 'Klient prosi o kod – przenosi domenę',
   zgloszenie: '#ab12cd34',
   ...o,
 });
 
-describe('F2.7 — operacje obsługi na domenie klienta', () => {
+describe('F2.7 – operacje obsługi na domenie klienta', () => {
   it('kod EPP: wraca do operatora, a w dzienniku jest tylko fakt pokazania (z powodem i zgłoszeniem)', async () => {
     const { svc, wpisy } = uklad();
     const r = await svc.kodEpp('d1', z());
@@ -54,7 +54,7 @@ describe('F2.7 — operacje obsługi na domenie klienta', () => {
     expect(JSON.stringify(wpisy)).not.toContain('TAJNY-EPP-123');
     const zespol = wpisy.find((w) => w.action === 'OPERATOR_DOMAIN_CHANGED')!;
     expect(zespol).toMatchObject({ userId: KLIENT, actorUserId: OPERATOR });
-    expect(zespol.details).toMatchObject({ akcja: 'kod-epp', domain: 'klient.pl', powod: 'Klient prosi o kod — przenosi domenę', zgloszenieId: ZGLOSZENIE, wynik: 'ok' });
+    expect(zespol.details).toMatchObject({ akcja: 'kod-epp', domain: 'klient.pl', powod: 'Klient prosi o kod – przenosi domenę', zgloszenieId: ZGLOSZENIE, wynik: 'ok' });
     // D3 — wpis klienta: autor = operator (klient widzi „obsługa Verris”), numer zgłoszenia dopisany z kontekstu.
     const klienta = wpisy.find((w) => w.action === 'DOMAIN_AUTHCODE_REVEALED')!;
     expect(klienta).toMatchObject({ userId: KLIENT, actorUserId: OPERATOR });
@@ -62,20 +62,20 @@ describe('F2.7 — operacje obsługi na domenie klienta', () => {
     expect(klienta.details).not.toHaveProperty('powod');
   });
 
-  it('bez powodu (min. 10 znaków) — odmowa bez wywołania rejestratora i bez wpisu', async () => {
+  it('bez powodu (min. 10 znaków) – odmowa bez wywołania rejestratora i bez wpisu', async () => {
     const { svc, registrar, wpisy } = uklad();
     await expect(svc.kodEpp('d1', z({ powod: 'bo tak' }))).rejects.toBeInstanceOf(BadRequestException);
     expect(registrar.authCode).not.toHaveBeenCalled();
     expect(wpisy).toEqual([]);
   });
 
-  it('zgłoszenie spoza konta klienta — odmowa', async () => {
+  it('zgłoszenie spoza konta klienta – odmowa', async () => {
     const { svc, registrar } = uklad({ zgloszenia: [] });
     await expect(svc.kodEpp('d1', z())).rejects.toThrow('Nie ma takiego zgłoszenia u tego klienta.');
     expect(registrar.authCode).not.toHaveBeenCalled();
   });
 
-  it('domena konta zespołu: STAFF — 403, ADMIN — wolno', async () => {
+  it('domena konta zespołu: STAFF – 403, ADMIN – wolno', async () => {
     const { svc, registrar } = uklad({ rolaKlienta: 'ADMIN' });
     await expect(svc.kodEpp('d1', z())).rejects.toBeInstanceOf(ForbiddenException);
     expect(registrar.authCode).not.toHaveBeenCalled();
@@ -89,7 +89,7 @@ describe('F2.7 — operacje obsługi na domenie klienta', () => {
     expect(zespol.details).toMatchObject({ akcja: 'blokada', wynik: 'blad', blad: 'OpenProvider: domain is in transfer' });
   });
 
-  it('D8 — odnowienie: płatnik idzie do rejestratora (portfel / koszt Verris) i do dziennika zespołu', async () => {
+  it('D8 – odnowienie: płatnik idzie do rejestratora (portfel / koszt Verris) i do dziennika zespołu', async () => {
     const { svc, registrar, wpisy } = uklad();
     await svc.odnow('d1', z({ powod: 'Auto-odnowienie padło, domena wygasa jutro' }), 2, true);
     expect(registrar.renew).toHaveBeenCalledWith(KLIENT, OPERATOR, 'd1', 2, { naKosztVerris: true });

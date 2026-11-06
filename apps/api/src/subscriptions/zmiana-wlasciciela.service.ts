@@ -76,50 +76,50 @@ export function odmowyZmianyWlasciciela(s: StanZmianyWlasciciela, teraz = Date.n
   const { usluga: u, nowy } = s;
   const odmowy: string[] = [];
   if (!nowy) return ['Nie ma klienta z tym adresem e-mail.'];
-  if (nowy.id === u.userId) return ['To ten sam klient — usługa już należy do tego konta.'];
-  if (u.user.role !== 'USER') odmowy.push('Przenosimy tylko usługi kont klientów — ta należy do konta zespołu.');
+  if (nowy.id === u.userId) return ['To ten sam klient – usługa już należy do tego konta.'];
+  if (u.user.role !== 'USER') odmowy.push('Przenosimy tylko usługi kont klientów – ta należy do konta zespołu.');
   if (nowy.role !== 'USER' || nowy.customerOwnerId) {
     odmowy.push('Nowym właścicielem może być tylko główne konto klienta (nie subkonto i nie konto zespołu).');
   }
   if (nowy.anonymizedAt || nowy.deletionRequestedAt) odmowy.push('Konto nowego właściciela jest usunięte albo w trakcie usuwania.');
   if (nowy.loginBlocked) odmowy.push('Konto nowego właściciela jest zablokowane.');
-  if (!nowy.emailVerifiedAt) odmowy.push('Konto nowego właściciela nie jest aktywne — adres e-mail nie został potwierdzony.');
+  if (!nowy.emailVerifiedAt) odmowy.push('Konto nowego właściciela nie jest aktywne – adres e-mail nie został potwierdzony.');
 
   const stanUslugi: Partial<Record<SubscriptionStatus, string>> = {
-    PENDING_PAYMENT: 'Usługa czeka na pierwszą płatność — nie ma czego przenosić.',
-    PROVISIONING: 'Usługa jest w trakcie zakładania — przeniesiesz ją, gdy konto będzie gotowe.',
-    PAST_DUE: 'Usługa ma zaległą płatność — najpierw rozlicz ją u obecnego właściciela (zaległość nie przechodzi na nowego).',
-    SUSPENDED: 'Usługa jest zawieszona — najpierw wyjaśnij zawieszenie u obecnego właściciela.',
+    PENDING_PAYMENT: 'Usługa czeka na pierwszą płatność – nie ma czego przenosić.',
+    PROVISIONING: 'Usługa jest w trakcie zakładania – przeniesiesz ją, gdy konto będzie gotowe.',
+    PAST_DUE: 'Usługa ma zaległą płatność – najpierw rozlicz ją u obecnego właściciela (zaległość nie przechodzi na nowego).',
+    SUSPENDED: 'Usługa jest zawieszona – najpierw wyjaśnij zawieszenie u obecnego właściciela.',
     CANCELED: 'Usługa jest zakończona.',
     EXPIRED: 'Usługa jest zakończona.',
   };
   if (u.status !== SubscriptionStatus.ACTIVE) odmowy.push(stanUslugi[u.status] ?? 'Przenosimy tylko aktywną usługę.');
   else if (u.account?.status !== 'ACTIVE') odmowy.push('Konto hostingowe usługi nie jest aktywne (zakładanie, zawieszenie albo usuwanie).');
   if (u.plan.productKind === 'EMAIL_MARKETING') {
-    odmowy.push('Zmiana właściciela dotyczy hostingu i poczty — usługa e-mail marketingu ma listy odbiorców poprzedniego właściciela.');
+    odmowy.push('Zmiana właściciela dotyczy hostingu i poczty – usługa e-mail marketingu ma listy odbiorców poprzedniego właściciela.');
   }
-  if (u.isTrial) odmowy.push('To okres próbny — przysługuje klientowi, nie usłudze. Przeniesiesz usługę po zamianie na płatną.');
+  if (u.isTrial) odmowy.push('To okres próbny – przysługuje klientowi, nie usłudze. Przeniesiesz usługę po zamianie na płatną.');
   if (kartowa(u)) {
-    odmowy.push('Usługa jest opłacana cyklicznie kartą obecnego właściciela — najpierw zakończ płatność kartą, inaczej jego karta dalej byłaby obciążana.');
+    odmowy.push('Usługa jest opłacana cyklicznie kartą obecnego właściciela – najpierw zakończ płatność kartą, inaczej jego karta dalej byłaby obciążana.');
   }
   if (u.user.billingOutside !== nowy.billingOutside) {
-    odmowy.push('Rozliczenie poza Verris ma tylko jeden z klientów — najpierw ujednolić warunki rozliczenia na kartach klientów.');
+    odmowy.push('Rozliczenie poza Verris ma tylko jeden z klientów – najpierw ujednolić warunki rozliczenia na kartach klientów.');
   }
   if ((u.resellerMarkupPct ?? 0) > 0 && u.user.resellerOwnerId !== nowy.resellerOwnerId) {
-    odmowy.push('Cena usługi zawiera narzut partnera obecnego właściciela — nowy właściciel nie jest klientem tego partnera.');
+    odmowy.push('Cena usługi zawiera narzut partnera obecnego właściciela – nowy właściciel nie jest klientem tego partnera.');
   }
   if (u.status === SubscriptionStatus.ACTIVE && u.paymentSource !== 'MANUAL' && u.currentPeriodEnd && u.currentPeriodEnd.getTime() - teraz < OKNO_ODNOWIENIA_MS) {
-    odmowy.push('Do odnowienia została mniej niż doba — trwa automatyczne odnowienie. Przenieś usługę po nim.');
+    odmowy.push('Do odnowienia została mniej niż doba – trwa automatyczne odnowienie. Przenieś usługę po nim.');
   }
-  if (s.wToku.migracje > 0) odmowy.push('Trwa przenoszenie strony do tej usługi — poczekaj na koniec migracji albo ją anuluj.');
-  if (s.wToku.przeniesieniaKonta > 0) odmowy.push('Czeka zlecenie przeniesienia konta — poczekaj, aż zostanie przyjęte.');
-  if (s.wToku.odtworzenia > 0) odmowy.push('Trwa odtwarzanie kopii konta — poczekaj na koniec.');
-  if (s.wToku.ssl > 0) odmowy.push('Zamówienie certyfikatu SSL jest w toku — poczekaj na jego instalację albo niepowodzenie.');
-  if (s.wToku.wnioski > 0) odmowy.push('Na tę usługę czeka wniosek operatora — najpierw go rozstrzygnij.');
+  if (s.wToku.migracje > 0) odmowy.push('Trwa przenoszenie strony do tej usługi – poczekaj na koniec migracji albo ją anuluj.');
+  if (s.wToku.przeniesieniaKonta > 0) odmowy.push('Czeka zlecenie przeniesienia konta – poczekaj, aż zostanie przyjęte.');
+  if (s.wToku.odtworzenia > 0) odmowy.push('Trwa odtwarzanie kopii konta – poczekaj na koniec.');
+  if (s.wToku.ssl > 0) odmowy.push('Zamówienie certyfikatu SSL jest w toku – poczekaj na jego instalację albo niepowodzenie.');
+  if (s.wToku.wnioski > 0) odmowy.push('Na tę usługę czeka wniosek operatora – najpierw go rozstrzygnij.');
   // Przegląd 12.10 — wpłata do proformy idzie do portfela tego, komu ją wystawiono (poprzedniego właściciela), a odnowienie
   // obciąża portfel nowego: poprzedni zapłaciłby za nic, nowy dostałby zaległość.
   if (s.wToku.proformy > 0) {
-    odmowy.push('Usługa ma otwartą proformę na odnowienie albo opłaconą, jeszcze niewykorzystaną — anuluj ją, poczekaj na odnowienie albo rozlicz wpłatę z poprzednim właścicielem.');
+    odmowy.push('Usługa ma otwartą proformę na odnowienie albo opłaconą, jeszcze niewykorzystaną – anuluj ją, poczekaj na odnowienie albo rozlicz wpłatę z poprzednim właścicielem.');
   }
   return odmowy;
 }
@@ -224,8 +224,8 @@ export class ZmianaWlascicielaService {
     const s = await this.wczytaj(this.prisma, subscriptionId, email);
     const u = s.usluga;
     const uwagi: string[] = [];
-    if (u.individualPrice) uwagi.push(`Indywidualna cena usługi (${u.individualPrice.toFixed(2)} zł) zostaje przy usłudze — zmienisz ją w warunkach usługi.`);
-    if (u.cancelAt) uwagi.push('Usługa jest anulowana na koniec okresu — po przeniesieniu nadal się nie odnowi.');
+    if (u.individualPrice) uwagi.push(`Indywidualna cena usługi (${u.individualPrice.toFixed(2)} zł) zostaje przy usłudze – zmienisz ją w warunkach usługi.`);
+    if (u.cancelAt) uwagi.push('Usługa jest anulowana na koniec okresu – po przeniesieniu nadal się nie odnowi.');
     const platne = this.platneDodatki(u);
     if (platne.length) uwagi.push(`Płatne dodatki (${platne.join(', ')}) od przeniesienia obciążają portfel nowego właściciela.`);
     return {
@@ -245,10 +245,10 @@ export class ZmianaWlascicielaService {
     if (z.operator.role !== 'ADMIN') throw new ForbiddenException('Zmianę właściciela usługi wykonuje tylko administrator.');
     const powod = (z.powod ?? '').trim();
     if (powod.length < MIN_POWOD_ZMIANY_WLASCICIELA) {
-      throw new BadRequestException(`Podaj powód (min. ${MIN_POWOD_ZMIANY_WLASCICIELA} znaków) — zapisze się w dzienniku.`);
+      throw new BadRequestException(`Podaj powód (min. ${MIN_POWOD_ZMIANY_WLASCICIELA} znaków) – zapisze się w dzienniku.`);
     }
     if (!normalizujEmail(z.email) || normalizujEmail(z.potwierdzenie) !== normalizujEmail(z.email)) {
-      throw new BadRequestException('Wpisany adres nie zgadza się z adresem nowego właściciela — nic nie zmieniono.');
+      throw new BadRequestException('Wpisany adres nie zgadza się z adresem nowego właściciela – nic nie zmieniono.');
     }
 
     // Odmowa bez otwierania transakcji; pod blokadą sprawdzamy jeszcze raz (stan mógł się zmienić).
@@ -271,7 +271,7 @@ export class ZmianaWlascicielaService {
         where: { id: u.id, userId: stary.id, status: SubscriptionStatus.ACTIVE },
         data: { userId: nowy.id },
       });
-      if (count !== 1) throw new ConflictException('Stan usługi zmienił się w międzyczasie — odśwież kartę.');
+      if (count !== 1) throw new ConflictException('Stan usługi zmienił się w międzyczasie – odśwież kartę.');
       await tx.account.update({ where: { id: u.account!.id }, data: { userId: nowy.id } });
       const ssl = await tx.sslOrder.updateMany({ where: { subscriptionId: u.id }, data: { userId: nowy.id } });
       const analityka = await tx.analyticsSite.updateMany({ where: { subscriptionId: u.id }, data: { userId: nowy.id } });

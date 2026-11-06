@@ -50,7 +50,7 @@ async function wyslij() {
 }
 const region = () => el.querySelector<HTMLElement>('form [role="alert"], form [aria-live="assertive"]');
 
-describe('logowanie — komunikat błędu dla czytnika ekranu', () => {
+describe('logowanie – komunikat błędu dla czytnika ekranu', () => {
   it('region żywy istnieje (pusty) zanim pojawi się błąd', () => {
     expect(region()).not.toBeNull();
     expect(region()!.textContent).toBe('');

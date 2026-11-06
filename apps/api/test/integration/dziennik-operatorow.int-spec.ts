@@ -12,11 +12,11 @@ import { prisma, rozlacz, wyczyscBaze } from './setup.js';
 const uzytkownik = (rola: 'USER' | 'STAFF' | 'ADMIN', nazwa: string) =>
   prisma().user.create({ data: { email: `${nazwa}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}@test.verris.pl`, passwordHash: 'x', role: rola } });
 
-describe('weryfikacja 11.10 — dziennik operatorów', () => {
+describe('weryfikacja 11.10 – dziennik operatorów', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 
-  it('wgląd w konto: odpytywanie co 5 s = jeden wpis; inna sekcja, inny operator i wgląd po 10 min — nowe wpisy', async () => {
+  it('wgląd w konto: odpytywanie co 5 s = jeden wpis; inna sekcja, inny operator i wgląd po 10 min – nowe wpisy', async () => {
     const audit = new AuditService(prisma() as never);
     const klient = await uzytkownik('USER', 'klient');
     const op = await uzytkownik('STAFF', 'op');
@@ -42,7 +42,7 @@ describe('weryfikacja 11.10 — dziennik operatorów', () => {
     expect((await wpisy()).filter((w) => w.actorUserId === op.id && (w.details as { sekcja: string }).sekcja === 'zasoby')).toHaveLength(2);
   });
 
-  it('inne akcje (zmiany na koncie) zapisują się zawsze — okno dotyczy tylko wglądu', async () => {
+  it('inne akcje (zmiany na koncie) zapisują się zawsze – okno dotyczy tylko wglądu', async () => {
     const audit = new AuditService(prisma() as never);
     const klient = await uzytkownik('USER', 'klient');
     const op = await uzytkownik('STAFF', 'op');
@@ -52,7 +52,7 @@ describe('weryfikacja 11.10 — dziennik operatorów', () => {
     expect(await prisma().auditLog.count({ where: { action: 'OPERATOR_ACCOUNT_CHANGED', userId: klient.id } })).toBe(3);
   });
 
-  it('dziennik aktywności operatorów: bez akcji klientów; akcja w sesji „Zaloguj jako klient” — z operatorem jako aktorem', async () => {
+  it('dziennik aktywności operatorów: bez akcji klientów; akcja w sesji „Zaloguj jako klient” – z operatorem jako aktorem', async () => {
     const klient = await uzytkownik('USER', 'dominik');
     const op = await uzytkownik('STAFF', 'obsluga');
     const adm = await uzytkownik('ADMIN', 'admin');

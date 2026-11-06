@@ -7,7 +7,7 @@ import { prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } fr
  * Test D3 na t1 (28.09): węzeł odrzucił PHP 8.2 („nie jest zainstalowana”), a panel dalej pokazywał
  * 8.2 jako aktualną wersję i wyświetlał klientowi surowy log zadania ze ścieżkami skryptów.
  */
-describe('PHP — odrzucona zmiana wersji', () => {
+describe('PHP – odrzucona zmiana wersji', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 

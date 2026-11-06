@@ -7,16 +7,16 @@ import { pobranaKopia } from './kopia-offsite';
 describe('pobranaKopia', () => {
   const lista = ['backup-Oct-11-2026-1.tar.zst', 'verris-wp-d3.hvln.pl-20261011.tar.gz'];
 
-  it('kopia administratora konta spoza listy — przywraca obsługa, nie „wybierz z listy”', () => {
+  it('kopia administratora konta spoza listy – przywraca obsługa, nie „wybierz z listy”', () => {
     expect(pobranaKopia('user.admin.d3hvln.tar.zst', lista)).toBe('przez-obsluge');
   });
 
-  it('archiwum, które jest na liście kopii — klient przywraca je sam', () => {
+  it('archiwum, które jest na liście kopii – klient przywraca je sam', () => {
     expect(pobranaKopia('backup-Oct-11-2026-1.tar.zst', lista)).toBe('na-liscie');
     expect(pobranaKopia('backup-Oct-11-2026-1.tar.zst', [])).toBe('przez-obsluge');
   });
 
-  it('kopia administratora konta na liście kopii — dalej przywraca obsługa (decyzja 11.10)', () => {
+  it('kopia administratora konta na liście kopii – dalej przywraca obsługa (decyzja 11.10)', () => {
     expect(pobranaKopia('user.admin.ovsekucx.tar.zst', [...lista, 'user.admin.ovsekucx.tar.zst'])).toBe('przez-obsluge');
   });
 });

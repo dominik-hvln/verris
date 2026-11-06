@@ -19,7 +19,7 @@ const TOPICS = [
   { value: "BILLING", label: "Płatności / faktury" },
   { value: "OTHER", label: "Inne" },
 ];
-const TEMAT_BETA = { value: "BETA", label: "Testy (beta) — uwagi i błędy" };
+const TEMAT_BETA = { value: "BETA", label: "Testy (beta) – uwagi i błędy" };
 
 export default function NewTicketPage() {
   const router = useRouter();
@@ -115,14 +115,14 @@ export default function NewTicketPage() {
               id="topic"
               value={topic}
               onChange={setTopic}
-              placeholder="— wybierz temat —"
+              placeholder="– wybierz temat –"
               options={(tester ? [TEMAT_BETA, ...TOPICS] : TOPICS).map((t) => ({ value: t.value, label: t.label }))}
             />
           </div>
 
           {uslugi === null ? (
             <p className="text-sm text-muted-foreground">
-              Nie udało się wczytać listy usług — wyślij zgłoszenie bez wskazania usługi i napisz w treści, której strony dotyczy.
+              Nie udało się wczytać listy usług – wyślij zgłoszenie bez wskazania usługi i napisz w treści, której strony dotyczy.
             </p>
           ) : uslugi && uslugi.length > 0 ? (
             <div className="space-y-2">
@@ -158,7 +158,7 @@ export default function NewTicketPage() {
           {kb.length > 0 ? (
             <div className="rounded-lg border border-emerald-400/25 bg-emerald-400/[0.05] p-4">
               <p className="flex items-center gap-2 text-sm font-medium text-emerald-200">
-                <BookOpen className="h-4 w-4" /> Zanim wyślesz — może to pomoże:
+                <BookOpen className="h-4 w-4" /> Zanim wyślesz – może to pomoże:
               </p>
               <ul className="mt-2 space-y-2">
                 {kb.map((s) => (
@@ -176,7 +176,7 @@ export default function NewTicketPage() {
                 ))}
               </ul>
               <p className="mt-2 text-[11px] text-neutral-400">
-                Jeśli to nie rozwiązuje sprawy — wyślij zgłoszenie poniżej.
+                Jeśli to nie rozwiązuje sprawy – wyślij zgłoszenie poniżej.
               </p>
             </div>
           ) : null}

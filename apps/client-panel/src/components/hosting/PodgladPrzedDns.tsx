@@ -27,7 +27,7 @@ export function PodgladPrzedDns({ serviceId }: { serviceId: string }) {
     <div className="rounded-lg border border-line-strong bg-raised px-3 py-2.5 text-xs">
       <p className="font-medium text-foreground">Zobacz stronę na nowym serwerze, zanim przełączysz domenę</p>
       <p className="mt-0.5 text-muted-foreground">
-        Tymczasowy adres pokazuje {p.domena} tak, jak będzie działać u nas. Służy do oglądania — logowanie do panelu strony
+        Tymczasowy adres pokazuje {p.domena} tak, jak będzie działać u nas. Służy do oglądania – logowanie do panelu strony
         i formularze zadziałają po zmianie DNS. Adres ważny do {wygasa}.
       </p>
       <a

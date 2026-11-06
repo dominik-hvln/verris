@@ -53,7 +53,7 @@ describe('listy DA 1.710', () => {
 
   // Odczyt na t1 12.10 (konto d3, login-as): domena dodatkowa bez skrzynek nie ma pliku quota, więc type=quota
   // zwraca JSON z „error” (tekst, nie „1”), a action=list — pustą treść. To jest „0 skrzynek”, nie błąd.
-  it('skrzynki: prawdziwe odpowiedzi t1 12.10 — d3.hvln.pl 2 skrzynki po 1 GB, test2.d3.hvln.pl → []', async () => {
+  it('skrzynki: prawdziwe odpowiedzi t1 12.10 – d3.hvln.pl 2 skrzynki po 1 GB, test2.d3.hvln.pl → []', async () => {
     const k = klient((_p, params) => {
       if (params.domain === 'd3.hvln.pl') {
         if (params.type === 'quota' && params.json === 'yes')
@@ -90,7 +90,7 @@ describe('menedżer plików DA 1.710', () => {
     await expect(k.listDir('/public_html')).resolves.toEqual([{ name: '.htaccess', type: 'file', sizeBytes: 1100, modified: '1790636575' }]);
   });
 
-  it('wpis katalogu nadrzędnego („..”) nie jest pokazywany jako podkatalog — t1 01.10', async () => {
+  it('wpis katalogu nadrzędnego („..”) nie jest pokazywany jako podkatalog – t1 01.10', async () => {
     const k = klient(() =>
       new URLSearchParams({
         '/domains/ex.pl': 'type=dir&size=4096&mtime=1',
@@ -105,7 +105,7 @@ describe('menedżer plików DA 1.710', () => {
   });
 });
 
-describe('zaznaczenie w menedżerze plików DA 1.710 — pełne ścieżki', () => {
+describe('zaznaczenie w menedżerze plików DA 1.710 – pełne ścieżki', () => {
   const zPosta = () => {
     const post = vi.fn(async (_p: string, _b: string) => ({ data: 'error=0' }));
     const k = new DirectAdminClient({ host: 'da.test', port: 2222, username: 'klient1', loginKey: 'x', secure: true });
@@ -129,7 +129,7 @@ describe('zaznaczenie w menedżerze plików DA 1.710 — pełne ścieżki', () =
   });
 });
 
-describe('menedżer plików DA 1.710 — zmiana nazwy', () => {
+describe('menedżer plików DA 1.710 – zmiana nazwy', () => {
   it('old = sama nazwa (pełna ścieżka dawała błąd na t1)', async () => {
     const post = vi.fn(async (_p: string, _b: string) => ({ data: 'error=0' }));
     const k = new DirectAdminClient({ host: 'da.test', port: 2222, username: 'klient1', loginKey: 'x', secure: true });
@@ -168,7 +168,7 @@ describe('webmail jednym kliknięciem (CMD_WEBMAIL_LOGIN)', () => {
   });
 });
 
-describe('menedżer plików DA 1.710 — odpowiedzi', () => {
+describe('menedżer plików DA 1.710 – odpowiedzi', () => {
   const zPost = (status: number, data: string) => {
     const post = vi.fn(async (_p: string, _b: string, _c?: unknown) => ({ status, data }));
     const k = new DirectAdminClient({ host: 'da.test', port: 2222, username: 'klient1', loginKey: 'x', secure: true });
@@ -188,7 +188,7 @@ describe('menedżer plików DA 1.710 — odpowiedzi', () => {
   });
 });
 
-describe('użytkownicy bazy — CMD_API_DB_USER wg dokumentacji DA (name = baza)', () => {
+describe('użytkownicy bazy – CMD_API_DB_USER wg dokumentacji DA (name = baza)', () => {
   const zPosta = (odpowiedz = 'error=0&text=OK') => {
     const post = vi.fn(async (_p: string, _b: string) => ({ data: odpowiedz }));
     const get = vi.fn(async (_p: string, _c?: unknown) => ({ data: 'list%5B%5D=klient1_wp&list%5B%5D=klient1_test' }));
@@ -239,7 +239,7 @@ describe('CL-01: odpowiedź bez error=0 to nie sukces (Legacy API: error=1|0)', 
   });
 });
 
-describe('CL-01: Admin Settings — bez odczytu nie ma zapisu', () => {
+describe('CL-01: Admin Settings – bez odczytu nie ma zapisu', () => {
   const zAdminem = (get: (p: string) => unknown, postBody: unknown = 'error=0&text=Saved') => {
     const post = vi.fn(async (_p: string, _b: string) => ({ data: postBody }));
     const k = new DirectAdminClient({ host: 'da.test', port: 2222, username: 'admin', loginKey: 'x', secure: true });

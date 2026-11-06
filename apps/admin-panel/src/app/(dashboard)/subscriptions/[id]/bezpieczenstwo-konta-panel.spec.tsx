@@ -84,7 +84,7 @@ afterEach(async () => {
   k.remove();
 });
 
-describe("F3.2 — bezpieczeństwo konta na karcie usługi", () => {
+describe("F3.2 – bezpieczeństwo konta na karcie usługi", () => {
   it("L1 (bez uprawnień): nic nie czyta z serwera, w sekcjach nazwa brakującego uprawnienia", async () => {
     await render(op("CUSTOMERS_VIEW", "TICKETS_MANAGE"));
     expect(odczyt).not.toHaveBeenCalled();
@@ -103,7 +103,7 @@ describe("F3.2 — bezpieczeństwo konta na karcie usługi", () => {
     expect(zapis).toHaveBeenCalledWith("s1", "sprawdz-ip", expect.objectContaining({ ip: "83.12.44.201" }));
   });
 
-  it("odblokowanie: bez powodu wyszarzone; z powodem — potwierdzenie i zlecenie z numerem zgłoszenia", async () => {
+  it("odblokowanie: bez powodu wyszarzone; z powodem – potwierdzenie i zlecenie z numerem zgłoszenia", async () => {
     await render(L2);
     await klik(q('[data-adres="83.12.44.201"]')!);
     expect(q('[data-akcja="odblokuj-ip"]')!.disabled).toBe(true);
@@ -115,7 +115,7 @@ describe("F3.2 — bezpieczeństwo konta na karcie usługi", () => {
     expect(k.textContent).toContain("Odblokowanie zlecone");
   });
 
-  it("kwarantanna: tylko zaznaczone pliki, lista w potwierdzeniu; anulowanie — nic; przywrócenie wpisu", async () => {
+  it("kwarantanna: tylko zaznaczone pliki, lista w potwierdzeniu; anulowanie – nic; przywrócenie wpisu", async () => {
     await render(L2);
     await wpisz(powod(), "Backdoor w uploads, zgłoszenie abuse");
     expect(q('[data-akcja="kwarantanna"]')!.disabled).toBe(true);
@@ -127,7 +127,7 @@ describe("F3.2 — bezpieczeństwo konta na karcie usługi", () => {
     expect(String(potwierdz.mock.calls[1]![0])).toContain(PLIK);
     expect(String(potwierdz.mock.calls[1]![0])).toContain("kopie zostaną na koncie");
     expect(zapis).toHaveBeenCalledWith("s1", "kwarantanna", expect.objectContaining({ sciezki: [PLIK] }));
-    await wpisz(powod(), "Fałszywy alarm — plik wtyczki");
+    await wpisz(powod(), "Fałszywy alarm – plik wtyczki");
     await klik(k.querySelector<HTMLInputElement>('input[aria-label="Zaznacz domains/klient.pl/public_html/old.php"]')!);
     await klik(q('[data-akcja="przywroc"]')!);
     expect(zapis).toHaveBeenLastCalledWith("s1", "przywroc", expect.objectContaining({ wpisy: [MALWARE.kwarantanna[0]!.id] }));
@@ -150,7 +150,7 @@ describe("F3.2 — bezpieczeństwo konta na karcie usługi", () => {
     expect(q('[data-akcja="wczytaj-waf"]')!.textContent).toBe("Wczytywanie…");
   });
 
-  it("noc 11→12.10: w trakcie odczytu panel mówi, od kiedy i na co czeka; wiszący odczyt — błąd i przycisk znów aktywny", async () => {
+  it("noc 11→12.10: w trakcie odczytu panel mówi, od kiedy i na co czeka; wiszący odczyt – błąd i przycisk znów aktywny", async () => {
     const zlecono = "2026-10-11T19:47:00Z";
     odczyt.mockImplementation(async (_s: string, co: string) => ({
       ok: true,
@@ -164,7 +164,7 @@ describe("F3.2 — bezpieczeństwo konta na karcie usługi", () => {
 
     odczyt.mockImplementation(async (_s: string, co: string) => ({
       ok: true,
-      wynik: co === "blokady-ip" ? IP : co === "malware" ? MALWARE : { ...WAF, wToku: false, blad: "Serwer nie podjął odczytu w ciągu 15 min — spróbuj ponownie." },
+      wynik: co === "blokady-ip" ? IP : co === "malware" ? MALWARE : { ...WAF, wToku: false, blad: "Serwer nie podjął odczytu w ciągu 15 min – spróbuj ponownie." },
     }));
     await act(async () => root.unmount());
     root = createRoot(k);

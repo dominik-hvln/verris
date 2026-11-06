@@ -12,11 +12,11 @@ const MIN = 60_000;
 /** Zakres pełny (ADMIN) — od nocy 15.10 overview() nie ma wartości domyślnych. */
 const PELNY = { metryki: true, klienci: true, zgloszenia: true };
 
-describe('PB-34 — pulpit admina', () => {
+describe('PB-34 – pulpit admina', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 
-  it('wymaga uwagi: onboard FAIL, cichy węzeł, SLA, fala, wpłaty bez faktury — krytyczne na górze', async () => {
+  it('wymaga uwagi: onboard FAIL, cichy węzeł, SLA, fala, wpłaty bez faktury – krytyczne na górze', async () => {
     const zdrowy = await utworzWezel({ name: 'node-pl-01', totalCpuCores: 4 });
     const onboard = await utworzWezel({
       name: 'node-pl-02',
@@ -78,7 +78,7 @@ describe('PB-34 — pulpit admina', () => {
     const de1 = o.flota.wezly.find((x) => x.nazwa === 'node-de-01')!;
     // (100 + 60)% rdzenia na próbkę / 4 rdzenie = 40%
     expect(de1).toMatchObject({ cpuProc: 40, konta: 2, poza: null, stan: 'ok', sygnal: 'na żywo' });
-    expect(o.flota.wezly.find((x) => x.nazwa === 'node-de-02')).toMatchObject({ poza: 'poza pulą — serwis', stan: 'warn', cpuProc: null });
+    expect(o.flota.wezly.find((x) => x.nazwa === 'node-de-02')).toMatchObject({ poza: 'poza pulą – serwis', stan: 'warn', cpuProc: null });
     expect(o.naUwadze.map((u) => u.opis)).toContain('wymiana dysku · węzeł nie dostaje nowych kont');
     expect(o.uslugi).toMatchObject({ aktywne: 2, hosting: 2, poczta: 0 });
     expect(o.klienci!.razem).toBe(1);

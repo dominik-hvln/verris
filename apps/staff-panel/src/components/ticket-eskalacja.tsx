@@ -47,7 +47,7 @@ export function TicketEskalacja({
       <div className="flex flex-col gap-2 px-4 py-3.5" data-karta="eskalacja">
         <h2 className="font-display text-[15px] font-bold">Eskalacja i ryzyko</h2>
         <p className="text-[13px] text-muted-foreground">
-          {eskalowane ? `Eskalowane${kiedyEskalowano ? ` ${kiedyEskalowano}` : ""}${powodEskalacji ? ` — ${powodEskalacji}` : ""}` : "Nieeskalowane"}
+          {eskalowane ? `Eskalowane${kiedyEskalowano ? ` ${kiedyEskalowano}` : ""}${powodEskalacji ? ` – ${powodEskalacji}` : ""}` : "Nieeskalowane"}
           {ryzyko ? ` · ryzyko: ${opisRyzyka ?? ryzyko}` : ""}
         </p>
         <label htmlFor={poleId} className="text-[12.5px] font-semibold">

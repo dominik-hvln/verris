@@ -1,6 +1,6 @@
 import { godzinaPolska, opcjeGodzinyHarmonogramu } from './godzina-harmonogramu';
 
-describe('godzina harmonogramu kopii — czas polski zamiast UTC (weryfikacja 11.10)', () => {
+describe('godzina harmonogramu kopii – czas polski zamiast UTC (weryfikacja 11.10)', () => {
   it('03:00 UTC to 05:00 w Polsce latem (październik przed zmianą czasu) i 04:00 zimą', () => {
     expect(godzinaPolska(3, new Date('2026-10-11T12:00:00Z'))).toBe(5);
     expect(godzinaPolska(3, new Date('2026-12-01T12:00:00Z'))).toBe(4);

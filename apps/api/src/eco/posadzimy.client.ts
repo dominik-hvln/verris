@@ -106,7 +106,7 @@ export class PosadzimyClient {
       if (PRZED_WYSLANIEM.test(kod)) return { rodzaj: 'odrzucone', blad: `Brak połączenia z API sadzenia (${kod}).` };
       return {
         rodzaj: 'niepewne',
-        blad: `Brak odpowiedzi API sadzenia (${kod || (e as Error).name}) — sprawdź w panelu partnera, czy zamówienie powstało.`,
+        blad: `Brak odpowiedzi API sadzenia (${kod || (e as Error).name}) – sprawdź w panelu partnera, czy zamówienie powstało.`,
       };
     }
     const body = await res.json().catch(() => null);
@@ -121,11 +121,11 @@ export class PosadzimyClient {
           certificateImageUrl: tekstUrl(d?.certificateImageUrl),
         };
       }
-      return { rodzaj: 'niepewne', blad: `HTTP ${res.status} bez orderId — sprawdź w panelu partnera.` };
+      return { rodzaj: 'niepewne', blad: `HTTP ${res.status} bez orderId – sprawdź w panelu partnera.` };
     }
     // 408 (przekroczony czas po stronie serwera) i 5xx: serwer mógł zamówienie przyjąć.
     if (res.status === 408 || res.status >= 500) {
-      return { rodzaj: 'niepewne', blad: `${komunikat(body, res.status)} — sprawdź w panelu partnera.` };
+      return { rodzaj: 'niepewne', blad: `${komunikat(body, res.status)} – sprawdź w panelu partnera.` };
     }
     return { rodzaj: 'odrzucone', blad: komunikat(body, res.status) };
   }

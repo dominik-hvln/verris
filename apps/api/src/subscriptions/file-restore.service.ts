@@ -59,7 +59,7 @@ export class FileRestoreService {
     const wToku = await this.prisma.nodeTask.findFirst({
       where: { accountId: account.id, kind: NodeTaskKind.FILE_RESTORE, status: { in: [NodeTaskStatus.QUEUED, NodeTaskStatus.RUNNING] } },
     });
-    if (wToku) throw new ConflictException('Operacja na archiwum jest już w toku — poczekaj na wynik.');
+    if (wToku) throw new ConflictException('Operacja na archiwum jest już w toku – poczekaj na wynik.');
     return this.prisma.nodeTask.create({
       data: {
         serverId: account.serverId,
@@ -151,5 +151,5 @@ export function katalogZLogu(log: string | null): string | null {
 
 function bladZLogu(log: string | null): string {
   const l = (log ?? '').split('\n').reverse().find((x) => x.startsWith('[file-restore] BŁĄD: '));
-  return l ? l.slice('[file-restore] BŁĄD: '.length).slice(0, 500) : 'Operacja nie powiodła się. Napisz do nas — sprawdzimy to.';
+  return l ? l.slice('[file-restore] BŁĄD: '.length).slice(0, 500) : 'Operacja nie powiodła się. Napisz do nas – sprawdzimy to.';
 }

@@ -58,7 +58,7 @@ function pliki(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-it('kod panelu importuje kontrakty tylko z @verris/contracts/klient (pełne wejście — wyłącznie moduły serwerowe)', () => {
+it('kod panelu importuje kontrakty tylko z @verris/contracts/klient (pełne wejście – wyłącznie moduły serwerowe)', () => {
   const zle: string[] = [];
   for (const p of pliki(SRC)) {
     const kod = readFileSync(p, 'utf8');
@@ -102,7 +102,7 @@ it('strażnik łapie to, co wyciekało przed poprawką (P5-01)', () => {
   }
 });
 
-it('decyzja 24 — katalog wersji PHP węzła (/opt/alt/) bez wyjątku w kodzie przeglądarki; krótka nazwa /usr/local/bin/phpXY dozwolona', () => {
+it('decyzja 24 – katalog wersji PHP węzła (/opt/alt/) bez wyjątku w kodzie przeglądarki; krótka nazwa /usr/local/bin/phpXY dozwolona', () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { slowoZapleczaWBuildzie } = require('../../scripts/slowa-zaplecza.cjs') as { slowoZapleczaWBuildzie: (t: string) => string | null };
   // Do 4.11 skrypt po buildzie przepuszczał `/opt/alt/…` (podpowiedź crona) — teraz to wyciek.

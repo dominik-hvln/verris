@@ -66,7 +66,7 @@ async function import_(wiadomosci: Record<number, string>) {
 
 const wpis = (messageId: string) => prisma().pocztaPrzychodzaca.findUniqueOrThrow({ where: { messageId } });
 
-describe('F3.7 — poczta przychodząca do zgłoszeń', () => {
+describe('F3.7 – poczta przychodząca do zgłoszeń', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     await prisma().pocztaPrzychodzaca.deleteMany({});
@@ -99,7 +99,7 @@ describe('F3.7 — poczta przychodząca do zgłoszeń', () => {
     expect(await prisma().ticket.count()).toBe(1);
   });
 
-  it('dwa procesy naraz z tym samym mailem — jedno zgłoszenie (unikalny Message-ID w transakcji)', async () => {
+  it('dwa procesy naraz z tym samym mailem – jedno zgłoszenie (unikalny Message-ID w transakcji)', async () => {
     await konto('jan@klient.pl');
     const { poczta } = uslugi();
     const m = eml('nowe-zgloszenie.eml');
@@ -149,7 +149,7 @@ describe('F3.7 — poczta przychodząca do zgłoszeń', () => {
     expect(await wpis('<CAF5678odp@mail.gmail.com>')).toMatchObject({ wynik: 'BEZ_KLIENTA', sugerowaneZgloszenieId: ID, powod: 'nadawca nie jest właścicielem zgłoszenia z wątku' });
   });
 
-  it('spam, autoresponder, zwrotka i nadawca z listy blokad — zapis bez zgłoszenia i bez maila do nadawcy', async () => {
+  it('spam, autoresponder, zwrotka i nadawca z listy blokad – zapis bez zgłoszenia i bez maila do nadawcy', async () => {
     await konto('jan@klient.pl');
     await prisma().pocztaBlokadaNadawcy.create({ data: { wzorzec: '@firma-zewnetrzna.pl' } });
     expect(await import_({ 1: 'spam.eml', 2: 'autoresponder.eml', 3: 'zwrotka.eml', 4: 'obcy-z-plikami.eml' })).toMatchObject({ nowe: 4, oznaczone: [1, 2, 3, 4] });
@@ -162,7 +162,7 @@ describe('F3.7 — poczta przychodząca do zgłoszeń', () => {
     expect(magazyn.size).toBe(0);
   });
 
-  it('za duży mail — tylko nagłówki (bez pobierania treści)', async () => {
+  it('za duży mail – tylko nagłówki (bez pobierania treści)', async () => {
     const { poczta } = uslugi();
     const m = eml('nowe-zgloszenie.eml');
     const wiadomosc = vi.fn();
@@ -275,7 +275,7 @@ describe('F3.7 — poczta przychodząca do zgłoszeń', () => {
     expect((await prisma().ticket.findUniqueOrThrow({ where: { id: r.ticketId } })).userId).toBe(jan.id);
   });
 
-  it('audyt Fali 3 — e-mail konta zmieniony przez obsługę < 24 h: mail ze starego adresu → kolejka z kontem i ostrzeżeniem (zmieniający nie odrzuci); z nowego — nie automatycznie', async () => {
+  it('audyt Fali 3 – e-mail konta zmieniony przez obsługę < 24 h: mail ze starego adresu → kolejka z kontem i ostrzeżeniem (zmieniający nie odrzuci); z nowego – nie automatycznie', async () => {
     const op = await operator('op-zmiana@verris.pl', ['TICKETS_VIEW', 'TICKETS_MANAGE']);
     const drugi = await operator('op-drugi@verris.pl', ['TICKETS_VIEW', 'TICKETS_MANAGE']);
     const klient = await konto('nowy@pracownika.pl');
@@ -309,7 +309,7 @@ describe('F3.7 — poczta przychodząca do zgłoszeń', () => {
     expect(await prisma().ticket.count()).toBe(0);
   });
 
-  it('przegląd poprawek Fali 3 — blokada nadawcy (osobna trasa „zablokuj”) nie wycisza poprzedniego adresu klienta w dobie po zmianie e-maila przez obsługę', async () => {
+  it('przegląd poprawek Fali 3 – blokada nadawcy (osobna trasa „zablokuj”) nie wycisza poprzedniego adresu klienta w dobie po zmianie e-maila przez obsługę', async () => {
     const op = await operator('op-zmiana@verris.pl', ['TICKETS_VIEW', 'TICKETS_MANAGE']);
     const klient = await konto('nowy@pracownika.pl');
     await prisma().auditLog.create({
@@ -361,7 +361,7 @@ describe('F3.7 — poczta przychodząca do zgłoszeń', () => {
     expect(await prisma().pocztaPrzychodzaca.count()).toBe(0);
   });
 
-  it('audyt Fali 3 — retencja: wpis przypisany do zgłoszenia zostaje (wątek), ale po 90 dniach bez plików w magazynie i bez treści', async () => {
+  it('audyt Fali 3 – retencja: wpis przypisany do zgłoszenia zostaje (wątek), ale po 90 dniach bez plików w magazynie i bez treści', async () => {
     const jan = await konto('jan@klient.pl');
     const op = await operator('op@verris.pl', ZESPOL_NADUZYC);
     await prisma().ticket.create({ data: { id: ID, userId: jan.id, subject: 'Phishing', message: 'x' } });
@@ -381,7 +381,7 @@ describe('F3.7 — poczta przychodząca do zgłoszeń', () => {
     await expect(poczta.plik(w.id, 0, true, op)).rejects.toThrow(/Nie ma takiego pliku/);
   });
 
-  it('audyt Fali 3 — abuse@ tylko dla zespołu nadużyć: L1/Sprzedaż/NOC nie widzą, nie pobierają, nie przypisują, nie odrzucają; domenę blokuje zespół nadużyć', async () => {
+  it('audyt Fali 3 – abuse@ tylko dla zespołu nadużyć: L1/Sprzedaż/NOC nie widzą, nie pobierają, nie przypisują, nie odrzucają; domenę blokuje zespół nadużyć', async () => {
     await konto('jan@klient.pl');
     await import_({ 5: 'obcy-z-plikami.eml', 6: 'spam.eml' });
     const w = await wpis('<obcy-001@firma-zewnetrzna.pl>');
@@ -441,7 +441,7 @@ describe('F3.7 — poczta przychodząca do zgłoszeń', () => {
     }
   };
 
-  it('NUL w temacie, nazwie i treści oraz data z roku -10000 — zgłoszenie zapisane (wcześniej błąd zapisu w każdym przebiegu)', async () => {
+  it('NUL w temacie, nazwie i treści oraz data z roku -10000 – zgłoszenie zapisane (wcześniej błąd zapisu w każdym przebiegu)', async () => {
     const jan = await konto('jan@klient.pl');
     expect(await import_({ 1: 'nul-i-zla-data.eml' })).toEqual({ nowe: 1, bledy: [], oznaczone: [1] });
     const p = await wpis('<nul-001@mail.klient.pl>');
@@ -478,7 +478,7 @@ describe('F3.7 — poczta przychodząca do zgłoszeń', () => {
     expect(maile.filter((m) => m.tag === 'ticket.created' || /Otrzymaliśmy/.test(m.subject)).map((m) => m.to)).toEqual(['wlasciciel@klient.pl']);
   });
 
-  it(`hamulec pętli: najwyżej ${LIMIT_NOWYCH_NA_GODZINE} nowych zgłoszeń z maili konta na godzinę — dalsze do kolejki, bez potwierdzenia`, async () => {
+  it(`hamulec pętli: najwyżej ${LIMIT_NOWYCH_NA_GODZINE} nowych zgłoszeń z maili konta na godzinę – dalsze do kolejki, bez potwierdzenia`, async () => {
     await konto('jan@klient.pl');
     const n = LIMIT_NOWYCH_NA_GODZINE + 2;
     const w = await importuj(Array.from({ length: n }, (_, i) => prosty({ id: `petla-${i}`, od: 'jan@klient.pl', temat: `Automatyczna odpowiedź ${i}` })));
@@ -490,7 +490,7 @@ describe('F3.7 — poczta przychodząca do zgłoszeń', () => {
     expect(maile.filter((m) => m.to === 'jan@klient.pl')).toHaveLength(LIMIT_NOWYCH_NA_GODZINE);
   });
 
-  it('abuse@ tylko po dokładnym adresie — „notabuse@verris.pl” to zwykłe zgłoszenie', async () => {
+  it('abuse@ tylko po dokładnym adresie – „notabuse@verris.pl” to zwykłe zgłoszenie', async () => {
     await konto('jan@klient.pl');
     await importuj([prosty({ id: 'nie-abuse', od: 'jan@klient.pl', do: 'notabuse@verris.pl' }), prosty({ id: 'abuse', od: 'jan@klient.pl', do: 'Abuse@Verris.pl' })]);
     expect((await wpis('<nie-abuse@mail.test>')).rodzaj).toBe('SUPPORT');

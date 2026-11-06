@@ -32,8 +32,8 @@ export function TrialOfferSettingsForm({ initial }: { initial: TrialOfferForm })
       </label>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <NumberField name="annualAutoscalingCredit" label="Kredyty — plan roczny (zł brutto)" defaultValue={initial.annualAutoscalingCredit} hint="0–1000, całe złote. 0 = bez kredytów dla planu rocznego." />
-        <NumberField name="monthlyAutoscalingCredit" label="Kredyty — plan miesięczny (zł brutto)" defaultValue={initial.monthlyAutoscalingCredit} hint="0–1000, całe złote. Zmiana obowiązuje od następnego zamówienia." />
+        <NumberField name="annualAutoscalingCredit" label="Kredyty – plan roczny (zł brutto)" defaultValue={initial.annualAutoscalingCredit} hint="0–1000, całe złote. 0 = bez kredytów dla planu rocznego." />
+        <NumberField name="monthlyAutoscalingCredit" label="Kredyty – plan miesięczny (zł brutto)" defaultValue={initial.monthlyAutoscalingCredit} hint="0–1000, całe złote. Zmiana obowiązuje od następnego zamówienia." />
       </div>
 
       <div className="flex items-center gap-3 pt-2">

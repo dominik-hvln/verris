@@ -25,7 +25,7 @@ const report = (suggestion: unknown, usesPlatformDns: boolean | null = true) => 
 });
 const old = { name: 'firma.pl.', type: 'TXT', value: '"v=spf1 include:_spf.verris.pl ~all"' };
 
-describe('PB-17 AssistantService — naprawy', () => {
+describe('PB-17 AssistantService – naprawy', () => {
   it('dodaje rekord i zapisuje wpis audytu z danymi do cofnięcia', async () => {
     const { svc, da, prisma } = setup({ report: report({ host: '@', type: 'TXT', value: 'v=spf1 a mx ~all' }) });
     await expect(svc.applyFix('s1', 'u1', 'u1', 'spf')).resolves.toMatchObject({ ok: true, undoId: 'log-1' });
@@ -56,7 +56,7 @@ describe('PB-17 AssistantService — naprawy', () => {
     ...over,
   });
 
-  it('cofnięcie przywraca stary rekord i usuwa dodany — z danych audytu', async () => {
+  it('cofnięcie przywraca stary rekord i usuwa dodany – z danych audytu', async () => {
     const { svc, da, audit } = setup({ log: applied() });
     await expect(svc.undoFix('s1', 'u1', 'u1', 'log-1')).resolves.toEqual({ ok: true });
     expect(da.createHostingDnsRecord).toHaveBeenCalledWith('s1', 'u1', { domain: 'firma.pl', ...old, ttl: 3600 });
@@ -74,7 +74,7 @@ describe('PB-17 AssistantService — naprawy', () => {
   });
 });
 
-describe('asystent — raport poczty bez list blokad (t1 04.10)', () => {
+describe('asystent – raport poczty bez list blokad (t1 04.10)', () => {
   it('hints prosi o raport bez RBL, żeby zmieścić się w budżecie 3 s', async () => {
     const prisma = {
       subscription: { findFirst: vi.fn().mockResolvedValue({ account: { domain: 'firma.pl', diskLimitMb: 1, status: 'ACTIVE', server: null }, siteMonitor: null, usageMetrics: [] }) },

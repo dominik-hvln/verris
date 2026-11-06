@@ -52,7 +52,7 @@ describe('nagłówki wątku zgłoszenia', () => {
     expect(zly).not.toMatch(/Bcc:|X-Evil|In-Reply-To|References/);
   });
 
-  it('MailerService: mail z zgloszenieId dostaje nagłówki wątku; bez niego — bez zmian', async () => {
+  it('MailerService: mail z zgloszenieId dostaje nagłówki wątku; bez niego – bez zmian', async () => {
     const wyslane: Array<Record<string, unknown>> = [];
     const provider = { id: 'p', send: vi.fn(async (m: Record<string, unknown>) => (wyslane.push(m), { providerId: 'p', messageId: String(m.messageId ?? 'x') })) };
     const prisma = {
@@ -71,7 +71,7 @@ describe('nagłówki wątku zgłoszenia', () => {
 });
 
 describe('mail z odpowiedzią opiekuna', () => {
-  it('klient dostaje całą odpowiedź (nie 500 znaków) w wątku zgłoszenia; obsługa — fragment, bez wątku', () => {
+  it('klient dostaje całą odpowiedź (nie 500 znaków) w wątku zgłoszenia; obsługa – fragment, bez wątku', () => {
     const dluga = 'Sprawdziliśmy rekordy DNS. '.repeat(60);
     const doKlienta = ticketReplyNotificationTemplate({ to: 'k@x.pl', ticketId: ID, subject: 'DNS', excerpt: dluga, panelUrl: 'https://p', isFromStaff: true });
     expect(doKlienta.zgloszenieId).toBe(ID);

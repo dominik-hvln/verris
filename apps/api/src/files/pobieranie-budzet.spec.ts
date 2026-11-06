@@ -2,7 +2,7 @@ import { HttpException } from '@nestjs/common';
 import { FilesService, MAX_BAJTOW_ODCZYTOW } from './files.service.js';
 
 /** Zaległość z audytu (13.10): limit 2 odczytów na konto nie ograniczał sumy bajtów w pamięci API dla wielu kont. */
-describe('Menedżer plików — globalny budżet bajtów odczytów', () => {
+describe('Menedżer plików – globalny budżet bajtów odczytów', () => {
   it('suma rozmiarów w toku ponad budżet → 503 bez wołania serwera; po zwolnieniu znów działa', async () => {
     const ROZMIAR = 90_000_000;
     let zwolnij: () => void = () => undefined;

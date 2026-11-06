@@ -10,7 +10,7 @@ import { prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } fr
  * i bez kont zespołu), wysyłka kolejką z limitem, jeden mail na odbiorcę także przy dwóch równoległych przebiegach,
  * zatrzymanie, odbiorca „w trakcie” po awarii procesu nie dostaje drugiego maila. Baner incydentów dla obsługi.
  */
-describe('F3.8 — komunikaty serwisowe i baner (Postgres)', () => {
+describe('F3.8 – komunikaty serwisowe i baner (Postgres)', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     await prisma().komunikatSerwisowyOdbiorca.deleteMany({});
@@ -51,7 +51,7 @@ describe('F3.8 — komunikaty serwisowe i baner (Postgres)', () => {
     await prisma().user.update({ where: { id: a.user.id }, data: { firstName: 'Anna' } });
 
     const { svc, wyslane } = usluga();
-    const z = { zakres: 'WEZEL' as const, celId: w.id, temat: 'Awaria serwera — pracujemy nad tym', tresc: TRESC };
+    const z = { zakres: 'WEZEL' as const, celId: w.id, temat: 'Awaria serwera – pracujemy nad tym', tresc: TRESC };
     const podglad = await svc.podglad(z);
     expect(podglad).toMatchObject({ odbiorcow: 3, cel: { id: w.id }, przekroczono: false });
     expect(podglad.przyklad.map((x) => x.id).sort()).toEqual([a.user.id, b.user.id, c.user.id].sort());
@@ -76,7 +76,7 @@ describe('F3.8 — komunikaty serwisowe i baner (Postgres)', () => {
     expect(wpis.details).toMatchObject({ komunikatId: k.id, zakres: 'WEZEL', odbiorcow: 3, powod: 'awaria dysku na węźle, incydent #1' });
   });
 
-  it('plan: usługi ACTIVE i PAST_DUE; zatrzymanie pomija resztę; odbiorca „w trakcie” po awarii — błąd, bez drugiego maila', async () => {
+  it('plan: usługi ACTIVE i PAST_DUE; zatrzymanie pomija resztę; odbiorca „w trakcie” po awarii – błąd, bez drugiego maila', async () => {
     const plan = await utworzPlan();
     const w = await utworzWezel();
     const konta = await Promise.all([1, 2, 3, 4].map(() => utworzKonto({ serverId: w.id, planId: plan.id })));
@@ -99,13 +99,13 @@ describe('F3.8 — komunikaty serwisowe i baner (Postgres)', () => {
     expect(wyslane).toHaveLength(1);
   });
 
-  it('przegląd: dwa równoległe zlecenia tego samego komunikatu — jeden komunikat, drugie 409; zatrzymany można zlecić ponownie', async () => {
+  it('przegląd: dwa równoległe zlecenia tego samego komunikatu – jeden komunikat, drugie 409; zatrzymany można zlecić ponownie', async () => {
     const plan = await utworzPlan();
     const w = await utworzWezel();
     const a = await utworzKonto({ serverId: w.id, planId: plan.id });
     await utworzKonto({ serverId: w.id, planId: plan.id });
     const { svc, wyslane } = usluga();
-    const z = { zakres: 'WEZEL' as const, celId: w.id, temat: 'Awaria serwera — pracujemy', tresc: TRESC, powod: 'awaria sieci w DC, incydent #2' };
+    const z = { zakres: 'WEZEL' as const, celId: w.id, temat: 'Awaria serwera – pracujemy', tresc: TRESC, powod: 'awaria sieci w DC, incydent #2' };
     const wyniki = await Promise.allSettled([svc.zlec(z, a.user.id), svc.zlec(z, a.user.id)]);
     expect(wyniki.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
     const odmowa = wyniki.find((r) => r.status === 'rejected') as PromiseRejectedResult;
@@ -113,7 +113,7 @@ describe('F3.8 — komunikaty serwisowe i baner (Postgres)', () => {
     expect(await prisma().komunikatSerwisowy.count()).toBe(1);
     expect(await prisma().komunikatSerwisowyOdbiorca.count()).toBe(2);
     // Inna treść do tego samego węzła — wolno (np. „naprawione” po „awaria”).
-    await svc.zlec({ ...z, temat: 'Usługa działa ponownie — dziękujemy za cierpliwość' }, a.user.id);
+    await svc.zlec({ ...z, temat: 'Usługa działa ponownie – dziękujemy za cierpliwość' }, a.user.id);
     // Zatrzymany komunikat można zlecić ponownie od razu (poprawiony zakres, ta sama treść).
     const pierwszy = (wyniki.find((r) => r.status === 'fulfilled') as PromiseFulfilledResult<{ id: string }>).value;
     await svc.zatrzymaj(pierwszy.id, a.user.id);
@@ -128,7 +128,7 @@ describe('F3.8 — komunikaty serwisowe i baner (Postgres)', () => {
     const w = await utworzWezel();
     await utworzKonto({ serverId: w.id, planId: plan.id });
     const { svc } = usluga({ pada: true });
-    const k = await svc.zlec({ zakres: 'WEZEL', celId: w.id, temat: 'Awaria serwera — pracujemy', tresc: TRESC, powod: 'awaria sieci w DC' });
+    const k = await svc.zlec({ zakres: 'WEZEL', celId: w.id, temat: 'Awaria serwera – pracujemy', tresc: TRESC, powod: 'awaria sieci w DC' });
     await svc.wysylka();
     expect(await svc.widok(k.id)).toMatchObject({ status: 'WYSLANY', wyslano: 0, bledow: 1 });
   });

@@ -96,7 +96,7 @@ export default async function PlanChangePage({
         </p>
       ) : limityIndywidualne ? (
         <p data-limity-indywidualne className="m-0 rounded-[10px] border border-line bg-card px-4 py-3 text-sm text-foreground">
-          Ta usługa ma limity ustalone indywidualnie z obsługą Verris. Zmianę planu przeprowadzimy razem —{' '}
+          Ta usługa ma limity ustalone indywidualnie z obsługą Verris. Zmianę planu przeprowadzimy razem –{' '}
           <Link href="/dashboard/support/new" className="underline">
             napisz zgłoszenie
           </Link>

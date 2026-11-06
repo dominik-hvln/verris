@@ -81,7 +81,7 @@ const dokumentyOdnowienia = async (userId: string) =>
 
 afterAll(rozlacz);
 
-describe('Przegląd 15.10 — proforma na odnowienie związana z okresem i stanem usługi', () => {
+describe('Przegląd 15.10 – proforma na odnowienie związana z okresem i stanem usługi', () => {
   const fetchMock = vi.fn();
   beforeEach(async () => {
     await wyczyscBaze();
@@ -148,7 +148,7 @@ describe('Przegląd 15.10 — proforma na odnowienie związana z okresem i stane
     expect(await dokumentyOdnowienia(k.id)).toHaveLength(0);
   });
 
-  it('F2: zmiana właściciela po opłaceniu proformy, przed odnowieniem — brak odmowy (liczone tylko WYSTAWIONA)', async () => {
+  it('F2: zmiana właściciela po opłaceniu proformy, przed odnowieniem – brak odmowy (liczone tylko WYSTAWIONA)', async () => {
     const k = await klient(0);
     const nowy = await klient(0);
     const sub = await usluga(k.id, 20 * DZIEN);

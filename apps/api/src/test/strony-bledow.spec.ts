@@ -69,7 +69,7 @@ function wezel(opcje: { budowaDziala?: boolean; domeny?: string } = {}) {
   return { k, przebieg, czytaj };
 }
 
-describe('Profil węzła — strony błędów serwera WWW bez nazwy producenta', () => {
+describe('Profil węzła – strony błędów serwera WWW bez nazwy producenta', () => {
   it('ErrorDocument w tokenie vhostów (nie w pliku globalnym), rewrite_confs, [OK] po realnym 404 ze stroną Verris', () => {
     const w = wezel();
     const { wyjscie, kod } = w.przebieg();
@@ -103,7 +103,7 @@ describe('Profil węzła — strony błędów serwera WWW bez nazwy producenta',
     expect(wyjscie).not.toContain('[FAIL]');
   });
 
-  it('drugi przebieg bez zmian — bez przebudowy i restartu, bez podwójnych bloków, efekt sprawdzony znowu', () => {
+  it('drugi przebieg bez zmian – bez przebudowy i restartu, bez podwójnych bloków, efekt sprawdzony znowu', () => {
     const w = wezel();
     w.przebieg();
     const inc = w.czytaj('extra/httpd-includes.conf');
@@ -119,7 +119,7 @@ describe('Profil węzła — strony błędów serwera WWW bez nazwy producenta',
     expect(wyjscie).toContain('[OK] Strony błędów Verris');
   });
 
-  it('serwer dalej pokazuje własną stronę 404 (vhosty nieprzebudowane) — [FAIL], nie [OK]', () => {
+  it('serwer dalej pokazuje własną stronę 404 (vhosty nieprzebudowane) – [FAIL], nie [OK]', () => {
     const w = wezel({ budowaDziala: false });
     const { wyjscie, kod } = w.przebieg();
     expect(kod).toBe(0);
@@ -129,7 +129,7 @@ describe('Profil węzła — strony błędów serwera WWW bez nazwy producenta',
     expect(w.czytaj('curl.log').trim().split('\n')).toHaveLength(5);
   });
 
-  it('brak domeny hostowanej do sprawdzenia — [WARN], nie [OK]', () => {
+  it('brak domeny hostowanej do sprawdzenia – [WARN], nie [OK]', () => {
     const w = wezel({ domeny: '' });
     const { wyjscie } = w.przebieg();
     expect(wyjscie).not.toContain('[OK]');

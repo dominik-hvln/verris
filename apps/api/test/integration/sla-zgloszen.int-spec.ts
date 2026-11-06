@@ -35,11 +35,11 @@ const odUtworzenia = (t: { createdAt: Date; slaResponseDueAt: Date | null; slaRe
   rozwiazanie: t.slaResolveDueAt ? (t.slaResolveDueAt.getTime() - t.createdAt.getTime()) / H : null,
 });
 
-describe('F3.7 — SLA zgłoszeń konfigurowalne i przeliczane po zmianie priorytetu', () => {
+describe('F3.7 – SLA zgłoszeń konfigurowalne i przeliczane po zmianie priorytetu', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 
-  it('nowe zgłoszenie dostaje terminy z ustawień, a bez ustawień — domyślne', async () => {
+  it('nowe zgłoszenie dostaje terminy z ustawień, a bez ustawień – domyślne', async () => {
     const { tickets, opieka } = uslugi();
     const k = await klient();
     const a = await tickets.create(k.id, { subject: 'Strona nie działa', message: 'Od rana błąd 500.' });
@@ -85,7 +85,7 @@ describe('F3.7 — SLA zgłoszeń konfigurowalne i przeliczane po zmianie priory
     await tickets.adminEscalateTicket(z.id, adm.id, 'Możliwe włamanie na konto klienta');
     expect(odUtworzenia(await prisma().ticket.findUniqueOrThrow({ where: { id: z.id } }))).toEqual({ odpowiedz: 1, rozwiazanie: 8 });
 
-    await tickets.adminUndoEscalation(z.id, adm.id, 'Pomyłka — zwykła zmiana treści przez klienta');
+    await tickets.adminUndoEscalation(z.id, adm.id, 'Pomyłka – zwykła zmiana treści przez klienta');
     const po = await prisma().ticket.findUniqueOrThrow({ where: { id: z.id } });
     expect(po.priority).toBe('NORMAL');
     expect(odUtworzenia(po)).toEqual({ odpowiedz: 12, rozwiazanie: 72 });

@@ -31,7 +31,7 @@ function scheduler(subs: Array<{ id: string; zawieszonaDniTemu: number; powod: s
   return { s, svc };
 }
 
-describe('RenewalScheduler.runSuspensionExpiry — §7 ust. 3', () => {
+describe('RenewalScheduler.runSuspensionExpiry – §7 ust. 3', () => {
   it('13 dni zawieszenia za brak płatności → jeszcze nic; 14 → wygaśnięcie', async () => {
     const { s, svc } = scheduler([
       { id: 'd13', zawieszonaDniTemu: 13, powod: 'GRACE_EXPIRED' },

@@ -301,7 +301,7 @@ export function CommandPalette({ strony = [], dostep = { isAdmin: false, permiss
                 <button
                   type="button"
                   onClick={() => setObiekt(null)}
-                  aria-label={`${OBIEKTY_Z_DZIALANIAMI[obiekt.type]} ${obiekt.title} — wróć do wyszukiwania`}
+                  aria-label={`${OBIEKTY_Z_DZIALANIAMI[obiekt.type]} ${obiekt.title} – wróć do wyszukiwania`}
                   className="flex max-w-[45%] shrink-0 items-center gap-1 rounded-md border border-line-strong px-2 py-0.5 text-xs text-foreground hover:border-primary"
                 >
                   <span className="truncate">

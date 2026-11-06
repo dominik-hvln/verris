@@ -125,7 +125,7 @@ export function WpUpdatesPanel({ serviceId, domain, katalog }: { serviceId: stri
       const r = await checkWpUpdates(serviceId, domain);
       if (r.ok) {
         przyjmij(r.status);
-        toast.success('Sprawdzamy WordPressa — wynik w ciągu minuty.');
+        toast.success('Sprawdzamy WordPressa – wynik w ciągu minuty.');
       } else toast.error(r.error);
     });
 
@@ -147,7 +147,7 @@ export function WpUpdatesPanel({ serviceId, domain, katalog }: { serviceId: stri
         setWybraneWt(null);
         setWybraneMo(null);
         setRdzen(null);
-        toast.success('Aktualizacja zlecona — potrwa kilka minut.');
+        toast.success('Aktualizacja zlecona – potrwa kilka minut.');
       } else toast.error(r.error);
     });
   };
@@ -157,12 +157,12 @@ export function WpUpdatesPanel({ serviceId, domain, katalog }: { serviceId: stri
   const cacheWl = lsc?.status === 'active';
   const ostatniCache = stan?.cache[0] ?? null;
   const operacjaCache = async (akcja: 'on' | 'off' | 'purge' | 'redis-on' | 'redis-off') => {
-    if (akcja === 'off' && !(await potwierdz('Wyłączyć pamięć podręczną? Strona będzie generowana przy każdym wejściu — wolniej.', { akcja: 'Wyłącz' }))) return;
+    if (akcja === 'off' && !(await potwierdz('Wyłączyć pamięć podręczną? Strona będzie generowana przy każdym wejściu – wolniej.', { akcja: 'Wyłącz' }))) return;
     start(async () => {
       const r = await wpCache(serviceId, domain, akcja);
       if (r.ok) {
         przyjmij(r.status);
-        toast.success(akcja === 'purge' ? 'Czyszczenie cache zlecone.' : akcja.endsWith('on') ? 'Włączanie zlecone — potrwa chwilę.' : 'Wyłączanie zlecone.');
+        toast.success(akcja === 'purge' ? 'Czyszczenie cache zlecone.' : akcja.endsWith('on') ? 'Włączanie zlecone – potrwa chwilę.' : 'Wyłączanie zlecone.');
       } else toast.error(r.error);
     });
   };
@@ -176,10 +176,10 @@ export function WpUpdatesPanel({ serviceId, domain, katalog }: { serviceId: stri
         przyjmij(r.status);
         toast.success(
           akcja === 'maintenance-on'
-            ? 'Włączanie trybu konserwacji zlecone — odwiedzający zobaczą komunikat o przerwie.'
+            ? 'Włączanie trybu konserwacji zlecone – odwiedzający zobaczą komunikat o przerwie.'
             : akcja === 'maintenance-off'
               ? 'Wyłączanie trybu konserwacji zlecone.'
-              : 'Zmiana zlecona — gotowe w ciągu minuty.',
+              : 'Zmiana zlecona – gotowe w ciągu minuty.',
         );
       } else toast.error(r.error);
     });
@@ -232,7 +232,7 @@ export function WpUpdatesPanel({ serviceId, domain, katalog }: { serviceId: stri
                 <td className={TD} data-label="Stan">
                   {stanWtyczki(p.status)}
                 </td>
-                <td className={`${TD} font-mono`} data-label="Wersja">{p.version || '—'}</td>
+                <td className={`${TD} font-mono`} data-label="Wersja">{p.version || '–'}</td>
                 <td className={TD} data-label="Aktualizacja">
                   {jest ? (
                     <StatusPill tone="warn">do {p.update_version}</StatusPill>
@@ -293,7 +293,7 @@ export function WpUpdatesPanel({ serviceId, domain, katalog }: { serviceId: stri
 
       {stan && !stan.brakWordpressa && !wp && !stan.wToku ? (
         <div className="rounded-[10px] border border-line bg-card px-4 py-3 text-[13.5px] text-verris-body">
-          Kliknij <b className="text-foreground">Sprawdź aktualizacje</b> — serwer odczyta wersję WordPressa, wtyczki i motywy (ok. minuty).
+          Kliknij <b className="text-foreground">Sprawdź aktualizacje</b> – serwer odczyta wersję WordPressa, wtyczki i motywy (ok. minuty).
         </div>
       ) : null}
 
@@ -306,12 +306,12 @@ export function WpUpdatesPanel({ serviceId, domain, katalog }: { serviceId: stri
             <>
               <b className="text-foreground">Znane podatności: {stan.podatnosci.length}</b>
               <p className="m-0 mt-0.5 text-[12.5px] text-verris-body">
-                Zaktualizuj poniższe elementy (zaznacz je w tabelach i kliknij „Aktualizuj wybrane”). Gdy poprawki nie ma — wyłącz wtyczkę lub motyw do czasu jej wydania.
+                Zaktualizuj poniższe elementy (zaznacz je w tabelach i kliknij „Aktualizuj wybrane”). Gdy poprawki nie ma – wyłącz wtyczkę lub motyw do czasu jej wydania.
               </p>
               <ul className="m-0 mt-2 flex list-none flex-col gap-1.5 p-0">
                 {stan.podatnosci.map((v) => (
                   <li key={`${v.typ}:${v.slug}:${v.link}`} className="text-[13px] text-foreground">
-                    <b className="font-semibold">{v.nazwa}</b> <span className="font-mono text-[12px]">{v.wersja}</span> — {v.tytul}.{' '}
+                    <b className="font-semibold">{v.nazwa}</b> <span className="font-mono text-[12px]">{v.wersja}</span> – {v.tytul}.{' '}
                     <span className="text-verris-body">{v.poprawione.length ? `Poprawka: ${v.poprawione.join(', ')}.` : 'Brak poprawki.'}</span>{' '}
                     <a href={v.link} target="_blank" rel="noopener noreferrer" className="font-semibold text-data-hi underline-offset-2 underline">
                       Szczegóły
@@ -344,7 +344,7 @@ export function WpUpdatesPanel({ serviceId, domain, katalog }: { serviceId: stri
               <b className="text-sm font-semibold text-foreground">Pamięć podręczna stron (LiteSpeed Cache)</b>
               <p className="m-0 text-[12.5px] text-muted-foreground">
                 {cacheWl
-                  ? 'Włączona — strony podawane są z pamięci podręcznej serwera, bez uruchamiania PHP przy każdym wejściu.'
+                  ? 'Włączona – strony podawane są z pamięci podręcznej serwera, bez uruchamiania PHP przy każdym wejściu.'
                   : 'Wyłączona. Włączenie instaluje i uruchamia oficjalną wtyczkę LiteSpeed Cache; gdy strona po tym przestanie odpowiadać, wyłączymy ją z powrotem.'}
               </p>
               {ostatniCache?.blad ? <p className="m-0 mt-1 text-[12.5px] text-crit">{ostatniCache.blad}</p> : null}
@@ -376,7 +376,7 @@ export function WpUpdatesPanel({ serviceId, domain, katalog }: { serviceId: stri
               <b className="text-sm font-semibold text-foreground">Cache obiektowy (Redis)</b>
               <p className="m-0 text-[12.5px] text-muted-foreground">
                 {redisWp
-                  ? 'Włączony — WordPress trzyma wyniki zapytań do bazy w Redisie konta.'
+                  ? 'Włączony – WordPress trzyma wyniki zapytań do bazy w Redisie konta.'
                   : 'Wymaga włączonego Redisa konta (zakładka PHP i serwer usługi). Włączenie instaluje wtyczkę Redis Object Cache i łączy ją z Redisem konta.'}
               </p>
             </div>
@@ -483,7 +483,7 @@ export function WpUpdatesPanel({ serviceId, domain, katalog }: { serviceId: stri
             <p className="m-0 text-[13px] text-muted-foreground">Wszystko jest aktualne.</p>
           ) : null}
           <p className="m-0 text-[12px] text-muted-foreground">
-            Wtyczki spoza katalogu WordPress.org (np. płatne) aktualizuj z kokpitu WordPressa — ich aktualizacje wymagają licencji.
+            Wtyczki spoza katalogu WordPress.org (np. płatne) aktualizuj z kokpitu WordPressa – ich aktualizacje wymagają licencji.
           </p>
         </>
       ) : null}
@@ -501,21 +501,21 @@ export function WpUpdatesPanel({ serviceId, domain, katalog }: { serviceId: stri
                   !zab.edytorPlikow,
                   'Edytor plików w kokpicie',
                   zab.edytorPlikow
-                    ? 'Włączony — kto przejmie konto administratora, może zmienić kod PHP strony z przeglądarki.'
+                    ? 'Włączony – kto przejmie konto administratora, może zmienić kod PHP strony z przeglądarki.'
                     : 'Wyłączony (DISALLOW_FILE_EDIT).',
                   zab.edytorPlikow ? { label: 'Wyłącz edytor', akcja: 'file-edit' as const } : null,
                 ],
                 [
                   !zab.debug,
                   'Tryb debugowania (WP_DEBUG)',
-                  zab.debug ? 'Włączony na stronie produkcyjnej — błędy mogą pokazywać ścieżki i fragmenty kodu odwiedzającym.' : 'Wyłączony.',
+                  zab.debug ? 'Włączony na stronie produkcyjnej – błędy mogą pokazywać ścieżki i fragmenty kodu odwiedzającym.' : 'Wyłączony.',
                   zab.debug ? { label: 'Wyłącz debugowanie', akcja: 'debug-off' as const } : null,
                 ],
                 [
                   !zab.uzytkownikAdmin,
                   'Konto o loginie „admin”',
                   zab.uzytkownikAdmin
-                    ? 'Istnieje — to pierwszy login, który zgadują boty. Utwórz administratora z innym loginem, zaloguj się na niego i usuń „admin”, przepisując treści.'
+                    ? 'Istnieje – to pierwszy login, który zgadują boty. Utwórz administratora z innym loginem, zaloguj się na niego i usuń „admin”, przepisując treści.'
                     : 'Brak.',
                   null,
                 ],
@@ -524,13 +524,13 @@ export function WpUpdatesPanel({ serviceId, domain, katalog }: { serviceId: stri
                   'Pliki rdzenia WordPressa',
                   zab.sumyRdzenia === 'ok'
                     ? 'Zgodne z oryginałem z WordPress.org.'
-                    : 'Część plików rdzenia różni się od oryginału — to może być ręczna zmiana albo infekcja. Uruchom skaner w zakładce Bezpieczeństwo usługi.',
+                    : 'Część plików rdzenia różni się od oryginału – to może być ręczna zmiana albo infekcja. Uruchom skaner w zakładce Bezpieczeństwo usługi.',
                   null,
                 ],
                 [
                   !zapisywalnyDlaWszystkich(zab.uprawnieniaConfig),
                   'Uprawnienia wp-config.php',
-                  zab.uprawnieniaConfig ? `${zab.uprawnieniaConfig}${zapisywalnyDlaWszystkich(zab.uprawnieniaConfig) ? ' — plik zapisywalny dla wszystkich; ustaw 640 w menedżerze plików.' : ' — w porządku.'}` : 'Nie udało się odczytać.',
+                  zab.uprawnieniaConfig ? `${zab.uprawnieniaConfig}${zapisywalnyDlaWszystkich(zab.uprawnieniaConfig) ? ' – plik zapisywalny dla wszystkich; ustaw 640 w menedżerze plików.' : ' – w porządku.'}` : 'Nie udało się odczytać.',
                   null,
                 ],
               ] as [boolean, string, string, { label: string; akcja: WpOperacja } | null][]

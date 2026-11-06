@@ -8,7 +8,7 @@ describe('statusZdrowia', () => {
     expect(statusZdrowia({ label: 'attention', wysylkaWstrzymana: true }).text).toBe('Wysyłka poczty wstrzymana');
   });
 
-  it('bez danych — „Sprawdzamy usługę”; opis bez nazw usług serwera', () => {
+  it('bez danych – „Sprawdzamy usługę”; opis bez nazw usług serwera', () => {
     expect(statusZdrowia(null).text).toBe('Sprawdzamy usługę');
     expect(WYSYLKA_WSTRZYMANA_OPIS).not.toMatch(/DirectAdmin|\bDA\b|exim/i);
   });

@@ -80,7 +80,7 @@ export default function MonitoringTab({ serviceId }: Props) {
     <div className="space-y-5">
       <SectionHead
         title="Monitoring strony"
-        desc={`Sprawdzamy ${status.domain} co minutę. Gdy strona przestanie odpowiadać, wyślemy e-mail — i drugi, gdy wróci.`}
+        desc={`Sprawdzamy ${status.domain} co minutę. Gdy strona przestanie odpowiadać, wyślemy e-mail – i drugi, gdy wróci.`}
         action={<Switch checked={status.enabled} onChange={onToggle} disabled={saving} label="Monitoring strony" />}
       />
       {error ? <p className="text-sm text-crit">{error}</p> : null}
@@ -102,13 +102,13 @@ export default function MonitoringTab({ serviceId }: Props) {
           />
           <Kpi
             label="Czas odpowiedzi"
-            value={status.lastResponseMs ?? '—'}
+            value={status.lastResponseMs ?? '–'}
             unit={status.lastResponseMs != null ? 'ms' : undefined}
             foot={<span>z ostatniego sprawdzenia</span>}
           />
           <Kpi
             label="Dostępność"
-            value={status.uptime ? Number(status.uptime.pct).toLocaleString('pl-PL', { maximumFractionDigits: 2 }) : '—'}
+            value={status.uptime ? Number(status.uptime.pct).toLocaleString('pl-PL', { maximumFractionDigits: 2 }) : '–'}
             unit={status.uptime ? '%' : undefined}
             foot={
               <span>
@@ -122,7 +122,7 @@ export default function MonitoringTab({ serviceId }: Props) {
           </Kpi>
           <Kpi
             label="Certyfikat SSL"
-            value={status.tlsExpiresAt ? Math.max(0, Math.ceil((new Date(status.tlsExpiresAt).getTime() - checkedAt) / 86_400_000)) : '—'}
+            value={status.tlsExpiresAt ? Math.max(0, Math.ceil((new Date(status.tlsExpiresAt).getTime() - checkedAt) / 86_400_000)) : '–'}
             unit={status.tlsExpiresAt ? 'dni' : undefined}
             foot={<span>{status.tlsExpiresAt ? `do ${new Date(status.tlsExpiresAt).toLocaleDateString('pl-PL')}` : 'brak danych o certyfikacie'}</span>}
           />
@@ -158,7 +158,7 @@ export default function MonitoringTab({ serviceId }: Props) {
                 <span className="text-[color:var(--verris-body)]">
                   {e.type === 'DOWN' ? (
                     <>
-                      Awaria — {e.message ?? (e.httpStatus ? `HTTP ${e.httpStatus}` : 'brak odpowiedzi')}
+                      Awaria – {e.message ?? (e.httpStatus ? `HTTP ${e.httpStatus}` : 'brak odpowiedzi')}
                     </>
                   ) : (
                     <>
@@ -181,7 +181,7 @@ export default function MonitoringTab({ serviceId }: Props) {
 
       {status.enabled && status.events.length === 0 && status.lastStatus === 'UP' && (
         <p className="flex items-center gap-2 text-sm text-muted-foreground px-1">
-          <AlertCircle className="h-4 w-4" /> Brak awarii w historii — oby tak dalej.
+          <AlertCircle className="h-4 w-4" /> Brak awarii w historii – oby tak dalej.
         </p>
       )}
     </div>
@@ -226,12 +226,12 @@ function PaidMonitoringCard({
               <Zap className="h-4 w-4 text-warn" /> Szybki monitoring aktywny
             </h4>
             <p className="text-sm text-[color:var(--verris-body)] max-w-xl">
-              Sprawdzamy stronę co {paid.paidIntervalMinutes === 1 ? 'minutę' : `${paid.paidIntervalMinutes} min`} —
+              Sprawdzamy stronę co {paid.paidIntervalMinutes === 1 ? 'minutę' : `${paid.paidIntervalMinutes} min`} –
               awarię wykryjemy niemal natychmiast.
               {paid.cancelAtPeriodEnd
                 ? nextDate
                   ? ` Rezygnacja zaplanowana: szybki tryb działa do ${nextDate}, potem wraca standardowy (co ${paid.freeIntervalMinutes} min).`
-                  : ' Rezygnacja zaplanowana — wróci tryb standardowy.'
+                  : ' Rezygnacja zaplanowana – wróci tryb standardowy.'
                 : nextDate
                   ? ` Następna opłata: ${nextDate} (${paid.monthlyPrice} K/mies.).`
                   : ''}
@@ -262,7 +262,7 @@ function PaidMonitoringCard({
             Standardowo sprawdzamy stronę co {paid.freeIntervalMinutes} min (za darmo). Włącz
             szybki monitoring, by sprawdzać co{' '}
             {paid.paidIntervalMinutes === 1 ? 'minutę' : `${paid.paidIntervalMinutes} min`} i wykrywać
-            awarie niemal natychmiast — <strong className="text-[color:var(--verris-body)]">{paid.monthlyPrice} K/mies.</strong> z portfela.
+            awarie niemal natychmiast – <strong className="text-[color:var(--verris-body)]">{paid.monthlyPrice} K/mies.</strong> z portfela.
           </p>
         </div>
         <button
@@ -304,7 +304,7 @@ function NotifyToggle({
         <p className="text-xs text-muted-foreground">
           {notifyEmail
             ? 'Wyślemy maila przy awarii, powrocie i zbliżającym się wygaśnięciu certyfikatu.'
-            : 'Maile wyłączone — monitoring działa, ale nie powiadamiamy mailem.'}
+            : 'Maile wyłączone – monitoring działa, ale nie powiadamiamy mailem.'}
         </p>
       </div>
       <Switch checked={notifyEmail} onChange={() => void toggle()} disabled={busy} label="Powiadomienia e-mail o awarii" />

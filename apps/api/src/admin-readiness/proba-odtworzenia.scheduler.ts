@@ -101,7 +101,7 @@ export class ProbaOdtworzeniaScheduler {
       },
     });
     this.logger[ocena.blokuje ? 'error' : 'warn'](
-      `Próba odtworzenia: ${ocena.stan} — ${ocena.komunikat}`,
+      `Próba odtworzenia: ${ocena.stan} – ${ocena.komunikat}`,
     );
   }
 }

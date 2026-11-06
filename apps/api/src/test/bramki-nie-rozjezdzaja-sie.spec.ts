@@ -92,19 +92,19 @@ describe('bramki nie rozjeżdżają się', () => {
       podpowiedz:
         brakujace.length === 0
           ? ''
-          : `deploy.yml nie odpala: ${brakujace.join(', ')} — kod trafi na produkcję ` +
+          : `deploy.yml nie odpala: ${brakujace.join(', ')} – kod trafi na produkcję ` +
             'przez bramkę, która nie zadaje tego pytania',
     }).toEqual({ brakujace: [], podpowiedz: '' });
   });
 
-  it('lint jest w obu — to on nas ugryzł', () => {
+  it('lint jest w obu – to on nas ugryzł', () => {
     // Wymieniony z nazwy, bo to konkretna historia, nie hipoteza:
     // trzy wdrożenia przeszły zielono przy czerwonym ci.yml.
     expect(ci.has('lint')).toBe(true);
     expect(wdrozenie.has('lint')).toBe(true);
   });
 
-  it('bramka podatności jest w obu — to ona nas ugryzła drugi raz (X-50)', () => {
+  it('bramka podatności jest w obu – to ona nas ugryzła drugi raz (X-50)', () => {
     // Wymieniona z nazwy, tak jak lint wyżej, i z tego samego powodu: to nie
     // hipoteza, tylko rzecz, która się wydarzyła. Do 2026-09-19 `deploy.yml`
     // nie wołał jej wcale, a `Security scans` nie było checkiem wymaganym.

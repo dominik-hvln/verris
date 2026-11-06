@@ -9,7 +9,7 @@ export class CreateTicketDto {
 
   @IsString()
   @MinLength(10, { message: 'Wiadomość musi mieć minimum 10 znaków' })
-  @MaxLength(50_000, { message: 'Wiadomość jest za długa — dołącz dłuższe logi jako plik' })
+  @MaxLength(50_000, { message: 'Wiadomość jest za długa – dołącz dłuższe logi jako plik' })
   message!: string;
 
   @IsOptional()
@@ -128,7 +128,7 @@ export class UpdateTicketStatusDto {
 export class AddTicketReplyDto {
   @IsString()
   @MinLength(2, { message: 'Odpowiedź musi mieć minimum 2 znaki' })
-  @MaxLength(50_000, { message: 'Odpowiedź jest za długa — dołącz dłuższe logi jako plik' })
+  @MaxLength(50_000, { message: 'Odpowiedź jest za długa – dołącz dłuższe logi jako plik' })
   message!: string;
 
   /** PB-37 — obsługa: „Wyślij” (sprawa zostaje u nas: W realizacji) albo „Wyślij i czekaj na klienta” (domyślnie). */

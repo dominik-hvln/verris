@@ -34,11 +34,13 @@ function zrodla(dir: string): string {
   return wynik;
 }
 
-describe('Dokumenty prawne 1.2.0 — gotowe do jednej publikacji', () => {
+describe('Dokumenty prawne 1.2.0 – gotowe do jednej publikacji', () => {
   it.each(DOKUMENTY)('%s: wersja 1.2.0 z datą do podstawienia, bez miejsc do uzupełnienia i notatek roboczych', (d) => {
     const t = tresc[d];
-    expect(t).toContain('**Wersja 1.2.0 · obowiązuje od [DATA PUBLIKACJI]**');
-    expect(t).toContain('**Wersja 1.2.0 — data publikacji i wejścia w życie: [DATA PUBLIKACJI]**');
+    expect(t).toContain('**Wersja 1.2.1 · obowiązuje od [DATA PUBLIKACJI]**');
+    expect(t).toContain('**Wersja 1.2.1 – data publikacji i wejścia w życie: [DATA PUBLIKACJI]**');
+    // 1.2.0 jest opublikowana na produkcji (6.11.2026) — tego numeru nie wolno użyć ponownie z inną treścią.
+    expect(t).not.toMatch(/\*\*Wersja 1\.2\.0/);
     // 1.1.0 jest opublikowana na produkcji (6.10.2026) — ten numer nie może wrócić w nagłówku ani stopce.
     expect(t).not.toMatch(/\*\*Wersja 1\.1\.0/);
     expect(t).not.toMatch(/\[(UZUPEŁNIĆ|TODO|DO UZUPEŁNIENIA)/i);
@@ -60,7 +62,7 @@ describe('Dokumenty prawne 1.2.0 — gotowe do jednej publikacji', () => {
     expect(tresc.terms).toMatch(/3\. Kontakt z Verris:[^\n]*telefon \+48 511 589 465/);
   });
 
-  it('decyzja 20: numer telefonu tylko w dokumentach — verris.pl i panel klienta go nie pokazują', () => {
+  it('decyzja 20: numer telefonu tylko w dokumentach – verris.pl i panel klienta go nie pokazują', () => {
     const kod = zrodla('apps/www/src') + zrodla('apps/client-panel/src');
     expect(kod).not.toMatch(/511[\s-]?589[\s-]?465|48511589465/);
   });
@@ -87,10 +89,10 @@ describe('Dokumenty prawne 1.2.0 — gotowe do jednej publikacji', () => {
     expect(t).toContain('**automatycznie, bez wniosku Klienta**');
     // Decyzja 6.11.2026 — kredyty na autoskalowanie zamiast rabatu na start (§9 ust. 6), spójnie z kodem i consumer-info.
     expect(t).toMatch(/6\. Kredyty na autoskalowanie na start:[^\n]*60 zł przy okresie rocznym albo 10 zł przy okresie miesięcznym[^\n]*ważne 12 miesięcy[^\n]*wyłącznie do pokrycia opłat za autoskalowanie[^\n]*nie wystawia się za nie faktury[^\n]*zwrotowi/);
-    expect(t).toMatch(/kredyty na autoskalowanie z §9 ust\. 6\) — mają one charakter rabatu/);
+    expect(t).toMatch(/kredyty na autoskalowanie z §9 ust\. 6\) – mają one charakter rabatu/);
     for (const d of [t, konsument]) expect(d).not.toMatch(/Rabat na start|rabat na start|−15%|15% za pierwszy rok/);
     expect(konsument).toMatch(/darmowe kredyty na autoskalowanie \(na dzień publikacji: 60 zł przy okresie rocznym albo 10 zł przy miesięcznym\)/);
-    expect(t).toMatch(/kodu promocyjnego[^\n]*nie są zakupem — nie wystawia się za nie faktury/);
+    expect(t).toMatch(/kodu promocyjnego[^\n]*nie są zakupem – nie wystawia się za nie faktury/);
     expect(t).not.toMatch(/miesięczny limit/i);
     expect(t).toMatch(/Domyślnie autoskalowanie nie ma limitu kosztu[^\n]*sumy dopłat z ostatnich 30 dni/);
     expect(t).toMatch(/numer rachunku bankowego; Verris dokonuje zwrotu przelewem w terminie 14 dni/);
@@ -105,10 +107,10 @@ describe('Dokumenty prawne 1.2.0 — gotowe do jednej publikacji', () => {
     expect(t).toMatch(/formularza kontaktowego[^\n]*\| 12 miesięcy od wysłania \|/);
     expect(t).toContain(`| ${RETENCJA_LEADOW_DNI.TELEFON} dni od wysłania |`);
     expect(t).toContain(`| ${RETENCJA_LEADOW_DNI.PLAN_BEZ_ZGODY} dni od wysłania, jeśli nie zaznaczysz zgody na wiadomości |`);
-    expect(t).toContain(`niepotwierdzona zgoda — ${RETENCJA_LEADOW_DNI.ZGODA_NIEPOTWIERDZONA} dni`);
+    expect(t).toContain(`niepotwierdzona zgoda – ${RETENCJA_LEADOW_DNI.ZGODA_NIEPOTWIERDZONA} dni`);
     expect(t).toContain(`najdłużej ${RETENCJA_LEADOW_DNI.ZGODA_POTWIERDZONA / 365 * 12} miesiące od potwierdzenia`);
     expect(t).toContain(`po wypisie ślad wycofania ${RETENCJA_LEADOW_DNI.PO_WYPISIE} dni`);
-    expect(t).toMatch(/Plan wysyłamy mailem każdemu, kto o niego prosi — bez warunku zgody marketingowej/);
+    expect(t).toMatch(/Plan wysyłamy mailem każdemu, kto o niego prosi – bez warunku zgody marketingowej/);
     for (const punkt of ['### 2.8 Asystent AI na verris.pl', '### 2.9 Formularze na verris.pl', '### 2.10 Zgłoszenie do testów', '### 2.11 Program EKO']) {
       expect(t).toContain(punkt);
     }
@@ -130,7 +132,7 @@ describe('Dokumenty prawne 1.2.0 — gotowe do jednej publikacji', () => {
   it('Consent Mode v2 w trybie podstawowym (decyzja 22) opisany tak, jak działa www i panel', () => {
     const analityka = czytaj('apps/www/src/app/(frontend)/components/Analytics.tsx');
     const t = tresc.cookies;
-    expect(t).toContain('## 4. Google Consent Mode v2 — tryb podstawowy');
+    expect(t).toContain('## 4. Google Consent Mode v2 – tryb podstawowy');
     expect(t).toMatch(/nie ładujemy\*\* Menedżera tagów Google[^\n]*ani Meta Pixel/);
     expect(tresc.privacy).toContain('**Google Consent Mode v2 w trybie podstawowym.**');
     for (const tekst of [...Object.values(tresc), zmiany, czytaj('docs/legal/drafts/subprocessors.md')]) {
@@ -157,9 +159,10 @@ describe('Dokumenty prawne 1.2.0 — gotowe do jednej publikacji', () => {
 
   it('1.2.0 zastępuje opublikowaną 1.1.0, a instrukcja publikuje 1.2.0 i sprawdza akceptacje wszystkich wersji', () => {
     for (const d of ['terms', 'privacy'] as const) {
-      expect(tresc[d]).toContain('Wersja 1.2.0 zastępuje wersję 1.1.0 z 6 października 2026 r.');
+      expect(tresc[d]).toContain('Wersja 1.2.1 zastępuje wersję 1.2.0 z 6 listopada 2026 r.');
     }
-    expect(konsument).toContain('(razem z Regulaminem 1.2.0)');
+    expect(konsument).toContain('(razem z Regulaminem 1.2.1)');
+    expect(zmiany).toContain('LEGAL_LIVE_VERSION=1.2.1');
     expect(zmiany).toContain('LEGAL_LIVE_VERSION=1.2.0');
     expect(zmiany).not.toContain('LEGAL_LIVE_VERSION=1.1.0');
     expect(zmiany).not.toMatch(/"documentVersion" LIKE '1\.0\.%'/);

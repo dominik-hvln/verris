@@ -28,7 +28,7 @@ function serwis(o: { skonfigurowane?: boolean; ok?: boolean; nsProvisionedAt?: D
   return { s, zdarzenia, nodeDns };
 }
 
-describe('bootstrap — DNS węzła w OVH przy CANARY i TLS', () => {
+describe('bootstrap – DNS węzła w OVH przy CANARY i TLS', () => {
   it('błędy kroków OVH → zdarzenie FAILED z krokami, nie „OK”', async () => {
     const { s, zdarzenia } = serwis({ ok: false });
     await s.provisionNsBestEffort('s1', 'CANARY');
@@ -45,7 +45,7 @@ describe('bootstrap — DNS węzła w OVH przy CANARY i TLS', () => {
     expect(b.nodeDns.provisionNodeNameservers).not.toHaveBeenCalled();
   });
 
-  it('raport TLS STARTED ponawia DNS, gdy wcześniej się nie udało; po udanym (nsProvisionedAt) — nie', async () => {
+  it('raport TLS STARTED ponawia DNS, gdy wcześniej się nie udało; po udanym (nsProvisionedAt) – nie', async () => {
     const a = serwis({ nsProvisionedAt: null });
     await a.s.recordReport({ serverId: 's1', phase: 'TLS', status: 'STARTED' });
     await vi.waitFor(() => expect(a.nodeDns.provisionNodeNameservers).toHaveBeenCalledTimes(1));

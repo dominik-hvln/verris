@@ -98,7 +98,7 @@ export function WyborRolOperatora({
           </div>
           <div className="flex items-center justify-between gap-2 border-t border-white/5 pt-2">
             <span className="text-[11px] text-neutral-500">
-              {wybrane.length} {plForm(wybrane.length, "rola", "role", "ról")} — uprawnienia się sumują
+              {wybrane.length} {plForm(wybrane.length, "rola", "role", "ról")} – uprawnienia się sumują
             </span>
             <button
               type="button"

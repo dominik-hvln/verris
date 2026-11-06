@@ -69,7 +69,7 @@ function ConfigForm({ config }: { config: PartnerConfig }) {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <NumField label="Prowizja recurring (%)" value={c.commissionPct} onChange={num("commissionPct")} hint="Procent od każdej płatności poleconego klienta." />
         <NumField label="Karencja prowizji (dni)" value={c.holdDays} onChange={num("holdDays")} hint="Czas do udostępnienia prowizji (ochrona przed zwrotami)." />
-        <NumField label="Min. wypłata na konto (K)" value={c.minPayout} onChange={num("minPayout")} hint="Próg dla wypłaty przelewem. Portfel — bez limitu." />
+        <NumField label="Min. wypłata na konto (K)" value={c.minPayout} onChange={num("minPayout")} hint="Próg dla wypłaty przelewem. Portfel – bez limitu." />
         <NumField label="Bonus: próg poleceń (N)" value={c.freeHostingThreshold} onChange={num("freeHostingThreshold")} hint="Liczba płacących poleceń dla bonusu. 0 = wyłączony." />
         <NumField label="Bonus: kredyt za próg (K)" value={c.freeHostingCredit} onChange={num("freeHostingCredit")} hint="Kwota darmowego hostingu za każdy osiągnięty próg." />
       </div>
@@ -112,7 +112,7 @@ function PayoutQueue({ payouts }: { payouts: AdminPayout[] }) {
 
   return (
     <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-      <h2 className="mb-1 text-lg font-bold text-white flex items-center gap-2"><Banknote className="h-5 w-5 text-emerald-400" /> Wypłaty na konto — do realizacji</h2>
+      <h2 className="mb-1 text-lg font-bold text-white flex items-center gap-2"><Banknote className="h-5 w-5 text-emerald-400" /> Wypłaty na konto – do realizacji</h2>
       <p className="mb-4 text-sm text-muted-foreground">Po wykonaniu przelewu kliknij „Oznacz wypłacone”. „Odrzuć” zwraca prowizje do puli partnera.</p>
 
       {error ? <p className="mb-3 flex items-center gap-2 text-sm text-rose-200"><AlertCircle className="h-4 w-4" /> {error}</p> : null}
@@ -126,7 +126,7 @@ function PayoutQueue({ payouts }: { payouts: AdminPayout[] }) {
               <div className="min-w-0 flex-1">
                 <p className="font-mono text-sm text-white">{Number(p.amount).toFixed(2)} K</p>
                 <p className="text-[11px] text-neutral-500">
-                  Partner: <span className="font-mono">{p.partnerUserId.slice(0, 8)}</span> · IBAN: <span className="font-mono">{p.bankAccount ?? "—"}</span> · {new Date(p.requestedAt).toLocaleString("pl-PL")}
+                  Partner: <span className="font-mono">{p.partnerUserId.slice(0, 8)}</span> · IBAN: <span className="font-mono">{p.bankAccount ?? "–"}</span> · {new Date(p.requestedAt).toLocaleString("pl-PL")}
                 </p>
               </div>
               <button onClick={() => act(p.id, "PAID")} disabled={busy !== null} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">

@@ -48,7 +48,7 @@ export function BlokadaPoczty({ blokada, email, isAdmin }: { blokada: CordonRow 
             <ReleaseCordonButton userId={blokada.userId} label={email} />
           ) : (
             <span aria-disabled="true" title="Wymaga roli administratora" className="cursor-not-allowed text-xs text-muted-foreground opacity-60">
-              Zdejmij blokadę — wymaga roli administratora
+              Zdejmij blokadę – wymaga roli administratora
             </span>
           )}
         </div>
@@ -85,7 +85,7 @@ export function ProgramPartnerski({ zgloszenie, wolno = false }: { zgloszenie: R
         <div className="flex flex-wrap items-start gap-3">
           <div className="flex min-w-0 flex-1 flex-col gap-1 text-sm">
             <span>
-              Zgłoszenie z {new Date(zgloszenie.appliedAt).toLocaleDateString("pl-PL")} — {STATUS_PARTNERA[zgloszenie.status] ?? zgloszenie.status}
+              Zgłoszenie z {new Date(zgloszenie.appliedAt).toLocaleDateString("pl-PL")} – {STATUS_PARTNERA[zgloszenie.status] ?? zgloszenie.status}
             </span>
             {zgloszenie.user.referralCode ? <span className="font-mono text-xs text-muted-foreground">kod {zgloszenie.user.referralCode}</span> : null}
             {zgloszenie.reviewNote ? <span className="text-xs text-muted-foreground">{zgloszenie.reviewNote}</span> : null}

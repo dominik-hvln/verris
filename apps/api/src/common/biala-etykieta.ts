@@ -7,7 +7,7 @@ import { zdradzaPanelSerwera } from '@verris/contracts';
  */
 export { zdradzaPanelSerwera };
 
-export const KOMUNIKAT_OGOLNY = 'Operacja nie powiodła się. Napisz do nas — sprawdzimy to.';
+export const KOMUNIKAT_OGOLNY = 'Operacja nie powiodła się. Napisz do nas – sprawdzimy to.';
 
 /** Tekst dla klienta albo komunikat ogólny, gdy zdradza panel serwera. */
 export function dlaKlienta(tekst: string): string {

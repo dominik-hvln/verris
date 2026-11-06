@@ -49,7 +49,7 @@ export function IamScopePicker({
           {ids.size === 0 ? <p className="text-xs text-amber-400/90 md:col-span-2">Zaznacz co najmniej jedną usługę.</p> : null}
         </div>
       ) : (
-        <p className="text-xs text-neutral-500">Osoba zobaczy wszystkie usługi konta — w granicach zaznaczonych uprawnień.</p>
+        <p className="text-xs text-neutral-500">Osoba zobaczy wszystkie usługi konta – w granicach zaznaczonych uprawnień.</p>
       )}
       {wybrane ? (
         <p className="text-xs text-neutral-500">Przy wybranych usługach portfel, domeny, zamówienia i ustawienia całego konta są dla tej osoby zamknięte.</p>

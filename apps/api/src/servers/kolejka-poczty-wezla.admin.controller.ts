@@ -61,7 +61,7 @@ export class KolejkaPocztyWezlaService {
     if (s.status !== 'ACTIVE' && s.status !== 'MAINTENANCE') throw new BadRequestException('Węzeł nie jest aktywny.');
     const zadania = await this.zadania(serverId);
     if (zadania.some((z) => z.status === NodeTaskStatus.QUEUED || z.status === NodeTaskStatus.RUNNING)) {
-      throw new ConflictException('Na tym węźle trwa już operacja na kolejce — chwila.');
+      throw new ConflictException('Na tym węźle trwa już operacja na kolejce – chwila.');
     }
     await this.prisma.nodeTask.create({
       data: { serverId, kind: NodeTaskKind.MAIL_QUEUE, status: NodeTaskStatus.QUEUED, requestedById: operatorUserId, payload },
@@ -80,7 +80,7 @@ export class KolejkaPocztyWezlaService {
   /** exim -qff — próba dostarczenia całej kolejki, także zamrożonych; z powodem w dzienniku. */
   async wypchnij(serverId: string, operatorUserId: string, powod: string) {
     const p = (powod ?? '').trim();
-    if (p.length < 10) throw new BadRequestException('Podaj powód (min. 10 znaków) — zapisze się w dzienniku.');
+    if (p.length < 10) throw new BadRequestException('Podaj powód (min. 10 znaków) – zapisze się w dzienniku.');
     const wynik = await this.zlec(serverId, operatorUserId, { mode: 'flush' });
     await this.audit.record({ action: SupportActions.NODE_MAIL_QUEUE_FLUSHED, actorUserId: operatorUserId, details: { serverId, powod: p } });
     return wynik;

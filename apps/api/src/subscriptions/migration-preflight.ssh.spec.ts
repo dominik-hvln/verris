@@ -18,7 +18,7 @@ function fake(zachowanie: (c: EventEmitter & { cfg?: Record<string, unknown> }) 
   } as never;
 }
 
-describe('I-18 — sshLogin', () => {
+describe('I-18 – sshLogin', () => {
   it('poprawne hasło → ok', async () => {
     await expect(sshLogin('1.2.3.4', 22, 'u', 'p', fake((c) => c.emit('ready')))).resolves.toBe('ok');
   });

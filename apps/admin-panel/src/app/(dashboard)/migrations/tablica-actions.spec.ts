@@ -16,7 +16,7 @@ import { opisZdarzenia } from "./tablica-typy";
 const api = adminApi as jest.Mock;
 beforeEach(() => api.mockReset());
 
-it("działania trafiają na trasy karty migracji (POST); podgląd raportu — GET", async () => {
+it("działania trafiają na trasy karty migracji (POST); podgląd raportu – GET", async () => {
   api.mockResolvedValue({ id: "m/1" });
   await dzialanieTablicyAction("m/1", "etap", { etap: "TESTY" });
   await dzialanieTablicyAction("m/1", "sprawdz-dns");
@@ -28,7 +28,7 @@ it("działania trafiają na trasy karty migracji (POST); podgląd raportu — GE
   ]);
 });
 
-it("nieznane działanie — bez API; 403 strażnika — nazwa uprawnienia; odmowa z treścią — treść", async () => {
+it("nieznane działanie – bez API; 403 strażnika – nazwa uprawnienia; odmowa z treścią – treść", async () => {
   expect(await dzialanieTablicyAction("m1", "constructor" as never)).toEqual({ ok: false, error: "Nieznane działanie." });
   expect(api).not.toHaveBeenCalled();
   api.mockRejectedValue(new AdminApiError("Forbidden", 403));
@@ -39,10 +39,10 @@ it("nieznane działanie — bez API; 403 strażnika — nazwa uprawnienia; odmow
 
 it("oś czasu: etap z powodem, pozycja checklisty, zmienione pola, ponowny raport, nieznana akcja jak jest", () => {
   expect(opisZdarzenia("MIGRATION_STAGE_CHANGED", { z: "ZAMKNIETA", na: "TESTY", powod: "Błąd formularza" })).toBe(
-    "Zmiana etapu: Zamknięta → Testy u nas — Błąd formularza",
+    "Zmiana etapu: Zamknięta → Testy u nas – Błąd formularza",
   );
   expect(opisZdarzenia("MIGRATION_CHECKLIST_UPDATED", { pole: "ttl300", odhaczone: true })).toBe("Checklista: TTL 300 ✓");
-  expect(opisZdarzenia("MIGRATION_CHECKLIST_UPDATED", { pole: "testPo", odhaczone: false })).toBe("Checklista: test po — wyczyszczone");
+  expect(opisZdarzenia("MIGRATION_CHECKLIST_UPDATED", { pole: "testPo", odhaczone: false })).toBe("Checklista: test po – wyczyszczone");
   expect(opisZdarzenia("MIGRATION_HANDLING_UPDATED", { zmiany: { przerywacz: {}, przypisanyDoId: {} } })).toBe(
     "Zmiana terminów lub przypisania: Przerywacz, prowadzący",
   );

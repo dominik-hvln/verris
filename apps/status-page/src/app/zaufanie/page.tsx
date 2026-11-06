@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 
 export const metadata = {
-  title: 'Verris — Zaufanie i gwarancje',
+  title: 'Verris – Zaufanie i gwarancje',
   description:
     'Dlaczego możesz zaufać Verris: realny uptime i SLA, uczciwe ceny bez pułapki przy odnowieniu, nowoczesne bezpieczeństwo, kopie zapasowe i realne EKO.',
 };
@@ -29,18 +29,18 @@ const PILLARS: Pillar[] = [
     icon: <Activity className="h-5 w-5" />,
     title: 'Niezawodność i SLA',
     points: [
-      'Publiczny status na żywo — realny uptime z ostatnich 30 dni.',
+      'Publiczny status na żywo – realny uptime z ostatnich 30 dni.',
       'Deklarowany SLA widoczny obok faktycznego wyniku.',
-      'Kredyty SLA za przestój infrastruktury — automatycznie do portfela.',
+      'Kredyty SLA za przestój infrastruktury – automatycznie do portfela.',
     ],
   },
   {
     icon: <Wallet className="h-5 w-5" />,
     title: 'Uczciwe ceny',
     points: [
-      'Brak skoku ceny przy odnowieniu — płacisz za realne zużycie.',
+      'Brak skoku ceny przy odnowieniu – płacisz za realne zużycie.',
       'Portfel prepaid: 1 zł = 1 kredyt, rozliczanie godzinowe.',
-      'Bezpiecznik kosztów — sam ustawiasz limit, ile maksymalnie wydasz.',
+      'Bezpiecznik kosztów – sam ustawiasz limit, ile maksymalnie wydasz.',
     ],
   },
   {
@@ -65,7 +65,7 @@ const PILLARS: Pillar[] = [
     icon: <Leaf className="h-5 w-5" />,
     title: 'Realne EKO',
     points: [
-      'Liczymy zużycie energii (kWh) i emisję CO₂ per konto — z prawdziwych metryk.',
+      'Liczymy zużycie energii (kWh) i emisję CO₂ per konto – z prawdziwych metryk.',
       'Raport EKO w panelu, nie marketingowa obietnica.',
       'Argument ESG/CSR dla Twojej firmy.',
     ],
@@ -76,7 +76,7 @@ const PILLARS: Pillar[] = [
     points: [
       'Panel prowadzi za rękę i podpowiada następny krok.',
       'Diagnostyka usługi i naprawa typowych problemów jednym kliknięciem.',
-      'Baza wiedzy i wsparcie — bez zostawiania Cię z problemem samego.',
+      'Baza wiedzy i wsparcie – bez zostawiania Cię z problemem samego.',
     ],
   },
 ];
@@ -154,7 +154,7 @@ export default function TrustPage() {
           <p className="mt-2 max-w-3xl text-sm text-neutral-300">
             Stawiamy na LiteSpeed + CloudLinux i nowoczesny stos. Publiczne, powtarzalne benchmarki
             wydajności (czas odpowiedzi, TTFB, obciążenie) udostępnimy wraz z metodologią po
-            komercyjnym starcie — z realnych pomiarów, nie z deklaracji.
+            komercyjnym starcie – z realnych pomiarów, nie z deklaracji.
           </p>
         </section>
 

@@ -56,7 +56,7 @@ export function ArchiveBrowser({ serviceId, archive }: { serviceId: string; arch
     start(async () => {
       const r = await restoreFromArchive(serviceId, archive, path);
       zastosuj(r);
-      if (r.ok) toast.success('Odtwarzanie zlecone — pliki pojawią się w katalogu verris-odtworzone.');
+      if (r.ok) toast.success('Odtwarzanie zlecone – pliki pojawią się w katalogu verris-odtworzone.');
     });
 
   const segmenty = biezacy.split('/');
@@ -121,7 +121,7 @@ export function ArchiveBrowser({ serviceId, archive }: { serviceId: string; arch
         <div className="border-t border-line px-3 py-2">
           {odtworzenia.map((o) => (
             <p key={o.id} className="m-0 py-0.5 text-[12.5px] text-muted-foreground">
-              <span className="font-mono text-foreground">{o.sciezka}</span> —{' '}
+              <span className="font-mono text-foreground">{o.sciezka}</span> –{' '}
               {o.status === 'COMPLETED' && o.katalog ? (
                 <>odtworzone do <span className="font-mono text-foreground">{o.katalog}</span> (przenieś menedżerem plików)</>
               ) : o.status === 'FAILED' ? (

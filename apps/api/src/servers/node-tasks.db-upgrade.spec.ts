@@ -64,7 +64,7 @@ describe('NodeTasksService.queueDbUpgrade', () => {
     expect(ALLOWED_DB_VERSIONS).toEqual(['10.11', '11.4']);
   });
 
-  it('rejects 11.8 — CloudLinux MySQL Governor (required on every node) does not support it', async () => {
+  it('rejects 11.8 – CloudLinux MySQL Governor (required on every node) does not support it', async () => {
     const { service, prisma } = makeService();
     await expect(service.queueDbUpgrade(SRV, ACTOR, '11.8')).rejects.toBeInstanceOf(BadRequestException);
     expect(prisma.server.findUnique).not.toHaveBeenCalled();

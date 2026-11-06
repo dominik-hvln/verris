@@ -66,7 +66,7 @@ describe('X-05 consentCookieDomain', () => {
   });
 });
 
-describe('27.09 applyConsent — zdarzenie verris_consent_update tylko przy zmianie decyzji', () => {
+describe('27.09 applyConsent – zdarzenie verris_consent_update tylko przy zmianie decyzji', () => {
   const zgoda = { v: 1, ts: 't', functional: true, analytics: true, marketing: false };
   const w = globalThis as unknown as { window?: { dataLayer: unknown[] }; dataLayer?: unknown[] };
   afterEach(() => {
@@ -75,7 +75,7 @@ describe('27.09 applyConsent — zdarzenie verris_consent_update tylko przy zmia
   });
   const zdarzenia = () => (w.window!.dataLayer as Array<{ event?: string }>).map((e) => e?.event).filter(Boolean);
 
-  it('odtworzenie zgody z cookie (zmiana=false): consent update tak, zdarzenie nie — tag Google nie odpala drugi raz', () => {
+  it('odtworzenie zgody z cookie (zmiana=false): consent update tak, zdarzenie nie – tag Google nie odpala drugi raz', () => {
     w.window = { dataLayer: [] };
     w.dataLayer = w.window.dataLayer;
     applyConsent(zgoda, false);

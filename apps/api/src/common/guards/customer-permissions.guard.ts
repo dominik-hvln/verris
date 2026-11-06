@@ -72,12 +72,12 @@ export const REGULY_TRAS: Regula[] = [
   {
     pasuje: zaczyna('/auth', '/healthz', '/readyz', '/status', '/public', '/fonts', '/kb', '/plans', '/legal', '/brand', '/emm', '/unsubscribe', '/analytics', '/telemetry', '/metrics', '/hooks'),
     odczyt: BEZ_WYMOGU, zapis: BEZ_WYMOGU,
-    po_co: 'Treści publiczne i endpointy techniczne — nie dotykają danych konta.',
+    po_co: 'Treści publiczne i endpointy techniczne – nie dotykają danych konta.',
   },
   {
     pasuje: zaczyna('/notifications'),
     odczyt: BEZ_WYMOGU, zapis: BEZ_WYMOGU,
-    po_co: 'Własne powiadomienia osoby z sesji (kontroler bierze principalUserId — subkonto nie widzi dzwonka właściciela, audyt 13.10).',
+    po_co: 'Własne powiadomienia osoby z sesji (kontroler bierze principalUserId – subkonto nie widzi dzwonka właściciela, audyt 13.10).',
   },
   {
     pasuje: zaczyna('/me/consent', '/me/marketing-preferences', '/me/status', '/me/feature-flags', '/me/beta'),
@@ -105,7 +105,7 @@ export const REGULY_TRAS: Regula[] = [
   {
     pasuje: zaczyna('/partners', '/reseller'),
     odczyt: 'ODMOWA', zapis: 'ODMOWA',
-    po_co: 'Program partnerski i resellerski to rozliczenia właściciela — łącznie z wypłatą prowizji na konto bankowe.',
+    po_co: 'Program partnerski i resellerski to rozliczenia właściciela – łącznie z wypłatą prowizji na konto bankowe.',
   },
   {
     pasuje: zaczyna('/users/iam'),
@@ -115,7 +115,7 @@ export const REGULY_TRAS: Regula[] = [
   {
     pasuje: (sciezka) => /^\/domains\/[^/]+\/registrar\/(authcode|registrant)(\/|$)/.test(sciezka),
     odczyt: 'ODMOWA', zapis: 'ODMOWA',
-    po_co: 'Kod transferu i dane abonenta to przeniesienie albo przejęcie domeny — należą do właściciela (A-09, A-13).',
+    po_co: 'Kod transferu i dane abonenta to przeniesienie albo przejęcie domeny – należą do właściciela (A-09, A-13).',
   },
   {
     // Decyzja 8 (3.11.2026), P3-02 — rezygnacja z usługi (od razu albo z końcem okresu = wyłączenie odnowienia)
@@ -123,7 +123,7 @@ export const REGULY_TRAS: Regula[] = [
     // natychmiast zdjąć stronę klienta. Dopasowanie po szablonie trasy — `/subscriptions/trial` to inna trasa.
     pasuje: (s) => s === '/subscriptions/:id' || s === '/vps/:id',
     odczyt: [SERVICES_READ], zapis: 'ODMOWA',
-    po_co: 'Anulowanie i usunięcie usługi oraz wyłączenie odnowienia — tylko właściciel konta, nigdy współpracownik.',
+    po_co: 'Anulowanie i usunięcie usługi oraz wyłączenie odnowienia – tylko właściciel konta, nigdy współpracownik.',
   },
   {
     // P3-04 — kontroler zmienia hasło `principalUserId`, czyli osoby z sesji. Wcześniej ODMOWA z uzasadnieniem
@@ -154,17 +154,17 @@ export const REGULY_TRAS: Regula[] = [
   {
     pasuje: zaczyna('/api/v1/me'),
     odczyt: BEZ_WYMOGU, zapis: [SETTINGS_MANAGE],
-    po_co: 'Publiczne API v1 — profil konta, ten sam wymóg co /users/me.',
+    po_co: 'Publiczne API v1 – profil konta, ten sam wymóg co /users/me.',
   },
   {
     pasuje: zawiera('hosting-logs', 'hosting-site-stats'),
     odczyt: [FILES_MANAGE], zapis: [FILES_MANAGE],
-    po_co: 'Logi WWW: adresy IP odwiedzających (dane osobowe) i ścieżki plików — poziom menedżera plików, nie samego podglądu usługi. Tu też statystyki strony z logów (PB-19).',
+    po_co: 'Logi WWW: adresy IP odwiedzających (dane osobowe) i ścieżki plików – poziom menedżera plików, nie samego podglądu usługi. Tu też statystyki strony z logów (PB-19).',
   },
   {
     pasuje: zawiera('hosting-dns'),
     odczyt: [DNS_MANAGE], zapis: [DNS_MANAGE],
-    po_co: 'Rekordy DNS. Odczyt też wymaga uprawnienia — układ strefy bywa wrażliwy.',
+    po_co: 'Rekordy DNS. Odczyt też wymaga uprawnienia – układ strefy bywa wrażliwy.',
   },
   {
     pasuje: zawiera('hosting-email', 'hosting-webmail-login', 'hosting-autoresponders', 'hosting-catchall', 'hosting-spamfilter', 'hosting-mail-log'),
@@ -212,7 +212,7 @@ export const REGULY_TRAS: Regula[] = [
   {
     pasuje: zaczyna('/addons'),
     odczyt: [SERVICES_READ], zapis: [BILLING_MANAGE],
-    po_co: 'Zakup dodatku to wydatek z portfela właściciela — stąd BILLING_MANAGE, nie SERVICES_MANAGE.',
+    po_co: 'Zakup dodatku to wydatek z portfela właściciela – stąd BILLING_MANAGE, nie SERVICES_MANAGE.',
   },
   {
     pasuje: zaczyna('/autoscaling'),
@@ -242,18 +242,18 @@ export const REGULY_TRAS: Regula[] = [
       // G-08 — zakup płatnego certyfikatu SSL (sprawdzenie stanu /check idzie regułą ogólną usług).
       /^\/services\/[^/]+\/ssl-orders$/.test(s),
     odczyt: [SERVICES_READ], zapis: [SERVICES_MANAGE, BILLING_MANAGE],
-    po_co: 'Operacje na usłudze, które obciążają portfel właściciela — potrzebne oba uprawnienia.',
+    po_co: 'Operacje na usłudze, które obciążają portfel właściciela – potrzebne oba uprawnienia.',
   },
   {
     pasuje: zawiera('subscriptions', 'services'),
     odczyt: [SERVICES_READ], zapis: [SERVICES_MANAGE],
-    po_co: 'Usługi hostingowe — ogólna reguła, po szczegółowych.',
+    po_co: 'Usługi hostingowe – ogólna reguła, po szczegółowych.',
   },
   {
     // Rejestracja, transfer, odnowienie i ukrycie danych WHOIS (A-14) obciążają portfel właściciela — jak zamówienie usługi.
     pasuje: (s) => /^\/domains\/(registrar\/(register|transfer)|[^/]+\/registrar\/(renew|whois-privacy))$/.test(s),
     odczyt: [DOMAINS_READ], zapis: [DOMAINS_MANAGE, BILLING_MANAGE],
-    po_co: 'Wydatek z portfela właściciela na domenę — potrzebne oba uprawnienia (26.09, zrównane z zamówieniem usługi).',
+    po_co: 'Wydatek z portfela właściciela na domenę – potrzebne oba uprawnienia (26.09, zrównane z zamówieniem usługi).',
   },
   {
     pasuje: zawiera('domains'),
@@ -268,7 +268,7 @@ export const REGULY_TRAS: Regula[] = [
   {
     pasuje: zawiera('users/me/api-tokens', 'users/me/webhooks'),
     odczyt: [SETTINGS_MANAGE], zapis: [SETTINGS_MANAGE],
-    po_co: 'Tokeny API i webhooki działają w imieniu konta nadrzędnego — także ich lista.',
+    po_co: 'Tokeny API i webhooki działają w imieniu konta nadrzędnego – także ich lista.',
   },
   {
     pasuje: (s) => s.includes('users/me') || s.includes('settings'),
@@ -359,7 +359,7 @@ export class CustomerPermissionsGuard implements CanActivate {
     // Audyt 13.10 — trwałe poświadczenia i dostęp do konta nadaje wyłącznie klient, nie operator w sesji wsparcia.
     if ((user as { impersonatedBy?: string } | undefined)?.impersonatedBy &&
         this.reflector.getAllAndOverride<boolean | undefined>(BEZ_SESJI_WSPARCIA_KEY, [ctx.getHandler(), ctx.getClass()])) {
-      throw new ForbiddenException('Tę zmianę może zrobić wyłącznie klient — nie w sesji wsparcia. Użyj akcji operatora.');
+      throw new ForbiddenException('Tę zmianę może zrobić wyłącznie klient – nie w sesji wsparcia. Użyj akcji operatora.');
     }
 
     // Właściciel konta — subkontowa kontrola go nie dotyczy.

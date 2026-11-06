@@ -42,7 +42,7 @@ export function NapiszDoKlienta({ userId, imie, domeny }: { userId: string; imie
   // Mail do jednego klienta — jego adres IP może paść w treści (API sprawdza też adresy węzłów).
   const infra = nazwaInfrastruktury(`${temat}\n${tresc}`, { adresyIp: false });
   const ostrzezenie = promo
-    ? `Usuń treść promocyjną („${promo}”) — mail serwisowy wychodzi bez zgody marketingowej.`
+    ? `Usuń treść promocyjną („${promo}”) – mail serwisowy wychodzi bez zgody marketingowej.`
     : infra
       ? `Klient nie widzi nazw infrastruktury („${infra}”).`
       : null;
@@ -53,7 +53,7 @@ export function NapiszDoKlienta({ userId, imie, domeny }: { userId: string; imie
       setMsg(null);
       const r = await wyslijMailObslugiAction(userId, { szablon, temat, tresc, zgloszenie });
       if (!r.ok) return setMsg({ ok: false, tekst: r.error });
-      setMsg({ ok: true, tekst: "Wysłano — mail jest w historii obok." });
+      setMsg({ ok: true, tekst: "Wysłano – mail jest w historii obok." });
       router.refresh();
     });
   };

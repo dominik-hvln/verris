@@ -62,7 +62,7 @@ export function Pricing({
         <div className="pcard2">
           <div className="pcard2-main">
             <Tytul className="pcard2-h">Hosting Verris z autoskalowaniem</Tytul>
-            <p>Bez limitu stron, skrzynek i transferu — w ramach zasobów konta.</p>
+            <p>Bez limitu stron, skrzynek i transferu – w ramach zasobów konta.</p>
             <ul className="pres">
               {RESOURCES.map((r) => (
                 <li key={r.label}>
@@ -103,7 +103,7 @@ export function Pricing({
               Zamów hosting
             </Button>
             <p className="price-note2">
-              Pierwszy okres kosztuje tyle co odnowienie — po cenie z cennika, którą podajemy tutaj. Kredyty na
+              Pierwszy okres kosztuje tyle co odnowienie – po cenie z cennika, którą podajemy tutaj. Kredyty na
               autoskalowanie dostajesz po opłaceniu pierwszego zamówienia i wydasz je tylko na dodatkową moc. Przed
               odnowieniem przypomnimy e-mailem, a zrezygnujesz z niego w panelu w każdej chwili.
             </p>
@@ -111,9 +111,9 @@ export function Pricing({
         </div>
 
         <p className="finebox">
-          „Bez limitu” oznacza brak sztywnego licznika — realnym ogranicznikiem są zasoby konta (CPU/RAM/dysk) i
+          „Bez limitu” oznacza brak sztywnego licznika – realnym ogranicznikiem są zasoby konta (CPU/RAM/dysk) i
           zasady uczciwego korzystania. Autoskalowanie ponad bazę rozliczane jest według stawek z cennika, w blokach
-          15 minut. {VPS_W_SPRZEDAZY ? 'VPS i domeny mają' : 'Domeny mają'} osobną wycenę — sprawdzisz ją w panelu.
+          15 minut. {VPS_W_SPRZEDAZY ? 'VPS i domeny mają' : 'Domeny mają'} osobną wycenę – sprawdzisz ją w panelu.
         </p>
       </div>
     </section>

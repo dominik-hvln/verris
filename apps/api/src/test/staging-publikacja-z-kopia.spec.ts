@@ -15,7 +15,7 @@ const SKRYPT = readFileSync(join(import.meta.dirname, '..', '..', '..', '..', 'o
 const bezKomentarzy = (s: string) => s.split('\n').filter((l) => !l.trim().startsWith('#')).join('\n');
 const TO_LIVE = bezKomentarzy(SKRYPT.slice(SKRYPT.indexOf('\nTO_LIVE)'), SKRYPT.indexOf('\n  ;;', SKRYPT.indexOf('\nTO_LIVE)'))));
 
-describe('I-11 — publikacja stagingu tylko z kopią produkcji', () => {
+describe('I-11 – publikacja stagingu tylko z kopią produkcji', () => {
   it('blok TO_LIVE istnieje', () => {
     expect(TO_LIVE).toContain('db import');
   });
@@ -43,7 +43,7 @@ describe('I-11 — publikacja stagingu tylko z kopią produkcji', () => {
   });
 });
 
-describe('I-11 — katalog kopii roboczej (DirectAdmin 1.710: subdomena jako domains/<sub>.<domena>)', () => {
+describe('I-11 – katalog kopii roboczej (DirectAdmin 1.710: subdomena jako domains/<sub>.<domena>)', () => {
   const blok = SKRYPT.slice(SKRYPT.indexOf('STAGING_HOST='), SKRYPT.indexOf('\n', SKRYPT.indexOf('[ -d "$STG" ] || STG=')));
   const stg = (uklad: 'nowy' | 'stary') => {
     const home = mkdtempSync(join(tmpdir(), 'stg-'));
@@ -65,7 +65,7 @@ describe('I-11 — katalog kopii roboczej (DirectAdmin 1.710: subdomena jako dom
  * Publikacja nie sprawdzała, czy po zamianie adresów w bazie LIVE nie został adres stagingu, a staging bez stałej
  * WP_REDIS_PREFIX w wp-config (kopia sprzed włączenia Redisa) nie dostawał własnej przestrzeni kluczy.
  */
-describe('Staging ↔ LIVE — adresy i cache obiektowy', () => {
+describe('Staging ↔ LIVE – adresy i cache obiektowy', () => {
   const TO_STAGING = bezKomentarzy(SKRYPT.slice(SKRYPT.indexOf('\nTO_STAGING)'), SKRYPT.indexOf('\nTO_LIVE)')));
 
   it('staging zawsze dostaje własny WP_REDIS_PREFIX i WP_CACHE_KEY_SALT (bez warunku „config has”)', () => {

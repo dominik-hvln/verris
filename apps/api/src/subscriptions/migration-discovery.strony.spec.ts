@@ -16,7 +16,7 @@ function serwis(trasy: (path: string, body?: string) => Odp) {
 }
 const ok = (body: string): Odp => ({ status: 200, body, insecureTlsUsed: false });
 
-describe('cPanel — strony z DomainInfo::domains_data', () => {
+describe('cPanel – strony z DomainInfo::domains_data', () => {
   it('katalog względem katalogu domowego; poddomena-bliźniak domeny dodatkowej pominięta', () => {
     const s = stronyCpanel(
       [{ domain: 'firma.pl', documentroot: '/home/u/public_html', homedir: '/home/u' }],
@@ -46,7 +46,7 @@ describe('cPanel — strony z DomainInfo::domains_data', () => {
   });
 });
 
-describe('DirectAdmin — CMD_API_DOMAIN?action=document_root', () => {
+describe('DirectAdmin – CMD_API_DOMAIN?action=document_root', () => {
   it('strony i poddomeny z katalogami względem katalogu domowego', () => {
     const s = stronyDirectAdmin(
       {
@@ -65,7 +65,7 @@ describe('DirectAdmin — CMD_API_DOMAIN?action=document_root', () => {
     ]);
   });
 
-  it('panel bez action=document_root — domyślny układ /domains/<domena>/public_html', async () => {
+  it('panel bez action=document_root – domyślny układ /domains/<domena>/public_html', async () => {
     const { prywatne } = serwis((path) => {
       if (path === '/CMD_API_SHOW_DOMAINS') return ok('list[]=firma.pl&list[]=sklep.pl');
       if (path.startsWith('/CMD_API_DOMAIN?')) return { status: 404, body: '', insecureTlsUsed: false };
@@ -79,7 +79,7 @@ describe('DirectAdmin — CMD_API_DOMAIN?action=document_root', () => {
   });
 });
 
-describe('Plesk — XML API (działa z loginem klienta, REST tylko dla administratora)', () => {
+describe('Plesk – XML API (działa z loginem klienta, REST tylko dla administratora)', () => {
   const xmlWebspaces = `<packet><webspace><get><result><status>ok</status><filter-id>1</filter-id><id>7</id><data><gen_info><name>firma.pl</name><htype>vrt_hst</htype></gen_info></data></result></get></webspace></packet>`;
   const xmlGlowna = `<packet><site><get><result><status>ok</status><id>1</id><data><gen_info><name>firma.pl</name><webspace-id>7</webspace-id></gen_info><hosting><vrt_hst><property><name>ftp_login</name><value>firmaftp</value></property><property><name>www_root</name><value>/var/www/vhosts/firma.pl/httpdocs</value></property></vrt_hst></hosting></data></result></get></site></packet>`;
   const xmlInne = `<packet><site><get>
@@ -118,7 +118,7 @@ describe('Plesk — XML API (działa z loginem klienta, REST tylko dla administr
     await expect(prywatne.discoverPlesk!('h.pl', 8443, 'k', 'zle', [])).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('katalog poza /var/www/vhosts/<subskrypcja> (Windows, inny układ) — nieznany', () => {
+  it('katalog poza /var/www/vhosts/<subskrypcja> (Windows, inny układ) – nieznany', () => {
     expect(sciezkaFtpPleska('C:\\\\Inetpub\\\\vhosts\\\\firma.pl\\\\httpdocs', 'firma.pl')).toBeNull();
     expect(sciezkaFtpPleska('/var/www/vhosts/firma.pl/httpdocs/', 'firma.pl')).toBe('/httpdocs');
     expect(sciezkaFtpPleska('/var/www/vhosts/firma.plx/httpdocs', 'firma.pl')).toBeNull();

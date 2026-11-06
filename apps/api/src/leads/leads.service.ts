@@ -234,7 +234,7 @@ export class LeadsService {
    * rekord usuwa retencja po 30 dniach (leads-retencja.ts).
    */
   async unsubscribe(token?: string): Promise<{ ok: boolean }> {
-    if (!token?.trim()) throw new BadRequestException('Brak tokenu wypisu — użyj linku z wiadomości.');
+    if (!token?.trim()) throw new BadRequestException('Brak tokenu wypisu – użyj linku z wiadomości.');
     const lead = await this.prisma.siteLead.findUnique({ where: { unsubToken: token.trim() } });
     if (!lead) return { ok: false };
     if (lead.status !== SiteLeadStatus.UNSUBSCRIBED) {

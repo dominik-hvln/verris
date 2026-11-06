@@ -21,7 +21,7 @@ export function ReferralApplyForm() {
           setBusy(false);
           if ('error' in r) setMsg({ type: 'err', text: r.error });
           else {
-            setMsg({ type: 'ok', text: 'Kod zapisany — punkty zostały dodane Tobie i polecającemu.' });
+            setMsg({ type: 'ok', text: 'Kod zapisany – punkty zostały dodane Tobie i polecającemu.' });
             setCode('');
           }
         }}

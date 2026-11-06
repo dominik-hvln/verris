@@ -47,7 +47,7 @@ async function klient(saldo: number) {
 const saldo = async (id: string) => Number((await prisma().user.findUniqueOrThrow({ where: { id } })).walletBalance);
 const zamowienie = { domain: 'firma.pl', productId: 5, validation: 'DNS' as const };
 
-describe('G-08 płatny certyfikat SSL — pieniądze', () => {
+describe('G-08 płatny certyfikat SSL – pieniądze', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     wystawcaPada = false;

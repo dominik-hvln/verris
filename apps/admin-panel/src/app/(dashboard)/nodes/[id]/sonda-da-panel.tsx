@@ -24,7 +24,7 @@ export function SondaDaPanel({ serverId }: { serverId: string }) {
         <div>
           <h3 className="m-0 text-[15px] font-bold text-foreground">Sonda API DirectAdmina</h3>
           <p className="m-0 text-[12.5px] text-muted-foreground">
-            Odczyty, których używa panel, na pierwszym aktywnym koncie węzła — kod, format i nazwy pól, bez wartości. Po aktualizacji DA sprawdź, czy kształt się nie zmienił.
+            Odczyty, których używa panel, na pierwszym aktywnym koncie węzła – kod, format i nazwy pól, bez wartości. Po aktualizacji DA sprawdź, czy kształt się nie zmienił.
           </p>
         </div>
         <button type="button" onClick={uruchom} disabled={pending} className="rounded-[7px] border border-line-strong bg-raised px-3 py-2 text-xs font-semibold text-foreground disabled:opacity-50">

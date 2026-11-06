@@ -18,7 +18,7 @@ import {
 } from './drzewa-model.js';
 
 /** W6 (decyzja 12) — przeliczenia drzew w liczbach całkowitych. */
-describe('Drzewa — model', () => {
+describe('Drzewa – model', () => {
   const stawka = DOMYSLNE_USTAWIENIA_DRZEW.wkladNa100ZlNetto;
 
   it('domyślna stawka: hosting roczny 449 zł brutto = 7,00% drzewa, miesięczny 45 zł = 0,70%', () => {
@@ -63,7 +63,7 @@ describe('Drzewa — model', () => {
     expect(Object.keys(odczytajUstawieniaDrzew(new Map()))).not.toContain('nazwaNaCertyfikacie');
   });
 
-  it('koszt drzewa nigdy ponad 20 zł — wartość spoza zakresu = domyślna', () => {
+  it('koszt drzewa nigdy ponad 20 zł – wartość spoza zakresu = domyślna', () => {
     const u = odczytajUstawieniaDrzew(new Map([[KLUCZE_DRZEW.KOSZT_DRZEWA_GROSZE, '2500']]));
     expect(u.kosztDrzewaGrosze).toBe(2000);
     expect(odczytajUstawieniaDrzew(new Map([[KLUCZE_DRZEW.KOSZT_DRZEWA_GROSZE, '1500']])).kosztDrzewaGrosze).toBe(1500);

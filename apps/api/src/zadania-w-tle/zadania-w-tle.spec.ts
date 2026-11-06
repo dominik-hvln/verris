@@ -24,9 +24,9 @@ const nastepnyPo = (wyrazenie: string) => {
   return (d: Date) => t.getNextDateFrom(d).toJSDate();
 };
 
-describe('czyZalegle — nie biegło dłużej niż 2× interwał z harmonogramu', () => {
+describe('czyZalegle – nie biegło dłużej niż 2× interwał z harmonogramu', () => {
   const start = new Date('2026-10-10T08:00:00Z');
-  it('co godzinę: po dwóch terminach + zapas — alert; tuż przed — nie', () => {
+  it('co godzinę: po dwóch terminach + zapas – alert; tuż przed – nie', () => {
     const ostatni = new Date('2026-10-10T10:00:00.010Z');
     const fn = nastepnyPo('0 * * * *');
     expect(czyZalegle({ ostatniStart: ostatni, startProcesu: start, teraz: new Date(Date.parse('2026-10-10T12:00:00Z') + ZAPAS_MS - 1), nastepnyPo: fn })).toBe(false);
@@ -41,7 +41,7 @@ describe('czyZalegle — nie biegło dłużej niż 2× interwał z harmonogramu'
     expect(czyZalegle({ ostatniStart: null, startProcesu: proces, teraz: new Date('2026-10-12T03:40:00Z'), nastepnyPo: fn })).toBe(true);
   });
 
-  it('nieregularny harmonogram (dni robocze) — piątkowy przebieg nie jest zaległy w niedzielę', () => {
+  it('nieregularny harmonogram (dni robocze) – piątkowy przebieg nie jest zaległy w niedzielę', () => {
     const fn = nastepnyPo('15 11-14 * * 1-5');
     expect(czyZalegle({ ostatniStart: new Date('2026-10-09T14:15:00Z'), startProcesu: start, teraz: new Date('2026-10-11T20:00:00Z'), nastepnyPo: fn })).toBe(false);
   });
@@ -67,7 +67,7 @@ class TestoweZadania {
   }
 }
 
-describe('rejestr przebiegów — z prawdziwym ScheduleModule', () => {
+describe('rejestr przebiegów – z prawdziwym ScheduleModule', () => {
   const zapisane: Array<Record<string, unknown>> = [];
   const audyt: Array<Record<string, unknown>> = [];
   const prisma = {
@@ -122,7 +122,7 @@ describe('rejestr przebiegów — z prawdziwym ScheduleModule', () => {
     expect(await app.get(TestoweZadania).dziala()).toBe(7);
   });
 
-  it('ręczne uruchomienie: zadanie spoza białej listy — odmowa (także dla administratora)', async () => {
+  it('ręczne uruchomienie: zadanie spoza białej listy – odmowa (także dla administratora)', async () => {
     const s = app.get(ZadaniaWTleService);
     await expect(s.uruchomRecznie('TestoweZadania.dziala', 'admin-1')).rejects.toThrow('Tego zadania nie uruchamia się ręcznie.');
     expect(audyt.filter((a) => a.action === 'ZADANIE_W_TLE_RECZNE')).toHaveLength(0);
@@ -137,7 +137,7 @@ describe('rejestr przebiegów — z prawdziwym ScheduleModule', () => {
     );
   });
 
-  it('przegląd: dwa równoczesne ręczne uruchomienia — biegnie jedno, drugie 409; po przebiegu można znowu', async () => {
+  it('przegląd: dwa równoczesne ręczne uruchomienia – biegnie jedno, drugie 409; po przebiegu można znowu', async () => {
     const s = app.get(ZadaniaWTleService);
     const K = 'ZadaniaWTleService.sprawdzZalegle';
     const ileWpisow = () => audyt.filter((a) => a.action === 'ZADANIE_W_TLE_RECZNE').length;

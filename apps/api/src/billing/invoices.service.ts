@@ -611,7 +611,7 @@ export class InvoicesService {
     return {
       name: c.name || (this.config.get<string>('VERRIS_COMPANY_NAME') ?? 'Verris Sp. z o.o.'),
       nip: c.nip || (this.config.get<string>('VERRIS_COMPANY_NIP') ?? '0000000000'),
-      address: c.address || (this.config.get<string>('VERRIS_COMPANY_ADDRESS') ?? '— adres —'),
+      address: c.address || (this.config.get<string>('VERRIS_COMPANY_ADDRESS') ?? '– adres –'),
       city: c.city || (this.config.get<string>('VERRIS_COMPANY_CITY') ?? 'Warszawa'),
       postalCode: c.postalCode || (this.config.get<string>('VERRIS_COMPANY_POSTAL') ?? '00-000'),
       country: c.country || 'PL',
@@ -639,7 +639,7 @@ export class InvoicesService {
     });
     if (!user) {
       // Should never happen — webhooks resolve the user before calling us.
-      return { name: '—', email: '—' };
+      return { name: '–', email: '–' };
     }
     const personalName = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
     const name = user.companyName?.trim() || personalName || user.email;
@@ -664,8 +664,8 @@ export class InvoicesService {
         const planName = sub.plan?.name ?? 'Hosting';
         const interval = sub.interval === 'MONTH' ? 'miesięczna' : 'roczna';
         return sub.account?.domain
-          ? `${planName} — subskrypcja ${interval} (${sub.account.domain})`
-          : `${planName} — subskrypcja ${interval}`;
+          ? `${planName} – subskrypcja ${interval} (${sub.account.domain})`
+          : `${planName} – subskrypcja ${interval}`;
       }
     }
     return 'Usługa hostingowa Verris';
@@ -740,7 +740,7 @@ export class InvoicesService {
       // Pre-2.2 invoices may only have Stripe URL — caller should redirect.
       throw new NotFoundException(
         invoice.hostedUrl
-          ? 'PDF nie został jeszcze wygenerowany — użyj linku do faktury.'
+          ? 'PDF nie został jeszcze wygenerowany – użyj linku do faktury.'
           : 'PDF nie jest jeszcze gotowy. Spróbuj za chwilę.',
       );
     }
@@ -880,7 +880,7 @@ export class InvoicesService {
     if (!ksef && !invoice.storageKey) {
       throw new NotFoundException(
         invoice.hostedUrl
-          ? 'PDF nie został wygenerowany — użyj linku do faktury.'
+          ? 'PDF nie został wygenerowany – użyj linku do faktury.'
           : 'PDF nie jest jeszcze gotowy.',
       );
     }

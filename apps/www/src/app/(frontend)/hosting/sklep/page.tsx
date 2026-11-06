@@ -48,7 +48,7 @@ const MOMENTY: Step[] = [
 ];
 
 const PLATFORMY = zweryfikowane([
-  { t: 'WooCommerce', p: 'Cache LiteSpeed i Redis dla bazy — sklep na WordPressie działa szybko także przy wielu klientach naraz.', po: true },
+  { t: 'WooCommerce', p: 'Cache LiteSpeed i Redis dla bazy – sklep na WordPressie działa szybko także przy wielu klientach naraz.', po: true },
   { t: 'PrestaShop', p: `Wersję PHP (${PHP_ZAKRES}) dobierasz do sklepu, osobno dla każdej domeny.` },
   { t: 'Inne sklepy na PHP', p: 'SSH w izolowanym środowisku i Node.js dla sklepów, które wymagają więcej narzędzi.', po: true },
   { t: 'Poczta sklepu', p: 'zamowienia@ i sklep@ w Twojej domenie, z aliasami i przekierowaniami.' },
@@ -61,7 +61,7 @@ const faqSklepu = (c: CenaPakietu): [string, string][] => [
   ],
   [
     'Co się stanie, gdy w Black Friday ruch wzrośnie kilkukrotnie?',
-    'Autoskalowanie dołoży procesora i pamięci — do 24 vCPU i 64 GB RAM — a po szczycie moc wróci do pakietu. Bez limitu płacisz za faktyczne użycie. Limit kosztu na 30 dni ustawisz przy zamówieniu albo w panelu; po jego osiągnięciu zasoby wracają do pakietu, a Ty dostajesz powiadomienie.',
+    'Autoskalowanie dołoży procesora i pamięci – do 24 vCPU i 64 GB RAM – a po szczycie moc wróci do pakietu. Bez limitu płacisz za faktyczne użycie. Limit kosztu na 30 dni ustawisz przy zamówieniu albo w panelu; po jego osiągnięciu zasoby wracają do pakietu, a Ty dostajesz powiadomienie.',
   ],
   ['Czy hosting nadaje się dla WooCommerce?', 'Tak. Masz cache LiteSpeed, Redis dla bazy, dyski NVMe i wersję PHP wybraną dla sklepu.'],
   [

@@ -29,7 +29,7 @@ export function KomentarzPrognozy({ podsumowanie, zalecenia, komentarzAi }: { po
           ))}
         </ul>
       ) : null}
-      {komentarzAi ? <p className="text-[11.5px] text-muted-foreground">Zalecenia tworzy AI — decyzję podejmuje operator.</p> : null}
+      {komentarzAi ? <p className="text-[11.5px] text-muted-foreground">Zalecenia tworzy AI – decyzję podejmuje operator.</p> : null}
     </div>
   );
 }
@@ -85,7 +85,7 @@ export function PrognozaWezlaKarta({ p, bazaHref }: { p: PrognozaWezla; bazaHref
         <dl className="grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
           <div>
             <dt className="text-[12.5px] text-muted-foreground">Najlepsze okno aktualizacji</dt>
-            <dd>{p.oknoAktualizacji ? `${String(p.oknoAktualizacji.godzina).padStart(2, "0")}:00, śr. ${p.oknoAktualizacji.cpuProc}% CPU` : "—"}</dd>
+            <dd>{p.oknoAktualizacji ? `${String(p.oknoAktualizacji.godzina).padStart(2, "0")}:00, śr. ${p.oknoAktualizacji.cpuProc}% CPU` : "–"}</dd>
           </div>
           <div>
             <dt className="text-[12.5px] text-muted-foreground">Zapas puli (pakiet standardowy)</dt>
@@ -93,7 +93,7 @@ export function PrognozaWezlaKarta({ p, bazaHref }: { p: PrognozaWezla; bazaHref
               {z ? `zmieści jeszcze ok. ${accounts(z.kont)}` : "węzeł nie zaraportował pojemności"}
               {z ? (
                 <span className="block text-[12.5px] text-muted-foreground">
-                  {z.dniDoWyczerpania != null ? `przy tempie ${z.noweKonta30d} / 30 dni — ok. ${days(z.dniDoWyczerpania)} · ` : "brak nowych kont w 30 dni · "}
+                  {z.dniDoWyczerpania != null ? `przy tempie ${z.noweKonta30d} / 30 dni – ok. ${days(z.dniDoWyczerpania)} · ` : "brak nowych kont w 30 dni · "}
                   ogranicza: {z.wymiar}
                 </span>
               ) : null}
@@ -116,7 +116,7 @@ export function PrognozaWezlaKarta({ p, bazaHref }: { p: PrognozaWezla; bazaHref
       {p.kandydaci.length ? (
         <>
           <div className={`${WIERSZ} !py-[9px] font-mono text-[10.5px] uppercase tracking-[0.1em] text-muted-foreground`}>
-            <span className="flex-1">Do przeniesienia — udział w CPU węzła (7 dni)</span>
+            <span className="flex-1">Do przeniesienia – udział w CPU węzła (7 dni)</span>
           </div>
           {p.kandydaci.map((k) => (
             <div key={k.accountId} className={WIERSZ}>

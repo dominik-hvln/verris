@@ -23,7 +23,7 @@ async function zakoncz(serverId: string, kind: 'FLEET_UPDATE' | 'DB_UPGRADE') {
   return t;
 }
 
-describe('PB-33 — wersje stosu floty', () => {
+describe('PB-33 – wersje stosu floty', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 

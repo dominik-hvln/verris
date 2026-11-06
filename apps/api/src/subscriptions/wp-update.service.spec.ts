@@ -82,7 +82,7 @@ describe('WpUpdateService', () => {
 
   it('stan i zmiany z logu; wycofanie i błąd widoczne dla klienta', async () => {
     const ok = `VERRIS_WP_PRZED=${b64(PRZED)}\nVERRIS_WPU_KOPIA=verris-wp-a.pl-20260925-032000-ab12.tar.gz\nVERRIS_WP_PO=${b64(PO)}\n[wp-update] Gotowe.`;
-    const wycofane = `VERRIS_WP_PRZED=${b64(PRZED)}\nVERRIS_WPU_WYCOFANO=1\n[wp-update] BŁĄD: po aktualizacji strona zwracała błąd (HTTP 500) — przywróciliśmy pliki i bazę`;
+    const wycofane = `VERRIS_WP_PRZED=${b64(PRZED)}\nVERRIS_WPU_WYCOFANO=1\n[wp-update] BŁĄD: po aktualizacji strona zwracała błąd (HTTP 500) – przywróciliśmy pliki i bazę`;
     const t = (id: string, status: string, log: string, auto = false) => ({
       id, status, outputLog: log, createdAt: new Date('2026-09-25T01:20:00Z'), completedAt: new Date('2026-09-25T01:22:00Z'),
       payload: { mode: 'update', domain: 'a.pl', core: 'all', plugins: '*', themes: '', auto },
@@ -111,7 +111,7 @@ describe('WpUpdateService', () => {
   });
 });
 
-describe('WpUpdateService — cache (J-02)', () => {
+describe('WpUpdateService – cache (J-02)', () => {
   it('zlecenie operacji na LiteSpeed Cache; zła operacja → 400', async () => {
     const s = stanowisko();
     await s.svc.cache('s1', 'u1', { domain: 'a.pl', action: 'purge' });
@@ -120,7 +120,7 @@ describe('WpUpdateService — cache (J-02)', () => {
   });
 });
 
-describe('WpUpdateService — zabezpieczenia (I-08)', () => {
+describe('WpUpdateService – zabezpieczenia (I-08)', () => {
   it('przegląd z ostatniego sprawdzenia; poprawka jako zadanie harden', async () => {
     const z = Buffer.from(JSON.stringify({ edytorPlikow: true, debug: false, uzytkownikAdmin: true, uprawnieniaConfig: '644', sumyRdzenia: 'zmienione' })).toString('base64');
     const s = stanowisko({ zadania: [{ id: 't', status: 'COMPLETED', outputLog: `VERRIS_WP_PRZED=${b64(PRZED)}\nVERRIS_WP_ZABEZPIECZENIA=${z}\n`, createdAt: new Date(), completedAt: new Date(), payload: { mode: 'check', domain: 'a.pl' } }] });
@@ -131,7 +131,7 @@ describe('WpUpdateService — zabezpieczenia (I-08)', () => {
     await expect(s.svc.zabezpiecz('s1', 'u1', { domain: 'a.pl', action: 'chmod' })).rejects.toThrow(BadRequestException);
   });
 
-  it('I-15 — tryb konserwacji jako zadanie harden, stan z przeglądu', async () => {
+  it('I-15 – tryb konserwacji jako zadanie harden, stan z przeglądu', async () => {
     const s = stanowisko({ zadania: [] });
     await s.svc.zabezpiecz('s1', 'u1', { domain: 'a.pl', action: 'maintenance-on' });
     expect(payload(s).payload).toMatchObject({ mode: 'harden', harden: 'maintenance-on' });
@@ -140,7 +140,7 @@ describe('WpUpdateService — zabezpieczenia (I-08)', () => {
   });
 });
 
-describe('WpUpdateService — wiele stron naraz (I-14)', () => {
+describe('WpUpdateService – wiele stron naraz (I-14)', () => {
   it('przegląd z ostatnich sprawdzeń każdej domeny; „sprawdź wszystkie” pomija domeny z zadaniem w toku', async () => {
     const z = Buffer.from(JSON.stringify({ edytorPlikow: true, debug: false, uzytkownikAdmin: true, uprawnieniaConfig: '644', sumyRdzenia: 'ok' })).toString('base64');
     const sprawdzenie = { id: 't', status: 'COMPLETED', outputLog: `VERRIS_WP_PRZED=${b64(PRZED)}\nVERRIS_WP_ZABEZPIECZENIA=${z}\n`, createdAt: new Date(), completedAt: new Date(), payload: { mode: 'check', domain: 'a.pl' } };

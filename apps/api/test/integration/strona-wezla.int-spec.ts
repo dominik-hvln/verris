@@ -15,7 +15,7 @@ const serwis = () => {
 };
 const MIN = 60_000;
 
-describe('PB-34 — przegląd węzła', () => {
+describe('PB-34 – przegląd węzła', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 

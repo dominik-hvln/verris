@@ -8,14 +8,14 @@ import { ROLE_FUNKCYJNE, ROLE_SYSTEMOWE, SZCZEBLE } from './role-systemowe.js';
  */
 const zawiera = (a: readonly string[], b: readonly string[]) => b.every((k) => a.includes(k));
 
-describe('PB-47 — katalog uprawnień i role systemowe', () => {
+describe('PB-47 – katalog uprawnień i role systemowe', () => {
   it('katalog ma nowe klucze PB-47 i nie ma duplikatów', () => {
     expect(STAFF_PERMISSION_KEYS).toEqual(expect.arrayContaining(['CUSTOMERS_INTERNAL_FLAG', 'REQUESTS_APPROVE', 'ACCOUNT_DIAGNOSTICS_VIEW']));
     expect(new Set(STAFF_PERMISSION_KEYS).size).toBe(STAFF_PERMISSION_KEYS.length);
     for (const p of STAFF_PERMISSIONS) expect(p.label.length).toBeGreaterThan(5);
   });
 
-  it('ADMIN_ONLY to SETTINGS_MANAGE, STAFF_MANAGE i restart działającej usługi wspólnej węzła (F3.4) — wszystkie w katalogu', () => {
+  it('ADMIN_ONLY to SETTINGS_MANAGE, STAFF_MANAGE i restart działającej usługi wspólnej węzła (F3.4) – wszystkie w katalogu', () => {
     expect([...ADMIN_ONLY].sort()).toEqual(['NODE_SERVICES_RESTART_SHARED', 'SETTINGS_MANAGE', 'STAFF_MANAGE']);
     for (const k of ADMIN_ONLY) expect(isValidStaffPermission(k)).toBe(true);
   });
@@ -108,7 +108,7 @@ describe('PB-47 — katalog uprawnień i role systemowe', () => {
     expect(ROLE_SYSTEMOWE.filter((r) => r.permissions.includes('IP_BLOCKS_NODE' as never)).map((r) => r.name)).toEqual(['Inżynier infrastruktury (NOC/DevOps)']);
   });
 
-  it('F3.4: usługi i logi węzła (NODE_SERVICES) tylko NOC; restart działającej usługi wspólnej — żadna rola systemowa', () => {
+  it('F3.4: usługi i logi węzła (NODE_SERVICES) tylko NOC; restart działającej usługi wspólnej – żadna rola systemowa', () => {
     const z = (k: string) => ROLE_SYSTEMOWE.filter((r) => r.permissions.includes(k as never)).map((r) => r.name);
     expect(z('NODE_SERVICES')).toEqual(['Inżynier infrastruktury (NOC/DevOps)']);
     expect(z('NODE_SERVICES_RESTART_SHARED')).toEqual([]);
@@ -124,14 +124,14 @@ describe('PB-47 — katalog uprawnień i role systemowe', () => {
     expect(z('TICKETS_REPORTS')).toEqual(['L4 Kierownik zmiany']);
   });
 
-  it('B2: baza wiedzy (KB_MANAGE) tylko dla L4 i Marketingu — L1–L3 jej nie zmieniają', () => {
+  it('B2: baza wiedzy (KB_MANAGE) tylko dla L4 i Marketingu – L1–L3 jej nie zmieniają', () => {
     const [l1, l2, l3, l4] = SZCZEBLE;
     for (const r of [l1, l2, l3]) expect(r.permissions).not.toContain('KB_MANAGE');
     expect(l4.permissions).toContain('KB_MANAGE');
     expect(ROLE_SYSTEMOWE.filter((r) => r.permissions.includes('KB_MANAGE')).map((r) => r.name)).toEqual(['L4 Kierownik zmiany', 'Marketing']);
   });
 
-  it('weryfikacja 11.10: metryki biznesowe (METRICS_VIEW) tylko L4 i Finanse — L1 i pozostałe role z pulpitem ich nie mają', () => {
+  it('weryfikacja 11.10: metryki biznesowe (METRICS_VIEW) tylko L4 i Finanse – L1 i pozostałe role z pulpitem ich nie mają', () => {
     const z = ROLE_SYSTEMOWE.filter((r) => r.permissions.includes('METRICS_VIEW')).map((r) => r.name);
     expect(z.sort()).toEqual(['Finanse i księgowość', 'L4 Kierownik zmiany']);
     expect(SZCZEBLE[0].permissions).toContain('DASHBOARD_VIEW');

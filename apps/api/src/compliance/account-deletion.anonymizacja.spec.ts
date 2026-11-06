@@ -102,7 +102,7 @@ describe('AccountDeletionService.executeAnonymization (P-02)', () => {
     ]);
   });
 
-  it('audyt Fali 3 — kopie powodów w dzienniku (akcje konta i domeny, scalenie, kordon, zawieszenie) i zdarzeniach znikają', async () => {
+  it('audyt Fali 3 – kopie powodów w dzienniku (akcje konta i domeny, scalenie, kordon, zawieszenie) i zdarzeniach znikają', async () => {
     const s = stanowisko();
     await s.svc.executeAnonymization('u1');
     const sql = (s.tx.$executeRaw.mock.calls as unknown as [TemplateStringsArray, ...unknown[]][]).map(([t, ...v]) => ({ t: t.join('?'), v }));
@@ -120,7 +120,7 @@ describe('AccountDeletionService.executeAnonymization (P-02)', () => {
     expect(sql.some((q) => q.t.includes('UPDATE "SubscriptionEvent"') && q.v.includes('u1'))).toBe(true);
   });
 
-  it('audyt Fali 3 — pliki poczty przychodzącej konta usunięte z magazynu po zapisie (bez sierot)', async () => {
+  it('audyt Fali 3 – pliki poczty przychodzącej konta usunięte z magazynu po zapisie (bez sierot)', async () => {
     const s = stanowisko();
     await s.svc.executeAnonymization('u1');
     expect(s.tx.pocztaPrzychodzaca.findMany).toHaveBeenCalledWith({ where: { userId: 'u1' }, select: { zalaczniki: true } });
@@ -129,7 +129,7 @@ describe('AccountDeletionService.executeAnonymization (P-02)', () => {
     expect(s.kolejnosc.indexOf('commit')).toBeLessThan(s.kolejnosc.indexOf('magazyn:poczta/p1/zrzut.jpg'));
   });
 
-  it('audyt Fal 2 — notatki w wątkach, tagi zgłoszeń, powód blokady wysyłki i treści wniosków o operację znikają', async () => {
+  it('audyt Fal 2 – notatki w wątkach, tagi zgłoszeń, powód blokady wysyłki i treści wniosków o operację znikają', async () => {
     const s = stanowisko();
     await s.svc.executeAnonymization('u1');
     expect(s.tx.ticketReply.deleteMany).toHaveBeenCalledWith({ where: { internal: true, ticket: { userId: 'u1' } } });
@@ -175,7 +175,7 @@ describe('AccountDeletionService.executeAnonymization (P-02)', () => {
   });
 });
 
-describe('JwtStrategy — subkonto zanonimizowanego lub zablokowanego właściciela', () => {
+describe('JwtStrategy – subkonto zanonimizowanego lub zablokowanego właściciela', () => {
   const strategia = (owner: { anonymizedAt: Date | null; loginBlocked: boolean }) =>
     new JwtStrategy({ get: () => 'sekret-testowy' } as never, {
       user: {

@@ -1,6 +1,6 @@
 import { cenaZNarzutem, planyZNarzutem } from './narzut';
 
-describe('O-07 — cena z narzutem resellera (jak w API)', () => {
+describe('O-07 – cena z narzutem resellera (jak w API)', () => {
   it('bez narzutu zwraca cenę z cennika', () => {
     expect(cenaZNarzutem('45.00', 0)).toBe('45.00');
   });

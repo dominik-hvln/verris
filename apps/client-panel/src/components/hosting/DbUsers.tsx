@@ -118,7 +118,7 @@ export default function DbUsers({ serviceId, db }: { serviceId: string; db: stri
       return;
     }
     setPrawa(r.status.uprawnienia ?? {});
-    toast.success('Zmiana uprawnień zlecona — gotowe w ciągu minuty.');
+    toast.success('Zmiana uprawnień zlecona – gotowe w ciągu minuty.');
   };
 
   const savePassword = async (u: string) => {
@@ -142,7 +142,7 @@ export default function DbUsers({ serviceId, db }: { serviceId: string; db: stri
       {open && (
         <div className="mt-2 rounded-[7px] border border-line bg-background p-3">
           <p className="mb-2 text-[11px] text-muted-foreground">
-            Dodatkowi użytkownicy tej bazy — np. osobny login dla aplikacji albo współpracownika. Nazwa dostanie prefiks konta.
+            Dodatkowi użytkownicy tej bazy – np. osobny login dla aplikacji albo współpracownika. Nazwa dostanie prefiks konta.
           </p>
           <form onSubmit={add} className="flex flex-wrap gap-2">
             <input
@@ -213,7 +213,7 @@ export default function DbUsers({ serviceId, db }: { serviceId: string; db: stri
                     ) : null}
                     {prawaDla !== u && prawa[`${db}|${u}`]?.nieudana ? (
                       <span className="text-[11px] text-crit">
-                        nie udało się ustawić „{ZESTAWY.find((z) => z.value === prawa[`${db}|${u}`]?.nieudana)?.label}” — spróbuj ponownie
+                        nie udało się ustawić „{ZESTAWY.find((z) => z.value === prawa[`${db}|${u}`]?.nieudana)?.label}” – spróbuj ponownie
                       </span>
                     ) : null}
                   </div>

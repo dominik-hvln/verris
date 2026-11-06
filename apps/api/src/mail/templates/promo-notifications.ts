@@ -42,7 +42,7 @@ export function promoCodeRedeemedTemplate(ctx: PromoCodeRedeemedContext): MailMe
         )}\`. Środki są już dostępne w portfelu Verris i możesz ich od razu używać do opłacania subskrypcji.`
       : `Kod promocyjny \`${escapeMarkdown(
           ctx.code,
-        )}\` został pomyślnie zrealizowany — środki trafiły do **Twojego portfela Verris** i są od ręki gotowe do wykorzystania.`;
+        )}\` został pomyślnie zrealizowany – środki trafiły do **Twojego portfela Verris** i są od ręki gotowe do wykorzystania.`;
 
   const lines: string[] = [
     greeting,
@@ -63,7 +63,7 @@ export function promoCodeRedeemedTemplate(ctx: PromoCodeRedeemedContext): MailMe
   }
   lines.push(
     ``,
-    `Środki promocyjne działają dokładnie jak zwykłe doładowanie — pokrywają **odnowienia subskrypcji, opłaty za hosting i wszystkie inne usługi Verris**. Nie wymagają minimalnej kwoty zamówienia ani aktywacji.`,
+    `Środki promocyjne działają dokładnie jak zwykłe doładowanie – pokrywają **odnowienia subskrypcji, opłaty za hosting i wszystkie inne usługi Verris**. Nie wymagają minimalnej kwoty zamówienia ani aktywacji.`,
   );
 
   const { html, text } = renderEmailShell({
@@ -84,7 +84,7 @@ export function promoCodeRedeemedTemplate(ctx: PromoCodeRedeemedContext): MailMe
   return {
     to: ctx.to,
     tag: 'promo.code-redeemed',
-    subject: `[Verris] Bonus +${kwotaPl(ctx.amountPln)} zł zaksięgowany — kod ${ctx.code}`,
+    subject: `[Verris] Bonus +${kwotaPl(ctx.amountPln)} zł zaksięgowany – kod ${ctx.code}`,
     text,
     html,
   };

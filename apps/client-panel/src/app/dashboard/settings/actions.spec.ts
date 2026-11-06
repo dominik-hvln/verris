@@ -23,7 +23,7 @@ import { updateUserProfile } from './actions';
 
 beforeEach(() => apiFetch.mockReset());
 
-describe('updateUserProfile — komunikat API trafia do klienta', () => {
+describe('updateUserProfile – komunikat API trafia do klienta', () => {
   it('403 po pierwszej płatności → „Zmianę kraju rozliczenia zgłoś obsłudze.”', async () => {
     apiFetch.mockRejectedValue(new ApiError('Zmianę kraju rozliczenia zgłoś obsłudze.', 403, {}));
     await expect(updateUserProfile({ country: 'US' })).resolves.toEqual({

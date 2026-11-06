@@ -16,7 +16,7 @@ function sloik(start: Record<string, string> = {}) {
   };
 }
 
-describe('P4-4 / P3-11 — cel z verris.pl przeżywa rejestrację i potwierdzenie e-maila', () => {
+describe('P4-4 / P3-11 – cel z verris.pl przeżywa rejestrację i potwierdzenie e-maila', () => {
   const POCZTA = '/dashboard/services/new?type=email';
 
   it('rejestracja z next zapisuje cel (httpOnly, 7 dni); pulpit i obce adresy niczego nie zapisują', () => {

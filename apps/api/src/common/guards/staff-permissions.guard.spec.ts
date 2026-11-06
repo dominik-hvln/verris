@@ -57,13 +57,13 @@ const wpuszcza = (metoda: Metoda, uprawnienia: string[], user: unknown = OP) =>
       throw e;
     });
 
-describe('StaffPermissionsGuard — @StaffPermAny (L1-KARTA)', () => {
+describe('StaffPermissionsGuard – @StaffPermAny (L1-KARTA)', () => {
   it('any-of: wystarcza jedno z uprawnień (każde z osobna)', async () => {
     expect(await wpuszcza('odczyt', ['CUSTOMERS_VIEW'])).toBe(true);
     expect(await wpuszcza('odczyt', ['SUBSCRIPTIONS_MANAGE'])).toBe(true);
   });
 
-  it('any-of: bez żadnego z uprawnień — odmowa', async () => {
+  it('any-of: bez żadnego z uprawnień – odmowa', async () => {
     expect(await wpuszcza('odczyt', [])).toBe(false);
     expect(await wpuszcza('odczyt', ['TICKETS_MANAGE', 'BILLING_VIEW'])).toBe(false);
   });
@@ -91,13 +91,13 @@ describe('StaffPermissionsGuard — @StaffPermAny (L1-KARTA)', () => {
     expect(await wpuszcza('odczyt', ['CUSTOMERS_VIEW'], null)).toBe(false);
   });
 
-  it('odmowa na any-of z rejestru wniosków — kod WYMAGA_WNIOSKU jak dotąd', async () => {
+  it('odmowa na any-of z rejestru wniosków – kod WYMAGA_WNIOSKU jak dotąd', async () => {
     await expect(guard([]).canActivate(ctx('wniosek', OP))).rejects.toMatchObject({
       response: { code: 'WYMAGA_WNIOSKU', operacja: 'WALLET_CREDIT' },
     });
   });
 
-  it('@StaffPermAny na klasie (błędne użycie) — strażnik odmawia każdemu, zamiast wpuścić bez sprawdzania', async () => {
+  it('@StaffPermAny na klasie (błędne użycie) – strażnik odmawia każdemu, zamiast wpuścić bez sprawdzania', async () => {
     const naKlasie = (user: unknown, uprawnienia: string[]) =>
       guard(uprawnienia).canActivate({
         getHandler: () => AtrapaKlasa.prototype.odczyt,

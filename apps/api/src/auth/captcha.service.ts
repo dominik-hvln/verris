@@ -53,7 +53,7 @@ export class CaptchaService {
 
     if (this.config.get<string>('nodeEnv') === 'production' && this.enabled && !this.secret) {
       this.logger.warn(
-        'CAPTCHA_SECRET_KEY nie ustawiony — ochrona anty-bot (CYBER-2) jest WYŁĄCZONA na produkcji!',
+        'CAPTCHA_SECRET_KEY nie ustawiony – ochrona anty-bot (CYBER-2) jest WYŁĄCZONA na produkcji!',
       );
     }
   }

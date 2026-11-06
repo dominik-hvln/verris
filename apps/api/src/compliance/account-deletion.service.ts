@@ -184,7 +184,7 @@ export class AccountDeletionService {
 
     const passwordOk = await bcrypt.compare(input.password, user.passwordHash);
     if (!passwordOk) {
-      throw new ForbiddenException('Nieprawidłowe hasło — usunięcie konta wymaga potwierdzenia hasłem.');
+      throw new ForbiddenException('Nieprawidłowe hasło – usunięcie konta wymaga potwierdzenia hasłem.');
     }
 
     const existing = await this.prisma.accountDeletionRequest.findUnique({
@@ -203,8 +203,8 @@ export class AccountDeletionService {
     let rachunek: string | null = null;
     if (input.zwrot) {
       rachunek = normalizujRachunek(input.zwrot.numerRachunku);
-      if (!rachunek) throw new BadRequestException('Numer rachunku do zwrotu jest nieprawidłowy — sprawdź 26 cyfr (albo IBAN z kodem kraju).');
-      if (!input.zwrot.odbiorca?.trim()) throw new BadRequestException('Podaj imię i nazwisko albo nazwę firmy — właściciela rachunku.');
+      if (!rachunek) throw new BadRequestException('Numer rachunku do zwrotu jest nieprawidłowy – sprawdź 26 cyfr (albo IBAN z kodem kraju).');
+      if (!input.zwrot.odbiorca?.trim()) throw new BadRequestException('Podaj imię i nazwisko albo nazwę firmy – właściciela rachunku.');
     }
 
     const row = await this.prisma.$transaction(async (tx) => {
@@ -286,7 +286,7 @@ export class AccountDeletionService {
     const kwotaTxt = kwota.toFixed(2).replace('.', ',');
     const ticket = await this.prisma.ticket.create({
       data: {
-        subject: `Zwrot salda przy usunięciu konta — ${kwotaTxt} zł`,
+        subject: `Zwrot salda przy usunięciu konta – ${kwotaTxt} zł`,
         message: [
           `Klient usuwa konto i prosi o zwrot opłaconych kredytów (regulamin, decyzja 9 z 3.11.2026).`,
           ``,
@@ -331,7 +331,7 @@ export class AccountDeletionService {
       throw new BadRequestException('Brak aktywnego wniosku o usunięcie konta.');
     }
     if (row.anonymizedAt) {
-      throw new ConflictException('Konto zostało już zanonimizowane — nie można cofnąć.');
+      throw new ConflictException('Konto zostało już zanonimizowane – nie można cofnąć.');
     }
 
     const now = new Date();
@@ -342,7 +342,7 @@ export class AccountDeletionService {
         data: { cancelledAt: now },
       });
       if (cofniety.count !== 1) {
-        throw new ConflictException('Konto zostało już zanonimizowane — nie można cofnąć.');
+        throw new ConflictException('Konto zostało już zanonimizowane – nie można cofnąć.');
       }
       await tx.user.update({
         where: { id: userId },
@@ -399,7 +399,7 @@ export class AccountDeletionService {
     });
     if (!user) return;
     if (user.anonymizedAt) {
-      this.logger.debug(`User ${userId} already anonymized — skipping`);
+      this.logger.debug(`User ${userId} already anonymized – skipping`);
       return;
     }
 
@@ -669,7 +669,7 @@ export class AccountDeletionService {
   private async usunPlikiPoczty(userId: string, klucze: string[]) {
     if (!klucze.length) return;
     if (!this.storage) {
-      this.logger.error(`Anonimizacja ${userId}: brak magazynu — ${klucze.length} plików poczty (poczta/…) zostało.`);
+      this.logger.error(`Anonimizacja ${userId}: brak magazynu – ${klucze.length} plików poczty (poczta/…) zostało.`);
       return;
     }
     let bledy = 0;
@@ -761,7 +761,7 @@ export class AccountDeletionService {
         daResult = { ok: false, error: msg.slice(0, 500) };
       } else {
         this.logger.warn(
-          `DA delete: user already gone for accountId=${accountId} — proceeding with DB mark`,
+          `DA delete: user already gone for accountId=${accountId} – proceeding with DB mark`,
         );
       }
     }

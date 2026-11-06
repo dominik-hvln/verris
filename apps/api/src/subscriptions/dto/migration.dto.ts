@@ -266,7 +266,7 @@ export class MigracjaZaKlientaDto extends CreateMigrationBundleDto {
   @IsString() @MinLength(1) @MaxLength(64)
   subscriptionId!: string;
 
-  @IsString() @MinLength(5, { message: 'Podaj powód lub numer zgłoszenia (min. 5 znaków) — trafia do dziennika.' }) @MaxLength(500)
+  @IsString() @MinLength(5, { message: 'Podaj powód lub numer zgłoszenia (min. 5 znaków) – trafia do dziennika.' }) @MaxLength(500)
   powod!: string;
 
   @IsOptional() @IsString() @MaxLength(64)

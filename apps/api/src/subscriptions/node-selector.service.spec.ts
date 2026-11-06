@@ -82,7 +82,7 @@ function fakePrisma(o: FakeOpts) {
   } as never;
 }
 
-describe('Q-05 — produkt aplikacyjny nie dostaje węzła', () => {
+describe('Q-05 – produkt aplikacyjny nie dostaje węzła', () => {
   it('plan EMAIL_MARKETING: odmowa przed jakimkolwiek wyborem węzła', async () => {
     const prisma = fakePrisma({ servers: [wezel()] });
     const s = new NodeSelectorService(prisma);
@@ -91,7 +91,7 @@ describe('Q-05 — produkt aplikacyjny nie dostaje węzła', () => {
   });
 });
 
-describe('Z-12 — NodeSelectorService korzysta z nadsubskrypcji', () => {
+describe('Z-12 – NodeSelectorService korzysta z nadsubskrypcji', () => {
   it('bez nadsubskrypcji odmawia, gdy sprzedano całą pojemność fizyczną', async () => {
     const s = new NodeSelectorService(
       fakePrisma({
@@ -133,7 +133,7 @@ describe('Z-12 — NodeSelectorService korzysta z nadsubskrypcji', () => {
     expect(wybrany.id).toBe('w1');
   });
 
-  it('nieświeża telemetria degraduje overcommit — węzeł znów odmawia', async () => {
+  it('nieświeża telemetria degraduje overcommit – węzeł znów odmawia', async () => {
     const staraProbka = new Date(Date.now() - 90 * 60_000); // 90 minut temu
     const s = new NodeSelectorService(
       fakePrisma({
@@ -187,7 +187,7 @@ describe('Z-12 — NodeSelectorService korzysta z nadsubskrypcji', () => {
     await expect(s.pickServerForPlan(PLAN)).rejects.toBeInstanceOf(ServiceUnavailableException);
   });
 
-  it('liczy jedną — najnowszą — próbkę na subskrypcję, nie sumuje okna', async () => {
+  it('liczy jedną – najnowszą – próbkę na subskrypcję, nie sumuje okna', async () => {
     const teraz = Date.now();
     // Sześć próbek jednej subskrypcji po 20 GB. Zsumowane dałyby 120 GB
     // i zablokowały węzeł; poprawnie liczy się tylko najnowsza.
@@ -293,7 +293,7 @@ describe('Z-12 — NodeSelectorService korzysta z nadsubskrypcji', () => {
  * Dzięki temu poprawka działa niezależnie od tego, czy kiedyś dopiszemy
  * automatyczne przejście do OFFLINE.
  */
-describe('OPS-01 — martwy węzeł wypada z wyboru', () => {
+describe('OPS-01 – martwy węzeł wypada z wyboru', () => {
   const dawno = new Date(Date.now() - 60 * 60_000);
 
   it('węzeł ACTIVE bez sygnału od godziny nie jest wybierany', async () => {
@@ -334,7 +334,7 @@ describe('OPS-01 — martwy węzeł wypada z wyboru', () => {
     expect(wybrany.id).toBe('zywy');
   });
 
-  it('kontrola strażnika — żywy węzeł nadal przechodzi', async () => {
+  it('kontrola strażnika – żywy węzeł nadal przechodzi', async () => {
     // Bez tej asercji poprzednie testy przeszłyby także wtedy, gdyby selektor
     // po prostu odrzucał wszystko.
     const serwis = new NodeSelectorService(

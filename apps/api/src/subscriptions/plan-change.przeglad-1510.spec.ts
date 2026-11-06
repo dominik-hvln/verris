@@ -5,7 +5,7 @@ import { PlanChangeService } from './plan-change.service.js';
 /**
  * Przegląd 15.10 — pieniądze przy zmianie planu: upgrade gratis od admina zamieniany na kredyt, zmiana planu na triale.
  */
-describe('PlanChangeService — przegląd 15.10', () => {
+describe('PlanChangeService – przegląd 15.10', () => {
   const baseSub = {
     id: 'sub-1',
     userId: 'user-1',
@@ -178,7 +178,7 @@ describe('PlanChangeService — przegląd 15.10', () => {
     appliedPromoCodeId: null,
   };
 
-  it('upgrade gratis przez admina (skipBilling): priceAmount zostaje zapłacone — downgrade nie daje kredytu za niezapłaconą różnicę', async () => {
+  it('upgrade gratis przez admina (skipBilling): priceAmount zostaje zapłacone – downgrade nie daje kredytu za niezapłaconą różnicę', async () => {
     const zwykla = { ...startSub, priceAmount: new Prisma.Decimal(100), introDiscountPct: 0, introDiscountPeriodsLeft: 0 };
     const gratis = await zmien(zwykla, planB, 'admin-skip');
     expect(gratis.pobrano).toBe(0);

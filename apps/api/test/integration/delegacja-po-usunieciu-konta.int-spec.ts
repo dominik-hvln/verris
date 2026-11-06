@@ -6,7 +6,7 @@ import { prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } fr
  * w strefie tamtego konta. Tu: zapytanie o konto-rodzica na prawdziwym PostgreSQL — ten sam węzeł, konto żywe,
  * najbliższy przodek; samo zdejmowanie rekordów jest w directadmin.domeny.spec.ts.
  */
-describe('Delegacja po usunięciu konta — konto-rodzic na węźle', () => {
+describe('Delegacja po usunięciu konta – konto-rodzic na węźle', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 

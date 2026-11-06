@@ -51,12 +51,12 @@ export function buildFa3Xml(input: BuildFaXmlInput): BuiltFaXml {
   const sellerNip = normalizeNip(seller.nip);
   if (!sellerNip) {
     throw new FaXmlValidationError(
-      'Brak NIP sprzedawcy w sellerSnapshot — uzupełnij dane sprzedawcy (Ustawienia → Firma) przed wysyłką do KSeF.',
+      'Brak NIP sprzedawcy w sellerSnapshot – uzupełnij dane sprzedawcy (Ustawienia → Firma) przed wysyłką do KSeF.',
     );
   }
   if (!isValidNip(sellerNip)) {
     throw new FaXmlValidationError(
-      `NIP sprzedawcy ${sellerNip} ma błędną sumę kontrolną — KSeF odrzuci fakturę.`,
+      `NIP sprzedawcy ${sellerNip} ma błędną sumę kontrolną – KSeF odrzuci fakturę.`,
     );
   }
   if (!inv.issuedAt) {
@@ -64,7 +64,7 @@ export function buildFa3Xml(input: BuildFaXmlInput): BuiltFaXml {
   }
   if (inv.netAmount == null || inv.vatAmount == null || inv.vatRate == null) {
     throw new FaXmlValidationError(
-      'Faktura bez rozbicia VAT (netAmount/vatAmount/vatRate) — wymagane dla KSeF.',
+      'Faktura bez rozbicia VAT (netAmount/vatAmount/vatRate) – wymagane dla KSeF.',
     );
   }
   if ((inv.currency ?? 'PLN') !== 'PLN') {
@@ -73,14 +73,14 @@ export function buildFa3Xml(input: BuildFaXmlInput): BuiltFaXml {
   // XSD FA(3) 1-0E: PrzyczynaKorekty to TZnakowy (maks. 256 znaków) — dłuższą KSeF odrzuci za każdym razem.
   if (inv.correctionReason && inv.correctionReason.trim().length > MAKS_PRZYCZYNA_KOREKTY) {
     throw new FaXmlValidationError(
-      `Przyczyna korekty ma ${inv.correctionReason.trim().length} znaków — KSeF przyjmuje najwyżej ${MAKS_PRZYCZYNA_KOREKTY}.`,
+      `Przyczyna korekty ma ${inv.correctionReason.trim().length} znaków – KSeF przyjmuje najwyżej ${MAKS_PRZYCZYNA_KOREKTY}.`,
     );
   }
 
   const buyerNip = normalizeNip(buyer.nip);
   if (buyerNip && !isValidNip(buyerNip)) {
     throw new FaXmlValidationError(
-      `NIP nabywcy ${buyerNip} ma błędną sumę kontrolną — popraw dane do faktury klienta.`,
+      `NIP nabywcy ${buyerNip} ma błędną sumę kontrolną – popraw dane do faktury klienta.`,
     );
   }
 
@@ -89,7 +89,7 @@ export function buildFa3Xml(input: BuildFaXmlInput): BuiltFaXml {
   // więc odmawia zamiast wysłać błędną stawkę.
   if ((buyer as { vat?: { stawka?: number | null } }).vat?.stawka === null) {
     throw new FaXmlValidationError(
-      'Dokument „np” (odwrotne obciążenie / poza UE) — KSeF z panelu go nie obsługuje, wystaw w programie księgowym.',
+      'Dokument „np” (odwrotne obciążenie / poza UE) – KSeF z panelu go nie obsługuje, wystaw w programie księgowym.',
     );
   }
   const rate = Number(inv.vatRate.toString());
@@ -114,12 +114,12 @@ export function buildFa3Xml(input: BuildFaXmlInput): BuiltFaXml {
   if (jestKorekta) {
     if (!inv.correctedNumber) {
       throw new FaXmlValidationError(
-        'Korekta bez numeru faktury pierwotnej — KSeF nie ma czego skorygować.',
+        'Korekta bez numeru faktury pierwotnej – KSeF nie ma czego skorygować.',
       );
     }
     if (!inv.correctionReason?.trim()) {
       throw new FaXmlValidationError(
-        'Korekta bez przyczyny — pole obowiązkowe (art. 106j ust. 2 pkt 4 ustawy o VAT).',
+        'Korekta bez przyczyny – pole obowiązkowe (art. 106j ust. 2 pkt 4 ustawy o VAT).',
       );
     }
   }
@@ -151,7 +151,7 @@ export function buildFa3Xml(input: BuildFaXmlInput): BuiltFaXml {
     // inaczej część sprzedaży trafiłaby do pola innej stawki.
     if (Number(li.vatRate) !== rate) {
       throw new FaXmlValidationError(
-        `Faktura ${inv.number} ma pozycje w różnych stawkach VAT — KSeF z panelu obsługuje jedną stawkę na dokument.`,
+        `Faktura ${inv.number} ma pozycje w różnych stawkach VAT – KSeF z panelu obsługuje jedną stawkę na dokument.`,
       );
     }
   }

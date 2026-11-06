@@ -12,7 +12,7 @@ import { join } from 'path';
 const AUTH = __dirname;
 const trasy = readdirSync(AUTH).filter((n) => statSync(join(AUTH, n)).isDirectory());
 
-describe('strony (auth) — nawigacja i tytuły', () => {
+describe('strony (auth) – nawigacja i tytuły', () => {
   it('layout grupy owija treść w <main id="main"> (cel skip linka)', () => {
     const f = join(AUTH, 'layout.tsx');
     expect(existsSync(f)).toBe(true);
@@ -22,7 +22,7 @@ describe('strony (auth) — nawigacja i tytuły', () => {
   it.each(trasy)('%s ma własny tytuł w layout.tsx', (t) => {
     const f = join(AUTH, t, 'layout.tsx');
     expect(existsSync(f)).toBe(true);
-    expect(readFileSync(f, 'utf8')).toMatch(/title:\s*"[^"]+ — Verris"/);
+    expect(readFileSync(f, 'utf8')).toMatch(/title:\s*"[^"]+ – Verris"/);
   });
 
   it('tytuły stron są unikalne', () => {

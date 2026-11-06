@@ -166,7 +166,7 @@ export function EmailLogClient() {
                   <div>{it.subject}</div>
                   {it.tag ? <div className="text-xs text-white/55">{it.tag}</div> : null}
                 </td>
-                <td className="px-4 py-2.5 text-white/60">{it.providerId ?? '—'}</td>
+                <td className="px-4 py-2.5 text-white/60">{it.providerId ?? '–'}</td>
                 <td className="max-w-xs px-4 py-2.5 text-xs text-rose-300/80">{it.errorMessage ?? ''}</td>
               </tr>
             ))}

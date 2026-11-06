@@ -29,7 +29,7 @@ export default async function VpsPage() {
       <PanelPageHeader
         icon={<Server className="h-6 w-6 text-violet-300" />}
         title="VPS / Cloud"
-        description="Serwery VPS uruchamiane w chmurze — pełen root, rozliczenie z portfela."
+        description="Serwery VPS uruchamiane w chmurze – pełen root, rozliczenie z portfela."
       />
       <PanelCard>
         <VpsClient available={available} plans={plans} instances={instances} sshKeys={sshKeys} />

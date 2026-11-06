@@ -39,7 +39,7 @@ beforeAll(async () => {
 });
 const czekaj = () => new Promise((r) => setTimeout(r, 0));
 
-describe('A1-07 — rejestracja na zajęty adres', () => {
+describe('A1-07 – rejestracja na zajęty adres', () => {
   it('potwierdzone konto: odpowiedź jak przy sukcesie, mail „ten adres ma już konto”, bez nowego konta; HIBP sprawdzone tak samo', async () => {
     const { svc, prisma, mailer, pwned } = zbuduj({ istniejacy: { id: 'u1', email: 'jan@firma.pl', firstName: 'Jan', role: 'USER', emailVerifiedAt: new Date(), anonymizedAt: null } });
     const wynik = await svc.register({ email: 'jan@firma.pl', password: HASLO } as never);
@@ -52,7 +52,7 @@ describe('A1-07 — rejestracja na zajęty adres', () => {
     expect(mail.text).toContain('https://panel.test/forgot-password');
   });
 
-  it('niepotwierdzone konto: zamiast „konto istnieje” — nowy link potwierdzający', async () => {
+  it('niepotwierdzone konto: zamiast „konto istnieje” – nowy link potwierdzający', async () => {
     const { svc, prisma, mailer } = zbuduj({ istniejacy: { id: 'u1', email: 'jan@firma.pl', firstName: 'Jan', role: 'USER', emailVerifiedAt: null, anonymizedAt: null } });
     await svc.register({ email: 'jan@firma.pl', password: HASLO } as never);
     await czekaj();
@@ -61,7 +61,7 @@ describe('A1-07 — rejestracja na zajęty adres', () => {
   });
 });
 
-describe('A1-07 — zmiana adresu na zajęty', () => {
+describe('A1-07 – zmiana adresu na zajęty', () => {
   it('odpowiedź { ok: true } jak przy wolnym adresie, adres konta bez zmian, właściciel adresu dostaje mail', async () => {
     const { svc, prisma, mailer } = zbuduj({ istniejacy: { id: 'u2', email: 'zajety@firma.pl', firstName: null, role: 'USER', emailVerifiedAt: new Date(), anonymizedAt: null } });
     await expect(svc.requestEmailChange('ja', 'Zajety@Firma.pl', HASLO)).resolves.toEqual({ ok: true });
@@ -71,7 +71,7 @@ describe('A1-07 — zmiana adresu na zajęty', () => {
   });
 });
 
-describe('P5-09 — link potwierdzający e-mail drugi raz', () => {
+describe('P5-09 – link potwierdzający e-mail drugi raz', () => {
   const token = (extra: Record<string, unknown>) => ({
     id: 't1', userId: 'u1', purpose: 'EMAIL_VERIFICATION', usedAt: new Date(), expiresAt: new Date(Date.now() + 60_000),
     user: { id: 'u1', email: 'jan@firma.pl', firstName: 'Jan', emailVerifiedAt: new Date(), anonymizedAt: null, role: 'USER' },
@@ -84,7 +84,7 @@ describe('P5-09 — link potwierdzający e-mail drugi raz', () => {
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
-  it('nieznany token albo zużyty bez potwierdzenia — dalej błąd', async () => {
+  it('nieznany token albo zużyty bez potwierdzenia – dalej błąd', async () => {
     await expect(zbuduj({ token: null }).svc.confirmEmailVerification({ token: 'x' })).rejects.toThrow(/nieprawidłowy lub wygasł/);
     const zuzyty = token({ user: { id: 'u1', email: 'j', firstName: null, emailVerifiedAt: null, anonymizedAt: null, role: 'USER' } });
     await expect(zbuduj({ token: zuzyty }).svc.confirmEmailVerification({ token: 'x' })).rejects.toThrow(/nieprawidłowy lub wygasł/);

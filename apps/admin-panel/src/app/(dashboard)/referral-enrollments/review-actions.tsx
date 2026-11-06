@@ -24,7 +24,7 @@ export function ReferralReviewActions({ userId }: { userId: string }) {
   if (done) {
     return (
       <p className="text-xs text-emerald-300">
-        {done === "APPROVED" ? "Zaakceptowano — klient może korzystać z kodu polecającego." : "Odrzucono."}
+        {done === "APPROVED" ? "Zaakceptowano – klient może korzystać z kodu polecającego." : "Odrzucono."}
       </p>
     );
   }

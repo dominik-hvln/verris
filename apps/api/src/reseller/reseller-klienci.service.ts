@@ -171,7 +171,7 @@ export class ResellerKlienciService {
       where: { action: 'RESELLER_CLIENT_PASSWORD_LINK', userId: c.id, createdAt: { gte: new Date(Date.now() - ODSTEP_LINKU_MS) } },
       select: { id: true },
     });
-    if (ostatni) throw new HttpException('Link wysłaliśmy przed chwilą — kolejny możesz wysłać za 10 minut.', HttpStatus.TOO_MANY_REQUESTS);
+    if (ostatni) throw new HttpException('Link wysłaliśmy przed chwilą – kolejny możesz wysłać za 10 minut.', HttpStatus.TOO_MANY_REQUESTS);
 
     const raw = generateAuthToken();
     await this.prisma.$transaction([
@@ -191,7 +191,7 @@ export class ResellerKlienciService {
       [
         `**${md(marka)}**, który prowadzi Twoje konto, wysłał Ci link do ustawienia hasła (ważny ${WAZNOSC_LINKU_H} godziny). Poprzednie linki przestały działać.`,
         '',
-        'Jeśli nie prosiłeś(-aś) o to — zignoruj tę wiadomość. Twoje obecne hasło działa dalej.',
+        'Jeśli nie prosiłeś(-aś) o to – zignoruj tę wiadomość. Twoje obecne hasło działa dalej.',
       ],
       { label: 'Ustaw hasło', url: `${this.panelUrl()}/reset-password?token=${encodeURIComponent(raw)}` },
     );
@@ -227,7 +227,7 @@ export class ResellerKlienciService {
         '',
         `Wznowić ją może ${md(marka)} albo nasza obsługa. Jeśli to pomyłka albo nie znasz powodu, skontaktuj się z partnerem albo napisz do nas: kontakt@verris.pl.`,
         '',
-        'Możesz też w każdej chwili odpiąć konto od partnera w Ustawieniach — konto i usługi zostają bez zmian.',
+        'Możesz też w każdej chwili odpiąć konto od partnera w Ustawieniach – konto i usługi zostają bez zmian.',
       ],
       { label: 'Otwórz panel', url: `${this.panelUrl()}/dashboard/services/${s.id}` },
     );
@@ -241,11 +241,11 @@ export class ResellerKlienciService {
     if (s.status !== SubscriptionStatus.SUSPENDED) throw new ConflictException('Ta usługa nie jest wstrzymana.');
     // Reseller zdejmuje wyłącznie własną blokadę — nie zaległą płatność, nie nadużycie, nie decyzję obsługi.
     if (ostatniPowodWstrzymania(s.events) !== 'RESELLER') {
-      throw new ForbiddenException('Tę usługę wstrzymaliśmy my (płatność albo decyzja obsługi) — wznowić ją może tylko klient albo nasza obsługa.');
+      throw new ForbiddenException('Tę usługę wstrzymaliśmy my (płatność albo decyzja obsługi) – wznowić ją może tylko klient albo nasza obsługa.');
     }
     // Audyt Fal 2 — usługa miała zaległą płatność, gdy reseller ją wstrzymał: wznowienie przywróciłoby ją jako opłaconą.
     if (zawieszenieObejmujeZaleglosc(s.events[0]?.details)) {
-      throw new ForbiddenException('Gdy wstrzymałeś usługę, klient miał zaległą płatność — wznowi ją nasza obsługa po jej uregulowaniu. Napisz do nas: kontakt@verris.pl.');
+      throw new ForbiddenException('Gdy wstrzymałeś usługę, klient miał zaległą płatność – wznowi ją nasza obsługa po jej uregulowaniu. Napisz do nas: kontakt@verris.pl.');
     }
     await this.subs.unsuspend({ subscriptionId: s.id, actorUserId: resellerId, note: `Wznowione przez resellera ${p.brandName ?? p.code}` });
     const marka = p.brandName || 'Twój partner';
@@ -263,7 +263,7 @@ export class ResellerKlienciService {
     await this.audit.record({ action: 'RESELLER_CLIENT_DETACHED', userId: c.id, actorUserId: resellerId, details: { przez: 'reseller' } });
     const marka = p.brandName || 'Twój partner';
     await this.mailDoKlienta(c.email, c.id, 'Twoje konto w Verris jest teraz samodzielne', 'Konto odpięte od partnera', [
-      `**${md(marka)}** odpiął(-ęła) Twoje konto od swojej obsługi. Konto, usługi, dane i płatności zostają bez zmian — od teraz jesteś naszym bezpośrednim klientem.`,
+      `**${md(marka)}** odpiął(-ęła) Twoje konto od swojej obsługi. Konto, usługi, dane i płatności zostają bez zmian – od teraz jesteś naszym bezpośrednim klientem.`,
       '',
       'W razie pytań pisz do nas: kontakt@verris.pl.',
     ]);

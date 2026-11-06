@@ -22,7 +22,7 @@ function uslugi() {
   return new MigrationOrchestratorService(p, {} as never, audit, notifications as never, null as never, null as never, tickets);
 }
 
-describe('Eskalacja migracji do zespołu — zgłoszenie jak każde inne', () => {
+describe('Eskalacja migracji do zespołu – zgłoszenie jak każde inne', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 

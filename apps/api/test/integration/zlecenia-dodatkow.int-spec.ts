@@ -86,7 +86,7 @@ const zwroty = (userId: string) => prisma().walletTransaction.findMany({ where: 
 const odpowiedziZespolu = (ticketId: string) => prisma().ticketReply.findMany({ where: { ticketId, isStaff: true, internal: false, automatic: null }, orderBy: { createdAt: 'asc' } });
 const POWOD = 'Pula adresów IP w tej lokalizacji jest wyczerpana.';
 
-describe('M-33 — zlecenia dodatków zamykane przez zespół', () => {
+describe('M-33 – zlecenia dodatków zamykane przez zespół', () => {
   beforeAll(async () => {
     app = await NestFactory.create(Aplikacja, { logger: false });
     await app.listen(0);
@@ -102,7 +102,7 @@ describe('M-33 — zlecenia dodatków zamykane przez zespół', () => {
     maile.length = 0;
   });
 
-  it('„Zrealizowano” (L2): DONE z notatką, odpowiedź w zgłoszeniu, wpisy w dzienniku; saldo bez zmian; drugi raz — 409', async () => {
+  it('„Zrealizowano” (L2): DONE z notatką, odpowiedź w zgłoszeniu, wpisy w dzienniku; saldo bez zmian; drugi raz – 409', async () => {
     const { u, zakup, ticketId } = await klientZeZleceniem();
     expect(await saldo(u.id)).toBe(75);
     const l2 = await operatorZRola('L2 Specjalista techniczny');
@@ -190,7 +190,7 @@ describe('M-33 — zlecenia dodatków zamykane przez zespół', () => {
     }
   });
 
-  it('brak uprawnień — 403 bez skutków: L1 nie realizuje, L2/L3/NOC nie zwracają; STAFF nie zamyka zlecenia konta zespołu', async () => {
+  it('brak uprawnień – 403 bez skutków: L1 nie realizuje, L2/L3/NOC nie zwracają; STAFF nie zamyka zlecenia konta zespołu', async () => {
     const { u, zakup, ticketId } = await klientZeZleceniem();
     const l1 = await operatorZRola('L1 Konsultant');
     const l3 = await operatorZRola('L3 Starszy specjalista');
@@ -216,7 +216,7 @@ describe('M-33 — zlecenia dodatków zamykane przez zespół', () => {
     expect(await saldo(zespol.u.id)).toBe(100);
   });
 
-  it('zlecenie nie w kolejce — 409 bez zwrotu; odmowa bez powodu — 400', async () => {
+  it('zlecenie nie w kolejce – 409 bez zwrotu; odmowa bez powodu – 400', async () => {
     const l4 = await operatorZRola('L4 Kierownik zmiany');
     // Dodatek natychmiastowy (APPLIED) nie jest zleceniem dla zespołu.
     const u = await prisma().user.create({ data: { email: `prio-${Date.now()}@test.verris.pl`, passwordHash: 'x', walletBalance: 100 } });
@@ -242,7 +242,7 @@ describe('M-33 — zlecenia dodatków zamykane przez zespół', () => {
     expect((await zadanie('POST', '/admin/dodatki/00000000-0000-4000-8000-000000000000/zrealizowano', l4.id, 'STAFF', {})).status).toBe(404);
   });
 
-  it('zwrot w księdze nie wszedł — zlecenie wraca do kolejki; ponowienie zwraca raz', async () => {
+  it('zwrot w księdze nie wszedł – zlecenie wraca do kolejki; ponowienie zwraca raz', async () => {
     const { u, zakup } = await klientZeZleceniem();
     const p = prisma() as never;
     const prawdziwa = new WalletLedgerService(p);

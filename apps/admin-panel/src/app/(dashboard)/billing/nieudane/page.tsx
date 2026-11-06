@@ -65,7 +65,7 @@ export default async function NieudanePlatnosciPage({ searchParams }: { searchPa
       <form method="get" className={`${KARTA} grid grid-cols-1 items-end gap-3 p-4 md:grid-cols-4`}>
         <div>
           <label htmlFor="nieudane-zrodlo" className="mb-1 block text-[10px] font-bold uppercase text-muted-foreground">Źródło</label>
-          <Select id="nieudane-zrodlo" name="zrodlo" defaultValue={zrodlo ?? ""} options={[{ value: "", label: "— wszystkie —" }, ...Object.entries(ZRODLO_PLATNOSCI).map(([value, label]) => ({ value, label }))]} />
+          <Select id="nieudane-zrodlo" name="zrodlo" defaultValue={zrodlo ?? ""} options={[{ value: "", label: "– wszystkie –" }, ...Object.entries(ZRODLO_PLATNOSCI).map(([value, label]) => ({ value, label }))]} />
         </div>
         <div>
           <label htmlFor="nieudane-dni" className="mb-1 block text-[10px] font-bold uppercase text-muted-foreground">Okres</label>
@@ -110,7 +110,7 @@ export default async function NieudanePlatnosciPage({ searchParams }: { searchPa
                   {[ZRODLO_PLATNOSCI[w.zrodlo], w.powod, w.referencja].filter(Boolean).join(" · ")}
                 </span>
               </span>
-              <span className="w-[110px] text-right font-mono text-[13px]">{w.kwota ? `${w.kwota} ${w.waluta === "PLN" ? "zł" : w.waluta}` : "—"}</span>
+              <span className="w-[110px] text-right font-mono text-[13px]">{w.kwota ? `${w.kwota} ${w.waluta === "PLN" ? "zł" : w.waluta}` : "–"}</span>
               <span className="w-[120px]">
                 <Pigulka ton={st.ton} className="!text-xs">
                   {st.t}
@@ -128,7 +128,7 @@ export default async function NieudanePlatnosciPage({ searchParams }: { searchPa
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>
           {dane.total} {plForm(dane.total, "płatność", "płatności", "płatności")}
-          {dane.ucieto ? " · lista ucięta — zawęź okres albo źródło" : ""}
+          {dane.ucieto ? " · lista ucięta – zawęź okres albo źródło" : ""}
         </span>
         {stron > 1 ? (
           <span className="flex gap-2">

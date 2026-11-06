@@ -127,7 +127,7 @@ export function PlanChangeForm({
   if (paymentSource === 'MANUAL') {
     return (
       <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-neutral-300">
-        Ta usługa ma rozliczenie ręczne — aby zmienić plan, skontaktuj się z supportem.
+        Ta usługa ma rozliczenie ręczne – aby zmienić plan, skontaktuj się z supportem.
       </div>
     );
   }
@@ -215,7 +215,7 @@ export function PlanChangeForm({
         <div>
           <h2 className="text-lg font-bold text-white">Wybierz nowy plan</h2>
           <p className="mt-1 text-xs text-neutral-400">
-            Ta sama usługa i konto hostingowe — zmieniamy tylko pakiet i limity.
+            Ta sama usługa i konto hostingowe – zmieniamy tylko pakiet i limity.
           </p>
         </div>
         ) : null}

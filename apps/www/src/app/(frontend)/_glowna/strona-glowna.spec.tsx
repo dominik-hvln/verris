@@ -42,7 +42,7 @@ const INNE: Ceny = {
   zrodlo: 'api',
 };
 
-describe('strona główna — ceny z API', () => {
+describe('strona główna – ceny z API', () => {
   it('pokazuje ceny i stawki z modułu, brutto i netto, także w JSON-LD', async () => {
     const { tekst, ld } = await render(INNE);
     expect(tekst).toContain('50 zł/mies. brutto (40,65 zł netto)');

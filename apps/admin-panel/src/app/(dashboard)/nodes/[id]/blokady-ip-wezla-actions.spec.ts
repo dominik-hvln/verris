@@ -30,7 +30,7 @@ it("trasy: stan, wczytaj, odblokuj, biała lista dodaj/usuń", async () => {
   ]);
 });
 
-it("nieznana akcja — bez API; 403 — nazwa uprawnienia", async () => {
+it("nieznana akcja – bez API; 403 – nazwa uprawnienia", async () => {
   expect(await blokadyIpWezlaAction("w1", "restart" as never)).toEqual({ ok: false, error: "Nieznana akcja." });
   expect(api).not.toHaveBeenCalled();
   api.mockRejectedValue(new AdminApiError("Forbidden", 403));

@@ -20,7 +20,7 @@ export function RejestrPortfela({ userId, ruchy, strona, wolnoFaktura }: { userI
   const href = (s: number) => `${baza}?sekcja=rozliczenia${s > 1 ? `&portfel=${s}` : ""}#portfel`;
   return (
     <div data-rejestr-portfela="">
-      {ruchy.subkonto ? <div className={`${WIERSZ} text-sm text-amber-300`}>Subkonto — portfel jest na koncie właściciela.</div> : null}
+      {ruchy.subkonto ? <div className={`${WIERSZ} text-sm text-amber-300`}>Subkonto – portfel jest na koncie właściciela.</div> : null}
       <div className={`${WIERSZ} !py-[9px] font-mono text-[10.5px] uppercase tracking-[0.1em] text-muted-foreground`}>
         <span className="w-[92px] shrink-0">Kiedy</span>
         <span className="flex-1">Operacja</span>

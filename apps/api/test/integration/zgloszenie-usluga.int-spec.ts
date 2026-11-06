@@ -36,7 +36,7 @@ async function dwaKonta() {
 
 const tresc = { subject: 'Strona nie działa', message: 'Od rana błąd 500 na stronie głównej.' };
 
-describe('PB-43 — zgłoszenie powiązane z usługą', () => {
+describe('PB-43 – zgłoszenie powiązane z usługą', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 

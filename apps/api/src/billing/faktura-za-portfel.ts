@@ -131,7 +131,7 @@ export function rozbicieVat(brutto: Prisma.Decimal, stawka = STAWKA_VAT): Rozbic
 /** Domyślna nazwa pozycji, gdy obciążenie nie niesie własnego opisu. */
 export const OPISY_TYPOW: Readonly<Record<string, string>> = {
   CHARGE_SUBSCRIPTION: 'Abonament hostingowy',
-  CHARGE_PLAN_UPGRADE: 'Zmiana planu — dopłata proporcjonalna',
+  CHARGE_PLAN_UPGRADE: 'Zmiana planu – dopłata proporcjonalna',
   CHARGE_AUTOSCALING: 'Autoskalowanie zasobów',
   CHARGE_USAGE: 'Usługa dodatkowa',
   CHARGE_DOMAIN: 'Domena',

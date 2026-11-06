@@ -18,7 +18,7 @@ import { LIMIT_PROB, ODSTEP_SPRAWDZANIA_MS, PlatnoscKartaBaner, etapPlatnosci } 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
 describe('etapPlatnosci', () => {
-  it('ACTIVE = gotowe, wcześniej czekamy, po limicie prób — długo', () => {
+  it('ACTIVE = gotowe, wcześniej czekamy, po limicie prób – długo', () => {
     expect(etapPlatnosci('ACTIVE', 1)).toBe('gotowe');
     expect(etapPlatnosci('PENDING_PAYMENT', 1)).toBe('czekamy');
     expect(etapPlatnosci('PROVISIONING', LIMIT_PROB - 1)).toBe('czekamy');

@@ -30,7 +30,7 @@ gtag('consent','default',{
   wait_for_update:500
 });
 // Powracający gość: zgoda z cookie odtworzona od razu (jak w panelu), więc kontener po załadowaniu
-// (decyzja 22 — dopiero po zgodzie) zastaje stan z banera już przy inicjalizacji.
+// (decyzja 22 – dopiero po zgodzie) zastaje stan z banera już przy inicjalizacji.
 try{var m=document.cookie.match(/(?:^|; )cookies_consent=([^;]*)/);if(m){var c=JSON.parse(decodeURIComponent(m[1]));if(c&&c.v===1){gtag('consent','update',{
   analytics_storage:c.analytics?'granted':'denied',
   ad_storage:c.marketing?'granted':'denied',

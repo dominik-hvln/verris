@@ -25,7 +25,7 @@ export class SlowSqlService {
     const wToku = await this.prisma.nodeTask.findFirst({
       where: { accountId: account.id, kind: NodeTaskKind.SLOW_SQL, status: { in: [NodeTaskStatus.QUEUED, NodeTaskStatus.RUNNING] } },
     });
-    if (wToku) throw new ConflictException('Odczyt jest już w toku — wynik za chwilę.');
+    if (wToku) throw new ConflictException('Odczyt jest już w toku – wynik za chwilę.');
     await this.prisma.nodeTask.create({
       data: {
         serverId: account.serverId,

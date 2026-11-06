@@ -36,7 +36,7 @@ function orkiestrator() {
   return { s, prisma };
 }
 
-describe('P2-06 — delta-sync obejmuje bazę', () => {
+describe('P2-06 – delta-sync obejmuje bazę', () => {
   it('kolejka: pliki → ostatnia kopia bazy → konfiguracja strony (wp-config) → poczta', async () => {
     const { s, prisma } = orkiestrator();
     prisma.migrationRequest.findFirst.mockResolvedValue({
@@ -100,7 +100,7 @@ describe('P2-06 — delta-sync obejmuje bazę', () => {
   });
 });
 
-describe('P2-06 — plan przełączenia DNS przy sklepie', () => {
+describe('P2-06 – plan przełączenia DNS przy sklepie', () => {
   const dns = {
     domain: 'sklep.pl', expectedIpv4: '203.0.113.7', expectedNameservers: [], delegatedToExpectedNs: false, pointsToServer: false,
   };
@@ -145,7 +145,7 @@ describe('P2-06 — plan przełączenia DNS przy sklepie', () => {
     expect(p.konserwacjaRecznie).toBe(false);
   });
 
-  it('okno konserwacji minęło — znowu zalecane; strona spoza WordPressa — prośba o ręczne wstrzymanie sprzedaży', async () => {
+  it('okno konserwacji minęło – znowu zalecane; strona spoza WordPressa – prośba o ręczne wstrzymanie sprzedaży', async () => {
     const minelo = new Date(Date.now() - 60_000).toISOString();
     const po = await plan([
       ...pierwsza,

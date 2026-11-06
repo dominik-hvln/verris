@@ -12,7 +12,7 @@ export default async function TestyBetaPage() {
     <div className="mx-auto flex w-full max-w-[880px] flex-col gap-6">
       <PanelPageHeader
         title="Testy (beta)"
-        description="Scenariusze testów przed startem. Odhaczaj kroki i dopisuj uwagi — zapisują się na Twoim koncie, a my widzimy postęp na bieżąco."
+        description="Scenariusze testów przed startem. Odhaczaj kroki i dopisuj uwagi – zapisują się na Twoim koncie, a my widzimy postęp na bieżąco."
       />
       {postep instanceof Error ? (
         <PanelFetchError message={postep.message} />

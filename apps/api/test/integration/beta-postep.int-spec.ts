@@ -30,7 +30,7 @@ const usluga = () => {
   return new BetaService(p, { send: async () => ({ delivered: true }) } as never, { get: () => undefined } as never, { record: async () => undefined } as never);
 };
 
-describe('Testy (beta) — postęp testera', () => {
+describe('Testy (beta) – postęp testera', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 

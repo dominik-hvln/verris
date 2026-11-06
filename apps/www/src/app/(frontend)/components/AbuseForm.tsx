@@ -38,7 +38,7 @@ export function AbuseForm() {
     });
     setBusy(false);
     if (!res.ok) {
-      setError(res.error && res.error.length < 200 ? res.error : 'Nie udało się wysłać — spróbuj ponownie albo napisz na kontakt@verris.pl.');
+      setError(res.error && res.error.length < 200 ? res.error : 'Nie udało się wysłać – spróbuj ponownie albo napisz na kontakt@verris.pl.');
       return;
     }
     setId(res.id ?? null);
@@ -47,7 +47,7 @@ export function AbuseForm() {
   if (id !== undefined) {
     return (
       <div className="form-ok" role="status">
-        Dziękujemy — zgłoszenie przyjęte{id ? ` (numer ${id.slice(0, 8)})` : ''}. Potwierdzenie wysłaliśmy na podany adres,
+        Dziękujemy – zgłoszenie przyjęte{id ? ` (numer ${id.slice(0, 8)})` : ''}. Potwierdzenie wysłaliśmy na podany adres,
         a o decyzji poinformujemy Cię mailem. Decyzję podejmuje człowiek, nie automat.
       </div>
     );
@@ -88,7 +88,7 @@ export function AbuseForm() {
       </button>
       {error && <p className="form-error" role="alert" style={{ color: '#ff9b9b' }}>{error}</p>}
       <p className="form-note">
-        Dane zgłaszającego przetwarzamy, żeby rozpatrzyć zgłoszenie i poinformować o decyzji — zgodnie z{' '}
+        Dane zgłaszającego przetwarzamy, żeby rozpatrzyć zgłoszenie i poinformować o decyzji – zgodnie z{' '}
         <a href="https://panel.verris.pl/legal/privacy">polityką prywatności</a>.
       </p>
     </form>

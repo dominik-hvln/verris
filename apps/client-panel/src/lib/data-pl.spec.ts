@@ -10,7 +10,7 @@ import { lastDaysLabels } from '@/components/panel/v2';
 // 23:30 UTC = 00:30 następnego dnia w Polsce (CET) — tu rozjeżdżał się „najbliższe odnowienie 7 lis / 8 lis”.
 const PO_PLNOCY_PL = '2026-11-07T23:30:00.000Z';
 
-describe('data-pl — czas polski niezależnie od strefy procesu', () => {
+describe('data-pl – czas polski niezależnie od strefy procesu', () => {
   it('warunek testu: proces jest w UTC jak serwer Next, a formatowanie bez strefy daje dzień UTC', () => {
     expect(Intl.DateTimeFormat().resolvedOptions().timeZone).toBe('UTC');
     expect(new Date(PO_PLNOCY_PL).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' })).toBe('7 lis');

@@ -44,7 +44,7 @@ function stanowisko(o: { status?: string; get?: Record<string, unknown>; post?: 
 const BLAD_TEKST = 'error=1&text=Przekroczony%20limit%20baz';
 const BLAD_JSON = { error: '1', text: 'Przekroczony limit baz' };
 
-describe('Bazy MySQL — tworzenie i usuwanie', () => {
+describe('Bazy MySQL – tworzenie i usuwanie', () => {
   it.each([
     [{ name: 'sklep;DROP', user: 'sklep', password: 'Haslo1234' }, 'Nazwa bazy'],
     [{ name: '../etc', user: 'sklep', password: 'Haslo1234' }, 'Nazwa bazy'],
@@ -96,7 +96,7 @@ describe('Bazy MySQL — tworzenie i usuwanie', () => {
   });
 });
 
-describe('Bazy MySQL — użytkownicy i zdalny dostęp', () => {
+describe('Bazy MySQL – użytkownicy i zdalny dostęp', () => {
   it('nowy użytkownik: CMD_API_DB_USER z dokładnymi polami, pełna nazwa w wyniku', async () => {
     const s = stanowisko();
     await expect(s.svc.createHostingDbUser('s1', 'u1', { db: 'klient1_sklep', user: 'raport', password: 'Haslo1234' }))
@@ -137,7 +137,7 @@ describe('Bazy MySQL — użytkownicy i zdalny dostęp', () => {
   });
 });
 
-describe('phpMyAdmin jednym kliknięciem (white label — bez sesji DA)', () => {
+describe('phpMyAdmin jednym kliknięciem (white label – bez sesji DA)', () => {
   const PMA = '/api/phpmyadmin-sso/account-access';
 
   it('adres jednorazowego skryptu /phpMyAdmin/sso/…php, w audycie; żadnego klucza logowania do DA', async () => {
@@ -172,7 +172,7 @@ describe('phpMyAdmin jednym kliknięciem (white label — bez sesji DA)', () => 
   });
 });
 
-describe('Pliki .htaccess (narzędzia WWW, ochrona katalogu) — SEC-2', () => {
+describe('Pliki .htaccess (narzędzia WWW, ochrona katalogu) – SEC-2', () => {
   it.each([
     ['narzędzia WWW', (svc: DirectAdminService) => svc.saveHostingWebTools('s1', 'u1', { forceHttps: true })],
     ['ochrona katalogu', (svc: DirectAdminService) => svc.setHostingDirectoryProtection('s1', 'u1', { dir: 'admin', user: 'admin', password: 'tajne123' })],
@@ -223,7 +223,7 @@ describe('Domeny dodatkowe', () => {
   });
 });
 
-describe('Poddomeny i staging — kasowanie razem z plikami (contents=yes)', () => {
+describe('Poddomeny i staging – kasowanie razem z plikami (contents=yes)', () => {
   const kasuj = {
     poddomena: (svc: DirectAdminService, subdomain: string) => svc.deleteHostingSubdomain('s1', 'u1', { domain: 'firma.pl', subdomain }),
     staging: (svc: DirectAdminService, subdomain: string) => svc.deleteHostingStaging('s1', 'u1', { domain: 'firma.pl', subdomain }),
@@ -262,7 +262,7 @@ describe('FTP', () => {
     expect(s.audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'HOSTING_FTP_CREATED' }));
   });
 
-  it('tworzenie bez katalogu: typ „domain” (t1 02.10: bez typu DA odrzucał — „hasło i typ są wymagane”)', async () => {
+  it('tworzenie bez katalogu: typ „domain” (t1 02.10: bez typu DA odrzucał – „hasło i typ są wymagane”)', async () => {
     const s = stanowisko();
     await s.svc.createHostingFtpAccount('s1', 'u1', { username: 'transfer', password: 'Haslo1234' });
     expect(s.wyslane()).toEqual({ action: 'create', user: 'transfer', passwd: 'Haslo1234', passwd2: 'Haslo1234', domain: 'firma.pl', type: 'domain', api: 'yes' });

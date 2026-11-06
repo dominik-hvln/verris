@@ -80,7 +80,7 @@ describe('Zakup usługi przez Paynow na Postgresie', () => {
     const dokumenty = await prisma().invoice.findMany({ where: { userId: u.id } });
     expect(dokumenty).toHaveLength(1);
     const [pozycja] = dokumenty[0].lineItems as Array<{ name: string; totalGross: string }>;
-    expect(pozycja.name).toMatch(/^Hosting Start — 12 mies\. \(przyklad\.pl\), okres \d{2}\.\d{2}\.\d{4}–\d{2}\.\d{2}\.\d{4}$/);
+    expect(pozycja.name).toMatch(/^Hosting Start – 12 mies\. \(przyklad\.pl\), okres \d{2}\.\d{2}\.\d{4}–\d{2}\.\d{2}\.\d{4}$/);
     expect(pozycja.name).not.toContain('Doładowanie');
     expect(pozycja.totalGross).toBe('468.00');
     // E2e 14.10: dokument za zakup wskazuje usługę (admin pokazywał „Usługa: —”).

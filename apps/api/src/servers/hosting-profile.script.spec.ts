@@ -1,7 +1,7 @@
 import { hostingProfileScriptForNode, loadHostingProfileScript } from './hosting-profile.script.js';
 
 /** Decyzja 2026-09-29 — adresy control-plane dla ograniczenia panelu DA :2222 idą z konfiguracji API. */
-describe('profil hostingu wydawany węzłowi — adresy control-plane', () => {
+describe('profil hostingu wydawany węzłowi – adresy control-plane', () => {
   const zmienne = ['VERRIS_CONTROL_PLANE_IPS', 'VERRIS_DA_ADMIN_ALLOW'] as const;
   const stare = Object.fromEntries(zmienne.map((z) => [z, process.env[z]]));
   afterEach(() => {

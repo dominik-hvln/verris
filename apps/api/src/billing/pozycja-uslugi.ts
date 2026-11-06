@@ -37,7 +37,7 @@ export function nazwaPozycjiUslugi(u: {
         ? '12 mies.'
         : '1 mies.';
   return (
-    `${u.plan} — ${okres}` +
+    `${u.plan} – ${okres}` +
     (u.domena ? ` (${u.domena})` : '') +
     `, okres ${dataPl(u.od)}–${dataPl(koniecOkresu(u.od, u.interval))}`
   ).slice(0, MAKS_NAZWA_POZYCJI);

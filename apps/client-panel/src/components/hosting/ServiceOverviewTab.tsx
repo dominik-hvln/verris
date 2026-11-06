@@ -226,7 +226,7 @@ export default function ServiceOverviewTab({
           </span>
           <span className="mt-1 block text-xs text-warn">
             {service.status === 'SUSPENDED'
-              ? 'Strona pokazuje odwiedzającym komunikat o zawieszeniu, dane są nietknięte. Opłać zaległość w zakładce Subskrypcja — usługa wróci automatycznie.'
+              ? 'Strona pokazuje odwiedzającym komunikat o zawieszeniu, dane są nietknięte. Opłać zaległość w zakładce Subskrypcja – usługa wróci automatycznie.'
               : 'Opłać, anuluj zamówienie lub zarządzaj rozliczeniem → zakładka Subskrypcja'}
           </span>
         </button>

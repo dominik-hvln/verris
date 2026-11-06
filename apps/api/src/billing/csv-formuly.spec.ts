@@ -6,7 +6,7 @@ import { rowsToCsv } from './csv.util.js';
  * Audyt bezpieczeństwa 13.10: eksport faktur operatora (separator „;”) i eksport dziennika audytu miały
  * własne escapery bez neutralizacji formuł — imię/firma klienta „=HYPERLINK(…)” wykonywała się w arkuszu.
  */
-describe('CSV — neutralizacja formuł we wszystkich eksportach', () => {
+describe('CSV – neutralizacja formuł we wszystkich eksportach', () => {
   const FORMULY = ['=HYPERLINK("https://zly.example","x")', '+1+1', '-2+3', '@SUM(A1)', '\tx', '\rx'];
 
   it('eksport faktur: tekst z formułą dostaje apostrof, liczby zostają liczbami', () => {

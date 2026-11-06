@@ -78,7 +78,7 @@ describe('X-04 rekompensaty SLA', () => {
     expect(await saldo(u.user.id)).toBe(0);
   });
 
-  it('okno założone godzinę przed pracami nie jest zapowiedzią (§15 ust. 7) — przestój się liczy', async () => {
+  it('okno założone godzinę przed pracami nie jest zapowiedzią (§15 ust. 7) – przestój się liczy', async () => {
     const u = await usluga();
     await okno(u.wezel.id, '2026-08-10T00:00:00Z', 14, 1);
     await przestoj(u.sonda.id, '2026-08-10T00:00:00Z', 14);
@@ -100,7 +100,7 @@ describe('X-04 rekompensaty SLA', () => {
     expect(await saldo(u.user.id)).toBe(2.25);
   });
 
-  it('uznanie portfela pada: miesiąc nie zostaje „zamknięty” bez pieniędzy — kolejny przebieg wypłaca', async () => {
+  it('uznanie portfela pada: miesiąc nie zostaje „zamknięty” bez pieniędzy – kolejny przebieg wypłaca', async () => {
     const u = await usluga();
     await przestoj(u.sonda.id, '2026-08-10T00:00:00Z', 14);
 

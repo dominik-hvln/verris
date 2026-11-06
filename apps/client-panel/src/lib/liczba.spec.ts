@@ -9,7 +9,7 @@ describe('liczba', () => {
 });
 
 describe('kwotaGodzinowa', () => {
-  it('poniżej 1 — wszystkie cyfry stawki, od 1 — do grosza', () => {
+  it('poniżej 1 – wszystkie cyfry stawki, od 1 – do grosza', () => {
     expect(kwotaGodzinowa(0.001323)).toBe('0,001323');
     expect(kwotaGodzinowa(50 * 0.001323)).toBe('0,06615');
     expect(kwotaGodzinowa(0.5 * 0.0882)).toBe('0,0441');

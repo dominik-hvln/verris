@@ -94,7 +94,7 @@ describe('Paynow: księgowanie i zwrot na Postgresie', () => {
     return { u, tx, rek };
   }
 
-  it('przegląd 12.10 — równoległe zwroty na różne kwoty nie przekraczają razem wpłaty', async () => {
+  it('przegląd 12.10 – równoległe zwroty na różne kwoty nie przekraczają razem wpłaty', async () => {
     const { u, tx, rek } = await wplata();
     const b = serwis({ send: vi.fn(async () => undefined) });
     const wyniki = await Promise.allSettled([
@@ -107,7 +107,7 @@ describe('Paynow: księgowanie i zwrot na Postgresie', () => {
     expect(r.zwrotyIds).toHaveLength(1);
   });
 
-  it('przegląd 12.10 — brak odpowiedzi Paynow (przekroczony czas) to stan nieznany: 409 „sprawdź w panelu”, bez cofnięcia', async () => {
+  it('przegląd 12.10 – brak odpowiedzi Paynow (przekroczony czas) to stan nieznany: 409 „sprawdź w panelu”, bez cofnięcia', async () => {
     const { u, tx, rek } = await wplata();
     const b = serwis({ send: vi.fn(async () => undefined) });
     fetchMock.mockRejectedValue(new DOMException('The operation was aborted due to timeout', 'TimeoutError'));

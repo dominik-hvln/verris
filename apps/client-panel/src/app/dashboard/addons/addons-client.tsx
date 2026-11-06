@@ -22,7 +22,7 @@ const STATUS_LABEL: Record<string, string> = {
  */
 export function stanDodatku(p: Pick<PurchasedAddonRow, 'status' | 'amount' | 'notatka'>): string {
   const etykieta = p.status === 'REFUNDED' && !(Number(p.amount) > 0) ? 'Anulowany' : STATUS_LABEL[p.status] ?? p.status;
-  return p.notatka && (p.status === 'DONE' || p.status === 'REFUNDED') ? `${etykieta} — ${p.notatka}` : etykieta;
+  return p.notatka && (p.status === 'DONE' || p.status === 'REFUNDED') ? `${etykieta} – ${p.notatka}` : etykieta;
 }
 
 /** Weryfikacja 11.10 — dodatek czasowy, który jest aktywny: zamiast drugiego zakupu — przedłużenie. */

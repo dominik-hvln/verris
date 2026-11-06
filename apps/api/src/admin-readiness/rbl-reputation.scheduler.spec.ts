@@ -32,7 +32,7 @@ function uklad(odpowiedzi: Record<string, string[] | Error>, wpisy: { action: st
 const godzinTemu = (h: number) => new Date(Date.now() - h * 3600_000);
 const alertWczesniej = { action: 'NODE_RBL_ALERT', createdAt: godzinTemu(13), details: { serverId: 's1' } };
 
-describe('RblReputationScheduler — stan „nieznany” (pozycja 23)', () => {
+describe('RblReputationScheduler – stan „nieznany” (pozycja 23)', () => {
   afterEach(() => vi.restoreAllMocks());
 
   it('martwa strefa SORBS nie jest sprawdzana', () => {
@@ -63,7 +63,7 @@ describe('RblReputationScheduler — stan „nieznany” (pozycja 23)', () => {
     expect(maile).toEqual([]);
   });
 
-  it('wszystkie listy odpowiedziały NXDOMAIN po alercie — przywrócenie jak dotąd', async () => {
+  it('wszystkie listy odpowiedziały NXDOMAIN po alercie – przywrócenie jak dotąd', async () => {
     const { s, zapisane } = uklad({}, [alertWczesniej]);
     await s.scanFleet();
     expect(zapisane.map((z) => z.action)).toEqual(['NODE_RBL_CLEARED']);

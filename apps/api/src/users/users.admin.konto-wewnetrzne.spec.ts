@@ -27,7 +27,7 @@ function zbuduj(opts: { wewnetrzne?: boolean; uprawnienia?: string[] } = {}) {
 const STAFF = { role: 'STAFF', userId: 'op1' };
 const ADMIN = { role: 'ADMIN', userId: 'adm' };
 
-describe('PB-47 — zmiana flagi „konto wewnętrzne”', () => {
+describe('PB-47 – zmiana flagi „konto wewnętrzne”', () => {
   it('STAFF bez CUSTOMERS_INTERNAL_FLAG → 403 z kodem WYMAGA_WNIOSKU, nic nie zapisano', async () => {
     const { svc, prisma } = zbuduj({ uprawnienia: ['CUSTOMERS_MANAGE'] });
     const blad = await svc.patchCustomerOperational('k1', 'op1', { isInternal: true }, {}, STAFF).catch((e: unknown) => e);
@@ -71,7 +71,7 @@ describe('PB-47 — zmiana flagi „konto wewnętrzne”', () => {
    * Strażnik scalenia z PB-46 (gałąź pb46 ma w kontrolerze „isInternal tylko ADMIN” bez kodu WYMAGA_WNIOSKU).
    * Decyzja 08.10: reguła jest w serwisie (sprawdzZmianeKontaWewnetrznego) — kontroler przekazuje STAFF dalej.
    */
-  it('kontroler nie odrzuca STAFF z flagą sam — przekazuje decyzję serwisowi razem z aktorem', async () => {
+  it('kontroler nie odrzuca STAFF z flagą sam – przekazuje decyzję serwisowi razem z aktorem', async () => {
     const admin = { patchCustomerOperational: vi.fn(async () => ({ ok: true })) };
     const ctrl = new UsersAdminController(admin as never, {} as never, {} as never, {} as never, {} as never);
     const req = { ip: '10.0.0.1', headers: {} } as never;

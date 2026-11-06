@@ -11,7 +11,7 @@ import { prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } fr
  * zespołu z powodem; zadanie PHP_APPLY trafia do kolejki węzła. Węzeł (DirectAdmin) zastąpiony atrapą, która
  * zapisuje dziennik jak prawdziwa metoda (autor = właściciel).
  */
-describe('F2.2 — akcje operatora na koncie klienta', () => {
+describe('F2.2 – akcje operatora na koncie klienta', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 

@@ -90,7 +90,7 @@ export function PortfelOperacje({
   const zapiszKorekte = async () => {
     if (!korektaOk || korekta === null) return;
     const znak = kierunek === "plus" ? "+" : "−";
-    if (!(await potwierdz(`Korekta salda ${znak}${korekta.toFixed(2)} K (saldo teraz ${saldo} K)? Klient zobaczy „Korekta salda — obsługa Verris”.`, { akcja: "Zapisz korektę", niebezpieczne: kierunek === "minus" }))) return;
+    if (!(await potwierdz(`Korekta salda ${znak}${korekta.toFixed(2)} K (saldo teraz ${saldo} K)? Klient zobaczy „Korekta salda – obsługa Verris”.`, { akcja: "Zapisz korektę", niebezpieczne: kierunek === "minus" }))) return;
     start(async () => {
       setMsg(null);
       const r = await korektaSaldaAction(userId, { kierunek, kwota: korekta, powod: powod.trim(), zgloszenie: zglK, klucz }).catch(() => brakPolaczenia);
@@ -138,7 +138,7 @@ export function PortfelOperacje({
               value={proformaId}
               onChange={wybierzProforme}
               disabled={pending}
-              options={[{ value: "", label: "— bez proformy —" }, ...proformyDoZaplaty.map((p) => ({ value: p.id, label: `${p.numer} · ${p.kwota} zł` }))]}
+              options={[{ value: "", label: "– bez proformy –" }, ...proformyDoZaplaty.map((p) => ({ value: p.id, label: `${p.numer} · ${p.kwota} zł` }))]}
             />
           </div>
         ) : null}

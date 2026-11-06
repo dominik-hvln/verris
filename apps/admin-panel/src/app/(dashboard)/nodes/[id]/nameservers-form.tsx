@@ -22,7 +22,7 @@ const STEP_STATUS_STYLE: Record<NsProvisionResultDto["steps"][number]["status"],
 const SOURCE_LABEL: Record<NodeNameserversDto["effective"]["source"], string> = {
   node: "ustawione na węźle",
   platform: "dziedziczone z platformy",
-  none: "brak — konta użyją NS z DirectAdmin",
+  none: "brak – konta użyją NS z DirectAdmin",
 };
 
 export function NameserversForm({ serverId }: { serverId: string }) {
@@ -111,7 +111,7 @@ export function NameserversForm({ serverId }: { serverId: string }) {
         <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3 text-xs">
           <span className="text-muted-foreground">Aktualnie efektywne ({SOURCE_LABEL[eff.source]}): </span>
           <span className="font-mono text-white">
-            {eff.ns1 || "—"}
+            {eff.ns1 || "–"}
             {eff.ns2 ? `, ${eff.ns2}` : ""}
             {eff.ns3 ? `, ${eff.ns3}` : ""}
           </span>
@@ -146,7 +146,7 @@ export function NameserversForm({ serverId }: { serverId: string }) {
 
       <div className="mt-2 space-y-3 rounded-xl border border-violet-400/20 bg-violet-400/[0.04] p-4">
         <div className="flex items-center gap-2 text-sm font-semibold text-white">
-          <Sparkles className="h-4 w-4 text-violet-300" /> Automat OVH — podepnij NS (glue + strefa)
+          <Sparkles className="h-4 w-4 text-violet-300" /> Automat OVH – podepnij NS (glue + strefa)
         </div>
         <p className="text-xs text-muted-foreground">
           Tworzy/uzgadnia rekordy <code>A</code>/<code>AAAA</code> i wpisy <em>glue</em> w OVH dla
@@ -158,7 +158,7 @@ export function NameserversForm({ serverId }: { serverId: string }) {
           <>
             <label className="block max-w-sm">
               <span className="mb-1 block text-[11px] uppercase tracking-wide text-muted-foreground">
-                IPv6 węzła (opcjonalnie — włącza AAAA)
+                IPv6 węzła (opcjonalnie – włącza AAAA)
               </span>
               <input
                 value={ipv6}
@@ -196,8 +196,8 @@ export function NameserversForm({ serverId }: { serverId: string }) {
           <div className="space-y-1 rounded-lg border border-white/10 bg-black/30 p-3 text-xs">
             <div className={provisionResult.ok ? "text-emerald-300" : "text-amber-300"}>
               {provisionResult.ok
-                ? "Gotowe — NS podpięte w OVH."
-                : "Zakończono z ostrzeżeniami — sprawdź kroki poniżej."}
+                ? "Gotowe – NS podpięte w OVH."
+                : "Zakończono z ostrzeżeniami – sprawdź kroki poniżej."}
             </div>
             <div className="text-muted-foreground">
               {provisionResult.ns1}, {provisionResult.ns2} → {provisionResult.ipv4}
@@ -206,7 +206,7 @@ export function NameserversForm({ serverId }: { serverId: string }) {
             <ul className="mt-1 space-y-0.5">
               {provisionResult.steps.map((s, i) => (
                 <li key={i} className={STEP_STATUS_STYLE[s.status]}>
-                  • {s.step} — {s.status}
+                  • {s.step} – {s.status}
                   {s.detail ? <span className="text-muted-foreground"> ({s.detail})</span> : null}
                 </li>
               ))}

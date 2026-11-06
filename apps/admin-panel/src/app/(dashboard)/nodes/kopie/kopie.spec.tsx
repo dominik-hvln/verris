@@ -75,7 +75,7 @@ describe("kopie floty", () => {
 
   it("formaty: rozmiar dziesiętny, wiek w godzinach i dniach", () => {
     expect(rozmiar(512_000_000)).toBe("512 MB");
-    expect(rozmiar(null)).toBe("—");
+    expect(rozmiar(null)).toBe("–");
     expect(wiek(iso(5), teraz)).toBe("5 h");
     expect(wiek(iso(72), teraz)).toBe("3 dni");
   });
@@ -108,7 +108,7 @@ describe("kopie floty", () => {
     expect(html.split('data-karta="historia"')[1]).toContain("pg_restore: brak tabeli");
   });
 
-  it("?wezel= trafia do API (zawężenie), obcy znak w parametrze — cała flota", async () => {
+  it("?wezel= trafia do API (zawężenie), obcy znak w parametrze – cała flota", async () => {
     api.mockResolvedValue(dane());
     await render("n1");
     expect(api).toHaveBeenCalledWith("/admin/servers/kopie?wezel=n1");
@@ -117,7 +117,7 @@ describe("kopie floty", () => {
     expect(api).toHaveBeenCalledWith("/admin/servers/kopie");
   });
 
-  it("kopie nieskonfigurowane i brak kopii bazy — widoczne ostrzeżenia; bez kont z problemem — komunikat", async () => {
+  it("kopie nieskonfigurowane i brak kopii bazy – widoczne ostrzeżenia; bez kont z problemem – komunikat", async () => {
     api.mockResolvedValue(dane({ offsite: { skonfigurowany: false }, bazaPanelu: { obecna: false }, konta: [], proby: [] }));
     const html = await render();
     expect(html).toContain("kopie poza serwerem nieskonfigurowane");
@@ -126,7 +126,7 @@ describe("kopie floty", () => {
     expect(html).toContain("Nie było jeszcze żadnej próby odtworzenia.");
   });
 
-  it("weryfikacja 11.10: liczba z odmianą raz — bez „2 2 dni” i „2 2 konta”", async () => {
+  it("weryfikacja 11.10: liczba z odmianą raz – bez „2 2 dni” i „2 2 konta”", async () => {
     const d = dane();
     api.mockResolvedValue({
       ...d,

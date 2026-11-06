@@ -65,10 +65,10 @@ export default function UsageTab({ serviceId }: { serviceId: string }) {
       />
 
       <KpiStrip>
-        <Kpi label="CPU · teraz" value={latest?.cpuUsageAvg ?? '—'} unit={latest ? '%' : undefined} foot={<span>średnia z ostatniej minuty</span>} />
-        <Kpi label="RAM · teraz" value={latest ? fmtMb(latest.memUsageAvgMb) : '—'} foot={<span>średnie zużycie pamięci</span>} />
-        <Kpi label="Dysk" value={latest ? fmtMb(latest.diskUsageMb) : '—'} foot={<span>zajęte miejsce konta</span>} />
-        <Kpi label="Zapis i odczyt" value={latest?.ioUsageKbps ?? '—'} unit={latest ? 'KB/s' : undefined} foot={<span>ruch na dysku</span>} />
+        <Kpi label="CPU · teraz" value={latest?.cpuUsageAvg ?? '–'} unit={latest ? '%' : undefined} foot={<span>średnia z ostatniej minuty</span>} />
+        <Kpi label="RAM · teraz" value={latest ? fmtMb(latest.memUsageAvgMb) : '–'} foot={<span>średnie zużycie pamięci</span>} />
+        <Kpi label="Dysk" value={latest ? fmtMb(latest.diskUsageMb) : '–'} foot={<span>zajęte miejsce konta</span>} />
+        <Kpi label="Zapis i odczyt" value={latest?.ioUsageKbps ?? '–'} unit={latest ? 'KB/s' : undefined} foot={<span>ruch na dysku</span>} />
       </KpiStrip>
 
       {error ? <p className="text-sm text-crit">{error}</p> : null}

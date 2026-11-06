@@ -32,7 +32,7 @@ describe('X-05 serviceEventLabel', () => {
     }
   });
 
-  it('weryfikacja 11.10 (D3): działania obsługi na usłudze — „Obsługa Verris …”, bez nazwy panelu serwera i pliku limitu', () => {
+  it('weryfikacja 11.10 (D3): działania obsługi na usłudze – „Obsługa Verris …”, bez nazwy panelu serwera i pliku limitu', () => {
     const opisy = [
       serviceEventLabel('MAIL_SENDING_BLOCKED', { source: 'OPERATOR' }),
       serviceEventLabel('MAIL_SENDING_UNBLOCKED', { source: 'OPERATOR' }),
@@ -82,7 +82,7 @@ describe('rezygnacjaZaplanowana', () => {
     expect(rezygnacjaZaplanowana({ status: 'ACTIVE', cancelAt: null, events: zdarzenie })).toBe(false);
     expect(rezygnacjaZaplanowana({ status: 'ACTIVE', cancelAt: '2026-11-20T00:00:00Z', events: [] })).toBe(true);
   });
-  it('starsze API bez pola — po zdarzeniu; nieaktywna usługa — nigdy', () => {
+  it('starsze API bez pola – po zdarzeniu; nieaktywna usługa – nigdy', () => {
     expect(rezygnacjaZaplanowana({ status: 'ACTIVE', events: zdarzenie })).toBe(true);
     expect(rezygnacjaZaplanowana({ status: 'PAST_DUE', cancelAt: '2026-11-20T00:00:00Z', events: zdarzenie })).toBe(false);
   });
@@ -97,7 +97,7 @@ describe('terminUslugi / opisTerminu', () => {
     expect(terminUslugi(s)).toEqual({ rezygnacja: true, data: '2026-11-08T10:00:00Z' });
     expect(opisTerminu(s, fmt)).toBe('działa do 2026-11-08 · nie odnowi się');
   });
-  it('bez rezygnacji: „odnawia się …”; lista bez pola i bez zdarzeń — też', () => {
+  it('bez rezygnacji: „odnawia się …”; lista bez pola i bez zdarzeń – też', () => {
     expect(opisTerminu({ ...baza, cancelAt: null }, fmt)).toBe('odnawia się 2026-11-08');
     expect(opisTerminu(baza, fmt)).toBe('odnawia się 2026-11-08');
     expect(opisTerminu({ ...baza, currentPeriodEnd: null, cancelAt: null }, fmt)).toBeNull();

@@ -99,7 +99,7 @@ export default async function ProductOpsPage() {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
-        <Panel title="Webhooki — stan">
+        <Panel title="Webhooki – stan">
           {data.webhooks.slice(0, 8).map((hook) => (
             <Row
               key={hook.id}

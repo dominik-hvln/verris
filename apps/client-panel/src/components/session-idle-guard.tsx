@@ -87,7 +87,7 @@ export function SessionIdleGuard({ idleMinutes = FALLBACK_IDLE_MINUTES }: Props)
   return (
     <span
       role="timer"
-      title={`Sesja zaraz wygaśnie z powodu braku aktywności — każda akcja w panelu liczy ${idleMinutes} min od nowa.`}
+      title={`Sesja zaraz wygaśnie z powodu braku aktywności – każda akcja w panelu liczy ${idleMinutes} min od nowa.`}
       className="inline-flex items-center gap-1 rounded-md border border-rose-400/60 px-2 py-1 font-mono text-xs tabular-nums text-rose-400"
     >
       <Timer className="h-3.5 w-3.5" aria-hidden />

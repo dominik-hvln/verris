@@ -148,7 +148,7 @@ function NodeConfigActions({ serverId }: { serverId: string }) {
         <Server className="h-4 w-4 text-indigo-300" /> Konfiguracja węzła w panelu
       </div>
       <p className="text-xs text-muted-foreground">
-        Po podłączeniu węzła dokończ konfigurację stąd — wszystko otwiera się w nowej karcie, więc
+        Po podłączeniu węzła dokończ konfigurację stąd – wszystko otwiera się w nowej karcie, więc
         nie tracisz postępu wizarda. Audyt na stronie węzła zweryfikuje każdą akcję (pakiety, język,
         hostname, TLS) i pokaże raport zgodności z dokumentacją.
       </p>
@@ -351,7 +351,7 @@ export function NodeWizard() {
             <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
             <span>
               Zostały kroki <strong>{stepIndex + 1}–{WIZARD_STEPS.length}</strong> wizarda.
-              Konfigurację DA możesz otworzyć w nowej karcie — po teście API wróć tutaj i przejdź
+              Konfigurację DA możesz otworzyć w nowej karcie – po teście API wróć tutaj i przejdź
               dalej (profil hostingowy, smoke).
             </span>
           </div>
@@ -359,7 +359,7 @@ export function NodeWizard() {
 
         {step.id === "bootstrap" && created && stepIndex === WIZARD_STEPS.findIndex((s) => s.id === "bootstrap") && (
           <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
-            Wklej jednolinijkowiec na węźle jako root — postęp faz widać poniżej na żywo, restarty nie
+            Wklej jednolinijkowiec na węźle jako root – postęp faz widać poniżej na żywo, restarty nie
             przerywają instalacji. Gdy faza dojdzie do „Gotowe”, przejdź do{" "}
             <button
               type="button"
@@ -380,12 +380,12 @@ export function NodeWizard() {
             </CheckItem>
             <CheckItem>
               <strong>AlmaLinux 9.x</strong> (produkcja) lub{" "}
-              <strong>10.2</strong> (test, najdłuższe wsparcie — full DA na AL10).
+              <strong>10.2</strong> (test, najdłuższe wsparcie – full DA na AL10).
             </CheckItem>
             </ul>
             <ul className="space-y-2">
             <CheckItem>
-              Czysty system z obrazu dostawcy — <strong>bez ręcznych poleceń</strong>. Nazwę hosta, czas (NTP), swap,
+              Czysty system z obrazu dostawcy – <strong>bez ręcznych poleceń</strong>. Nazwę hosta, czas (NTP), swap,
               SELinux i limity dysku (quota) ustawia bootstrap; na serwerze wklejasz tylko jedną linijkę z kroku „Instalacja”.
             </CheckItem>
             <CheckItem>
@@ -395,7 +395,7 @@ export function NodeWizard() {
               Węzeł musi łączyć się z <code className="text-indigo-300">https://api.verris.pl</code>{" "}
               (443).
             </CheckItem>
-            <CheckItem>Licencje: CloudLinux i LiteSpeed (trial), DirectAdmin — oficjalna (na test Lite: 10 kont).</CheckItem>
+            <CheckItem>Licencje: CloudLinux i LiteSpeed (trial), DirectAdmin – oficjalna (na test Lite: 10 kont).</CheckItem>
             </ul>
             <label className="flex items-center gap-2 text-sm cursor-pointer mt-4">
               <Checkbox
@@ -457,8 +457,8 @@ export function NodeWizard() {
                       onChange={setRegion}
                       className="wizard-input"
                       options={[
-                        { value: "", label: "— nie wybrano —" },
-                        ...Object.entries(REGIONY_DANYCH).map(([kod, opis]) => ({ value: kod, label: `${kod} — ${opis}` })),
+                        { value: "", label: "– nie wybrano –" },
+                        ...Object.entries(REGIONY_DANYCH).map(([kod, opis]) => ({ value: kod, label: `${kod} – ${opis}` })),
                       ]}
                     />
                   </div>
@@ -471,11 +471,11 @@ export function NodeWizard() {
                     onChange={(e) => setHostname(e.target.value)}
                     placeholder="node-pl-02.verris.pl"
                     pattern="^(?=.{1,253}$)([a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$"
-                    title="Poprawny FQDN, np. node-pl-02.verris.pl — nie surowe IP"
+                    title="Poprawny FQDN, np. node-pl-02.verris.pl – nie surowe IP"
                     className="wizard-input"
                   />
                   <span className="text-[11px] text-muted-foreground">
-                    Wymagany — certyfikat panelu (Let&apos;s Encrypt) i linki panelu działają po hostname.
+                    Wymagany – certyfikat panelu (Let&apos;s Encrypt) i linki panelu działają po hostname.
                     Rekord A tej nazwy i para NS z glue zakładają się w OVH same (faza „Canary + NS” i zatwierdzenie węzła).
                   </span>
                 </label>
@@ -498,12 +498,12 @@ export function NodeWizard() {
                 {serverId ? <NodeBootstrapProgress serverId={serverId} /> : null}
                 <details className="rounded-xl border border-white/10 bg-black/30 p-4">
                   <summary className="cursor-pointer text-sm font-medium text-zinc-300">
-                    Instalacja ręczna — tylko gdy bootstrap v2 nie może (np. licencja przypięta do IP, nietypowy OS)
+                    Instalacja ręczna – tylko gdy bootstrap v2 nie może (np. licencja przypięta do IP, nietypowy OS)
                   </summary>
                   <div className="mt-4 space-y-4">
                     <p className="text-xs text-muted-foreground">
                       Te same komendy, które wykonuje bootstrap v2, do uruchomienia ręcznie. Po ręcznej instalacji
-                      i tak uruchom skrypt v2 powyżej — pominie zrobione fazy i zrobi handshake oraz agenta.
+                      i tak uruchom skrypt v2 powyżej – pominie zrobione fazy i zrobi handshake oraz agenta.
                     </p>
                     <CopyBlock
                                   label="Instalacja CL 10 (AlmaLinux 10.2 → cldeploy + reboot)"
@@ -592,17 +592,17 @@ export function NodeWizard() {
               <li>
                 Zaakceptuj węzeł poniżej (status{" "}
                 <strong className="text-white">Czeka na akceptację</strong> →{" "}
-                <strong className="text-white">ACTIVE</strong>) — przycisk działa dopiero po fazie{" "}
+                <strong className="text-white">ACTIVE</strong>) – przycisk działa dopiero po fazie{" "}
                 <strong className="text-white">Gotowe</strong> (po certyfikacie panelu).
               </li>
               <li>
-                Uzupełnij <strong>DirectAdmin login key</strong> i uruchom test API — w nowej karcie
+                Uzupełnij <strong>DirectAdmin login key</strong> i uruchom test API – w nowej karcie
                 (link poniżej), żeby nie wychodzić z wizarda. Host i login są podpowiedziane (nazwa hosta węzła, admin).
                 Klucz utworzysz w DirectAdminie: przed Onboard LIVE na węźle <code>da login-url</code> i otwórz link
-                (po Onboard LIVE panel przyjmuje tylko control-plane — tunel SOCKS z karty węzła).
+                (po Onboard LIVE panel przyjmuje tylko control-plane – tunel SOCKS z karty węzła).
               </li>
               <li>
-                Po teście DA zaznacz checkbox i kliknij <strong>Dalej</strong> — dalej backup offsite, Onboard LIVE,
+                Po teście DA zaznacz checkbox i kliknij <strong>Dalej</strong> – dalej backup offsite, Onboard LIVE,
                 profil hostingowy i smoke.
               </li>
             </ol>
@@ -643,7 +643,7 @@ export function NodeWizard() {
               <div className="space-y-2" data-krok="serwery-nazw">
                 <p className="text-sm text-zinc-300">
                   <strong className="text-white">Serwery nazw węzła.</strong> Każde konto na tym węźle dostaje te NS
-                  — bez pary podpiętej w OVH domeny klientów nie rozwiążą się.
+                  – bez pary podpiętej w OVH domeny klientów nie rozwiążą się.
                 </p>
                 <NameserversForm serverId={serverId} />
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
@@ -652,7 +652,7 @@ export function NodeWizard() {
                     onChange={() => toggleCheck("nameservers")}
                     className="rounded border-white/20"
                   />
-                  Para NS węzła podpięta w OVH (rekordy A i glue — wynik „ok” powyżej)
+                  Para NS węzła podpięta w OVH (rekordy A i glue – wynik „ok” powyżej)
                 </label>
               </div>
             )}
@@ -663,7 +663,7 @@ export function NodeWizard() {
           <div className="space-y-4">
             <p className="text-sm text-zinc-300">
               Kopie kont idą co noc poza węzeł (szyfrowane rclone crypt, retencja 30 dni). Klienci widzą w
-              panelu, że kopie są przechowywane poza serwerem — bez tej konfiguracji to byłaby nieprawda,
+              panelu, że kopie są przechowywane poza serwerem – bez tej konfiguracji to byłaby nieprawda,
               dlatego onboard LIVE zatrzymuje się, dopóki jej nie ma.
             </p>
             <KopieOffsiteFormularz />
@@ -725,7 +725,7 @@ export function NodeWizard() {
         {step.id === "hosting-profile" && (
           <div className="space-y-4">
             <p className="text-sm text-zinc-300">
-              <strong>Profil hostingowy Verris</strong> — Governor, ustawienia CustomBuild, restart
+              <strong>Profil hostingowy Verris</strong> – Governor, ustawienia CustomBuild, restart
               LiteSpeed. Po akceptacji węzła uruchomisz go <strong>z panelu</strong> (agent na węźle
               wykona skrypt w ciągu ~1 min).
             </p>
@@ -743,7 +743,7 @@ export function NodeWizard() {
               </p>
             )}
             <CopyBlock
-              label="Ręcznie (SSH) — alternatywa"
+              label="Ręcznie (SSH) – alternatywa"
               text={HOSTING_PROFILE_HINT}
             />
             <label className="flex items-center gap-2 text-sm cursor-pointer">
@@ -762,7 +762,7 @@ export function NodeWizard() {
           <div className="space-y-5">
             <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
               <p className="text-sm font-semibold text-emerald-200 mb-2">
-                Definition of Done — węzeł ACTIVE
+                Definition of Done – węzeł ACTIVE
               </p>
               <ul className="space-y-1.5">
                 {DOD_ACTIVE_CHECKLIST.map((item) => (
@@ -770,7 +770,7 @@ export function NodeWizard() {
                 ))}
               </ul>
               <p className="mt-3 text-[11px] text-muted-foreground">
-                Każdy punkt ma walidator w sekcji „Audyt i naprawa” na stronie węzła — uruchom audyt,
+                Każdy punkt ma walidator w sekcji „Audyt i naprawa” na stronie węzła – uruchom audyt,
                 aby potwierdzić zgodność z planem i dokumentacją (DA/CloudLinux), z atestem źródła.
               </p>
             </div>
@@ -778,7 +778,7 @@ export function NodeWizard() {
             <ul className="space-y-2 text-sm text-zinc-300">
               <CheckItem>Smoke: zakup planu (Stripe sandbox) → provisioning konta DA.</CheckItem>
               <CheckItem>
-                Grafana → dashboard <em>Compute fleet</em> — heartbeat węzła.
+                Grafana → dashboard <em>Compute fleet</em> – heartbeat węzła.
               </CheckItem>
               <CheckItem>HOST-4: WWW, FTP, mail hosting na koncie testowym.</CheckItem>
             </ul>

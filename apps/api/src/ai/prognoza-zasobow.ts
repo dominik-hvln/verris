@@ -83,9 +83,9 @@ export function opisPrognozy(resources: ServiceForecastResourceDto[], czyj: 'pla
   const zagrozone = resources
     .filter((r) => r.daysToLimit !== null && r.daysToLimit <= 30)
     .sort((a, b) => (a.daysToLimit ?? 0) - (b.daysToLimit ?? 0));
-  if (!zagrozone.length) return `Zasoby w normie — przy obecnym tempie żaden limit ${czyj} nie zostanie osiągnięty w ciągu 30 dni.`;
+  if (!zagrozone.length) return `Zasoby w normie – przy obecnym tempie żaden limit ${czyj} nie zostanie osiągnięty w ciągu 30 dni.`;
   const r = zagrozone[0];
   return r.daysToLimit === 0
     ? `${NAZWA[r.resource][0].toUpperCase()}${NAZWA[r.resource].slice(1)} jest na limicie ${czyj} (${r.currentPct}%).`
-    : `Najbliżej limitu: ${NAZWA[r.resource]} — ${r.currentPct}% teraz, limit za ok. ${r.daysToLimit} ${r.daysToLimit === 1 ? 'dzień' : 'dni'} przy obecnym tempie.`;
+    : `Najbliżej limitu: ${NAZWA[r.resource]} – ${r.currentPct}% teraz, limit za ok. ${r.daysToLimit} ${r.daysToLimit === 1 ? 'dzień' : 'dni'} przy obecnym tempie.`;
 }

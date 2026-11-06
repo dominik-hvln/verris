@@ -33,7 +33,7 @@ const zaslepka = (sub: string, inne = false) => {
   if (inne) writeFileSync(join(katalog(sub), 'app.php'), '<?php // klienta');
 };
 
-describe('hak poddomeny — strona Verris zamiast zaślepki DA', () => {
+describe('hak poddomeny – strona Verris zamiast zaślepki DA', () => {
   it('świeża zaślepka → strona Verris z pełną nazwą poddomeny i zasobami', () => {
     zaslepka('sklep');
     expect(uruchom('sklep').status).toBe(0);
@@ -54,7 +54,7 @@ describe('hak poddomeny — strona Verris zamiast zaślepki DA', () => {
     expect(readFileSync(join(katalog('x'), 'index.html'), 'utf8')).toBe('Jest to symbol zastępczy subdomeny');
   });
 
-  it('układ DA 1.710: domains/<sub>.<domena>/public_html (t1 04.10 — tam DA kładzie zaślepkę)', () => {
+  it('układ DA 1.710: domains/<sub>.<domena>/public_html (t1 04.10 – tam DA kładzie zaślepkę)', () => {
     const d = join(DIR, 'home', 'klient', 'domains', 'nowa.firma.pl', 'public_html');
     mkdirSync(d, { recursive: true });
     writeFileSync(join(d, 'index.html'), 'Jest to symbol zastępczy subdomeny');

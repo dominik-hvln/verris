@@ -79,7 +79,7 @@ export type SealReason =
 export const SEAL_REASON_LABEL: Record<SealReason, string> = {
   OK: 'Pieczęć jest widoczna.',
   USLUGA_NIEAKTYWNA: 'Usługa nie jest aktywna.',
-  BRAK_MONITORA: 'Włącz monitoring strony — pieczęć pokazuje jego dane.',
+  BRAK_MONITORA: 'Włącz monitoring strony – pieczęć pokazuje jego dane.',
   STRONA_NIE_DZIALA: 'Monitor widzi teraz awarię strony.',
   MONITOR_NIEAKTUALNY: 'Monitor nie sprawdzał strony od ponad doby.',
   BRAK_SSL: 'Brak ważnego certyfikatu SSL.',

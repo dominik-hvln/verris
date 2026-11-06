@@ -26,7 +26,7 @@ function etap(fail: string | null) {
   );
 }
 
-describe('NODE-02 — biblioteka przerwij_po_etapie', () => {
+describe('NODE-02 – biblioteka przerwij_po_etapie', () => {
   it('etap bez [FAIL] przepuszcza do następnego', () => {
     const r = etap('0');
     expect(r.status).toBe(0);
@@ -63,7 +63,7 @@ function poEtapie(linie: string[], etapFunkcja: string): string | undefined {
   return i >= 0 ? linie[i + 1] : undefined;
 }
 
-describe('NODE-02 — skrypty wołają bramkę po etapach-bramkach', () => {
+describe('NODE-02 – skrypty wołają bramkę po etapach-bramkach', () => {
   it.each([
     ['node-onboard-live.sh', ['preflight_stack', 'run_security_hardening', 'ensure_da_ip']],
     ['node-live-readiness.sh', ['preflight_stack', 'pobierz_manifest_stosu']],
@@ -104,10 +104,10 @@ function funkcja(plik: string, nazwa: string): string {
   return t.slice(start, t.indexOf('\n}\n', start) + 3);
 }
 
-describe('NODE-02 — node-live-readiness.sh: błąd bez [FAIL] nie przechodzi po cichu', () => {
+describe('NODE-02 – node-live-readiness.sh: błąd bez [FAIL] nie przechodzi po cichu', () => {
   const dir = mkdtempSync(join(tmpdir(), 'node02-'));
 
-  it('manifest stosu pobierany po instalacji agenta (verris-fetch) i z bramką — profil bez manifestu nie rusza', () => {
+  it('manifest stosu pobierany po instalacji agenta (verris-fetch) i z bramką – profil bez manifestu nie rusza', () => {
     const linie = mainSkryptu('node-live-readiness.sh');
     expect(linie.indexOf('install_task_agent')).toBeLessThan(linie.indexOf('pobierz_manifest_stosu'));
     expect(linie.indexOf('pobierz_manifest_stosu')).toBeLessThan(linie.indexOf('run_hosting_profile'));
@@ -150,7 +150,7 @@ false`],
   });
 });
 
-describe('NODE-02 — node-hosting-profile.sh mówi, który krok go przerwał', () => {
+describe('NODE-02 – node-hosting-profile.sh mówi, który krok go przerwał', () => {
   const surowy = readFileSync(join(SKRYPTY, 'node-hosting-profile.sh'), 'utf8');
   const dir = mkdtempSync(join(tmpdir(), 'node02-profil-'));
   writeFileSync(join(dir, 'fn.sh'), surowy.slice(0, surowy.indexOf('\nrequire_root\n')));

@@ -3,7 +3,7 @@ import { KbManager } from './kb-manager';
 import { fetchStaffAccess } from '@/lib/staff-access';
 import { blokadaBazyWiedzy } from '@/lib/baza-wiedzy';
 
-export const metadata = { title: 'Baza wiedzy (CMS) — admin Verris' };
+export const metadata = { title: 'Baza wiedzy (CMS) – admin Verris' };
 
 export default async function KnowledgeBasePage() {
   // Fala 1B — odczyt bazy wiedzy ma każdy pracownik; zapis tylko z KB_MANAGE (kb.admin.controller.ts).

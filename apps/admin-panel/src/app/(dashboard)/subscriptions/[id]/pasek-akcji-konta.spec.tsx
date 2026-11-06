@@ -59,8 +59,8 @@ afterEach(async () => {
   k.remove();
 });
 
-describe("F2.2 — pasek akcji konta", () => {
-  it("L1 bez ACCOUNT_ACTIONS: wszystkie wyszarzone z informacją; L2: bez DNS; L3 i administrator — wszystkie", async () => {
+describe("F2.2 – pasek akcji konta", () => {
+  it("L1 bez ACCOUNT_ACTIONS: wszystkie wyszarzone z informacją; L2: bez DNS; L3 i administrator – wszystkie", async () => {
     await render(op("ACCOUNT_DIAGNOSTICS_VIEW"));
     for (const p of PRZYCISKI_PASKA) {
       expect(przycisk(`[data-akcja="${p.id}"]`).disabled).toBe(true);
@@ -91,7 +91,7 @@ describe("F2.2 — pasek akcji konta", () => {
     expect(k.textContent).toContain("Kopia zlecona");
   });
 
-  it("odmowa w potwierdzeniu — nic nie idzie do API; błąd API — komunikat w pasku", async () => {
+  it("odmowa w potwierdzeniu – nic nie idzie do API; błąd API – komunikat w pasku", async () => {
     await render(op("ACCOUNT_ACTIONS"));
     await klik(przycisk('[data-akcja="kopia"]'));
     await wpisz(pola()[0], "kopia przed aktualizacją WordPressa");
@@ -124,7 +124,7 @@ describe("F2.2 — pasek akcji konta", () => {
 });
 
 /** Weryfikacja 11.10 (prod): reset FTP bez kont FTP — „Resetuj hasło” wyglądał na aktywny, klik nic nie robił; powód przechodził między akcjami. */
-describe("weryfikacja 11.10 — pasek akcji konta", () => {
+describe("weryfikacja 11.10 – pasek akcji konta", () => {
   it("reset FTP bez dodatkowych kont FTP: „Resetuj hasło” wyszarzony z podpowiedzią, także po wpisaniu powodu", async () => {
     odczyt.mockResolvedValue({ ok: true, wynik: { konta: [], fetchError: null } });
     await render(op("ACCOUNT_ACTIONS"));
@@ -134,7 +134,7 @@ describe("weryfikacja 11.10 — pasek akcji konta", () => {
     await wpisz(pola()[0], "klient prosi o nowe hasło FTP");
     const b = przycisk('[data-wykonaj="haslo-ftp"]');
     expect(b.disabled).toBe(true);
-    expect(b.title).toBe("Konto nie ma dodatkowych kont FTP — nie ma hasła do zresetowania.");
+    expect(b.title).toBe("Konto nie ma dodatkowych kont FTP – nie ma hasła do zresetowania.");
     expect(k.querySelector('[data-podpowiedz="haslo-ftp"]')?.textContent).toBe(b.title);
     expect(b.getAttribute("aria-describedby")).toBe(k.querySelector('[data-podpowiedz="haslo-ftp"]')?.id);
     await klik(b);
@@ -175,8 +175,8 @@ describe("weryfikacja 11.10 — pasek akcji konta", () => {
   });
 });
 
-describe("F2.2 — komunikat po akcji", () => {
-  it("reset hasła: mówi, czy klient dostał mail — nigdy nie pokazuje hasła", () => {
+describe("F2.2 – komunikat po akcji", () => {
+  it("reset hasła: mówi, czy klient dostał mail – nigdy nie pokazuje hasła", () => {
     expect(komunikatPoAkcji("skrzynka", { ok: true, mailDoKlienta: true, klient: "anna@klient.pl" })).toBe(
       "Hasło zresetowane. Klient dostał mail (anna@klient.pl) z linkiem do ustawienia nowego.",
     );

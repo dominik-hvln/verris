@@ -6,7 +6,7 @@ import { TrialService } from './trial.service.js';
  * PB-28 — klient rozliczany poza Verris (billingOutside) zamawia nowe usługi u opiekuna.
  * SubscriptionsService.create to blokował, a okres próbny szedł obok i zakładał usługę.
  */
-describe('TrialService — PB-28 billingOutside', () => {
+describe('TrialService – PB-28 billingOutside', () => {
   const user = {
     role: Role.USER,
     emailVerifiedAt: new Date(),

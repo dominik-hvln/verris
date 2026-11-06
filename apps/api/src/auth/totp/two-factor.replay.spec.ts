@@ -2,7 +2,7 @@ import { TotpService } from './totp.service.js';
 import { TwoFactorService } from './two-factor.service.js';
 
 /** Kod TOTP jest jednorazowy: ten sam (albo starszy) krok nie zaloguje drugi raz. */
-describe('TwoFactorService.verifyCodeForLogin — ochrona przed ponownym użyciem kodu', () => {
+describe('TwoFactorService.verifyCodeForLogin – ochrona przed ponownym użyciem kodu', () => {
   const SEKRET = 'JBSWY3DPEHPK3PXP';
   function stanowisko() {
     let ostatni: number | null = null;

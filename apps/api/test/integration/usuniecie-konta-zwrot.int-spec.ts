@@ -25,7 +25,7 @@ async function klient(saldo: number) {
 const tx = (userId: string, type: WalletTxType, amount: number, balanceAfter: number, idempotencyKey?: string) =>
   prisma().walletTransaction.create({ data: { userId, type, amount, balanceAfter, currency: 'PLN', idempotencyKey } });
 
-describe('A2-07 usunięcie konta — podsumowanie i wniosek o zwrot salda', () => {
+describe('A2-07 usunięcie konta – podsumowanie i wniosek o zwrot salda', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     await prisma().wniosekZwrotuSalda.deleteMany();
@@ -76,7 +76,7 @@ describe('A2-07 usunięcie konta — podsumowanie i wniosek o zwrot salda', () =
     expect(await prisma().wniosekZwrotuSalda.count()).toBe(0);
   });
 
-  it('same kredyty z kodu — bez wniosku o zwrot; cofnięcie usunięcia wycofuje wniosek i zamyka zgłoszenie', async () => {
+  it('same kredyty z kodu – bez wniosku o zwrot; cofnięcie usunięcia wycofuje wniosek i zamyka zgłoszenie', async () => {
     const tylkoKod = await klient(150);
     await tx(tylkoKod.id, WalletTxType.PROMO_CREDIT, 150, 150);
     const r = await usuwanie().request({ userId: tylkoKod.id, password: 'Haslo-do-testu-1', zwrot: { numerRachunku: IBAN_PL, odbiorca: 'Jan' } });

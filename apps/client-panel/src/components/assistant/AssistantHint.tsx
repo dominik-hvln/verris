@@ -66,7 +66,7 @@ export function AssistantHint({ serviceId, onNavigate }: { serviceId: string; on
     }
     setFixed({ key: hint.key, undoId: res.undoId });
     setHints((h) => h.filter((x) => x.key !== hint.key));
-    toast.success('Gotowe — rekord zapisany w DNS', { description: 'Serwery na świecie zobaczą zmianę w ciągu kilku minut.' });
+    toast.success('Gotowe – rekord zapisany w DNS', { description: 'Serwery na świecie zobaczą zmianę w ciągu kilku minut.' });
   };
 
   const undo = async () => {
@@ -78,7 +78,7 @@ export function AssistantHint({ serviceId, onNavigate }: { serviceId: string; on
       toast.error('Nie udało się cofnąć', { description: res.error });
       return;
     }
-    toast.success('Cofnięto — DNS wrócił do poprzedniego stanu');
+    toast.success('Cofnięto – DNS wrócił do poprzedniego stanu');
     setFixed(null);
     load();
   };

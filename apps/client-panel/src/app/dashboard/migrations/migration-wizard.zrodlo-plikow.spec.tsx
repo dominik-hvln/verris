@@ -64,7 +64,7 @@ it('domyślnie „Automatycznie”; Test połączenia → wykryty FTPS trafia do
   expect(el.textContent).toContain('Automatycznie (SFTP → FTPS → FTP)');
   await klik(przycisk('Test połączenia'));
   expect(mockTest).toHaveBeenCalledWith('s1', { host: 'ftp.stary.pl', port: 22, username: 'konto', password: 'tajne' });
-  expect(el.textContent).toContain('Połączenie działa — kopiujemy: FTPS (FTP z szyfrowaniem)');
+  expect(el.textContent).toContain('Połączenie działa – kopiujemy: FTPS (FTP z szyfrowaniem)');
   await klik(przycisk('Dalej'));
   expect(mockPreflight).toHaveBeenCalledWith(expect.objectContaining({ ftp: expect.objectContaining({ protocol: 'ftps', port: 21 }) }));
 });

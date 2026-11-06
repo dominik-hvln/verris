@@ -20,7 +20,7 @@ export function ZwrotPaynowButton({ userId, walletTxId }: { userId: string; wall
     const opis = kwota.trim() ? `${kwota.trim()} zł` : "całą pozostałą kwotę";
     const ok = await potwierdz(
       wPanelu
-        ? `Zapisać zwrot ${opis}, który wykonałeś już w panelu Paynow? Verris nie zleci drugiego zwrotu — z portfela zejdzie tylko proporcjonalna część kredytów (nie poniżej zera). Pamiętaj o korekcie dokumentu.`
+        ? `Zapisać zwrot ${opis}, który wykonałeś już w panelu Paynow? Verris nie zleci drugiego zwrotu – z portfela zejdzie tylko proporcjonalna część kredytów (nie poniżej zera). Pamiętaj o korekcie dokumentu.`
         : `Zwrócić klientowi ${opis} przez Paynow? Pieniądze wrócą na jego konto, a z portfela zejdzie proporcjonalna część kredytów (nie poniżej zera). Pamiętaj o korekcie dokumentu.`,
       { akcja: wPanelu ? "Zapisz zwrot" : "Zwróć", niebezpieczne: true },
     );
@@ -39,7 +39,7 @@ export function ZwrotPaynowButton({ userId, walletTxId }: { userId: string; wall
       <button type="button" onClick={() => void click(false)} disabled={pending} className={cls}>
         Zwróć
       </button>
-      <button type="button" onClick={() => void click(true)} disabled={pending} className={cls} title="Zwrot wykonany ręcznie w panelu Paynow — Verris tylko cofnie kredyty">
+      <button type="button" onClick={() => void click(true)} disabled={pending} className={cls} title="Zwrot wykonany ręcznie w panelu Paynow – Verris tylko cofnie kredyty">
         Zwrot zrobiony w Paynow
       </button>
     </span>

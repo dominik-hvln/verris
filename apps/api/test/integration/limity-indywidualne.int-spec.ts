@@ -14,7 +14,7 @@ import { dodajProbke, ksiegaWezla, prawdaOWezle, prisma, rozlacz, utworzKonto, u
  * przywrócenie limitów planu; błąd węzła = nic nie zmienione; błąd bazy po zmianie na węźle = węzeł przywrócony.
  * Zmiana planu przy limitach indywidualnych zablokowana. Węzeł (DirectAdmin) zastąpiony atrapą.
  */
-const POWOD = 'Umowa z klientem z 12.10 — większa poczta';
+const POWOD = 'Umowa z klientem z 12.10 – większa poczta';
 const wywolania: Array<{ user: string; limity: DaUserLimits }> = [];
 const pakiety: Array<{ user: string; pakiet: string }> = [];
 let wezelPada: Error | null = null;
@@ -51,7 +51,7 @@ const zlecenie = (u: Awaited<ReturnType<typeof usluga>>, limity: unknown, role =
   limity,
 });
 
-describe('K3 — limity indywidualne usługi', () => {
+describe('K3 – limity indywidualne usługi', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     wywolania.length = 0;
@@ -61,7 +61,7 @@ describe('K3 — limity indywidualne usługi', () => {
   });
   afterAll(rozlacz);
 
-  it('zapis: węzeł dostaje pełny zestaw limitów, baza — nadpisania, quota konta, księga dysku, zdarzenie i dziennik', async () => {
+  it('zapis: węzeł dostaje pełny zestaw limitów, baza – nadpisania, quota konta, księga dysku, zdarzenie i dziennik', async () => {
     const u = await usluga();
     const r = await svc().ustaw(zlecenie(u, { diskLimitMb: 102400, emailAccounts: 100, databases: '' }));
     expect(r.bezZmian).toBe(false);
@@ -121,7 +121,7 @@ describe('K3 — limity indywidualne usługi', () => {
   });
 
   // t1 12.10: action=package zmienił ssh=ON (włączony przez klienta) na ssh=OFF z pakietu planu.
-  it('przywrócenie pakietu przy włączonym SSH: zlecone ponowne włączenie SSH (zadanie węzła), przy wyłączonym — nic', async () => {
+  it('przywrócenie pakietu przy włączonym SSH: zlecone ponowne włączenie SSH (zadanie węzła), przy wyłączonym – nic', async () => {
     const u = await usluga(0);
     sshNaKoncie = 'ON';
     await svc().ustaw(zlecenie(u, { emailAccounts: 26 }));
@@ -141,7 +141,7 @@ describe('K3 — limity indywidualne usługi', () => {
     const u = await usluga();
     const ksiegaPrzed = await ksiegaWezla(u.wezel.id);
     wezelPada = new Error('DirectAdmin API Error: Cannot modify user');
-    await expect(svc().ustaw(zlecenie(u, { diskLimitMb: 102400 }))).rejects.toThrow('Serwer nie przyjął zmiany limitów — nic nie zmieniono');
+    await expect(svc().ustaw(zlecenie(u, { diskLimitMb: 102400 }))).rejects.toThrow('Serwer nie przyjął zmiany limitów – nic nie zmieniono');
     const s = await prisma().subscription.findUniqueOrThrow({ where: { id: u.subscription.id }, include: { account: true, events: true } });
     expect(s.limitOverrides).toBeNull();
     expect(s.account?.diskLimitMb).toBe(51200 + 1024);
@@ -181,7 +181,7 @@ describe('K3 — limity indywidualne usługi', () => {
     expect(zespol.details).toMatchObject({ wynik: 'baza-blad-wezel-przywrocony', blad: 'deadlock detected', powod: POWOD });
   });
 
-  it('reguły: tylko ADMIN, powód obowiązkowy, walidacja, dysk nie poniżej zajętego miejsca — bez wywołania węzła', async () => {
+  it('reguły: tylko ADMIN, powód obowiązkowy, walidacja, dysk nie poniżej zajętego miejsca – bez wywołania węzła', async () => {
     const u = await usluga();
     await expect(svc().ustaw(zlecenie(u, { diskLimitMb: 102400 }, 'STAFF'))).rejects.toThrow('administrator');
     await expect(svc().ustaw({ ...zlecenie(u, { diskLimitMb: 102400 }), powod: 'krótki' })).rejects.toThrow('Podaj powód');
@@ -191,7 +191,7 @@ describe('K3 — limity indywidualne usługi', () => {
     expect(wywolania).toEqual([]);
   });
 
-  it('zmiana planu przy limitach indywidualnych zablokowana (klient i admin), po przywróceniu — dostępna', async () => {
+  it('zmiana planu przy limitach indywidualnych zablokowana (klient i admin), po przywróceniu – dostępna', async () => {
     const u = await usluga();
     const duzy = await utworzPlan({ priceMonthly: 90, cpuLimit: 400 });
     await prisma().subscription.update({
@@ -201,7 +201,7 @@ describe('K3 — limity indywidualne usługi', () => {
     const p = prisma() as never;
     const zmiana = new PlanChangeService(p, new AuditService(p), new WalletLedgerService(p), null as never, {} as never, { send: async () => ({}) } as never, { get: () => undefined } as never);
     await svc().ustaw(zlecenie(u, { emailAccounts: 100 }));
-    await expect(zmiana.previewForUser(u.user.id, u.subscription.id, duzy.id)).rejects.toThrow('limity ustalone indywidualnie — zmianę planu ustalisz z obsługą');
+    await expect(zmiana.previewForUser(u.user.id, u.subscription.id, duzy.id)).rejects.toThrow('limity ustalone indywidualnie – zmianę planu ustalisz z obsługą');
     await expect(zmiana.previewForAdmin(u.subscription.id, duzy.id)).rejects.toThrow('najpierw „Przywróć limity planu”');
     await svc().ustaw(zlecenie(u, {}));
     await expect(zmiana.previewForAdmin(u.subscription.id, duzy.id)).resolves.toMatchObject({ direction: 'upgrade' });

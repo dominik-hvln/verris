@@ -26,7 +26,7 @@ export const STAFF_PERMISSIONS = [
   { key: 'BILLING_MANAGE', area: 'Finanse', label: 'Faktury, korekty, portfel, kredyty' },
   { key: 'NODES_VIEW', area: 'Infrastruktura', label: 'Podgląd węzłów i floty' },
   { key: 'NODES_MANAGE', area: 'Infrastruktura', label: 'Zarządzanie węzłami (cordon, drain, zadania)' },
-  { key: 'PLANS_MANAGE', area: 'Infrastruktura', label: 'Podgląd planów produktowych (zmiany planów i cen — tylko administrator)' },
+  { key: 'PLANS_MANAGE', area: 'Infrastruktura', label: 'Podgląd planów produktowych (zmiany planów i cen – tylko administrator)' },
   { key: 'PROVISIONING_MANAGE', area: 'Operacje', label: 'Kolejka provisioningu' },
   { key: 'MIGRATIONS_MANAGE', area: 'Operacje', label: 'Migracje (cockpit)' },
   { key: 'CUSTOM_TERMS_MANAGE', area: 'Finanse', label: 'Indywidualne warunki: własna cena usługi, rabat autoskalowania, rozliczenie poza Verris' },
@@ -58,7 +58,7 @@ export const STAFF_PERMISSIONS = [
   // (ADMIN_ONLY; zespół składa wniosek NODE_SERVICE_RESTART).
   // F3.8 — komunikat serwisowy do wszystkich klientów węzła albo planu (incydent, prace) — kierownik zmiany.
   { key: 'SERVICE_NOTICES_SEND', area: 'Obsługa', label: 'Komunikat serwisowy do klientów węzła albo planu (incydent, prace; bez treści promocyjnych, w dzienniku)' },
-  { key: 'NODE_SERVICES_RESTART_SHARED', area: 'Infrastruktura', label: 'Restart działającej usługi wspólnej węzła (WWW, poczta, bazy, DNS, FTP) — przerwa dla wszystkich kont' },
+  { key: 'NODE_SERVICES_RESTART_SHARED', area: 'Infrastruktura', label: 'Restart działającej usługi wspólnej węzła (WWW, poczta, bazy, DNS, FTP) – przerwa dla wszystkich kont' },
 ] as const;
 
 export type StaffPermission = (typeof STAFF_PERMISSIONS)[number]['key'];

@@ -2,7 +2,7 @@ import { NodeTaskStatus } from '@verris/database';
 import { ID_WIADOMOSCI_EXIMA, stanKolejki, wiadomosciZLogu } from './kolejka-poczty.js';
 
 /** F3.1 — odczyt wyniku zadania MAIL_QUEUE: tylko nagłówki z wierszy VERRIS_MQ, identyfikatory wg formatu Exima. */
-describe('F3.1 — kolejka poczty: wynik zadania węzła', () => {
+describe('F3.1 – kolejka poczty: wynik zadania węzła', () => {
   it.each([
     ['1tAbCd-000000001bo-D342', true], // Exim ≥ 4.97 (6-11-4)
     ['1aBcDe-0003hL-9u', true], // starszy Exim (6-6-2)
@@ -60,11 +60,11 @@ describe('F3.1 — kolejka poczty: wynik zadania węzła', () => {
     expect(bl).toMatchObject({ wToku: false, blad: 'brak exima na serwerze', wiadomosci: [] });
   });
 
-  it('audyt Fal 2: usuwanie przerwane błędem — liczba już usuniętych z logu obok błędu', () => {
+  it('audyt Fal 2: usuwanie przerwane błędem – liczba już usuniętych z logu obok błędu', () => {
     const s = stanKolejki([
-      zad({ status: NodeTaskStatus.FAILED, payload: { mode: 'remove' }, outputLog: 'VERRIS_MQ_USUNIETO 50\nVERRIS_MQ_POMINIETO 0\n[mail-queue] BŁĄD: exim -Mrm: nie usunięto 1 — kod 1', minuty: 5 }),
+      zad({ status: NodeTaskStatus.FAILED, payload: { mode: 'remove' }, outputLog: 'VERRIS_MQ_USUNIETO 50\nVERRIS_MQ_POMINIETO 0\n[mail-queue] BŁĄD: exim -Mrm: nie usunięto 1 – kod 1', minuty: 5 }),
     ]);
-    expect(s.usuwanie).toMatchObject({ wToku: false, usunieto: 50, pominieto: 0, blad: 'exim -Mrm: nie usunięto 1 — kod 1' });
+    expect(s.usuwanie).toMatchObject({ wToku: false, usunieto: 50, pominieto: 0, blad: 'exim -Mrm: nie usunięto 1 – kod 1' });
   });
 
   it('audyt Fal 2: temat ze 120 znakami spoza BMP (240 jednostek UTF-16) i z U+2028/U+2029 nie znika z podglądu', () => {

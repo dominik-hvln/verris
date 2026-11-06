@@ -53,9 +53,9 @@ export function WalletBadge({
   const amountTone = isEmpty ? "text-crit" : isLow ? "text-warn" : hasBalance ? "text-foreground" : "text-muted-foreground";
 
   const tooltip = impersonating
-    ? "Saldo konta klienta (sesja impersonacji — uważaj przy operacjach finansowych)."
+    ? "Saldo konta klienta (sesja impersonacji – uważaj przy operacjach finansowych)."
     : isEmpty
-    ? "Saldo jest zerowe — doładuj portfel, aby utrzymać usługi i odnowienia."
+    ? "Saldo jest zerowe – doładuj portfel, aby utrzymać usługi i odnowienia."
     : isLow
       ? `Saldo poniżej ${lowThreshold} ${CREDIT_SHORT}. Rozważ doładowanie.`
       : hasBalance

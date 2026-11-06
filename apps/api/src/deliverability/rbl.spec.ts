@@ -1,6 +1,6 @@
 import { rblListed } from './rbl.js';
 
-describe('rblListed — odpowiedź DNSBL', () => {
+describe('rblListed – odpowiedź DNSBL', () => {
   it('127.0.0.x to wpis na liście', () => {
     expect(rblListed(['127.0.0.2'])).toBe(true);
     expect(rblListed(['127.0.0.4', '127.0.0.10'])).toBe(true);

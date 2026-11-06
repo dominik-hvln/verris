@@ -18,7 +18,7 @@ async function renderuj(z: typeof zakup | null) {
   act(() => root.unmount());
 }
 
-describe('PB-08 — purchase po powrocie z Paynow', () => {
+describe('PB-08 – purchase po powrocie z Paynow', () => {
   beforeEach(() => {
     mockTrack.mockClear();
     sessionStorage.clear();

@@ -38,8 +38,8 @@ export function ActivityLogSection() {
           <ScrollText className="h-5 w-5" /> Aktywność konta
         </h3>
         <p className="mt-1 text-sm text-neutral-400">
-          Ostatnie zmiany na Twoim koncie — także te zrobione przez subkonta i obsługę. Pełna
-          przejrzystość — wiesz dokładnie, co i kiedy się działo.
+          Ostatnie zmiany na Twoim koncie – także te zrobione przez subkonta i obsługę. Pełna
+          przejrzystość – wiesz dokładnie, co i kiedy się działo.
         </p>
       </div>
 

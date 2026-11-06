@@ -17,7 +17,7 @@ export async function bramkaStrony(sciezka: SciezkaStrony): Promise<React.ReactE
   return (
     <BrakUprawnien
       tytul={tytul}
-      powod={dostep.niedostepne ? "Nie udało się sprawdzić uprawnień — odśwież stronę za chwilę" : powod}
+      powod={dostep.niedostepne ? "Nie udało się sprawdzić uprawnień – odśwież stronę za chwilę" : powod}
       // Pulpit to strona startowa po logowaniu — operator bez DASHBOARD_VIEW zaczyna od menu.
       podpowiedz={sciezka === "/" ? "Wybierz moduł z menu." : undefined}
     />

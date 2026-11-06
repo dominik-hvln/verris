@@ -60,15 +60,15 @@ export function MigracjaPoczty({ serviceId, onQueued }: { serviceId: string; onQ
     setTestujeZrodlo(false);
     if ('error' in res) return setTestZrodla({ ok: false, tekst: res.error });
     const c: PreflightCheckResult | undefined = (res.result as PreflightSummary).checks.find((x) => x.kind === 'imap');
-    if (!c) return setTestZrodla({ ok: false, tekst: 'Serwer nie zwrócił wyniku testu — spróbuj ponownie.' });
+    if (!c) return setTestZrodla({ ok: false, tekst: 'Serwer nie zwrócił wyniku testu – spróbuj ponownie.' });
     setTestZrodla({ ok: c.status === 'ok', tekst: c.message });
   }
 
   function sprawdzCel() {
     const s = skrzynki?.find((x) => x.email === cel);
-    if (!s) return setTestCelu({ ok: false, tekst: 'Tej skrzynki nie ma na koncie — załóż ją w zakładce Poczta.' });
+    if (!s) return setTestCelu({ ok: false, tekst: 'Tej skrzynki nie ma na koncie – załóż ją w zakładce Poczta.' });
     if (host.trim().toLowerCase() && login.trim().toLowerCase() === cel.toLowerCase() && /verris/i.test(host)) {
-      return setTestCelu({ ok: false, tekst: 'To ta sama skrzynka co źródło — wybierz inną.' });
+      return setTestCelu({ ok: false, tekst: 'To ta sama skrzynka co źródło – wybierz inną.' });
     }
     setTestCelu({
       ok: true,
@@ -82,7 +82,7 @@ export function MigracjaPoczty({ serviceId, onQueued }: { serviceId: string; onQ
     const res = await bezpiecznaAkcja(() => createMigrationBundleAction({ serviceId, imap: [zrodlo()], consentAccepted: true }));
     setStartuje(false);
     if ('error' in res) return setKomunikat({ ok: false, tekst: res.error });
-    setKomunikat({ ok: true, tekst: 'Przenoszenie poczty ruszyło — postęp zobaczysz poniżej.' });
+    setKomunikat({ ok: true, tekst: 'Przenoszenie poczty ruszyło – postęp zobaczysz poniżej.' });
     setHaslo('');
     setTestZrodla(null);
     onQueued?.();
@@ -93,7 +93,7 @@ export function MigracjaPoczty({ serviceId, onQueued }: { serviceId: string; onQ
   return (
     <div className="space-y-5">
       <section className="space-y-3">
-        <h3 className="text-sm font-semibold text-white">1. Skąd przenosimy — stara skrzynka</h3>
+        <h3 className="text-sm font-semibold text-white">1. Skąd przenosimy – stara skrzynka</h3>
         <div className="grid gap-3 md:grid-cols-2">
           <label className="space-y-1">
             <span className={labelText}>Serwer IMAP</span>
@@ -121,10 +121,10 @@ export function MigracjaPoczty({ serviceId, onQueued }: { serviceId: string; onQ
       </section>
 
       <section className="space-y-3">
-        <h3 className="text-sm font-semibold text-white">2. Dokąd przenosimy — skrzynka na tym koncie</h3>
+        <h3 className="text-sm font-semibold text-white">2. Dokąd przenosimy – skrzynka na tym koncie</h3>
         {bladListy ? <p className="text-xs text-rose-300">{bladListy}</p> : null}
         {skrzynki && skrzynki.length === 0 ? (
-          <p className="text-xs text-neutral-400">Na koncie nie ma jeszcze skrzynek — załóż ją w zakładce Poczta, potem wróć tutaj.</p>
+          <p className="text-xs text-neutral-400">Na koncie nie ma jeszcze skrzynek – załóż ją w zakładce Poczta, potem wróć tutaj.</p>
         ) : (
           <div className="flex flex-wrap items-center gap-3">
             <div className="min-w-[16rem] flex-1 md:max-w-md">

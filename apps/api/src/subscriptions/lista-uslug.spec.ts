@@ -2,8 +2,8 @@ import { BadRequestException } from '@nestjs/common';
 import { filtryDoDziennika, stronaListy, warunkiListyUslug } from './lista-uslug.js';
 
 /** F2.4 — filtry listy usług (lista i CSV z jednej definicji). */
-describe('F2.4 — warunki listy usług', () => {
-  it('bez filtrów — bez warunków; stan spoza enumu → 400', () => {
+describe('F2.4 – warunki listy usług', () => {
+  it('bez filtrów – bez warunków; stan spoza enumu → 400', () => {
     expect(warunkiListyUslug({})).toEqual({});
     expect(() => warunkiListyUslug({ status: 'NIEZNANY' })).toThrow(BadRequestException);
     expect(warunkiListyUslug({ status: 'PAST_DUE' })).toEqual({ AND: [{ status: 'PAST_DUE' }] });

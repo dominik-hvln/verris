@@ -22,7 +22,7 @@ function uslugi() {
 
 const dto = (ip: string) => ({ ipAddress: ip, totalCpuCores: 4, totalMemoryMb: 8192 }) as never;
 
-describe('Handshake węzła — tokeny bootstrapu', () => {
+describe('Handshake węzła – tokeny bootstrapu', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 
@@ -79,7 +79,7 @@ describe('Handshake węzła — tokeny bootstrapu', () => {
     expect(po.identityToken).toBe(crypto.sha256Hex((udane[0] as PromiseFulfilledResult<{ identityToken: string }>).value.identityToken));
   });
 
-  describe('Decyzja 15.10 — reinstalacja u dostawcy na tym samym IP', () => {
+  describe('Decyzja 15.10 – reinstalacja u dostawcy na tym samym IP', () => {
     const IP = '198.51.100.50';
 
     it('wycofany węzeł bez kont oddaje IP nowemu węzłowi z kreatora (i traci tożsamość); wpis w dzienniku', async () => {
@@ -96,7 +96,7 @@ describe('Handshake węzła — tokeny bootstrapu', () => {
       expect(wpis?.details).toMatchObject({ ipAddress: IP, odWezla: stary.id, dlaWezla: nowy.id });
     });
 
-    it('IP działającego węzła albo wycofywanego z kontami — odmowa, nic się nie zmienia, token niezużyty', async () => {
+    it('IP działającego węzła albo wycofywanego z kontami – odmowa, nic się nie zmienia, token niezużyty', async () => {
       for (const [status, zKontem] of [['ACTIVE', false], ['OFFLINE', false], ['DEPROVISIONING', true]] as const) {
         await wyczyscBaze();
         const stary = await utworzWezel({ ipAddress: IP, status });

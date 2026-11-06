@@ -121,7 +121,7 @@ export default function WebToolsTab({ serviceId }: { serviceId: string }) {
   return (
     <HostingTabShell
       title="Narzędzia WWW"
-      description="Przekierowania, ochrona katalogów hasłem, ochrona przed hotlinkingiem i blokowanie adresów IP — zapisywane wprost do pliku .htaccess Twojej strony."
+      description="Przekierowania, ochrona katalogów hasłem, ochrona przed hotlinkingiem i blokowanie adresów IP – zapisywane wprost do pliku .htaccess Twojej strony."
     >
       {fetchError && <p className="mb-3 rounded-[7px] border border-warn/30 bg-warn-soft px-3 py-2 text-sm text-warn">{hostingFetchErrorMessage(fetchError)}</p>}
 
@@ -132,7 +132,7 @@ export default function WebToolsTab({ serviceId }: { serviceId: string }) {
         <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground"><Lock className="h-4 w-4 text-data-hi" /> Ochrona katalogu hasłem</h3>
         <p className="mt-1 text-xs text-muted-foreground">Wymuś logowanie (Basic Auth) na wybranym katalogu. Pusty katalog = cała strona (public_html).</p>
         <form onSubmit={protect} className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_1fr_auto]">
-          <input value={pDir} onChange={(e) => setPDir(e.target.value)} placeholder="katalog (np. panel) — puste = cała strona" className={field} />
+          <input value={pDir} onChange={(e) => setPDir(e.target.value)} placeholder="katalog (np. panel) – puste = cała strona" className={field} />
           <input value={pUser} onChange={(e) => setPUser(e.target.value)} placeholder="użytkownik" className={field} />
           <input value={pPass} onChange={(e) => setPPass(e.target.value)} type="password" placeholder="hasło (min. 6)" className={field} />
           <Button type="submit" disabled={pBusy} className="h-9 gap-1.5 bg-primary text-primary-foreground font-semibold hover:bg-data-hi text-xs">{pBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Lock className="h-3.5 w-3.5" />} Zabezpiecz</Button>
@@ -186,7 +186,7 @@ export default function WebToolsTab({ serviceId }: { serviceId: string }) {
       {/* HTTPS i kanonizacja domeny */}
       <section className="rounded-[10px] border border-line bg-raised p-4">
         <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground"><Lock className="h-4 w-4 text-data-hi" /> HTTPS i kanonizacja domeny</h3>
-        <p className="mt-1 text-xs text-muted-foreground">Wymuś bezpieczne połączenie i jedną wersję adresu (z www lub bez) — lepsze SEO i brak duplikatów treści.</p>
+        <p className="mt-1 text-xs text-muted-foreground">Wymuś bezpieczne połączenie i jedną wersję adresu (z www lub bez) – lepsze SEO i brak duplikatów treści.</p>
         <div className="mt-3 flex flex-wrap items-center gap-4">
           <label className="flex items-center gap-2 text-sm text-[color:var(--verris-body)]">
             <Checkbox checked={Boolean(state.forceHttps)} onChange={(e) => persist({ ...state, forceHttps: e.target.checked }, e.target.checked ? 'Wymuszanie HTTPS włączone' : 'Wymuszanie HTTPS wyłączone')} disabled={saving} className="h-4 w-4 accent-emerald-500" />
@@ -216,7 +216,7 @@ export default function WebToolsTab({ serviceId }: { serviceId: string }) {
       {/* Przekierowania */}
       <section className="rounded-[10px] border border-line bg-raised p-4">
         <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground"><ArrowRightLeft className="h-4 w-4 text-data-hi" /> Przekierowania URL</h3>
-        <p className="mt-1 text-xs text-muted-foreground">Trwałe (301) lub tymczasowe (302) przekierowanie adresu na inny URL. Przy zmianie adresu strony wybierz <span className="text-[color:var(--verris-body)]">301 (trwałe)</span> — wyszukiwarki przeniosą pozycję na nowy adres.</p>
+        <p className="mt-1 text-xs text-muted-foreground">Trwałe (301) lub tymczasowe (302) przekierowanie adresu na inny URL. Przy zmianie adresu strony wybierz <span className="text-[color:var(--verris-body)]">301 (trwałe)</span> – wyszukiwarki przeniosą pozycję na nowy adres.</p>
         <p className="mt-1 text-[11px] text-muted-foreground">Przykład: <span className="font-mono text-[color:var(--verris-body)]">/oferta</span> → <span className="font-mono text-[color:var(--verris-body)]">https://twojadomena.pl/cennik</span>. W polu „z” podaj samą ścieżkę (od <span className="font-mono">/</span>), w polu „na” pełny adres lub ścieżkę.</p>
         <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1.3fr_auto_auto]">
           <input value={rFrom} onChange={(e) => setRFrom(e.target.value)} placeholder="/stara-strona" className={field} />

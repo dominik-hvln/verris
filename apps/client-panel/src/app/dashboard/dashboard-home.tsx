@@ -58,7 +58,7 @@ function serviceHref(s: ServiceSummaryDto) {
 
 // Czas polski także w renderze serwera (UTC) — inaczej hydratacja się nie zgadza (React #418, 12.10).
 function date(iso: string | null | undefined) {
-  return iso ? dataPl(iso, { day: 'numeric', month: 'short' }) : '—';
+  return iso ? dataPl(iso, { day: 'numeric', month: 'short' }) : '–';
 }
 
 /** Stan usługi do kropki: działa / wymaga uwagi / nieaktywna. */
@@ -207,7 +207,7 @@ export function DashboardHome({
             {snapshot.errors.services ? (
               <span>Stan usług chwilowo nieznany</span>
             ) : services.length === 0 ? (
-              <span>{moze('/dashboard/services/new') ? 'Nie masz jeszcze usług — zacznij od nowej.' : navCtx.billingOutside ? 'Nową usługę zamówisz u swojego opiekuna.' : 'Brak usług do wyświetlenia.'}</span>
+              <span>{moze('/dashboard/services/new') ? 'Nie masz jeszcze usług – zacznij od nowej.' : navCtx.billingOutside ? 'Nową usługę zamówisz u swojego opiekuna.' : 'Brak usług do wyświetlenia.'}</span>
             ) : (
               <>
                 {ok > 0 ? <StatusPill tone="data">{ok === 1 ? '1 usługa działa' : `${ok} ${plForm(ok, 'usługa działa', 'usługi działają', 'usług działa')}`}</StatusPill> : null}
@@ -240,7 +240,7 @@ export function DashboardHome({
               Masz kod z zaproszenia do testów?
             </h2>
             <p className="mt-1 text-[14px] text-muted-foreground">
-              Wpisz go w Płatnościach, w karcie „Kod promocyjny” — kredyty od razu trafią na Twój portfel, a w panelu pojawią się
+              Wpisz go w Płatnościach, w karcie „Kod promocyjny” – kredyty od razu trafią na Twój portfel, a w panelu pojawią się
               scenariusze testów i przycisk „Zgłoś uwagę”.
             </p>
           </div>
@@ -269,7 +269,7 @@ export function DashboardHome({
         <KpiStrip>
           <Kpi
             label="Usługi"
-            value={snapshot.errors.services ? '—' : String(services.filter((s) => s.status === 'ACTIVE').length)}
+            value={snapshot.errors.services ? '–' : String(services.filter((s) => s.status === 'ACTIVE').length)}
             unit="aktywne"
             foot={<span>{nextRenewal ? `najbliższe odnowienie ${date(nextRenewal)}` : 'brak zaplanowanych odnowień'}</span>}
           >
@@ -283,7 +283,7 @@ export function DashboardHome({
           </Kpi>
           <Kpi
             label="Domeny"
-            value={snapshot.errors.domains || bez.domains ? '—' : String(domains.length)}
+            value={snapshot.errors.domains || bez.domains ? '–' : String(domains.length)}
             foot={<span>{bez.domains ? 'brak uprawnień' : snapshot.errors.domains ? 'błąd pobierania' : plural(domains.filter((d) => d.status === 'ACTIVE').length, 'aktywna', 'aktywne', 'aktywnych')}</span>}
           >
             {domains.length > 0 ? (
@@ -297,7 +297,7 @@ export function DashboardHome({
           </Kpi>
           <Kpi
             label="Saldo portfela"
-            value={snapshot.errors.profile || bez.wallet ? '—' : formatCredits(snapshot.profile?.walletBalance ?? 0)}
+            value={snapshot.errors.profile || bez.wallet ? '–' : formatCredits(snapshot.profile?.walletBalance ?? 0)}
             foot={walletFoot}
           >
             {flow.length > 0 && !bez.wallet ? (
@@ -306,7 +306,7 @@ export function DashboardHome({
           </Kpi>
           <Kpi
             label="Otwarte zgłoszenia"
-            value={snapshot.errors.tickets || bez.tickets ? '—' : String(snapshot.openTickets)}
+            value={snapshot.errors.tickets || bez.tickets ? '–' : String(snapshot.openTickets)}
             foot={bez.tickets ? <span>brak uprawnień</span> : <Link href="/dashboard/support" className="hover:text-foreground">Centrum pomocy →</Link>}
           >
             {snapshot.errors.tickets || bez.tickets ? null : <MiniBars values={ticketsPerDay} labels={days7} unit={jednostkaZgloszen} />}
@@ -324,7 +324,7 @@ export function DashboardHome({
             />
             <div className="v2-comet overflow-x-auto rounded-[10px] border border-line bg-card" style={comet('b', 18, -4, 0.4)}>
               {snapshot.errors.services ? (
-                <p className="px-4 py-5 text-sm text-muted-foreground">Nie udało się pobrać usług — spróbuj odświeżyć stronę.</p>
+                <p className="px-4 py-5 text-sm text-muted-foreground">Nie udało się pobrać usług – spróbuj odświeżyć stronę.</p>
               ) : services.length === 0 ? (
                 <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-5">
                   <p className="text-sm text-muted-foreground">Tu pojawią się Twoje usługi: hosting i poczta.</p>
@@ -398,7 +398,7 @@ export function DashboardHome({
                   return (
                     <div key={s.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-x-4 gap-y-1 border-line px-4 py-3 [&+&]:border-t">
                       <div className={`min-w-[52px] font-display text-[28px] font-extrabold leading-none tracking-[-0.03em] tabular-nums ${color}`} data-tip={s.health?.summary ?? undefined}>
-                        {score ?? '—'}
+                        {score ?? '–'}
                         <small className="mt-1 block font-mono text-[11px] font-medium tracking-normal text-muted-foreground">/ 100</small>
                       </div>
                       <div className="min-w-0">
@@ -472,16 +472,16 @@ export function DashboardHome({
                   <Link href={serviceHref(next.s)} className={BTN_PRIMARY.replace('px-3 py-2 text-sm', 'px-2.5 py-1.5 text-[13px]')}>
                     Przejdź <ArrowRight className="h-3.5 w-3.5" />
                   </Link>
-                  {hints.length > 1 ? <p className="mt-3 text-[12.5px] text-muted-foreground">i jeszcze {hints.length - 1} — w sekcji „Zdrowie usług”.</p> : null}
+                  {hints.length > 1 ? <p className="mt-3 text-[12.5px] text-muted-foreground">i jeszcze {hints.length - 1} – w sekcji „Zdrowie usług”.</p> : null}
                 </>
               ) : services.length === 0 ? (
                 // P1-11 — bez usług nie obiecujemy pilnowania czegokolwiek.
                 <p className="text-[14.5px] text-foreground">
-                  Gdy zamówisz pierwszą usługę, podpowiemy tu, co warto sprawdzić — domenę, certyfikat, kopie i obciążenie.
+                  Gdy zamówisz pierwszą usługę, podpowiemy tu, co warto sprawdzić – domenę, certyfikat, kopie i obciążenie.
                 </p>
               ) : (
                 <p className="text-[14.5px] text-foreground">
-                  Wszystko pod kontrolą. Pilnujemy DNS, SSL, kopii i obciążenia — damy znać, gdy coś będzie wymagać uwagi.
+                  Wszystko pod kontrolą. Pilnujemy DNS, SSL, kopii i obciążenia – damy znać, gdy coś będzie wymagać uwagi.
                 </p>
               )}
             </div>
@@ -511,7 +511,7 @@ export function DashboardHome({
             <div className="v2-comet rounded-[10px]" style={comet('c', 15, -10, 0.45)}>
             <Box
               title="Program EKO"
-              action={<span className="font-mono text-xs text-muted-foreground">{ecoUnknown ? '—' : `${ecoPoints} pkt`}</span>}
+              action={<span className="font-mono text-xs text-muted-foreground">{ecoUnknown ? '–' : `${ecoPoints} pkt`}</span>}
             >
               <div className="px-4 pb-3.5 pt-2.5">
                 {snapshot.errors.ecoLedger ? (
@@ -536,7 +536,7 @@ export function DashboardHome({
           <Box title="Hosting w skrócie">
             <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-4 px-4 pb-3.5 pt-2 text-[13.5px] [&>dd]:m-0 [&>dd]:py-1.5 [&>dd]:text-right [&>dd]:text-foreground [&>dt]:py-1.5 [&>dt]:text-muted-foreground">
               <dt>Autoskalowanie</dt>
-              <dd>{snapshot.errors.services ? '—' : `${services.filter((s) => s.autoscalingEnabled).length} usł.`}</dd>
+              <dd>{snapshot.errors.services ? '–' : `${services.filter((s) => s.autoscalingEnabled).length} usł.`}</dd>
               {snapshot.ecoProgram?.referralProgramApproved ? (
                 <>
                   <dt>Program poleceń</dt>

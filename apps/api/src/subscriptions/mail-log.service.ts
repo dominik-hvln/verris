@@ -32,7 +32,7 @@ export class MailLogService {
     const wToku = await this.prisma.nodeTask.findFirst({
       where: { accountId: account.id, kind: NodeTaskKind.MAIL_LOG, status: { in: [NodeTaskStatus.QUEUED, NodeTaskStatus.RUNNING] } },
     });
-    if (wToku) throw new ConflictException('Dziennik już się wczytuje — chwila.');
+    if (wToku) throw new ConflictException('Dziennik już się wczytuje – chwila.');
     const { domains } = await this.directAdmin.listHostingDomainsForSubscription(subscriptionId, userId);
     const domeny = [...new Set(domains.map((d) => d.name.toLowerCase()))].slice(0, 200);
     if (!domeny.length) throw new BadRequestException('Usługa nie ma jeszcze domen.');

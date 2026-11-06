@@ -9,7 +9,7 @@ const snapshot = {
   dnsOk: true, tlsOk: true, platnoscOk: false, fakturaOk: true,
 };
 
-describe('OnboardingWizard — kroki wg dostępu konta', () => {
+describe('OnboardingWizard – kroki wg dostępu konta', () => {
   it('rozliczenie poza Verris: bez kroku płatności, licznik bez niego', () => {
     const html = renderToStaticMarkup(
       <OnboardingWizard snapshot={snapshot} hidden={false} navCtx={{ isSubaccount: false, customerPermissions: null, billingOutside: true }} />,

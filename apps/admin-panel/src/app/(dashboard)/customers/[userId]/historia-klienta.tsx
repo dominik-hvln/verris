@@ -11,7 +11,7 @@ import type { LoginHistoryResponse } from "../../operators/[id]/data";
  * Bez "use client" — renderuje Server Component karty. `undefined` = nie udało się odczytać.
  */
 const STREFA = "Europe/Warsaw";
-const kiedy = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleString("pl-PL", { timeZone: STREFA, dateStyle: "short", timeStyle: "short" }) : "—");
+const kiedy = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleString("pl-PL", { timeZone: STREFA, dateStyle: "short", timeStyle: "short" }) : "–");
 
 export interface MailKlienta {
   id: string;
@@ -122,17 +122,17 @@ export function LogowaniaKlienta({ historia }: { historia: LoginHistoryResponse 
       </NaglowekKarty>
       {historia === undefined ? <NieWczytano co="historii logowań" /> : historia.rows.length === 0 ? <Brak>Brak logowań w ostatnich 30 dniach.</Brak> : null}
       {historia?.suspiciousAlerts.length ? (
-        <div className={`${WIERSZ} text-sm text-warn`}>Podejrzane logowania: {historia.suspiciousAlerts.length} — ostatnie {kiedy(historia.suspiciousAlerts[0]!.createdAt)}.</div>
+        <div className={`${WIERSZ} text-sm text-warn`}>Podejrzane logowania: {historia.suspiciousAlerts.length} – ostatnie {kiedy(historia.suspiciousAlerts[0]!.createdAt)}.</div>
       ) : null}
       {historia?.rows.slice(0, 50).map((r) => (
         <div key={r.id} className={WIERSZ}>
           <span className="w-[120px] shrink-0 font-mono text-xs text-muted-foreground">{kiedy(r.occurredAt)}</span>
           <span className="flex min-w-0 flex-1 flex-col text-sm">
             <span className="font-mono text-[13px]">
-              {r.ip ?? "—"}
+              {r.ip ?? "–"}
               {r.countryCode ? ` · ${r.countryCode}` : ""}
             </span>
-            <span className="truncate text-[12.5px] text-muted-foreground">{r.userAgent ?? "—"}</span>
+            <span className="truncate text-[12.5px] text-muted-foreground">{r.userAgent ?? "–"}</span>
           </span>
           {r.isNewDevice ? (
             <Pigulka ton="warn" kropka={false} className="!text-[11px]">

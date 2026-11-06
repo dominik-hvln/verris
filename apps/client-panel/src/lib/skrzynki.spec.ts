@@ -6,15 +6,15 @@ import { komunikatSkrzynekZBledem, skrzynkiDomenyNieznane } from './skrzynki';
  * skrzynki domeny głównej. Teraz lista ma skrzynki odczytanych domen + `domenyZBledem`, a klient widzi krótką
  * informację o nieodczytanej domenie (bez nazwy panelu serwera).
  */
-describe('skrzynki — domeny, których nie udało się odczytać', () => {
+describe('skrzynki – domeny, których nie udało się odczytać', () => {
   it('jedna domena: krótka informacja po polsku z nazwą domeny', () => {
     expect(komunikatSkrzynekZBledem(['test2.d3.hvln.pl'])).toBe(
-      'Nie udało się wczytać skrzynek domeny test2.d3.hvln.pl — spróbuj ponownie za chwilę.',
+      'Nie udało się wczytać skrzynek domeny test2.d3.hvln.pl – spróbuj ponownie za chwilę.',
     );
   });
 
   it('kilka domen: „domen a, b”; brak domen z błędem → brak komunikatu', () => {
-    expect(komunikatSkrzynekZBledem(['a.pl', 'b.pl'])).toBe('Nie udało się wczytać skrzynek domen a.pl, b.pl — spróbuj ponownie za chwilę.');
+    expect(komunikatSkrzynekZBledem(['a.pl', 'b.pl'])).toBe('Nie udało się wczytać skrzynek domen a.pl, b.pl – spróbuj ponownie za chwilę.');
     expect(komunikatSkrzynekZBledem([])).toBeNull();
     expect(komunikatSkrzynekZBledem(undefined)).toBeNull();
   });

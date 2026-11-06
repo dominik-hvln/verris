@@ -59,7 +59,7 @@ export class LimityIndywidualneService {
     if (z.operator.role !== 'ADMIN') throw new ForbiddenException('Limity indywidualne ustawia administrator.');
     const powod = (z.powod ?? '').trim();
     if (powod.length < MIN_POWOD_LIMITOW) {
-      throw new BadRequestException(`Podaj powód (min. ${MIN_POWOD_LIMITOW} znaków) — zapisze się w dzienniku.`);
+      throw new BadRequestException(`Podaj powód (min. ${MIN_POWOD_LIMITOW} znaków) – zapisze się w dzienniku.`);
     }
     const w = walidujLimityIndywidualne(z.limity);
     if (!w.ok) throw new BadRequestException(w.blad);
@@ -76,7 +76,7 @@ export class LimityIndywidualneService {
       if (!wezel) throw err;
       // Węzeł przyjął zmianę, a zapis w bazie padł — węzeł wraca do poprzednich limitów.
       await this.kompensuj(z, { ...wezel, blad: blad(err) });
-      throw new ConflictException('Zapis w panelu nie powiódł się — limity na serwerze przywrócone do poprzednich. Spróbuj ponownie.');
+      throw new ConflictException('Zapis w panelu nie powiódł się – limity na serwerze przywrócone do poprzednich. Spróbuj ponownie.');
     }
     if (w1.bezZmian) return { bezZmian: true, komunikat: 'Usługa ma już te limity.', limity: w1.limity };
     const { s, konto, zgloszenieId, przed, po, plan, pusto, sshWlaczony } = w1;
@@ -104,7 +104,7 @@ export class LimityIndywidualneService {
 
     return {
       bezZmian: false,
-      komunikat: pusto ? 'Przywrócono limity planu.' : 'Zapisano limity indywidualne — obowiązują na serwerze.',
+      komunikat: pusto ? 'Przywrócono limity planu.' : 'Zapisano limity indywidualne – obowiązują na serwerze.',
       limity: opisLimitow(plan, po),
     };
   }
@@ -123,10 +123,10 @@ export class LimityIndywidualneService {
       include: { plan: true, account: true },
     });
     if (!s) throw new NotFoundException('Usługa nie istnieje.');
-    if (ZAKONCZONE.includes(s.status)) throw new BadRequestException('Usługa jest zakończona — limitów nie zmienia się.');
+    if (ZAKONCZONE.includes(s.status)) throw new BadRequestException('Usługa jest zakończona – limitów nie zmienia się.');
     const konto = s.account;
     if (!konto || (konto.status !== AccountStatus.ACTIVE && konto.status !== AccountStatus.SUSPENDED)) {
-      throw new BadRequestException('Usługa nie ma konta hostingowego na serwerze — limity ustawisz po jego założeniu.');
+      throw new BadRequestException('Usługa nie ma konta hostingowego na serwerze – limity ustawisz po jego założeniu.');
     }
     if (s.plan.productKind !== 'HOSTING') {
       throw new BadRequestException('Limity indywidualne dotyczą usługi hostingowej.');
@@ -144,7 +144,7 @@ export class LimityIndywidualneService {
       const szczyt = await this.szczytDyskuMb(s.id, konto.id);
       if (szczyt > bazaPo + konto.scaledDiskMb) {
         throw new BadRequestException(
-          `Zajęte miejsce na koncie (${Math.ceil(szczyt)} MB w ostatnich 48 h) przekracza nowy limit dysku (${bazaPo + konto.scaledDiskMb} MB) — strona i poczta przestałyby zapisywać pliki.`,
+          `Zajęte miejsce na koncie (${Math.ceil(szczyt)} MB w ostatnich 48 h) przekracza nowy limit dysku (${bazaPo + konto.scaledDiskMb} MB) – strona i poczta przestałyby zapisywać pliki.`,
         );
       }
     }
@@ -166,7 +166,7 @@ export class LimityIndywidualneService {
         await klient.customizeUserLimits(konto.daUsername, limityKontaNaWezle(plan, po, konto.scaledDiskMb));
       }
     } catch (err) {
-      throw new ConflictException(`Serwer nie przyjął zmiany limitów — nic nie zmieniono: ${blad(err)}`);
+      throw new ConflictException(`Serwer nie przyjął zmiany limitów – nic nie zmieniono: ${blad(err)}`);
     }
     poWezle({ klient, daUsername: konto.daUsername, plan, przed, scaledDiskMb: konto.scaledDiskMb, userId: s.userId, subscriptionId: s.id, domain: konto.domain, zgloszenieId, powod });
 

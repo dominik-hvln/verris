@@ -102,10 +102,10 @@ export class HostingDnsPointingService {
     const issues: string[] = [];
     if (!pointsByNs && !pointsByA) {
       if (aRecords.length === 0 && aaaaRecords.length === 0) {
-        issues.push(`Brak rekordu A/AAAA dla ${domain} — domena nie wskazuje nigdzie.`);
+        issues.push(`Brak rekordu A/AAAA dla ${domain} – domena nie wskazuje nigdzie.`);
       } else if (!pointsToServer) {
         issues.push(
-          `Rekord A wskazuje na ${aRecords.join(', ') || '—'}, oczekiwany adres serwera to ${expected}.`,
+          `Rekord A wskazuje na ${aRecords.join(', ') || '–'}, oczekiwany adres serwera to ${expected}.`,
         );
       }
       if (expectedNameservers.length >= 2 && nsRecords.length > 0 && !delegatedToExpectedNs) {
@@ -133,7 +133,7 @@ export class HostingDnsPointingService {
           ? `Domena ${domain} jest poprawnie delegowana na NS hostingu Verris.`
           : `Domena ${domain} wskazuje na Twój serwer (${expected}) przez rekordy A/AAAA.`
         : status === 'partial'
-          ? `Domena częściowo skonfigurowana — sprawdź konfigurację NS oraz rekordy A/AAAA.`
+          ? `Domena częściowo skonfigurowana – sprawdź konfigurację NS oraz rekordy A/AAAA.`
           : status === 'fail'
             ? `Domena nie kieruje jeszcze na hosting Verris.`
             : 'Oczekiwanie na konto hostingowe.';

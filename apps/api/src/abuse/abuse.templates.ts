@@ -20,7 +20,7 @@ export function potwierdzenieZgloszenia(i: { to: string; id: string; url: string
     title: 'Przyjęliśmy Twoje zgłoszenie',
     preheader: `Zgłoszenie ${i.id.slice(0, 8)} trafiło do zespołu Verris.`,
     bodyMarkdown: [
-      'Dziękujemy — Twoje zgłoszenie trafiło do zespołu Verris.',
+      'Dziękujemy – Twoje zgłoszenie trafiło do zespołu Verris.',
       '',
       `- **Numer:** ${md(i.id)}`,
       `- **Adres:** ${md(i.url)}`,
@@ -40,7 +40,7 @@ export function potwierdzenieZgloszenia(i: { to: string; id: string; url: string
 export function noweZgloszenieDlaObslugi(i: { to: string; id: string; url: string; kategoria: string; dopasowanie: string; panelUrl: string; staffPanelUrl: string }): Szablon {
   const { html, text } = renderEmailShell({
     title: 'Nowe zgłoszenie nadużycia',
-    preheader: `${kategoria(i.kategoria)} — ${i.url}`,
+    preheader: `${kategoria(i.kategoria)} – ${i.url}`,
     bodyMarkdown: [
       `- **Numer:** ${md(i.id)}`,
       `- **Adres:** ${md(i.url)}`,
@@ -52,7 +52,7 @@ export function noweZgloszenieDlaObslugi(i: { to: string; id: string; url: strin
     panelUrl: i.panelUrl,
     recipientHasAccount: false,
   });
-  return { to: i.to, tag: 'abuse.staff-new', subject: `[Verris] Nowe zgłoszenie nadużycia: ${kategoria(i.kategoria)} — ${i.url}`, text, html };
+  return { to: i.to, tag: 'abuse.staff-new', subject: `[Verris] Nowe zgłoszenie nadużycia: ${kategoria(i.kategoria)} – ${i.url}`, text, html };
 }
 
 /** Decyzja dla zgłaszającego. */
@@ -91,11 +91,11 @@ export function uzasadnienieDlaKlienta(i: { to: string; url: string; kategoria: 
       '',
       '## Odwołanie',
       '',
-      'Jeśli uważasz, że to pomyłka, odpowiedz na tę wiadomość albo załóż zgłoszenie w panelu — rozpatrzymy odwołanie. Decyzję podjął człowiek, nie automat.',
+      'Jeśli uważasz, że to pomyłka, odpowiedz na tę wiadomość albo załóż zgłoszenie w panelu – rozpatrzymy odwołanie. Decyzję podjął człowiek, nie automat.',
     ].join('\n'),
     cta: { label: 'Załóż zgłoszenie', url: `${i.panelUrl}/dashboard/support` },
     recipientEmail: i.to,
     panelUrl: i.panelUrl,
   });
-  return { to: i.to, tag: 'abuse.customer-restriction', subject: 'Ograniczyliśmy dostęp do treści na Twojej usłudze — uzasadnienie', text, html };
+  return { to: i.to, tag: 'abuse.customer-restriction', subject: 'Ograniczyliśmy dostęp do treści na Twojej usłudze – uzasadnienie', text, html };
 }

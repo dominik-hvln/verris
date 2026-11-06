@@ -40,7 +40,7 @@ function otworz() {
   return { przycisk, okno: document.querySelector<HTMLElement>('[role="dialog"]')! };
 }
 
-describe('paleta poleceń — fokus w oknie', () => {
+describe('paleta poleceń – fokus w oknie', () => {
   it('okno jest modalne, a Tab zostaje w oknie (fokus poza nim wraca do pola)', () => {
     const { okno } = otworz();
     expect(okno.getAttribute('aria-modal')).toBe('true');

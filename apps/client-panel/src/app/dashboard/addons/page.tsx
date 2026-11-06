@@ -12,7 +12,7 @@ export default async function AddonsPage() {
       <PanelPageHeader
         icon={<Sparkles className="h-6 w-6 text-amber-300" />}
         title="Dodatki"
-        description="Jednorazowe usługi dodatkowe — opłacane z portfela."
+        description="Jednorazowe usługi dodatkowe – opłacane z portfela."
       />
       <PanelCard>
         {!overview ? (

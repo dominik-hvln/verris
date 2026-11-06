@@ -17,12 +17,12 @@ describe("OstatniaAktualizacja", () => {
     );
     expect(tekst(h)).toContain("Ostatni przebieg: zakończona");
     expect(tekst(h)).toMatch(/zlecono 11\.10\.2026.*zakończono 11\.10\.2026/);
-    expect(tekst(h)).toContain("Wynik: zaktualizowane — węzeł wymaga restartu");
+    expect(tekst(h)).toContain("Wynik: zaktualizowane – węzeł wymaga restartu");
     expect(h).toContain("VERRIS_UPDATE_RESULT=needs-reboot");
     expect(h).toContain('href="/nodes/n1?sekcja=zadania"');
   });
 
-  it("nieudany przebieg: błąd i wynik z błędami; w toku — bez wyniku", () => {
+  it("nieudany przebieg: błąd i wynik z błędami; w toku – bez wyniku", () => {
     const h = renderToStaticMarkup(
       <OstatniaAktualizacja
         zadaniaHref="/z"
@@ -39,7 +39,7 @@ describe("OstatniaAktualizacja", () => {
     expect(trwa).not.toContain("Wynik:");
   });
 
-  it("bez przebiegów — informacja zamiast pustej ramki", () => {
+  it("bez przebiegów – informacja zamiast pustej ramki", () => {
     expect(tekst(renderToStaticMarkup(<OstatniaAktualizacja zadaniaHref="/z" a={null} />))).toContain("nie był jeszcze aktualizowany");
   });
 

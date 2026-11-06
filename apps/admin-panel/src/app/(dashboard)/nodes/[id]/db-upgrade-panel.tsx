@@ -14,7 +14,7 @@ import { queueDbUpgrade, fetchDbUpgradeTasks } from "../actions";
  */
 const DB_VERSIONS: { value: string; label: string; eol: string }[] = [
   { value: "10.11", label: "MariaDB 10.11 LTS", eol: "krok pośredni z 10.6 na węźle z CloudLinux MySQL Governor (aktualizacja tylko o jedną wersję)" },
-  { value: "11.4", label: "MariaDB 11.4 LTS", eol: "wsparcie do 2029 — najszerzej ograne z DA/CloudLinux (zalecane)" },
+  { value: "11.4", label: "MariaDB 11.4 LTS", eol: "wsparcie do 2029 – najszerzej ograne z DA/CloudLinux (zalecane)" },
 ];
 
 const STATUS_LABEL: Record<string, string> = {
@@ -103,7 +103,7 @@ export function DbUpgradePanel({
         setError(res.error);
         return;
       }
-      setOkMsg(`Zlecono upgrade do MariaDB ${version}. Agent wykona pełny backup baz, a potem CustomBuild — to potrwa. Postęp pojawi się poniżej.`);
+      setOkMsg(`Zlecono upgrade do MariaDB ${version}. Agent wykona pełny backup baz, a potem CustomBuild – to potrwa. Postęp pojawi się poniżej.`);
       setConfirmText("");
       setVersion("");
       await refresh();
@@ -120,7 +120,7 @@ export function DbUpgradePanel({
         <span className="text-muted-foreground">
           Obecnie:{" "}
           <strong className="text-white">
-            {dbEngine ?? "MariaDB"} {dbVersion ?? "—"}
+            {dbEngine ?? "MariaDB"} {dbVersion ?? "–"}
           </strong>
         </span>
         {targetDbVersion && (
@@ -134,11 +134,11 @@ export function DbUpgradePanel({
       <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-3 text-[13px] text-amber-100/90 flex gap-2">
         <ShieldAlert className="h-4 w-4 shrink-0 mt-0.5" />
         <div className="space-y-1">
-          <p className="font-medium text-amber-100">To operacja na żywym węźle — wykonaj w oknie serwisowym.</p>
+          <p className="font-medium text-amber-100">To operacja na żywym węźle – wykonaj w oknie serwisowym.</p>
           <p>
             Agent najpierw zrobi <strong>pełny zrzut wszystkich baz</strong> (mysqldump), a dopiero potem
             CustomBuild przebuduje silnik. W trakcie bazy klientów będą chwilowo niedostępne. MariaDB{" "}
-            <strong>nie wspiera downgrade</strong> — wybór wersji niższej niż obecna zostanie odrzucony.
+            <strong>nie wspiera downgrade</strong> – wybór wersji niższej niż obecna zostanie odrzucony.
           </p>
         </div>
       </div>
@@ -154,7 +154,7 @@ export function DbUpgradePanel({
             disabled={!!active || pending}
             className="w-full rounded-lg border border-white/10 bg-black/50 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500/50 disabled:opacity-50"
             options={[
-              { value: "", label: "— wybierz wersję —" },
+              { value: "", label: "– wybierz wersję –" },
               ...DB_VERSIONS.map((v) => ({
                 value: v.value,
                 label: `${v.label}${current === v.value ? " (już zainstalowana)" : ""}`,
@@ -171,7 +171,7 @@ export function DbUpgradePanel({
 
         <label className="block">
           <span className="mb-1 block text-xs font-medium text-muted-foreground">
-            Potwierdzenie — wpisz <code className="text-amber-200">UPGRADE</code>
+            Potwierdzenie – wpisz <code className="text-amber-200">UPGRADE</code>
           </span>
           <input
             value={confirmText}

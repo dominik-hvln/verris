@@ -36,11 +36,11 @@ const data = (d: Date) => d.toLocaleDateString('pl-PL', { day: 'numeric', month:
 export function raportPomigracyjnyTemplate(ctx: RaportPomigracyjnyContext): MailMessage {
   const greeting = ctx.firstName ? `Dzień dobry **${escapeMarkdown(ctx.firstName)}**,` : 'Dzień dobry,';
   const odpowiedz = ctx.zgloszenie
-    ? `Jeśli coś działa inaczej niż wcześniej, odpowiedz w zgłoszeniu ${escapeMarkdown(ctx.zgloszenie)} — poprawimy to.`
-    : 'Jeśli coś działa inaczej niż wcześniej, napisz do nas z panelu — poprawimy to.';
+    ? `Jeśli coś działa inaczej niż wcześniej, odpowiedz w zgłoszeniu ${escapeMarkdown(ctx.zgloszenie)} – poprawimy to.`
+    : 'Jeśli coś działa inaczej niż wcześniej, napisz do nas z panelu – poprawimy to.';
   const { html, text } = renderEmailShell({
     title: 'Raport z przeniesienia strony',
-    preheader: `Przeniesienie ${ctx.domena} zakończone — podsumowanie i wyniki testu przed i po.`,
+    preheader: `Przeniesienie ${ctx.domena} zakończone – podsumowanie i wyniki testu przed i po.`,
     bodyMarkdown: [
       greeting,
       `przeniesienie **${escapeMarkdown(ctx.domena)}** zostało zakończone. Poniżej podsumowanie naszej pracy.`,

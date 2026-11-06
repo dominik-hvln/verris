@@ -19,7 +19,7 @@ const zamowienie = (extra: Record<string, unknown>) => plainToInstance(CreateSub
 const bledy = (dto: object, pole: string) => validateSync(dto).filter((e) => e.property === pole);
 
 /** P5-04 (beta 3.11): `example..com` i `-zla-.pl` przechodziły do opłaty, `żółw.pl` dostawał „Niepoprawny format”. */
-describe('P5-04 — domena w zamówieniu', () => {
+describe('P5-04 – domena w zamówieniu', () => {
   it.each(['example..com', '-zla-.pl', 'zla-.pl', 'a.b', 'https://firma.pl', 'firma.pl/sklep', 'firma', 'fir ma.pl', `${'a'.repeat(64)}.pl`])(
     'odrzuca %s',
     (domain) => {
@@ -50,7 +50,7 @@ describe('P5-04 — domena w zamówieniu', () => {
 });
 
 /** Decyzja 6 (3.11): limit kosztu autoskalowania można podać już w zamówieniu. */
-describe('decyzja 6 — limit autoskalowania w zamówieniu', () => {
+describe('decyzja 6 – limit autoskalowania w zamówieniu', () => {
   it('przyjmuje kwotę z groszami i brak limitu', () => {
     expect(bledy(zamowienie({ autoscalingEnabled: true, autoscalingMaxCost: 30.5 }), 'autoscalingMaxCost')).toHaveLength(0);
     expect(bledy(zamowienie({ autoscalingEnabled: true }), 'autoscalingMaxCost')).toHaveLength(0);

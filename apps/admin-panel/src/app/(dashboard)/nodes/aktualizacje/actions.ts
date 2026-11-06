@@ -42,7 +42,7 @@ export interface PodsumowanieAktualizacji {
 }
 
 type Wynik<T> = { ok: true; data: T } | { ok: false; error: string };
-const blad = (e: unknown) => (e instanceof AdminApiError ? e.message : "Nie udało się — spróbuj ponownie.");
+const blad = (e: unknown) => (e instanceof AdminApiError ? e.message : "Nie udało się – spróbuj ponownie.");
 
 export async function pobierzAktualizacje(cve?: string): Promise<Wynik<PodsumowanieAktualizacji>> {
   try {

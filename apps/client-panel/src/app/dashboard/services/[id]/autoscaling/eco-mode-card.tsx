@@ -29,8 +29,8 @@ export function EcoModeCard({ subscriptionId, ecoModeEnabled: initial, ecoPoints
   const label = useMemo(
     () =>
       eco
-        ? 'Włączony — Twoje harmonogramy kopii w panelu robią kopię raz w tygodniu zamiast codziennie.'
-        : 'Wyłączony — Twoje harmonogramy kopii działają tak, jak je ustawisz (domyślnie codziennie).',
+        ? 'Włączony – Twoje harmonogramy kopii w panelu robią kopię raz w tygodniu zamiast codziennie.'
+        : 'Wyłączony – Twoje harmonogramy kopii działają tak, jak je ustawisz (domyślnie codziennie).',
     [eco],
   );
 
@@ -69,7 +69,7 @@ export function EcoModeCard({ subscriptionId, ecoModeEnabled: initial, ecoPoints
               <Sparkles className="h-3.5 w-3.5 text-emerald-400/80" />
               Twoje punkty EKO:{' '}
               {points === null ? (
-                <span className="font-semibold text-white" data-tip="Nie udało się pobrać salda punktów — odśwież stronę">—</span>
+                <span className="font-semibold text-white" data-tip="Nie udało się pobrać salda punktów – odśwież stronę">–</span>
               ) : (
                 <span className="font-semibold text-white">{points}</span>
               )}
@@ -92,7 +92,7 @@ export function EcoModeCard({ subscriptionId, ecoModeEnabled: initial, ecoPoints
           <div className="text-sm font-semibold text-white">Włącz Tryb EKO</div>
           <p className="mt-1 text-xs text-neutral-500">
             Pierwsze włączenie na tej usłudze daje +{ECO_FIRST_ENABLE_POINTS} pkt EKO (raz na usługę). Kopie, które
-            ustawiasz sam, robią się raz w tygodniu zamiast codziennie — mniej pracy serwera, ale starsza kopia do
+            ustawiasz sam, robią się raz w tygodniu zamiast codziennie – mniej pracy serwera, ale starsza kopia do
             odtworzenia. Kopie platformy robimy dalej codziennie.
           </p>
         </div>

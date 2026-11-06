@@ -10,7 +10,7 @@ import { maUprawnienie, mozeWejscNaKonto, pobierzDostepOperatora } from "@/lib/s
 export default async function StaffTicketDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await sesjaLubAwaria();
-  if (session === "awaria") return <p role="alert" className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">Panel chwilowo nie łączy się z serwerem — odśwież stronę za chwilę.</p>;
+  if (session === "awaria") return <p role="alert" className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">Panel chwilowo nie łączy się z serwerem – odśwież stronę za chwilę.</p>;
   let ticket: StaffTicketDetail;
   let agents: Awaited<ReturnType<typeof staffListSupportAgents>>;
   let context: Awaited<ReturnType<typeof staffGetTicketContext>>;

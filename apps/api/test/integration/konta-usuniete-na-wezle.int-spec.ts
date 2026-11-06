@@ -10,7 +10,7 @@ import { prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } fr
  * nie liczy się do kont węzła w adminie (lista, szczegóły, wycofanie) i nie ma go w tabeli WAF.
  * Na t1 07.10: „Konta (3)” i trzy wiersze WAF przy jednym żywym koncie.
  */
-describe('Węzeł — usunięte konta poza licznikiem i WAF', () => {
+describe('Węzeł – usunięte konta poza licznikiem i WAF', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 
@@ -40,7 +40,7 @@ describe('Węzeł — usunięte konta poza licznikiem i WAF', () => {
    * To samo w tabeli „Konta na węźle”, obciążeniu węzła (liczba kont) i planie drenażu (usunięte „do przeniesienia”).
    * Ostatnie zadania to historia — zadanie na usuniętym koncie dalej pokazuje jego domenę.
    */
-  it('karta węzła, „Konta na węźle”, obciążenie i plan drenażu — bez kont usuniętych', async () => {
+  it('karta węzła, „Konta na węźle”, obciążenie i plan drenażu – bez kont usuniętych', async () => {
     const w = await utworzWezel({ name: 't1', maxAccounts: 10 });
     const plan = await utworzPlan();
     const zywe = await utworzKonto({ serverId: w.id, planId: plan.id });

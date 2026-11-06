@@ -8,7 +8,7 @@ const STAN: Record<StanFali["stan"], { tekst: string; klasa: string }> = {
   trwa: { tekst: "Trwa", klasa: "text-amber-300" },
   zakonczona: { tekst: "Zakończona", klasa: "text-emerald-300" },
   zatrzymana: { tekst: "Zatrzymana na błędzie", klasa: "text-rose-300" },
-  przerwana: { tekst: "Przerwana — nie zlecono kolejnego węzła", klasa: "text-rose-300" },
+  przerwana: { tekst: "Przerwana – nie zlecono kolejnego węzła", klasa: "text-rose-300" },
 };
 
 const ZADANIE: Record<StanFali["wezly"][number]["status"], string> = {
@@ -26,7 +26,7 @@ const WYNIK: Record<NonNullable<StanFali["wezly"][number]["wynik"]>, string> = {
 };
 
 const czas = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleString("pl-PL", { timeZone: "Europe/Warsaw", dateStyle: "short", timeStyle: "short" }) : "—";
+  iso ? new Date(iso).toLocaleString("pl-PL", { timeZone: "Europe/Warsaw", dateStyle: "short", timeStyle: "short" }) : "–";
 
 /**
  * PB-32 — „status w panelu zgodny z logiem”: przebieg ostatniej fali po węzłach (kanarek pierwszy), stan zadania
@@ -76,7 +76,7 @@ export function StanFaliPanel() {
         </button>
       </p>
       {stan.wymagaRestartu.length ? (
-        <p className="text-xs text-amber-300">Wymaga restartu: {stan.wymagaRestartu.join(", ")} — zaplanuj restart w oknie serwisowym.</p>
+        <p className="text-xs text-amber-300">Wymaga restartu: {stan.wymagaRestartu.join(", ")} – zaplanuj restart w oknie serwisowym.</p>
       ) : null}
       <table className="w-full text-left text-xs">
         <thead className="text-muted-foreground">
@@ -99,7 +99,7 @@ export function StanFaliPanel() {
               </td>
               <td className="py-1 pr-3">{ZADANIE[w.status]}</td>
               <td className="py-1 pr-3">
-                {w.wynik ? WYNIK[w.wynik] : "—"}
+                {w.wynik ? WYNIK[w.wynik] : "–"}
                 {w.blad ? <span className="block text-rose-300">{w.blad}</span> : null}
               </td>
               <td className="py-1 pr-3">{czas(w.koniec)}</td>

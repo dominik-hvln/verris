@@ -33,7 +33,7 @@ function proba(over: Partial<ProbaOdtworzenia> = {}): ProbaOdtworzenia {
   };
 }
 
-describe('H-20 — ocena próby odtworzenia', () => {
+describe('H-20 – ocena próby odtworzenia', () => {
   it('brak jakiejkolwiek próby BLOKUJE start', () => {
     const o = ocenProby(null, null, TERAZ);
     expect(o.stan).toBe('brak');
@@ -108,14 +108,14 @@ describe('H-20 — ocena próby odtworzenia', () => {
   });
 });
 
-describe('H-20 — progi wierszy po odtworzeniu', () => {
+describe('H-20 – progi wierszy po odtworzeniu', () => {
   it('pełny raport przechodzi', () => {
     expect(odtworzenieMaDane({ User: 42, Plan: 3, Subscription: 0, Invoice: 0, Account: 0 })).toBe(
       true,
     );
   });
 
-  it('PUSTA baza NIE przechodzi — a to był stary wynik „OK"', () => {
+  it('PUSTA baza NIE przechodzi – a to był stary wynik „OK"', () => {
     // Sedno poprawki: `psql` kończy się zerem także wtedy, gdy wgrał pusty
     // plik. Skrypt liczył wiersze i tylko je logował, więc odtworzenie
     // niczego meldowało „RESTORE DRILL OK".
@@ -160,7 +160,7 @@ describe('H-20 — progi wierszy po odtworzeniu', () => {
   });
 });
 
-describe('H-20 — skrypt drilla asertuje i zostawia ślad', () => {
+describe('H-20 – skrypt drilla asertuje i zostawia ślad', () => {
   const SKRYPT = join(
     import.meta.dirname,
     '..',
@@ -205,7 +205,7 @@ describe('H-20 — skrypt drilla asertuje i zostawia ślad', () => {
     expect(kod).toMatch(/fail "RESTORE DRILL NIEUDANY/);
   });
 
-  it('mierzy czas trwania — to jest realne RTO', () => {
+  it('mierzy czas trwania – to jest realne RTO', () => {
     expect(kod).toContain('STARTED_EPOCH');
     expect(kod).toContain('durationSec');
   });

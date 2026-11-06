@@ -17,7 +17,7 @@ const DZIEN = 86_400_000;
 const cykl = () => new CyklZyciaUslugiService(prisma() as never, new AuditService(prisma() as never), {} as never);
 let n = 0;
 
-describe('F3.5 — prośba klienta: zgłoszenie musi dotyczyć tej sprawy (przegląd 12.10)', () => {
+describe('F3.5 – prośba klienta: zgłoszenie musi dotyczyć tej sprawy (przegląd 12.10)', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 
@@ -47,7 +47,7 @@ describe('F3.5 — prośba klienta: zgłoszenie musi dotyczyć tej sprawy (przeg
     expect((await p.subscription.findUniqueOrThrow({ where: { id: hosting.id } })).cancelAt?.toISOString()).toBe(koniec.toISOString());
   });
 
-  it('każdy warunek osobno: inna usługa, zamknięte, wiadomość sprzed rezygnacji, starsza niż 14 dni — odmowa; świeża prośba o tę usługę — cofnięcie', async () => {
+  it('każdy warunek osobno: inna usługa, zamknięte, wiadomość sprzed rezygnacji, starsza niż 14 dni – odmowa; świeża prośba o tę usługę – cofnięcie', async () => {
     n += 1;
     const p = prisma();
     const k = await p.user.create({ data: { email: `f35w-${n}-${Date.now()}@test.verris.pl`, passwordHash: 'x', walletBalance: 100 } });

@@ -164,13 +164,13 @@ export class WalletLedgerService {
         // Subkonto nie ma własnego portfela — działa na portfelu właściciela. Wpis tutaj to pieniądze,
         // których nikt nie zobaczy ani nie wyda (np. „Dodaj kredyty” w adminie na karcie subkonta).
         if (user.customerOwnerId) {
-          throw new BadRequestException('To subkonto — portfel należy do właściciela konta.');
+          throw new BadRequestException('To subkonto – portfel należy do właściciela konta.');
         }
 
         const newBalance = new Prisma.Decimal(user.walletBalance).plus(signedAmount);
         if (newBalance.isNegative()) {
           throw new ConflictException(
-            'Za mało środków w portfelu — doładuj portfel i spróbuj ponownie.',
+            'Za mało środków w portfelu – doładuj portfel i spróbuj ponownie.',
           );
         }
 

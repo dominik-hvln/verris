@@ -118,7 +118,7 @@ describe('sprawdzenie sesji w middleware idzie z IP klienta', () => {
   });
 });
 
-describe('fetchSessionProfileState — wylogowanie tylko przy odrzuconej sesji', () => {
+describe('fetchSessionProfileState – wylogowanie tylko przy odrzuconej sesji', () => {
   // Wcześniej middleware kasował ciasteczko przy każdej awarii /users/me, więc 502 w trakcie
   // wdrożenia wylogowywało wszystkich klientów przeglądających panel.
   it.each([401, 403])('%i → sesja odrzucona', async (status) => {

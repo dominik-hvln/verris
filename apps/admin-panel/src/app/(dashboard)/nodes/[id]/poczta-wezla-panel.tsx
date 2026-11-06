@@ -34,7 +34,7 @@ const przycisk = "rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-
  * PL); wynik starszego agenta (bez strefy) to czas serwera — pokazujemy go wprost, bez przeliczania.
  */
 export const okno = (iso: string | null) => {
-  if (!iso) return "—";
+  if (!iso) return "–";
   if (/(Z|[+-]\d\d:?\d\d)$/.test(iso)) {
     const d = new Date(iso);
     return Number.isNaN(d.getTime()) ? iso : d.toLocaleString("pl-PL", { timeZone: "Europe/Warsaw", dateStyle: "short", timeStyle: "short" });
@@ -89,7 +89,7 @@ export function PocztaWezlaPanel({ serverId }: { serverId: string }) {
       <h2 className="flex items-center gap-1.5 font-display text-[17px] font-bold">
         Nadawcy i odrzucenia <Pomoc id="nadawcy-wezla" />
       </h2>
-      <p className="text-xs text-muted-foreground">Wysyłka na zewnątrz z dziennika poczty serwera (bieżący i poprzedni plik) — bez adresów i treści.</p>
+      <p className="text-xs text-muted-foreground">Wysyłka na zewnątrz z dziennika poczty serwera (bieżący i poprzedni plik) – bez adresów i treści.</p>
       <div className="flex flex-wrap items-center gap-2">
         <button type="button" data-akcja="wczytaj-statystyki" className={przycisk} disabled={pending || trwa} onClick={() => start(async () => { setMsg(null); await wywolaj("wczytaj"); })}>
           {trwa ? "Wczytuję z serwera…" : "Wczytaj z serwera"}

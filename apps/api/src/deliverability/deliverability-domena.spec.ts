@@ -4,7 +4,7 @@ import { DeliverabilityService } from './deliverability.service.js';
  * E-16 — raport dostarczalności (SPF/DKIM/DMARC + „Włącz DKIM”) dla domeny dodatkowej usługi, nie tylko
  * głównej (test D3 30.09: nowa domena bez klucza była nieosiągalna z panelu). Cudza domena — odmowa.
  */
-describe('DeliverabilityService.forSubscription — wybrana domena', () => {
+describe('DeliverabilityService.forSubscription – wybrana domena', () => {
   const prisma = {
     subscription: {
       findFirst: vi.fn(async () => ({ account: { domain: 'firma.pl', server: { ipAddress: '1.2.3.4', ns1: null, ns2: null, ns3: null } } })),

@@ -41,12 +41,12 @@ describe('PB-15 klocki v2', () => {
     expect(procentGb(5427, 7680)).toBe('71% (5,3 GB / 7,5 GB)');
     expect(procentGb(300, 20480)).toBe('1% (0,3 GB / 20 GB)');
     expect(procentGb(5000, null)).toBe('4,9 GB · bez limitu');
-    expect(procentGb(null, 7680)).toBe('—');
+    expect(procentGb(null, 7680)).toBe('–');
   });
   it('fmtMb: MB poniżej 1 GB, GB z przecinkiem, brak = kreska', () => {
     expect(fmtMb(512)).toBe('512 MB');
     expect(fmtMb(12698)).toBe('12,4 GB');
-    expect(fmtMb(null)).toBe('—');
+    expect(fmtMb(null)).toBe('–');
   });
 });
 
@@ -64,7 +64,7 @@ describe('placeTip', () => {
   it('nad elementem, wyśrodkowany', () => {
     expect(placeTip({ x: 500, y: 300, bottom: 320 }, { w: 100, h: 40 }, view)).toEqual({ left: 450, top: 252 });
   });
-  it('przy górnej krawędzi (np. portfel w pasku) — pod elementem', () => {
+  it('przy górnej krawędzi (np. portfel w pasku) – pod elementem', () => {
     expect(placeTip({ x: 500, y: 10, bottom: 40 }, { w: 100, h: 40 }, view).top).toBe(48);
   });
   it('przy prawej krawędzi nie wychodzi poza ekran', () => {
@@ -81,7 +81,7 @@ describe('backupDays', () => {
     const days = backupDays(['backup-2026-09-22-user.tar.zst', 'backup-Sep-20-2026.tar.gz'], 4, today);
     expect(days).toEqual([false, true, false, true]);
   });
-  it('bez kopii — same puste dni', () => {
+  it('bez kopii – same puste dni', () => {
     expect(backupDays([], 3, today)).toEqual([false, false, false]);
   });
   it('czyta datę z nazwy pliku', () => {

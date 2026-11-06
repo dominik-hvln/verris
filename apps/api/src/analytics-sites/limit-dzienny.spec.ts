@@ -1,7 +1,7 @@
 import { AnalyticsSitesService } from './analytics-sites.service.js';
 
 /** Audyt 13.10 (zaległość): anonimowy collect bez dziennego limitu na stronę zapychał tabelę zdarzeń bez końca. */
-describe('Analityka — dzienny limit zdarzeń na stronę', () => {
+describe('Analityka – dzienny limit zdarzeń na stronę', () => {
   function usluga(juzDzis: number) {
     const create = vi.fn(async () => ({}));
     const count = vi.fn(async () => juzDzis);

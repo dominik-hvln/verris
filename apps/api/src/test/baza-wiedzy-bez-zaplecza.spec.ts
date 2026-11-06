@@ -14,8 +14,8 @@ const ZAPLECZE =
 
 const bezKomentarzy = (t: string) => t.split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l));
 
-describe('P4-15 — baza wiedzy dla klientów bez nazw zaplecza', () => {
-  it('seed CMS pomocy (kategorie, artykuły, SEO, FAQ) — ani jednego słowa zaplecza', () => {
+describe('P4-15 – baza wiedzy dla klientów bez nazw zaplecza', () => {
+  it('seed CMS pomocy (kategorie, artykuły, SEO, FAQ) – ani jednego słowa zaplecza', () => {
     const plik = 'apps/api/src/cli/seed-kb-cms.ts';
     const trafienia = bezKomentarzy(readFileSync(join(KORZEN, plik), 'utf8'))
       .map((l, i) => [l, ZAPLECZE.exec(l)?.[0], i] as const)
@@ -31,7 +31,7 @@ describe('P4-15 — baza wiedzy dla klientów bez nazw zaplecza', () => {
     expect(`${kat![1]} ${kat![2]}`).not.toMatch(ZAPLECZE);
   });
 
-  it('seed podpowiedzi AI — artykuły dla klientów (ALL, CLIENT) bez słów zaplecza; artykuły STAFF mogą je mieć', () => {
+  it('seed podpowiedzi AI – artykuły dla klientów (ALL, CLIENT) bez słów zaplecza; artykuły STAFF mogą je mieć', () => {
     const zrodlo = readFileSync(join(KORZEN, 'apps/api/src/cli/seed-knowledge-base.ts'), 'utf8');
     const artykuly = [...zrodlo.matchAll(/title: '([^']*)',\s*audience: AiKnowledgeAudience\.(\w+),\s*content: `([^`]*)`/g)];
     expect(artykuly.length).toBeGreaterThan(20);
@@ -46,7 +46,7 @@ describe('P4-15 — baza wiedzy dla klientów bez nazw zaplecza', () => {
     expect(artykuly.some(([, , o, t]) => o === 'STAFF' && ZAPLECZE.test(t))).toBe(true);
   });
 
-  it('decyzja 24 — przykłady crona w obu seedach używają krótkich nazw /usr/local/bin/phpXY', () => {
+  it('decyzja 24 – przykłady crona w obu seedach używają krótkich nazw /usr/local/bin/phpXY', () => {
     for (const p of ['apps/api/src/cli/seed-kb-cms.ts', 'apps/api/src/cli/seed-knowledge-base.ts']) {
       expect(readFileSync(join(KORZEN, p), 'utf8')).toMatch(/\/usr\/local\/bin\/php8\d -q \$HOME\/domains\//);
     }

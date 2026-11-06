@@ -377,7 +377,7 @@ export function TicketDetailPanel({
           </div>
           {ticket.scalonoDoId ? (
             <p role="status" data-scalone className="rounded-lg bg-warn-soft px-3 py-2 text-[13px] font-semibold text-warn">
-              Scalone z <Link href={`/tickets/${ticket.scalonoDoId}`}>#{ticket.scalonoDoId.slice(0, 8)}</Link> — rozmowa toczy się tam.
+              Scalone z <Link href={`/tickets/${ticket.scalonoDoId}`}>#{ticket.scalonoDoId.slice(0, 8)}</Link> – rozmowa toczy się tam.
             </p>
           ) : (
             <TicketObecnosc ticketId={ticket.id} pisze={replyText.trim().length > 0} />
@@ -400,7 +400,7 @@ export function TicketDetailPanel({
           >
             <div className="flex items-baseline gap-2">
               {/* F2.5 — zgłoszenie założone przez obsługę: pierwsza wiadomość jest nasza (klient widzi „Obsługa Verris”). */}
-              <b>{ticket.openedByStaffId ? `Verris — ${agents.find((a) => a.id === ticket.openedByStaffId)?.firstName ?? "obsługa"}` : nazwaKlienta}</b>
+              <b>{ticket.openedByStaffId ? `Verris – ${agents.find((a) => a.id === ticket.openedByStaffId)?.firstName ?? "obsługa"}` : nazwaKlienta}</b>
               <span className="text-[12.5px] text-muted-foreground">
                 {ticket.openedByStaffId ? "obsługa · założone w imieniu klienta" : zgloszenieZMaila(ticket) ? "klient · e-mail, nadawca niezweryfikowany" : "klient"} · {kd(ticket.createdAt)}
               </span>
@@ -427,7 +427,7 @@ export function TicketDetailPanel({
                   {r.automatic === "PODZIEKOWANIE" ? "♥" : r.automatic === "WCIAZ_PRACUJEMY" ? "↻" : "✓"}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <b>Automatycznie · {kd(r.createdAt)}</b> — {AUTO[r.automatic] ?? r.automatic}: „{r.message}”
+                  <b>Automatycznie · {kd(r.createdAt)}</b> – {AUTO[r.automatic] ?? r.automatic}: „{r.message}”
                 </span>
                 <span className="shrink-0 font-mono text-[11.5px] text-muted-foreground">e-mail + panel</span>
               </div>
@@ -439,7 +439,7 @@ export function TicketDetailPanel({
                 }`}
               >
                 <div className="flex items-baseline gap-2">
-                  <b>{r.isStaff ? `Verris — ${agents.find((a) => a.id === r.authorId)?.firstName ?? "obsługa"}` : nazwaKlienta}</b>
+                  <b>{r.isStaff ? `Verris – ${agents.find((a) => a.id === r.authorId)?.firstName ?? "obsługa"}` : nazwaKlienta}</b>
                   <span className="text-[12.5px] text-muted-foreground">
                     {r.isStaff ? "obsługa" : wiadomoscZMaila(r) ? "klient · e-mail, nadawca niezweryfikowany" : "klient"} · {kd(r.createdAt)}
                   </span>
@@ -481,7 +481,7 @@ export function TicketDetailPanel({
               rows={9}
               value={replyText}
               onChange={(e) => naZmiane(e.target.value)}
-              placeholder="Napisz odpowiedź — klient dostanie ją e-mailem i zobaczy w panelu."
+              placeholder="Napisz odpowiedź – klient dostanie ją e-mailem i zobaczy w panelu."
               className="min-h-[180px] resize-y rounded-[9px] border border-line-strong bg-background px-3 py-2.5 text-[14.5px] leading-[1.55] text-foreground outline-none focus:border-data"
             />
             {uzyte.length ? (
@@ -491,7 +491,7 @@ export function TicketDetailPanel({
                     {u}
                   </span>
                 ))}
-                <span className="text-xs text-muted-foreground">— użyte w tej odpowiedzi</span>
+                <span className="text-xs text-muted-foreground">– użyte w tej odpowiedzi</span>
               </div>
             ) : null}
             <div>
@@ -512,7 +512,7 @@ export function TicketDetailPanel({
                 type="submit"
                 disabled={pending}
                 onClick={() => ustawRodzaj("notatka")}
-                title="Zapisuje w wątku tylko dla zespołu — bez maila, stan bez zmian. Pisz tak, jakby klient mógł to przeczytać (eksport RODO)."
+                title="Zapisuje w wątku tylko dla zespołu – bez maila, stan bez zmian. Pisz tak, jakby klient mógł to przeczytać (eksport RODO)."
                 className="mr-auto inline-flex h-[38px] items-center rounded-[9px] border border-dashed border-warn/60 bg-warn-soft px-3.5 text-sm font-semibold text-warn disabled:opacity-50"
               >
                 Zapisz jako notatkę
@@ -576,7 +576,7 @@ export function TicketDetailPanel({
                 <div className="flex flex-col gap-2 border-b border-line px-3.5 py-3">
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-data-hi">
-                      {szkic?.szkic ? `Asystent · gotowy${ticket.aiDraftAt && !szkicNowy ? ` ${kd(ticket.aiDraftAt)}` : ""} — sprawdź przed wysłaniem` : context ? "Szkic z danych konta" : "Asystent"}
+                      {szkic?.szkic ? `Asystent · gotowy${ticket.aiDraftAt && !szkicNowy ? ` ${kd(ticket.aiDraftAt)}` : ""} – sprawdź przed wysłaniem` : context ? "Szkic z danych konta" : "Asystent"}
                     </span>
                     <span className="ml-auto text-[11.5px] text-muted-foreground">do sprawdzenia</span>
                   </div>
@@ -586,7 +586,7 @@ export function TicketDetailPanel({
                     <p className="whitespace-pre-wrap text-[13.5px] leading-[1.5]">{context.draft}</p>
                   ) : (
                     <p className="text-[13.5px] text-muted-foreground">
-                      {aiConfigured ? "Szkic pojawi się po pierwszej wiadomości klienta — albo przygotuj go teraz." : "Asystent nie jest skonfigurowany — użyj szablonów."}
+                      {aiConfigured ? "Szkic pojawi się po pierwszej wiadomości klienta – albo przygotuj go teraz." : "Asystent nie jest skonfigurowany – użyj szablonów."}
                     </p>
                   )}
                   {szkic?.checklista.length ? (
@@ -631,7 +631,7 @@ export function TicketDetailPanel({
                   </div>
                 </div>
                 <div className="px-3.5 pb-1 pt-2.5 font-mono text-[11px] uppercase tracking-[0.1em] text-muted-foreground">Szablony dla tej sytuacji</div>
-                {dlaSytuacji.length === 0 ? <p className="px-3.5 py-2 text-[12.5px] text-muted-foreground">Brak szablonów z kategorią — dodaje je administrator.</p> : null}
+                {dlaSytuacji.length === 0 ? <p className="px-3.5 py-2 text-[12.5px] text-muted-foreground">Brak szablonów z kategorią – dodaje je administrator.</p> : null}
                 {dlaSytuacji.map((t) => (
                   <Szablon key={t.id} t={t} onWstaw={() => wstaw(t.content, NAZWA_KAT[t.category ?? ""] ?? t.title)} />
                 ))}
@@ -718,7 +718,7 @@ export function TicketDetailPanel({
             <Krok stan={assignedId ? "done" : "todo"}>Opiekun: {opiekun}</Krok>
             <Krok stan={przeczytane ? "done" : "todo"}>{przeczytane ? `Przeczytane · ${kd(przeczytane)}` : "Jeszcze nieprzeczytane przez opiekuna"}</Krok>
             <Krok stan={zamkniete ? "done" : "now"}>
-              {zamkniete ? "Rozwiązane" : ticket.status === "WAITING_CUSTOMER" ? "Czekamy na odpowiedź klienta" : czekaNaNas ? "Czeka na naszą odpowiedź" : "W toku — ostatnio odpisaliśmy my"}
+              {zamkniete ? "Rozwiązane" : ticket.status === "WAITING_CUSTOMER" ? "Czekamy na odpowiedź klienta" : czekaNaNas ? "Czeka na naszą odpowiedź" : "W toku – ostatnio odpisaliśmy my"}
             </Krok>
             <Krok stan={ticket.csatAt ? "done" : "todo"}>{ticket.csatAt ? "Ocena wystawiona" : "Rozwiązane → podziękowanie i ocena"}</Krok>
             {nastepnaAuto ? (
@@ -728,7 +728,7 @@ export function TicketDetailPanel({
             ) : ticket.status === "WAITING_CUSTOMER" && ticket.waitingSince ? (
               <p className="mt-1 rounded-lg bg-raised px-2.5 py-[9px] text-[12.5px] leading-[1.45] text-[color:var(--verris-body)]">
                 Czekamy od {kd(ticket.waitingSince)}.{" "}
-                {ticket.customerReminderSentAt ? "Przypomnienie wysłane — " : "Przypomnienie po 2 dniach, "}zamknięcie po 5 dniach bez odpowiedzi.
+                {ticket.customerReminderSentAt ? "Przypomnienie wysłane – " : "Przypomnienie po 2 dniach, "}zamknięcie po 5 dniach bez odpowiedzi.
               </p>
             ) : ticket.autoClosedAt ? (
               <p className="mt-1 text-[12.5px] text-muted-foreground">Zamknięte automatycznie {kd(ticket.autoClosedAt)}.</p>
@@ -741,10 +741,10 @@ export function TicketDetailPanel({
             <div className="flex flex-col gap-1.5 px-4 py-3.5 text-[13.5px]">
               <h2 className="font-display text-[15px] font-bold">Ocena klienta</h2>
               <span>
-                Opiekun: <b>{ticket.agentRating ?? "—"}/5</b> · obsługa: <b>{ticket.csatRating ?? "—"}/5</b>
+                Opiekun: <b>{ticket.agentRating ?? "–"}/5</b> · obsługa: <b>{ticket.csatRating ?? "–"}/5</b>
               </span>
               <span className="text-muted-foreground">
-                Problem rozwiązany: {ticket.csatResolved == null ? "—" : ticket.csatResolved ? "tak" : "nie"}
+                Problem rozwiązany: {ticket.csatResolved == null ? "–" : ticket.csatResolved ? "tak" : "nie"}
               </span>
               {ticket.csatComment ? <span className="italic">„{ticket.csatComment}”</span> : null}
             </div>
@@ -753,19 +753,19 @@ export function TicketDetailPanel({
 
         <Karta>
           <div className="flex items-center gap-3 px-4 py-3.5">
-            <span className="font-display text-[26px] font-extrabold">{mojeOceny?.opiekun?.toLocaleString("pl-PL") ?? "—"}</span>
+            <span className="font-display text-[26px] font-extrabold">{mojeOceny?.opiekun?.toLocaleString("pl-PL") ?? "–"}</span>
             <span className="flex flex-col text-[12.5px]">
               <b className="text-[13.5px]">Twoje oceny · 30 dni</b>
               <span className="text-muted-foreground">
                 {mojeOceny
-                  ? `obsługa ${mojeOceny.support?.toLocaleString("pl-PL") ?? "—"} · rozwiązane ${mojeOceny.rozwiazanePct ?? "—"}% · ${mojeOceny.ocen} ${plForm(mojeOceny.ocen, "ocena", "oceny", "ocen")}`
+                  ? `obsługa ${mojeOceny.support?.toLocaleString("pl-PL") ?? "–"} · rozwiązane ${mojeOceny.rozwiazanePct ?? "–"}% · ${mojeOceny.ocen} ${plForm(mojeOceny.ocen, "ocena", "oceny", "ocen")}`
                   : "jeszcze bez ocen"}
               </span>
             </span>
           </div>
         </Karta>
 
-        <TicketMakra ticketId={ticket.id} makra={makra} zablokowane={ticket.scalonoDoId ? "Zgłoszenie scalone — makra stosuj w docelowym." : null} />
+        <TicketMakra ticketId={ticket.id} makra={makra} zablokowane={ticket.scalonoDoId ? "Zgłoszenie scalone – makra stosuj w docelowym." : null} />
 
         <TicketRunbook ticketId={ticket.id} runbookKey={ticket.runbookKey} kategoria={context?.category} dzial={ticket.department} />
 
@@ -793,9 +793,9 @@ export function TicketDetailPanel({
                     e.type === "TAGS_CHANGED"
                       ? `: ${[meta.dodane ? `+ ${String(meta.dodane)}` : "", meta.usuniete ? `− ${String(meta.usuniete)}` : ""].filter(Boolean).join(" ")}`
                       : ["ESCALATED", "ESCALATION_UNDONE", "RISK_FLAG_SET", "RISK_FLAG_CLEARED"].includes(e.type) && meta.reason
-                        ? ` — ${String(meta.reason)}`
+                        ? ` – ${String(meta.reason)}`
                         : e.type === "STATUS_CHANGED"
-                      ? ` (${TICKET_STATUS_PL[String(meta.from)] ?? String(meta.from ?? "—")} → ${TICKET_STATUS_PL[String(meta.to)] ?? String(meta.to ?? "—")})`
+                      ? ` (${TICKET_STATUS_PL[String(meta.from)] ?? String(meta.from ?? "–")} → ${TICKET_STATUS_PL[String(meta.to)] ?? String(meta.to ?? "–")})`
                       : e.type === "AUTO_MESSAGE"
                         ? `: ${AUTO[String(meta.rodzaj)] ?? String(meta.rodzaj ?? "")}`
                         : e.type === "SERVICE_LINK_CHANGED"
@@ -803,7 +803,7 @@ export function TicketDetailPanel({
                           : e.type === "MACRO_APPLIED"
                             ? `: ${String((e.meta as { makro?: unknown } | null)?.makro ?? "")}`
                             : e.type === "MERGED_INTO" || e.type === "MERGED_FROM"
-                              ? ` #${String((e.meta as { cel?: unknown; zrodlo?: unknown } | null)?.cel ?? (e.meta as { zrodlo?: unknown } | null)?.zrodlo ?? "").slice(0, 8)}${meta.reason ? ` — ${String(meta.reason)}` : ""}`
+                              ? ` #${String((e.meta as { cel?: unknown; zrodlo?: unknown } | null)?.cel ?? (e.meta as { zrodlo?: unknown } | null)?.zrodlo ?? "").slice(0, 8)}${meta.reason ? ` – ${String(meta.reason)}` : ""}`
                               : "";
                   return (
                     <li key={e.id} className="flex justify-between gap-3 text-[12.5px]">

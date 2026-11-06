@@ -35,9 +35,9 @@ export function leadNotifyTemplate(input: {
     footnote:
       input.kind === 'MIGRATION'
         ? input.marketingConsent
-          ? 'Plan migracji poszedł mailem. Osoba zaznaczyła zgodę na wiadomości o hostingu — obowiązuje dopiero po kliknięciu „Potwierdzam zgodę” w mailu.'
-          : 'Plan migracji poszedł mailem. Bez zgody na wiadomości — nie wysyłamy nic więcej, odpowiadamy tylko na pytania.'
-        : 'Odpowiedz bezpośrednio na tę wiadomość — Reply-To to e-mail nadawcy.',
+          ? 'Plan migracji poszedł mailem. Osoba zaznaczyła zgodę na wiadomości o hostingu – obowiązuje dopiero po kliknięciu „Potwierdzam zgodę” w mailu.'
+          : 'Plan migracji poszedł mailem. Bez zgody na wiadomości – nie wysyłamy nic więcej, odpowiadamy tylko na pytania.'
+        : 'Odpowiedz bezpośrednio na tę wiadomość – Reply-To to e-mail nadawcy.',
     recipientEmail: input.to,
     panelUrl: input.panelUrl,
     recipientHasAccount: false,
@@ -88,7 +88,7 @@ export function leadCallbackNotifyTemplate(input: {
     preheader: `${input.phone} · ${pora}`,
     bodyMarkdown: [...pola.filter(([, v]) => v).map(([k, v]) => `- **${k}:** ${md(v as string)}`), ...przebieg].join('\n'),
     footnote:
-      'Obiecujemy oddzwonienie w dni robocze 9–17, zwykle tego samego dnia. Numer służy tylko do tej rozmowy — nie dopisuj go do żadnej listy.',
+      'Obiecujemy oddzwonienie w dni robocze 9–17, zwykle tego samego dnia. Numer służy tylko do tej rozmowy – nie dopisuj go do żadnej listy.',
     recipientEmail: input.to,
     panelUrl: input.panelUrl,
     recipientHasAccount: false,
@@ -148,12 +148,12 @@ export function leadPlanMigracjiTemplate(input: {
         : []),
     ].join('\n'),
     ...(zgoda ? { cta: { label: 'Potwierdzam zgodę na wiadomości', url: input.potwierdzZgodeUrl as string } } : {}),
-    footnote: 'Jeśli to nie Ty — zignoruj tę wiadomość. Bez potwierdzenia nie wyślemy nic więcej.',
+    footnote: 'Jeśli to nie Ty – zignoruj tę wiadomość. Bez potwierdzenia nie wyślemy nic więcej.',
     recipientEmail: input.to,
     panelUrl: input.panelUrl,
     recipientHasAccount: false,
   });
-  return { to: input.to, tag: 'lead.plan-migracji', subject: 'Plan przeniesienia strony — Verris', text, html };
+  return { to: input.to, tag: 'lead.plan-migracji', subject: 'Plan przeniesienia strony – Verris', text, html };
 }
 
 /** Podziękowanie za zapytanie kontaktowe (CONTACT). */
@@ -166,7 +166,7 @@ export function leadContactAckTemplate(input: { to: string; panelUrl: string }):
     bodyMarkdown: [
       'Cześć,',
       '',
-      'Dziękujemy za wiadomość — przyjęliśmy Twoje zapytanie i odezwiemy się na ten adres, zwykle tego samego dnia roboczego.',
+      'Dziękujemy za wiadomość – przyjęliśmy Twoje zapytanie i odezwiemy się na ten adres, zwykle tego samego dnia roboczego.',
       '',
       'Jeśli sprawa jest pilna, napisz bezpośrednio na [kontakt@verris.pl](mailto:kontakt@verris.pl).',
     ].join('\n'),
@@ -174,5 +174,5 @@ export function leadContactAckTemplate(input: { to: string; panelUrl: string }):
     panelUrl: input.panelUrl,
     recipientHasAccount: false,
   });
-  return { to: input.to, tag: 'lead.contact-ack', subject: 'Otrzymaliśmy Twoją wiadomość — Verris', text, html };
+  return { to: input.to, tag: 'lead.contact-ack', subject: 'Otrzymaliśmy Twoją wiadomość – Verris', text, html };
 }

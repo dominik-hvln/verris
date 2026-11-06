@@ -481,7 +481,7 @@ async function copy(text: string) {
     await navigator.clipboard.writeText(text);
     toast.success(`Skopiowano: ${text}`);
   } catch {
-    toast.error('Nie udało się skopiować — zaznacz tekst ręcznie.');
+    toast.error('Nie udało się skopiować – zaznacz tekst ręcznie.');
   }
 }
 
@@ -549,7 +549,7 @@ export function lastDaysLabels(n: number, today = new Date()): string[] {
 
 /** MB → „512 MB" / „12,4 GB". */
 export function fmtMb(mb: number | null | undefined): string {
-  if (mb == null || !Number.isFinite(mb)) return '—';
+  if (mb == null || !Number.isFinite(mb)) return '–';
   if (mb < 1024) return `${Math.round(mb)} MB`;
   return `${(mb / 1024).toLocaleString('pl-PL', { maximumFractionDigits: 1 })} GB`;
 }
@@ -561,7 +561,7 @@ export function fmtGb(mb: number): string {
 
 /** Zajętość z limitem: „71% (5,3 GB / 7,5 GB)”; bez limitu „5,3 GB · bez limitu”. Czysta funkcja — testowana. */
 export function procentGb(usedMb: number | null | undefined, limitMb: number | null | undefined): string {
-  if (usedMb == null || !Number.isFinite(usedMb)) return '—';
+  if (usedMb == null || !Number.isFinite(usedMb)) return '–';
   if (!limitMb) return `${fmtGb(usedMb)} · bez limitu`;
   return `${Math.round((usedMb / limitMb) * 100)}% (${fmtGb(usedMb)} / ${fmtGb(limitMb)})`;
 }

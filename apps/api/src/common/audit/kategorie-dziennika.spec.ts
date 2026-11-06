@@ -26,7 +26,7 @@ async function where(category: AuditCategory): Promise<Warunek> {
   return (findMany.mock.calls[0] as unknown as [{ where: Warunek }])[0].where;
 }
 
-describe('AuditService — kategorie dziennika', () => {
+describe('AuditService – kategorie dziennika', () => {
   it('„Impersonacja” obejmuje START i STOP logowania jako klient, nic poza tym', async () => {
     const w = await where('IMPERSONATION');
     expect(pasuje(w, 'USER_IMPERSONATION_STARTED')).toBe(true);

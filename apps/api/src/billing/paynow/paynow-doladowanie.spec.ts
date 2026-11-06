@@ -127,7 +127,7 @@ async function utworzona(s: ReturnType<typeof zbuduj>, kod?: string) {
   return { wynik, rek: s.rekordy.get(wynik.sessionId)! };
 }
 
-describe('Paynow — utworzenie doładowania', () => {
+describe('Paynow – utworzenie doładowania', () => {
   it('PLN bez wyboru → Paynow: kwota w groszach, externalId i Idempotency-Key = rekord, continueUrl na stronę płatności', async () => {
     const s = zbuduj();
     const { wynik, rek } = await utworzona(s, 'BONUS10');
@@ -178,7 +178,7 @@ describe('Paynow — utworzenie doładowania', () => {
   });
 });
 
-describe('Paynow — powiadomienie', () => {
+describe('Paynow – powiadomienie', () => {
   it('zły podpis → 401 i żadnego księgowania', async () => {
     const s = zbuduj();
     const { rek } = await utworzona(s);
@@ -227,7 +227,7 @@ describe('Paynow — powiadomienie', () => {
   });
 });
 
-describe('Paynow — sprawdzenie statusu po powrocie (zgubione powiadomienie)', () => {
+describe('Paynow – sprawdzenie statusu po powrocie (zgubione powiadomienie)', () => {
   it('Paynow mówi CONFIRMED → księguje raz; drugie wejście już nie pyta Paynow; potem powiadomienie nie dubluje', async () => {
     const s = zbuduj();
     const { rek } = await utworzona(s);
@@ -252,7 +252,7 @@ describe('Paynow — sprawdzenie statusu po powrocie (zgubione powiadomienie)', 
   });
 });
 
-describe('Paynow — zwrot z panelu admina', () => {
+describe('Paynow – zwrot z panelu admina', () => {
   async function zaksiegowana(s: ReturnType<typeof zbuduj>) {
     const { rek } = await utworzona(s);
     const n = powiadomienie({ paymentId: PID, externalId: rek.id, status: 'CONFIRMED' });
@@ -286,7 +286,7 @@ describe('Paynow — zwrot z panelu admina', () => {
     expect(s.audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'WALLET_TOPUP_REFUNDED' }));
   });
 
-  it('12.10 (prod) — Paynow 2xx bez refundId: 409 z instrukcją (sprawdź w panelu Paynow), bez cofania K i bez 500', async () => {
+  it('12.10 (prod) – Paynow 2xx bez refundId: 409 z instrukcją (sprawdź w panelu Paynow), bez cofania K i bez 500', async () => {
     const s = zbuduj();
     const rek = await zaksiegowana(s);
     s.prisma.walletTransaction.findUniqueOrThrow.mockResolvedValue({
@@ -342,7 +342,7 @@ describe('Paynow — zwrot z panelu admina', () => {
   });
 });
 
-describe('Dokument za doładowanie — sposób płatności', () => {
+describe('Dokument za doładowanie – sposób płatności', () => {
   it('wpłata przez Paynow → „Płatność online (Paynow)”, przez Stripe → jak dotąd', async () => {
     const { InvoicesService } = await import('../invoices.service.js');
     const findUnique = vi.fn();
@@ -356,7 +356,7 @@ describe('Dokument za doładowanie — sposób płatności', () => {
   });
 });
 
-describe('PLATNOSCI_CYKLICZNE — punkt przełączenia płatności cyklicznych', () => {
+describe('PLATNOSCI_CYKLICZNE – punkt przełączenia płatności cyklicznych', () => {
   const przed = process.env.PLATNOSCI_CYKLICZNE;
   afterEach(() => {
     if (przed === undefined) delete process.env.PLATNOSCI_CYKLICZNE;

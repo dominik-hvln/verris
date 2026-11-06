@@ -6,7 +6,7 @@ import { PartnerCommissionScheduler } from './partner-commission.scheduler.js';
  * opłaconych kredytem niegotówkowym (promocja, uznanie obsługi) — polecony bez jednej złotówki wpłaty generował
  * partnerowi realne pieniądze, a bonus progu był do wypłaty od razu.
  */
-describe('Prowizja partnera — tylko od gotówki poleconego', () => {
+describe('Prowizja partnera – tylko od gotówki poleconego', () => {
   function stanowisko(o: { wplaty: number; wykorzystane?: number; obciazenie: number }) {
     const utworzone: Array<Record<string, unknown>> = [];
     const prisma = {

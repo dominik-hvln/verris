@@ -36,7 +36,7 @@ export const AKCJE_USLUGI: AkcjaObiektu<UslugaDlaAkcji>[] = [
     id: "zakladanie",
     grupa: "Naprawa",
     nazwa: "Ponów albo odrzuć zakładanie",
-    opis: "Zakładanie konta się nie udało — ponów albo usuń zadanie z kolejki.",
+    opis: "Zakładanie konta się nie udało – ponów albo usuń zadanie z kolejki.",
     // admin/provisioning-queue — @StaffPerm('PROVISIONING_MANAGE').
     perm: "PROVISIONING_MANAGE",
     kiedy: (u) => u.zakladanieNieudane ?? (u.status === undefined || u.status === "PROVISIONING"),
@@ -213,7 +213,7 @@ export const AKCJE_USLUGI: AkcjaObiektu<UslugaDlaAkcji>[] = [
     id: "kolejka-poczty",
     grupa: "Konto",
     nazwa: "Kolejka poczty konta",
-    opis: "Wiadomości konta czekające na wysyłkę — nagłówki, bez treści.",
+    opis: "Wiadomości konta czekające na wysyłkę – nagłówki, bez treści.",
     // F3.1 — admin/subscriptions/:id/konto/kolejka-poczty — MAIL_QUEUE_VIEW (L2); usunięcie — MAIL_SEND_BLOCK.
     perm: "MAIL_QUEUE_VIEW",
     kiedy: (u) => konto(u) && !u.kontoUsuniete,
@@ -313,7 +313,7 @@ export const AKCJE_USLUGI: AkcjaObiektu<UslugaDlaAkcji>[] = [
     id: "odtworzenie-na-wezle",
     grupa: "Kopie",
     nazwa: "Odtwórz na innym węźle",
-    opis: "Gdy węzeł usługi nie działa — konto z kopii offsite na innym węźle.",
+    opis: "Gdy węzeł usługi nie działa – konto z kopii offsite na innym węźle.",
     perm: "ADMIN",
     kiedy: konto,
     href: (u) => karta(u, "kopie", "odtworzenie-na-wezle"),

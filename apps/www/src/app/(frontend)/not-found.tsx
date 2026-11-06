@@ -4,7 +4,7 @@ import { Button } from './components/ui';
 import { KB_URL } from '@/lib/site';
 
 export const metadata: Metadata = {
-  title: 'Nie ma takiej strony — Verris',
+  title: 'Nie ma takiej strony – Verris',
   description: 'Adres mógł się zmienić albo zawiera literówkę. Zobacz hosting, cennik, przeniesienie strony, domeny i pomoc.',
   robots: { index: false },
 };

@@ -5,7 +5,7 @@
 export const WIDOKI = {
   wszystkie: { tytul: "Skrzynka zgłoszeń", opis: "Otwarte: najpierw po terminie, potem według terminu rozwiązania." },
   moje: { tytul: "Moje zgłoszenia", opis: "Przypisane do Ciebie i jeszcze otwarte." },
-  czeka: { tytul: "Czeka na klienta", opis: "Odpisaliśmy — przypomnienie po 2 dniach, zamknięcie po 5." },
+  czeka: { tytul: "Czeka na klienta", opis: "Odpisaliśmy – przypomnienie po 2 dniach, zamknięcie po 5." },
 } as const;
 export type Widok = keyof typeof WIDOKI;
 

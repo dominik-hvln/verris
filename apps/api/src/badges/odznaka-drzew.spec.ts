@@ -5,7 +5,7 @@ import { renderEkoSvg } from './badge-render.js';
  * A2-10 / decyzja 12 — wariant `eko` odznaki na stronę klienta: zamiast „EKO hosting, poziom X” (twierdzenie
  * środowiskowe bez pokrycia) „Verris — X posadzonych drzew” z licznika `?licznik=verris|moje`.
  */
-describe('Odznaka „Verris — X posadzonych drzew”', () => {
+describe('Odznaka „Verris – X posadzonych drzew”', () => {
   function setup(czesciDrzew: number | null) {
     const badges = { ecoProfile: vi.fn().mockResolvedValue(czesciDrzew === null ? null : { czesciDrzew }) };
     const eco = { recordImpression: vi.fn() };
@@ -19,7 +19,7 @@ describe('Odznaka „Verris — X posadzonych drzew”', () => {
     const a = setup(50_000);
     const svg = await a.ctrl.eko('tok.svg', 'ciemny', 'eko', '', req, a.res as never);
     expect(a.badges.ecoProfile).toHaveBeenCalledWith('tok', 'verris');
-    expect(svg).toContain('Verris — 5 posadzonych drzew');
+    expect(svg).toContain('Verris – 5 posadzonych drzew');
     const b = setup(10_000);
     await b.ctrl.eko('tok.svg', 'jasny', 'eko', 'moje', req, b.res as never);
     expect(b.badges.ecoProfile).toHaveBeenCalledWith('tok', 'moje');
@@ -28,7 +28,7 @@ describe('Odznaka „Verris — X posadzonych drzew”', () => {
   it('bez „EKO hosting”, bez poziomu i bez nazwy partnera; przy zerze sam znak', () => {
     for (const m of ['ciemny', 'jasny'] as const) {
       const svg = renderEkoSvg({ czesciDrzew: 20_000 }, m, 'eko');
-      expect(svg).toContain('Verris — 2 posadzone drzewa');
+      expect(svg).toContain('Verris – 2 posadzone drzewa');
       expect(svg.toLowerCase()).not.toMatch(/eko hosting|poziom|posadzimy/);
     }
     const zero = renderEkoSvg({ czesciDrzew: 0 }, 'ciemny', 'eko');

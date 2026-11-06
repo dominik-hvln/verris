@@ -25,7 +25,7 @@ export function PonowZamowienie(p: { orderId: string; domena: string; typ: strin
 
   if (!p.moznaPonowic) {
     // Przegląd poprawek — API odmawia ponowienia także bez zapisanej ceny (obciąża kwotą z zamówienia klienta).
-    return <span className="text-xs text-muted-foreground">{p.kwota ? "Bez danych abonenta" : "Bez zapisanej ceny"} — klient musi zamówić ponownie</span>;
+    return <span className="text-xs text-muted-foreground">{p.kwota ? "Bez danych abonenta" : "Bez zapisanej ceny"} – klient musi zamówić ponownie</span>;
   }
   if (!otwarte) {
     return (
@@ -55,7 +55,7 @@ export function PonowZamowienie(p: { orderId: string; domena: string; typ: strin
         r = { ok: false, error: "Nie udało się połączyć z panelem. Spróbuj ponownie za chwilę." };
       }
       if (!r.ok) return setMsg({ ok: false, tekst: r.error });
-      setMsg({ ok: true, tekst: r.wynik.status === "SUBMITTED" ? "Transfer zlecony ponownie — czeka na rejestr." : "Domena zarejestrowana." });
+      setMsg({ ok: true, tekst: r.wynik.status === "SUBMITTED" ? "Transfer zlecony ponownie – czeka na rejestr." : "Domena zarejestrowana." });
       router.refresh();
     });
   };
@@ -64,7 +64,7 @@ export function PonowZamowienie(p: { orderId: string; domena: string; typ: strin
       <input value={powod} onChange={(e) => setPowod(e.target.value)} maxLength={500} disabled={pending} placeholder={`Powód (min. ${MIN_POWOD} znaków)`} aria-label="Powód" className={POLE} />
       <input value={zgloszenie} onChange={(e) => setZgloszenie(e.target.value)} maxLength={64} disabled={pending} placeholder="#ab12cd34 (zgłoszenie klienta, opcjonalnie)" aria-label="Numer zgłoszenia" className={`${POLE} font-mono`} />
       {p.typ === "TRANSFER" ? (
-        <input value={kod} onChange={(e) => setKod(e.target.value)} maxLength={256} disabled={pending} placeholder="Nowy kod EPP (puste — kod z zamówienia)" aria-label="Nowy kod EPP" className={`${POLE} font-mono`} />
+        <input value={kod} onChange={(e) => setKod(e.target.value)} maxLength={256} disabled={pending} placeholder="Nowy kod EPP (puste – kod z zamówienia)" aria-label="Nowy kod EPP" className={`${POLE} font-mono`} />
       ) : null}
       <div className="flex gap-2">
         <button

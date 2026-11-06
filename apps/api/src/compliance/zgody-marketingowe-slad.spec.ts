@@ -17,7 +17,7 @@ function stanowisko(przed: Record<string, boolean>) {
 }
 
 describe('Ślad zgód marketingowych (A2-14)', () => {
-  it('każda kategoria marketingu zapisuje wpis przy zmianie — z nazwą kategorii, IP i przeglądarką', async () => {
+  it('każda kategoria marketingu zapisuje wpis przy zmianie – z nazwą kategorii, IP i przeglądarką', async () => {
     const { svc, audit } = stanowisko({});
     await svc.update('u1', { productUpdatesEmail: true, partnerOffersEmail: true }, { ipAddress: '1.2.3.4', userAgent: 'UA' });
     expect(audit.record).toHaveBeenCalledTimes(2);
@@ -29,7 +29,7 @@ describe('Ślad zgód marketingowych (A2-14)', () => {
     );
   });
 
-  it('wyłączenie → MARKETING_OPT_OUT; bez zmiany wartości i dla powiadomień o usługach — bez wpisu', async () => {
+  it('wyłączenie → MARKETING_OPT_OUT; bez zmiany wartości i dla powiadomień o usługach – bez wpisu', async () => {
     const { svc, audit } = stanowisko({ partnerOffersEmail: true, marketingEmail: true });
     await svc.update('u1', { partnerOffersEmail: false, marketingEmail: true, autoscalingEmail: false } as never);
     expect(audit.record).toHaveBeenCalledTimes(1);

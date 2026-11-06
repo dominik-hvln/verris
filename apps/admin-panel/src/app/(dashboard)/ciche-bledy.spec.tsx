@@ -46,14 +46,14 @@ async function html(modul: string, props: unknown = {}) {
 
 beforeEach(() => api.mockReset());
 
-it("Role: bez katalogu uprawnień — komunikat z ponowieniem zamiast pustej listy ról", async () => {
+it("Role: bez katalogu uprawnień – komunikat z ponowieniem zamiast pustej listy ról", async () => {
   apiZ({ "/admin/staff-roles": [] }, /catalog/);
   const h = await html("./roles/page");
   expect(h).toContain("Nie udało się wczytać ról i uprawnień.");
   expect(h).toContain("Spróbuj ponownie");
 });
 
-it("Kolejka zadań: operacje węzłów padły — komunikat, nie „Brak operacji węzłów w historii”", async () => {
+it("Kolejka zadań: operacje węzłów padły – komunikat, nie „Brak operacji węzłów w historii”", async () => {
   apiZ({ "/admin/provisioning-queue": { async: true, counts: {}, rows: [] } }, /node-tasks/);
   const h = await html("./provisioning-queue/page", { searchParams: Promise.resolve({}) });
   expect(h).toContain("Nie udało się wczytać operacji węzłów.");
@@ -62,7 +62,7 @@ it("Kolejka zadań: operacje węzłów padły — komunikat, nie „Brak operacj
   expect(h).toContain("Brak zadań w wybranym stanie.");
 });
 
-it("Korekta faktury: lista wystawionych korekt padła — komunikat zamiast pominięcia sekcji", async () => {
+it("Korekta faktury: lista wystawionych korekt padła – komunikat zamiast pominięcia sekcji", async () => {
   const faktura = { id: "f1", number: "FV/1/2026", status: "PAID", amount: "123.00", netAmount: null, vatAmount: null, currency: "PLN", issuedAt: "2026-10-01T00:00:00Z", lineItems: [], buyerSnapshot: null };
   apiZ({ "/admin/invoices/f1": faktura }, /korekty/);
   const h = await html("./invoices/[invoiceId]/korekta/page", { params: Promise.resolve({ invoiceId: "f1" }) });
@@ -70,7 +70,7 @@ it("Korekta faktury: lista wystawionych korekt padła — komunikat zamiast pomi
   expect(h).toContain("Nie udało się wczytać wystawionych już korekt.");
 });
 
-it("Operatorzy: dziennik aktywności i role padły — komunikaty, nie „Brak zarejestrowanych działań”", async () => {
+it("Operatorzy: dziennik aktywności i role padły – komunikaty, nie „Brak zarejestrowanych działań”", async () => {
   apiZ({ "/staff/me/access": ADMIN, "/admin/users": { rows: [], total: 0, page: 1, totalPages: 1 } }, /staff-roles/);
   const h = await html("./operators/page", { searchParams: Promise.resolve({}) });
   expect(h).toContain("Nie udało się wczytać dziennika aktywności.");
@@ -78,13 +78,13 @@ it("Operatorzy: dziennik aktywności i role padły — komunikaty, nie „Brak z
   expect(h).not.toContain("Brak zarejestrowanych działań");
 });
 
-it("Szablony odpowiedzi: błąd API — komunikat, nie pusta lista szablonów", async () => {
+it("Szablony odpowiedzi: błąd API – komunikat, nie pusta lista szablonów", async () => {
   apiZ({}, /canned/);
   const h = await html("./settings/canned-responses/page");
   expect(h).toContain("Nie udało się wczytać szablonów odpowiedzi.");
 });
 
-it("VPS: plany i snapshoty padły — komunikaty; katalog typów to tylko podpowiedź", async () => {
+it("VPS: plany i snapshoty padły – komunikaty; katalog typów to tylko podpowiedź", async () => {
   apiZ({ "/admin/vps/availability": { available: true }, "/admin/vps/server-types": [] }, /vps\/(plans|snapshot)/);
   const h = await html("./vps/page");
   expect(h).toContain("Nie udało się wczytać planów VPS.");

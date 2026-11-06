@@ -141,14 +141,14 @@ export function ProformyKlienta({
                 value={odnowienie}
                 onChange={setOdnowienie}
                 disabled={pending}
-                options={[{ value: "", label: "— bez odnowienia —" }, ...uslugi.map((u) => ({ value: u.id, label: u.etykieta }))]}
+                options={[{ value: "", label: "– bez odnowienia –" }, ...uslugi.map((u) => ({ value: u.id, label: u.etykieta }))]}
               />
             </div>
           ) : null}
           {pozycje.map((p, i) => (
             <div key={i} className="grid grid-cols-[1fr_110px] gap-2">
               <label className="block space-y-1">
-                <span className={etykieta}>Pozycja {i + 1} — opis</span>
+                <span className={etykieta}>Pozycja {i + 1} – opis</span>
                 <input value={p.nazwa} onChange={(e) => zmienPozycje(i, "nazwa", e.target.value)} maxLength={200} disabled={pending} className={POLE} data-pole="nazwa-pozycji" />
               </label>
               <label className="block space-y-1">

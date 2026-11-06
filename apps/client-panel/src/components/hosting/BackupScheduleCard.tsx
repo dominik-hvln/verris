@@ -57,7 +57,7 @@ export default function BackupScheduleCard({ serviceId }: { serviceId: string })
   return (
     <section className="mb-4 rounded-[10px] border border-line bg-raised p-4">
       <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground"><CalendarClock className="h-4 w-4 text-data-hi" /> Automatyczne backupy (harmonogram)</h3>
-      <p className="mt-1 text-xs text-muted-foreground">Verris sam wykona pełny backup konta w wybranym cyklu — nie musisz pamiętać o ręcznym tworzeniu kopii.</p>
+      <p className="mt-1 text-xs text-muted-foreground">Verris sam wykona pełny backup konta w wybranym cyklu – nie musisz pamiętać o ręcznym tworzeniu kopii.</p>
       <div className="mt-3 flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <label htmlFor={`${uid}-freq`}>Cykl</label>
@@ -116,7 +116,7 @@ export default function BackupScheduleCard({ serviceId }: { serviceId: string })
       {lastRunAt && (
         <p className="mt-2 text-[11px] text-muted-foreground">
           Ostatni automatyczny backup: {new Date(lastRunAt).toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw' })}
-          {lastStatus && lastStatus !== 'ok' ? <span className="text-warn"> — {lastStatus}</span> : <span className="text-data-hi"> — OK</span>}
+          {lastStatus && lastStatus !== 'ok' ? <span className="text-warn"> – {lastStatus}</span> : <span className="text-data-hi"> – OK</span>}
         </p>
       )}
       <p className="mt-1 text-[11px] text-muted-foreground">Kopie trafiają na listę kopii na tej stronie, skąd przywrócisz je jednym kliknięciem.</p>

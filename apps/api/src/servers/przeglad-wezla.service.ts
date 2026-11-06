@@ -167,7 +167,7 @@ export class PrzegladWezlaService {
         { stackVersion: s.stackVersion, dbVersion: s.dbVersion, lsVersion: s.lsVersion, phpVersion: s.phpDefaultVersion },
         manifest,
       ),
-      { co: 'CloudLinux (LVE)', oczekiwane: '—', faktyczne: s.clVersion, zgodne: null },
+      { co: 'CloudLinux (LVE)', oczekiwane: '–', faktyczne: s.clVersion, zgodne: null },
     ];
     const rozjazdy = pozycje.filter((p) => p.zgodne === false).length;
 
@@ -180,7 +180,7 @@ export class PrzegladWezlaService {
         ? { co: 'Weryfikacja onboardu', stan: 'ok', opis: `zielona ${data(s.onboardVerifiedAt)} · ${raport?.fail ?? 0} × FAIL, ${raport?.warn ?? 0} × WARN`, naprawa: null }
         : raport
           ? { co: 'Weryfikacja onboardu', stan: 'crit', opis: `${raport.fail ?? 0} × FAIL, ${raport.warn ?? 0} × WARN · węzeł nie dostaje nowych kont`, naprawa: 'audyt' }
-          : { co: 'Weryfikacja onboardu', stan: 'brak', opis: 'brak raportu — uruchom Onboard LIVE', naprawa: 'audyt' },
+          : { co: 'Weryfikacja onboardu', stan: 'brak', opis: 'brak raportu – uruchom Onboard LIVE', naprawa: 'audyt' },
       s.hardenedEnabled
         ? { co: 'Utwardzenie i blokada ruchu wychodzącego', stan: 'ok', opis: s.hardenedCheckedAt ? `znacznik z ${data(s.hardenedCheckedAt)}` : 'znacznik obecny', naprawa: null }
         : { co: 'Utwardzenie i blokada ruchu wychodzącego', stan: s.hardenedEnabled === false ? 'crit' : 'brak', opis: s.hardenedEnabled === false ? 'brak znacznika utwardzenia' : 'węzeł jeszcze nie raportował', naprawa: 'audyt' },

@@ -33,7 +33,7 @@ import {
  * poczta, dziennik audytu. Baza i logika są prawdziwe.
  */
 
-describe('X-04 — księga pojemności w cyklu życia konta', () => {
+describe('X-04 – księga pojemności w cyklu życia konta', () => {
   beforeEach(async () => {
     await wyczyscBaze();
   });
@@ -75,7 +75,7 @@ describe('X-04 — księga pojemności w cyklu życia konta', () => {
       });
     });
 
-    it('zwalnia limity EFEKTYWNE — razem z nadwyżką autoskalowania', async () => {
+    it('zwalnia limity EFEKTYWNE – razem z nadwyżką autoskalowania', async () => {
       const wezel = await utworzWezel();
       const plan = await utworzPlan();
       // Konto z nadwyżką: 8 GB bazy + 8 GB doskalowane.

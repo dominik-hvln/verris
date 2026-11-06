@@ -13,7 +13,7 @@ import {
  * dwuminutową przerwę w sieci w trwałe wyłączenie węzła — heartbeat by wrócił,
  * a rekord został poza zapytaniem. Zamiast zapisu: wyliczenie przy odczycie.
  */
-describe('OPS-01 — opis sygnału życia', () => {
+describe('OPS-01 – opis sygnału życia', () => {
   const teraz = new Date('2026-08-28T12:00:00.000Z');
   const przed = (minut: number) => new Date(teraz.getTime() - minut * 60_000);
 

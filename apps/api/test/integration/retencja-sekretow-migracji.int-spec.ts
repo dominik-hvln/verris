@@ -14,7 +14,7 @@ describe('Retencja haseł migracji w stanie ATTENTION', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 
-  it('15 dni — hasła usunięte; 12 dni — jedno przypomnienie; 2 dni — bez zmian', async () => {
+  it('15 dni – hasła usunięte; 12 dni – jedno przypomnienie; 2 dni – bez zmian', async () => {
     const p = prisma();
     const powiadomienia: Array<{ userId: string; title: string }> = [];
     const notifications = { create: async (n: { userId: string; title: string }) => { powiadomienia.push(n); } };

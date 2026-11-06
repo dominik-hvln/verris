@@ -23,7 +23,7 @@ const DANE: Record<"swieze" | "stare" | "brak", string> = {
 };
 
 const czas = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleString("pl-PL", { timeZone: "Europe/Warsaw", dateStyle: "short", timeStyle: "short" }) : "—";
+  iso ? new Date(iso).toLocaleString("pl-PL", { timeZone: "Europe/Warsaw", dateStyle: "short", timeStyle: "short" }) : "–";
 
 const PRZYCISK =
   "inline-flex h-[38px] items-center gap-2 rounded-[9px] border border-line-strong bg-transparent px-3.5 text-sm font-semibold text-foreground hover:border-primary disabled:opacity-50";
@@ -118,7 +118,7 @@ export function AktualizacjePanel({ start, bezInstalacji }: { start: Podsumowani
                 {wynikCve.doZalatania.map((w) => (
                   <li key={w.id}>
                     <Link href={`/nodes/${w.id}`} className="font-semibold text-white hover:underline">{w.nazwa}</Link>{" "}
-                    <span className="text-muted-foreground">— {w.advisory.join(", ")}: {w.pakiety.join(", ")}</span>
+                    <span className="text-muted-foreground">– {w.advisory.join(", ")}: {w.pakiety.join(", ")}</span>
                   </li>
                 ))}
               </ul>
@@ -161,7 +161,7 @@ export function AktualizacjePanel({ start, bezInstalacji }: { start: Podsumowani
         {dane.poprawki.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             Węzły ze świeżym raportem nie mają oczekujących poprawek bezpieczeństwa.
-            {dane.kafelki.wezlowBezDanych ? ` ${dane.kafelki.wezlowBezDanych} węzłów nie ma świeżego raportu — dla nich nie wiadomo.` : ""}
+            {dane.kafelki.wezlowBezDanych ? ` ${dane.kafelki.wezlowBezDanych} węzłów nie ma świeżego raportu – dla nich nie wiadomo.` : ""}
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -182,7 +182,7 @@ export function AktualizacjePanel({ start, bezInstalacji }: { start: Podsumowani
                     <td className="px-3 py-2">
                       <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${WAGA[p.waga].klasa}`}>{WAGA[p.waga].tekst}</span>
                     </td>
-                    <td className="px-3 py-2 font-mono text-xs">{p.cve.length ? p.cve.join(", ") : "—"}</td>
+                    <td className="px-3 py-2 font-mono text-xs">{p.cve.length ? p.cve.join(", ") : "–"}</td>
                     <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{p.pakiety.join(", ")}</td>
                     <td className="px-3 py-2 text-xs">{p.wezly.map((w) => w.nazwa).join(", ")}</td>
                   </tr>
@@ -217,10 +217,10 @@ export function AktualizacjePanel({ start, bezInstalacji }: { start: Podsumowani
                     {w.bladDnf ? <span className="block text-rose-300">dnf: {w.bladDnf}</span> : null}
                   </td>
                   <td className="px-3 py-2 text-xs">
-                    {w.dane === "brak" ? "—" : `${w.poprawek} (ważnych: ${w.waznych})`}
+                    {w.dane === "brak" ? "–" : `${w.poprawek} (ważnych: ${w.waznych})`}
                   </td>
                   <td className="px-3 py-2 font-mono text-xs text-muted-foreground">
-                    {Object.keys(w.altPhp).length ? Object.entries(w.altPhp).map(([k, v]) => `${k}: ${v}`).join(" · ") : "—"}
+                    {Object.keys(w.altPhp).length ? Object.entries(w.altPhp).map(([k, v]) => `${k}: ${v}`).join(" · ") : "–"}
                   </td>
                 </tr>
               ))}
@@ -231,7 +231,7 @@ export function AktualizacjePanel({ start, bezInstalacji }: { start: Podsumowani
 
       <section className={`${KARTA} flex flex-col gap-3 p-5`} aria-labelledby="cb-h">
         <h2 id="cb-h" className="font-display text-[17px] font-bold">Składniki CustomBuild</h2>
-        <p className="text-sm text-muted-foreground">Exim, Dovecot, PHP systemowe i LiteSpeed nie przychodzą z repozytoriów — instalują się z opcją „także składniki CustomBuild”.</p>
+        <p className="text-sm text-muted-foreground">Exim, Dovecot, PHP systemowe i LiteSpeed nie przychodzą z repozytoriów – instalują się z opcją „także składniki CustomBuild”.</p>
         {zKustombuild.length === 0 ? (
           <p className="text-sm text-muted-foreground">Brak dostępnych aktualizacji w raportach.</p>
         ) : (

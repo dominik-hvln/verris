@@ -85,7 +85,7 @@ export default async function BillingPage({
           title="Płatność przyjęta"
           description={
             params.zamowienie
-              ? 'Usługa jest opłacona i uruchamia się — jej stan zobaczysz w zakładce Usługi. Fakturę znajdziesz w zakładce Faktury.'
+              ? 'Usługa jest opłacona i uruchamia się – jej stan zobaczysz w zakładce Usługi. Fakturę znajdziesz w zakładce Faktury.'
               : 'Środki są już w portfelu. Dokument za wpłatę znajdziesz w zakładce Faktury.'
           }
         />
@@ -105,7 +105,7 @@ export default async function BillingPage({
           tone="error"
           icon={<XCircle className="h-5 w-5" />}
           title="Płatność nie doszła do skutku"
-          description="Nie pobraliśmy żadnych środków — możesz spróbować ponownie."
+          description="Nie pobraliśmy żadnych środków – możesz spróbować ponownie."
         />
       ) : params.status === 'success' ? (
         <StatusBanner
@@ -126,7 +126,7 @@ export default async function BillingPage({
           tone="warning"
           icon={<XCircle className="h-5 w-5" />}
           title="Płatność anulowana"
-          description="Nie pobraliśmy żadnych środków — możesz spróbować ponownie kiedykolwiek."
+          description="Nie pobraliśmy żadnych środków – możesz spróbować ponownie kiedykolwiek."
         />
       ) : null}
 
@@ -160,7 +160,7 @@ export default async function BillingPage({
             <Kpi label="Wydatki · 30 dni" value={formatCredits(summary.totalChargesLast30d, { withUnit: false })} unit={CREDIT_SHORT} foot={<span>usługi, autoskalowanie, zużycie</span>} />
             <Kpi
               label="Auto-doładowanie"
-              value={billingExtras ? (billingExtras.initialAuto.enabled ? 'Włączone' : 'Wyłączone') : '—'}
+              value={billingExtras ? (billingExtras.initialAuto.enabled ? 'Włączone' : 'Wyłączone') : '–'}
               foot={
                 <span>
                   {billingExtras?.initialAuto.enabled
@@ -206,7 +206,7 @@ export default async function BillingPage({
                 />
                 {summary.recentTransactions.length === 0 ? (
                   <p className="m-0 rounded-[10px] border border-line bg-card px-4 py-[22px] text-sm text-muted-foreground">
-                    Brak transakcji — doładuj portfel, by uruchomić pierwszą usługę lub odnowienia automatyczne.
+                    Brak transakcji – doładuj portfel, by uruchomić pierwszą usługę lub odnowienia automatyczne.
                   </p>
                 ) : (
                   <div className="overflow-x-auto rounded-[10px] border border-line bg-card">
@@ -253,7 +253,7 @@ export default async function BillingPage({
                     <Link href="/dashboard/billing/invoices" className="group flex items-center justify-between gap-3 px-4 py-3 hover:bg-raised/50">
                       <span>
                         <b className="block text-sm font-semibold text-foreground">Faktury</b>
-                        <small className="text-[12.5px] text-muted-foreground">dokumenty za wpłaty — PDF i duplikat</small>
+                        <small className="text-[12.5px] text-muted-foreground">dokumenty za wpłaty – PDF i duplikat</small>
                       </span>
                       <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
                     </Link>

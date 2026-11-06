@@ -46,7 +46,7 @@ function stanowisko(o: { status?: string; get?: Record<string, unknown>; post?: 
 }
 
 describe('DNS (CMD_API_DNS_CONTROL)', () => {
-  it('lista: GET json=yes → records[], domyślnie strefa domeny głównej (nie POST action=select — to usuwanie)', async () => {
+  it('lista: GET json=yes → records[], domyślnie strefa domeny głównej (nie POST action=select – to usuwanie)', async () => {
     const s = stanowisko({ get: { '/CMD_API_DNS_CONTROL': { records: [
       { name: 'www', type: 'CNAME', value: 'firma.pl.', ttl: '300' },
       { name: 'firma.pl.', type: 'MX', value: '10 mail' },
@@ -76,7 +76,7 @@ describe('DNS (CMD_API_DNS_CONTROL)', () => {
     await expect(z.svc.deleteHostingDnsRecord('s1', 'u1', { domain: 'firma.pl', name: 'x', type: 'A', value: '1.2.3.4' })).rejects.toThrow('nie usunął');
   });
 
-  it('usunięcie zapisem ze strefy — t1 04.10: „Cofnij” asystenta podawał _dmarc bez cudzysłowów, DA nic nie usunął, panel „cofnięto”', async () => {
+  it('usunięcie zapisem ze strefy – t1 04.10: „Cofnij” asystenta podawał _dmarc bez cudzysłowów, DA nic nie usunął, panel „cofnięto”', async () => {
     const rek = { name: '_dmarc', type: 'TXT', value: '"v=DMARC1; p=quarantine"' };
     const s = stanowisko({ get: { '/CMD_API_DNS_CONTROL': { records: [rek] } } });
     await expect(s.svc.deleteHostingDnsRecord('s1', 'u1', { domain: 'firma.pl', name: '_dmarc.firma.pl.', type: 'TXT', value: 'v=DMARC1; p=quarantine' }))
@@ -84,7 +84,7 @@ describe('DNS (CMD_API_DNS_CONTROL)', () => {
     expect(s.wyslane().txtrecs0).toBe(`name=_dmarc&value=${encodeURIComponent('"v=DMARC1; p=quarantine"')}`);
   });
 
-  it('edycja: jedno action=edit ze starym rekordem w <typ>recs0 — także zmiana samego TTL; sprawdzenie strefy po zapisie', async () => {
+  it('edycja: jedno action=edit ze starym rekordem w <typ>recs0 – także zmiana samego TTL; sprawdzenie strefy po zapisie', async () => {
     const val = '0 issue "letsencrypt.org"';
     const s = stanowisko({ get: { '/CMD_API_DNS_CONTROL': { records: [{ name: '@', type: 'CAA', value: val, ttl: '1800' }] } } });
     await s.svc.editHostingDnsRecord('s1', 'u1', { domain: 'firma.pl', old: { name: '@', type: 'CAA', value: val }, next: { name: '@', type: 'CAA', value: val, ttl: 1800 } });
@@ -105,7 +105,7 @@ describe('DNS (CMD_API_DNS_CONTROL)', () => {
 
   // H-16 (t1, 13.10): action=edit dla NS zapisał w d3.hvln.pl.db „ns1.verris.pl. NS pb55.d3.hvln.pl.” (zamienione
   // nazwa i wartość) i usunął stary rekord — BIND dalej serwował starą delegację. NS: dodanie + usunięcie, bez action=edit.
-  it('edycja NS (delegacja poddomeny): add nowego, sprawdzenie strefy, usunięcie starego — nigdy action=edit', async () => {
+  it('edycja NS (delegacja poddomeny): add nowego, sprawdzenie strefy, usunięcie starego – nigdy action=edit', async () => {
     const s = stanowisko({ get: { '/CMD_API_DNS_CONTROL': { records: [{ name: 'pb55.firma.pl.', type: 'NS', value: 'ns1.verris.pl.', ttl: '3600' }] } } });
     await s.svc.editHostingDnsRecord('s1', 'u1', {
       domain: 'firma.pl', old: { name: 'pb55.firma.pl.', type: 'NS', value: 'ns3.verris.pl.' }, next: { name: 'pb55.firma.pl.', type: 'NS', value: 'ns1.verris.pl.' },
@@ -313,7 +313,7 @@ describe('Deploy z Git (cron)', () => {
   });
 });
 
-describe('B-05 — .user.ini domeny', () => {
+describe('B-05 – .user.ini domeny', () => {
   it('zapis: blok panelu na górze, dyrektywy klienta zostają; cudza domena i zła wartość nie dochodzą do DA', async () => {
     const s = stanowisko({ get: {
       '/CMD_API_FILE_MANAGER': 'error=0&%2Fdomains%2Fsklep.pl%2Fpublic_html%2F.user.ini=type%3Dfile%26size%3D30',
@@ -331,10 +331,10 @@ describe('B-05 — .user.ini domeny', () => {
     await s.svc.setHostingPhpIni('s1', 'u1', { domain: 'sklep.pl', values: { memory_limit: '512M', upload_max_filesize: '64M' } });
     const pola = s.wyslane();
     expect(pola).toMatchObject({ action: 'edit', path: '/domains/sklep.pl/public_html', filename: '.user.ini' });
-    expect(pola.text).toBe('; BEGIN VERRIS PHP (zarządzane przez panel — nie edytuj ręcznie)\nmemory_limit = 512M\nupload_max_filesize = 64M\n; END VERRIS PHP\n\nsession.gc_maxlifetime = 1440\n');
+    expect(pola.text).toBe('; BEGIN VERRIS PHP (zarządzane przez panel – nie edytuj ręcznie)\nmemory_limit = 512M\nupload_max_filesize = 64M\n; END VERRIS PHP\n\nsession.gc_maxlifetime = 1440\n');
     // LiteSpeed nie czyta .user.ini bez LSPHP_ENABLE_USER_INI — to samo jako php_value w .htaccess (retest D3 29.09).
     expect(s.wyslane(1)).toMatchObject({ action: 'edit', path: '/domains/sklep.pl/public_html', filename: '.htaccess' });
-    expect(s.wyslane(1).text).toBe('# BEGIN VERRIS PHP (zarządzane przez panel — nie edytuj ręcznie)\n<IfModule LiteSpeed>\nphp_value memory_limit 512M\nphp_value upload_max_filesize 64M\n</IfModule>\n# END VERRIS PHP\n');
+    expect(s.wyslane(1).text).toBe('# BEGIN VERRIS PHP (zarządzane przez panel – nie edytuj ręcznie)\n<IfModule LiteSpeed>\nphp_value memory_limit 512M\nphp_value upload_max_filesize 64M\n</IfModule>\n# END VERRIS PHP\n');
     expect(s.audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'HOSTING_PHP_INI_SET' }));
 
     await expect(s.svc.setHostingPhpIni('s1', 'u1', { domain: 'obca.pl', values: { memory_limit: '512M' } })).rejects.toThrow('nie należy');
@@ -349,7 +349,7 @@ describe('B-05 — .user.ini domeny', () => {
   });
 });
 
-describe('L-06 — wynik ostatniego uruchomienia crona', () => {
+describe('L-06 – wynik ostatniego uruchomienia crona', () => {
   type Czytnik = { readAccountTextFile: (k: unknown, p: string) => Promise<string> };
   it('czyta ~/.verris-cron/<klucz>.log, zwraca koniec długiego wyniku', async () => {
     const s = stanowisko();
@@ -371,7 +371,7 @@ describe('L-06 — wynik ostatniego uruchomienia crona', () => {
   });
 });
 
-describe('assertDomainOwnedBySubscription — awaria serwera to nie „cudza domena”', () => {
+describe('assertDomainOwnedBySubscription – awaria serwera to nie „cudza domena”', () => {
   it('brak listy domen z powodu błędu serwera → komunikat o niedostępności', async () => {
     const svc = new DirectAdminService({} as never, {} as never, {} as never, {} as never);
     vi.spyOn(svc, 'listHostingDomainsForSubscription').mockResolvedValue({ domains: [], daUsername: 'k', primaryDomain: 'a.pl', fetchError: 'ECONNREFUSED' });
@@ -381,7 +381,7 @@ describe('assertDomainOwnedBySubscription — awaria serwera to nie „cudza dom
   });
 });
 
-describe('usunięcie domeny dodatkowej będącej poddomeną — delegacja w strefie rodzica (t1, 08.10)', () => {
+describe('usunięcie domeny dodatkowej będącej poddomeną – delegacja w strefie rodzica (t1, 08.10)', () => {
   // DA przy dodaniu domeny sklep.firma.pl dopisuje do strefy firma.pl rekordy NS (i DS przy DNSSEC — „automated
   // adding of the DS records over to the parent zone”, https://docs.directadmin.com/other-hosting-services/dns/maintaining-records.html),
   // a przy usunięciu domeny ich nie zdejmuje: w d3.hvln.pl zostały sieroty test3/4/5, z09.
@@ -409,14 +409,14 @@ describe('usunięcie domeny dodatkowej będącej poddomeną — delegacja w stre
     ]);
   });
 
-  it('domena niebędąca poddomeną innej na koncie — tylko polecenie usunięcia', async () => {
+  it('domena niebędąca poddomeną innej na koncie – tylko polecenie usunięcia', async () => {
     const s = stanowisko({ get: { '/CMD_API_DNS_CONTROL': strefa } });
     await s.svc.deleteHostingAdditionalDomain('s1', 'u1', 'sklep.pl');
     expect(s.post).toHaveBeenCalledTimes(1);
   });
 });
 
-describe('usunięcie CAŁEGO konta z domeną-poddomeną innego konta — delegacja w cudzej strefie (z18b, t1 08.10)', () => {
+describe('usunięcie CAŁEGO konta z domeną-poddomeną innego konta – delegacja w cudzej strefie (z18b, t1 08.10)', () => {
   // Konto z18b.d3.hvln.pl (inny użytkownik DA niż właściciel d3.hvln.pl): po usunięciu konta w strefie d3.hvln.pl
   // zostały NS i DS dopisane przez DA przy zakładaniu konta. Sprzątamy jako właściciel strefy rodzica.
   const strefa = {
@@ -450,7 +450,7 @@ describe('usunięcie CAŁEGO konta z domeną-poddomeną innego konta — delegac
     );
   });
 
-  it('strefa rodzica należała do usuwanego konta — nic do zdejmowania; brak rodzica na węźle — też nic', async () => {
+  it('strefa rodzica należała do usuwanego konta – nic do zdejmowania; brak rodzica na węźle – też nic', async () => {
     const s = stanowisko({ kontaNaWezle: [rodzic], get: { '/CMD_API_DNS_CONTROL': strefa } });
     await s.svc.usunDelegacjeUsunietegoKonta('n1', 'a9', ['a.sklep.firma.pl', 'sklep.firma.pl']);
     // a.sklep.firma.pl: najbliższy przodek to własne sklep.firma.pl (strefa znikła z kontem) — tylko sklep.firma.pl w firma.pl

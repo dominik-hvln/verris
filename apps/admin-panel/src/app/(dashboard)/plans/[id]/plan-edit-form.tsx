@@ -203,7 +203,7 @@ export function PlanEditForm({ plan }: { plan: AdminPlanRow }) {
   };
 
   const handleDelete = async () => {
-    if (!(await potwierdz(`Usunąć plan „${plan.name}” na stałe? Da się to zrobić tylko, gdy nikt go nigdy nie kupił — inaczej wyłącz go ze sprzedaży.`, { akcja: 'Usuń na stałe', niebezpieczne: true }))) return;
+    if (!(await potwierdz(`Usunąć plan „${plan.name}” na stałe? Da się to zrobić tylko, gdy nikt go nigdy nie kupił – inaczej wyłącz go ze sprzedaży.`, { akcja: 'Usuń na stałe', niebezpieczne: true }))) return;
     startTransition(async () => {
       const res = await usunPlanTrwaleAction(plan.id);
       if (res.ok) router.push("/plans");
@@ -337,7 +337,7 @@ export function PlanEditForm({ plan }: { plan: AdminPlanRow }) {
         </Field>
       </Section>
 
-      <Section title="Autoskalowanie — max overscale">
+      <Section title="Autoskalowanie – max overscale">
         <p className="text-xs text-muted-foreground col-span-full -mt-2 mb-2">
           Mnożnik limitu planu (np. 3 = maks. 3× CPU/RAM/dysk w skali efektywnej). Silnik nie
           podniesie delty ponad tę wartość bez zmiany planu.
@@ -438,20 +438,20 @@ export function PlanEditForm({ plan }: { plan: AdminPlanRow }) {
           <ToggleRow
             checked={stripeManual}
             onChange={setStripeManual}
-            description="Ręczne Price ID z Dashboard (zaawansowane) — wyłącza auto-sync przy zapisie."
+            description="Ręczne Price ID z Dashboard (zaawansowane) – wyłącza auto-sync przy zapisie."
           />
         </div>
         {stripeManual ? (
           <>
             <PriceIdField
-              label="Stripe Price ID — miesięcznie"
+              label="Stripe Price ID – miesięcznie"
               value={state.stripePriceMonthlyId}
               onChange={(v) => setField("stripePriceMonthlyId", v)}
               onValidate={() => validateStripe("month")}
               feedback={monthlyValidation}
             />
             <PriceIdField
-              label="Stripe Price ID — rocznie"
+              label="Stripe Price ID – rocznie"
               value={state.stripePriceYearlyId}
               onChange={(v) => setField("stripePriceYearlyId", v)}
               onValidate={() => validateStripe("year")}
@@ -517,7 +517,7 @@ export function PlanEditForm({ plan }: { plan: AdminPlanRow }) {
             className="form-input"
           />
         </Field>
-        <Field label={`Kopie poza serwerem — maks. dni do wyboru (${KOPIE_OFFSITE_DNI} = stałe ${KOPIE_OFFSITE_DNI} dni)`}>
+        <Field label={`Kopie poza serwerem – maks. dni do wyboru (${KOPIE_OFFSITE_DNI} = stałe ${KOPIE_OFFSITE_DNI} dni)`}>
           <input
             type="number"
             min={KOPIE_OFFSITE_DNI}
@@ -652,7 +652,7 @@ function StripeIdRow({ label, value }: { label: string; value: string | null }) 
   return (
     <div className="flex gap-2">
       <span className="w-24 shrink-0 text-white/55">{label}</span>
-      <span className="text-white/80 break-all">{value ?? "— (brak — zapisz lub synchronizuj)"}</span>
+      <span className="text-white/80 break-all">{value ?? "– (brak – zapisz lub synchronizuj)"}</span>
     </div>
   );
 }

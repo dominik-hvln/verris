@@ -8,7 +8,7 @@ function bledy(body: Record<string, unknown>): string[] {
   return validateSync(dto).map((e) => e.property);
 }
 
-describe('F-01 — walidacja rekordu DNS', () => {
+describe('F-01 – walidacja rekordu DNS', () => {
   it.each([
     [{ name: '@', type: 'A', value: '203.0.113.10' }],
     [{ name: 'www', type: 'CNAME', value: 'przyklad.pl.' }],

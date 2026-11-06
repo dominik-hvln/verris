@@ -28,7 +28,7 @@ beforeEach(() => {
   delete window._fbq;
 });
 
-it("komponent layoutu nie zawiera loadera GTM — przed zgodą nic do Google", () => {
+it("komponent layoutu nie zawiera loadera GTM – przed zgodą nic do Google", () => {
   const zrodlo = readFileSync(join(__dirname, "../components/analytics-scripts.tsx"), "utf8");
   expect(zrodlo).not.toMatch(/googletagmanager|gtm\.js|verris-gtm/);
 });

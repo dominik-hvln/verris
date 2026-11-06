@@ -35,7 +35,7 @@ function setup(enabled: boolean) {
 
 const now = new Date('2026-09-02T03:00:00Z');
 
-describe('N-16 — podgląd i wypłata SLA', () => {
+describe('N-16 – podgląd i wypłata SLA', () => {
   it('podgląd: poprzedni miesiąc, próg z §15, kwota od opłaty miesięcznej, zero zapisów', async () => {
     const { s, writes } = setup(false);
     const r = await s.wylicz(now);

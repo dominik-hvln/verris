@@ -17,7 +17,7 @@ import { faqSchema, graph, webPageSchema } from '@/lib/schema';
 const OPIS = `Otwarte testy hostingu Verris przed startem: przenieś stronę, sklep albo pocztę i powiedz nam, co działa, a co nie. Na testy ${KREDYT_TESTOW} zł w kredytach, bez karty.`;
 
 export const metadata: Metadata = {
-  title: 'Testy hostingu przed startem — zgłoś się | Verris',
+  title: 'Testy hostingu przed startem – zgłoś się | Verris',
   description: OPIS,
   alternates: { canonical: '/beta' },
   robots: { index: false, follow: true },
@@ -67,11 +67,11 @@ export default async function Page() {
     ],
     [
       'Co z moją stroną, jeśli coś nie zadziała?',
-      'Przeniesienie kopiuje stronę — dotychczasowy hosting zostaje bez zmian, dopóki sam nie przełączysz domeny. Na początek możesz testować na kopii.',
+      'Przeniesienie kopiuje stronę – dotychczasowy hosting zostaje bez zmian, dopóki sam nie przełączysz domeny. Na początek możesz testować na kopii.',
     ],
     [
       'Ile czasu to zajmie?',
-      'Uruchomienie i przeniesienie strony — zwykle kilkanaście minut. Resztę sprawdzasz w swoim tempie przez dwa tygodnie.',
+      'Uruchomienie i przeniesienie strony – zwykle kilkanaście minut. Resztę sprawdzasz w swoim tempie przez dwa tygodnie.',
     ],
     [
       'Kiedy dostanę zaproszenie?',
@@ -100,7 +100,7 @@ export default async function Page() {
             <p className="lead">
               Testujemy hosting z autoskalowaniem: gdy ruch rośnie, konto może dostać więcej mocy. Szukamy osób, które
               przeniosą do nas stronę, sklep albo pocztę i powiedzą wprost, co działa, a co nie. Na testy dostajesz{' '}
-              <strong>{KREDYT_TESTOW} zł w kredytach</strong> na konto Verris — bez karty, bez zobowiązań.
+              <strong>{KREDYT_TESTOW} zł w kredytach</strong> na konto Verris – bez karty, bez zobowiązań.
             </p>
             <div className="hero2-cta">
               <Button href="#zgloszenie" cta="beta-hero">
@@ -192,12 +192,12 @@ export default async function Page() {
           </div>
           <div className="card bt-uczciwie">
             <h3>Uczciwie o testach</h3>
-            <p>To wersja przed startem — możesz trafić na błąd. Po to są testy, a my naprawiamy na bieżąco.</p>
+            <p>To wersja przed startem – możesz trafić na błąd. Po to są testy, a my naprawiamy na bieżąco.</p>
             <p>
               Działasz na zwykłych zasadach <a href={LEGAL}>regulaminu i polityki prywatności</a> Verris.
             </p>
             <p>
-              Po testach usługa zostaje — nic nie wygasa i nic nie trzeba przenosić; później odnawiasz ją z portfela albo
+              Po testach usługa zostaje – nic nie wygasa i nic nie trzeba przenosić; później odnawiasz ją z portfela albo
               kartą, jak każdy klient. Gdyby coś miało się zmienić, napiszemy z wyprzedzeniem. Dotychczasowy hosting
               zostaje nietknięty, dopóki sam nie przełączysz domeny.
             </p>

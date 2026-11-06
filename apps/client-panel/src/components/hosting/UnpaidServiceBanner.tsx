@@ -56,8 +56,8 @@ export function UnpaidServiceBanner({
 
   const confirmTitle = isPending ? 'Anulować zamówienie?' : 'Anulować usługę?';
   const confirmDescription = isPending
-    ? 'Zamówienie zniknie z listy usług. Nie zostało jeszcze opłacone — usługa nie zostanie uruchomiona. Możesz zamówić usługę ponownie w dowolnym momencie.'
-    : 'Usługa zostanie anulowana. Jeśli masz aktywne konto hostingowe, zostanie zawieszone. Tej operacji nie cofniesz z poziomu panelu — w razie wątpliwości skontaktuj się z pomocą.';
+    ? 'Zamówienie zniknie z listy usług. Nie zostało jeszcze opłacone – usługa nie zostanie uruchomiona. Możesz zamówić usługę ponownie w dowolnym momencie.'
+    : 'Usługa zostanie anulowana. Jeśli masz aktywne konto hostingowe, zostanie zawieszone. Tej operacji nie cofniesz z poziomu panelu – w razie wątpliwości skontaktuj się z pomocą.';
 
   const onRetryPayment = () => {
     setError(null);
@@ -128,13 +128,13 @@ export function UnpaidServiceBanner({
               ? `Odwiedzający widzą komunikat o zawieszeniu strony. Pliki, bazy i poczta są nietknięte. ${
                   isStripe
                     ? 'Opłać zaległą fakturę w Rozliczeniach'
-                    : `Doładuj portfel — pobierzemy opłatę w ciągu godziny albo od razu przyciskiem „Opłać z portfela”${paynow ? ' — albo zapłać za odnowienie BLIK-iem lub przelewem' : ''}`
-                } — usługa wróci automatycznie.${
+                    : `Doładuj portfel – pobierzemy opłatę w ciągu godziny albo od razu przyciskiem „Opłać z portfela”${paynow ? ' – albo zapłać za odnowienie BLIK-iem lub przelewem' : ''}`
+                } – usługa wróci automatycznie.${
                   wygasa ? ` Bez zapłaty do ${wygasa} umowa wygaśnie, a po kolejnych 14 dniach dane zostaną usunięte.` : ''
                 }`
               : isStripe
-                ? 'Opłać zaległą fakturę w Rozliczeniach — do czasu zapłaty usługa zostanie zawieszona.'
-                : 'Doładuj portfel — pobierzemy opłatę automatycznie w ciągu godziny albo od razu przyciskiem „Opłać z portfela” — albo zapłać za odnowienie BLIK-iem lub przelewem. Jeśli opłata nie wpłynie do końca opłaconego okresu, usługa zostanie zawieszona.'}
+                ? 'Opłać zaległą fakturę w Rozliczeniach – do czasu zapłaty usługa zostanie zawieszona.'
+                : 'Doładuj portfel – pobierzemy opłatę automatycznie w ciągu godziny albo od razu przyciskiem „Opłać z portfela” – albo zapłać za odnowienie BLIK-iem lub przelewem. Jeśli opłata nie wpłynie do końca opłaconego okresu, usługa zostanie zawieszona.'}
         </p>
         {error ? <p className="mt-2 text-xs text-crit">{error}</p> : null}
         <div className="mt-3 flex flex-wrap gap-2">
@@ -213,8 +213,8 @@ export function UnpaidServiceBanner({
           <AlertTriangle className="h-5 w-5 shrink-0 text-warn" aria-hidden />
           <p>
             {isPending
-              ? 'Po anulowaniu nie będziesz mógł dokończyć tej samej płatności — utwórz nowe zamówienie, jeśli nadal chcesz tę usługę.'
-              : 'Upewnij się, że rozliczyłeś zaległość, zanim anulujesz — inaczej stracisz dostęp do usługi.'}
+              ? 'Po anulowaniu nie będziesz mógł dokończyć tej samej płatności – utwórz nowe zamówienie, jeśli nadal chcesz tę usługę.'
+              : 'Upewnij się, że rozliczyłeś zaległość, zanim anulujesz – inaczej stracisz dostęp do usługi.'}
           </p>
         </div>
         <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

@@ -5,7 +5,7 @@ import { Pages } from './Pages';
 import { OPUBLIKOWANE } from './tylko-opublikowane';
 
 /** Audyt bezpieczeństwa 13.10: szkice Posts/Pages nie mogą być czytelne dla anonima ani na publicznym froncie. */
-describe('Szkice Payload — tylko opublikowane dla anonima', () => {
+describe('Szkice Payload – tylko opublikowane dla anonima', () => {
   const read = (c: typeof Posts) => c.access?.read as (a: { req: { user?: unknown } }) => unknown;
 
   it.each([['posts', Posts], ['pages', Pages]])('%s: anonim dostaje warunek _status=published, redaktor wszystko', (_n, c) => {

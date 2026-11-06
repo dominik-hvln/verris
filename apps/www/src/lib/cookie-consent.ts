@@ -283,14 +283,14 @@ export const OPIS_KATEGORII = {
   niezbedne:
     'Zapis Twojej decyzji o cookies (12 miesięcy) i udogodnienia, o które prosisz: ukrycie paska z ceną i rozmowa z asystentem w tej karcie przeglądarki. Zawsze aktywne.',
   funkcjonalne:
-    'Pozwalają narzędziom Google zapamiętać ustawienia i dopasować treści (sygnały functionality_storage i personalization_storage) — działają tylko razem ze zgodą na pomiar albo reklamy. Sam serwis verris.pl nie zapisuje w tej kategorii nic więcej.',
+    'Pozwalają narzędziom Google zapamiętać ustawienia i dopasować treści (sygnały functionality_storage i personalization_storage) – działają tylko razem ze zgodą na pomiar albo reklamy. Sam serwis verris.pl nie zapisuje w tej kategorii nic więcej.',
   analityczne:
     'Pomiar korzystania z serwisu: Google Analytics przez Google Tag Manager (pliki _ga) oraz zapamiętanie źródła kampanii przy formularzu zgłoszenia do testów.',
   marketingowe:
     'Pomiar i dopasowanie reklam: tagi reklamowe Google, Meta Pixel (pliki _fbp i _fbc).',
   /** Tryb podstawowy Consent Mode (decyzja 22) — co się dzieje przed decyzją. */
   przedDecyzja:
-    'Dopóki się nie zgodzisz, nie ładujemy narzędzi Google ani Meta — Twoja przeglądarka nic do nich nie wysyła.',
+    'Dopóki się nie zgodzisz, nie ładujemy narzędzi Google ani Meta – Twoja przeglądarka nic do nich nie wysyła.',
 } as const;
 
 /** Czy wolno zapamiętać UTM w sessionStorage (formularz /beta) — tylko po zgodzie analitycznej albo marketingowej. */

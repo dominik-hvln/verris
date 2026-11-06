@@ -164,7 +164,7 @@ function PartnerEarnings() {
     setErr(null); setOk(null);
     startTransition(async () => {
       const r = await requestBankPayoutAction(iban);
-      if (r.ok) { setOk(`Zlecono wypłatę ${pln(r.amount ?? 0)} na konto — czeka na realizację.`); setIban(''); reload(); }
+      if (r.ok) { setOk(`Zlecono wypłatę ${pln(r.amount ?? 0)} na konto – czeka na realizację.`); setIban(''); reload(); }
       else setErr(r.error ?? 'Błąd zlecenia wypłaty.');
     });
   };
@@ -193,7 +193,7 @@ function PartnerEarnings() {
             <li>• Bonus <span className="text-emerald-300 font-medium">{pln(ov.config.freeHostingCredit)}</span> za każde <span className="text-emerald-300 font-medium">{ov.config.freeHostingThreshold}</span> aktywnych (płacących) poleceń.</li>
           ) : null}
           <li>• Prowizja dojrzewa po {ov.config.holdDays} {plForm(ov.config.holdDays, 'dniu', 'dniach', 'dniach')} (ochrona przed zwrotami), potem trafia do „Do wypłaty”.</li>
-          <li>• Minimalna wypłata na konto bankowe: {pln(ov.config.minPayout)}. Wypłata do portfela — bez limitu.</li>
+          <li>• Minimalna wypłata na konto bankowe: {pln(ov.config.minPayout)}. Wypłata do portfela – bez limitu.</li>
         </ul>
         {ov.milestone.threshold > 0 && ov.milestone.nextAt != null ? (
           <div className="pt-1">

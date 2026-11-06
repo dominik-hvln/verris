@@ -160,7 +160,7 @@ export class PasskeyPolicyService {
     }
     if (!user.isTwoFactorEnabled || !user.twoFactorSecret) {
       throw new UnauthorizedException(
-        'Najpierw włącz 2FA — kody awaryjne wymagają drugiego składnika.',
+        'Najpierw włącz 2FA – kody awaryjne wymagają drugiego składnika.',
       );
     }
     const passwordOk = await bcrypt.compare(password, user.passwordHash);

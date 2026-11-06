@@ -6,7 +6,7 @@ import { BackupOffsiteService } from '../servers/backup-offsite.service.js';
  * H-03 — klient wybiera retencję kopii poza serwerem w granicach planu (min. KOPIE_OFFSITE_DNI w cenie),
  * węzeł dostaje ją w GET /agent/tasks/backup-retention. Dotąd retencja była jedna dla całej floty.
  */
-describe('retencja kopii poza serwerem — granice planu (H-03)', () => {
+describe('retencja kopii poza serwerem – granice planu (H-03)', () => {
   it('sufit planu i wybór klienta zawsze w [KOPIE_OFFSITE_DNI, KOPIE_OFFSITE_MAX_DNI]', () => {
     expect(sufitRetencjiOffsite(60)).toBe(60);
     expect(sufitRetencjiOffsite(7)).toBe(KOPIE_OFFSITE_DNI);
@@ -20,7 +20,7 @@ describe('retencja kopii poza serwerem — granice planu (H-03)', () => {
   });
 });
 
-describe('BackupScheduleService — retencja wybrana przez klienta', () => {
+describe('BackupScheduleService – retencja wybrana przez klienta', () => {
   function serwis(planMax: number, wiersz: { offsiteRetentionDays: number } | null = null) {
     const zapisy: unknown[] = [];
     const prisma = {
@@ -41,7 +41,7 @@ describe('BackupScheduleService — retencja wybrana przez klienta', () => {
     await expect(s.retencjaOffsite('sub1', 'u1')).resolves.toEqual({ dni: KOPIE_OFFSITE_DNI, min: KOPIE_OFFSITE_DNI, max: 60 });
   });
 
-  it('wybór powyżej sufitu po zmianie planu — pokazujemy to, co faktycznie stosuje węzeł', async () => {
+  it('wybór powyżej sufitu po zmianie planu – pokazujemy to, co faktycznie stosuje węzeł', async () => {
     const { s } = serwis(45, { offsiteRetentionDays: 90 });
     await expect(s.retencjaOffsite('sub1', 'u1')).resolves.toMatchObject({ dni: 45, max: 45 });
   });
@@ -54,7 +54,7 @@ describe('BackupScheduleService — retencja wybrana przez klienta', () => {
     ]);
   });
 
-  it('poza planem albo poniżej minimum — 400 bez zapisu; cudza usługa — 404', async () => {
+  it('poza planem albo poniżej minimum – 400 bez zapisu; cudza usługa – 404', async () => {
     const { s, zapisy } = serwis(60);
     await expect(s.ustawRetencjeOffsite('sub1', 'u1', 61)).rejects.toMatchObject({ status: 400 });
     await expect(s.ustawRetencjeOffsite('sub1', 'u1', KOPIE_OFFSITE_DNI - 1)).rejects.toMatchObject({ status: 400 });
@@ -65,7 +65,7 @@ describe('BackupScheduleService — retencja wybrana przez klienta', () => {
   });
 });
 
-describe('BackupOffsiteService — retencja kont dla węzła', () => {
+describe('BackupOffsiteService – retencja kont dla węzła', () => {
   it('linia `<login> <dni>` na konto węzła, w granicach planu; usunięte konta pomija', async () => {
     let zapytanie: unknown;
     const prisma = {

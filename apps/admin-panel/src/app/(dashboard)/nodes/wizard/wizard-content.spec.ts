@@ -8,9 +8,9 @@ const KREATOR = readFileSync(join(__dirname, "node-wizard.tsx"), "utf8");
  * jedna linijka bootstrapu. Krok „Wymagania” podsuwał ręczne `dnf update` / `hostnamectl`, a pole hostname kazało dodać
  * rekord A w OVH, choć oba robi automat (PREFLIGHT bootstrapu; NodeDnsService przy Canary i zatwierdzeniu).
  */
-describe("kreator węzła — bez kroków ręcznych na serwerze i w OVH", () => {
+describe("kreator węzła – bez kroków ręcznych na serwerze i w OVH", () => {
   it("krok „Wymagania” nie podsuwa poleceń do wykonania na serwerze", () => {
-    expect(KREATOR).not.toContain("Krok 0 — przygotowanie OS");
+    expect(KREATOR).not.toContain("Krok 0 – przygotowanie OS");
     expect(KREATOR).not.toContain("przygotowanieOs");
     expect(KREATOR).toContain("bez ręcznych poleceń");
   });
@@ -25,7 +25,7 @@ describe("kreator węzła — bez kroków ręcznych na serwerze i w OVH", () => 
  * 19.10 — decyzja 17.10 (PB-31): na węzłach tylko certyfikat Let's Encrypt nazwy hosta z DA, bez wildcardu *.verris.pl.
  * Definition of Done i pole hostname wymagały jeszcze wildcardu — warunek, którego żaden węzeł już nie spełni.
  */
-describe("kreator węzła — certyfikat panelu bez wildcardu", () => {
+describe("kreator węzła – certyfikat panelu bez wildcardu", () => {
   it("DoD i pole hostname nie wymagają wildcardu *.verris.pl", async () => {
     const { DOD_ACTIVE_CHECKLIST } = await import("./wizard-content");
     expect(DOD_ACTIVE_CHECKLIST.join("\n")).not.toMatch(/wildcard/i);

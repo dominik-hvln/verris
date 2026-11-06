@@ -182,7 +182,7 @@ export default function BackupsTab({ serviceId }: { serviceId: string }) {
                     // Weryfikacja 11.10 (decyzja Dominika) — pełną kopię konta spoza serwera przywraca obsługa.
                     <Link
                       href="/dashboard/support/new"
-                      title="Pełną kopię konta przywraca nasz zespół — napisz zgłoszenie i podaj nazwę archiwum."
+                      title="Pełną kopię konta przywraca nasz zespół – napisz zgłoszenie i podaj nazwę archiwum."
                       className="inline-flex items-center gap-1.5 rounded-[7px] border border-line bg-raised px-2.5 py-1 text-[13px] font-medium text-[color:var(--verris-body)] transition hover:bg-raised"
                     >
                       <RotateCcw className="h-3.5 w-3.5" /> Przywraca obsługa
@@ -283,13 +283,13 @@ function RestoreStatusBanner({ job }: { job: HostingRestoreJobDto }) {
         <span>
           Przywracanie: <strong>{STATUS_LABEL[job.status]}</strong>
           {job.status === "RESTORING"
-            ? " — zwykle trwa to kilka minut, status zmieni się sam."
+            ? " – zwykle trwa to kilka minut, status zmieni się sam."
             : job.active
-              ? " — nie zamykaj usługi do zakończenia."
+              ? " – nie zamykaj usługi do zakończenia."
               : ""}
-          {failed && job.error ? ` — ${job.error}` : ""}
+          {failed && job.error ? ` – ${job.error}` : ""}
           {done
-            ? ` — serwer potwierdził odtworzenie${job.completedAt ? ` (${new Date(job.completedAt).toLocaleString("pl-PL")})` : ""}.${job.safetyBackup ? " Kopia sprzed odtworzenia jest na liście." : ""}`
+            ? ` – serwer potwierdził odtworzenie${job.completedAt ? ` (${new Date(job.completedAt).toLocaleString("pl-PL")})` : ""}.${job.safetyBackup ? " Kopia sprzed odtworzenia jest na liście." : ""}`
             : ""}
         </span>
       </div>

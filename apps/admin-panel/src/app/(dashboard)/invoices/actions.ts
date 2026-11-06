@@ -51,7 +51,7 @@ export async function dokonczFakture(invoiceId: string): Promise<{ ok: true } | 
   try {
     const r = await adminApi<{ storageKey: string | null }>(`/admin/invoices/${encodeURIComponent(invoiceId)}/dokoncz`, { method: "POST" });
     revalidatePath(`/invoices/${invoiceId}`);
-    return r?.storageKey ? { ok: true } : { ok: false, error: "API nie utworzyło PDF-u — sprawdź dziennik błędów." };
+    return r?.storageKey ? { ok: true } : { ok: false, error: "API nie utworzyło PDF-u – sprawdź dziennik błędów." };
   } catch (err) {
     return { ok: false, error: err instanceof AdminApiError ? err.message : "Nie udało się dokończyć wystawienia." };
   }

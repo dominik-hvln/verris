@@ -50,14 +50,14 @@ async function uklad() {
   return { reseller, klient, usluga };
 }
 
-describe('O-05 — reseller na kontach swoich klientów', () => {
+describe('O-05 – reseller na kontach swoich klientów', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     maile.length = 0;
   });
   afterAll(rozlacz);
 
-  it('szczegóły klienta: tylko usługi i stan — żadnego salda, NIP-u ani danych rozliczeniowych', async () => {
+  it('szczegóły klienta: tylko usługi i stan – żadnego salda, NIP-u ani danych rozliczeniowych', async () => {
     const { reseller, klient } = await uklad();
     const k = await serwis().szczegoly(reseller.id, klient.id);
     expect(Object.keys(k).sort()).toEqual(['email', 'id', 'imieNazwisko', 'od', 'uslugi']);
@@ -72,7 +72,7 @@ describe('O-05 — reseller na kontach swoich klientów', () => {
     expect(k.uslugi[0].cenaDetaliczna).toBe(45);
   });
 
-  it('weryfikacja 11.10: rezygnacja na koniec okresu — „nie odnowi się” z datą końca działania', async () => {
+  it('weryfikacja 11.10: rezygnacja na koniec okresu – „nie odnowi się” z datą końca działania', async () => {
     const { reseller, klient, usluga } = await uklad();
     const koniec = new Date('2026-11-08T10:00:00Z');
     let k = await serwis().szczegoly(reseller.id, klient.id);
@@ -104,7 +104,7 @@ describe('O-05 — reseller na kontach swoich klientów', () => {
     await expect(serwis().wznow(reseller.id, klient.id, usluga.id)).rejects.toMatchObject({ status: 403 });
   });
 
-  it('audyt Fal 2: usługa wstrzymana przez resellera, gdy miała zaległość (PAST_DUE) — reseller jej nie wznawia jako opłaconej', async () => {
+  it('audyt Fal 2: usługa wstrzymana przez resellera, gdy miała zaległość (PAST_DUE) – reseller jej nie wznawia jako opłaconej', async () => {
     const { reseller, klient, usluga } = await uklad();
     await prisma().subscription.update({ where: { id: usluga.id }, data: { status: SubscriptionStatus.SUSPENDED } });
     // Zdarzenie jak z SubscriptionsService.suspend: powód i stan sprzed zawieszenia.
@@ -122,7 +122,7 @@ describe('O-05 — reseller na kontach swoich klientów', () => {
     expect(maile).toHaveLength(1);
   });
 
-  it('odpięcie przez resellera i przez klienta — konto zostaje, znika tylko przypisanie', async () => {
+  it('odpięcie przez resellera i przez klienta – konto zostaje, znika tylko przypisanie', async () => {
     const a = await uklad();
     await serwis().odepnij(a.reseller.id, a.klient.id);
     expect((await prisma().user.findUniqueOrThrow({ where: { id: a.klient.id } })).resellerOwnerId).toBeNull();

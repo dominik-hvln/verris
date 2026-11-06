@@ -118,7 +118,7 @@ export default async function OperatorDetailPage({ params }: PageProps) {
           >
             {roleNiewczytane ? <NieWczytano co="ról operatora" /> : operator ? <WyborRolOperatora operator={operator} role={role} zablokowane={zablokowany} /> : null}
           </Wiersz>
-          <Wiersz nazwa="Logowanie" opis={zablokowany ? "Konto wyłączone — operator się nie zaloguje." : "Konto aktywne."} powod={tylkoAdmin}>
+          <Wiersz nazwa="Logowanie" opis={zablokowany ? "Konto wyłączone – operator się nie zaloguje." : "Konto aktywne."} powod={tylkoAdmin}>
             <BlokadaOperatora userId={id} email={email} zablokowany={zablokowany} />
           </Wiersz>
           <Wiersz
@@ -251,14 +251,14 @@ export default async function OperatorDetailPage({ params }: PageProps) {
                 <td className="px-4 py-3 text-xs">
                   {new Date(row.occurredAt).toLocaleString("pl-PL")}
                 </td>
-                <td className="px-4 py-3 text-xs font-mono">{row.ip ?? "—"}</td>
+                <td className="px-4 py-3 text-xs font-mono">{row.ip ?? "–"}</td>
                 <td className="px-4 py-3 text-xs max-w-[300px] truncate">
-                  {row.userAgent ?? "—"}
+                  {row.userAgent ?? "–"}
                 </td>
                 <td className="px-4 py-3 text-xs">
                   {row.kind === "failure"
                     ? (REASON_LABELS[row.reason ?? ""] ?? row.reason ?? "?")
-                    : (row.method ?? "—")}
+                    : (row.method ?? "–")}
                 </td>
               </tr>
             ))}

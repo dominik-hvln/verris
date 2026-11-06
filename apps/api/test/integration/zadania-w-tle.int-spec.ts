@@ -69,7 +69,7 @@ const admin = async () => {
 const przebieg = (job: string, start: string, ok: boolean, error: string | null = null) =>
   prisma().scheduledJobRun.create({ data: { job, startedAt: new Date(start), finishedAt: new Date(Date.parse(start) + 1500), durationMs: 1500, ok, error } });
 
-describe('F2.8 — zadania w tle (PostgreSQL)', () => {
+describe('F2.8 – zadania w tle (PostgreSQL)', () => {
   beforeAll(async () => {
     // Migracja jest idempotentna (IF NOT EXISTS) — nakładamy ją, gdyby baza testowa była sprzed F2.8.
     await prisma().$executeRawUnsafe(readFileSync(MIGRACJA, 'utf-8'));
@@ -90,7 +90,7 @@ describe('F2.8 — zadania w tle (PostgreSQL)', () => {
     maile.length = 0;
   });
 
-  it('widok: ostatni przebieg i ostatni błąd osobno; ręczne tylko dla ADMIN-a; STAFF bez NODES_VIEW — 403', async () => {
+  it('widok: ostatni przebieg i ostatni błąd osobno; ręczne tylko dla ADMIN-a; STAFF bez NODES_VIEW – 403', async () => {
     await przebieg(RETENCJA, '2026-10-08T03:50:00Z', false, 'deadlock detected');
     await przebieg(RETENCJA, '2026-10-09T03:50:00Z', true);
     await przebieg(RETENCJA, '2026-10-10T03:50:00Z', true);
@@ -114,7 +114,7 @@ describe('F2.8 — zadania w tle (PostgreSQL)', () => {
     expect((await zadanie('GET', '/admin/zadania-w-tle', bez)).status).toBe(403);
   });
 
-  it('ręczne uruchomienie: STAFF — 403, zadanie spoza białej listy — 403, z listy — 202 i przebieg z manualBy', async () => {
+  it('ręczne uruchomienie: STAFF – 403, zadanie spoza białej listy – 403, z listy – 202 i przebieg z manualBy', async () => {
     const a = await admin();
     const noc = await operator(['NODES_VIEW', 'NODES_MANAGE']);
     expect((await zadanie('POST', `/admin/zadania-w-tle/${STRAZNIK}/uruchom`, noc)).status).toBe(403);
@@ -125,7 +125,7 @@ describe('F2.8 — zadania w tle (PostgreSQL)', () => {
     expect(await prisma().auditLog.count({ where: { action: 'ZADANIE_W_TLE_RECZNE', actorUserId: a.id } })).toBe(1);
   });
 
-  it('alert: zadanie, które nie biegło od dwóch terminów — mail do administratorów, drugi raz dopiero po dobie', async () => {
+  it('alert: zadanie, które nie biegło od dwóch terminów – mail do administratorów, drugi raz dopiero po dobie', async () => {
     await admin();
     const s = app.get(ZadaniaWTleService);
     // Za 23 h: strażnik (co 5 min) bez przebiegu od startu procesu jest zaległy; cooldown liczy się od prawdziwej

@@ -64,7 +64,7 @@ function serwis(p: PrismaClient = prisma()) {
   return { s: new ZmianaWlascicielaService(p as never, mailer as never, { get: () => 'https://panel.test' } as never), mailer };
 }
 let ADMIN = { userId: '', role: 'ADMIN' };
-const POWOD = 'Sprzedaż sklepu — zgłoszenie obu stron';
+const POWOD = 'Sprzedaż sklepu – zgłoszenie obu stron';
 const jwt = () => new JwtStrategy({ get: () => 'sekret' } as never, prisma() as never);
 
 /** Czy tożsamość z tokenu widzi usługę — ten sam warunek co lista usług panelu (services.controller.ts). */
@@ -73,7 +73,7 @@ async function widzi(ctx: { userId: string; serviceScope?: string[] }, subscript
   return !!(await prisma().subscription.findFirst({ where: { AND: [{ id: subscriptionId, userId: ctx.userId }, zakres] } }));
 }
 
-describe('K2 — zmiana właściciela usługi', () => {
+describe('K2 – zmiana właściciela usługi', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 
@@ -149,7 +149,7 @@ describe('K2 — zmiana właściciela usługi', () => {
     expect(mailer.send.mock.calls.map((c) => (c[0] as { to: string; tag: string }).to)).toEqual([x.A.email, x.B.email]);
   });
 
-  it('przegląd 12.10 — zgłoszenia poprzedniego właściciela tracą powiązanie z usługą; diagnostyka z nich odmawia', async () => {
+  it('przegląd 12.10 – zgłoszenia poprzedniego właściciela tracą powiązanie z usługą; diagnostyka z nich odmawia', async () => {
     const x = await scena();
     const p = prisma();
     const zgl = (extra: Record<string, unknown>) => p.ticket.create({ data: { userId: x.A.id, subject: 'Strona', message: 'Nie działa', zrodlo: 'PANEL', ...extra } as never });
@@ -194,7 +194,7 @@ describe('K2 — zmiana właściciela usługi', () => {
     expect(mailer.send).not.toHaveBeenCalled();
   });
 
-  it('odmowy na bazie: zaległa płatność, migracja w toku, nowy właściciel zablokowany — bez żadnej zmiany', async () => {
+  it('odmowy na bazie: zaległa płatność, migracja w toku, nowy właściciel zablokowany – bez żadnej zmiany', async () => {
     const x = await scena();
     const p = prisma();
     const { s, mailer } = serwis();
@@ -213,7 +213,7 @@ describe('K2 — zmiana właściciela usługi', () => {
       data: { userId: x.A.id, subscriptionId: x.sub.id, number: `PRO/K2/${Date.now()}`, amount: 45, netAmount: 36.59, vatAmount: 8.41, lineItems: [], vatMeta: {}, dueAt: new Date(Date.now() + 7 * DNI) },
     });
     await expect(zlec()).rejects.toThrow(/otwartą proformę na odnowienie/);
-    await p.proforma.update({ where: { id: proforma.id }, data: { status: 'ANULOWANA', cancelledAt: new Date(), cancelReason: 'Test — anulowana przed przeniesieniem' } });
+    await p.proforma.update({ where: { id: proforma.id }, data: { status: 'ANULOWANA', cancelledAt: new Date(), cancelReason: 'Test – anulowana przed przeniesieniem' } });
 
     const zablokowany = await klient({ loginBlocked: true });
     await expect(zlec(zablokowany.email)).rejects.toThrow(/zablokowane/);
@@ -226,7 +226,7 @@ describe('K2 — zmiana właściciela usługi', () => {
 
     // Przeniesienie z powrotem działa tak samo (po ustąpieniu przeszkód).
     await zlec();
-    const zPowrotem = await s.przenies({ subscriptionId: x.sub.id, operator: ADMIN, email: x.A.email, powod: 'Cofnięcie — pomyłka w adresie', potwierdzenie: x.A.email });
+    const zPowrotem = await s.przenies({ subscriptionId: x.sub.id, operator: ADMIN, email: x.A.email, powod: 'Cofnięcie – pomyłka w adresie', potwierdzenie: x.A.email });
     expect(zPowrotem.nowyWlasciciel.id).toBe(x.A.id);
     expect((await p.account.findUniqueOrThrow({ where: { id: x.k.account.id } })).userId).toBe(x.A.id);
   });

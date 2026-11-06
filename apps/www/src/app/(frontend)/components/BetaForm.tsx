@@ -89,7 +89,7 @@ export function BetaForm() {
           Dziękujemy, zgłoszenie przyjęte.
         </h3>
         <p>
-          Sprawdź skrzynkę i potwierdź adres linkiem z maila — bez tego nie wyślemy zaproszenia. Zajrzyj też do Oferty
+          Sprawdź skrzynkę i potwierdź adres linkiem z maila – bez tego nie wyślemy zaproszenia. Zajrzyj też do Oferty
           lub Spamu.
         </p>
       </div>

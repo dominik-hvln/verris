@@ -105,7 +105,7 @@ export class AiUstawieniaAdminController {
         .map((g) => ({
           funkcja: g.feature,
           poziom: g.feature.startsWith('chatbot_') ? 'szybki' : 'analiza',
-          model: g.model ?? '—',
+          model: g.model ?? '–',
           wywolania: g._count._all,
           tokenyWej: g._sum.inputTokens ?? 0,
           tokenyWyj: g._sum.outputTokens ?? 0,
@@ -114,7 +114,7 @@ export class AiUstawieniaAdminController {
         .sort((a, b) => b.kosztUsd - a.kosztUsd),
       klienci: top.map((t) => ({
         userId: t.userId as string,
-        email: email.get(t.userId as string) ?? '—',
+        email: email.get(t.userId as string) ?? '–',
         wywolania: t._count._all,
         kosztUsd: Number(t._sum.costUsd ?? 0),
       })),

@@ -79,7 +79,7 @@ export function DeletionRequestsTable({ rows, anonimizacja = true }: { rows: Adm
                     <StatusBadge status={status} />
                   </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">
-                    {r.anonymizedByAdmin?.email ?? (r.anonymizedAt ? "auto (cron)" : "—")}
+                    {r.anonymizedByAdmin?.email ?? (r.anonymizedAt ? "auto (cron)" : "–")}
                   </td>
                   <td className="px-4 py-3 text-right">
                     {anonimizacja && !r.anonymizedAt && !r.cancelledAt && (

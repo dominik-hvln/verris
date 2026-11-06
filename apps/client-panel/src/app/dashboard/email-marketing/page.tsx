@@ -35,7 +35,7 @@ export default async function EmailMarketingIndexPage() {
           <Megaphone className="mx-auto h-10 w-10 text-fuchsia-300/70" />
           <h2 className="mt-4 text-lg font-semibold text-white">Nie masz jeszcze usługi email-marketingu</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-neutral-400">
-            Wykup plan email-marketingu, aby wysyłać newslettery do własnej bazy subskrybentów — z hostingu Verris,
+            Wykup plan email-marketingu, aby wysyłać newslettery do własnej bazy subskrybentów – z hostingu Verris,
             z dbałością o dostarczalność i zgodność RODO.
           </p>
           <Link
@@ -56,7 +56,7 @@ export default async function EmailMarketingIndexPage() {
               <div>
                 <p className="text-sm font-semibold text-white">{s.planName ?? 'Email marketing'}</p>
                 <p className="mt-1 text-xs text-neutral-400">
-                  {s.status === 'ACTIVE' ? 'Aktywna' : s.status} · handle: {s.serviceTag ?? '—'}
+                  {s.status === 'ACTIVE' ? 'Aktywna' : s.status} · handle: {s.serviceTag ?? '–'}
                 </p>
               </div>
               <ArrowRight className="h-5 w-5 text-neutral-500 transition group-hover:translate-x-1 group-hover:text-fuchsia-300" />

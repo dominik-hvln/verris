@@ -63,9 +63,9 @@ function ileKontWejdzie(pol: PolitykaPojemnosci, zuzycieNaKonto?: typeof PAKIET)
   return -1;
 }
 
-describe('Z-12 — pojemność węzła', () => {
+describe('Z-12 – pojemność węzła', () => {
   describe('zachowanie sprzed poprawki jest zachowane przy overcommit 1,0', () => {
-    it('na węzeł 128 GB wchodzi 16 kont po 8 GB — dokładnie tyle, ile było', () => {
+    it('na węzeł 128 GB wchodzi 16 kont po 8 GB – dokładnie tyle, ile było', () => {
       expect(ileKontWejdzie(polityka())).toBe(16);
     });
 
@@ -85,7 +85,7 @@ describe('Z-12 — pojemność węzła', () => {
     });
   });
 
-  describe('bramka handlowa — nadsubskrypcja', () => {
+  describe('bramka handlowa – nadsubskrypcja', () => {
     it('przy 4× RAM i CPU oraz 2× dysku wchodzą 64 konta', () => {
       // 128 GB × 4 / 8 GB = 64 (RAM) · 3200% × 4 / 200% = 64 (CPU) · 1920 GB × 2 / 50 GB = 76 (dysk)
       // Wiąże RAM i CPU jednocześnie — dysk ma jeszcze zapas.
@@ -95,7 +95,7 @@ describe('Z-12 — pojemność węzła', () => {
       expect(n).toBe(64);
     });
 
-    it('próg rentowności 58 kont jest osiągalny przy 4× — a przy 1× nie jest', () => {
+    it('próg rentowności 58 kont jest osiągalny przy 4× – a przy 1× nie jest', () => {
       const zNadsubskrypcja = ileKontWejdzie(
         polityka({ overcommitCpu: 4, overcommitRam: 4, overcommitDisk: 2 }),
       );
@@ -117,7 +117,7 @@ describe('Z-12 — pojemność węzła', () => {
     });
   });
 
-  describe('bramka fizyczna — realne zużycie', () => {
+  describe('bramka fizyczna – realne zużycie', () => {
     it('węzeł realnie zajęty odmawia, choć handlowo ma zapas', () => {
       const w = czyZmiesciSie({
         fizyczna: WEZEL,
@@ -230,7 +230,7 @@ describe('Z-12 — pojemność węzła', () => {
       expect(blad).toContain('quota dyskowa jest realnie egzekwowana');
     });
 
-    it('walidacja odrzuca wartość poniżej 1 — to byłaby podsubskrypcja przez pomyłkę', () => {
+    it('walidacja odrzuca wartość poniżej 1 – to byłaby podsubskrypcja przez pomyłkę', () => {
       expect(bladWspolczynnika('overcommitRam', 0.5)).toContain('1–8');
       expect(bladWspolczynnika('overcommitRam', 0)).not.toBeNull();
     });

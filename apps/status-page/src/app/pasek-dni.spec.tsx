@@ -74,7 +74,7 @@ describe('PasekDni', () => {
     expect(s.filter((b) => b.classList.contains('old'))).toHaveLength(60);
   });
 
-  it('cały pasek to jeden przystanek Tab — tabIndex 0 ma tylko dzisiejszy słupek', () => {
+  it('cały pasek to jeden przystanek Tab – tabIndex 0 ma tylko dzisiejszy słupek', () => {
     const z0 = slupki().filter((b) => b.tabIndex === 0);
     expect(z0).toHaveLength(1);
     expect(z0[0]).toBe(slupki()[89]);

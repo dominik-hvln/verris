@@ -108,13 +108,13 @@ export async function planCzyszczenia(db: Db, zachowaj: string[]): Promise<PlanC
     select: { userId: true, domain: true, status: true },
   });
   for (const a of konta) {
-    blokady.push({ email: email.get(a.userId) ?? a.userId, powod: `konto hostingowe ${a.domain} (${a.status}) na węźle — usuń usługę w panelu` });
+    blokady.push({ email: email.get(a.userId) ?? a.userId, powod: `konto hostingowe ${a.domain} (${a.status}) na węźle – usuń usługę w panelu` });
   }
   const vps = await db.vpsInstance.findMany({
     where: { userId: { in: ids }, status: { not: 'DELETED' } },
     select: { userId: true, status: true },
   });
-  for (const v of vps) blokady.push({ email: email.get(v.userId) ?? v.userId, powod: `VPS (${v.status}) — usuń w panelu` });
+  for (const v of vps) blokady.push({ email: email.get(v.userId) ?? v.userId, powod: `VPS (${v.status}) – usuń w panelu` });
   // Przegląd 15.10: także PENDING (plik PROD już zamrożony — np. klient pobrał PDF z kodem QR) i OFFLINE (wystawiona
   // w trybie offline, czeka na dosłanie).
   const ksefProd = await db.invoice.findMany({
@@ -122,7 +122,7 @@ export async function planCzyszczenia(db: Db, zachowaj: string[]): Promise<PlanC
     select: { userId: true, number: true },
   });
   for (const f of ksefProd) {
-    blokady.push({ email: email.get(f.userId) ?? f.userId, powod: `faktura ${f.number} w KSeF produkcyjnym — prawdziwy dokument, nie usuwamy` });
+    blokady.push({ email: email.get(f.userId) ?? f.userId, powod: `faktura ${f.number} w KSeF produkcyjnym – prawdziwy dokument, nie usuwamy` });
   }
 
   // Przegląd 15.10: subkonto zachowane, a właściciel do usunięcia — kaskada (customerOwnerId) usunęłaby je mimo listy.
@@ -131,7 +131,7 @@ export async function planCzyszczenia(db: Db, zachowaj: string[]): Promise<PlanC
     if (z.customerOwnerId && doUsunieciaIds.has(z.customerOwnerId)) {
       blokady.push({
         email: z.email,
-        powod: `subkonto na liście „zachowaj”, a jego właściciel ${email.get(z.customerOwnerId)} nie — dopisz właściciela albo usuń subkonto z listy`,
+        powod: `subkonto na liście „zachowaj”, a jego właściciel ${email.get(z.customerOwnerId)} nie – dopisz właściciela albo usuń subkonto z listy`,
       });
     }
   }
@@ -146,10 +146,10 @@ export async function planCzyszczenia(db: Db, zachowaj: string[]): Promise<PlanC
   ]);
   const uwagi: string[] = [];
   // Przegląd 15.10 — rzeczy, których skrypt nie rozstrzygnie sam (bywają testowe: sandbox OpenProvider, test RODO).
-  for (const d of domeny) uwagi.push(`${email.get(d.userId)}: domena ${d.name} (${d.status}) u rejestratora — sandbox? jeśli prawdziwa, przenieś albo zostaw klienta`);
+  for (const d of domeny) uwagi.push(`${email.get(d.userId)}: domena ${d.name} (${d.status}) u rejestratora – sandbox? jeśli prawdziwa, przenieś albo zostaw klienta`);
   const anonimowe = doUsuniecia.filter((k) => k.anonymizedAt);
   if (anonimowe.length) {
-    uwagi.push(`${anonimowe.length} zanonimizowanych kont (RODO) — ich dokumenty mogą podlegać obowiązkowi przechowywania 5 lat; sprawdź przed usunięciem`);
+    uwagi.push(`${anonimowe.length} zanonimizowanych kont (RODO) – ich dokumenty mogą podlegać obowiązkowi przechowywania 5 lat; sprawdź przed usunięciem`);
   }
   const liczniki = await db.invoiceCounter.findMany({ orderBy: [{ series: 'asc' }, { year: 'asc' }, { month: 'asc' }] });
 
@@ -180,7 +180,7 @@ export function opisPlanu(p: PlanCzyszczenia): string {
   l.push(`Klienci do usunięcia: ${p.doUsuniecia.length} · zachowani klienci: ${p.zachowani.length} · konta zespołu (zostają): ${p.zespol}`);
   for (const k of p.doUsuniecia) l.push(`  - ${k.email} (od ${k.utworzono})`);
   if (p.zachowani.length) l.push(`Zachowani: ${p.zachowani.join(', ')}`);
-  if (p.nieznalezieni.length) l.push(`UWAGA — z listy „zachowaj” nie ma w bazie: ${p.nieznalezieni.join(', ')}`);
+  if (p.nieznalezieni.length) l.push(`UWAGA – z listy „zachowaj” nie ma w bazie: ${p.nieznalezieni.join(', ')}`);
   l.push('Zniknie razem z klientami (kaskada):');
   for (const k of p.kaskada) l.push(`  ${k.tabela}.${k.kolumna}: ${k.wierszy}`);
   if (p.odpiete.length) {
@@ -189,17 +189,17 @@ export function opisPlanu(p: PlanCzyszczenia): string {
   }
   l.push(
     `Pieniądze klientów do usunięcia: saldo ${p.pieniadze.saldoK} K, wpłaty Paynow po zwrotach ${p.pieniadze.wplatyPaynowZl} zł ` +
-      `(prawdziwe — sprawdź zwroty przed usunięciem); faktury KSeF TEST: ${p.pieniadze.fakturKsefTest}, poza KSeF: ${p.pieniadze.fakturBezKsef}` +
-      ` (w tym z numerem z programu księgowego: ${p.pieniadze.zNumeremKsiegowym} — sprawdź z księgową)`,
+      `(prawdziwe – sprawdź zwroty przed usunięciem); faktury KSeF TEST: ${p.pieniadze.fakturKsefTest}, poza KSeF: ${p.pieniadze.fakturBezKsef}` +
+      ` (w tym z numerem z programu księgowego: ${p.pieniadze.zNumeremKsiegowym} – sprawdź z księgową)`,
   );
   if (p.uwagi.length) {
     l.push('DO SPRAWDZENIA przed usunięciem:');
     for (const u of p.uwagi) l.push(`  ${u}`);
   }
-  l.push('Numeracja dokumentów (zostaje, chyba że --zeruj-numeracje: licznik = najwyższy numer, który zostaje — decyzja księgowej):');
+  l.push('Numeracja dokumentów (zostaje, chyba że --zeruj-numeracje: licznik = najwyższy numer, który zostaje – decyzja księgowej):');
   for (const n of p.numeracja) l.push(`  ${n.seria} ${n.rok}/${String(n.miesiac).padStart(2, '0')}: ostatni ${n.ostatni}`);
   if (p.blokady.length) {
-    l.push(`BLOKADY (${p.blokady.length}) — czyszczenie nie ruszy, dopóki są:`);
+    l.push(`BLOKADY (${p.blokady.length}) – czyszczenie nie ruszy, dopóki są:`);
     for (const b of p.blokady) l.push(`  ${b.email}: ${b.powod}`);
   } else {
     l.push('Blokad brak.');
@@ -221,16 +221,16 @@ export async function wykonajCzyszczenie(
   return db.$transaction(
     async (tx) => {
       const plan = await planCzyszczenia(tx as unknown as Db, zachowaj);
-      if (plan.blokady.length) throw new Error(`Są blokady (${plan.blokady.length}) — uruchom podgląd i usuń je najpierw.`);
+      if (plan.blokady.length) throw new Error(`Są blokady (${plan.blokady.length}) – uruchom podgląd i usuń je najpierw.`);
       if (o.potwierdzenie !== plan.doUsuniecia.length) {
         throw new Error(
-          `Potwierdzenie ${o.potwierdzenie} ≠ liczba klientów do usunięcia (${plan.doUsuniecia.length}) — stan zmienił się od podglądu; uruchom podgląd ponownie.`,
+          `Potwierdzenie ${o.potwierdzenie} ≠ liczba klientów do usunięcia (${plan.doUsuniecia.length}) – stan zmienił się od podglądu; uruchom podgląd ponownie.`,
         );
       }
       const ids = plan.doUsuniecia.map((k) => k.id);
       // Subkonta wskazują właściciela (customerOwnerId, CASCADE) — usuwają się razem z nim (zachowane blokuje plan).
       const { count } = await tx.user.deleteMany({ where: { id: { in: ids }, role: 'USER' } });
-      if (count !== ids.length) throw new Error(`Usunięto ${count} zamiast ${ids.length} — wycofano; uruchom podgląd ponownie.`);
+      if (count !== ids.length) throw new Error(`Usunięto ${count} zamiast ${ids.length} – wycofano; uruchom podgląd ponownie.`);
       if (o.zerujNumeracje) await dopasujNumeracje(tx);
       await tx.auditLog.create({
         data: {

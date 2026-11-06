@@ -146,23 +146,23 @@ export const ETYKIETY_DZIENNIKA: Record<string, string> = {
   SUBSCRIPTION_SUSPENDED: 'Usługa wstrzymana',
   SUBSCRIPTION_UNSUSPENDED: 'Usługa wznowiona',
   // PB-45 — migracja przygotowana przez obsługę
-  MIGRATION_CONSENT_REQUESTED: 'Obsługa przygotowała migrację — czeka na Twoją zgodę',
+  MIGRATION_CONSENT_REQUESTED: 'Obsługa przygotowała migrację – czeka na Twoją zgodę',
   MIGRATION_CONSENT_ACCEPTED: 'Zatwierdzono migrację przygotowaną przez obsługę',
   MIGRATION_CONSENT_REJECTED: 'Odrzucono migrację przygotowaną przez obsługę',
-  MIGRATION_CONSENT_EXPIRED: 'Prośba o zgodę na migrację wygasła — dane dostępowe usunięte',
+  MIGRATION_CONSENT_EXPIRED: 'Prośba o zgodę na migrację wygasła – dane dostępowe usunięte',
   MIGRATION_REPORT_SENT: 'Wysłano raport z przeniesienia strony',
   // F2.5 — zgłoszenie założone przez obsługę w imieniu klienta
   TICKET_OPENED_BY_STAFF: 'Obsługa założyła zgłoszenie w sprawie Twojego konta',
   // F3.5 — cykl życia usługi i dodatki (także zmienione przez obsługę)
   SUBSCRIPTION_CANCEL_SCHEDULED: 'Zaplanowano rezygnację z usługi na koniec okresu',
-  SUBSCRIPTION_CANCEL_REVOKED: 'Cofnięto rezygnację — usługa odnowi się',
+  SUBSCRIPTION_CANCEL_REVOKED: 'Cofnięto rezygnację – usługa odnowi się',
   SUBSCRIPTION_RENEWAL_DATE_CHANGED: 'Zmieniono datę odnowienia usługi',
   SUBSCRIPTION_PAYMENT_PROMISE_SET: 'Przesunięto termin wstrzymania usługi za zaległą płatność',
   SUBSCRIPTION_PAYMENT_PROMISE_REVOKED: 'Odwołano przesunięcie terminu płatności',
   SUBSCRIPTION_OWNER_CHANGED: 'Zmiana właściciela usługi',
   ADDON_PURCHASED: 'Dodano dodatek',
   ADDON_FULFILLED: 'Zrealizowano dodatek',
-  ADDON_REFUNDED: 'Odmowa realizacji dodatku — zwrot na portfel',
+  ADDON_REFUNDED: 'Odmowa realizacji dodatku – zwrot na portfel',
   // K3 — limity usługi ustalone indywidualnie przez obsługę
   SUBSCRIPTION_LIMITS_CUSTOMIZED: 'Ustalono indywidualne limity usługi',
   SUBSCRIPTION_LIMITS_RESET: 'Przywrócono limity planu usługi',

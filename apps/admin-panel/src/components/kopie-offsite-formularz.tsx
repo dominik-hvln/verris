@@ -80,7 +80,7 @@ export function KopieOffsiteFormularz() {
         </strong>
       </p>
       <p className="text-xs text-zinc-400">
-        Hetzner Storage Box przez SFTP (port 23) + szyfrowanie rclone crypt. Wspólne dane floty — węzeł bez
+        Hetzner Storage Box przez SFTP (port 23) + szyfrowanie rclone crypt. Wspólne dane floty – węzeł bez
         własnych danych kopii (karta węzła → Konfiguracja) korzysta z nich i może czytać kopie innych węzłów, więc
         docelowo każdy węzeł ma własne subkonto. Retencja stąd obowiązuje wszystkie węzły. Hasło i sól szyfrowania
         zapisz w sejfie poza panelem: bez nich kopii nie odczytasz. Pola haseł zostaw puste, żeby nie zmieniać zapisanych.
@@ -116,7 +116,7 @@ export function KopieOffsiteFormularz() {
             className="inline-flex items-center gap-1 text-zinc-300 hover:text-white"
             onClick={() => {
               void navigator.clipboard
-                .writeText(`Verris — kopie off-site (rclone crypt)\nHasło szyfrowania: ${f.cryptPass}\nSól szyfrowania: ${f.cryptSalt}\n`)
+                .writeText(`Verris – kopie off-site (rclone crypt)\nHasło szyfrowania: ${f.cryptPass}\nSól szyfrowania: ${f.cryptSalt}\n`)
                 .then(() => { setSkopiowano(true); setTimeout(() => setSkopiowano(false), 2000); });
             }}
           >
@@ -125,7 +125,7 @@ export function KopieOffsiteFormularz() {
         ) : null}
       </div>
       {pierwszyZapis ? null : (
-        <p className="text-xs text-amber-200">Zmiana hasła lub soli szyfrowania odcina dostęp do wcześniejszych kopii — rób to tylko świadomie.</p>
+        <p className="text-xs text-amber-200">Zmiana hasła lub soli szyfrowania odcina dostęp do wcześniejszych kopii – rób to tylko świadomie.</p>
       )}
       {noweSekrety ? (
         <label className="flex items-start gap-2 text-xs text-zinc-300">

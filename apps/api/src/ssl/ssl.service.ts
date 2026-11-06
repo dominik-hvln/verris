@@ -66,7 +66,7 @@ export class SslService {
     if (!cena) throw new BadRequestException('Ten certyfikat nie jest dostępny.');
     const domain = input.domain.trim().toLowerCase();
     const konto = await this.directAdmin.listHostingDomainsForSubscription(subscriptionId, userId);
-    if (konto.fetchError) throw new BadRequestException('Nie udało się sprawdzić domen konta — spróbuj za chwilę.');
+    if (konto.fetchError) throw new BadRequestException('Nie udało się sprawdzić domen konta – spróbuj za chwilę.');
     if (!konto.domains.some((d) => d.name.toLowerCase() === domain)) {
       throw new BadRequestException('Ta domena nie jest przypisana do konta hostingowego tej usługi.');
     }
@@ -119,7 +119,7 @@ export class SslService {
         userId,
         amount: cena.price,
         type: WalletTxType.CHARGE_USAGE,
-        description: `Certyfikat SSL ${cena.name} — ${hostName} (1 rok)`,
+        description: `Certyfikat SSL ${cena.name} – ${hostName} (1 rok)`,
         idempotencyKey: `ssl-order:${order.id}`,
         subscriptionId,
         metadata: { sslOrderId: order.id, domain: hostName, productId: input.productId } as Prisma.InputJsonValue,
@@ -151,7 +151,7 @@ export class SslService {
       });
     } catch (err) {
       await this.zwrot(order, err);
-      throw new BadRequestException('Nie udało się zamówić certyfikatu — opłata wróciła do portfela. Spróbuj ponownie później.');
+      throw new BadRequestException('Nie udało się zamówić certyfikatu – opłata wróciła do portfela. Spróbuj ponownie później.');
     }
     await this.prisma.sslOrder.update({
       where: { id: order.id },
@@ -175,7 +175,7 @@ export class SslService {
       return naDto(await this.sprawdz(o.id));
     } catch (e) {
       this.logger.warn(`SSL ${o.id}: sprawdzenie: ${(e as Error).message}`);
-      throw new ServiceUnavailableException('Nie udało się teraz sprawdzić stanu certyfikatu — spróbuj za chwilę.');
+      throw new ServiceUnavailableException('Nie udało się teraz sprawdzić stanu certyfikatu – spróbuj za chwilę.');
     }
   }
 
@@ -270,7 +270,7 @@ export class SslService {
   async zapiszCeny(prices: Record<string, string | null>, actorUserId: string): Promise<SslProduktAdminDto[]> {
     for (const [id, v] of Object.entries(prices)) {
       if (v?.trim() && !/^\d{1,5}([.,]\d{1,2})?$/.test(v.trim())) {
-        throw new BadRequestException(`Niepoprawna cena dla produktu ${id} — podaj kwotę, np. 99,99, albo zostaw puste.`);
+        throw new BadRequestException(`Niepoprawna cena dla produktu ${id} – podaj kwotę, np. 99,99, albo zostaw puste.`);
       }
     }
     const produkty = await this.produktyDv();
@@ -370,13 +370,13 @@ export class SslService {
           userId: o.userId,
           amount: o.priceAmount.toString(),
           type: WalletTxType.REFUND,
-          description: `Zwrot za certyfikat SSL — ${o.domain}`,
+          description: `Zwrot za certyfikat SSL – ${o.domain}`,
           idempotencyKey: `ssl-order-refund:${o.id}`,
           subscriptionId: o.subscriptionId,
           metadata: { sslOrderId: o.id, originalTxId: oplata.id } as Prisma.InputJsonValue,
         });
       } catch (e) {
-        this.logger.error(`SSL ${o.id}: zwrot nieudany: ${(e as Error).message} — wymaga ręcznej korekty.`);
+        this.logger.error(`SSL ${o.id}: zwrot nieudany: ${(e as Error).message} – wymaga ręcznej korekty.`);
       }
     }
     const po = await this.prisma.sslOrder.update({
@@ -417,11 +417,11 @@ export class SslService {
 export function naDto(o: SslOrder): SslZamowienieDto {
   let problem: string | null = null;
   if (o.status === SslOrderStatus.FAILED) {
-    problem = o.walletTxId ? 'Zamówienie nie powiodło się — opłata wróciła do portfela.' : 'Zamówienie nie zostało opłacone.';
+    problem = o.walletTxId ? 'Zamówienie nie powiodło się – opłata wróciła do portfela.' : 'Zamówienie nie zostało opłacone.';
   } else if (o.status === SslOrderStatus.VALIDATING && o.lastError?.startsWith('DNS:')) {
-    problem = 'Nie udało się dodać rekordu weryfikacyjnego automatycznie — dodaj go w strefie DNS domeny.';
+    problem = 'Nie udało się dodać rekordu weryfikacyjnego automatycznie – dodaj go w strefie DNS domeny.';
   } else if (o.status === SslOrderStatus.ISSUED && o.lastError) {
-    problem = 'Certyfikat jest wydany, ale instalacja na koncie się nie udała — ponowimy ją automatycznie. Jeśli to potrwa, napisz do nas.';
+    problem = 'Certyfikat jest wydany, ale instalacja na koncie się nie udała – ponowimy ją automatycznie. Jeśli to potrwa, napisz do nas.';
   }
   return {
     id: o.id,

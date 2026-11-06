@@ -46,7 +46,7 @@ function kod(sciezka: string): string {
     .join('\n');
 }
 
-describe('X-29 — wdrożenie dowozi konfigurację obserwowalności', () => {
+describe('X-29 – wdrożenie dowozi konfigurację obserwowalności', () => {
   const skrypt = kod(SKRYPT);
 
   it('strażnik czyta właściwy plik', () => {
@@ -88,7 +88,7 @@ describe('X-29 — wdrożenie dowozi konfigurację obserwowalności', () => {
     expect(promtool).toBeLessThan(restart);
   });
 
-  it('po restarcie sprawdzamy, że wróciły — i przerywamy, gdy nie', () => {
+  it('po restarcie sprawdzamy, że wróciły – i przerywamy, gdy nie', () => {
     // Bez tego „restart" znaczy tylko „wydałem polecenie".
     const od = skrypt.indexOf('OBS_SERVICES=');
     const ogon = skrypt.slice(od);

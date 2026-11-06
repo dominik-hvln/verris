@@ -73,7 +73,7 @@ describe.each(STRONY)('$sciezka', ({ sciezka, mod, fraza, typy }) => {
   });
 });
 
-describe('/polecaj — warunki zgodne z API', () => {
+describe('/polecaj – warunki zgodne z API', () => {
   let html = '';
   beforeAll(async () => {
     html = tekst(renderToStaticMarkup(await Polecaj.default()));
@@ -100,7 +100,7 @@ describe('/polecaj — warunki zgodne z API', () => {
   });
 });
 
-describe('/dokumenty — tylko dokumenty z panelu', () => {
+describe('/dokumenty – tylko dokumenty z panelu', () => {
   const html = renderToStaticMarkup(Dokumenty.default());
   it('linki do panelu prowadzą do istniejących slugów /legal (terms, privacy, cookies, dpa)', () => {
     const slugi = [...html.matchAll(/href="https:\/\/panel\.verris\.pl\/legal\/([a-z]+)"/g)].map((m) => m[1]);
@@ -117,7 +117,7 @@ describe('404', () => {
   });
 });
 
-describe('formularz kontaktu — temat i adres strony w treści', () => {
+describe('formularz kontaktu – temat i adres strony w treści', () => {
   it('temat zawsze, adres tylko gdy podany', () => {
     expect(trescKontaktu('Hosting', ' sklep.pl ', ' Pytanie ')).toBe('Temat: Hosting\nStrona: sklep.pl\n\nPytanie');
     expect(trescKontaktu('Domeny', '', 'X')).toBe('Temat: Domeny\n\nX');

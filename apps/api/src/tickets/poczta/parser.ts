@@ -116,7 +116,7 @@ export async function parsujMail(raw: Buffer): Promise<MailPrzychodzacy> {
   }
   const surowy = email.text?.trim() ? email.text : htmlNaTekst(email.html ?? '');
   let tekst = odetnijCytat(bezNul(surowy).replace(/\r\n/g, '\n')).trim();
-  if (tekst.length > TRESC_MAX_ZNAKOW) tekst = `${tekst.slice(0, TRESC_MAX_ZNAKOW)}\n\n[… treść ucięta — pełna wiadomość w skrzynce zespołu]`;
+  if (tekst.length > TRESC_MAX_ZNAKOW) tekst = `${tekst.slice(0, TRESC_MAX_ZNAKOW)}\n\n[… treść ucięta – pełna wiadomość w skrzynce zespołu]`;
   return { ...podstawy(email), tekst, zalaczniki, pominiete };
 }
 

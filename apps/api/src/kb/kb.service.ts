@@ -189,11 +189,11 @@ export class KbService {
   async deleteCategory(id: string): Promise<{ ok: true }> {
     const articleCount = await this.articles.count({ where: { categoryId: id } });
     if (articleCount > 0) {
-      throw new BadRequestException('Kategoria zawiera artykuły — przenieś lub usuń je najpierw.');
+      throw new BadRequestException('Kategoria zawiera artykuły – przenieś lub usuń je najpierw.');
     }
     const childCount = await this.categories.count({ where: { parentId: id } });
     if (childCount > 0) {
-      throw new BadRequestException('Kategoria ma podkategorie — usuń je najpierw.');
+      throw new BadRequestException('Kategoria ma podkategorie – usuń je najpierw.');
     }
     await this.categories.delete({ where: { id } });
     return { ok: true };

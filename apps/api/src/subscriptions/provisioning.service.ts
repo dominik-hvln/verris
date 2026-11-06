@@ -124,7 +124,7 @@ export class ProvisioningService {
       select: { id: true },
     });
     if (existingDomainAccount) {
-      throw new ConflictException(`Domena ${domain} ma już konto hostingowe w Verris. Jeśli jest Twoja, napisz do pomocy — przeniesiemy ją.`);
+      throw new ConflictException(`Domena ${domain} ma już konto hostingowe w Verris. Jeśli jest Twoja, napisz do pomocy – przeniesiemy ją.`);
     }
     await this.da.assertDomenaNieJestCudza(domain, userId, { glowna: true });
   }
@@ -215,7 +215,7 @@ export class ProvisioningService {
         msg,
         // Węzeł nie odpowiedział (odmowa, brak trasy, otwarty bezpiecznik) — to nie brak pakietu (t1 03.10).
         nodeErrorKind(err) || (err as { code?: string } | null)?.code === 'ETIMEDOUT_CIRCUIT'
-          ? 'DirectAdmin on the node did not respond while checking the hosting package — provisioning will be retried.'
+          ? 'DirectAdmin on the node did not respond while checking the hosting package – provisioning will be retried.'
           : `DirectAdmin package "${subscription.plan.slug}" is missing on the node and could not be created automatically. Contact support.`,
       );
     }
@@ -465,7 +465,7 @@ export class ProvisioningService {
         this.logger.log(
           `Auto-SSL deferred for ${domain} (sub=${subscription.id}): ${
             err instanceof Error ? err.message : String(err)
-          } — DA auto-issue / panel button will retry`,
+          } – DA auto-issue / panel button will retry`,
         );
       });
 
@@ -510,7 +510,7 @@ export class ProvisioningService {
     } catch (cleanupErr) {
       const cleanupMsg = cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr);
       this.logger.error(
-        `PROVISIONING ROLLBACK FAILED — orphaned DA account ${c.daUsername} (domain=${c.domain}) ` +
+        `PROVISIONING ROLLBACK FAILED – orphaned DA account ${c.daUsername} (domain=${c.domain}) ` +
           `on server=${c.serverId}: ${cleanupMsg}. Manual cleanup required.`,
       );
       await this.audit.record({
@@ -563,7 +563,7 @@ export class ProvisioningService {
       const exists = await this.prisma.account.findUnique({ where: { daUsername: candidate } });
       if (!exists) return candidate;
     }
-    throw new ServiceUnavailableException('Nie udało się przydzielić loginu konta hostingowego — spróbuj ponownie za chwilę.');
+    throw new ServiceUnavailableException('Nie udało się przydzielić loginu konta hostingowego – spróbuj ponownie za chwilę.');
   }
 }
 

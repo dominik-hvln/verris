@@ -14,7 +14,7 @@ export function EcoOdznakaDrzew({ badgeSrc }: { badgeSrc: string }) {
   const [licznik, setLicznik] = useState<Licznik>('verris');
   const [motyw, setMotyw] = useState<Motyw>('ciemny');
   const src = `${badgeSrc}?motyw=${motyw}&wariant=eko&licznik=${licznik}`;
-  const html = `<a href="https://verris.pl" target="_blank" rel="noopener"><img src="${src}" height="44" alt="Verris — posadzone drzewa"></a>`;
+  const html = `<a href="https://verris.pl" target="_blank" rel="noopener"><img src="${src}" height="44" alt="Verris – posadzone drzewa"></a>`;
 
   const seg = <T extends string>(label: string, value: T, set: (v: T) => void, opcje: [T, string][]) => (
     <div role="radiogroup" aria-label={label} className="inline-flex rounded-xl border border-white/10 bg-black/30 p-1">

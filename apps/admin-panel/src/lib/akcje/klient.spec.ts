@@ -28,7 +28,7 @@ describe("Działania klienta", () => {
     expect(po({ id: "u1" }, "partner", operator("CUSTOMERS_VIEW"))?.zablokowane).toBe("Wymaga PROMO_MANAGE");
   });
 
-  it("odpowiedź na zgłoszenie: panel obsługi z ID zgłoszenia (nowa karta); bez otwartych — brak; z Cmd+K — zakładka zgłoszeń", () => {
+  it("odpowiedź na zgłoszenie: panel obsługi z ID zgłoszenia (nowa karta); bez otwartych – brak; z Cmd+K – zakładka zgłoszeń", () => {
     expect(po({ id: "u1", otwarteZgloszenie: "t-1", panelObslugi: "https://staff.verris.pl" }, "odpowiedz")).toMatchObject({
       href: "https://staff.verris.pl/tickets/t-1",
       zewnetrzny: true,
@@ -51,7 +51,7 @@ describe("Działania klienta", () => {
   });
 });
 
-describe("dzialanieObiektu — jeden przycisk z rejestru (nagłówek karty, „Operacje wrażliwe”)", () => {
+describe("dzialanieObiektu – jeden przycisk z rejestru (nagłówek karty, „Operacje wrażliwe”)", () => {
   const L1 = operator("DASHBOARD_VIEW", "CUSTOMERS_VIEW", "TICKETS_VIEW", "TICKETS_MANAGE", "BILLING_VIEW");
   it("ten sam powód i wniosek co pozycja listy „Działania”", () => {
     for (const id of ["kredyty", "zaloguj", "napisz", "reset", "email", "blokada-logowania", "usuniecie"]) {
@@ -62,13 +62,13 @@ describe("dzialanieObiektu — jeden przycisk z rejestru (nagłówek karty, „O
     expect(dzialanieObiektu(AKCJE_KLIENTA, "napisz", { id: "u1" }, L1)).toMatchObject({ zablokowane: null, href: "/customers/u1?sekcja=komunikacja#napisz-do-klienta" });
   });
 
-  it("nieznane ID (literówka w stronie) — tylko administrator, nie po cichu aktywne", () => {
+  it("nieznane ID (literówka w stronie) – tylko administrator, nie po cichu aktywne", () => {
     expect(dzialanieObiektu(AKCJE_KLIENTA, "nie-ma", { id: "u1" }, operator("BILLING_MANAGE")).zablokowane).toBe("Wymaga roli administratora");
     expect(dzialanieObiektu(AKCJE_KLIENTA, "nie-ma", { id: "u1" }, ADMIN).zablokowane).toBeNull();
   });
 });
 
-describe("brakUprawnienia — warunki jak w API", () => {
+describe("brakUprawnienia – warunki jak w API", () => {
   it("lista = którekolwiek (@StaffPermAny), { wszystkie } = każde, ADMIN = tylko administrator", () => {
     expect(brakUprawnienia(["A", "B"], operator("B"))).toBeNull();
     expect(brakUprawnienia(["A", "B"], operator())).toBe("Wymaga A lub B");

@@ -84,7 +84,7 @@ export function reakcjaNaBlad(w: { status: number; kod?: KodAsystenta; komunikat
       return { tresc: 'Potwierdź, że nie jesteś botem, i wyślij pytanie jeszcze raz.', przekaz: false, captcha: true, nowaRozmowa: false };
     case 'LIMIT_ROZMOWY':
       return {
-        tresc: 'Ta rozmowa jest już długa. Zacznij nową albo zostaw numer — przekażemy ją człowiekowi.',
+        tresc: 'Ta rozmowa jest już długa. Zacznij nową albo zostaw numer – przekażemy ją człowiekowi.',
         przekaz: true,
         captcha: false,
         nowaRozmowa: true,
@@ -93,14 +93,14 @@ export function reakcjaNaBlad(w: { status: number; kod?: KodAsystenta; komunikat
       return { tresc: w.komunikat ?? 'Na dziś to już wszystkie pytania. Wróć jutro albo zostaw numer.', przekaz: true, captcha: false, nowaRozmowa: false };
     case 'NIEDOSTEPNY':
     case 'BRAK_KONFIGURACJI':
-      return { tresc: 'Asystent jest chwilowo niedostępny. Zostaw numer — oddzwonimy w dni robocze 9–17.', przekaz: true, captcha: false, nowaRozmowa: false };
+      return { tresc: 'Asystent jest chwilowo niedostępny. Zostaw numer – oddzwonimy w dni robocze 9–17.', przekaz: true, captcha: false, nowaRozmowa: false };
   }
   if (w.status === 429) {
     return { tresc: 'Za dużo pytań w krótkim czasie. Spróbuj za kilka minut albo zostaw numer.', przekaz: true, captcha: false, nowaRozmowa: false };
   }
   if (w.status === 400 && w.komunikat) return { tresc: w.komunikat, przekaz: false, captcha: false, nowaRozmowa: false };
   if (w.status === 503) {
-    return { tresc: 'Asystent jest chwilowo niedostępny. Zostaw numer — oddzwonimy w dni robocze 9–17.', przekaz: true, captcha: false, nowaRozmowa: false };
+    return { tresc: 'Asystent jest chwilowo niedostępny. Zostaw numer – oddzwonimy w dni robocze 9–17.', przekaz: true, captcha: false, nowaRozmowa: false };
   }
   return { tresc: 'Nie udało się połączyć z asystentem. Spróbuj ponownie za chwilę.', przekaz: false, captcha: false, nowaRozmowa: false };
 }

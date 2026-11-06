@@ -176,7 +176,7 @@ describe('X-04 zakup usługi z portfela', () => {
   });
 
   // 2026-10-12 — zakup przez Paynow: zamówienie czeka bez obciążenia; po wpłacie (K w portfelu) realizacja z portfela.
-  it('zakup przez Paynow: bez obciążenia przy zamówieniu, po wpłacie jedno obciążenie i zakładanie; drugie wywołanie — 409', async () => {
+  it('zakup przez Paynow: bez obciążenia przy zamówieniu, po wpłacie jedno obciążenie i zakładanie; drugie wywołanie – 409', async () => {
     const k = await klient(0);
     const plan = await utworzPlan({ priceMonthly: 45 });
     const s = uslugi();
@@ -218,7 +218,7 @@ describe('X-04 zakup usługi z portfela', () => {
     expect(kolejka).toEqual([]);
   });
 
-  it('zamówienie raz obciążone i zwrócone (nieudane zakładanie): realizacja odmawia — bez usługi „za darmo”', async () => {
+  it('zamówienie raz obciążone i zwrócone (nieudane zakładanie): realizacja odmawia – bez usługi „za darmo”', async () => {
     const k = await klient(100);
     const plan = await utworzPlan({ priceMonthly: 45 });
     kolejkaPada = true;
@@ -253,7 +253,7 @@ describe('X-04 zakup usługi z portfela', () => {
     expect(s.status).toBe(SubscriptionStatus.PENDING_PAYMENT);
   });
 
-  it('Q-05 — pakiet Newsletter z portfela: bez domeny, od razu aktywny, bez konta na węźle i bez kolejki', async () => {
+  it('Q-05 – pakiet Newsletter z portfela: bez domeny, od razu aktywny, bez konta na węźle i bez kolejki', async () => {
     const k = await klient(100);
     const d = PLANY_NEWSLETTER[0];
     const plan = await utworzPlan({
@@ -277,7 +277,7 @@ describe('X-04 zakup usługi z portfela', () => {
     expect(await prisma().subscription.count({ where: { userId: k.id } })).toBe(0);
   });
 
-  it('subkonto nie ma własnego portfela — uznanie na nim odrzucone, saldo właściciela nietknięte', async () => {
+  it('subkonto nie ma własnego portfela – uznanie na nim odrzucone, saldo właściciela nietknięte', async () => {
     const wl = await klient(100);
     const sub = await klient(0, { customerOwnerId: wl.id });
     const ledger = new WalletLedgerService(prisma() as never);

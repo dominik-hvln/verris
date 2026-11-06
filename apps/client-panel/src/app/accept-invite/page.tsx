@@ -31,7 +31,7 @@ export default async function AcceptInvitePage({
           <h1 className="font-display text-xl font-bold text-foreground">Dostęp do konta {info.ownerEmail}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {info.ownerEmail} udostępnia Ci {info.wybraneUslugi ? 'wybrane usługi swojego konta' : 'swoje konto'}. Adres{' '}
-            <b className="text-foreground">{info.email}</b> ma już konto Verris — przyjmiesz zaproszenie ze swojego konta i będziesz przełączać się między kontami w menu bocznym.
+            <b className="text-foreground">{info.email}</b> ma już konto Verris – przyjmiesz zaproszenie ze swojego konta i będziesz przełączać się między kontami w menu bocznym.
           </p>
         </div>
         {komunikat}

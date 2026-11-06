@@ -11,7 +11,7 @@ const OPIS =
   'Napisz na kontakt@verris.pl albo poproś o telefon (dni robocze 9–17). Pomoc po polsku, odpowiedź zwykle w ciągu dnia roboczego.';
 
 export const metadata: Metadata = {
-  title: 'Kontakt — Verris, polski hosting',
+  title: 'Kontakt – Verris, polski hosting',
   description: OPIS,
   alternates: { canonical: '/kontakt' },
 };
@@ -22,7 +22,7 @@ export default function Page() {
       <JsonLd
         data={webPageSchema({
           type: 'ContactPage',
-          name: 'Kontakt — Verris',
+          name: 'Kontakt – Verris',
           description: OPIS,
           path: '/kontakt',
           extra: { mainEntity: organization },
@@ -32,7 +32,7 @@ export default function Page() {
       <SubHero
         eyebrow="Kontakt"
         title="Porozmawiajmy. Odpisze człowiek, nie bot"
-        lead="Pytasz o hosting, pocztę, przeprowadzkę albo domenę? Napisz, a dostaniesz konkretną odpowiedź — zwykle w ciągu dnia roboczego. Wolisz rozmowę? Poproś o telefon."
+        lead="Pytasz o hosting, pocztę, przeprowadzkę albo domenę? Napisz, a dostaniesz konkretną odpowiedź – zwykle w ciągu dnia roboczego. Wolisz rozmowę? Poproś o telefon."
         crumbs={[{ label: 'Kontakt' }]}
       />
 
@@ -61,7 +61,7 @@ export default function Page() {
                 </div>
                 <h2>Wolisz porozmawiać?</h2>
                 <p>
-                  <a href="#telefon">Zostaw swój numer</a> — {GODZINY_ODDZWANIANIA.charAt(0).toLowerCase() + GODZINY_ODDZWANIANIA.slice(1)}
+                  <a href="#telefon">Zostaw swój numer</a> – {GODZINY_ODDZWANIANIA.charAt(0).toLowerCase() + GODZINY_ODDZWANIANIA.slice(1)}
                 </p>
               </div>
               <div className="icard">
@@ -70,7 +70,7 @@ export default function Page() {
                 </div>
                 <h2>Masz już konto?</h2>
                 <p>
-                  Najszybciej pomożemy przez zgłoszenie w <a href={PANEL}>panelu klienta</a> — od razu widzimy Twoje
+                  Najszybciej pomożemy przez zgłoszenie w <a href={PANEL}>panelu klienta</a> – od razu widzimy Twoje
                   usługi.
                 </p>
               </div>

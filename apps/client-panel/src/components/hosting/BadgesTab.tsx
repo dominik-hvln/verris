@@ -30,7 +30,7 @@ const KINDS: { id: Kind; name: string; tag: string; desc: string }[] = [
   { id: 'pieczec', name: 'Pieczęć zaufania', tag: 'interaktywna', desc: 'SSL, dostępność i dane w UE po kliknięciu.' },
   { id: 'dostepnosc', name: 'Dostępność na żywo', tag: 'interaktywna', desc: 'Pasek dni z monitora Twojej strony.' },
   { id: 'polecenie', name: 'Polecenie z prowizją', tag: 'zarabia', desc: 'Stopka „działa na verris” z Twoim kodem.' },
-  { id: 'eko', name: 'Drzewa i stopki', tag: 'statyczna', desc: 'Obrazek z linkiem — działa wszędzie.' },
+  { id: 'eko', name: 'Drzewa i stopki', tag: 'statyczna', desc: 'Obrazek z linkiem – działa wszędzie.' },
 ];
 
 const pl = (n: number, d = 2) => n.toLocaleString('pl-PL', { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -141,15 +141,15 @@ export default function BadgesTab({ serviceId }: { serviceId: string }) {
       src: `${api}/public/badges/ramka/dostepnosc/${serviceId}?${[q, wariant === 'mini' ? 'wariant=mini' : ''].filter(Boolean).join('&')}`,
       code: embedCode(api, 'dostepnosc', serviceId, motyw, wariant === 'mini' ? ' data-wariant="mini"' : ''),
       state: data.uptime.monitorOn
-        ? { ok: true, text: 'Monitor strony włączony — badge pokazuje jego dane.' }
-        : { ok: false, text: 'Włącz monitoring strony (zakładka Monitoring) — bez niego badge się nie wyświetla.' },
+        ? { ok: true, text: 'Monitor strony włączony – badge pokazuje jego dane.' }
+        : { ok: false, text: 'Włącz monitoring strony (zakładka Monitoring) – bez niego badge się nie wyświetla.' },
     },
     polecenie: {
       src: `${api}/public/badges/ramka/polecenie/${refCode}${q ? `?${q}` : ''}`,
       code: embedCode(api, 'polecenie', refCode, motyw),
       state:
         data.referral.status === 'APPROVED'
-          ? { ok: true, text: `Program poleceń aktywny — ${data.referral.commissionPct}% od każdej płatności poleconego klienta trafia do portfela.` }
+          ? { ok: true, text: `Program poleceń aktywny – ${data.referral.commissionPct}% od każdej płatności poleconego klienta trafia do portfela.` }
           : data.referral.status === 'PENDING'
             ? { ok: false, text: 'Zgłoszenie do programu poleceń czeka na akceptację. Do tego czasu badge działa bez prowizji.' }
             : { ok: false, text: 'Badge działa bez prowizji. Dołącz do programu poleceń (menu: Program poleceń), żeby zarabiać na każdym kliencie z Twojej strony.' },
@@ -157,7 +157,7 @@ export default function BadgesTab({ serviceId }: { serviceId: string }) {
     eko: {
       src: null,
       code: ekoSrc ? `<a href="https://verris.pl" target="_blank" rel="noopener"><img src="${ekoSrc}" alt="Hosting Verris" height="${eko === 'eko' ? 44 : eko === 'znak' ? 28 : 20}"></a>` : '',
-      state: { ok: !!ekoSrc, text: ekoSrc ? 'Widoczny zawsze. Wyświetlenia z panelu nie są liczone.' : 'Brak tokenu badge — napisz do nas.' },
+      state: { ok: !!ekoSrc, text: ekoSrc ? 'Widoczny zawsze. Wyświetlenia z panelu nie są liczone.' : 'Brak tokenu badge – napisz do nas.' },
     },
   }[kind];
 
@@ -166,7 +166,7 @@ export default function BadgesTab({ serviceId }: { serviceId: string }) {
       await navigator.clipboard.writeText(view.code);
       toast.success('Skopiowano kod badge');
     } catch {
-      toast.error('Nie udało się skopiować — zaznacz kod ręcznie.');
+      toast.error('Nie udało się skopiować – zaznacz kod ręcznie.');
     }
   };
 

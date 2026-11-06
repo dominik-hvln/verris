@@ -37,13 +37,13 @@ function zbuduj(konto: unknown = KONTO) {
 }
 
 describe('ZasobyKontaOperatoraService', () => {
-  it('audyt Fal 2: konto zawieszone — faulty jako brak danych (agent raportuje tylko konta ACTIVE), nie „0 odbić”', async () => {
+  it('audyt Fal 2: konto zawieszone – faulty jako brak danych (agent raportuje tylko konta ACTIVE), nie „0 odbić”', async () => {
     const { svc } = zbuduj({ ...KONTO, daUsername: 'zawieszony', status: 'SUSPENDED' });
     const w = await svc.widok('s1', 'k1');
     expect(w.faulty).toMatchObject({ doba: null, tydzien: null, pozaRaportem: true });
   });
 
-  it('widok: faulty 24 h i 7 dni konta, limity efektywne, inody, wolne SQL i 5xx — wszystko dla właściciela', async () => {
+  it('widok: faulty 24 h i 7 dni konta, limity efektywne, inody, wolne SQL i 5xx – wszystko dla właściciela', async () => {
     const { svc, directAdmin, slowSql, siteStats } = zbuduj();
     const w = await svc.widok('s1', 'wlasciciel');
     expect(w.faulty.doba).toMatchObject({ ep: 17, pmem: 0 });
@@ -57,7 +57,7 @@ describe('ZasobyKontaOperatoraService', () => {
     expect(siteStats.status).toHaveBeenCalledWith('s1', 'wlasciciel', 'klient.pl');
   });
 
-  it('błąd węzła przy statystykach strony nie gasi reszty — sekcja ma błąd, nie pusty wynik', async () => {
+  it('błąd węzła przy statystykach strony nie gasi reszty – sekcja ma błąd, nie pusty wynik', async () => {
     const { svc, siteStats } = zbuduj();
     siteStats.status.mockRejectedValueOnce(new BadRequestException('DirectAdmin API error: timeout'));
     const w = await svc.widok('s1', 'wlasciciel');
@@ -76,7 +76,7 @@ describe('ZasobyKontaOperatoraService', () => {
     await expect(svc.widok('s1', 'w')).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('odczytaj: zleca SLOW_SQL i SITE_STATS jako operator; odczyt w toku to nie błąd, inny błąd — tak', async () => {
+  it('odczytaj: zleca SLOW_SQL i SITE_STATS jako operator; odczyt w toku to nie błąd, inny błąd – tak', async () => {
     const { svc, slowSql, siteStats } = zbuduj();
     slowSql.odswiez.mockRejectedValueOnce(new ConflictException('Odczyt jest już w toku'));
     await svc.odczytaj('s1', 'wlasciciel', 'operator');
@@ -87,14 +87,14 @@ describe('ZasobyKontaOperatoraService', () => {
   });
 });
 
-describe('F2.6 — zlecający odczyt z karty operatora', () => {
+describe('F2.6 – zlecający odczyt z karty operatora', () => {
   const konto = { id: 'acc1', serverId: 'srv1', daUsername: 'u1', status: 'ACTIVE' };
   const prisma = () => ({
     subscription: { findFirst: vi.fn(async () => ({ account: konto })) },
     nodeTask: { findFirst: vi.fn(async () => null), create: vi.fn(async () => ({})), findMany: vi.fn(async () => []) },
   });
 
-  it('SLOW_SQL: requestedById = operator, a gdy brak — właściciel (jak dotąd u klienta)', async () => {
+  it('SLOW_SQL: requestedById = operator, a gdy brak – właściciel (jak dotąd u klienta)', async () => {
     const { SlowSqlService } = await import('./slow-sql.service.js');
     const p = prisma();
     await new SlowSqlService(p as never).odswiez('s1', 'wlasciciel', 'operator');

@@ -45,7 +45,7 @@ describe('X-05 zakładki usługi', () => {
     }
   });
 
-  it('hosting w trybie pełnym widzi wszystkie zakładki, w prostym — bez zaawansowanych', () => {
+  it('hosting w trybie pełnym widzi wszystkie zakładki, w prostym – bez zaawansowanych', () => {
     expect(visibleTabIds({ email: false, kindResolved: true, simple: false })).toEqual(ALL_IDS);
     const simple = visibleTabIds({ email: false, kindResolved: true, simple: true });
     expect(simple).toEqual(ALL_IDS.filter((id) => !ADVANCED_TAB_IDS.includes(id)));
@@ -58,7 +58,7 @@ describe('X-05 zakładki usługi', () => {
   });
 });
 
-describe('05.10 — zużycie i prognoza widoczne także w widoku prostym', () => {
+describe('05.10 – zużycie i prognoza widoczne także w widoku prostym', () => {
   it('usage jest w trybie prostym i w grupie „Usługa”', async () => {
     const { visibleTabIds, NAV_GROUPS } = await import('./tabs');
     expect(visibleTabIds({ email: false, kindResolved: true, simple: true })).toContain('usage');

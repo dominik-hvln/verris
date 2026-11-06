@@ -191,7 +191,7 @@ export class WarunkiIndywidualneService {
     if (!sub) throw new NotFoundException('Nie ma takiej usługi.');
     if (sub.paymentSource === SubscriptionPaymentSource.STRIPE_CARD && sub.stripeSubscriptionId) {
       throw new ConflictException(
-        'Usługa jest opłacana cyklicznie kartą według cennika Stripe — indywidualna cena działa dla portfela i rozliczenia poza Verris.',
+        'Usługa jest opłacana cyklicznie kartą według cennika Stripe – indywidualna cena działa dla portfela i rozliczenia poza Verris.',
       );
     }
     const cena = this.cena(dto.individualPrice);
@@ -238,7 +238,7 @@ export class WarunkiIndywidualneService {
       });
       if (karta > 0) {
         throw new ConflictException(
-          'Klient ma usługę opłacaną cyklicznie kartą. Najpierw trzeba ją anulować w Stripe albo przełączyć na portfel — inaczej karta dalej byłaby obciążana.',
+          'Klient ma usługę opłacaną cyklicznie kartą. Najpierw trzeba ją anulować w Stripe albo przełączyć na portfel – inaczej karta dalej byłaby obciążana.',
         );
       }
     }
@@ -282,7 +282,7 @@ export class WarunkiIndywidualneService {
     }
     // Subkonto działa na usługach właściciela — usługa założona tutaj byłaby niewidoczna dla nikogo.
     if (user.customerOwnerId) {
-      throw new BadRequestException('To subkonto — usługi i warunki ustawiasz na koncie właściciela.');
+      throw new BadRequestException('To subkonto – usługi i warunki ustawiasz na koncie właściciela.');
     }
     return user;
   }

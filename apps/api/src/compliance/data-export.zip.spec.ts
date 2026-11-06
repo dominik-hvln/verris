@@ -114,7 +114,7 @@ function zbuduj(opts: { brakujacyZalacznik?: boolean } = {}) {
         // Akcje obsługi z paska konta/domeny zakończone błędem węzła — wpis zespołu ma userId klienta.
         {
           id: 'l4', action: 'OPERATOR_ACCOUNT_CHANGED', userId: 'u1', actorUserId: OPERATOR, impersonatedBy: null, ipAddress: null, userAgent: null,
-          details: { akcja: 'blokada-wysylki', wynik: 'blad', blad: 'Węzeł nie obsługuje blokady wysyłki (brak HAVE_BLACKLIST_USERNAMES w ustawieniach exima — zaktualizuj exim.conf przez CustomBuild).' },
+          details: { akcja: 'blokada-wysylki', wynik: 'blad', blad: 'Węzeł nie obsługuje blokady wysyłki (brak HAVE_BLACKLIST_USERNAMES w ustawieniach exima – zaktualizuj exim.conf przez CustomBuild).' },
         },
         {
           id: 'l5', action: 'OPERATOR_DOMAIN_CHANGED', userId: 'u1', actorUserId: OPERATOR, impersonatedBy: null, ipAddress: null, userAgent: null,
@@ -123,7 +123,7 @@ function zbuduj(opts: { brakujacyZalacznik?: boolean } = {}) {
         // Błąd połączenia z hostem panelu węzła w innym wpisie (np. wniosek, który się nie wykonał).
         {
           id: 'l6', action: 'OPERATOR_REQUEST_FAILED', userId: 'u1', actorUserId: OPERATOR, impersonatedBy: null, ipAddress: null, userAgent: null,
-          details: { wniosekId: 'w1', blad: 'connect ETIMEDOUT da-t1.wezly.example — węzeł nie odpowiadał przed chwilą' },
+          details: { wniosekId: 'w1', blad: 'connect ETIMEDOUT da-t1.wezly.example – węzeł nie odpowiadał przed chwilą' },
         },
         // Błąd bez śladów infrastruktury zostaje (np. odmowa karty klienta).
         { id: 'l7', action: 'WALLET_AUTO_TOPUP_FAILED', userId: 'u1', actorUserId: null, impersonatedBy: null, ipAddress: null, userAgent: null, details: { error: 'Karta została odrzucona.' } },
@@ -180,7 +180,7 @@ function zbuduj(opts: { brakujacyZalacznik?: boolean } = {}) {
   return { svc, prisma };
 }
 
-describe('X-22 — eksport RODO buduje prawdziwe archiwum', () => {
+describe('X-22 – eksport RODO buduje prawdziwe archiwum', () => {
   let dir: string;
   beforeEach(() => { dir = mkdtempSync(join(tmpdir(), 'x22-')); });
   afterEach(() => rmSync(dir, { recursive: true, force: true }));
@@ -215,7 +215,7 @@ describe('X-22 — eksport RODO buduje prawdziwe archiwum', () => {
     for (const sekret of ['$2b$10$tajne', 'SEKRET-TOTP', 'enc:haslo-da', 'enc:kody-awaryjne']) expect(calosc).not.toContain(sekret);
   });
 
-  it('P5-07 — profil i konta z allowlisty: bez flag zespołu, wyzwań, węzła i prefiksu „da”; notatka obsługi podpisana; README i _meta po polsku', async () => {
+  it('P5-07 – profil i konta z allowlisty: bez flag zespołu, wyzwań, węzła i prefiksu „da”; notatka obsługi podpisana; README i _meta po polsku', async () => {
     const z = zbuduj();
     z.prisma.user.findUniqueOrThrow.mockResolvedValueOnce({
       id: 'u1', email: 'jan@firma.pl', passwordHash: 'x', adminInternalNote: 'Klient VIP', canAccessGrafana: true, isInternal: false,
@@ -233,7 +233,7 @@ describe('X-22 — eksport RODO buduje prawdziwe archiwum', () => {
     expect(JSON.parse(pliki.get('_meta.json')!).notice).toMatch(/^Archiwum zawiera/);
   });
 
-  it('F2.4 — notatki obsługi o kliencie są w eksporcie, bez autora (art. 15 RODO, D3)', async () => {
+  it('F2.4 – notatki obsługi o kliencie są w eksporcie, bez autora (art. 15 RODO, D3)', async () => {
     const pliki = await zbudujZip(zbuduj().svc);
     expect(pliki.get('README.txt')).toContain('customer-notes.json');
     const notatki = JSON.parse(pliki.get('customer-notes.json')!);
@@ -243,7 +243,7 @@ describe('X-22 — eksport RODO buduje prawdziwe archiwum', () => {
     expect(pliki.get('customer-notes.json')).not.toContain('operator-7');
   });
 
-  it('D11 — obsługa migracji (checklista, log kontaktów) w eksporcie, bez haseł starego hostingu i id pracowników', async () => {
+  it('D11 – obsługa migracji (checklista, log kontaktów) w eksporcie, bez haseł starego hostingu i id pracowników', async () => {
     const pliki = await zbudujZip(zbuduj().svc);
     expect(pliki.get('README.txt')).toContain('migrations.json');
     const [m] = JSON.parse(pliki.get('migrations.json')!) as Array<Record<string, unknown>>;
@@ -260,7 +260,7 @@ describe('X-22 — eksport RODO buduje prawdziwe archiwum', () => {
     expect(pliki.get('migrations.json')).not.toContain('enc:hasla-starego-hostingu');
   });
 
-  it('F2.5 — notatki obsługi w wątku zgłoszenia są w eksporcie (internal: true), wpisy obsługi bez id pracownika', async () => {
+  it('F2.5 – notatki obsługi w wątku zgłoszenia są w eksporcie (internal: true), wpisy obsługi bez id pracownika', async () => {
     const pliki = await zbudujZip(zbuduj().svc);
     const wpisy = JSON.parse(pliki.get('ticket-replies.json')!) as Array<Record<string, unknown>>;
     expect(wpisy.find((r) => r.id === 'r3')).toMatchObject({ internal: true, message: 'Klient zgłaszał to już w marcu.', authorId: null, autor: 'Obsługa Verris' });
@@ -273,7 +273,7 @@ describe('X-22 — eksport RODO buduje prawdziwe archiwum', () => {
     expect(pliki.get('README.txt')).toContain('notatki obsługi (internal: true)');
   });
 
-  it('przegląd F2.5 — zgłoszenia i załączniki w eksporcie bez id pracowników (opiekun, eskalujący, agent, kto dodał plik)', async () => {
+  it('przegląd F2.5 – zgłoszenia i załączniki w eksporcie bez id pracowników (opiekun, eskalujący, agent, kto dodał plik)', async () => {
     const pliki = await zbudujZip(zbuduj().svc);
     for (const plik of ['tickets.json', 'ticket-attachments.json']) expect(pliki.get(plik)).not.toMatch(/operator-\d/);
     const zgl = JSON.parse(pliki.get('tickets.json')!) as Array<Record<string, unknown>>;
@@ -284,7 +284,7 @@ describe('X-22 — eksport RODO buduje prawdziwe archiwum', () => {
     expect(zal.find((a) => a.id === 'z1')).toMatchObject({ uploadedById: 'u1' });
   });
 
-  it('przegląd D11 — dziennik konta bez id pracowników (aktor, impersonacja, szczegóły) i bez IP operatora', async () => {
+  it('przegląd D11 – dziennik konta bez id pracowników (aktor, impersonacja, szczegóły) i bez IP operatora', async () => {
     const pliki = await zbudujZip(zbuduj().svc);
     const plik = pliki.get('audit-log.json')!;
     expect(plik).not.toContain(OPERATOR);
@@ -303,7 +303,7 @@ describe('X-22 — eksport RODO buduje prawdziwe archiwum', () => {
     expect(pliki.get('README.txt')).toContain('bez id pracowników');
   });
 
-  it('audyt Fal 2 — żadna sekcja nie zawiera id pracownika (blokada wysyłki, warunki indywidualne) ani powodu blokady', async () => {
+  it('audyt Fal 2 – żadna sekcja nie zawiera id pracownika (blokada wysyłki, warunki indywidualne) ani powodu blokady', async () => {
     const pliki = await zbudujZip(zbuduj().svc);
     for (const [nazwa, tresc] of pliki) {
       expect(tresc, nazwa).not.toContain(OPERATOR);
@@ -316,19 +316,19 @@ describe('X-22 — eksport RODO buduje prawdziwe archiwum', () => {
     expect(JSON.parse(pliki.get('subscriptions.json')!)).toEqual([{ id: 's1', individualTermsById: 'Obsługa Verris', price: '19.99' }]);
   });
 
-  it('audyt Fal 2 — dziennik w eksporcie bez surowych błędów węzła (exim, CustomBuild, host węzła); zwykły błąd zostaje', async () => {
+  it('audyt Fal 2 – dziennik w eksporcie bez surowych błędów węzła (exim, CustomBuild, host węzła); zwykły błąd zostaje', async () => {
     const pliki = await zbudujZip(zbuduj().svc);
     const plik = pliki.get('audit-log.json')!;
     expect(plik).not.toMatch(/exim|CustomBuild|HAVE_BLACKLIST|da-t1\.wezly|ETIMEDOUT|Rejestr nie odpowiedział/i);
     const wpisy = JSON.parse(plik) as Array<{ id: string; details: Record<string, unknown> }>;
-    const ogolny = 'Operacja nie powiodła się. Napisz do nas — sprawdzimy to.';
+    const ogolny = 'Operacja nie powiodła się. Napisz do nas – sprawdzimy to.';
     expect(wpisy.find((w) => w.id === 'l4')!.details).toMatchObject({ akcja: 'blokada-wysylki', wynik: 'blad', blad: ogolny });
     expect(wpisy.find((w) => w.id === 'l5')!.details).toMatchObject({ wynik: 'blad', blad: ogolny });
     expect(wpisy.find((w) => w.id === 'l6')!.details).toMatchObject({ wniosekId: 'w1', blad: ogolny });
     expect(wpisy.find((w) => w.id === 'l7')!.details).toEqual({ error: 'Karta została odrzucona.' });
   });
 
-  it('audyt Fali 3 — powód blokady wysyłki nie wychodzi w żadnym pliku (kopie w dzienniku: akcja zespołu i kordon obsługi)', async () => {
+  it('audyt Fali 3 – powód blokady wysyłki nie wychodzi w żadnym pliku (kopie w dzienniku: akcja zespołu i kordon obsługi)', async () => {
     const pliki = await zbudujZip(zbuduj().svc);
     for (const [nazwa, tresc] of pliki) expect(tresc, nazwa).not.toMatch(/Nadużycie #ab12|zglaszajacy/);
     const wpisy = JSON.parse(pliki.get('audit-log.json')!) as Array<{ id: string; details: Record<string, unknown> }>;
@@ -338,7 +338,7 @@ describe('X-22 — eksport RODO buduje prawdziwe archiwum', () => {
     expect(wpisy.find((w) => w.id === 'l11')!.details).toMatchObject({ akcja: 'ssl', powod: 'Klient prosił o odnowienie certyfikatu' });
   });
 
-  it('audyt Fali 3 — maile klienta z poczty przychodzącej (kolejka): nazwy plików bez kluczy magazynu; bez zgłoszeń nadużyć osób trzecich', async () => {
+  it('audyt Fali 3 – maile klienta z poczty przychodzącej (kolejka): nazwy plików bez kluczy magazynu; bez zgłoszeń nadużyć osób trzecich', async () => {
     const z = zbuduj();
     const pliki = await zbudujZip(z.svc);
     expect(JSON.parse(pliki.get('incoming-mail.json')!)).toEqual([
@@ -356,7 +356,7 @@ describe('X-22 — eksport RODO buduje prawdziwe archiwum', () => {
     expect(nazwy).toContain('attachments/.._.._etc_passwd');
   });
 
-  it('brakujący obiekt w magazynie nie psuje eksportu — reszta archiwum powstaje', async () => {
+  it('brakujący obiekt w magazynie nie psuje eksportu – reszta archiwum powstaje', async () => {
     const pliki = await zbudujZip(zbuduj({ brakujacyZalacznik: true }).svc);
     expect(pliki.has('profile.json')).toBe(true);
     expect(pliki.has('attachments/faktura.pdf')).toBe(true);

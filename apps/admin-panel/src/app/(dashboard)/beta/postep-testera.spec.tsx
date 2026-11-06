@@ -42,7 +42,7 @@ describe("postęp testera w panelu admina", () => {
     expect(s.find((x) => x.id === "s05")?.uwaga).toBe("Mail w spamie");
   });
 
-  it("wiersz: 2/N, klik rozwija szczegóły z uwagą; bez użytego kodu — kreska", async () => {
+  it("wiersz: 2/N, klik rozwija szczegóły z uwagą; bez użytego kodu – kreska", async () => {
     const p = { zrobione: 2, wszystkie: LICZBA_KROKOW_BETA, zaktualizowano: "2026-10-20T10:00:00.000Z", kroki: { "s01.k1": "x", "s01.k2": "x" }, uwagi: { s05: "Mail w spamie" } };
     await act(async () => root.render(<table><tbody><WierszTestera r={wiersz(p)} /></tbody></table>));
     expect(el.textContent).toContain(`2/${LICZBA_KROKOW_BETA}`);

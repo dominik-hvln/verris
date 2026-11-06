@@ -17,7 +17,7 @@ const raport = (poprawki: unknown[], o: Record<string, unknown> = {}) => ({
   ...o,
 });
 
-describe('raport aktualizacji — czyszczenie wpis po wpisie', () => {
+describe('raport aktualizacji – czyszczenie wpis po wpisie', () => {
   it('zła poprawka, zły CVE i zła wersja odpadają; reszta raportu zostaje', () => {
     const s = oczyscRaportAktualizacji(
       raport(
@@ -47,7 +47,7 @@ describe('raport aktualizacji — czyszczenie wpis po wpisie', () => {
     expect(validateSync(zla, { whitelist: true, forbidNonWhitelisted: true }).map((e) => e.property)).toEqual(['aktualizacje']);
   });
 
-  it('nowe do alarmu: tylko Critical/Important, których nie było; po błędzie dnf w poprzednim raporcie — wszystko nowe', () => {
+  it('nowe do alarmu: tylko Critical/Important, których nie było; po błędzie dnf w poprzednim raporcie – wszystko nowe', () => {
     const stary = oczyscRaportAktualizacji(raport([poprawka('ALSA-1', 'Important')]))!;
     const nowy = oczyscRaportAktualizacji(raport([poprawka('ALSA-1', 'Important'), poprawka('ALSA-2', 'Critical', 'openssl-libs-3.2.2-6.el10.x86_64'), poprawka('ALSA-3', 'Moderate')]))!;
     expect(noweDoAlarmu(stary, nowy).poprawki.map((p) => p.advisory)).toEqual(['ALSA-2']);
@@ -55,11 +55,11 @@ describe('raport aktualizacji — czyszczenie wpis po wpisie', () => {
     expect(noweDoAlarmu(zBledem, nowy).poprawki.map((p) => p.advisory)).toEqual(['ALSA-1', 'ALSA-2']);
     const { tytul, tresc } = trescAlarmuPoprawek('t2', nowy.dnf.poprawki.filter((p) => p.waga !== 'Moderate'));
     expect(tytul).toBe('Węzeł t2: 2 nowe poprawki bezpieczeństwa (krytyczne)');
-    expect(tresc).toContain('ALSA-2 (Critical): openssl-libs-3.2.2-6.el10.x86_64 — CVE-2026-109618');
+    expect(tresc).toContain('ALSA-2 (Critical): openssl-libs-3.2.2-6.el10.x86_64 – CVE-2026-109618');
   });
 });
 
-describe('TelemetryService — zapis raportu i alarmy', () => {
+describe('TelemetryService – zapis raportu i alarmy', () => {
   function stanowisko() {
     let zapisane: unknown = null;
     const prisma = {
@@ -99,7 +99,7 @@ describe('TelemetryService — zapis raportu i alarmy', () => {
     expect(s.alarmy.wyslij).toHaveBeenNthCalledWith(2, expect.objectContaining({ klucz: 'aktualizacje:s1:custombuild:Exim@4.98.1', waga: 'info' }));
   });
 
-  it('błąd dnf zapisany (panel pokaże „nie wiadomo”), bez alarmu; nieczytelny blok — nic nie nadpisuje', async () => {
+  it('błąd dnf zapisany (panel pokaże „nie wiadomo”), bez alarmu; nieczytelny blok – nic nie nadpisuje', async () => {
     const s = stanowisko();
     await s.wyslij(raport([], { dnf: { poprawki: [], blad: 'dnf: exit 1, Error: Failed to download metadata' } }));
     expect((s.zapisane() as { dnf: { blad: string } }).dnf.blad).toContain('Failed to download metadata');

@@ -8,7 +8,7 @@ import { AutoscalingEngineService } from './autoscaling-engine.service.js';
  * Na żywo 09.10 (d3): +50% CPU od 13:43, zużycie 0% od 13:44, o 14:00 naliczony drugi blok — silnik
  * nie zszedł, bo okno 5 min od zegara silnika łapało 3–4 kubełki, a zejście wymaga 5.
  */
-describe('AutoscalingEngineService — zejście przy realnym opóźnieniu telemetrii', () => {
+describe('AutoscalingEngineService – zejście przy realnym opóźnieniu telemetrii', () => {
   const TICK = new Date('2026-10-09T12:00:00.300Z');
 
   /** Kubełki co minutę; najnowszy = TICK − 2 min (tak jak przychodzą z węzła). */
@@ -90,7 +90,7 @@ describe('AutoscalingEngineService — zejście przy realnym opóźnieniu teleme
   });
 });
 
-describe('AutoscalingEngineService — brak pojemności węzła zapisywany raz na blok', () => {
+describe('AutoscalingEngineService – brak pojemności węzła zapisywany raz na blok', () => {
   function silnik(istnieje: boolean) {
     const najnowszy = Date.UTC(2026, 9, 9, 11, 58, 0);
     const wiersze = Array.from({ length: 10 }, (_, i) => ({

@@ -31,19 +31,19 @@ const strona = async () => renderToStaticMarkup(await StaffCrmPage({ searchParam
 describe("przycisk „Zaloguj jako klient” w obsłudze", () => {
   beforeEach(() => api.mockReset());
 
-  it("L1 (bez CUSTOMERS_IMPERSONATE) — lista klientów bez przycisku", async () => {
+  it("L1 (bez CUSTOMERS_IMPERSONATE) – lista klientów bez przycisku", async () => {
     zDostepem({ role: "STAFF", isAdmin: false, permissions: ["CUSTOMERS_VIEW", "TICKETS_VIEW"] });
     const html = await strona();
     expect(html).toContain("jan@firma.pl");
     expect(html).not.toContain("Zaloguj jako klient");
   });
 
-  it("L2 (CUSTOMERS_VIEW + CUSTOMERS_IMPERSONATE) — przycisk jest", async () => {
+  it("L2 (CUSTOMERS_VIEW + CUSTOMERS_IMPERSONATE) – przycisk jest", async () => {
     zDostepem({ role: "STAFF", isAdmin: false, permissions: ["CUSTOMERS_VIEW", "CUSTOMERS_IMPERSONATE"] });
     expect(await strona()).toContain("Zaloguj jako klient");
   });
 
-  it("błąd odczytu uprawnień — przycisk ukryty (fail-closed)", async () => {
+  it("błąd odczytu uprawnień – przycisk ukryty (fail-closed)", async () => {
     zDostepem(new Error("ECONNRESET"));
     expect(await strona()).not.toContain("Zaloguj jako klient");
   });

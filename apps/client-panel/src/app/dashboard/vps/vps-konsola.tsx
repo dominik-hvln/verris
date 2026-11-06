@@ -108,7 +108,7 @@ export function VpsKonsola({ vpsId, onClose }: { vpsId: string; onClose: () => v
       ) : null}
       <div ref={ekran} className="h-[420px] w-full overflow-hidden rounded-lg border border-white/10 bg-black" />
       <p className="text-[11px] text-neutral-500">
-        Zaloguj się kontem systemu serwera (np. root). Sesja jest jednorazowa — po rozłączeniu otwórz nową.
+        Zaloguj się kontem systemu serwera (np. root). Sesja jest jednorazowa – po rozłączeniu otwórz nową.
       </p>
     </div>
   );

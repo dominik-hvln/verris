@@ -24,8 +24,8 @@ const zle = (n: number, email: string, ip: string, reason = 'bad_password'): Pro
   Array.from({ length: n }, () => ({ email, ip, succeeded: false, reason }));
 const serwis = (proby: Proba[], rola = 'CLIENT') => new SuspiciousActivityService(baza(proby, rola) as never, {} as never, {} as never);
 
-describe('wymagaCaptchyLogowania — próg nieudanych prób', () => {
-  it(`poniżej ${LOGIN_CAPTCHA_PO_PROBACH} prób — bez captchy; od progu — z captchą (e-mail z wielu IP albo jedno IP na wiele kont)`, async () => {
+describe('wymagaCaptchyLogowania – próg nieudanych prób', () => {
+  it(`poniżej ${LOGIN_CAPTCHA_PO_PROBACH} prób – bez captchy; od progu – z captchą (e-mail z wielu IP albo jedno IP na wiele kont)`, async () => {
     expect(LOGIN_CAPTCHA_PO_PROBACH).toBe(5);
     expect(await serwis(zle(4, 'jan@firma.pl', '198.51.100.1')).wymagaCaptchyLogowania('jan@firma.pl', '203.0.113.7')).toBe(false);
     const rozproszone = Array.from({ length: 5 }, (_, i) => zle(1, 'jan@firma.pl', `198.51.100.${i}`)[0]);
@@ -34,7 +34,7 @@ describe('wymagaCaptchyLogowania — próg nieudanych prób', () => {
     expect(await serwis(jednoIp).wymagaCaptchyLogowania('nowe@firma.pl', '198.51.100.9')).toBe(true);
   });
 
-  it('przegląd 14.10: konto ADMIN/STAFF — złe hasła z cudzych IP nie wymuszają captchy (panel operatora jej nie pokazuje)', async () => {
+  it('przegląd 14.10: konto ADMIN/STAFF – złe hasła z cudzych IP nie wymuszają captchy (panel operatora jej nie pokazuje)', async () => {
     const rozproszone = Array.from({ length: 6 }, (_, i) => zle(1, 'admin@verris.pl', `198.51.100.${i}`)[0]);
     expect(await serwis(rozproszone, 'ADMIN').wymagaCaptchyLogowania('admin@verris.pl', '203.0.113.7')).toBe(false);
     expect(await serwis(rozproszone, 'STAFF').wymagaCaptchyLogowania('admin@verris.pl', '198.51.100.0')).toBe(false);
@@ -46,7 +46,7 @@ describe('wymagaCaptchyLogowania — próg nieudanych prób', () => {
   });
 });
 
-describe('POST /auth/login — captcha dopiero po progu', () => {
+describe('POST /auth/login – captcha dopiero po progu', () => {
   function kontroler(o: { wlaczona: boolean; wymagana: boolean }) {
     const verify = vi.fn(async () => undefined);
     const login = vi.fn(async () => ({ access_token: 't' }));
@@ -56,13 +56,13 @@ describe('POST /auth/login — captcha dopiero po progu', () => {
   }
   const req = { headers: {}, ip: '203.0.113.7', socket: { remoteAddress: '203.0.113.7' } } as never;
 
-  it('captcha włączona, mało porażek — logowanie bez tokenu (np. panel operatora bez widgetu)', async () => {
+  it('captcha włączona, mało porażek – logowanie bez tokenu (np. panel operatora bez widgetu)', async () => {
     const k = kontroler({ wlaczona: true, wymagana: false });
     await expect(k.c.login({ email: 'admin@verris.pl', password: 'x' } as never, req)).resolves.toEqual({ access_token: 't' });
     expect(k.verify).not.toHaveBeenCalled();
   });
 
-  it('po progu bez tokenu — 400 z kodem CAPTCHA_WYMAGANA, hasło nie jest sprawdzane', async () => {
+  it('po progu bez tokenu – 400 z kodem CAPTCHA_WYMAGANA, hasło nie jest sprawdzane', async () => {
     const k = kontroler({ wlaczona: true, wymagana: true });
     const blad = await k.c.login({ email: 'jan@firma.pl', password: 'x' } as never, req).catch((e: unknown) => e);
     expect(blad).toBeInstanceOf(BadRequestException);
@@ -70,14 +70,14 @@ describe('POST /auth/login — captcha dopiero po progu', () => {
     expect(k.login).not.toHaveBeenCalled();
   });
 
-  it('po progu z tokenem — weryfikacja u dostawcy, potem logowanie', async () => {
+  it('po progu z tokenem – weryfikacja u dostawcy, potem logowanie', async () => {
     const k = kontroler({ wlaczona: true, wymagana: true });
     await k.c.login({ email: 'jan@firma.pl', password: 'x', captchaToken: 'token-z-widgetu' } as never, req);
     expect(k.verify).toHaveBeenCalledWith('token-z-widgetu', expect.anything(), 'login');
     expect(k.login).toHaveBeenCalled();
   });
 
-  it('captcha wyłączona (brak kluczy) — nigdy nie wymagana', async () => {
+  it('captcha wyłączona (brak kluczy) – nigdy nie wymagana', async () => {
     const k = kontroler({ wlaczona: false, wymagana: true });
     await k.c.login({ email: 'jan@firma.pl', password: 'x' } as never, req);
     expect(k.login).toHaveBeenCalled();

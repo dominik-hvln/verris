@@ -60,30 +60,30 @@ const tekst = (status: string, z: Partial<ZaKlienta>) =>
     />,
   );
 
-it("czeka na zgodę — termin i przycisk anulowania", () => {
+it("czeka na zgodę – termin i przycisk anulowania", () => {
   const html = tekst("DRAFT", {});
   expect(html).toContain("Czeka na zgodę klienta do");
   expect(html).toContain("Anuluj prośbę i usuń dane dostępowe");
 });
 
-it("anulował operator przed terminem — nie „klient nie zdecydował w terminie”", () => {
+it("anulował operator przed terminem – nie „klient nie zdecydował w terminie”", () => {
   const html = tekst("CANCELED", { stan: "anulowana" });
   expect(html).toContain("Prośba anulowana przez zespół przed decyzją klienta.");
   expect(html).not.toContain("nie zdecydował w terminie");
 });
 
-it("klient odmówił — „odmówił”, nie samo „zdecydował”", () => {
+it("klient odmówił – „odmówił”, nie samo „zdecydował”", () => {
   const html = tekst("CANCELED", { stan: "odrzucona", decyzjaAt: "2026-10-09T08:00:00.000Z" });
   expect(html).toContain("Klient odmówił");
   expect(html).not.toContain("zgodził się");
 });
 
-it("klient się zgodził — „zgodził się”", () => {
+it("klient się zgodził – „zgodził się”", () => {
   const html = tekst("QUEUED", { stan: "zaakceptowana", decyzjaAt: "2026-10-09T08:00:00.000Z" });
   expect(html).toContain("Klient zgodził się");
   expect(html).not.toContain("Anuluj prośbę");
 });
 
-it("termin minął bez decyzji — „nie zdecydował w terminie”", () => {
+it("termin minął bez decyzji – „nie zdecydował w terminie”", () => {
   expect(tekst("CANCELED", { stan: "wygasla", wygasa: "2026-10-01T10:00:00.000Z" })).toContain("Klient nie zdecydował w terminie");
 });

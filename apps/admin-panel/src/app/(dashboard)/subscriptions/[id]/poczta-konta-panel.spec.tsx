@@ -73,7 +73,7 @@ afterEach(async () => {
   k.remove();
 });
 
-describe("F3.1 — poczta konta na karcie usługi", () => {
+describe("F3.1 – poczta konta na karcie usługi", () => {
   it("L1 (bez uprawnień): nic nie wczytuje z serwera, przyciski wyszarzone z nazwą uprawnienia", async () => {
     await render(op("ACCOUNT_DIAGNOSTICS_VIEW"));
     expect(odczyt).not.toHaveBeenCalled();
@@ -104,7 +104,7 @@ describe("F3.1 — poczta konta na karcie usługi", () => {
     expect(zapis).toHaveBeenCalledWith("s1", "zablokuj", expect.objectContaining({ powod: "Spam z formularza kontaktowego", zgloszenie: "#ab12cd34" }));
   });
 
-  it("L3: usunięcie zaznaczonych — potwierdzenie z listą (nadawca, odbiorca, temat), do API tylko zaznaczone id", async () => {
+  it("L3: usunięcie zaznaczonych – potwierdzenie z listą (nadawca, odbiorca, temat), do API tylko zaznaczone id", async () => {
     zapis.mockResolvedValue({ ok: true, wynik: { ok: true, zlecono: 1 } });
     await render(op("MAIL_QUEUE_VIEW", "MAIL_SEND_BLOCK"));
     await wpisz(powod(), "Spam z formularza kontaktowego");
@@ -117,7 +117,7 @@ describe("F3.1 — poczta konta na karcie usługi", () => {
     expect(zapis).toHaveBeenCalledWith("s1", "usun", expect.objectContaining({ ids: ["1tAbCd-000000001bo-D342"] }));
   });
 
-  it("anulowane potwierdzenie — nic do API; rozjazd panel/serwer widoczny", async () => {
+  it("anulowane potwierdzenie – nic do API; rozjazd panel/serwer widoczny", async () => {
     potwierdz.mockResolvedValueOnce(false);
     odczyt.mockImplementation(async (_s: string, co: string) => ({ ok: true, wynik: co === "wysylka" ? { ...WYSYLKA, zablokowana: true, naWezle: false, od: "2026-10-10T10:00:00.000Z", powod: "spam" } : KOLEJKA }));
     await render({ isAdmin: true, permissions: [] });
@@ -128,9 +128,9 @@ describe("F3.1 — poczta konta na karcie usługi", () => {
   });
 
   it("audyt Fal 2: usuwanie przerwane błędem pokazuje, ile już usunięto (nieodwracalne)", async () => {
-    const usuwanie = { wToku: false, kiedy: "2026-10-10T12:05:00.000Z", blad: "exim -Mrm: nie usunięto 1 — Message is locked", usunieto: 50, pominieto: 0 };
+    const usuwanie = { wToku: false, kiedy: "2026-10-10T12:05:00.000Z", blad: "exim -Mrm: nie usunięto 1 – Message is locked", usunieto: 50, pominieto: 0 };
     odczyt.mockImplementation(async (_s: string, co: string) => ({ ok: true, wynik: co === "wysylka" ? WYSYLKA : { ...KOLEJKA, usuwanie } }));
     await render(op("MAIL_QUEUE_VIEW"));
-    expect(q('[data-usuwanie="wynik"]')!.textContent).toContain("nie powiodło się — exim -Mrm: nie usunięto 1 — Message is locked (wcześniej usunięto już 50)");
+    expect(q('[data-usuwanie="wynik"]')!.textContent).toContain("nie powiodło się – exim -Mrm: nie usunięto 1 – Message is locked (wcześniej usunięto już 50)");
   });
 });

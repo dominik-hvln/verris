@@ -54,13 +54,13 @@ const POLE = "w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 tex
 
 /** Akcje na jednym z elementów konta: komunikat, gdy konto ich nie ma, i podpowiedź przy wyszarzonym „Wykonaj”. */
 const BRAK_CELU: Partial<Record<Rodzaj, { lista: string; przycisk: string }>> = {
-  skrzynka: { lista: "Konto nie ma skrzynek.", przycisk: "Konto nie ma skrzynek — nie ma hasła do zresetowania." },
-  ftp: { lista: "Konto nie ma dodatkowych kont FTP.", przycisk: "Konto nie ma dodatkowych kont FTP — nie ma hasła do zresetowania." },
-  baza: { lista: "Konto nie ma baz danych.", przycisk: "Konto nie ma baz danych — nie ma hasła do zresetowania." },
-  ssl: { lista: "Konto nie ma domen.", przycisk: "Konto nie ma domen — nie ma dla czego wystawić certyfikatu." },
+  skrzynka: { lista: "Konto nie ma skrzynek.", przycisk: "Konto nie ma skrzynek – nie ma hasła do zresetowania." },
+  ftp: { lista: "Konto nie ma dodatkowych kont FTP.", przycisk: "Konto nie ma dodatkowych kont FTP – nie ma hasła do zresetowania." },
+  baza: { lista: "Konto nie ma baz danych.", przycisk: "Konto nie ma baz danych – nie ma hasła do zresetowania." },
+  ssl: { lista: "Konto nie ma domen.", przycisk: "Konto nie ma domen – nie ma dla czego wystawić certyfikatu." },
   php: { lista: "Brak innych wersji do wyboru.", przycisk: "Brak innych wersji PHP do wyboru." },
 };
-const kiedy = (iso: string | null) => (iso ? new Date(iso).toLocaleString("pl-PL") : "—");
+const kiedy = (iso: string | null) => (iso ? new Date(iso).toLocaleString("pl-PL") : "–");
 
 /** Komunikat po udanej akcji — hasła nie ma; mówimy, czy klient dostał mail. */
 export function komunikatPoAkcji(rodzaj: Rodzaj, wynik: unknown): string {
@@ -71,15 +71,15 @@ export function komunikatPoAkcji(rodzaj: Rodzaj, wynik: unknown): string {
     case "baza":
       return w.mailDoKlienta
         ? `Hasło zresetowane. Klient dostał mail (${w.klient ?? "adres konta"}) z linkiem do ustawienia nowego.`
-        : `Hasło zresetowane, ale maila nie udało się wysłać — poproś klienta (${w.klient ?? "adres konta"}), by ustawił hasło w panelu.`;
+        : `Hasło zresetowane, ale maila nie udało się wysłać – poproś klienta (${w.klient ?? "adres konta"}), by ustawił hasło w panelu.`;
     case "ssl":
-      return "Certyfikat zlecony — wystawienie trwa do kilku minut; stan w zakładce SSL konta.";
+      return "Certyfikat zlecony – wystawienie trwa do kilku minut; stan w zakładce SSL konta.";
     case "php":
-      return "Zmiana PHP zlecona — serwer zastosuje ją w ciągu minuty (stan w zakładce PHP konta).";
+      return "Zmiana PHP zlecona – serwer zastosuje ją w ciągu minuty (stan w zakładce PHP konta).";
     case "kopia":
-      return "Kopia zlecona — pojawi się na liście kopii po zakończeniu.";
+      return "Kopia zlecona – pojawi się na liście kopii po zakończeniu.";
     case "skan":
-      return "Skan zlecony — wynik po kilku minutach, „Odśwież wynik”.";
+      return "Skan zlecony – wynik po kilku minutach, „Odśwież wynik”.";
     case "dns":
       return "Strefa DNS zmieniona.";
   }
@@ -211,7 +211,7 @@ export function PasekAkcjiKonta({ subscriptionId, dostep }: { subscriptionId: st
       </div>
       <p className="text-xs text-muted-foreground">
         Bez wchodzenia na konto klienta. Powód zapisuje się w dzienniku; klient widzi wpis „obsługa Verris” z numerem zgłoszenia. Nowych haseł nikt nie
-        widzi — klient ustawia je sam.
+        widzi – klient ustawia je sam.
       </p>
 
       <div className="mt-4 flex flex-wrap gap-1.5" role="toolbar" aria-label="Akcje na koncie klienta">
@@ -307,7 +307,7 @@ export function PasekAkcjiKonta({ subscriptionId, dostep }: { subscriptionId: st
                           <td className="px-2 py-1 font-mono break-all">{r.name}</td>
                           <td className="px-2 py-1 font-mono">{r.type}</td>
                           <td className="px-2 py-1 font-mono break-all">{r.value}</td>
-                          <td className="px-2 py-1 font-mono">{r.ttl ?? "—"}</td>
+                          <td className="px-2 py-1 font-mono">{r.ttl ?? "–"}</td>
                           <td className="space-x-2 whitespace-nowrap px-2 py-1 text-right">
                             {(TYPY_DNS as readonly string[]).includes(r.type) ? (
                               <button

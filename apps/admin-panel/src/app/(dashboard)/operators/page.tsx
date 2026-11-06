@@ -120,7 +120,7 @@ export default async function OperatorsPage({ searchParams }: PageProps) {
                 defaultValue={role ?? ""}
                 className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
                 options={[
-                  { value: "", label: "— wszyscy —" },
+                  { value: "", label: "– wszyscy –" },
                   { value: "STAFF", label: "STAFF" },
                   { value: "ADMIN", label: "ADMIN" },
                 ]}
@@ -225,7 +225,7 @@ export default async function OperatorsPage({ searchParams }: PageProps) {
         </h2>
         {tylkoAdmin ? (
           <p aria-disabled="true" title={tylkoAdmin} className="cursor-not-allowed text-sm text-muted-foreground opacity-60">
-            Dodaj operatora — {tylkoAdmin}
+            Dodaj operatora – {tylkoAdmin}
           </p>
         ) : role_.ok ? (
           <DodajOperatora role={role_.dane} />
@@ -254,7 +254,7 @@ export default async function OperatorsPage({ searchParams }: PageProps) {
                 <div key={a.id} className="grid grid-cols-[150px_1fr_1fr] gap-2 border-b border-white/5 px-4 py-2 text-sm last:border-0">
                   <span className="text-neutral-400">{new Date(a.createdAt).toLocaleString("pl-PL")}</span>
                   <span className="min-w-0">
-                    <span className="text-white">{a.actor ?? "—"}</span>
+                    <span className="text-white">{a.actor ?? "–"}</span>
                     <span className="text-neutral-500"> · </span>
                     <span className="font-mono text-[12px] text-indigo-300">{a.action}</span>
                   </span>

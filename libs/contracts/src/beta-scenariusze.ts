@@ -45,7 +45,7 @@ export const SCENARIUSZE_BETA: ScenariuszBeta[] = [
       { id: 's01.k1', tekst: 'Załóż konto przyciskiem z maila z zaproszeniem.' },
       { id: 's01.k2', tekst: 'Potwierdź adres e-mail linkiem z wiadomości.' },
       { id: 's01.k3', tekst: 'Włącz weryfikację dwuetapową albo klucz dostępu (passkey).' },
-      { id: 's01.k4', tekst: 'Wyloguj się i zaloguj ponownie — także drugim składnikiem.' },
+      { id: 's01.k4', tekst: 'Wyloguj się i zaloguj ponownie – także drugim składnikiem.' },
     ],
     uwagi: [
       'Czy mail z potwierdzeniem przyszedł szybko? Sprawdź też Oferty i Spam.',
@@ -57,10 +57,10 @@ export const SCENARIUSZE_BETA: ScenariuszBeta[] = [
     id: 's02',
     tytul: 'Kod testera, portfel i pierwsza usługa',
     czas: 'ok. 5 min',
-    cel: 'Ścieżka zamówienia tak, jak przejdzie ją każdy klient — z tą różnicą, że płacisz kredytami z kodu. Testujesz tylko pocztę? Zamów „Poczta e-mail” zamiast hostingu.',
+    cel: 'Ścieżka zamówienia tak, jak przejdzie ją każdy klient – z tą różnicą, że płacisz kredytami z kodu. Testujesz tylko pocztę? Zamów „Poczta e-mail” zamiast hostingu.',
     poczta: true,
     weryfikacja: [
-      'Przed zakupem portfel pokazuje 150 K, po zakupie — 150 K minus cena usługi.',
+      'Przed zakupem portfel pokazuje 150 K, po zakupie – 150 K minus cena usługi.',
       'Usługa ma stan „Aktywna”, a jej przegląd otwiera się bez błędów.',
       'W „Płatnościach” → „Faktury” nie ma faktury za tę usługę: kredyty z kodu testera to nie zakup, więc nie ma za nie faktury.',
     ],
@@ -82,7 +82,7 @@ export const SCENARIUSZE_BETA: ScenariuszBeta[] = [
     id: 's03',
     tytul: 'Przeniesienie strony albo nowy WordPress',
     czas: '15–30 min',
-    cel: 'Najważniejszy test: czy strona po przeniesieniu działa tak jak wcześniej — bez naszej pomocy.',
+    cel: 'Najważniejszy test: czy strona po przeniesieniu działa tak jak wcześniej – bez naszej pomocy.',
     weryfikacja: [
       'Sprawdzone podstrony działają bez błędów i bez brakujących obrazków.',
       'Wiadomość z formularza dociera na Twój adres.',
@@ -127,7 +127,7 @@ export const SCENARIUSZE_BETA: ScenariuszBeta[] = [
     id: 's05',
     tytul: 'Poczta: skrzynka, wysyłka, odbiór, telefon',
     czas: 'ok. 15 min',
-    cel: 'Poczta w domenie firmy musi działać od razu — i trafiać do odebranych, nie do spamu.',
+    cel: 'Poczta w domenie firmy musi działać od razu – i trafiać do odebranych, nie do spamu.',
     poczta: true,
     weryfikacja: [
       'Mail wysłany do Gmaila (albo innej poczty) trafia do odebranych, nie do spamu.',
@@ -151,7 +151,7 @@ export const SCENARIUSZE_BETA: ScenariuszBeta[] = [
     id: 's12',
     tytul: 'Przeniesienie poczty ze starego hostingu',
     czas: 'ok. 15 min + czas kopiowania',
-    cel: 'Dla wielu firm poczta jest ważniejsza niż strona. Sprawdzamy, czy skrzynki przechodzą w całości — z folderami i starymi wiadomościami.',
+    cel: 'Dla wielu firm poczta jest ważniejsza niż strona. Sprawdzamy, czy skrzynki przechodzą w całości – z folderami i starymi wiadomościami.',
     poczta: true,
     weryfikacja: [
       'Liczba wiadomości w Odebranych, Wysłanych i własnych folderach zgadza się ze starą skrzynką.',
@@ -239,7 +239,7 @@ export const SCENARIUSZE_BETA: ScenariuszBeta[] = [
     id: 's09',
     tytul: 'Zużycie, prognoza i autoskalowanie',
     czas: 'ok. 5 min',
-    cel: 'Klient ma rozumieć, ile zasobów zużywa strona i co się stanie w szczycie ruchu — zanim zobaczy rachunek.',
+    cel: 'Klient ma rozumieć, ile zasobów zużywa strona i co się stanie w szczycie ruchu – zanim zobaczy rachunek.',
     weryfikacja: [
       'Wiesz, ile dysku, procesora i pamięci zużywasz teraz.',
       'Widzisz, czy masz ustawiony limit kosztu na 30 dni (domyślnie bez limitu) i gdzie go zmienić.',
@@ -290,7 +290,7 @@ export const SCENARIUSZE_BETA: ScenariuszBeta[] = [
       'Po odebraniu dostępu nie może już wejść do Twojej usługi.',
     ],
     kroki: [
-      { id: 's14.k1', tekst: 'W „IAM i subkonta” przyciskiem „Zaproś osobę” zaproś drugi adres e-mail — tylko z dostępem do poczty.' },
+      { id: 's14.k1', tekst: 'W „IAM i subkonta” przyciskiem „Zaproś osobę” zaproś drugi adres e-mail – tylko z dostępem do poczty.' },
       { id: 's14.k2', tekst: 'Przyjmij zaproszenie jako ta osoba i sprawdź, co widzi w panelu.' },
       { id: 's14.k3', tekst: 'Odbierz jej dostęp i sprawdź, że już nie może wejść do usługi.' },
     ],
@@ -321,7 +321,7 @@ export const SCENARIUSZE_BETA: ScenariuszBeta[] = [
   },
   {
     id: 's11',
-    tytul: 'Wszystko jeszcze raz — z telefonu',
+    tytul: 'Wszystko jeszcze raz – z telefonu',
     czas: 'ok. 15 min',
     cel: 'Połowa klientów zajrzy do panelu z telefonu, często w pośpiechu.',
     poczta: true,
@@ -355,7 +355,7 @@ export const SCENARIUSZE_BETA: ScenariuszBeta[] = [
       { id: 's15.k1', tekst: 'W usłudze, w zakładce „Deploy (Git)”, sklonuj swoje repozytorium (publiczne albo z kluczem wdrożeniowym konta).' },
       { id: 's15.k2', tekst: 'Wybierz sposób budowania (npm albo composer), dodaj zmienną środowiskową i zapisz ustawienia.' },
       { id: 's15.k3', tekst: 'Wypchnij zmianę do repozytorium i sprawdź, czy strona się zaktualizowała.' },
-      { id: 's15.k4', tekst: 'Otwórz w przeglądarce /.git/config i /.env na swojej domenie — nie powinny się otworzyć.' },
+      { id: 's15.k4', tekst: 'Otwórz w przeglądarce /.git/config i /.env na swojej domenie – nie powinny się otworzyć.' },
     ],
     uwagi: [
       'Czy log budowania pomógł znaleźć przyczynę błędu?',

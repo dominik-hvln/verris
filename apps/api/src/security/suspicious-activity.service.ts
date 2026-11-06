@@ -243,10 +243,10 @@ Okno: ostatnie 15 minut.
 ${input.ip ? `IP: ${input.ip}\n` : ''}
 Rekomendowana reakcja:
   1. Sprawdź audit log w panelu admina (filtr action=SUSPICIOUS_LOGIN_*).
-  2. Jeśli to atak — zablokuj konto przez admin-panel i włącz wymóg 2FA.
+  2. Jeśli to atak – zablokuj konto przez admin-panel i włącz wymóg 2FA.
   3. Skontaktuj się z klientem na alternatywnym kanale, żeby potwierdzić.
 
-— Verris Security
+– Verris Security
 `,
   };
 }

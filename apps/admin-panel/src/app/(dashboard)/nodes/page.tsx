@@ -68,7 +68,7 @@ export default async function AdminNodesPage() {
       konta: s._count?.accounts ?? 0,
       limitKont: s.maxAccounts,
       manifest: null,
-      sygnal: s.sygnal?.etykieta ?? "—",
+      sygnal: s.sygnal?.etykieta ?? "–",
       naZywo: s.sygnal?.stan === "odpowiada",
     }));
   const liczby = servers.reduce<Record<string, number>>((a, s) => ({ ...a, [s.status]: (a[s.status] ?? 0) + 1 }), {});
@@ -163,7 +163,7 @@ export default async function AdminNodesPage() {
                   {w.konta}
                   {w.limitKont ? <span className="text-muted-foreground">/{w.limitKont}</span> : null}
                 </span>
-                <span className="hidden w-[110px] font-mono text-xs text-muted-foreground lg:block">{w.manifest ?? "—"}</span>
+                <span className="hidden w-[110px] font-mono text-xs text-muted-foreground lg:block">{w.manifest ?? "–"}</span>
                 <span className={`w-[80px] text-right text-[13px] ${w.naZywo ? "text-data-hi" : w.stan === "crit" ? "text-crit" : "text-muted-foreground"}`}>{w.sygnal}</span>
               </Link>
             );

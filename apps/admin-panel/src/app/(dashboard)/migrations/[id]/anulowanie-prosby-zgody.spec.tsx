@@ -123,7 +123,7 @@ it("błąd API → czytelny komunikat", async () => {
   expect(k.textContent).toContain("Migracja już wystartowała.");
 });
 
-it("po zgodzie klienta — „zgodził się” i bez przycisku anulowania prośby", () => {
+it("po zgodzie klienta – „zgodził się” i bez przycisku anulowania prośby", () => {
   render(szczegoly({ status: "QUEUED", zaKlienta: { operatorId: "adm-1", powod: "x", wygasa: null, decyzjaAt: "2026-10-09T08:00:00.000Z", stan: "zaakceptowana" } }));
   expect(k.textContent).toContain("Klient zgodził się");
   expect(k.textContent).not.toContain("odmówił");
@@ -143,18 +143,18 @@ it("po anulowaniu przez admina tekst nie twierdzi, że klient nie zdecydował w 
   expect(k.textContent).not.toContain("nie zdecydował w terminie");
 });
 
-it("klient odmówił — tekst mówi o odmowie, nie o samej decyzji", () => {
+it("klient odmówił – tekst mówi o odmowie, nie o samej decyzji", () => {
   render(szczegoly({ status: "CANCELED", zaKlienta: { operatorId: "adm-1", powod: "x", wygasa: null, decyzjaAt: "2026-10-09T08:00:00.000Z", stan: "odrzucona" } }));
   expect(k.textContent).toContain("Klient odmówił");
   expect(k.textContent).not.toContain("zgodził się");
 });
 
-it("termin minął bez decyzji — „nie zdecydował w terminie”", () => {
+it("termin minął bez decyzji – „nie zdecydował w terminie”", () => {
   render(szczegoly({ status: "CANCELED", zaKlienta: { operatorId: "adm-1", powod: "x", wygasa: "2026-10-01T10:00:00.000Z", decyzjaAt: null, stan: "wygasla" } }));
   expect(k.textContent).toContain("Klient nie zdecydował w terminie");
 });
 
-it("zwykła migracja (bez „za klienta”) — bez sekcji", () => {
+it("zwykła migracja (bez „za klienta”) – bez sekcji", () => {
   render(szczegoly({ status: "QUEUED", zaKlienta: null }));
   expect(k.textContent).not.toContain("przygotowana za klienta");
 });

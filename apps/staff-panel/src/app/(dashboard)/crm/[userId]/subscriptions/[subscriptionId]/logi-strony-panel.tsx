@@ -50,8 +50,8 @@ export function zestawyDlaKonta(domena: string | null | undefined, daUser: strin
     out.push(
       { id: "ruch", etykieta: `Ruch strony (${d})`, log: "www-domena", domena: d },
       { id: "bledy", etykieta: `Błędy strony (${d})`, log: "www-domena-bledy", domena: d },
-      { id: "poczta", etykieta: `Poczta domeny — wysyłka i odbiór (${d})`, log: "exim-main", domena: d },
-      { id: "skrzynki", etykieta: `Skrzynki — logowania IMAP/POP3 (${d})`, log: "maillog", domena: d },
+      { id: "poczta", etykieta: `Poczta domeny – wysyłka i odbiór (${d})`, log: "exim-main", domena: d },
+      { id: "skrzynki", etykieta: `Skrzynki – logowania IMAP/POP3 (${d})`, log: "maillog", domena: d },
     );
   }
   if (LOG_WEZLA_UZYTKOWNIK.test(u)) {
@@ -166,7 +166,7 @@ export function LogiStronyPanel({ serverId, domena, daUser }: { serverId: string
           ) : null}
           {staryAgent ? (
             <p className="text-xs text-amber-200" data-filtry="stary-agent">
-              Serwer ma starszego agenta — filtry domeny, użytkownika i czasu nie zadziałały. Zgłoś administratorowi aktualizację węzła.
+              Serwer ma starszego agenta – filtry domeny, użytkownika i czasu nie zadziałały. Zgłoś administratorowi aktualizację węzła.
             </p>
           ) : null}
           {l.wToku ? (

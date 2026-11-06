@@ -32,7 +32,7 @@ describe('UsersAdminController (metadane RBAC)', () => {
     expect(role?.slice().sort()).toEqual([Role.ADMIN, Role.STAFF].sort());
   });
 
-  it('klasa ma wpięty StaffPermissionsGuard — bez niego @StaffPerm jest dekoracją', () => {
+  it('klasa ma wpięty StaffPermissionsGuard – bez niego @StaffPerm jest dekoracją', () => {
     const straznicy = (Reflect.getMetadata('__guards__', UsersAdminController) ?? []) as unknown[];
     expect(straznicy).toContain(StaffPermissionsGuard);
     expect(straznicy).toContain(RolesGuard);
@@ -46,7 +46,7 @@ describe('UsersAdminController (metadane RBAC)', () => {
     expect(rolePod('runDnsTls')).toBeUndefined();
   });
 
-  describe('Sprint 4 / R-04 — dane operacyjne klienta', () => {
+  describe('Sprint 4 / R-04 – dane operacyjne klienta', () => {
     it('podgląd: ADMIN + STAFF, staff musi mieć CUSTOMERS_VIEW', () => {
       expect((rolePod('operationalDetail') as Role[]).slice().sort()).toEqual(
         [Role.ADMIN, Role.STAFF].sort(),
@@ -68,8 +68,8 @@ describe('UsersAdminController (metadane RBAC)', () => {
     });
   });
 
-  describe('D9 (10.10): e-mail i hasło klienta — ADMIN i STAFF z CUSTOMERS_MANAGE (L3), niżej przez wniosek', () => {
-    it.each(['changeEmail', 'resetPassword'] as const)('%s — ADMIN + STAFF z CUSTOMERS_MANAGE', (klucz) => {
+  describe('D9 (10.10): e-mail i hasło klienta – ADMIN i STAFF z CUSTOMERS_MANAGE (L3), niżej przez wniosek', () => {
+    it.each(['changeEmail', 'resetPassword'] as const)('%s – ADMIN + STAFF z CUSTOMERS_MANAGE', (klucz) => {
       expect((rolePod(klucz) as Role[]).slice().sort()).toEqual([Role.ADMIN, Role.STAFF].sort());
       expect(uprawnieniaPod(klucz)).toEqual(['CUSTOMERS_MANAGE']);
     });
@@ -90,7 +90,7 @@ describe('UsersAdminController (metadane RBAC)', () => {
       expect(uprawnieniaPod('impersonate')).toEqual(['CUSTOMERS_VIEW', 'CUSTOMERS_IMPERSONATE']);
     });
 
-    it('zakończenie przechodzi guardy z tokenem impersonacji (rola klienta) — wcześniej 403 i brak wpisu o końcu', async () => {
+    it('zakończenie przechodzi guardy z tokenem impersonacji (rola klienta) – wcześniej 403 i brak wpisu o końcu', async () => {
       const kontekst = {
         getHandler: () => UsersAdminController.prototype.stop,
         getClass: () => UsersAdminController,

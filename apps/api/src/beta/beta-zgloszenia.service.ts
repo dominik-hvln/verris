@@ -363,7 +363,7 @@ export class BetaZgloszeniaService {
     const z = await this.prisma.betaZgloszenie.findUnique({ where: { id } });
     if (!z) throw new NotFoundException('Nie ma takiego zgłoszenia.');
     if (z.status === BetaZgloszenieStatus.NIEPOTWIERDZONE)
-      throw new ConflictException('Adres nie jest jeszcze potwierdzony — zaproszenie dopiero po kliknięciu linku z maila.');
+      throw new ConflictException('Adres nie jest jeszcze potwierdzony – zaproszenie dopiero po kliknięciu linku z maila.');
     if (z.status === BetaZgloszenieStatus.ZAPROSZONE) throw new ConflictException('Ta osoba ma już zaproszenie z tego zgłoszenia.');
 
     const invite = await this.beta.zapros({ email: z.email, name: z.imie, tylkoPoczta: tylkoPocztaWZakresie(z.zakres) }, actorUserId);
@@ -380,7 +380,7 @@ export class BetaZgloszeniaService {
     const z = await this.prisma.betaZgloszenie.findUnique({ where: { id } });
     if (!z) throw new NotFoundException('Nie ma takiego zgłoszenia.');
     if (z.status === BetaZgloszenieStatus.ZAPROSZONE)
-      throw new ConflictException('Zaproszenie już wyszło — żeby je cofnąć, wyłącz kod na liście zaproszeń.');
+      throw new ConflictException('Zaproszenie już wyszło – żeby je cofnąć, wyłącz kod na liście zaproszeń.');
     if (z.status === BetaZgloszenieStatus.ODRZUCONE) return { ok: true as const, mailWyslany: false };
 
     await this.prisma.betaZgloszenie.update({

@@ -53,7 +53,7 @@ const KONIEC = new Date(new X509Certificate(PEM).validTo).getTime();
 const DZIEN = 24 * 60 * 60 * 1000;
 const KLUCZ = '-----BEGIN PRIVATE KEY-----\nTAJNE\n-----END PRIVATE KEY-----';
 
-describe("SSL — zamówienie Let's Encrypt (CMD_API_SSL)", () => {
+describe("SSL – zamówienie Let's Encrypt (CMD_API_SSL)", () => {
   it('domena spoza konta → 400, DA nie dostaje zamówienia', async () => {
     const s = stanowisko();
     await expect(s.svc.requestLetsEncryptCertificate('s1', 'u1', { domain: 'obca.pl' })).rejects.toThrow('nie jest przypisana');
@@ -112,7 +112,7 @@ describe("SSL — zamówienie Let's Encrypt (CMD_API_SSL)", () => {
   });
 });
 
-describe('SSL — własny certyfikat (type=paste)', () => {
+describe('SSL – własny certyfikat (type=paste)', () => {
   it('PEM wieloliniowy dociera do DA bajt w bajt; pusty łańcuch CA nie jest wysyłany', async () => {
     const s = stanowisko();
     await s.svc.pasteCustomSslCertificate('s1', 'u1', { domain: 'firma.pl', certificate: `${PEM}\n`, privateKey: KLUCZ, caBundle: '  ' });
@@ -133,7 +133,7 @@ describe('SSL — własny certyfikat (type=paste)', () => {
   });
 });
 
-describe('SSL — stan certyfikatów (odczyt X.509)', () => {
+describe('SSL – stan certyfikatów (odczyt X.509)', () => {
   afterEach(() => vi.useRealTimers());
   const zCertem = () =>
     stanowisko({ get: { '/CMD_API_SSL': new URLSearchParams({ key: KLUCZ, certificate: PEM }).toString() } });
@@ -193,7 +193,7 @@ describe('SSL — stan certyfikatów (odczyt X.509)', () => {
   });
 });
 
-describe('SSL — SDK requestLetsEncrypt czyta treść odpowiedzi', () => {
+describe('SSL – SDK requestLetsEncrypt czyta treść odpowiedzi', () => {
   // Wcześniej SDK ignorował treść: 200 + error=1 kończyło się `ok: true`, a zaraz po
   // provisioningu best-effort LE nie widział, że certyfikatu nie ma.
   it('200 + error=1 → ok: false z komunikatem DA', async () => {

@@ -38,7 +38,7 @@ function uruchom(mapa: string, przygotuj?: (vhosts: string, dir: string) => void
   return { r, DIR, vhosts };
 }
 
-describe('prod-mail-apply-maps.sh — katalogi skrzynek tylko wewnątrz VHOST_ROOT', () => {
+describe('prod-mail-apply-maps.sh – katalogi skrzynek tylko wewnątrz VHOST_ROOT', () => {
   it('poprawny wpis tworzy domena/lokalna i przechodzi do reloadu', () => {
     const { r, vhosts } = uruchom('jan.kowalski@verris.pl\tverris.pl/jan.kowalski/\njan_nowak@verris.pl\tverris.pl/jan_nowak/\n# komentarz\n');
     expect(r.status).toBe(0);

@@ -8,7 +8,7 @@ import { join } from 'node:path';
  */
 const czytaj = (plik: string) => readFileSync(join(__dirname, plik), 'utf8');
 
-describe('program poleceń — teksty i zgoda', () => {
+describe('program poleceń – teksty i zgoda', () => {
   it('panel mówi o prowizji od płatności, nie o punktach EKO, i jedną nazwą „Program poleceń”', () => {
     const tekst = czytaj('referral-program-client.tsx') + czytaj('page.tsx');
     expect(tekst).not.toMatch(/punkty EKO/i);

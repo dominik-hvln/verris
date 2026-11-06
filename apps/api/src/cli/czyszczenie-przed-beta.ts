@@ -26,7 +26,7 @@ async function main() {
     const plan = await planCzyszczenia(prisma, zachowaj);
     console.log(opisPlanu(plan));
     if (!wykonaj) {
-      console.log(`\nPODGLĄD — nic nie zmieniono. Usunięcie: --wykonaj --potwierdz=${plan.doUsuniecia.length}`);
+      console.log(`\nPODGLĄD – nic nie zmieniono. Usunięcie: --wykonaj --potwierdz=${plan.doUsuniecia.length}`);
       return;
     }
     const potwierdz = Number(argument('potwierdz'));

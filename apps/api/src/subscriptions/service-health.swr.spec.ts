@@ -14,7 +14,7 @@ function setup(snapshot: Record<string, unknown> | null) {
 }
 const old = { computedAt: new Date(Date.now() - 2 * 3_600_000), score: 70 };
 
-describe('zdrowie usługi — stale-while-revalidate', () => {
+describe('zdrowie usługi – stale-while-revalidate', () => {
   it('nieaktualny wynik wraca od razu, a liczenie rusza w tle (raz)', async () => {
     const { svc, compute } = setup(old);
     await expect(svc.getOrRefreshForSubscription('s1', 'u1')).resolves.toEqual({ score: 70 });
@@ -28,7 +28,7 @@ describe('zdrowie usługi — stale-while-revalidate', () => {
     await expect(svc.getOrRefreshForSubscription('s1', 'u1', { force: true })).resolves.toEqual({ score: 90 });
   });
 
-  it('brak jakiegokolwiek wyniku — liczymy od razu', async () => {
+  it('brak jakiegokolwiek wyniku – liczymy od razu', async () => {
     const { svc, compute } = setup(null);
     compute.mockResolvedValue({ score: 50 } as never);
     await expect(svc.getOrRefreshForSubscription('s1', 'u1')).resolves.toEqual({ score: 50 });

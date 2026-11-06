@@ -36,7 +36,7 @@ export function korzyscZamowienia(kwota: number, okres: 'MONTH' | 'YEAR', miesia
 
 /** Zasada w jednym zdaniu (zamówienie, informacje przedumowne, portfel). */
 export const ZASADA_KREDYTOW_AUTOSKALOWANIA =
-  'Kredyty na autoskalowanie trafiają na konto po opłaceniu zamówienia i opłacają wyłącznie dodatkową moc (najpierw one, potem portfel) — nie pakiet, domeny ani dodatki. Są darmowe: bez faktury i bez zwrotu przy usunięciu konta.';
+  'Kredyty na autoskalowanie trafiają na konto po opłaceniu zamówienia i opłacają wyłącznie dodatkową moc (najpierw one, potem portfel) – nie pakiet, domeny ani dodatki. Są darmowe: bez faktury i bez zwrotu przy usunięciu konta.';
 
 /** Stan puli do pokazania klientowi; null = nie przyznano. `dostepne` — ile można jeszcze wydać (0 po wygaśnięciu). */
 export function opisPuli(

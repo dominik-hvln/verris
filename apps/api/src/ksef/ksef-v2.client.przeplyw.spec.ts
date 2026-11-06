@@ -132,7 +132,7 @@ function klient() {
 
 afterEach(() => vi.unstubAllGlobals());
 
-describe('X-07 — KsefV2Client: pełny przepływ na atrapie KSeF z prawdziwą kryptografią', () => {
+describe('X-07 – KsefV2Client: pełny przepływ na atrapie KSeF z prawdziwą kryptografią', () => {
   it('uwierzytelnienie tokenem: ważny certyfikat wg usage, token|timestampMs w RSA-OAEP-SHA256, kontekst NIP, Bearer w odpytywaniu i redeem', async () => {
     const { zapisy } = atrapa();
     await klient().openSession();
@@ -206,7 +206,7 @@ describe('X-07 — KsefV2Client: pełny przepływ na atrapie KSeF z prawdziwą k
     expect(zapisy.length).toBe(przed);
   });
 
-  it('uwierzytelnienie odrzucone (status 4xx w odpytywaniu) — błąd z opisem, bez redeem', async () => {
+  it('uwierzytelnienie odrzucone (status 4xx w odpytywaniu) – błąd z opisem, bez redeem', async () => {
     const { zapisy, stan } = atrapa();
     stan.pollStatusy = [100, 450];
     const err = await klient().openSession().catch((e: unknown) => e);
@@ -215,14 +215,14 @@ describe('X-07 — KsefV2Client: pełny przepływ na atrapie KSeF z prawdziwą k
     expect(zapisy.some((z) => z.sciezka === '/auth/token/redeem')).toBe(false);
   });
 
-  it('uwierzytelnienie bez rozstrzygnięcia — po 20 próbach błąd (nie nieskończona pętla)', async () => {
+  it('uwierzytelnienie bez rozstrzygnięcia – po 20 próbach błąd (nie nieskończona pętla)', async () => {
     const { zapisy, stan } = atrapa();
     stan.pollStatusy = Array.from({ length: 50 }, () => 100);
     await expect(klient().openSession()).rejects.toThrow(/przekroczono czas oczekiwania/);
     expect(zapisy.filter((z) => z.sciezka === '/auth/auth-ref-1')).toHaveLength(20);
   });
 
-  it('brak ważnego certyfikatu dla symetrii — błąd przed wysłaniem tokenu', async () => {
+  it('brak ważnego certyfikatu dla symetrii – błąd przed wysłaniem tokenu', async () => {
     const { zapisy } = atrapa({
       '^/security/public-key-certificates$': () =>
         new Response(JSON.stringify([{ certificate: certyfikat(kTokenu, new Date(Date.now() - GODZINA), new Date(Date.now() + GODZINA)), certificateId: 'c', publicKeyId: 'pk', validFrom: new Date(Date.now() - GODZINA).toISOString(), validTo: new Date(Date.now() + GODZINA).toISOString(), usage: ['KsefTokenEncryption'] }]), { status: 200 }),
@@ -242,7 +242,7 @@ describe('X-07 — KsefV2Client: pełny przepływ na atrapie KSeF z prawdziwą k
     expect(zapisy.some((z) => z.sciezka.endsWith('/invoices'))).toBe(false);
   });
 
-  it('KSeF nieosiągalny (sieć) — KsefV2ApiError bez httpStatus (serwis zostawia fakturę do ponowienia)', async () => {
+  it('KSeF nieosiągalny (sieć) – KsefV2ApiError bez httpStatus (serwis zostawia fakturę do ponowienia)', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => Promise.reject(new TypeError('fetch failed'))));
     const err = await klient().openSession().catch((e: unknown) => e);
     expect(err).toBeInstanceOf(KsefV2ApiError);
@@ -251,7 +251,7 @@ describe('X-07 — KsefV2Client: pełny przepływ na atrapie KSeF z prawdziwą k
   });
 });
 
-describe('KsefV2Client — decyzja 15.10 (#3): wynik wysyłki niepewny', () => {
+describe('KsefV2Client – decyzja 15.10 (#3): wynik wysyłki niepewny', () => {
   const wyslij = async (odp: () => Response) => {
     const a = atrapa({ '^/sessions/online/sesja-1/invoices$': odp });
     const c = klient();
@@ -273,7 +273,7 @@ describe('KsefV2Client — decyzja 15.10 (#3): wynik wysyłki niepewny', () => {
   });
 });
 
-describe('X-07 — KsefV2Client: status faktury i UPO', () => {
+describe('X-07 – KsefV2Client: status faktury i UPO', () => {
   async function zalogowany(nadpisz: Record<string, (z: Zapis) => Response>) {
     const a = atrapa(nadpisz);
     const c = klient();
@@ -307,7 +307,7 @@ describe('X-07 — KsefV2Client: status faktury i UPO', () => {
     await expect(c.invoiceStatus('s|fakt-3')).resolves.toMatchObject({ processed: false, rejected: true, statusCode: 450, statusDescription: 'Błąd weryfikacji semantyki dokumentu faktury' });
   });
 
-  it('HTTP błąd przy statusie — KsefV2ApiError z httpStatus i treścią', async () => {
+  it('HTTP błąd przy statusie – KsefV2ApiError z httpStatus i treścią', async () => {
     const { c } = await zalogowany({ '/invoices/fakt-3$': () => json(401, { title: 'Unauthorized' }) });
     const err = await c.invoiceStatus('s|fakt-3').catch((e: unknown) => e);
     expect(err).toBeInstanceOf(KsefV2ApiError);
@@ -315,7 +315,7 @@ describe('X-07 — KsefV2Client: status faktury i UPO', () => {
     expect((err as KsefV2ApiError).body).toEqual({ title: 'Unauthorized' });
   });
 
-  it('identyfikator bez sesji albo bez faktury — błąd bez wywołania KSeF', async () => {
+  it('identyfikator bez sesji albo bez faktury – błąd bez wywołania KSeF', async () => {
     const { c, fetchAtrapa } = await zalogowany({});
     const przed = fetchAtrapa.mock.calls.length;
     await expect(c.invoiceStatus('fakt-3')).rejects.toThrow(/Nieprawidłowy identyfikator/);

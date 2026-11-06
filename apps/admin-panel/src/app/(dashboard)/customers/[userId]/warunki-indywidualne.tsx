@@ -102,10 +102,10 @@ export function WarunkiIndywidualne({ userId, dane, akcje }: { userId: string; d
     const r = rabatLiczba(rabat);
     if (c === "zle") return setBlad("Cena musi być liczbą (np. 29,99) albo pusta = cennik.");
     if (r === null) return setBlad("Rabat na autoskalowanie to liczba całkowita 0–100.");
-    if (powodWarunkow.trim().length < 3) return setBlad("Podaj powód (min. 3 znaki) — trafi do audytu.");
+    if (powodWarunkow.trim().length < 3) return setBlad("Podaj powód (min. 3 znaki) – trafi do audytu.");
     wykonaj(
       () => akcje.ustaw(subscriptionId, { individualPrice: c, autoscalingDiscountPct: r, powod: powodWarunkow.trim() }),
-      "Warunki zapisane — obowiązują od najbliższego odnowienia.",
+      "Warunki zapisane – obowiązują od najbliższego odnowienia.",
       () => setEdytowana(null),
     );
   };
@@ -116,7 +116,7 @@ export function WarunkiIndywidualne({ userId, dane, akcje }: { userId: string; d
     if (!plan) return setBlad("Wybierz plan.");
     if (c === "zle") return setBlad("Cena musi być liczbą (np. 29,99) albo pusta = cennik.");
     if (r === null) return setBlad("Rabat na autoskalowanie to liczba całkowita 0–100.");
-    if (powodNowej.trim().length < 3) return setBlad("Podaj powód (min. 3 znaki) — trafi do audytu.");
+    if (powodNowej.trim().length < 3) return setBlad("Podaj powód (min. 3 znaki) – trafi do audytu.");
     wykonaj(
       () =>
         akcje.zaloz(userId, {
@@ -130,10 +130,10 @@ export function WarunkiIndywidualne({ userId, dane, akcje }: { userId: string; d
           ...(oplaconeDo ? { oplaconeDo: new Date(`${oplaconeDo}T12:00:00`).toISOString() } : {}),
         }),
       oplaconeDo
-        ? `Usługa założona bez obciążenia — okres opłacony u poprzedniego usługodawcy do ${oplaconeDo}, potem zwykłe odnowienia. Trwa zakładanie konta na serwerze.`
+        ? `Usługa założona bez obciążenia – okres opłacony u poprzedniego usługodawcy do ${oplaconeDo}, potem zwykłe odnowienia. Trwa zakładanie konta na serwerze.`
         : dane.billingOutside
-          ? "Usługa założona bez obciążenia (rozliczenie poza Verris) — trwa zakładanie konta na serwerze."
-          : "Usługa założona — pierwszy okres pobrany z portfela klienta, trwa zakładanie konta na serwerze.",
+          ? "Usługa założona bez obciążenia (rozliczenie poza Verris) – trwa zakładanie konta na serwerze."
+          : "Usługa założona – pierwszy okres pobrany z portfela klienta, trwa zakładanie konta na serwerze.",
       () => {
         setDomena("");
         setNowaCena("");
@@ -168,7 +168,7 @@ export function WarunkiIndywidualne({ userId, dane, akcje }: { userId: string; d
         </p>
         <p className="text-xs text-muted-foreground leading-relaxed">
           {dane.billingOutside
-            ? "System nie pobiera opłat, nie blokuje za brak płatności i nie wystawia faktur. Okresy przedłużają się same. Klient nie widzi portfela ani płatności, a nowe usługi zamawia u Ciebie. Autoskalowanie działa bez pobierania — zużycie poniżej, do Twojej faktury."
+            ? "System nie pobiera opłat, nie blokuje za brak płatności i nie wystawia faktur. Okresy przedłużają się same. Klient nie widzi portfela ani płatności, a nowe usługi zamawia u Ciebie. Autoskalowanie działa bez pobierania – zużycie poniżej, do Twojej faktury."
             : "Po włączeniu wszystkie usługi klienta przechodzą na rozliczenie poza Verris: bez obciążeń portfela, przypomnień o płatności, blokad za brak płatności i faktur z systemu."}
         </p>
         <label className="block">
@@ -188,7 +188,7 @@ export function WarunkiIndywidualne({ userId, dane, akcje }: { userId: string; d
           }
         >
           {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          {dane.billingOutside ? "Wyłącz — wróć do portfela" : "Włącz rozliczenie poza Verris"}
+          {dane.billingOutside ? "Wyłącz – wróć do portfela" : "Włącz rozliczenie poza Verris"}
         </button>
       </div>
 
@@ -204,7 +204,7 @@ export function WarunkiIndywidualne({ userId, dane, akcje }: { userId: string; d
                   <div>
                     <p className="text-sm font-medium text-white">{domenaDoWyswietlenia(u.domena) ?? u.plan ?? "Usługa"}</p>
                     <p className="text-xs text-muted-foreground">
-                      {u.plan ?? "—"} · cennik {u.cenaCennik ?? "—"} / {okres(u.interval)} · cena klienta{" "}
+                      {u.plan ?? "–"} · cennik {u.cenaCennik ?? "–"} / {okres(u.interval)} · cena klienta{" "}
                       <strong className="text-white">{u.cenaIndywidualna ?? "z cennika"}</strong> · rabat autoskalowania{" "}
                       <strong className="text-white">{u.rabatAutoskalowaniaPct}%</strong>
                       {u.pozaVerris ? " · poza Verris" : ""}
@@ -265,7 +265,7 @@ export function WarunkiIndywidualne({ userId, dane, akcje }: { userId: string; d
               wrapperClassName="mt-1.5"
               options={dane.plany.map((p) => ({
                 value: p.id,
-                label: `${p.nazwa}${p.ukryty ? " (ukryty)" : ""} — ${p.miesiecznie ?? "—"}/mies. · ${p.rocznie ?? "—"}/rok`,
+                label: `${p.nazwa}${p.ukryty ? " (ukryty)" : ""} – ${p.miesiecznie ?? "–"}/mies. · ${p.rocznie ?? "–"}/rok`,
               }))}
             />
           </div>
@@ -287,7 +287,7 @@ export function WarunkiIndywidualne({ userId, dane, akcje }: { userId: string; d
             <input value={domena} onChange={(e) => setDomena(e.target.value)} className={pole} placeholder="np. firma-klienta.pl" />
           </label>
           <label className="block">
-            <span className={etykieta}>Cena za {okres(interval)} (puste = cennik {cennikNowej ?? "—"})</span>
+            <span className={etykieta}>Cena za {okres(interval)} (puste = cennik {cennikNowej ?? "–"})</span>
             <input inputMode="decimal" value={nowaCena} onChange={(e) => setNowaCena(e.target.value)} className={pole} />
           </label>
           <label className="block">
@@ -307,7 +307,7 @@ export function WarunkiIndywidualne({ userId, dane, akcje }: { userId: string; d
           {oplaconeDo
             ? "Przeniesienie klienta: bez obciążenia do wskazanej daty (maks. rok), potem odnowienia z portfela. Tylko administrator."
             : dane.billingOutside
-            ? "Klient rozliczany poza Verris — usługa ruszy bez obciążenia."
+            ? "Klient rozliczany poza Verris – usługa ruszy bez obciążenia."
             : "Pierwszy okres zostanie pobrany z portfela klienta; przy braku środków usługa nie ruszy."}
         </p>
         <button type="button" className={przycisk} disabled={pending} onClick={zalozUsluge}>

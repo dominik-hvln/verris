@@ -32,6 +32,6 @@ const PARY: Array<[string, Record<string, string>, Record<string, string>]> = [
   ['DomainStatus', DomainStatus, DOMAIN_STATUS_PL],
 ];
 
-it.each(PARY)('%s — etykiety = wartości enumu w bazie', (_nazwa, enumBazy, etykiety) => {
+it.each(PARY)('%s – etykiety = wartości enumu w bazie', (_nazwa, enumBazy, etykiety) => {
   expect(Object.keys(etykiety).sort()).toEqual(Object.values(enumBazy).sort());
 });

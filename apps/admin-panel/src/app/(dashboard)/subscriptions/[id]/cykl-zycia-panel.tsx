@@ -28,7 +28,7 @@ const OBIETNICA_MAKS_DNI = 7;
 const DZIEN = 86_400_000;
 const KOSZT = { wszystkie: ["BILLING_MANAGE", "SUBSCRIPTIONS_MANAGE"] } as const;
 // Dni w Polsce, nie w UTC ani w strefie przeglądarki (przegląd 12.10): koniec okresu 23:30 UTC to już następny dzień.
-const dzien = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("pl-PL", { timeZone: STREFA_PL }) : "—");
+const dzien = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("pl-PL", { timeZone: STREFA_PL }) : "–");
 /** Dzień (w Polsce) `n` dni kalendarzowych po `iso` — do przycisków „+7/+14”. */
 export const plusDni = (iso: string, n: number) => naTekst(przesun(rozbierz(dzienPl(new Date(iso)))!.dzien, n));
 const przycisk = "rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-neutral-200 hover:text-white disabled:opacity-50";
@@ -85,7 +85,7 @@ export function CyklZyciaPanel({ u, dostep }: { u: UslugaCyklu; dostep: DostepDo
   };
 
   if (brakAnulacji && brakObietnicy) return <p className="text-sm text-muted-foreground" data-cykl="brak-uprawnien">{brakAnulacji}.</p>;
-  if (u.status === "CANCELED" || u.status === "EXPIRED") return <p className="text-sm text-muted-foreground">Usługa jest zakończona — cyklu nie da się już zmienić.</p>;
+  if (u.status === "CANCELED" || u.status === "EXPIRED") return <p className="text-sm text-muted-foreground">Usługa jest zakończona – cyklu nie da się już zmienić.</p>;
 
   return (
     <div className="space-y-4" data-cykl={u.status}>
@@ -107,7 +107,7 @@ export function CyklZyciaPanel({ u, dostep }: { u: UslugaCyklu; dostep: DostepDo
         </div>
         {anulowana ? (
           <>
-            <p className="text-sm text-amber-200">Anulowana — działa do {dzien(u.cancelAt)} i nie odnowi się.</p>
+            <p className="text-sm text-amber-200">Anulowana – działa do {dzien(u.cancelAt)} i nie odnowi się.</p>
             <button type="button" data-akcja="cofnij-anulacje" className={przycisk} disabled={!!brakAnulacji || pending || !powodOk} title={brakAnulacji ?? (powodOk ? undefined : "Najpierw wpisz powód")} onClick={() => void wykonaj("anulacja/cofnij", "Cofnąć anulację? Usługa odnowi się normalnie.", "Cofnij anulację")}>
               Cofnij anulację
             </button>
@@ -136,7 +136,7 @@ export function CyklZyciaPanel({ u, dostep }: { u: UslugaCyklu; dostep: DostepDo
           </div>
           <p className="text-xs text-muted-foreground">Teraz: {dzien(u.currentPeriodEnd)}.</p>
           {u.kartaCykliczna ? (
-            <p className="text-xs text-muted-foreground">Usługa opłacana kartą cyklicznie — datę ustala system płatności (zmiana czeka na decyzję właściciela).</p>
+            <p className="text-xs text-muted-foreground">Usługa opłacana kartą cyklicznie – datę ustala system płatności (zmiana czeka na decyzję właściciela).</p>
           ) : brakDaty && !wniosekDaty ? (
             <p className="text-xs text-muted-foreground">{brakDaty}.</p>
           ) : (
@@ -151,7 +151,7 @@ export function CyklZyciaPanel({ u, dostep }: { u: UslugaCyklu; dostep: DostepDo
               </div>
               {roznica !== null ? (
                 <p className="text-xs text-neutral-300" data-roznica={roznica}>
-                  {roznica > 0 ? `Przedłużenie gratis o ${roznica} dni (koszt Verris).` : roznica < 0 ? `Skrócenie o ${-roznica} dni — tylko na prośbę klienta (numer zgłoszenia).` : "Bez zmiany."}
+                  {roznica > 0 ? `Przedłużenie gratis o ${roznica} dni (koszt Verris).` : roznica < 0 ? `Skrócenie o ${-roznica} dni – tylko na prośbę klienta (numer zgłoszenia).` : "Bez zmiany."}
                 </p>
               ) : null}
               {wniosekDaty ? (
@@ -161,7 +161,7 @@ export function CyklZyciaPanel({ u, dostep }: { u: UslugaCyklu; dostep: DostepDo
                   subscriptionId={u.id}
                   gotowe={!!nowa && roznica !== 0}
                   payload={{ subscriptionId: u.id, nowaData: nowa?.toISOString() ?? "", przed: u.currentPeriodEnd ?? "", ...(zgloszenie.trim() ? { zgloszenie: zgloszenie.trim() } : {}) }}
-                  podpowiedz={`${brakDaty}. Zmiana daty ma koszt — wniosek akceptuje kierownik zmiany.`}
+                  podpowiedz={`${brakDaty}. Zmiana daty ma koszt – wniosek akceptuje kierownik zmiany.`}
                 />
               ) : (
                 <button
@@ -170,7 +170,7 @@ export function CyklZyciaPanel({ u, dostep }: { u: UslugaCyklu; dostep: DostepDo
                   className={przycisk}
                   disabled={pending || !powodOk || !nowa || roznica === 0}
                   title={!nowa ? "Wybierz datę" : powodOk ? undefined : "Najpierw wpisz powód"}
-                  onClick={() => void wykonaj("data-odnowienia", `Zmienić datę odnowienia na ${nowa ? nowa.toLocaleDateString("pl-PL") : "—"}?`, "Zmień datę", { nowaData: nowa?.toISOString(), przed: u.currentPeriodEnd })}
+                  onClick={() => void wykonaj("data-odnowienia", `Zmienić datę odnowienia na ${nowa ? nowa.toLocaleDateString("pl-PL") : "–"}?`, "Zmień datę", { nowaData: nowa?.toISOString(), przed: u.currentPeriodEnd })}
                 >
                   Zmień datę odnowienia
                 </button>
@@ -186,7 +186,7 @@ export function CyklZyciaPanel({ u, dostep }: { u: UslugaCyklu; dostep: DostepDo
             <h3 className="text-sm font-semibold text-white">Obietnica zapłaty</h3>
             <Pomoc id="obietnica-zaplaty" />
           </div>
-          {obietnica ? <p className="text-sm text-amber-200">Bez zawieszenia do {new Date(obietnica).toLocaleString("pl-PL")}.</p> : <p className="text-xs text-muted-foreground">Płatność zaległa — bez obietnicy usługa zostanie zawieszona automatycznie.</p>}
+          {obietnica ? <p className="text-sm text-amber-200">Bez zawieszenia do {new Date(obietnica).toLocaleString("pl-PL")}.</p> : <p className="text-xs text-muted-foreground">Płatność zaległa – bez obietnicy usługa zostanie zawieszona automatycznie.</p>}
           {brakObietnicy ? (
             <p className="text-xs text-muted-foreground">{brakObietnicy}.</p>
           ) : (
@@ -288,7 +288,7 @@ function DodatkiUslugiSekcja({ u, dostep, powod, zgloszenie }: { u: UslugaCyklu;
             aria-label="Dodatek"
             placeholder="Wybierz dodatek…"
             className="rounded-lg border border-white/10 bg-black/30 px-3 py-1 text-xs text-white"
-            options={(dane?.catalog ?? []).map((c) => ({ value: c.slug, label: `${c.name} — ${c.price} zł` }))}
+            options={(dane?.catalog ?? []).map((c) => ({ value: c.slug, label: `${c.name} – ${c.price} zł` }))}
           />
           <Select
             value={platnosc}
@@ -308,7 +308,7 @@ function DodatkiUslugiSekcja({ u, dostep, powod, zgloszenie }: { u: UslugaCyklu;
               subscriptionId={u.id}
               gotowe={!!wybrany && zgloszenieOk}
               payload={{ subscriptionId: u.id, slug, platnosc, ...(zgloszenie.trim() ? { zgloszenie: zgloszenie.trim() } : {}), ...(przedluz ? { przedluz: true } : {}) }}
-              podpowiedz={`${brakDodania}. Dodatek ma koszt — wniosek akceptuje kierownik zmiany.`}
+              podpowiedz={`${brakDodania}. Dodatek ma koszt – wniosek akceptuje kierownik zmiany.`}
             />
           ) : (
             <button
@@ -325,9 +325,9 @@ function DodatkiUslugiSekcja({ u, dostep, powod, zgloszenie }: { u: UslugaCyklu;
         </div>
       )}
       {przedluz ? (
-        <p className="text-xs text-amber-200">Klient ma ten dodatek aktywny{aktywnyDo ? ` do ${aktywnyDo}` : ""} — drugi raz go nie dodasz, możesz go przedłużyć o 30 dni.</p>
+        <p className="text-xs text-amber-200">Klient ma ten dodatek aktywny{aktywnyDo ? ` do ${aktywnyDo}` : ""} – drugi raz go nie dodasz, możesz go przedłużyć o 30 dni.</p>
       ) : null}
-      {platnosc === "PORTFEL" && !zgloszenieOk ? <p className="text-xs text-amber-200">Z portfela klienta tylko na jego zamówienie — wpisz numer zgłoszenia.</p> : null}
+      {platnosc === "PORTFEL" && !zgloszenieOk ? <p className="text-xs text-amber-200">Z portfela klienta tylko na jego zamówienie – wpisz numer zgłoszenia.</p> : null}
       {msg ? (
         <p role="status" className={`text-sm ${msg.ok ? "text-emerald-300" : "text-rose-300"}`}>
           {msg.tekst}

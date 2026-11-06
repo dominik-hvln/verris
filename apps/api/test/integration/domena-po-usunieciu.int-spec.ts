@@ -5,7 +5,7 @@ describe('Domena konta po usunięciu', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 
-  it('usunięte konto zwalnia domenę; dwa żywe konta na tej samej domenie — nadal zabronione', async () => {
+  it('usunięte konto zwalnia domenę; dwa żywe konta na tej samej domenie – nadal zabronione', async () => {
     const w = await utworzWezel();
     const plan = await utworzPlan();
     const stare = await utworzKonto({ serverId: w.id, planId: plan.id, status: 'DELETED' });

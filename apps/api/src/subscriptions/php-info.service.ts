@@ -111,5 +111,5 @@ function selektorZJson(v: unknown): KonfiguracjaPhp['selektor'] {
 
 function bladZLogu(log: string | null): string {
   const l = (log ?? '').split('\n').reverse().find((x) => x.startsWith('[php-info] BŁĄD: '));
-  return l ? l.slice('[php-info] BŁĄD: '.length).slice(0, 300) : 'Odczyt nie powiódł się. Napisz do nas — sprawdzimy to.';
+  return l ? l.slice('[php-info] BŁĄD: '.length).slice(0, 300) : 'Odczyt nie powiódł się. Napisz do nas – sprawdzimy to.';
 }

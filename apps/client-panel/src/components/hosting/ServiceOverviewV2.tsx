@@ -93,16 +93,16 @@ const LINK = 'text-[12.5px] font-semibold text-primary underline decoration-1 un
 
 function money(v: number | string, currency = 'PLN'): string {
   const n = typeof v === 'string' ? Number.parseFloat(v) : v;
-  if (!Number.isFinite(n)) return '—';
+  if (!Number.isFinite(n)) return '–';
   return `${n.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency === 'PLN' ? 'zł' : currency}`;
 }
 
 function date(iso: string | null | undefined, withYear = true): string {
-  if (!iso) return '—';
+  if (!iso) return '–';
   return new Date(iso).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', ...(withYear ? { year: 'numeric' } : {}) });
 }
 
-const DANE_PO_WZNOWIENIU = 'Dane będą dostępne po wznowieniu usługi — kopie są bezpieczne.';
+const DANE_PO_WZNOWIENIU = 'Dane będą dostępne po wznowieniu usługi – kopie są bezpieczne.';
 
 const PAYMENT_SOURCE: Record<string, string> = {
   WALLET: 'z portfela',
@@ -221,12 +221,12 @@ export default function ServiceOverviewV2({
     const res = await toggleAutoscalingAction(serviceId, next);
     setAsBusy(false);
     if (!res.ok) return toast.error(res.error);
-    toast.success(next ? 'Autoskalowanie włączone' : 'Autoskalowanie wyłączone — przy skoku ruchu strona może zwolnić');
+    toast.success(next ? 'Autoskalowanie włączone' : 'Autoskalowanie wyłączone – przy skoku ruchu strona może zwolnić');
     setExtras((x) => (x && x.autoscaling ? { ...x, autoscaling: { ...x.autoscaling, enabled: next } } : x));
   };
 
   const metric = (m: { used: number | null; limit: number | null } | undefined) =>
-    m && m.used != null ? `${m.used} z ${m.limit ?? '∞'}` : '—';
+    m && m.used != null ? `${m.used} z ${m.limit ?? '∞'}` : '–';
   const pct = (m: { used: number | null; limit: number | null } | undefined) =>
     m && m.used != null && m.limit ? Math.round((m.used / m.limit) * 100) : 0;
 
@@ -242,7 +242,7 @@ export default function ServiceOverviewV2({
             <>
               <b>Usługa zawieszona z powodu braku płatności.</b>{' '}
               <span className="text-muted-foreground">
-                Strona pokazuje odwiedzającym komunikat o zawieszeniu, dane są nietknięte. Opłać zaległość — usługa wróci automatycznie →
+                Strona pokazuje odwiedzającym komunikat o zawieszeniu, dane są nietknięte. Opłać zaległość – usługa wróci automatycznie →
               </span>
             </>
           ) : (
@@ -258,7 +258,7 @@ export default function ServiceOverviewV2({
           <b>Usługa wstrzymana przez partnera, który prowadzi Twoje konto.</b>{' '}
           <span className="text-muted-foreground">
             Strona i poczta nie działają do czasu wznowienia. Wznowić ją może partner albo nasza obsługa (kontakt@verris.pl).
-            Kto jest Twoim partnerem i jak się od niego odpiąć — w <Link className="underline" href="/dashboard/settings">Ustawieniach</Link>.
+            Kto jest Twoim partnerem i jak się od niego odpiąć – w <Link className="underline" href="/dashboard/settings">Ustawieniach</Link>.
           </span>
         </div>
       ) : null}
@@ -327,7 +327,7 @@ export default function ServiceOverviewV2({
         <KafelWydajnosci wartosci={cpu.values} etykiety={cpu.labels} limitPlanu={cpuLimit} autoskalowanie={asEnabled} />
         <Kpi
           label="Pamięć (RAM)"
-          value={ramPeak != null ? fmtMb(ramPeak).split(' ')[0] : '—'}
+          value={ramPeak != null ? fmtMb(ramPeak).split(' ')[0] : '–'}
           unit={ramPeak != null ? `${fmtMb(ramPeak).split(' ')[1]} · szczyt 24 h` : undefined}
           foot={
             <span>
@@ -369,7 +369,7 @@ export default function ServiceOverviewV2({
         </Kpi>
         <Kpi
           label="Kopie zapasowe"
-          value={kopie ? String(kopie.length) : '—'}
+          value={kopie ? String(kopie.length) : '–'}
           unit={kopie ? plForm(kopie.length, 'kopia', 'kopie', 'kopii') : undefined}
           foot={
             <>
@@ -419,9 +419,9 @@ export default function ServiceOverviewV2({
                   {domains === null
                     ? 'Wczytywanie domen…'
                     : domains.fetchError && wstrzymana
-                      ? `Lista domen będzie dostępna po wznowieniu usługi — domeny i pliki stron są nietknięte.${primary ? ` Domena główna: ${domenaDoWyswietlenia(primary)}.` : ''}`
+                      ? `Lista domen będzie dostępna po wznowieniu usługi – domeny i pliki stron są nietknięte.${primary ? ` Domena główna: ${domenaDoWyswietlenia(primary)}.` : ''}`
                       : domains.fetchError
-                      ? 'Nie udało się pobrać listy domen — spróbuj odświeżyć.'
+                      ? 'Nie udało się pobrać listy domen – spróbuj odświeżyć.'
                       : 'Brak domen. Dodaj pierwszą, żeby uruchomić stronę.'}
                 </p>
               ) : (
@@ -462,7 +462,7 @@ export default function ServiceOverviewV2({
           <section>
             <SectionHead
               title="Zasoby konta"
-              desc={wstrzymana && conn?.fetchError ? 'Liczniki konta będą dostępne po wznowieniu usługi — dane na koncie są nietknięte.' : undefined}
+              desc={wstrzymana && conn?.fetchError ? 'Liczniki konta będą dostępne po wznowieniu usługi – dane na koncie są nietknięte.' : undefined}
               action={<button type="button" className={BTN_SM} onClick={() => onNavigate('usage')}>Zużycie i prognoza</button>}
             />
             <ul className="m-0 list-none rounded-[10px] border border-line bg-card p-0">
@@ -486,7 +486,7 @@ export default function ServiceOverviewV2({
           </section>
 
           <section>
-            <SectionHead title="Co się działo" desc="Zmiany w usłudze — nasze i Twoje." />
+            <SectionHead title="Co się działo" desc="Zmiany w usłudze – nasze i Twoje." />
             <EventsFeed events={service.events} />
           </section>
 
@@ -514,7 +514,7 @@ export default function ServiceOverviewV2({
             <p className="mx-4 mt-1.5 text-[13.5px] text-muted-foreground">
               {asEnabled
                 ? 'Przy nagłym ruchu dodajemy moc, opłata z portfela.'
-                : 'Wyłączone — przy skoku ruchu strona może zwolnić, ale nic nie dopłacisz.'}
+                : 'Wyłączone – przy skoku ruchu strona może zwolnić, ale nic nie dopłacisz.'}
             </p>
             {asEnabled && as ? (
               <div className="px-4 pt-3">
@@ -549,7 +549,7 @@ export default function ServiceOverviewV2({
             <p className="mx-4 mb-1.5 mt-1 text-[12.5px] text-muted-foreground">
               {conn?.fetchError
                 ? wstrzymana
-                  ? 'Usługa wstrzymana — pozostałe dane pokażemy po wznowieniu.'
+                  ? 'Usługa wstrzymana – pozostałe dane pokażemy po wznowieniu.'
                   : 'Część danych chwilowo niedostępna.'
                 : 'Kliknij adres, żeby go skopiować.'}
             </p>
@@ -562,8 +562,8 @@ export default function ServiceOverviewV2({
                   ? [{ label: 'SSH', values: [conn.sshHost], port: conn.sshPort ? String(conn.sshPort) : null }]
                   : []),
                 { label: 'Serwery DNS', values: conn?.nameservers ?? [] },
-                { label: 'Poczta — odbiór (IMAP)', values: conn?.mailHost ? [conn.mailHost] : [], port: '993 SSL' },
-                { label: 'Poczta — wysyłka (SMTP)', values: conn?.mailHost ? [conn.mailHost] : [], port: '465 SSL' },
+                { label: 'Poczta – odbiór (IMAP)', values: conn?.mailHost ? [conn.mailHost] : [], port: '993 SSL' },
+                { label: 'Poczta – wysyłka (SMTP)', values: conn?.mailHost ? [conn.mailHost] : [], port: '465 SSL' },
                 { label: 'Baza danych', values: ['localhost'], port: '3306' },
               ]}
             />
@@ -599,9 +599,9 @@ export default function ServiceOverviewV2({
                 {!service.isTrial ? ` · ${money(service.renewalAmount ?? service.priceAmount, service.currency)}` : ''}
               </dd>
               <dt>Sposób</dt>
-              <dd>{PAYMENT_SOURCE[service.paymentSource] ?? '—'}</dd>
+              <dd>{PAYMENT_SOURCE[service.paymentSource] ?? '–'}</dd>
               <dt>Poprzednia</dt>
-              <dd>{extras?.lastPayment ? `${date(extras.lastPayment.createdAt)} · ${money(extras.lastPayment.amount, extras.lastPayment.currency)}` : '—'}</dd>
+              <dd>{extras?.lastPayment ? `${date(extras.lastPayment.createdAt)} · ${money(extras.lastPayment.amount, extras.lastPayment.currency)}` : '–'}</dd>
               {as ? (
                 <>
                   <dt>Autoskalowanie · 30 dni</dt>

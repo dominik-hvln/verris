@@ -133,10 +133,10 @@ export function NodeStackReadinessPanel({
             Usługi hostingowe na węźle
           </h2>
           <p className="text-xs text-muted-foreground mt-1 max-w-2xl">
-            Podsumowanie wymaganych modułów (poczta, FTP, baza, WWW, DirectAdmin, CageFS) —
+            Podsumowanie wymaganych modułów (poczta, FTP, baza, WWW, DirectAdmin, CageFS) –
             sondy TCP/TLS z panelu sterowania oraz zgodność z dokumentacją DirectAdmin /
             CloudLinux. Przycisk poniżej uruchamia profil na węźle (Exim, Dovecot, FTP,
-            Governor, MariaDB). Profil nie edytuje pakietów DA — przy błędnym widoku
+            Governor, MariaDB). Profil nie edytuje pakietów DA – przy błędnym widoku
             «Bez ograniczeń» użyj «Napraw pakiety DA» (limity z planów Verris).
           </p>
         </div>
@@ -209,8 +209,8 @@ export function NodeStackReadinessPanel({
       {task && (
         <p className="text-xs text-sky-200">
           Ostatni profil hostingowy: {task.status}
-          {taskInflight ? " — trwa instalacja na węźle, odświeżanie co 5 s." : ""}
-          {task.errorMessage ? ` — ${task.errorMessage}` : ""}
+          {taskInflight ? " – trwa instalacja na węźle, odświeżanie co 5 s." : ""}
+          {task.errorMessage ? ` – ${task.errorMessage}` : ""}
         </p>
       )}
 
@@ -278,7 +278,7 @@ export function NodeStackReadinessPanel({
                           <li key={r.label} className="flex flex-wrap gap-2">
                             <span className="text-muted-foreground">{r.label}:</span>
                             <span className={r.ok === false ? "text-rose-300" : "text-zinc-200"}>
-                              {r.actual ?? "—"}
+                              {r.actual ?? "–"}
                               {r.expected ? ` (oczek.: ${r.expected})` : ""}
                             </span>
                           </li>

@@ -3,7 +3,7 @@ export const IAM_ROLE_PRESETS = [
   {
     id: 'support',
     label: 'Support (BOK)',
-    description: 'Zgłoszenia do pomocy — podgląd i odpowiedzi',
+    description: 'Zgłoszenia do pomocy – podgląd i odpowiedzi',
     permissions: ['TICKETS_READ', 'TICKETS_MANAGE'],
   },
   {
@@ -15,7 +15,7 @@ export const IAM_ROLE_PRESETS = [
   {
     id: 'devops',
     label: 'DevOps',
-    description: 'Usługi, DNS, poczta, pliki — bez płatności i bez rezygnacji z usług',
+    description: 'Usługi, DNS, poczta, pliki – bez płatności i bez rezygnacji z usług',
     permissions: [
       'SERVICES_READ',
       'SERVICES_MANAGE',
@@ -29,7 +29,7 @@ export const IAM_ROLE_PRESETS = [
     // P3-05 — opis mówił „usług, domen i ticketów”, a szablon dawał też płatności i portfel.
     id: 'readonly',
     label: 'Podgląd',
-    description: 'Tylko odczyt usług, domen i zgłoszeń — bez płatności i portfela',
+    description: 'Tylko odczyt usług, domen i zgłoszeń – bez płatności i portfela',
     permissions: ['SERVICES_READ', 'DOMAINS_READ', 'TICKETS_READ'],
   },
 ] as const;

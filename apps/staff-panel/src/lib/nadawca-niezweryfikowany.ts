@@ -15,4 +15,4 @@ export function wiadomoscZMaila(r: { zrodlo?: string | null; isStaff?: boolean }
 }
 
 export const OSTRZEZENIE_NADAWCY =
-  "Niezweryfikowany nadawca — ta wiadomość przyszła mailem, a adresu „Od” nie da się potwierdzić (możliwe podszycie). Przed zmianą danych konta, hasła, adresu e-mail albo wydaniem danych poproś klienta o potwierdzenie w panelu klienta.";
+  "Niezweryfikowany nadawca – ta wiadomość przyszła mailem, a adresu „Od” nie da się potwierdzić (możliwe podszycie). Przed zmianą danych konta, hasła, adresu e-mail albo wydaniem danych poproś klienta o potwierdzenie w panelu klienta.";

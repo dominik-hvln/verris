@@ -37,18 +37,18 @@ const PRIORYTETY = ["URGENT", "HIGH", "NORMAL", "LOW"];
 
 /** Minuty po ludzku: „45 min”, „3 h 10 min”, „2 dni 4 h”. */
 function czasMin(m: number | null): string {
-  if (m == null) return "—";
+  if (m == null) return "–";
   if (m < 60) return `${m} min`;
   const h = Math.floor(m / 60);
   if (h < 48) return `${h} h${m % 60 ? ` ${m % 60} min` : ""}`;
   return `${Math.floor(h / 24)} dni${h % 24 ? ` ${h % 24} h` : ""}`;
 }
 
-const proc = (p: number | null) => (p == null ? "—" : `${p.toLocaleString("pl-PL")}%`);
-const liczba = (x: number | null, po = "") => (x == null ? "—" : `${x.toLocaleString("pl-PL")}${po}`);
+const proc = (p: number | null) => (p == null ? "–" : `${p.toLocaleString("pl-PL")}%`);
+const liczba = (x: number | null, po = "") => (x == null ? "–" : `${x.toLocaleString("pl-PL")}${po}`);
 const dotrz = (t: Terminy) => {
   const n = t.dotrzymane + t.przekroczone;
-  return n ? `${Math.round((t.dotrzymane / n) * 100)}% (${t.dotrzymane}/${n})` : "—";
+  return n ? `${Math.round((t.dotrzymane / n) * 100)}% (${t.dotrzymane}/${n})` : "–";
 };
 
 /**
@@ -75,7 +75,7 @@ export default async function RaportyObslugiPage({ searchParams }: { searchParam
           Raporty obsługi <Pomoc id="raporty-obslugi" />
         </h1>
         <p className="max-w-3xl text-sm text-muted-foreground">
-          Zgłoszenia założone w ostatnich {dni} dniach: terminy SLA, oceny klientów i praca zespołu. Scalone zgłoszenia liczą się raz — w docelowym.
+          Zgłoszenia założone w ostatnich {dni} dniach: terminy SLA, oceny klientów i praca zespołu. Scalone zgłoszenia liczą się raz – w docelowym.
         </p>
       </header>
 
@@ -122,7 +122,7 @@ export default async function RaportyObslugiPage({ searchParams }: { searchParam
           Zespół
         </h2>
         <p className="px-4 text-xs text-muted-foreground">
-          Odpowiedzi bez notatek i automatów. Czas odpowiedzi — od pierwszej nieodpowiedzianej wiadomości klienta (mediana).
+          Odpowiedzi bez notatek i automatów. Czas odpowiedzi – od pierwszej nieodpowiedzianej wiadomości klienta (mediana).
         </p>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] text-sm">
@@ -142,7 +142,7 @@ export default async function RaportyObslugiPage({ searchParams }: { searchParam
                   <td className="px-4 py-2 text-right font-mono">{o.odpowiedzi}</td>
                   <td className="px-4 py-2 text-right font-mono">{czasMin(o.medianaMin)}</td>
                   <td className="px-4 py-2 text-right font-mono">{o.zamkniete}</td>
-                  <td className="px-4 py-2 text-right font-mono">{o.ocen ? `${liczba(o.ocenaOpiekuna, "/5")} (${o.ocen})` : "—"}</td>
+                  <td className="px-4 py-2 text-right font-mono">{o.ocen ? `${liczba(o.ocenaOpiekuna, "/5")} (${o.ocen})` : "–"}</td>
                 </tr>
               ))}
               {r.osoby.length === 0 ? (

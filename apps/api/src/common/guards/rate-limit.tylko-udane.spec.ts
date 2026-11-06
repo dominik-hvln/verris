@@ -42,7 +42,7 @@ async function proba(g: RateLimitGuard, ip: string, status: number, token?: stri
   return status;
 }
 
-describe('RateLimitGuard — tylko udane próby (P5-03)', () => {
+describe('RateLimitGuard – tylko udane próby (P5-03)', () => {
   const REJ: RateLimitOptions = { limit: 3, windowMs: 3_600_000, scope: 'auth:register', tylkoUdane: true, limitProb: 10 };
 
   it('odrzucenia z walidacji nie zjadają limitu; udane tak', async () => {

@@ -63,7 +63,7 @@ export const AKCJE_KLIENTA: AkcjaObiektu<KlientDlaAkcji>[] = [
     id: "konto-wewnetrzne",
     grupa: "Konto",
     nazwa: "Konto wewnętrzne",
-    opis: "Konto testowe — poza metrykami biznesowymi (MRR, churn).",
+    opis: "Konto testowe – poza metrykami biznesowymi (MRR, churn).",
     // PATCH admin/users/:id/operational — strażnik CUSTOMERS_MANAGE i serwis CUSTOMERS_INTERNAL_FLAG (oba);
     // wniosek CUSTOMER_INTERNAL_FLAG (rejestr-wnioskow.ts: uprawnienie + uprawnieniaDodatkowe).
     perm: { wszystkie: ["CUSTOMERS_INTERNAL_FLAG", "CUSTOMERS_MANAGE"] },
@@ -102,7 +102,7 @@ export const AKCJE_KLIENTA: AkcjaObiektu<KlientDlaAkcji>[] = [
     id: "usuniecie",
     grupa: "Konto",
     nazwa: "Usuń konto (RODO)",
-    opis: "Anonimizacja danych klienta — nieodwracalna.",
+    opis: "Anonimizacja danych klienta – nieodwracalna.",
     // POST admin/compliance/deletion-requests/:userId/force-anonymize — @Roles(ADMIN) klasy, bez wyjątku dla STAFF.
     perm: "ADMIN",
     api: "POST admin/compliance/deletion-requests/:userId/force-anonymize",

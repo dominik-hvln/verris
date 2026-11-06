@@ -17,7 +17,7 @@ Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
  * A2-10 / decyzja 12 — stary panel: „wspieramy sadzenie drzew”, „Drzewa łącznie … posadzone z Twoich punktów”
  * (zwykłe dzielenie punktów, bez partnera). Teraz liczniki z API (tylko drzewa z certyfikatem) i certyfikaty.
  */
-describe('Program EKO — drzewa w panelu', () => {
+describe('Program EKO – drzewa w panelu', () => {
   it('formatowanie udziału: obcięte setne, odmiana', () => {
     expect(procentDrzewa(700)).toBe('7,00%');
     expect(procentDrzewa(70)).toBe('0,70%');
@@ -57,8 +57,8 @@ describe('Program EKO — drzewa w panelu', () => {
     // Decyzje 16–17 (4.11.2026): wkład tylko od pieniędzy, certyfikaty wyłącznie na Verris, 1% drzewa = ⌈punkty/100⌉.
     expect(t).toContain('Wkład liczymy tylko od tego, co zapłacisz pieniędzmi');
     expect(t).toMatch(/kredyty\s+z kodów \(np\. BETA\), promocji, poleceń i rekompensat/);
-    expect(t).toContain('Certyfikaty wystawiamy na Verris — z tekstem „Drzewo posadzone dzięki klientom Verris”');
-    expect(t).toContain('1% drzewa — 2 pkt');
+    expect(t).toContain('Certyfikaty wystawiamy na Verris – z tekstem „Drzewo posadzone dzięki klientom Verris”');
+    expect(t).toContain('1% drzewa – 2 pkt');
   });
 
   it('w plikach programu EKO nie ma haseł bez pokrycia ani nazwy partnera', () => {

@@ -250,7 +250,7 @@ function CampaignList({ rows }: { rows: CampaignRow[] }) {
         <Send className="h-10 w-10 mx-auto text-muted-foreground" />
         <h3 className="mt-4 text-base font-bold text-white">Brak kampanii</h3>
         <p className="mt-1 text-sm text-muted-foreground">
-          Utwórz pierwszą kampanię powyżej — pojawi się tu z możliwością wysyłki.
+          Utwórz pierwszą kampanię powyżej – pojawi się tu z możliwością wysyłki.
         </p>
       </div>
     );
@@ -295,7 +295,7 @@ function CampaignCard({ row }: { row: CampaignRow }) {
           <p className="mt-0.5 text-sm text-muted-foreground truncate">{row.subject}</p>
           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
             <span>Segment: {segmentLabel(row.segment)}</span>
-            <span>Odbiorcy: {row.recipientCount || "—"}</span>
+            <span>Odbiorcy: {row.recipientCount || "–"}</span>
             <span className="text-emerald-300">Wysłane: {row.sentCount}</span>
             {row.suppressedCount > 0 ? <span className="text-amber-300">Wypisani: {row.suppressedCount}</span> : null}
             {row.failedCount > 0 ? <span className="text-rose-300">Błędy: {row.failedCount}</span> : null}

@@ -92,7 +92,7 @@ export class TrialService {
         throw new ForbiddenException('Potwierdź adres e-mail, aby uruchomić okres próbny.');
       }
       if (elig.reason === 'BILLING_OUTSIDE') {
-        throw new ForbiddenException('Twoje usługi rozliczasz bezpośrednio ze swoim opiekunem — nową usługę zamówisz u niego.');
+        throw new ForbiddenException('Twoje usługi rozliczasz bezpośrednio ze swoim opiekunem – nową usługę zamówisz u niego.');
       }
       if (elig.reason === 'ALREADY_USED') {
         throw new ConflictException('Wykorzystałeś już swój darmowy okres próbny.');
@@ -216,7 +216,7 @@ export class TrialService {
       userId,
       type: WalletTxType.CHARGE_SUBSCRIPTION,
       amount,
-      description: `Przekształcenie okresu próbnego na płatny — ${subscription.plan.name}`,
+      description: `Przekształcenie okresu próbnego na płatny – ${subscription.plan.name}`,
       idempotencyKey: `trial-convert-${subscriptionId}`,
       subscriptionId,
     });
@@ -253,11 +253,11 @@ export class TrialService {
         userId,
         type: WalletTxType.REFUND,
         amount,
-        description: `Zwrot — okres próbny zakończył się przed przejściem na płatny (${subscription.plan.name})`,
+        description: `Zwrot – okres próbny zakończył się przed przejściem na płatny (${subscription.plan.name})`,
         idempotencyKey: `trial-convert-${subscriptionId}:zwrot`,
         subscriptionId,
       });
-      throw new ConflictException('Okres próbny właśnie się zakończył — środki wróciły do portfela.');
+      throw new ConflictException('Okres próbny właśnie się zakończył – środki wróciły do portfela.');
     }
     await this.prisma.subscriptionEvent.create({
       data: {

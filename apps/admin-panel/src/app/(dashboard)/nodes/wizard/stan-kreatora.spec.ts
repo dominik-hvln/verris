@@ -6,7 +6,7 @@ const A = "aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa";
 const zapisA: PersistedWizard = { stepIndex: idx("onboard-live"), name: "A", hostname: "a.verris.pl", region: "FSN1", notes: "", serverId: "aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa", checked: { bootstrap: true } };
 
 /** 10.10 — `?server=B` bez `step` brał krok i dane węzła A z sessionStorage. */
-describe("Kreator węzła — stan startowy", () => {
+describe("Kreator węzła – stan startowy", () => {
   it("?server innego węzła bez step: ignoruje zapis węzła A", () => {
     const s = stanStartowyKreatora(zapisA, { server: "bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb", step: null });
     expect(s.zapisany).toBeNull();
@@ -48,7 +48,7 @@ describe("wznowienie kreatora (17.10, PB-31)", () => {
   it("węzeł ACTIVE bez ?step trafia na kopie off-site, nie na „Wymagania”", () => {
     expect(WIZARD_STEPS[krokDlaStatusu("ACTIVE")]!.id).toBe("backup-offsite");
   });
-  it("adres kreatora niesie węzeł i krok — da się go otworzyć w nowej karcie", () => {
+  it("adres kreatora niesie węzeł i krok – da się go otworzyć w nowej karcie", () => {
     expect(adresKreatora(A, "bootstrap")).toBe(`/nodes/wizard?server=${A}&step=bootstrap`);
     expect(stanStartowyKreatora(null, { server: A, step: "bootstrap" })).toMatchObject({ serverId: A, stepIndex: idx("bootstrap") });
   });

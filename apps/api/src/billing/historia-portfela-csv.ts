@@ -68,10 +68,10 @@ export function opisDlaKlienta(opis: string | null): string {
   if (odn) return `Odnowienie ${odn[2]!.toLowerCase() === 'month' ? 'miesięczne' : 'roczne'} · ${odn[1]!.replace(/-/g, ' ')}`;
   if (/^subscription\s+[0-9a-f-]{16,}\s*\(initial payment\)/i.test(d)) return 'Pierwsza opłata za usługę';
   if (/^subscription\s+[0-9a-f-]{16,}/i.test(d)) return 'Opłata za usługę';
-  if (/^auto-refund: provisioning failed/i.test(d)) return 'Zwrot — usługi nie udało się uruchomić';
+  if (/^auto-refund: provisioning failed/i.test(d)) return 'Zwrot – usługi nie udało się uruchomić';
   if (/^refund/i.test(d)) return 'Zwrot środków';
   const dol = d.match(/^doładowanie\s+(\w+)/i);
-  if (dol) return /^stripe$/i.test(dol[1]!) ? 'Doładowanie kartą' : `Doładowanie — ${dol[1]}`;
+  if (dol) return /^stripe$/i.test(dol[1]!) ? 'Doładowanie kartą' : `Doładowanie – ${dol[1]}`;
   return d.replace(/\s*[([]?\b[0-9a-f]{8}-[0-9a-f-]{8,}\b[)\]]?/gi, '').replace(/\s{2,}/g, ' ').trim();
 }
 

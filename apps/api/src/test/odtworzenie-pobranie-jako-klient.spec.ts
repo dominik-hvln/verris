@@ -59,7 +59,7 @@ function uruchom(opcje: { rcloneBlad?: boolean } = {}) {
   return wynik;
 }
 
-describe('OFR fetch — archiwum w ~/backups zapisuje klient, nie root', () => {
+describe('OFR fetch – archiwum w ~/backups zapisuje klient, nie root', () => {
   it('rclone cat → zapis przez runuser jako właściciel konta; plik kompletny, tylko dla klienta', () => {
     const r = uruchom();
     expect(r.log).not.toContain('[FAIL]');

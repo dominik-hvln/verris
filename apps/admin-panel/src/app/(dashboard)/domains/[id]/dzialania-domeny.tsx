@@ -32,10 +32,10 @@ const zl = (v: string) => `${Number(v).toLocaleString("pl-PL", { minimumFraction
 
 /** Komunikat po synchronizacji: co się zmieniło (albo że nic). */
 export function opisSynchronizacji(w: { odeszla: boolean; zmiany: Record<string, { z: unknown; na: unknown }> }): string {
-  if (w.odeszla) return "Rejestrator nie ma już tej domeny — oznaczona jako odeszła.";
+  if (w.odeszla) return "Rejestrator nie ma już tej domeny – oznaczona jako odeszła.";
   const nazwy: Record<string, string> = { expiresAt: "data wygaśnięcia", transferLock: "blokada transferu", whoisPrivacy: "ukrycie WHOIS" };
   const lista = Object.keys(w.zmiany).map((k) => nazwy[k] ?? k);
-  return lista.length ? `Zaktualizowano: ${lista.join(", ")}.` : "Dane zgodne z rejestratorem — bez zmian.";
+  return lista.length ? `Zaktualizowano: ${lista.join(", ")}.` : "Dane zgodne z rejestratorem – bez zmian.";
 }
 
 export function DzialaniaDomeny(p: {
@@ -98,7 +98,7 @@ export function DzialaniaDomeny(p: {
       setZgloszenie("");
       if (akcja === "kod-epp") {
         setKod((r.wynik as { authCode: string }).authCode);
-        setMsg({ ok: true, tekst: "Kod pokazany — przekaż go klientowi w zgłoszeniu. W dzienniku zostaje tylko fakt pokazania." });
+        setMsg({ ok: true, tekst: "Kod pokazany – przekaż go klientowi w zgłoszeniu. W dzienniku zostaje tylko fakt pokazania." });
         return;
       }
       setAktywna(null);
@@ -176,11 +176,11 @@ export function DzialaniaDomeny(p: {
                 <p className="text-xs text-muted-foreground" data-wycena="">
                   {aktywna === "odnow"
                     ? `Opłata z portfela klienta: ${zl(wycena.priceAmount)} (saldo: ${zl(p.saldoKlienta)}).`
-                    : `Wartość odnowienia: ${zl(wycena.priceAmount)} — klient nie zapłaci nic, koszt ponosi Verris.`}
+                    : `Wartość odnowienia: ${zl(wycena.priceAmount)} – klient nie zapłaci nic, koszt ponosi Verris.`}
                 </p>
               ) : null}
               {aktywna === "odnow" && wycena && Number(p.saldoKlienta) < Number(wycena.priceAmount) ? (
-                <p className="text-xs text-amber-200">Klient ma za mało środków — rejestrator nie zostanie wywołany, dopóki nie doładuje portfela.</p>
+                <p className="text-xs text-amber-200">Klient ma za mało środków – rejestrator nie zostanie wywołany, dopóki nie doładuje portfela.</p>
               ) : null}
             </div>
           ) : null}
@@ -191,7 +191,7 @@ export function DzialaniaDomeny(p: {
           ) : null}
           {aktywna === "kod-epp" ? (
             <p className="text-xs text-muted-foreground">
-              {p.transferLock ? "Domena ma blokadę transferu — do przeniesienia trzeba ją też zdjąć." : "Kod pozwala przenieść domenę do innego rejestratora."}
+              {p.transferLock ? "Domena ma blokadę transferu – do przeniesienia trzeba ją też zdjąć." : "Kod pozwala przenieść domenę do innego rejestratora."}
             </p>
           ) : null}
           {aktywna === "ns" ? (

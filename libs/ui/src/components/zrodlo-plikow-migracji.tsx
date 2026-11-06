@@ -163,14 +163,14 @@ export function NarzedziaZrodlaPlikow(p: NarzedziaZrodlaPlikowProps) {
           }`}
         >
           <p className="font-semibold">
-            {p.wykryty.ok ? `Połączenie działa — kopiujemy: ${p.wykryty.metoda}` : p.wykryty.metoda}
+            {p.wykryty.ok ? `Połączenie działa – kopiujemy: ${p.wykryty.metoda}` : p.wykryty.metoda}
             {p.wykryty.ok && p.wykryty.port ? ` (port ${p.wykryty.port})` : ''}
           </p>
           {p.wykryty.nieszyfrowane ? (
             <p>FTP bez szyfrowania: hasło idzie otwartym tekstem. Jeśli serwer ma SSH, zmień hasło po migracji.</p>
           ) : null}
           {p.wykryty.ok && p.wykryty.protocol !== 'sftp' ? (
-            <p className="opacity-80">Masz dostęp SSH? Wpisz jego port — przez SFTP z rsync kopiowanie jest szybsze.</p>
+            <p className="opacity-80">Masz dostęp SSH? Wpisz jego port – przez SFTP z rsync kopiowanie jest szybsze.</p>
           ) : null}
           {!p.wykryty.ok
             ? p.wykryty.proby.map((x) => (
@@ -211,7 +211,7 @@ export function NarzedziaZrodlaPlikow(p: NarzedziaZrodlaPlikowProps) {
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-emerald-100">
               <span>
                 Wykryto: <strong>{katalog.cms.nazwa}</strong> ({katalog.cms.plik})
-                {katalog.baza ? ` — baza ${katalog.baza.nazwa}, użytkownik ${katalog.baza.uzytkownik}` : ''}
+                {katalog.baza ? ` – baza ${katalog.baza.nazwa}, użytkownik ${katalog.baza.uzytkownik}` : ''}
               </span>
               {katalog.baza && p.onDaneBazy ? (
                 <button type="button" className={przycisk} onClick={() => p.onDaneBazy?.(katalog.baza!)}>

@@ -28,7 +28,7 @@ const dnsWynik = (o: Partial<{ pointsToServer: boolean; delegatedToExpectedNs: b
   ...o,
 });
 
-describe('MigrationCutoverService — sama poczta', () => {
+describe('MigrationCutoverService – sama poczta', () => {
   const zlecenie = (kinds: string[]) => ({
     id: 'm1',
     status: MigrationStatus.COMPLETED,
@@ -57,7 +57,7 @@ describe('MigrationCutoverService — sama poczta', () => {
     expect(tylkoPoczta([{ kind: 'MYSQL_IMPORT' }])).toBe(false);
   });
 
-  it('plan: tylko rekordy poczty (A mail + MX), bez rekordów strony i bez zmiany NS — nawet gdy A strony wskazuje u nas', async () => {
+  it('plan: tylko rekordy poczty (A mail + MX), bez rekordów strony i bez zmiany NS – nawet gdy A strony wskazuje u nas', async () => {
     prisma.migrationRequest.findFirst.mockResolvedValue(zlecenie(['IMAP_SYNC']));
     dnsPointing.verifyForSubscription.mockResolvedValue(dnsWynik({ pointsToServer: true }));
     const plan = await service().plan('s1', 'u1', 'm1');

@@ -48,7 +48,7 @@ function sentHeaders(): Headers {
   return fetchMock.mock.calls[0][1].headers as Headers;
 }
 
-describe('X-05 apiFetch — nagłówki', () => {
+describe('X-05 apiFetch – nagłówki', () => {
   it('dokleja Bearer z ciasteczka, IP klienta i Content-Type przy body', async () => {
     respond(200, { ok: 1 });
     await expect(apiFetch('/x', { method: 'POST', body: '{}' })).resolves.toEqual({ ok: 1 });
@@ -80,7 +80,7 @@ describe('X-05 apiFetch — nagłówki', () => {
   });
 });
 
-describe('X-05 apiFetch — błędy', () => {
+describe('X-05 apiFetch – błędy', () => {
   async function errorOf(p: Promise<unknown>): Promise<ApiError> {
     try {
       await p;
@@ -108,7 +108,7 @@ describe('X-05 apiFetch — błędy', () => {
     expect((await errorOf(apiFetch('/x'))).message).toBe('Domain already exists');
   });
 
-  it('message jako tablica walidacji — sklejona, bez elementów nie-string', async () => {
+  it('message jako tablica walidacji – sklejona, bez elementów nie-string', async () => {
     respond(400, { message: ['amount must be positive', 42, 'currency invalid'] });
     expect((await errorOf(apiFetch('/x'))).message).toBe('amount must be positive, currency invalid');
   });

@@ -31,7 +31,7 @@ function zbuduj(K: string) {
   return { s: new ProformaService(prisma as never, promo as never, pdf, invoices as never, vat as never), sub, render, traktowanie };
 }
 
-describe('K4 — proforma netto pokrywa odnowienie (przegląd 12.10)', () => {
+describe('K4 – proforma netto pokrywa odnowienie (przegląd 12.10)', () => {
   it.each(['40.30', '36.45', '44.95', '45.00', '449.00'])('K = %s: wpłata kwoty z proformy daje co najmniej K', async (K) => {
     const { s, sub, render, traktowanie } = zbuduj(K);
     await s.render('u1', sub.id);

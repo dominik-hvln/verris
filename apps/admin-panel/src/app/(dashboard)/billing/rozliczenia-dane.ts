@@ -119,15 +119,15 @@ export const KANAL: Record<string, string> = {
 
 const STREFA = "Europe/Warsaw";
 export const kiedy = (iso: string | null | undefined) =>
-  iso ? new Date(iso).toLocaleString("pl-PL", { timeZone: STREFA, dateStyle: "short", timeStyle: "short" }) : "—";
+  iso ? new Date(iso).toLocaleString("pl-PL", { timeZone: STREFA, dateStyle: "short", timeStyle: "short" }) : "–";
 
 /** Data zdarzenia harmonogramu: przeszła = „w najbliższym przebiegu” (harmonogram biegnie co godzinę). */
 export function kiedyHarmonogram(iso: string | null | undefined, teraz: number): string {
-  if (!iso) return "—";
+  if (!iso) return "–";
   return new Date(iso).getTime() <= teraz ? "w najbliższym przebiegu (do godziny)" : kiedy(iso);
 }
 
 export function opisProgow(p: ProgiWindykacji): string {
-  const karencja = p.karencjaDni === 0 ? "bez karencji — zawieszenie z końcem opłaconego okresu" : `karencja ${p.karencjaDni} dni`;
+  const karencja = p.karencjaDni === 0 ? "bez karencji – zawieszenie z końcem opłaconego okresu" : `karencja ${p.karencjaDni} dni`;
   return `Przypomnienia ${p.przypomnieniaDniPrzed.join(", ")} dni przed odnowieniem; ${karencja}; wygaśnięcie ${p.zawieszenieDoWygasnieciaDni} dni po zawieszeniu, usunięcie konta po kolejnych ${p.retencjaKontaDni} dniach.`;
 }

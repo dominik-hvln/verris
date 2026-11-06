@@ -204,7 +204,7 @@ function faq(c: Ceny, k: KredytyStartowe): [string, string][] {
   lista.push(
     [
       'Jaki hosting wybrać dla WordPressa albo sklepu WooCommerce?',
-      `Taki, który ma cache LiteSpeed, szybkie dyski NVMe i zapas mocy na dni z większym ruchem. W Verris masz to w jednym pakiecie za ${zl(m)} miesięcznie brutto (${zl(netto(m))} netto), a w szczycie strona dostaje dodatkową moc automatycznie — do 24 vCPU i 64 GB RAM.`,
+      `Taki, który ma cache LiteSpeed, szybkie dyski NVMe i zapas mocy na dni z większym ruchem. W Verris masz to w jednym pakiecie za ${zl(m)} miesięcznie brutto (${zl(netto(m))} netto), a w szczycie strona dostaje dodatkową moc automatycznie – do 24 vCPU i 64 GB RAM.`,
     ],
     [
       'Czy cena wzrośnie przy odnowieniu?',
@@ -212,7 +212,7 @@ function faq(c: Ceny, k: KredytyStartowe): [string, string][] {
     ],
     [
       'Jak przenieść stronę na nowy hosting i ile to kosztuje?',
-      'U nas nic. Podajesz dostęp do starego hostingu, a stronę, bazę i pocztę kopiujemy za Ciebie — albo robisz to sam migratorem w panelu. Stara strona działa, dopóki nie przełączysz domeny.',
+      'U nas nic. Podajesz dostęp do starego hostingu, a stronę, bazę i pocztę kopiujemy za Ciebie – albo robisz to sam migratorem w panelu. Stara strona działa, dopóki nie przełączysz domeny.',
     ],
     [
       'Co to jest autoskalowanie hostingu?',

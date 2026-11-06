@@ -5,7 +5,7 @@ import { MigrationPreflightService } from './migration-preflight.service.js';
  * z testu dostępów jako „unreachable” — kreator pisał „możesz kontynuować, resztę dokończymy”
  * i przepuszczał dalej, a zlecenie i tak padało. Teraz osobny status „blocked”.
  */
-describe('preflight — host zakazany', () => {
+describe('preflight – host zakazany', () => {
   const svc = new MigrationPreflightService({ record: vi.fn(async () => undefined) } as never);
 
   it.each(['ftp', 'sftp'] as const)('%s na 127.0.0.1 → blocked, bez prefiksu „Brak połączenia”', async (protocol) => {
@@ -15,7 +15,7 @@ describe('preflight — host zakazany', () => {
       'sub',
     );
     expect(r.ok).toBe(false);
-    expect(r.checks[0]).toMatchObject({ status: 'blocked', message: 'Host wskazuje na sieć prywatną — odrzucono.' });
+    expect(r.checks[0]).toMatchObject({ status: 'blocked', message: 'Host wskazuje na sieć prywatną – odrzucono.' });
   });
 
   it('mysql i imap na 10.0.0.1 → blocked', async () => {

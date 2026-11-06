@@ -151,7 +151,7 @@ export function EmailManager({
 
       <div className="space-y-2">
         {rows.length === 0 ? (
-          <p className="text-sm text-neutral-400">Brak skrzynek — utwórz pierwszą powyżej.</p>
+          <p className="text-sm text-neutral-400">Brak skrzynek – utwórz pierwszą powyżej.</p>
         ) : (
           rows.map((box) => (
             <div

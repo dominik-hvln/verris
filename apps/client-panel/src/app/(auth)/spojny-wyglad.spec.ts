@@ -19,7 +19,7 @@ function strony(dir: string): string[] {
 
 const STARA_PALETA = /(?<![\w-])(?:bg|text|border|ring|from|to|via)-(?:neutral|zinc|gray|slate|sky|emerald|rose)-\d{2,3}|(?<![\w-])(?:text|bg|border)-(?:white|black)(?![\w-])|bg-\[#0a0a0a\]/g;
 
-describe('strony bez logowania — wygląd panelu', () => {
+describe('strony bez logowania – wygląd panelu', () => {
   const wszystkie = strony(AUTH);
 
   it.each(wszystkie.map((p) => relative(AUTH, p)))('%s: kolory tylko z tokenów (bez starej palety)', (rel) => {

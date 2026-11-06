@@ -23,7 +23,7 @@ export const MAILER_PROVIDER = Symbol('MAILER_PROVIDER');
 /** Q-05 — wiadomość z `transport: 'EMM'`, a `EMM_SMTP_URL` nie wskazuje działającego serwera SMTP. */
 export class EmmTransportNiedostepnyError extends Error {
   constructor() {
-    super('EMM_SMTP_URL nie jest ustawiony (albo jest niepełny) — wysyłka kampanii wstrzymana, bez przejścia na transport platformy.');
+    super('EMM_SMTP_URL nie jest ustawiony (albo jest niepełny) – wysyłka kampanii wstrzymana, bez przejścia na transport platformy.');
   }
 }
 
@@ -242,7 +242,7 @@ export class MailerService {
         const wait = delays[attempt];
         this.logger.warn(
           `Mailer transient error (próba ${attempt + 1}) do ${message.to}: ` +
-            `${err instanceof Error ? err.message : String(err)} — ponawiam za ${wait}ms`,
+            `${err instanceof Error ? err.message : String(err)} – ponawiam za ${wait}ms`,
         );
         await new Promise((r) => setTimeout(r, wait));
       }
@@ -385,7 +385,7 @@ export class MailerService {
           SUPPORT: 'Verris Support',
           BILLING: 'Verris Billing',
           SECURITY: 'Verris Security',
-          RODO: 'Verris — RODO',
+          RODO: 'Verris – RODO',
           PANEL: 'Verris',
           NOREPLY: 'Verris',
           DMARC_RUA: 'Verris',

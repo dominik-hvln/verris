@@ -33,7 +33,7 @@ function stanowisko(domenyUslugi: string[], przerwane: Array<{ id: string; paylo
   return { svc, prisma, client, wejscie };
 }
 
-describe('AppInstallService — domena instalacji', () => {
+describe('AppInstallService – domena instalacji', () => {
   it('druga domena usługi → zadanie i adres panelu na tej domenie', async () => {
     const s = stanowisko(['firma.pl', 'wiki.pl']);
     const r = await s.svc.install('sub1', 'u1', { ...s.wejscie, domain: 'Wiki.pl' });

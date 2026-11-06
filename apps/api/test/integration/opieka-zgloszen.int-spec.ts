@@ -37,7 +37,7 @@ async function ludzie() {
 const auto = (ticketId: string) =>
   prisma().ticketReply.findMany({ where: { ticketId, automatic: { not: null } }, orderBy: { createdAt: 'asc' } });
 
-describe('PB-37 — opieka nad zgłoszeniem', () => {
+describe('PB-37 – opieka nad zgłoszeniem', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     maile.length = 0;

@@ -134,7 +134,7 @@ export function TwoFactorSection() {
               Włączone od{" "}
               {status.enrolledAt
                 ? new Date(status.enrolledAt).toLocaleString("pl-PL")
-                : "—"}
+                : "–"}
               . {plForm(status.recoveryCodesRemaining, "Pozostał", "Pozostały", "Pozostało")}{" "}
               <strong>{status.recoveryCodesRemaining}</strong>{" "}
               {plForm(status.recoveryCodesRemaining, "kod zapasowy", "kody zapasowe", "kodów zapasowych")}.
@@ -180,7 +180,7 @@ export function TwoFactorSection() {
               autoComplete="current-password"
             />
           </Field>
-          <div className="text-xs text-muted-foreground text-center">— lub —</div>
+          <div className="text-xs text-muted-foreground text-center">– lub –</div>
           <Field label="Kod TOTP">
             <input
               value={disableCode}
@@ -301,7 +301,7 @@ export function TwoFactorSection() {
         <div className="flex-1">
           <p className="font-semibold text-white mb-1">Włącz 2FA dla swojego konta</p>
           <p className="text-sm text-muted-foreground">
-            Drugi czynnik logowania chroni Twoją sesję — wymagany dla operatorów z dostępem do
+            Drugi czynnik logowania chroni Twoją sesję – wymagany dla operatorów z dostępem do
             danych klientów.
           </p>
         </div>
@@ -349,7 +349,7 @@ function RecoveryCodesPanel({
     <div className="mt-6 rounded-2xl border border-amber-400/30 bg-amber-400/5 p-5">
       <p className="font-semibold text-amber-200 mb-2">Zachowaj kody zapasowe!</p>
       <p className="text-xs text-amber-200/80 mb-4">
-        Każdy kod jest jednorazowy. Wydrukuj je albo zapisz w menedżerze haseł — po opuszczeniu
+        Każdy kod jest jednorazowy. Wydrukuj je albo zapisz w menedżerze haseł – po opuszczeniu
         tej strony już ich nie pokażemy.
       </p>
       <div className="grid grid-cols-2 gap-2 mb-4 font-mono text-sm">

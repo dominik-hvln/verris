@@ -5,7 +5,7 @@ import { NodeTasksService } from './node-tasks.service.js';
  * H-16 — porządek po przeniesieniu konta na inny węzeł (decyzja Dominika 14.10). 13.10 te kroki robił ręcznie:
  * NS w strefie rodzica (d3.hvln.pl → pb55), usunięcie sieroty rdeetgju na starym węźle.
  */
-describe('Przeniesienie konta — delegacja NS w strefie rodzica', () => {
+describe('Przeniesienie konta – delegacja NS w strefie rodzica', () => {
   type R = { id: string; name: string; type: string; value: string; ttl: number | null };
   function stanowisko(o: { rodzicNaWezle: string }) {
     let strefa: R[] = [
@@ -67,7 +67,7 @@ describe('Przeniesienie konta — delegacja NS w strefie rodzica', () => {
   });
 });
 
-describe('Przeniesienie konta — sierota na starym węźle', () => {
+describe('Przeniesienie konta – sierota na starym węźle', () => {
   function zadania(payload: Record<string, string>, o: { serverId?: string; status?: string; dnsNaStarym?: string[] } = {}) {
     const task = { id: 't-arch', serverId: 't1', status: o.status ?? 'RUNNING', kind: 'OFFSITE_RESTORE', accountId: 'a-pb55', payload, requestedById: null, createdAt: new Date(), updatedAt: new Date(), startedAt: new Date(), completedAt: null as Date | null };
     const prisma = {
@@ -155,7 +155,7 @@ describe('Przeniesienie konta — sierota na starym węźle', () => {
     expect(t.alarmy.wyslij).toHaveBeenCalled();
   });
 
-  it('przegląd 14.10: domena nadal wskazuje stary węzeł (NS u rejestratora) → stare konto NIE zawieszone, alarm; po zmianie DNS — zawieszenie i doba', async () => {
+  it('przegląd 14.10: domena nadal wskazuje stary węzeł (NS u rejestratora) → stare konto NIE zawieszone, alarm; po zmianie DNS – zawieszenie i doba', async () => {
     const t = zadania({ mode: 'archiwum', daUser: 'rdeetgju', przeniesienie: '1', sierota: '1', rodzicNaStarym: '0' }, { dnsNaStarym: ['pb55.d3.hvln.pl'] });
     await t.svc.completeTaskFromNode({ serverId: 't1', taskId: 't-arch', outputLog: LOG });
     expect(t.stary.suspendAccount).not.toHaveBeenCalled();
@@ -182,7 +182,7 @@ describe('Przeniesienie konta — sierota na starym węźle', () => {
   });
 });
 
-describe('przegląd 14.10 — domenyWskazujaceNaWezel (publiczny DNS)', () => {
+describe('przegląd 14.10 – domenyWskazujaceNaWezel (publiczny DNS)', () => {
   function svc() {
     const prisma = {
       account: { findUnique: vi.fn(async () => ({ userId: 'u2', subscriptionId: 's2', domain: 'firma.pl' })) },

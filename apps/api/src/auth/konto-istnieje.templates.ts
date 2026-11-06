@@ -17,10 +17,10 @@ export function kontoJuzIstniejeTemplate(input: { to: string; panelUrl: string; 
         ? 'ktoś (być może Ty) próbował założyć konto w Verris na ten adres e-mail. Konto na ten adres już istnieje, więc nowego nie założyliśmy.'
         : 'ktoś (być może Ty) próbował zmienić adres e-mail innego konta w Verris na ten adres. Ten adres ma już swoje konto, więc zmiany nie wprowadziliśmy.',
       '',
-      `Jeśli to Ty — zaloguj się (${input.panelUrl}/login). Nie pamiętasz hasła? Ustaw nowe: ${input.panelUrl}/forgot-password.`,
+      `Jeśli to Ty – zaloguj się (${input.panelUrl}/login). Nie pamiętasz hasła? Ustaw nowe: ${input.panelUrl}/forgot-password.`,
     ].join('\n'),
     cta: { label: 'Zaloguj się', url: `${input.panelUrl}/login` },
-    footnote: 'Jeśli to nie Ty — nic nie musisz robić, Twoje konto jest bezpieczne. Pytania: kontakt@verris.pl.',
+    footnote: 'Jeśli to nie Ty – nic nie musisz robić, Twoje konto jest bezpieczne. Pytania: kontakt@verris.pl.',
     recipientEmail: input.to,
     panelUrl: input.panelUrl,
     recipientHasAccount: true,

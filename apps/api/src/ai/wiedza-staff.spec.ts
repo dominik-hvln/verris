@@ -18,7 +18,7 @@ import {
 const KORZEN = resolve(import.meta.dirname, '../../../..');
 const OPS = resolve(KORZEN, 'docs/ops');
 
-describe('Patch 7 — biała lista runbooków asystenta pracowników', () => {
+describe('Patch 7 – biała lista runbooków asystenta pracowników', () => {
   it('każdy plik z listy istnieje, nie jest zakazany, nie ma IP, e-maili ani sekretów i jest w obrazie API', () => {
     const dockerfile = readFileSync(resolve(KORZEN, 'Dockerfile.api'), 'utf8');
     for (const r of RUNBOOKI_STAFF_AI) {
@@ -67,7 +67,7 @@ describe('Patch 7 — biała lista runbooków asystenta pracowników', () => {
   });
 });
 
-describe('Patch 7 — kontekst pytania pracownika (DTO)', () => {
+describe('Patch 7 – kontekst pytania pracownika (DTO)', () => {
   // Ten sam ValidationPipe co main.ts: whitelist + forbidNonWhitelisted.
   const bledy = async (body: unknown) =>
     (await validate(plainToInstance(AiChatRequestDto, body), { whitelist: true, forbidNonWhitelisted: true })).map(
@@ -101,7 +101,7 @@ describe('Patch 7 — kontekst pytania pracownika (DTO)', () => {
   });
 });
 
-describe('Patch 7 — prompt asystenta pracownika', () => {
+describe('Patch 7 – prompt asystenta pracownika', () => {
   function serwis() {
     const prisma = {
       subscription: { findMany: vi.fn(async () => []), findFirst: vi.fn(async () => null) },
@@ -142,7 +142,7 @@ describe('Patch 7 — prompt asystenta pracownika', () => {
     expect(s.kb.retrieve).toHaveBeenCalledWith('Jak uruchomić?', 'CLIENT', 6);
   });
 
-  it('opis kontekstu bez funkcji i obiektu — tylko strona i prowadzenie po panelu', () => {
+  it('opis kontekstu bez funkcji i obiektu – tylko strona i prowadzenie po panelu', () => {
     expect(opisKontekstuPracownika({ strona: '/invoices' })).toEqual([
       'Pracownik jest na stronie panelu admina: /invoices',
       'Prowadź krok po kroku po elementach panelu admina: zakładka, sekcja, przycisk.',

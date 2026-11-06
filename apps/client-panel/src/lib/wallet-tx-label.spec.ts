@@ -12,7 +12,7 @@ describe('walletTxDescription', () => {
   });
   it('zwrot za nieudane uruchomienie', () => {
     expect(walletTxDescription('Auto-refund: provisioning failed for 4e568d5e-9e50-44a6-8291-713533681aa2')).toBe(
-      'Zwrot — usługi nie udało się uruchomić',
+      'Zwrot – usługi nie udało się uruchomić',
     );
   });
   it('doładowanie kartą', () => {
@@ -23,10 +23,10 @@ describe('walletTxDescription', () => {
   it('zwykły opis zostaje', () => {
     expect(walletTxDescription('Dodatek: Priorytetowe wsparcie (30 dni)')).toBe('Dodatek: Priorytetowe wsparcie (30 dni)');
   });
-  it('brak opisu — nazwa operatora płatności albo nic', () => {
+  it('brak opisu – nazwa operatora płatności albo nic', () => {
     expect(walletTxDescription(null, 'stripe')).toBe('Płatność kartą');
-    expect(walletTxDescription('Doładowanie Paynow (PGK6-S2A-0RO-HLW)')).toBe('Doładowanie — Paynow');
-    expect(walletTxDescription('Wpłata Paynow za usługę (PGAO-WSL-83U-CUO)')).toBe('Wpłata za usługę — Paynow');
+    expect(walletTxDescription('Doładowanie Paynow (PGK6-S2A-0RO-HLW)')).toBe('Doładowanie – Paynow');
+    expect(walletTxDescription('Wpłata Paynow za usługę (PGAO-WSL-83U-CUO)')).toBe('Wpłata za usługę – Paynow');
     expect(walletTxDescription('')).toBeNull();
   });
 });

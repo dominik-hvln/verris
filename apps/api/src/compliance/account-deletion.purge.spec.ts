@@ -53,7 +53,7 @@ describe('AccountDeletionService.purgeAccountOnDa', () => {
   });
 
   it('DA 1.711 (17.10, t2): „did not exist on the server” po usunięciu zakończonym po limicie czasu → DELETED', async () => {
-    const tekst = 'Error while deleting Users — User vinorgdw did not exist on the server. Removing it from your list.<br>';
+    const tekst = 'Error while deleting Users – User vinorgdw did not exist on the server. Removing it from your list.<br>';
     const s = stanowisko(new DirectAdminApiError(`DirectAdmin API Error: ${tekst}`, tekst));
     expect(await s.svc.purgeAccountOnDa('a1')).toEqual({ ok: true });
     expect(s.tx.account.updateMany).toHaveBeenCalled();
@@ -86,8 +86,8 @@ describe('AccountDeletionService.purgeAccountOnDa', () => {
   });
 });
 
-describe('weryfikacja 12.10 — domena zwolniona przy usunięciu konta w panelach', () => {
-  it('format zwolnionaDomena rozpoznaje domenaDoWyswietlenia (@verris/contracts) — „<domena> (usunięta)”', () => {
+describe('weryfikacja 12.10 – domena zwolniona przy usunięciu konta w panelach', () => {
+  it('format zwolnionaDomena rozpoznaje domenaDoWyswietlenia (@verris/contracts) – „<domena> (usunięta)”', () => {
     expect(domenaDoWyswietlenia(zwolnionaDomena('z18b.d3.hvln.pl', '97c925b0-a215-40bc-9c78-28752e3cc91b'))).toBe('z18b.d3.hvln.pl (usunięta)');
   });
 });

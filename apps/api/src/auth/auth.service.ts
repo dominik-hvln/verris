@@ -805,7 +805,7 @@ export class AuthService {
         userAgent: ctx.userAgent ?? undefined,
       });
       throw new UnauthorizedException(
-        'To konto loguje się kluczem passkey. Użyj passkey, a jeśli nie masz do niego dostępu — awaryjnego logowania (break-glass).',
+        'To konto loguje się kluczem passkey. Użyj passkey, a jeśli nie masz do niego dostępu – awaryjnego logowania (break-glass).',
       );
     }
 
@@ -1026,7 +1026,7 @@ export class AuthService {
   private assertEmailVerified(user: User) {
     if (user.role === Role.USER && !user.emailVerifiedAt) {
       throw new UnauthorizedException(
-        'Potwierdź adres e-mail — sprawdź skrzynkę lub poproś o nowy link na stronie logowania.',
+        'Potwierdź adres e-mail – sprawdź skrzynkę lub poproś o nowy link na stronie logowania.',
       );
     }
   }
@@ -1206,7 +1206,7 @@ export class AuthService {
    * Typowy pierwszy ruch po podejrzeniu przejęcia — wcześniej trzeba było klikać każde urządzenie osobno.
    */
   async revokeOtherSessions(userId: string, currentSid?: string): Promise<{ ok: true; wylogowane: number }> {
-    if (!currentSid) throw new BadRequestException('Nie rozpoznaliśmy bieżącej sesji — zaloguj się ponownie i spróbuj jeszcze raz.');
+    if (!currentSid) throw new BadRequestException('Nie rozpoznaliśmy bieżącej sesji – zaloguj się ponownie i spróbuj jeszcze raz.');
     const { count } = await this.prisma.userSession.updateMany({
       where: { userId, revokedAt: null, NOT: { id: currentSid } },
       data: { revokedAt: new Date() },

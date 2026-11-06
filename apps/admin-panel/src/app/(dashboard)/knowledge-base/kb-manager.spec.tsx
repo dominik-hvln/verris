@@ -30,8 +30,8 @@ const kategoria = { id: "k1", name: "Domeny", parentId: null } as never;
 const nic = () => undefined;
 const POWOD = 'title="Wymaga uprawnienia Baza wiedzy (KB_MANAGE)"';
 
-describe("Baza wiedzy CMS — bez KB_MANAGE wyszarzone z podpowiedzią", () => {
-  it("strona: powód z nazwą uprawnienia dla roli bez KB_MANAGE; z KB_MANAGE i dla administratora — bez blokady", async () => {
+describe("Baza wiedzy CMS – bez KB_MANAGE wyszarzone z podpowiedzią", () => {
+  it("strona: powód z nazwą uprawnienia dla roli bez KB_MANAGE; z KB_MANAGE i dla administratora – bez blokady", async () => {
     (fetchStaffAccess as jest.Mock).mockResolvedValueOnce({ role: "STAFF", isAdmin: false, permissions: ["DASHBOARD_VIEW", "TICKETS_VIEW"] });
     const l1 = renderToStaticMarkup(await KnowledgeBasePage());
     expect(l1).toContain(`Tylko podgląd. ${BEZ_KB_MANAGE}.`);
@@ -44,7 +44,7 @@ describe("Baza wiedzy CMS — bez KB_MANAGE wyszarzone z podpowiedzią", () => {
     }
   });
 
-  it("„Kategoria” i „Nowy artykuł” — disabled z powodem w dymku", () => {
+  it("„Kategoria” i „Nowy artykuł” – disabled z powodem w dymku", () => {
     const html = renderToStaticMarkup(<KbManager blokada={BEZ_KB_MANAGE} />);
     expect(html).toMatch(new RegExp(`<button disabled="" ${POWOD.replace(/[()]/g, "\\$&")}[^>]*>.*?Kategoria</button>`));
     expect(html).toMatch(new RegExp(`<button disabled="" ${POWOD.replace(/[()]/g, "\\$&")}[^>]*>.*?Nowy artykuł</button>`));

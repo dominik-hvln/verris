@@ -28,7 +28,7 @@ export function DzialaniaKarty({ id, dzialania }: { id: string; dzialania: Dzial
                       <>
                         <span aria-disabled="true" title={d.zablokowane} className="cursor-not-allowed text-sm font-semibold text-muted-foreground opacity-60">
                           {d.nazwa}
-                          <span className="sr-only"> — {d.zablokowane}</span>
+                          <span className="sr-only"> – {d.zablokowane}</span>
                         </span>
                         {d.wniosek ? (
                           <Link href={d.href} className="text-xs font-semibold text-warn underline-offset-2 hover:underline">

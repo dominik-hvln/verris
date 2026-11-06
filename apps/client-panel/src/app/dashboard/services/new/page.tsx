@@ -45,7 +45,7 @@ export default async function NewServicePage() {
         <div>
           <h1 className="text-3xl font-extrabold text-white">Zamów nową usługę</h1>
           <p className="text-neutral-400 mt-2">
-            Wybierz plan i sposób płatności — konto na serwerze utworzymy automatycznie po
+            Wybierz plan i sposób płatności – konto na serwerze utworzymy automatycznie po
             opłaceniu.
           </p>
         </div>

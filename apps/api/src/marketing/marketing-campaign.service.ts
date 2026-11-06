@@ -169,7 +169,7 @@ export class MarketingCampaignService {
     const campaign = await this.get(campaignId);
     if (campaign.status !== MarketingCampaignStatus.SENDING) {
       throw new ConflictException(
-        `Kampania w stanie ${campaign.status} — nie wysyłamy. Użyj startSending() najpierw.`,
+        `Kampania w stanie ${campaign.status} – nie wysyłamy. Użyj startSending() najpierw.`,
       );
     }
 
@@ -241,7 +241,7 @@ export class MarketingCampaignService {
   async startSending(campaignId: string): Promise<MarketingCampaign> {
     const c = await this.get(campaignId);
     if (c.status !== MarketingCampaignStatus.SCHEDULED) {
-      throw new ConflictException(`Kampania w stanie ${c.status} — nie startujemy.`);
+      throw new ConflictException(`Kampania w stanie ${c.status} – nie startujemy.`);
     }
     const recipientCount = await this.countSegment(c.segment);
     return this.prisma.marketingCampaign.update({

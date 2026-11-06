@@ -16,7 +16,7 @@ import { DaSsoButton } from "./da-sso-button";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
-describe("DaSsoButton — jednorazowy link w jednej karcie", () => {
+describe("DaSsoButton – jednorazowy link w jednej karcie", () => {
   let root: Root;
   let el: HTMLElement;
   const okno = { location: { href: "" }, close: jest.fn(), opener: {} as unknown };
@@ -66,7 +66,7 @@ describe("DaSsoButton — jednorazowy link w jednej karcie", () => {
     expect(el.textContent).toContain("Węzeł nie ma skonfigurowanego DirectAdmina.");
   });
 
-  it("weryfikacja 11.10: podpowiedź SSH prowadzi do działającej drogi — klucz deploy na control-plane i tunel przez CP", async () => {
+  it("weryfikacja 11.10: podpowiedź SSH prowadzi do działającej drogi – klucz deploy na control-plane i tunel przez CP", async () => {
     await act(async () => root.render(<DaSsoButton serverId="n1" sshHost="203.0.113.10" />));
     const tekst = el.querySelector("[data-podpowiedz-ssh]")?.textContent ?? "";
     expect(tekst).toContain("/opt/verris/ops/scripts/verris-node.sh ssh 203.0.113.10");

@@ -20,7 +20,7 @@ describe('SubscriptionsAdminController (RBAC metadata)', () => {
     expect(roles?.sort()).toEqual([Role.ADMIN, Role.STAFF].sort());
   });
 
-  it('F2.3: suspend() i unsuspend() — ADMIN i STAFF z SUBSCRIPTIONS_SUSPEND (nie SUBSCRIPTIONS_MANAGE z klasy)', () => {
+  it('F2.3: suspend() i unsuspend() – ADMIN i STAFF z SUBSCRIPTIONS_SUSPEND (nie SUBSCRIPTIONS_MANAGE z klasy)', () => {
     for (const m of [SubscriptionsAdminController.prototype.suspend, SubscriptionsAdminController.prototype.unsuspend]) {
       expect((Reflect.getMetadata(ROLES_KEY, m) as string[]).sort()).toEqual([Role.ADMIN, Role.STAFF].sort());
       expect(Reflect.getMetadata(STAFF_PERMISSIONS_KEY, m)).toEqual(['SUBSCRIPTIONS_SUSPEND']);
@@ -29,7 +29,7 @@ describe('SubscriptionsAdminController (RBAC metadata)', () => {
 });
 
 /** F2.3 (D2, 10.10) — zawieszenie przez pracownika: powód obowiązkowy, bez „braku płatności”, obciążenie tylko z BILLING_MANAGE. */
-describe('SubscriptionsAdminController — zawieszenie przez obsługę (F2.3)', () => {
+describe('SubscriptionsAdminController – zawieszenie przez obsługę (F2.3)', () => {
   function kontroler(uprawnienia: string[] = []) {
     const zawieszenie = { zawies: vi.fn().mockResolvedValue({ status: 'SUSPENDED' }), odwies: vi.fn().mockResolvedValue({ status: 'ACTIVE' }) };
     const prisma = { user: { findUnique: vi.fn().mockResolvedValue({ staffRole: { id: 'r', name: 'r', permissions: uprawnienia } }) } };
@@ -84,18 +84,18 @@ describe('SubscriptionsAdminController — zawieszenie przez obsługę (F2.3)', 
  * i migracja wewnętrzna. Endpointy wpuszczają STAFF z SUBSCRIPTIONS_MANAGE (z klasy); odtworzenie na innym
  * węźle zostaje tylko dla admina.
  */
-describe('SubscriptionsAdminController — obsługa (PB-44)', () => {
+describe('SubscriptionsAdminController – obsługa (PB-44)', () => {
   const proto = SubscriptionsAdminController.prototype as unknown as Record<string, object>;
   const dlaStaff = ['usage', 'hostingBackups', 'runHostingRestore', 'hostingRestoreStatus', 'requestInternalMigration', 'migrationTimeline'];
 
-  it.each(dlaStaff)('%s: ADMIN i STAFF, bez własnego @StaffPerm (klasa: SUBSCRIPTIONS_MANAGE; odczyty — @StaffPermAny, L1-KARTA)', (m) => {
+  it.each(dlaStaff)('%s: ADMIN i STAFF, bez własnego @StaffPerm (klasa: SUBSCRIPTIONS_MANAGE; odczyty – @StaffPermAny, L1-KARTA)', (m) => {
     expect((Reflect.getMetadata(ROLES_KEY, proto[m]!) as string[]).sort()).toEqual([Role.ADMIN, Role.STAFF].sort());
     expect(Reflect.getMetadata(STAFF_PERMISSIONS_KEY, proto[m]!)).toBeUndefined();
     expect(Reflect.getMetadata(STAFF_PERMISSIONS_KEY, SubscriptionsAdminController)).toEqual(['SUBSCRIPTIONS_MANAGE']);
   });
 
   it.each(['runHostingRestore', 'requestInternalMigration', 'listEligiblePlans', 'previewPlanChange', 'changePlan'])(
-    '%s: zapis / zmiana planu bez @StaffPermAny — zostaje za SUBSCRIPTIONS_MANAGE z klasy',
+    '%s: zapis / zmiana planu bez @StaffPermAny – zostaje za SUBSCRIPTIONS_MANAGE z klasy',
     (m) => {
       expect(Reflect.getMetadata(STAFF_PERMISSIONS_ANY_KEY, proto[m]!)).toBeUndefined();
     },
@@ -123,8 +123,8 @@ describe('SubscriptionsAdminController — obsługa (PB-44)', () => {
 
   it('odtworzenie przez STAFF z powodem → powód idzie do serwisu (dziennik)', async () => {
     const { c, hostingRestore } = kontroler();
-    await c.runHostingRestore('s1', { backupId: 'b1', reason: 'Zgłoszenie #77 — klient prosi o wczorajszą kopię' }, { userId: 'op', role: Role.STAFF });
-    expect(hostingRestore.enqueue).toHaveBeenCalledWith('s1', 'op', expect.objectContaining({ backupId: 'b1', reason: 'Zgłoszenie #77 — klient prosi o wczorajszą kopię' }));
+    await c.runHostingRestore('s1', { backupId: 'b1', reason: 'Zgłoszenie #77 – klient prosi o wczorajszą kopię' }, { userId: 'op', role: Role.STAFF });
+    expect(hostingRestore.enqueue).toHaveBeenCalledWith('s1', 'op', expect.objectContaining({ backupId: 'b1', reason: 'Zgłoszenie #77 – klient prosi o wczorajszą kopię' }));
   });
 
   it('ADMIN może odtworzyć bez powodu (jego panel nie ma tego pola)', async () => {
@@ -197,7 +197,7 @@ describe('SubscriptionsAdminController — obsługa (PB-44)', () => {
     const { c, hostingRestore, migrations, prisma } = kontroler();
     prisma.subscription.findUnique.mockResolvedValue({ userId: 'zespol', user: { role: 'STAFF' } });
     const STAFF = { userId: 'op', role: Role.STAFF };
-    await expect(c.runHostingRestore('s1', { backupId: 'b1', reason: 'Zgłoszenie #77 — prośba o kopię' }, STAFF)).rejects.toMatchObject({ status: 403 });
+    await expect(c.runHostingRestore('s1', { backupId: 'b1', reason: 'Zgłoszenie #77 – prośba o kopię' }, STAFF)).rejects.toMatchObject({ status: 403 });
     await expect(c.requestInternalMigration('s1', { targetServerId: 'n2', notes: 'Rozładowanie węzła n1.' }, STAFF)).rejects.toMatchObject({ status: 403 });
     expect(hostingRestore.enqueue).not.toHaveBeenCalled();
     expect(migrations.requestInternalMigrationByAdmin).not.toHaveBeenCalled();

@@ -55,7 +55,7 @@ export function IncidentCompose({ probes, servers }: { probes: ProbeDto[]; serve
       {probes.length === 0 ? (
         <div className="flex flex-wrap items-center gap-3">
           <p className="text-xs text-muted-foreground">
-            Incydent przypina się do monitora usługi — najpierw dodaj monitor w{" "}
+            Incydent przypina się do monitora usługi – najpierw dodaj monitor w{" "}
             <a href="/status/probes" className="text-indigo-300 hover:underline">Monitorach</a>.
           </p>
           <button onClick={() => setOpen(false)} className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white">

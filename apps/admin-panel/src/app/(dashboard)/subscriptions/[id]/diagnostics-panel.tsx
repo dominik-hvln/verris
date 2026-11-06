@@ -71,7 +71,7 @@ export function DiagnosticsPanel({ subscriptionId }: { subscriptionId: string })
               className={`h-2.5 w-2.5 rounded-full ${STATUS_DOT[result.overall === "attention" ? "warn" : result.overall]}`}
             />
             <span className="font-semibold text-white">{OVERALL_LABEL[result.overall]}</span>
-            <span className="text-muted-foreground">— {result.summary}</span>
+            <span className="text-muted-foreground">– {result.summary}</span>
           </div>
 
           {result.findings.length > 0 ? (
@@ -95,7 +95,7 @@ export function DiagnosticsPanel({ subscriptionId }: { subscriptionId: string })
               ))}
             </div>
           ) : (
-            <p className="text-xs text-emerald-200/90">Brak ustaleń — usługa wygląda poprawnie.</p>
+            <p className="text-xs text-emerald-200/90">Brak ustaleń – usługa wygląda poprawnie.</p>
           )}
           <p className="text-[10px] text-muted-foreground">
             Wygenerowano: {new Date(result.generatedAt).toLocaleString("pl-PL")}

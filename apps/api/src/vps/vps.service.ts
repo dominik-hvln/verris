@@ -21,7 +21,7 @@ import { PLATFORM_SETTING_KEYS } from '../platform-settings/platform-settings.ke
 import { ETYKIETA_VPS, odswiezRozmiary, politykaSnapshotow, usunSnapshotyVps } from './vps-snapshoty.js';
 
 const WSTRZYMANY =
-  'VPS jest wstrzymany z powodu braku środków. Doładuj portfel — włączymy go automatycznie przy najbliższym odnowieniu (codziennie o 4:00).';
+  'VPS jest wstrzymany z powodu braku środków. Doładuj portfel – włączymy go automatycznie przy najbliższym odnowieniu (codziennie o 4:00).';
 
 function sanitizeName(raw: string): string {
   const base = raw.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
@@ -217,9 +217,9 @@ export class VpsService {
           where: { id: instance.id },
           data: { lastError: `Wynik zakładania niepewny: ${msg}`.slice(0, 2000) },
         });
-        this.logger.warn(`VPS ${instance.id}: wynik zakładania niepewny — zostaje do uzgodnienia`);
+        this.logger.warn(`VPS ${instance.id}: wynik zakładania niepewny – zostaje do uzgodnienia`);
         throw new BadGatewayException(
-          'Nie mamy jeszcze potwierdzenia, że serwer powstał. Sprawdzimy to w ciągu kilkunastu minut — jeśli nie powstał, zwrócimy pieniądze do portfela.',
+          'Nie mamy jeszcze potwierdzenia, że serwer powstał. Sprawdzimy to w ciągu kilkunastu minut – jeśli nie powstał, zwrócimy pieniądze do portfela.',
         );
       }
       await this.wallet.credit({
@@ -278,7 +278,7 @@ export class VpsService {
     // po „Włącz”/restarcie dostawał RUNNING i wracał do rozliczeń.
     const dozwolone: VpsStatus[] = [VpsStatus.RUNNING, VpsStatus.STOPPED, VpsStatus.REBOOTING];
     if (!dozwolone.includes(v.status)) {
-      throw new ConflictException('Tym VPS-em nie da się teraz sterować — jest w budowie, w trakcie usuwania albo w stanie błędu. Napisz do nas, jeśli to trwa.');
+      throw new ConflictException('Tym VPS-em nie da się teraz sterować – jest w budowie, w trakcie usuwania albo w stanie błędu. Napisz do nas, jeśli to trwa.');
     }
     // Okres nieopłacony = VPS wstrzymany za brak płatności. Wcześniej klient mógł go po prostu
     // włączyć i korzystać przez całą karencję bez płacenia.
@@ -287,7 +287,7 @@ export class VpsService {
     }
     // Restart wyłączonego VPS-a nie jest „włączeniem” — wstrzymany za brak płatności zostaje wyłączony.
     if (action === 'reboot' && v.status === VpsStatus.STOPPED) {
-      throw new ConflictException('VPS jest wyłączony — użyj „Włącz” zamiast restartu.');
+      throw new ConflictException('VPS jest wyłączony – użyj „Włącz” zamiast restartu.');
     }
     if (action === 'on') await this.hetzner.powerOn(v.hetznerServerId);
     else if (action === 'off') await this.hetzner.powerOff(v.hetznerServerId);

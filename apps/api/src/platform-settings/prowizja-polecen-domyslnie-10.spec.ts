@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { PlatformSettingsService } from './platform-settings.service.js';
 
 /** Decyzja 14.10.2026 — prowizja z programu poleceń na start 10% (wcześniej 15%); jawny wiersz w bazie wygrywa. */
-describe('program poleceń — domyślna prowizja', () => {
+describe('program poleceń – domyślna prowizja', () => {
   const usluga = (wiersze: { key: string; value: string }[]) =>
     new PlatformSettingsService({ platformSetting: { findMany: async () => wiersze } } as never, {} as never, {} as never);
 

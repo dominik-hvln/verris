@@ -65,7 +65,7 @@ const snapshot = {
   bezDostepu: {},
 } as unknown as DashboardSnapshot;
 
-describe('#418 — render serwera (UTC) pokazuje czas polski, jak przeglądarka', () => {
+describe('#418 – render serwera (UTC) pokazuje czas polski, jak przeglądarka', () => {
   it('warunek testu: proces w UTC', () => {
     expect(Intl.DateTimeFormat().resolvedOptions().timeZone).toBe('UTC');
   });

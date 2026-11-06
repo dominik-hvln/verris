@@ -11,7 +11,7 @@ potwierdzamy zmianę planu hostingowego na Twojej usłudze.
 - Nowy plan: {{toPlan}}
 - Rozliczenie proporcjonalne: {{billingNote}}
 
-Limity zasobów (CPU, RAM, dysk) zostały zaktualizowane. Jeśli usługa korzystała z autoskalowania, dodatkowe zasoby z autoskalowania zostały wyzerowane — możesz je ponownie włączyć w panelu.
+Limity zasobów (CPU, RAM, dysk) zostały zaktualizowane. Jeśli usługa korzystała z autoskalowania, dodatkowe zasoby z autoskalowania zostały wyzerowane – możesz je ponownie włączyć w panelu.
 
 W razie pytań odpowiedz na to zgłoszenie.
 

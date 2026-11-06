@@ -25,7 +25,7 @@ import { komunikatBledu } from './wnioski.service.js';
 import { WNIOSEK_MOZLIWY_KEY } from './wniosek-mozliwy.decorator.js';
 
 /** PB-48 — rejestr typów wniosków, kod odmowy WYMAGA_WNIOSKU i dopisek wniosku w dzienniku. */
-describe('PB-48 — rejestr wniosków', () => {
+describe('PB-48 – rejestr wniosków', () => {
   it('każdy typ wymaga uprawnienia z katalogu: konto wewnętrzne, dwie operacje finansowe, e-mail i hasło klienta (D9)', () => {
     expect(TYPY_WNIOSKOW).toEqual([
       'CUSTOMER_INTERNAL_FLAG',
@@ -189,7 +189,7 @@ describe('PB-48 — rejestr wniosków', () => {
     expect(wywolania).toEqual([['anuluj', { invoiceId: 'f1', powod: 'błędny dokument', aktorUserId: 'kier' }]]);
   });
 
-  it('D9 zmiana e-maila: ten sam albo zajęty adres — 400 przy złożeniu; wykonuje serwis z uzasadnieniem jako powodem', async () => {
+  it('D9 zmiana e-maila: ten sam albo zajęty adres – 400 przy złożeniu; wykonuje serwis z uzasadnieniem jako powodem', async () => {
     const d = REJESTR_WNIOSKOW.CUSTOMER_EMAIL_CHANGE;
     expect(d.uprawnienie).toBe('CUSTOMERS_MANAGE');
     expect(d.doZlozenia).toBe('CUSTOMERS_VIEW');
@@ -203,7 +203,7 @@ describe('PB-48 — rejestr wniosków', () => {
     expect(w.komunikat).toBe('Adres e-mail zmieniony na nowy@test.pl.');
   });
 
-  it('D9 reset hasła: bez parametrów, link do klienta — wynik nie zawiera hasła; brak maila — komunikat', async () => {
+  it('D9 reset hasła: bez parametrów, link do klienta – wynik nie zawiera hasła; brak maila – komunikat', async () => {
     const d = REJESTR_WNIOSKOW.CUSTOMER_PASSWORD_RESET;
     expect(d.uprawnienie).toBe('CUSTOMERS_MANAGE');
     const { z, wywolania } = zal();
@@ -212,7 +212,7 @@ describe('PB-48 — rejestr wniosków', () => {
     expect(wywolania).toEqual([['haslo', 'k1', 'kier', { reason: 'zgłoszenie #9: klient nie pamięta hasła' }, { ipAddress: null, userAgent: null }, { role: 'STAFF', zWniosku: true }]]);
     await expect(d.wymagaWnioskuMimoUprawnien!({}, 'k1', zal({ emailZmienionyPrzezObsluge: true }).z)).resolves.toBe(true);
     await expect(d.wymagaWnioskuMimoUprawnien!({}, 'k1', zal().z)).resolves.toBe(false);
-    expect(w).toEqual({ komunikat: 'Hasło zresetowane — link wysłany na anna@test.pl.' });
+    expect(w).toEqual({ komunikat: 'Hasło zresetowane – link wysłany na anna@test.pl.' });
     expect((await d.wykonaj({}, k, zal({ mail: false }).z)).komunikat).toMatch(/nie wyszedł/);
   });
 
@@ -229,7 +229,7 @@ describe('PB-48 — rejestr wniosków', () => {
     await expect(d.sprawdzPrzyZlozeniu!(p, 'k1', zal().z)).resolves.toBeUndefined();
     expect(await d.bezZmian!(p, 'k1', zal({ usluga: { userId: 'k1', status: 'SUSPENDED' } }).z)).toMatch(/Bez zmian/);
     expect(await d.bezZmian!(p, 'k1', zal().z)).toBeNull();
-    expect(d.opis(p)).toBe('Zawieszenie usługi — strona, poczta i FTP klienta przestaną działać (zgłoszenie #ab12cd34)');
+    expect(d.opis(p)).toBe('Zawieszenie usługi – strona, poczta i FTP klienta przestaną działać (zgłoszenie #ab12cd34)');
     const { z, wywolania } = zal();
     const w = await d.wykonaj(p, { ...k, uzasadnienie: 'phishing potwierdzony' }, z);
     expect(wywolania).toEqual([['zawies', { subscriptionId: 's1', aktorUserId: 'kier', aktorRola: 'STAFF', reason: 'ABUSE', powod: 'phishing potwierdzony', zgloszenie: '#ab12cd34' }]]);
@@ -298,7 +298,7 @@ describe('PB-48 — rejestr wniosków', () => {
     await expect(d.sprawdzPrzyZlozeniu!({ ...portfel, platnosc: 'GRATIS' }, 'k1', zal().z)).resolves.toBeUndefined();
     await expect(d.sprawdzPrzyZlozeniu!({ ...portfel, platnosc: 'GRATIS' }, 'k1', zal({ usluga: { userId: 'k1', status: 'CANCELED' } }).z)).rejects.toThrow(/zakończona/);
     await expect(d.sprawdzPrzyZlozeniu!({ ...portfel, platnosc: 'GRATIS' }, 'k1', zal({ usluga: { userId: 'inny', status: 'ACTIVE' } }).z)).rejects.toThrow(/nie istnieje na koncie/);
-    expect(d.opis({ ...portfel, platnosc: 'GRATIS' })).toBe('Dodatek dedicated_ip — gratis (koszt Verris)');
+    expect(d.opis({ ...portfel, platnosc: 'GRATIS' })).toBe('Dodatek dedicated_ip – gratis (koszt Verris)');
     const { z, wywolania } = zal();
     expect(await d.wykonaj({ ...portfel, platnosc: 'GRATIS' }, { ...k, uzasadnienie: 'rekompensata za awarię' }, z)).toEqual({ komunikat: 'Dodano dodatek „Dedykowane IP”.' });
     expect(wywolania[0]).toEqual([
@@ -311,14 +311,14 @@ describe('PB-48 — rejestr wniosków', () => {
     expect((krotkie.wywolania[0]![1] as { powod: string }).powod).toBe('gratis (wniosek w1)');
   });
 
-  it('weryfikacja 11.10: wniosek o drugi aktywny priorytet — odmowa przy złożeniu; przedłużenie świadome aż do wykonania', async () => {
+  it('weryfikacja 11.10: wniosek o drugi aktywny priorytet – odmowa przy złożeniu; przedłużenie świadome aż do wykonania', async () => {
     const d = REJESTR_WNIOSKOW.ADDON_ADD;
     const prio = { subscriptionId: 's1', slug: 'priority_support_30d', platnosc: 'GRATIS' as const };
     const aktywny = zal({ priorytetDo: new Date(Date.now() + 10 * 86_400_000) }).z;
     await expect(d.sprawdzPrzyZlozeniu!(prio, 'k1', aktywny)).rejects.toThrow(/jest już aktywne do .*przedłużyć o 30 dni/);
     await expect(d.sprawdzPrzyZlozeniu!({ ...prio, przedluz: true }, 'k1', aktywny)).resolves.toBeUndefined();
     await expect(d.sprawdzPrzyZlozeniu!(prio, 'k1', zal({ priorytetDo: new Date(Date.now() - 1000) }).z)).resolves.toBeUndefined();
-    expect(d.opis({ ...prio, przedluz: true })).toBe('Dodatek priority_support_30d (przedłużenie) — gratis (koszt Verris)');
+    expect(d.opis({ ...prio, przedluz: true })).toBe('Dodatek priority_support_30d (przedłużenie) – gratis (koszt Verris)');
     const { z, wywolania } = zal();
     await d.wykonaj({ ...prio, przedluz: true }, { ...k, uzasadnienie: 'rekompensata za awarię' }, z);
     expect(wywolania[0]![1]).toMatchObject({ slug: 'priority_support_30d', przedluz: true });
@@ -340,7 +340,7 @@ describe('PB-48 — rejestr wniosków', () => {
     expect(await d.bezZmian!(p, 'k1', zal({ zgloszenia: { [A]: { userId: 'k1', scalonoDoId: B } } }).z)).toMatch(/Bez zmian/);
     expect(d.opis(p)).toBe('Scal zgłoszenie #11111111 z #22222222');
     const { z, wywolania } = zal();
-    expect(await d.wykonaj(p, { ...k, uzasadnienie: 'duplikat' }, z)).toEqual({ komunikat: 'Scalono — wątek w zgłoszeniu #22222222.', celId: B });
+    expect(await d.wykonaj(p, { ...k, uzasadnienie: 'duplikat' }, z)).toEqual({ komunikat: 'Scalono – wątek w zgłoszeniu #22222222.', celId: B });
     // Krótkie uzasadnienie wniosku dalej spełnia minimum powodu scalenia (10 znaków) — dopisek z numerem wniosku.
     expect(wywolania[0]).toEqual(['scal', A, B, 'kier', 'duplikat (wniosek w1)']);
   });
@@ -363,7 +363,7 @@ describe('PB-48 — rejestr wniosków', () => {
     expect(bledy({ serverId: 'w1', usluga: 'exim' })).toEqual(['serverId']);
     await expect(d.sprawdzPrzyZlozeniu!({ serverId: S, usluga: 'exim' }, null, zal().z)).resolves.toBeUndefined();
     await expect(d.sprawdzPrzyZlozeniu!({ serverId: S, usluga: 'exim' }, null, zal({ status: 'OFFLINE' }).z)).rejects.toThrow(/nie jest aktywny/);
-    expect(d.opis({ serverId: S, usluga: 'mariadb' })).toBe('Restart: Bazy danych (MariaDB) na węźle 33333333 — przerwa dla wszystkich kont węzła');
+    expect(d.opis({ serverId: S, usluga: 'mariadb' })).toBe('Restart: Bazy danych (MariaDB) na węźle 33333333 – przerwa dla wszystkich kont węzła');
     const { z, wywolania } = zal();
     const adm = { ...k, klientId: null, decydujacy: { userId: 'adm', role: 'ADMIN' } };
     expect(await d.wykonaj({ serverId: S, usluga: 'exim' }, { ...adm, uzasadnienie: 'kolejka stoi od godziny' }, z)).toEqual({
@@ -373,13 +373,13 @@ describe('PB-48 — rejestr wniosków', () => {
     expect(wywolania[0]).toEqual(['restart', S, { userId: 'adm', role: 'ADMIN' }, 'exim', 'kolejka stoi od godziny (wniosek w1)', 'w1']);
   });
 
-  it('komunikat błędu wykonawcy: wyjątek HTTP po polsku wprost, inny — z przedrostkiem, bez stosu', () => {
+  it('komunikat błędu wykonawcy: wyjątek HTTP po polsku wprost, inny – z przedrostkiem, bez stosu', () => {
     expect(komunikatBledu(new ForbiddenException('Brak.'))).toBe('Brak.');
     expect(komunikatBledu(new Error('timeout'))).toBe('Operacja nie powiodła się: timeout');
   });
 });
 
-describe('PB-48 — 403 z kodem WYMAGA_WNIOSKU przy operacjach z rejestru', () => {
+describe('PB-48 – 403 z kodem WYMAGA_WNIOSKU przy operacjach z rejestru', () => {
   const kontekst = (klasa: object, handler: object) =>
     ({
       getHandler: () => handler,
@@ -414,14 +414,14 @@ describe('PB-48 — 403 z kodem WYMAGA_WNIOSKU przy operacjach z rejestru', () =
     expect(await straznik(z).canActivate(kontekst(klasa, handler))).toBe(true);
   });
 
-  it('trasa bez rejestru wniosków — zwykła odmowa, bez kodu', async () => {
+  it('trasa bez rejestru wniosków – zwykła odmowa, bez kodu', async () => {
     const handler = (InvoicesAdminController.prototype as unknown as Record<string, object>).wystawKorekte;
     const blad = await straznik([]).canActivate(kontekst(InvoicesAdminController, handler)).catch((e: unknown) => e);
     expect((blad as ForbiddenException).getResponse()).not.toHaveProperty('code');
   });
 });
 
-describe('PB-48 — dziennik operacji wykonanej z wniosku', () => {
+describe('PB-48 – dziennik operacji wykonanej z wniosku', () => {
   it('dopisuje wniosekId i wnioskującego do szczegółów; poza wnioskiem nic nie zmienia', () => {
     const w = { wniosekId: 'w1', wnioskujacyUserId: 'l1' };
     expect(zWnioskiem({ a: 1 }, undefined)).toEqual({ a: 1 });

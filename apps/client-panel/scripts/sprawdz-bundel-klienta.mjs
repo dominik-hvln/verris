@@ -11,7 +11,7 @@ import { createRequire } from 'node:module';
 const { slowoZapleczaWBuildzie: slowoZaplecza } = createRequire(import.meta.url)('./slowa-zaplecza.cjs');
 const katalog = join(process.cwd(), '.next', 'static');
 if (!existsSync(katalog)) {
-  console.error('Brak .next/static — najpierw `next build`.');
+  console.error('Brak .next/static – najpierw `next build`.');
   process.exit(2);
 }
 const trafienia = [];
@@ -34,4 +34,4 @@ if (trafienia.length) {
   console.error(`Słowa zaplecza w kodzie przeglądarki (${trafienia.length}):\n${trafienia.join('\n')}`);
   process.exit(1);
 }
-console.log('OK — kod przeglądarki panelu klienta bez słów zaplecza.');
+console.log('OK – kod przeglądarki panelu klienta bez słów zaplecza.');

@@ -103,7 +103,7 @@ describe('dashboard nie udaje zera', () => {
     const kafelek = WIDOK.match(/label="Saldo portfela"[\s\S]{0,400}?\/>/);
     expect(kafelek).not.toBeNull();
     expect(kafelek![0]).toMatch(/snapshot\.errors\.profile/);
-    expect(kafelek![0]).toMatch(/'—'/);
+    expect(kafelek![0]).toMatch(/'–'/);
   });
 
   it('liczba otwartych zgłoszeń też nie udaje zera', () => {

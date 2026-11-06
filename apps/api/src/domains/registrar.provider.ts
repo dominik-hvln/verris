@@ -501,7 +501,7 @@ class OpenProviderRegistrarProvider implements RegistrarProvider, SslReseller {
     const wyniki = res.data?.results ?? [];
     const nazwa = (r: (typeof wyniki)[number]) => `${r.domain?.name ?? ''}.${r.domain?.extension ?? ''}`.toLowerCase();
     if (wyniki.some((r) => nazwa(r) !== domain.toLowerCase())) {
-      throw new Error(`Rejestr zwrócił domeny o innej nazwie niż ${domain} — wyszukiwanie po nazwie nie działa.`);
+      throw new Error(`Rejestr zwrócił domeny o innej nazwie niż ${domain} – wyszukiwanie po nazwie nie działa.`);
     }
     const d = wyniki.find((r) => r.id != null);
     return d ? { externalId: String(d.id), state: stanOpenProvider(d.status), expiresAt: d.expiration_date ?? null } : null;
@@ -636,7 +636,7 @@ class OpenProviderRegistrarProvider implements RegistrarProvider, SslReseller {
     const body = (await res.json().catch(() => null)) as { data?: { token?: string; reseller_id?: number }; desc?: string } | null;
     if (!res.ok || !body?.data?.token) {
       this.logger.warn(`OpenProvider auth failed: ${body?.desc ?? res.status}`);
-      throw new ServiceUnavailableException('Rejestr domen jest chwilowo niedostępny — spróbuj za chwilę.');
+      throw new ServiceUnavailableException('Rejestr domen jest chwilowo niedostępny – spróbuj za chwilę.');
     }
     this.token = body.data.token;
     this.resellerId = body.data.reseller_id ?? null;
@@ -658,7 +658,7 @@ class OpenProviderRegistrarProvider implements RegistrarProvider, SslReseller {
     }).catch((e: unknown) => {
       this.logger.warn(`OpenProvider ${path} failed: ${(e as Error).name === 'TimeoutError' ? 'timeout' : (e as Error).message}`);
       // Decyzja 15.10 (#1): brak odpowiedzi ≠ odmowa — rejestr mógł wykonać operację.
-      throw new RejestrWynikNiepewny('Rejestr domen nie odpowiada — spróbuj za chwilę.');
+      throw new RejestrWynikNiepewny('Rejestr domen nie odpowiada – spróbuj za chwilę.');
     });
     const body = (await res.json().catch(() => null)) as
       | { data?: T; code?: number; desc?: string }
@@ -668,7 +668,7 @@ class OpenProviderRegistrarProvider implements RegistrarProvider, SslReseller {
     const bezKoduApi = !(body && typeof body.code === 'number');
     if (bezKoduApi && (res.status >= 500 || res.ok)) {
       this.logger.warn(`OpenProvider ${path}: ${res.status} bez odpowiedzi API`);
-      throw new RejestrWynikNiepewny('Rejestr domen nie odpowiada — spróbuj za chwilę.');
+      throw new RejestrWynikNiepewny('Rejestr domen nie odpowiada – spróbuj za chwilę.');
     }
     if (!res.ok || (body && typeof body.code === 'number' && body.code !== 0)) {
       // Przy błędzie OpenProvider daje ogólne `desc` („…see the details below:”), a przyczynę w `data`

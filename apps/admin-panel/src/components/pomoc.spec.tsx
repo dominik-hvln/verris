@@ -32,7 +32,7 @@ describe("Pomoc „?”", () => {
     expect(dymek()).toBeNull();
   });
 
-  it("klik otwiera dymek ze słownika, fokus w dymku; poza AdminShell i bez href — bez odnośników", async () => {
+  it("klik otwiera dymek ze słownika, fokus w dymku; poza AdminShell i bez href – bez odnośników", async () => {
     await act(async () => przycisk().click());
     const d = dymek()!;
     expect(d.getAttribute("aria-label")).toBe("Onboard LIVE");
@@ -64,7 +64,7 @@ describe("Pomoc „?”", () => {
 });
 
 describe("placeTip", () => {
-  it("nad elementem, a przy górnej krawędzi — pod nim; w granicach ekranu", () => {
+  it("nad elementem, a przy górnej krawędzi – pod nim; w granicach ekranu", () => {
     expect(placeTip({ x: 200, y: 300, bottom: 320 }, { w: 100, h: 50 }, { w: 1000, h: 800 })).toEqual({ left: 150, top: 242 });
     expect(placeTip({ x: 200, y: 20, bottom: 40 }, { w: 100, h: 50 }, { w: 1000, h: 800 })).toEqual({ left: 150, top: 48 });
     expect(placeTip({ x: 5, y: 300, bottom: 320 }, { w: 100, h: 50 }, { w: 1000, h: 800 }).left).toBe(8);
@@ -80,7 +80,7 @@ describe("Słownik pomocy", () => {
     }
   });
 
-  it("bez adresów IP i haseł — słownik trafi do indeksu asystenta (decyzja 10.10)", () => {
+  it("bez adresów IP i haseł – słownik trafi do indeksu asystenta (decyzja 10.10)", () => {
     const tekst = JSON.stringify(POMOC);
     expect(tekst).not.toMatch(/\b\d{1,3}(\.\d{1,3}){3}\b/);
     expect(tekst).not.toMatch(/password|token|secret/i);

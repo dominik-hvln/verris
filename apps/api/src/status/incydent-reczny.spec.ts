@@ -39,7 +39,7 @@ describe('N-07 incydent ręczny', () => {
     expect(manual.prisma.probeIncident.update).not.toHaveBeenCalled();
   });
 
-  it('operator zamyka incydent z panelu — status, data i webhook „resolved”', async () => {
+  it('operator zamyka incydent z panelu – status, data i webhook „resolved”', async () => {
     const prisma = {
       probeIncident: {
         findUnique: vi.fn().mockResolvedValue({ id: 'i2', status: 'OPEN' }),

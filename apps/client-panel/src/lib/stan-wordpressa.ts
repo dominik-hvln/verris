@@ -15,7 +15,7 @@ export function stanAktualnosciWp(
   const wiek = s.sprawdzono ? teraz - new Date(s.sprawdzono).getTime() : Infinity;
   if (wiek > WP_SWIEZE_MS) {
     const dni = Number.isFinite(wiek) ? Math.floor(wiek / 86_400_000) : null;
-    return { tekst: dni != null ? `dane sprzed ${dni} ${dni === 1 ? 'dnia' : 'dni'} — sprawdź ponownie` : 'nie sprawdzono', ton: 'muted' };
+    return { tekst: dni != null ? `dane sprzed ${dni} ${dni === 1 ? 'dnia' : 'dni'} – sprawdź ponownie` : 'nie sprawdzono', ton: 'muted' };
   }
   if (s.podatnosci) return null; // pigułka „podatności: N” wystarczy
   return { tekst: 'aktualny', ton: 'data' };

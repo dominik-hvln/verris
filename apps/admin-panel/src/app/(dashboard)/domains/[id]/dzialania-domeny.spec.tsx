@@ -69,7 +69,7 @@ afterEach(async () => {
   k.remove();
 });
 
-it("L1 — wszystko wyszarzone z nazwą uprawnienia; L3 — bez kosztu Verris; L4 — wszystko", async () => {
+it("L1 – wszystko wyszarzone z nazwą uprawnienia; L3 – bez kosztu Verris; L4 – wszystko", async () => {
   await karta(op("CUSTOMERS_VIEW"));
   expect(przycisk('[data-akcja="kod-epp"]').disabled).toBe(true);
   expect(przycisk('[data-akcja="kod-epp"]').title).toBe("Wymaga DOMAINS_MANAGE");
@@ -129,17 +129,17 @@ it("synchronizacja bez powodu, z opisem zmian", async () => {
   await klik(przycisk('[data-akcja="synchronizuj"]'));
   expect(sync).toHaveBeenCalledWith("d1");
   expect(k.querySelector("[role=status]")!.textContent).toBe("Zaktualizowano: data wygaśnięcia.");
-  expect(opisSynchronizacji({ odeszla: false, zmiany: {} })).toBe("Dane zgodne z rejestratorem — bez zmian.");
+  expect(opisSynchronizacji({ odeszla: false, zmiany: {} })).toBe("Dane zgodne z rejestratorem – bez zmian.");
   expect(opisSynchronizacji({ odeszla: true, zmiany: {} })).toContain("odeszła");
 });
 
-it("ponowienie zamówienia: bez uprawnienia wyszarzone; transfer z nowym kodem EPP; bez uchwytu — informacja", async () => {
+it("ponowienie zamówienia: bez uprawnienia wyszarzone; transfer z nowym kodem EPP; bez uchwytu – informacja", async () => {
   await render(<PonowZamowienie orderId="o1" domena="a.pl" typ="TRANSFER" kwota="40.00" zablokowane="Wymaga DOMAINS_MANAGE" moznaPonowic />);
   expect(przycisk("[data-ponow]").disabled).toBe(true);
   await render(<PonowZamowienie orderId="o1" domena="a.pl" typ="REGISTER" kwota="40.00" zablokowane={null} moznaPonowic={false} />);
-  expect(k.textContent).toContain("Bez danych abonenta — klient musi zamówić ponownie");
+  expect(k.textContent).toContain("Bez danych abonenta – klient musi zamówić ponownie");
   await render(<PonowZamowienie orderId="o1" domena="a.pl" typ="REGISTER" kwota={null} zablokowane={null} moznaPonowic={false} />);
-  expect(k.textContent).toContain("Bez zapisanej ceny — klient musi zamówić ponownie");
+  expect(k.textContent).toContain("Bez zapisanej ceny – klient musi zamówić ponownie");
   ponow.mockResolvedValue({ ok: true, wynik: { id: "z2", status: "SUBMITTED" } });
   await render(<PonowZamowienie orderId="o2" domena="b.pl" typ="TRANSFER" kwota="40.00" zablokowane={null} moznaPonowic />);
   await klik(przycisk("[data-ponow]"));

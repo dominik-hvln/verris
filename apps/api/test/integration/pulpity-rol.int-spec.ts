@@ -7,13 +7,13 @@ import { prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } fr
  * scalonych i zamkniętych), NOC (flota bez sygnału, watchdog, nieudane zadania doby, kopie), finanse (KSeF odrzucone,
  * dokumenty do zapłaty, wpłaty do zaksięgowania; dla personelu bez kont zespołu).
  */
-describe('F3.9 — pulpity per rola (Postgres)', () => {
+describe('F3.9 – pulpity per rola (Postgres)', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
   const teraz = Date.now();
   const za = (min: number) => new Date(teraz + min * 60_000);
 
-  it('obsługa: moje zgłoszenia — po terminie, zagrożone, czeka na klienta; kolejka nieprzypisanych', async () => {
+  it('obsługa: moje zgłoszenia – po terminie, zagrożone, czeka na klienta; kolejka nieprzypisanych', async () => {
     const op = await prisma().user.create({ data: { email: `op-${teraz}@test.verris.pl`, passwordHash: 'x', role: 'STAFF' } });
     const inny = await prisma().user.create({ data: { email: `op2-${teraz}@test.verris.pl`, passwordHash: 'x', role: 'STAFF' } });
     const k = await prisma().user.create({ data: { email: `k-${teraz}@test.verris.pl`, passwordHash: 'x', companyName: 'Firma SA' } });

@@ -31,7 +31,7 @@ function zapisyRoota(tresc: string): string[] {
   return zle;
 }
 
-describe('instalatory na węźle — zapis w katalogu klienta tylko jako klient', () => {
+describe('instalatory na węźle – zapis w katalogu klienta tylko jako klient', () => {
   it.each(['node-app-install.sh', 'node-wp-install.sh'])('%s: bez zapisu roota na ścieżce klienta i bez chown -R', (n) => {
     expect(zapisyRoota(skrypt(n))).toEqual([]);
   });
@@ -63,7 +63,7 @@ describe('instalatory na węźle — zapis w katalogu klienta tylko jako klient'
     const root = mkdtempSync(join(tmpdir(), 'konta-klient-'));
     const d = join(root, 'u1', 'domains', 'x.pl', 'public_html');
     mkdirSync(d, { recursive: true });
-    writeFileSync(join(d, 'index.html'), '<title>x — hosting verris</title>');
+    writeFileSync(join(d, 'index.html'), '<title>x – hosting verris</title>');
     mkdirSync(join(d, 'assets'));
     writeFileSync(join(d, 'assets', 'verris-logo.svg'), '<svg/>');
     const bin = join(root, 'bin');

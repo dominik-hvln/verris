@@ -100,7 +100,7 @@ function uruchom(argumenty: string[], o: Opcje = {}) {
 const BLOKADA = /-j (DROP|REJECT)\b/;
 const SKOK = `iptables -I DOCKER-USER 1 -j ${LANCUCH}`;
 
-describe('X-41 etap 2 — pomiar: reguły kontenerów tylko liczą i logują', () => {
+describe('X-41 etap 2 – pomiar: reguły kontenerów tylko liczą i logują', () => {
   const r = uruchom(['--kontenery-pomiar']);
 
   it('kończy się zerem i wpina łańcuch w DOCKER-USER', () => {
@@ -113,7 +113,7 @@ describe('X-41 etap 2 — pomiar: reguły kontenerów tylko liczą i logują', (
     expect(r.wywolania.filter((w) => /\bOUTPUT\b/.test(w))).toEqual([]);
   });
 
-  it('IOC z tej samej listy co host (ioc-ips.txt) — logowane z prefiksem, błędne wiersze pominięte', () => {
+  it('IOC z tej samej listy co host (ioc-ips.txt) – logowane z prefiksem, błędne wiersze pominięte', () => {
     expect(r.wywolania.some((w) => w.startsWith(`iptables -A ${LANCUCH} -d ${IOC} `) && /--log-prefix VERRIS-FWD-IOC/.test(w))).toBe(true);
     expect(r.wywolania.some((w) => w.includes('to-nie-adres'))).toBe(false);
   });
@@ -160,7 +160,7 @@ describe('X-41 etap 2 — pomiar: reguły kontenerów tylko liczą i logują', (
   });
 });
 
-describe('X-41 etap 2 — egzekwowanie po pomiarze', () => {
+describe('X-41 etap 2 – egzekwowanie po pomiarze', () => {
   it('bez pomiaru odmawia (kod 1) i niczego nie blokuje', () => {
     const r = uruchom(['--kontenery-egzekwuj']);
     expect(r.kod).toBe(1);
@@ -173,7 +173,7 @@ describe('X-41 etap 2 — egzekwowanie po pomiarze', () => {
     expect(r.wywolania.filter((w) => BLOKADA.test(w))).toEqual([]);
   });
 
-  it('po pomiarze zakłada DROP dla IOC, SMTP i skanu — i nie dotyka OUTPUT', () => {
+  it('po pomiarze zakłada DROP dla IOC, SMTP i skanu – i nie dotyka OUTPUT', () => {
     const r = uruchom(['--kontenery-egzekwuj'], { pomiarOdDni: 3 });
     expect(r.kod).toBe(0);
     expect(r.wywolania).toContain(SKOK);
@@ -191,7 +191,7 @@ describe('X-41 etap 2 — egzekwowanie po pomiarze', () => {
   });
 });
 
-describe('X-41 etap 2 — rollback jedną komendą', () => {
+describe('X-41 etap 2 – rollback jedną komendą', () => {
   it('--kontenery-wylacz wypina łańcuch z DOCKER-USER, niczego nie blokuje i kasuje zapisany tryb', () => {
     const r = uruchom(['--kontenery-wylacz'], { trybKontenerow: 'egzekwuj\n' });
     expect(r.kod).toBe(0);
@@ -201,7 +201,7 @@ describe('X-41 etap 2 — rollback jedną komendą', () => {
   });
 });
 
-describe('X-41 etap 2 — restart hosta (verris-egress.service --przy-starcie)', () => {
+describe('X-41 etap 2 – restart hosta (verris-egress.service --przy-starcie)', () => {
   it('odtwarza zapisane egzekwowanie kontenerów', () => {
     const r = uruchom(['--przy-starcie'], { pomiarOdDni: 3, trybKontenerow: 'egzekwuj\n' });
     expect(r.kod).toBe(0);
@@ -234,7 +234,7 @@ const WPIS_IOC =
 /** Reguły zmieniające stan zapory — raport i odmowa nie mogą zawierać żadnej. */
 const ZMIANA = /^iptables -(A|I|D|F|N|X|P|R) /;
 
-describe('X-41 — raport „co odetnie egzekwowanie” (--kontenery-raport, tylko odczyt)', () => {
+describe('X-41 – raport „co odetnie egzekwowanie” (--kontenery-raport, tylko odczyt)', () => {
   it('z logu pomiaru wypisuje trafienia SKAN/SMTP/IOC z nazwą kontenera i celem, niczego nie zmienia', () => {
     const r = uruchom(['--kontenery-raport'], {
       pomiarOdDni: 3,
@@ -281,7 +281,7 @@ describe('X-41 — raport „co odetnie egzekwowanie” (--kontenery-raport, tyl
   });
 });
 
-describe('X-41 — egzekwowanie odmawia, gdy pomiar widział trafienia limitów', () => {
+describe('X-41 – egzekwowanie odmawia, gdy pomiar widział trafienia limitów', () => {
   it('trafienia SKAN/SMTP w logu pomiaru = odmowa (kod 1) z listą, zero DROP', () => {
     const r = uruchom(['--kontenery-egzekwuj'], {
       pomiarOdDni: 3,
@@ -295,7 +295,7 @@ describe('X-41 — egzekwowanie odmawia, gdy pomiar widział trafienia limitów'
     expect(r.journalctl[0]).toMatch(/--since @\d{10}/);
   });
 
-  it('same trafienia IOC nie blokują włączenia — te adresy MAJĄ być odcięte', () => {
+  it('same trafienia IOC nie blokują włączenia – te adresy MAJĄ być odcięte', () => {
     const r = uruchom(['--kontenery-egzekwuj'], { pomiarOdDni: 3, trybKontenerow: 'pomiar\n', logJadra: WPIS_IOC });
     expect(r.kod).toBe(0);
     expect(r.wywolania.some((w) => /-j DROP/.test(w) && w.includes('verris-fwd-skan'))).toBe(true);
@@ -326,7 +326,7 @@ describe('X-41 — egzekwowanie odmawia, gdy pomiar widział trafienia limitów'
   });
 });
 
-describe('X-41 — łańcuch w DOCKER-USER działa tylko, gdy FORWARD do niego skacze', () => {
+describe('X-41 – łańcuch w DOCKER-USER działa tylko, gdy FORWARD do niego skacze', () => {
   // https://docs.docker.com/engine/network/firewall-iptables/ — „In the FORWARD chain, Docker adds rules that
   // unconditionally jump to the DOCKER-USER …”; https://docs.docker.com/engine/network/firewall-nftables/ —
   // z backendem nftables „the daemon will not add the jump. So, unless there is an existing jump, rules in

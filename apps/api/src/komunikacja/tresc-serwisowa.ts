@@ -26,12 +26,12 @@ export function sprawdzTrescSerwisowa(
   if (b.length < 20 || b.length > MAIL_OBSLUGI_TRESC_MAX) throw new BadRequestException(`Treść: od 20 do ${MAIL_OBSLUGI_TRESC_MAX} znaków.`);
   const promo = trescPromocyjna(`${t}\n${b}`);
   if (promo) {
-    throw new BadRequestException(`Wiadomość serwisowa nie może zawierać treści promocyjnych („${promo}”) — wychodzi bez zgody marketingowej.`);
+    throw new BadRequestException(`Wiadomość serwisowa nie może zawierać treści promocyjnych („${promo}”) – wychodzi bez zgody marketingowej.`);
   }
   const infra = fragmentInfrastruktury(`${t}\n${b}`, [], { adresyIp: false });
-  if (infra) throw new BadRequestException(`Klient nie widzi nazw infrastruktury („${infra}”) — napisz to ogólniej.`);
+  if (infra) throw new BadRequestException(`Klient nie widzi nazw infrastruktury („${infra}”) – napisz to ogólniej.`);
   const adres = fragmentInfrastruktury(`${t}\n${b}`, wezly, opcje);
-  if (adres) throw new BadRequestException(`Klient nie widzi adresów serwerów („${adres}”) — napisz to ogólniej.`);
+  if (adres) throw new BadRequestException(`Klient nie widzi adresów serwerów („${adres}”) – napisz to ogólniej.`);
   if (/\{(domena|imie)\}|\((opisz|termin)[^)]*\)/i.test(`${t}\n${b}`)) {
     throw new BadRequestException('Uzupełnij pola szablonu (w nawiasach albo klamrach) przed wysłaniem.');
   }

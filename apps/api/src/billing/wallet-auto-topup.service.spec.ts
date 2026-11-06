@@ -149,7 +149,7 @@ describe('WalletAutoTopupService (M-22)', () => {
     expect(powodAutoDoladowania('Your card was declined.')).toBe('Bank odrzucił płatność kartą.');
     expect(powodAutoDoladowania('status=requires_payment_method')).toMatch(/Sprawdź kartę/);
     expect(powodAutoDoladowania(null)).toMatch(/Sprawdź kartę/);
-    for (const wlasny of ['Na karcie brakuje środków.', 'Karta wygasła.', 'Bank odrzucił płatność kartą.', 'Brak zapisanej karty — ustaw domyślną metodę płatności.']) {
+    for (const wlasny of ['Na karcie brakuje środków.', 'Karta wygasła.', 'Bank odrzucił płatność kartą.', 'Brak zapisanej karty – ustaw domyślną metodę płatności.']) {
       expect(powodAutoDoladowania(wlasny)).toBe(wlasny);
     }
   });
@@ -161,7 +161,7 @@ describe('WalletAutoTopupService (M-22)', () => {
     expect(t.mailer.send).toHaveBeenCalledTimes(2);
   });
 
-  describe('upsertForUser — walidacja', () => {
+  describe('upsertForUser – walidacja', () => {
     const dto = { enabled: true, thresholdPln: '50', topupAmountPln: '100', localPaymentMethodId: null };
     it.each([
       [{ thresholdPln: '-1' }],

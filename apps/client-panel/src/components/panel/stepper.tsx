@@ -17,7 +17,7 @@ export function Stepper({ kroki, aktualny }: { kroki: readonly string[]; aktualn
             }`}
           >
             {i < aktualny ? '✓' : i + 1}
-            <span className="sr-only">{i < aktualny ? ' — zrobione' : ''}</span>
+            <span className="sr-only">{i < aktualny ? ' – zrobione' : ''}</span>
           </span>
           <span className={`hidden break-words sm:inline ${i === aktualny ? 'text-white' : 'text-neutral-500'}`}>{label}</span>
           {i < kroki.length - 1 ? <span className="mx-1 h-px flex-1 bg-white/10" aria-hidden /> : null}

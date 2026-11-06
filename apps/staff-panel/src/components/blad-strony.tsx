@@ -18,7 +18,7 @@ export function BladStrony({ blad, powrot, tytul }: { blad: unknown; powrot: { h
       <p role="alert" className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
         {odmowa
           ? "Twoje konto nie ma uprawnienia do tego widoku. Nada je administrator: panel admina → Role i uprawnienia."
-          : "Nie udało się pobrać danych. Odśwież stronę za chwilę — jeśli błąd wraca, zgłoś go administratorowi."}
+          : "Nie udało się pobrać danych. Odśwież stronę za chwilę – jeśli błąd wraca, zgłoś go administratorowi."}
       </p>
     </div>
   );

@@ -176,11 +176,11 @@ export class ResellerService {
     const od = new Date(Date.now() - 24 * 3600 * 1000);
     const dzis = await this.prisma.auditLog.count({ where: { action: 'RESELLER_CLIENT_CREATED', actorUserId: resellerId, createdAt: { gte: od } } });
     if (dzis >= LIMIT_KONT_DZIENNIE) {
-      throw new HttpException(`Limit ${LIMIT_KONT_DZIENNIE} nowych kont na dobę — napisz do nas, jeśli potrzebujesz więcej.`, HttpStatus.TOO_MANY_REQUESTS);
+      throw new HttpException(`Limit ${LIMIT_KONT_DZIENNIE} nowych kont na dobę – napisz do nas, jeśli potrzebujesz więcej.`, HttpStatus.TOO_MANY_REQUESTS);
     }
     const email = dto.email.trim().toLowerCase();
     const istnieje = await this.prisma.user.findFirst({ where: { email: { equals: email, mode: 'insensitive' } }, select: { id: true } });
-    if (istnieje) throw new ConflictException('Konto z tym adresem e-mail już istnieje — klient może zarejestrować się z Twojego linku zaproszenia tylko nowym adresem.');
+    if (istnieje) throw new ConflictException('Konto z tym adresem e-mail już istnieje – klient może zarejestrować się z Twojego linku zaproszenia tylko nowym adresem.');
 
     const rawToken = generateAuthToken();
     const user = await this.prisma.$transaction(async (tx) => {
@@ -217,7 +217,7 @@ export class ResellerService {
         '',
         `Konto ${zalozyl} dla Ciebie ${kto(`**${md(marka)}**`)}. Verris to hosting, z którego korzysta przy Twojej stronie. Żeby się zalogować, ustaw hasło (link ważny ${WAZNOSC_LINKU_H} godziny).`,
         '',
-        `Jeśli nie znasz ${md(marka)} albo nie spodziewałeś(-aś) się tego konta — nic nie rób: bez hasła konto jest nieaktywne. Jeśli ktoś podszywa się pod Ciebie albo dostajesz takie maile wielokrotnie, zgłoś to: ${(process.env.WWW_URL ?? 'https://verris.pl').replace(/\/$/, '')}/zglos-naduzycie`,
+        `Jeśli nie znasz ${md(marka)} albo nie spodziewałeś(-aś) się tego konta – nic nie rób: bez hasła konto jest nieaktywne. Jeśli ktoś podszywa się pod Ciebie albo dostajesz takie maile wielokrotnie, zgłoś to: ${(process.env.WWW_URL ?? 'https://verris.pl').replace(/\/$/, '')}/zglos-naduzycie`,
       ].join('\n'),
       cta: { label: 'Ustaw hasło', url: `${panelUrl}/reset-password?token=${encodeURIComponent(rawToken)}` },
       recipientEmail: email,
@@ -345,7 +345,7 @@ export class ResellerService {
       bodyMarkdown: [
         'Cześć,',
         '',
-        `zatwierdziliśmy Twój wniosek${p.brandName ? ` dla marki **${md(p.brandName)}**` : ''} — program resellerski jest aktywny.`,
+        `zatwierdziliśmy Twój wniosek${p.brandName ? ` dla marki **${md(p.brandName)}**` : ''} – program resellerski jest aktywny.`,
         '',
         `Klienci, którzy założą konto z Twojego linku, będą przypisani do Ciebie: ${link}`,
         '',

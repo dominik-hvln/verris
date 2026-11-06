@@ -114,7 +114,7 @@ export function CreateProbeForm({ servers }: Props) {
 
       {servers.length === 0 ? (
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-          Brak serwerów — można dodać tylko monitor platformy (bez węzła).
+          Brak serwerów – można dodać tylko monitor platformy (bez węzła).
         </div>
       ) : null}
 

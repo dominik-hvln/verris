@@ -57,7 +57,7 @@ export function SuspendForm({
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
-  if (terminal) return <p className="text-sm text-muted-foreground">Usługa jest {status === 'CANCELED' ? 'anulowana' : 'wygasła'} — nie ma czego zawieszać.</p>;
+  if (terminal) return <p className="text-sm text-muted-foreground">Usługa jest {status === 'CANCELED' ? 'anulowana' : 'wygasła'} – nie ma czego zawieszać.</p>;
 
   const minPowodu = admin ? 0 : 10;
   const submit = async () => {
@@ -131,7 +131,7 @@ export function SuspendForm({
             ...(suspended ? {} : { reason }),
             ...(zgloszenie.trim() ? { zgloszenie: zgloszenie.trim() } : {}),
           }}
-          podpowiedz={`${bezUprawnienia}. Opisz powód w uzasadnieniu i wyślij wniosek — zdecyduje kierownik zmiany.`}
+          podpowiedz={`${bezUprawnienia}. Opisz powód w uzasadnieniu i wyślij wniosek – zdecyduje kierownik zmiany.`}
         />
       ) : (
         <>
@@ -175,13 +175,13 @@ export function ZakonczIUsunForm({ subscriptionId, confirmText, hasAccount }: { 
   const submit = async () => {
     const wpisane = await zapytaj(
       hasAccount
-        ? `Usługa zostanie zakończona, a konto hostingowe ${confirmText} usunięte od razu — pliki, bazy i poczta. Tego nie da się cofnąć. Wpisz domenę, aby potwierdzić:`
+        ? `Usługa zostanie zakończona, a konto hostingowe ${confirmText} usunięte od razu – pliki, bazy i poczta. Tego nie da się cofnąć. Wpisz domenę, aby potwierdzić:`
         : `Usługa ${confirmText} zostanie zakończona od razu. Wpisz ${confirmText}, aby potwierdzić:`,
       { akcja: 'Zakończ i usuń', tytul: 'Operacja nieodwracalna', placeholder: confirmText },
     );
     if (wpisane === null) return;
     if (wpisane.trim().toLowerCase() !== confirmText.toLowerCase()) {
-      setMsg({ type: 'err', text: 'Wpisany tekst nie zgadza się — nic nie zmieniono.' });
+      setMsg({ type: 'err', text: 'Wpisany tekst nie zgadza się – nic nie zmieniono.' });
       return;
     }
     setBusy(true);

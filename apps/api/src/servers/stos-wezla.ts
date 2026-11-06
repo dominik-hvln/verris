@@ -122,7 +122,7 @@ export const DOZWOLONE = {
   ],
   daKanal: [
     { v: 'stable', opis: 'stabilny (zalecany)' },
-    { v: 'current', opis: 'bieżący — nowości szybciej' },
+    { v: 'current', opis: 'bieżący – nowości szybciej' },
   ],
   litespeedLinia: [{ v: '6.3', opis: 'stabilna' }],
 } as const;
@@ -144,7 +144,7 @@ const q = (v: string) => `'${v.replace(/'/g, '')}'`;
 /** Treść /etc/verris-stack.env (bash `source`-owalny, bez sekretów). */
 export function stosJakoEnv(s: ManifestStosu = STOS_WEZLA): string {
   return [
-    '# Verris — manifest stosu węzła (PB-30). Plik zarządzany przez control-plane — nie edytuj ręcznie.',
+    '# Verris – manifest stosu węzła (PB-30). Plik zarządzany przez control-plane – nie edytuj ręcznie.',
     `VERRIS_STACK_VERSION=${q(s.wersja)}`,
     `VERRIS_DA_CHANNEL=${q(s.daKanal)}`,
     `VERRIS_DA_COMMIT=${q(s.daCommit)}`,

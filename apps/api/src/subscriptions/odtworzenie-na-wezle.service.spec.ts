@@ -22,7 +22,7 @@ function zbuduj(o: { cel?: Record<string, unknown> | null; wToku?: unknown } = {
   return { s: new OdtworzenieNaWezleService(prisma as never, audit as never), create, audit };
 }
 
-describe('H-16 — odtworzenie konta na innym węźle', () => {
+describe('H-16 – odtworzenie konta na innym węźle', () => {
   it('prefiks kopii = nodes/<hostname -s> (jak node-offsite-backup.sh)', () => {
     expect(prefiks('node-pl-01.verris.pl')).toBe('nodes/node-pl-01');
     expect(prefiks(null)).toBeNull();
@@ -104,7 +104,7 @@ describe('H-16 — odtworzenie konta na innym węźle', () => {
     expect(wyscig.prisma.server.update).not.toHaveBeenCalled();
   });
 
-  it('konto usunięte (poza księgą) — przepięcie bez ruchu księgi', async () => {
+  it('konto usunięte (poza księgą) – przepięcie bez ruchu księgi', async () => {
     const { prisma, audit } = zakonczenie(zadanieRestore(), { status: 'DELETED' });
     await new NodeTasksService(prisma as never, audit as never, {} as never).completeTaskFromNode({
       serverId: 's-nowy', taskId: 't1', outputLog: 'VERRIS-OFFSITE-RESTORED klient1',
@@ -138,7 +138,7 @@ function zakonczenie(task: object, konto: Record<string, unknown> = {}, przepiet
   return { prisma, audit: { record: vi.fn() } };
 }
 
-describe('przyczynaBledu — co operator widzi przy nieudanym zadaniu (13.10, t2)', () => {
+describe('przyczynaBledu – co operator widzi przy nieudanym zadaniu (13.10, t2)', () => {
   const NAGLOWEK = '=== Verris task ed91 (kind=OFFSITE_RESTORE) ===\nStart: 2026-10-13T15:07:29Z\nCommand: /usr/local/bin/verris-account-restore.sh \n---\n';
 
   it('pusty log z kodem wyjścia → kod, nie nagłówek logu', () => {

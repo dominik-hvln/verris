@@ -39,14 +39,14 @@ export interface PlanMakra {
  */
 export function planMakra(m: AkcjeMakra, stosujacyId: string): PlanMakra {
   if (m.makroStan && !(STANY_MAKRA as readonly string[]).includes(m.makroStan)) {
-    throw new BadRequestException('Makro ma nieznany stan — popraw je w ustawieniach szablonów.');
+    throw new BadRequestException('Makro ma nieznany stan – popraw je w ustawieniach szablonów.');
   }
   const czekaj = !m.makroStan || m.makroStan === 'WAITING_CUSTOMER' ? 'tak' : 'nie';
   const zmiana: AdminUpdateTicketDto = {};
   if (m.makroStan === 'OPEN' || m.makroStan === 'CLOSED') zmiana.status = m.makroStan;
   if (m.makroPrzypisz === 'JA') zmiana.assignedToId = stosujacyId;
   else if (m.makroPrzypisz === 'NIKT') (zmiana as { assignedToId: string | null }).assignedToId = null;
-  else if (m.makroPrzypisz) throw new BadRequestException('Makro ma nieznane przypisanie — popraw je w ustawieniach szablonów.');
+  else if (m.makroPrzypisz) throw new BadRequestException('Makro ma nieznane przypisanie – popraw je w ustawieniach szablonów.');
   return { czekaj, zmiana: Object.keys(zmiana).length ? zmiana : null, tagi: normalizujTagi(m.makroTagi) };
 }
 
@@ -61,7 +61,7 @@ export class MakraZgloszenService {
   async zastosuj(ticketId: string, makroId: string, aktorId: string) {
     const m = await this.prisma.cannedResponse.findUnique({ where: { id: makroId } });
     if (!m || !m.isActive) throw new NotFoundException('Makro nie istnieje albo jest wyłączone.');
-    if (!czyMakro(m)) throw new BadRequestException('Ten szablon nie ma akcji — wstaw go jako zwykłą odpowiedź.');
+    if (!czyMakro(m)) throw new BadRequestException('Ten szablon nie ma akcji – wstaw go jako zwykłą odpowiedź.');
     const t = await this.prisma.ticket.findUnique({ where: { id: ticketId }, select: { id: true, tags: true, scalonoDoId: true } });
     if (!t) throw new NotFoundException('Nie znaleziono zgłoszenia.');
     odmowaScalonego(t);

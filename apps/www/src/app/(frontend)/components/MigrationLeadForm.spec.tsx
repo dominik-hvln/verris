@@ -9,7 +9,7 @@ jest.mock('./Captcha', () => ({ Captcha: () => null }));
 
 import { CONSENT_TEXT, MigrationLeadForm } from './MigrationLeadForm';
 
-describe('MigrationLeadForm — plan bez wymogu zgody', () => {
+describe('MigrationLeadForm – plan bez wymogu zgody', () => {
   const html = renderToStaticMarkup(<MigrationLeadForm />);
 
   it('przycisk „Wyślij mi plan” nie jest wyłączony przed zaznaczeniem zgody', () => {
@@ -24,7 +24,7 @@ describe('MigrationLeadForm — plan bez wymogu zgody', () => {
     expect(html).toContain('nieobowiązkowe');
   });
 
-  it('nie obiecuje „nie przekazujemy adresu nikomu” (mamy dostawcę poczty) — odsyła do polityki', () => {
+  it('nie obiecuje „nie przekazujemy adresu nikomu” (mamy dostawcę poczty) – odsyła do polityki', () => {
     expect(html).not.toMatch(/nie przekazujemy/i);
     expect(html).toMatch(/polityk/);
   });

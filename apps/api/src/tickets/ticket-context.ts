@@ -144,28 +144,28 @@ export function buildDraft(category: TicketCategory, c: TicketDraftContext): str
     case 'POCZTA':
       lines.push(
         `W panelu, w zakładce Poczta, sekcja „Dostarczalność poczty” pokazuje stan rekordów SPF, DKIM i DMARC${dom ? ` dla ${dom}` : ''} i pozwala je poprawić jednym kliknięciem.`,
-        'Do programu pocztowego: serwer IMAP (port 993, SSL) i SMTP (port 465, SSL; gdy sieć blokuje 465 — 587 ze STARTTLS), login to pełny adres skrzynki.',
+        'Do programu pocztowego: serwer IMAP (port 993, SSL) i SMTP (port 465, SSL; gdy sieć blokuje 465 – 587 ze STARTTLS), login to pełny adres skrzynki.',
       );
       break;
     case 'PLATNOSC':
       lines.push(
         c.walletBalance != null ? `Na koncie jest obecnie ${c.walletBalance} kredytów (1 kredyt = 1 zł).` : 'Sprawdzamy stan rozliczeń konta.',
         c.lastInvoice
-          ? `Ostatni dokument rozliczeniowy: ${c.lastInvoice.number} — ${INVOICE_STATUS[c.lastInvoice.status] ?? c.lastInvoice.status}.`
+          ? `Ostatni dokument rozliczeniowy: ${c.lastInvoice.number} – ${INVOICE_STATUS[c.lastInvoice.status] ?? c.lastInvoice.status}.`
           : '',
         'Prosimy nie przesyłać danych karty ani haseł w zgłoszeniu.',
       );
       break;
     case 'MIGRACJA':
       lines.push(
-        'Przeniesienie strony zlecisz w panelu w sekcji „Migracje”. Potrzebujemy dostępu do obecnego hostingu (FTP lub panel) — kopiujemy pliki, bazy i pocztę bez przerwy w działaniu strony.',
+        'Przeniesienie strony zlecisz w panelu w sekcji „Migracje”. Potrzebujemy dostępu do obecnego hostingu (FTP lub panel) – kopiujemy pliki, bazy i pocztę bez przerwy w działaniu strony.',
         `Na koniec przełączamy DNS${domTxt}, więc do tego momentu wszystko działa u dotychczasowego dostawcy.`,
       );
       break;
     case 'AWARIA':
       lines.push(
         c.service?.siteDown
-          ? `Potwierdzamy — nasz monitoring też widzi problem z dostępnością${domTxt}. Pracujemy nad tym.`
+          ? `Potwierdzamy – nasz monitoring też widzi problem z dostępnością${domTxt}. Pracujemy nad tym.`
           : `Sprawdzamy działanie usługi${c.service?.plan ? ` ${c.service.plan}` : ''}${domTxt}.`,
         c.slaResolveDueAt ? `Wrócimy z informacją najpóźniej do ${fmtDateTime(c.slaResolveDueAt)}.` : 'Wrócimy z informacją, gdy tylko ustalimy przyczynę.',
       );

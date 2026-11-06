@@ -12,13 +12,13 @@ import { TrescUpowaznienia } from '../upowaznienie';
 import { dataGodzinaPl } from '@/lib/data-pl';
 
 const data = (iso: string | null) =>
-  iso ? dataGodzinaPl(iso, { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+  iso ? dataGodzinaPl(iso, { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '–';
 
 const STAN: Record<Exclude<ProsbaOZgode['stan'], 'oczekuje'>, string> = {
-  zaakceptowana: 'Zatwierdzono tę migrację — jest w kolejce albo już trwa. Postęp widzisz w zakładce Migracje.',
+  zaakceptowana: 'Zatwierdzono tę migrację – jest w kolejce albo już trwa. Postęp widzisz w zakładce Migracje.',
   odrzucona: 'Odrzucono tę migrację. Nic nie zostało przeniesione, a podane dane dostępowe usunęliśmy.',
   wygasla: 'Prośba wygasła bez decyzji. Migracja nie wystartowała, a podane dane dostępowe usunęliśmy. Jeśli chcesz przenieść stronę, poproś obsługę o przygotowanie migracji ponownie albo uruchom ją sam(a) w zakładce Migracje.',
-  anulowana: 'Ta migracja została anulowana — nic nie zostało przeniesione.',
+  anulowana: 'Ta migracja została anulowana – nic nie zostało przeniesione.',
 };
 
 export function ZgodaMigracji({ serviceId, prosba, token }: { serviceId: string; prosba: ProsbaOZgode; token?: string }) {
@@ -81,7 +81,7 @@ export function ZgodaMigracji({ serviceId, prosba, token }: { serviceId: string;
             <li>
               <span className="text-neutral-400">{mailboxes(z.imap.length)}:</span>{' '}
               {z.imap.map((m) => m.email).join(', ')}
-              {z.utworzBrakujaceSkrzynki ? ' — brakujące założymy u nas z tym samym hasłem' : ''}
+              {z.utworzBrakujaceSkrzynki ? ' – brakujące założymy u nas z tym samym hasłem' : ''}
             </li>
           ) : null}
           <li>
@@ -99,8 +99,8 @@ export function ZgodaMigracji({ serviceId, prosba, token }: { serviceId: string;
         <>
           <p className="rounded-lg border border-cyan-500/20 bg-cyan-500/[0.05] px-3 py-2 text-xs text-cyan-100/90">
             Migracja nie wystartuje bez Twojej zgody. Hasła są zaszyfrowane, używamy ich tylko na czas transferu i kasujemy po
-            zakończeniu. Twoja obecna strona działa bez przerwy aż do przełączenia DNS — ten krok wykonasz sam(a) na końcu.
-            Prośba jest ważna do {data(prosba.wygasa)} — potem anulujemy ją i usuniemy dane dostępowe.
+            zakończeniu. Twoja obecna strona działa bez przerwy aż do przełączenia DNS – ten krok wykonasz sam(a) na końcu.
+            Prośba jest ważna do {data(prosba.wygasa)} – potem anulujemy ją i usuniemy dane dostępowe.
           </p>
           <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3 text-xs leading-relaxed text-neutral-300">
             <TrescUpowaznienia />
@@ -113,7 +113,7 @@ export function ZgodaMigracji({ serviceId, prosba, token }: { serviceId: string;
               disabled={busy !== null}
               className="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500 disabled:opacity-50"
             >
-              {busy === 'tak' ? 'Uruchamiam…' : 'Zgadzam się — uruchom migrację'}
+              {busy === 'tak' ? 'Uruchamiam…' : 'Zgadzam się – uruchom migrację'}
             </button>
             <button
               type="button"

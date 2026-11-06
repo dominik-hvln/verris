@@ -105,7 +105,7 @@ export function kolejnoscProb(d: Pick<DostepPlikow, 'port' | 'protocol'>): Array
 }
 
 function metodaKopiowania(protocol: ProtokolPlikow, rsync: boolean): string {
-  if (protocol === 'sftp') return rsync ? 'SFTP + rsync — najszybciej, z dosyłaniem zmian' : 'SFTP (bez rsync na starym serwerze)';
+  if (protocol === 'sftp') return rsync ? 'SFTP + rsync – najszybciej, z dosyłaniem zmian' : 'SFTP (bez rsync na starym serwerze)';
   return protocol === 'ftps' ? 'FTPS (FTP z szyfrowaniem)' : 'FTP bez szyfrowania';
 }
 

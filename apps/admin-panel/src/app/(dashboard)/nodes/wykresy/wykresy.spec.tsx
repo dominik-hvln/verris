@@ -25,7 +25,7 @@ const PUNKTY = [
   { t: "2026-10-05T12:00:00.000Z", v: 90 },
 ];
 
-describe("Wykres — dymek", () => {
+describe("Wykres – dymek", () => {
   let root: Root;
   let kontener: HTMLElement;
   beforeEach(() => {
@@ -96,7 +96,7 @@ describe("Strona „Wykresy węzłów”", () => {
       od: OD,
       do: DO,
       kpi: { wszystkie: 3, aktywne: 3, pozaPula: 1, cpuSrednie: 31, ramSrednie: 44, cpu: PUNKTY, ram: PUNKTY, pojemnosc: { wymiar: "dysk", proc: 58 } },
-      wezly: [wezel("nbg-03", "krytyczny", { region: "DE-NBG", pozaPula: "poza pulą — wstrzymany" }), wezel("fsn-02", "ostrzezenie"), wezel("hel-01", "norma", { region: "FI-HEL" })],
+      wezly: [wezel("nbg-03", "krytyczny", { region: "DE-NBG", pozaPula: "poza pulą – wstrzymany" }), wezel("fsn-02", "ostrzezenie"), wezel("hel-01", "norma", { region: "FI-HEL" })],
     };
     (adminApi as jest.Mock).mockImplementation(async (sciezka: string) => (sciezka.startsWith("/admin/servers/wykresy") ? wykresy : Promise.reject(new Error("HTTP 503"))));
     const html = renderToStaticMarkup(await WykresyStrona({ searchParams: Promise.resolve({ zakres: "7d", stan: "krytyczny", sort: "cpu" }) }));
@@ -111,7 +111,7 @@ describe("Strona „Wykresy węzłów”", () => {
     expect(html).toContain('href="/nodes/nbg-03"');
     expect(html).not.toContain('href="/nodes/fsn-02"');
     expect(tekst).toContain("DE · Norymberga");
-    expect(tekst).toContain("poza pulą — wstrzymany");
+    expect(tekst).toContain("poza pulą – wstrzymany");
     expect(tekst).not.toContain("Hetzner");
     expect(tekst).toContain("3 konta");
     // linki zakresu zachowują filtr i sort
@@ -130,7 +130,7 @@ describe("Strona „Wykresy węzłów”", () => {
     };
     const prognoza = (komentarzAi: boolean) => ({
       wezly: [{ id: "fsn-01", linia: { tekst: "limit RAM za ~9 dni", ton: "warn" } }],
-      podsumowanie: komentarzAi ? "fsn-01 zapełni się pierwszy." : "Najbliżej limitu: fsn-01 — RAM za ok. 9 dni.",
+      podsumowanie: komentarzAi ? "fsn-01 zapełni się pierwszy." : "Najbliżej limitu: fsn-01 – RAM za ok. 9 dni.",
       zalecenia: komentarzAi ? ["Zamów kolejny węzeł za ok. 3 tygodnie."] : [],
       komentarzAi,
     });
@@ -142,7 +142,7 @@ describe("Strona „Wykresy węzłów”", () => {
       expect(tekst).toContain("prognoza: limit RAM za ~9 dni");
       if (ai) {
         expect(tekst).toContain("Zamów kolejny węzeł za ok. 3 tygodnie.");
-        expect(tekst).toContain("Zalecenia tworzy AI — decyzję podejmuje operator.");
+        expect(tekst).toContain("Zalecenia tworzy AI – decyzję podejmuje operator.");
         expect(html.match(/data-ai-generated/g)).toHaveLength(2);
       } else {
         expect(tekst).toContain("Najbliżej limitu: fsn-01");
@@ -152,7 +152,7 @@ describe("Strona „Wykresy węzłów”", () => {
     }
   });
 
-  it("API niedostępne — komunikat zamiast pustej strony", async () => {
+  it("API niedostępne – komunikat zamiast pustej strony", async () => {
     (adminApi as jest.Mock).mockRejectedValue(new Error("HTTP 502"));
     const html = renderToStaticMarkup(await WykresyStrona({ searchParams: Promise.resolve({}) }));
     expect(html).toContain("Nie udało się pobrać wykresów: HTTP 502");

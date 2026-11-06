@@ -126,7 +126,7 @@ export class MarketingPreferencesService {
     ctx: { ipAddress?: string | null; userAgent?: string | null },
   ): Promise<{ userEmail: string }> {
     // A1-06 — `findUnique({ unsubscribeToken: undefined })` rzucało wyjątek Prisma (500).
-    if (!token?.trim()) throw new BadRequestException('Brak tokenu wypisu — użyj linku z wiadomości.');
+    if (!token?.trim()) throw new BadRequestException('Brak tokenu wypisu – użyj linku z wiadomości.');
     const row = await this.prisma.marketingPreferences.findUnique({
       where: { unsubscribeToken: token },
       include: { user: { select: { id: true, email: true } } },

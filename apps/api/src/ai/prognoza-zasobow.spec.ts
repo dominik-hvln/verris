@@ -25,7 +25,7 @@ describe('prognoza zasobów bez AI', () => {
     const ram = p.resources.find((r) => r.resource === 'RAM')!;
     expect(ram).toMatchObject({ trend: 'flat', currentPct: 30, daysToLimit: null });
     expect(p.confidence).toBe('high');
-    expect(opisPrognozy(p.resources)).toMatch(/^Najbliżej limitu: dysk — 94% teraz, limit za ok\. 1 dzień/);
+    expect(opisPrognozy(p.resources)).toMatch(/^Najbliżej limitu: dysk – 94% teraz, limit za ok\. 1 dzień/);
   });
 
   it('historia do wykresu: % limitu, posortowana, najwyżej 168 punktów (7 dni)', () => {
@@ -47,7 +47,7 @@ describe('prognoza zasobów bez AI', () => {
   });
 });
 
-describe('AiService.serviceForecast — AI komentuje gotowe liczby', () => {
+describe('AiService.serviceForecast – AI komentuje gotowe liczby', () => {
   const sub = { id: 's1', plan };
   const prisma = {
     subscription: { findFirst: vi.fn(async () => sub) },

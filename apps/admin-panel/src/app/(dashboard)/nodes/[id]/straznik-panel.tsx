@@ -14,7 +14,7 @@ const STAN: Record<ZdarzenieStraznika["stan"], { tekst: string; ton: "ok" | "war
 };
 
 const czas = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleString("pl-PL", { timeZone: "Europe/Warsaw", dateStyle: "short", timeStyle: "medium" }) : "—";
+  iso ? new Date(iso).toLocaleString("pl-PL", { timeZone: "Europe/Warsaw", dateStyle: "short", timeStyle: "medium" }) : "–";
 
 /**
  * 13.10 — strażnik węzła na karcie węzła: zdarzenia (objaw, kroki naprawy, wynik), pełna diagnoza zapisana przed
@@ -54,8 +54,8 @@ export function StraznikPanel({ serverId, isAdmin }: { serverId: string; isAdmin
     const nowy = !stan.restartWezla;
     const ok = await potwierdz(
       nowy
-        ? "Włączyć restart węzłów przez strażnika? W ostateczności (stan jądra LVE, gdy restart LiteSpeed i CageFS nie pomogły) strażnik zrestartuje węzeł — najwyżej raz na dobę, z alarmem przed i po. Dotyczy całej floty."
-        : "Wyłączyć restart węzłów przez strażnika? Przy awarii jądra strażnik tylko zaalarmuje — restart zrobisz ręcznie. Dotyczy całej floty.",
+        ? "Włączyć restart węzłów przez strażnika? W ostateczności (stan jądra LVE, gdy restart LiteSpeed i CageFS nie pomogły) strażnik zrestartuje węzeł – najwyżej raz na dobę, z alarmem przed i po. Dotyczy całej floty."
+        : "Wyłączyć restart węzłów przez strażnika? Przy awarii jądra strażnik tylko zaalarmuje – restart zrobisz ręcznie. Dotyczy całej floty.",
       { akcja: nowy ? "Włącz" : "Wyłącz", niebezpieczne: !nowy },
     );
     if (!ok) return;

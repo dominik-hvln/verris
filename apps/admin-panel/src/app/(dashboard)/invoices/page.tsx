@@ -85,7 +85,7 @@ export default async function AdminInvoicesPage({ searchParams }: PageProps) {
             Faktury
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Faktury Verris — własne PDF (VFV/…) i dokumenty ze Stripe. Filtruj po kliencie, statusie i dacie.
+            Faktury Verris – własne PDF (VFV/…) i dokumenty ze Stripe. Filtruj po kliencie, statusie i dacie.
           </p>
           {/* Z-01 — droga wewnątrz systemu dla przypadków nietypowych. */}
           {reczna ? (
@@ -150,7 +150,7 @@ export default async function AdminInvoicesPage({ searchParams }: PageProps) {
                 defaultValue={statuses?.[0] ?? ""}
                 className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
                 options={[
-                  { value: "", label: "— wszystkie —" },
+                  { value: "", label: "– wszystkie –" },
                   ...STATUS_OPTIONS.map((s) => ({ value: s.value, label: s.label })),
                 ]}
               />
@@ -162,7 +162,7 @@ export default async function AdminInvoicesPage({ searchParams }: PageProps) {
                 name="ksef"
                 defaultValue={ksef ?? ""}
                 className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
-                options={[{ value: "", label: "— wszystkie —" }, ...Object.entries(KSEF).map(([value, k]) => ({ value, label: k.t }))]}
+                options={[{ value: "", label: "– wszystkie –" }, ...Object.entries(KSEF).map(([value, k]) => ({ value, label: k.t }))]}
               />
             </div>
             <div>
@@ -289,13 +289,13 @@ function InvoiceRow({ inv }: { inv: AdminInvoiceRow }) {
       <td className="px-6 py-4 text-xs">
         {inv.subscription ? (
           <>
-            <div className="text-white">{inv.subscription.planName ?? "—"}</div>
+            <div className="text-white">{inv.subscription.planName ?? "–"}</div>
             <div className="text-muted-foreground font-mono text-[11px]">
               {domenaDoWyswietlenia(inv.subscription.domain) ?? "(brak domeny)"}
             </div>
           </>
         ) : (
-          <span className="text-muted-foreground">— bez subskrypcji —</span>
+          <span className="text-muted-foreground">– bez subskrypcji –</span>
         )}
       </td>
       <td className="px-6 py-4 text-sm tabular-nums text-white">
@@ -319,11 +319,11 @@ function InvoiceRow({ inv }: { inv: AdminInvoiceRow }) {
             {inv.ksefNumber ? <div className="mt-0.5 font-mono text-[10px] text-muted-foreground">{inv.ksefNumber}</div> : null}
           </>
         ) : (
-          <span className="text-xs text-muted-foreground">—</span>
+          <span className="text-xs text-muted-foreground">–</span>
         )}
       </td>
       <td className="px-6 py-4 text-xs text-muted-foreground">
-        {inv.issuedAt ? new Date(inv.issuedAt).toLocaleString("pl-PL") : "—"}
+        {inv.issuedAt ? new Date(inv.issuedAt).toLocaleString("pl-PL") : "–"}
       </td>
       <td className="px-6 py-4 text-right">
         <div className="inline-flex items-center justify-end gap-2">

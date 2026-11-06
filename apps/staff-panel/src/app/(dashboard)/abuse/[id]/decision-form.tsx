@@ -77,7 +77,7 @@ export function DecisionForm({
       {usluga && !dzialajaca ? (
         <p className="text-xs text-muted-foreground" data-usluga="niedzialajaca">
           Usługa {nazwa} jest już {usluga.status === "SUSPENDED" ? "zawieszona" : "zakończona"}
-          {doDopisania ? " — za brak płatności albo przez partnera, więc po wpłacie wróciłaby sama. Zawieszenie za nadużycie zostaje do decyzji obsługi." : "."}
+          {doDopisania ? " – za brak płatności albo przez partnera, więc po wpłacie wróciłaby sama. Zawieszenie za nadużycie zostaje do decyzji obsługi." : "."}
         </p>
       ) : null}
       {dzialajaca && mozeBlokowac ? (
@@ -99,14 +99,14 @@ export function DecisionForm({
       ) : null}
       {doZawieszenia && !mozeZawiesic ? (
         <p className="text-xs text-muted-foreground" data-zawies="brak-uprawnien">
-          Zawieszenie usługi {nazwa} wymaga uprawnienia SUBSCRIPTIONS_SUSPEND — wyślij wniosek z karty usługi w panelu operatora.
+          Zawieszenie usługi {nazwa} wymaga uprawnienia SUBSCRIPTIONS_SUSPEND – wyślij wniosek z karty usługi w panelu operatora.
         </p>
       ) : null}
       {potwierdzenie ? (
         <div className="space-y-2 rounded-lg border border-rose-500/40 bg-rose-500/10 p-3" data-zawies="potwierdzenie">
           <p className="text-xs text-rose-100">
             {doDopisania
-              ? `Zawiesić ${nazwa} za nadużycie? Usługa zostanie zawieszona także po opłaceniu zaległości — odwiesza ją dopiero obsługa. Wpis trafi do dziennika klienta jako działanie obsługi Verris.`
+              ? `Zawiesić ${nazwa} za nadużycie? Usługa zostanie zawieszona także po opłaceniu zaległości – odwiesza ją dopiero obsługa. Wpis trafi do dziennika klienta jako działanie obsługi Verris.`
               : `Zawiesić ${nazwa}? Strona, poczta (odbiór i wysyłka) i FTP klienta przestaną działać do odwieszenia. Wpis trafi do dziennika klienta jako działanie obsługi Verris.`}
           </p>
           <div className="flex flex-wrap gap-2">

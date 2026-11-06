@@ -27,7 +27,7 @@ const HOSTING = {
 
 const POCZTA = { ...HOSTING, isEmailProduct: true };
 
-describe('PANEL-01 — licznik onboardingu', () => {
+describe('PANEL-01 – licznik onboardingu', () => {
   it('licznik hostingu da się doprowadzić do końca', () => {
     const p = podsumujKroki(zbudujKroki({ ...HOSTING, dnsOk: true, tlsOk: true }));
     expect(p.sprawdzane).toBeGreaterThan(0);
@@ -89,7 +89,7 @@ describe('PANEL-01 — licznik onboardingu', () => {
     }
   });
 
-  it('kontrola strażnika — wykrywa krok bez detekcji wliczony do mianownika', () => {
+  it('kontrola strażnika – wykrywa krok bez detekcji wliczony do mianownika', () => {
     // Spreparowany zestaw udający starą wadę: krok bez detekcji zapisany jako
     // `niezrobione`. Gdyby ta asercja nie zapalała się na takim wejściu,
     // strażnik nie pilnowałby niczego.
@@ -101,7 +101,7 @@ describe('PANEL-01 — licznik onboardingu', () => {
   });
 });
 
-describe('PROD-02 — pasek postępu w sidebarze', () => {
+describe('PROD-02 – pasek postępu w sidebarze', () => {
   const usluga = (id: string, dnsOk: boolean | null, tlsOk: boolean | null) => ({
     id,
     nazwa: `${id}.pl`,
@@ -139,7 +139,7 @@ describe('PROD-02 — pasek postępu w sidebarze', () => {
   });
 });
 
-describe('PROD-02 — kroki płatność i faktura', () => {
+describe('PROD-02 – kroki płatność i faktura', () => {
   const usluga = (o: Partial<ServiceSummaryDto> = {}) =>
     ({ id: 's1', status: 'ACTIVE', planName: 'Start', priceAmount: '29.00', paymentSource: 'WALLET', productKind: 'HOSTING', account: null, health: null, ...o }) as unknown as ServiceSummaryDto;
   const stan = (u: ServiceSummaryDto, konto: Parameters<typeof uslugiOnboardingu>[1]) => {

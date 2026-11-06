@@ -113,7 +113,7 @@ export function PasekDni({
       ref={grupa}
       className="sv-pasek"
       role="group"
-      aria-label={`${nazwa} — stan dzień po dniu, ostatnie ${dni.length} ${plForm(dni.length, 'dzień', 'dni', 'dni')}`}
+      aria-label={`${nazwa} – stan dzień po dniu, ostatnie ${dni.length} ${plForm(dni.length, 'dzień', 'dni', 'dni')}`}
       data-otwarty={otwarty !== null ? '' : undefined}
       onKeyDown={onKeyDown}
       onPointerLeave={(e) => {

@@ -34,7 +34,7 @@ const bash = (env: Record<string, string>, kod: string) =>
   });
 const b64 = (s: string) => Buffer.from(s).toString('base64');
 
-describe('node-git-deploy.sh — ochrona .git, .env z panelu i budowanie', () => {
+describe('node-git-deploy.sh – ochrona .git, .env z panelu i budowanie', () => {
   it('.git dostaje 0700, a /.env trafia do .git/info/exclude raz (także przy kolejnych pull)', () => {
     const { cel } = repo();
     chmodSync(join(cel, '.git'), 0o755);

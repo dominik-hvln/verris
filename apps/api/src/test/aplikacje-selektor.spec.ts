@@ -48,8 +48,8 @@ esac
   return { ...r, wywolania, wynik };
 }
 
-opisz('B-08/B-09 — node-app-selector.sh', () => {
-  it('destroy: pusty katalog pod adresem aplikacji znika, katalog z plikami zostaje — t1 02.10', () => {
+opisz('B-08/B-09 – node-app-selector.sh', () => {
+  it('destroy: pusty katalog pod adresem aplikacji znika, katalog z plikami zostaje – t1 02.10', () => {
     // getent podaje prawdziwy katalog domowy użytkownika testów — domena unikalna i sprzątana po teście.
     const dom = `verris-test-${process.pid}.pl`;
     const pub = join(homedir(), 'domains', dom, 'public_html');
@@ -99,7 +99,7 @@ opisz('B-08/B-09 — node-app-selector.sh', () => {
     expect(JSON.parse(create[create.indexOf('--env-vars') + 1])).toEqual(env);
   });
 
-  it('create: base64 zmiennych bez końcowego „=” (starszy agent go ucinał) — test D3 30.09', () => {
+  it('create: base64 zmiennych bez końcowego „=” (starszy agent go ucinał) – test D3 30.09', () => {
     const env = { VERRIS_TEST: 'ok' };
     const b64 = Buffer.from(JSON.stringify(env)).toString('base64');
     expect(b64.endsWith('=')).toBe(true);
@@ -112,7 +112,7 @@ opisz('B-08/B-09 — node-app-selector.sh', () => {
     expect(JSON.parse(create[create.indexOf('--env-vars') + 1])).toEqual(env);
   });
 
-  it('LiteSpeed: wersja Pythona bez lswsgi znika z listy i nie da się na niej utworzyć aplikacji — t1 01.10', () => {
+  it('LiteSpeed: wersja Pythona bez lswsgi znika z listy i nie da się na niej utworzyć aplikacji – t1 01.10', () => {
     const alt = mkdtempSync(join(tmpdir(), 'alt-'));
     const lsws = join(alt, 'lswsctrl');
     writeFileSync(lsws, '#!/bin/sh\n');
@@ -136,7 +136,7 @@ opisz('B-08/B-09 — node-app-selector.sh', () => {
     expect(uruchom({ ...{ AS_MODE: 'create', AS_INTERPRETER: 'python', AS_ROOT: 'apps/py', AS_DOMAIN: 'a.pl', AS_URI: '', AS_VERSION: '3.11', AS_STARTUP: 'app.py', AS_ENTRY: 'application', AS_ENV_B64: '' }, ...env }).status).toBe(0);
   });
 
-  it('wersja do selektora jako główna (Node 24, Python 3.11) — t1 01.10: set odrzucał 24.21.0', () => {
+  it('wersja do selektora jako główna (Node 24, Python 3.11) – t1 01.10: set odrzucał 24.21.0', () => {
     const u = uruchom({
       AS_MODE: 'update', AS_INTERPRETER: 'nodejs', AS_ROOT: 'apps/api', AS_DOMAIN: 'a.pl', AS_URI: '',
       AS_VERSION: '24.21.0', AS_STARTUP: 'app.js', AS_ENV_B64: '',
@@ -152,7 +152,7 @@ opisz('B-08/B-09 — node-app-selector.sh', () => {
     expect(create[create.indexOf('--version') + 1]).toBe('3.11');
   });
 
-  it('Python: plik startowy passenger_wsgi.py odrzucony (selektor zapisuje go sam — rekurencja, t1 01.10)', () => {
+  it('Python: plik startowy passenger_wsgi.py odrzucony (selektor zapisuje go sam – rekurencja, t1 01.10)', () => {
     const r = uruchom({
       AS_MODE: 'create', AS_INTERPRETER: 'python', AS_ROOT: 'apps/py', AS_DOMAIN: 'a.pl', AS_URI: '',
       AS_VERSION: '3.11', AS_STARTUP: 'passenger_wsgi.py', AS_ENTRY: 'application', AS_ENV_B64: '',

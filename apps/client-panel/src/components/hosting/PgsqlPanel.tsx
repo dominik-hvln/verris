@@ -77,7 +77,7 @@ export function PgsqlPanel({ serviceId }: { serviceId: string }) {
 
       {nowa ? (
         <div role="status" className="mb-3 rounded-[10px] border border-line-strong bg-card px-4 py-3 text-[13.5px]">
-          <p className="m-0 mb-2 font-medium text-foreground">Zapisz dane połączenia — hasła nie pokażemy ponownie.</p>
+          <p className="m-0 mb-2 font-medium text-foreground">Zapisz dane połączenia – hasła nie pokażemy ponownie.</p>
           <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 font-mono text-[12.5px]">
             <dt className="text-muted-foreground">Baza / użytkownik</dt>
             <dd className="m-0 break-all">{nowa.nazwa}</dd>
@@ -91,7 +91,7 @@ export function PgsqlPanel({ serviceId }: { serviceId: string }) {
             <dt className="text-muted-foreground">Adres</dt>
             <dd className="m-0 break-all">postgresql://{nowa.uzytkownik}:***@{nowa.host}:{nowa.port}/{nowa.nazwa}</dd>
           </dl>
-          <p className="m-0 mt-2 text-[12px] text-muted-foreground">Baza będzie gotowa za kilka sekund — lista odświeży się sama.</p>
+          <p className="m-0 mt-2 text-[12px] text-muted-foreground">Baza będzie gotowa za kilka sekund – lista odświeży się sama.</p>
           <button type="button" className={`${BTN} mt-3`} onClick={() => setNowa(null)}>Zapisałem</button>
         </div>
       ) : null}
@@ -131,7 +131,7 @@ export function PgsqlPanel({ serviceId }: { serviceId: string }) {
 
       {stan && stan.odczytano === null && !stan.wToku ? (
         <p className="m-0 rounded-[10px] border border-line bg-card px-4 py-3 text-[13.5px] text-muted-foreground">
-          Brak baz PostgreSQL — utwórz pierwszą albo kliknij „Odśwież”, żeby pobrać listę z serwera.
+          Brak baz PostgreSQL – utwórz pierwszą albo kliknij „Odśwież”, żeby pobrać listę z serwera.
         </p>
       ) : null}
       {stan?.bazy.length ? (

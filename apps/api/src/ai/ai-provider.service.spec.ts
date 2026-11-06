@@ -7,7 +7,7 @@ const konfig = (w: Record<string, string>) => ({ get: vi.fn((k: string) => w[k])
 const odp = (body: unknown) => ({ ok: true, json: async () => body });
 const wyslane = () => JSON.parse((global.fetch as Mock).mock.calls[0][1].body as string) as Record<string, unknown>;
 
-describe('AiProviderService — dwa poziomy (L-11)', () => {
+describe('AiProviderService – dwa poziomy (L-11)', () => {
   beforeEach(() => {
     global.fetch = vi.fn() as unknown as typeof fetch;
   });
@@ -142,7 +142,7 @@ describe('AiProviderService — dwa poziomy (L-11)', () => {
   });
 });
 
-describe('AiProviderService.wywolajModelem — asystent www (1.11)', () => {
+describe('AiProviderService.wywolajModelem – asystent www (1.11)', () => {
   beforeEach(() => {
     global.fetch = vi.fn() as unknown as typeof fetch;
   });

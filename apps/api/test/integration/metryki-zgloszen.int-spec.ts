@@ -9,7 +9,7 @@ import { prisma, rozlacz, wyczyscBaze } from './setup.js';
  */
 const S = 1000;
 
-describe('przegląd F2.5 — metryki czasu odpowiedzi bez notatek i zgłoszeń od obsługi', () => {
+describe('przegląd F2.5 – metryki czasu odpowiedzi bez notatek i zgłoszeń od obsługi', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 

@@ -54,7 +54,7 @@ export default async function IamPage() {
     <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6">
       <PanelPageHeader
         title="IAM i subkonta"
-        description="Deleguj dostęp bez udostępniania hasła właściciela — do całego konta albo tylko do wybranych usług. Każda akcja jest limitowana uprawnieniami i widoczna w audycie."
+        description="Deleguj dostęp bez udostępniania hasła właściciela – do całego konta albo tylko do wybranych usług. Każda akcja jest limitowana uprawnieniami i widoczna w audycie."
       />
 
       <Suspense fallback={null}>
@@ -73,7 +73,7 @@ export default async function IamPage() {
               osoba przyjmie je ze swojego konta i będzie przełączać się między kontami bez nowego loginu.
             </p>
             <p className="mt-1 text-sm text-neutral-500">
-              Adres bez konta Verris dostaje subkonto — login przypięty do Twojego konta. Subkonto możesz w każdej chwili wyłączyć
+              Adres bez konta Verris dostaje subkonto – login przypięty do Twojego konta. Subkonto możesz w każdej chwili wyłączyć
               i włączyć ponownie albo usunąć: wtedy adres się zwalnia (możesz go zaprosić jeszcze raz, a ta osoba może założyć własne konto).
               Rezygnacja z usług, usunięcie konta i zarządzanie dostępem zostają zawsze u Ciebie.
             </p>
@@ -122,7 +122,7 @@ export default async function IamPage() {
                         <input type="hidden" name="id" value={member.id} />
                         <PrzyciskZPotwierdzeniem
                           tytul="Usunąć subkonto?"
-                          pytanie={`Subkonto ${pokazEmail(member.email)} zniknie z listy, a adres się zwolni — możesz go potem zaprosić ponownie. Wpisy w dzienniku zostają. Tego nie da się cofnąć.`}
+                          pytanie={`Subkonto ${pokazEmail(member.email)} zniknie z listy, a adres się zwolni – możesz go potem zaprosić ponownie. Wpisy w dzienniku zostają. Tego nie da się cofnąć.`}
                           akcja="Usuń subkonto"
                           niebezpieczne
                           className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-neutral-300 hover:bg-white/10"
@@ -136,7 +136,7 @@ export default async function IamPage() {
                       <input type="hidden" name="id" value={member.id} />
                       <PrzyciskZPotwierdzeniem
                         tytul="Wyłączyć subkonto?"
-                        pytanie={`${pokazEmail(member.email)} nie zaloguje się, a otwarte sesje zostaną zakończone. Dostaniesz przycisk „Włącz ponownie”, a osoba — maila o odebraniu dostępu.`}
+                        pytanie={`${pokazEmail(member.email)} nie zaloguje się, a otwarte sesje zostaną zakończone. Dostaniesz przycisk „Włącz ponownie”, a osoba – maila o odebraniu dostępu.`}
                         akcja="Wyłącz"
                         className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-neutral-300 hover:bg-white/10"
                       >

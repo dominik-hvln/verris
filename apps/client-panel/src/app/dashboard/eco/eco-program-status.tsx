@@ -4,7 +4,7 @@ import type { EcoProgramOverview } from './eco-data';
 
 const REFERRAL_STATUS_LABEL: Record<string, string> = {
   PENDING: 'Oczekuje na akceptację',
-  APPROVED: 'Aktywny — możesz polecać hosting',
+  APPROVED: 'Aktywny – możesz polecać hosting',
   REJECTED: 'Zgłoszenie odrzucone',
 };
 
@@ -25,7 +25,7 @@ export function EcoProgramStatus({ overview }: { overview: EcoProgramOverview })
                 Aktywny
               </>
             ) : (
-              'Dołącz — włącz tryb EKO na usłudze lub zbieraj punkty'
+              'Dołącz – włącz tryb EKO na usłudze lub zbieraj punkty'
             )}
           </span>
         </p>
@@ -65,7 +65,7 @@ export function EcoProgramStatus({ overview }: { overview: EcoProgramOverview })
               <>
                 Skonfigurowany na {overview.ecoModeOnServices}{' '}
                 {overview.ecoModeOnServices === 1 ? 'usłudze' : 'usługach'}, ale żadna nie jest jeszcze
-                aktywna — po uruchomieniu usługi tryb zacznie działać.
+                aktywna – po uruchomieniu usługi tryb zacznie działać.
               </>
             ) : (
               <>

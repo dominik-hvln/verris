@@ -47,7 +47,7 @@ async function zaproszenie(ownerUserId: string, email: string, serviceIds: strin
   return token;
 }
 
-describe('PB-20 — członkostwo z własnego konta i zakres usług', () => {
+describe('PB-20 – członkostwo z własnego konta i zakres usług', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 

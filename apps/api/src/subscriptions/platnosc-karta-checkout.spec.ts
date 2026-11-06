@@ -83,7 +83,7 @@ describe('Płatność kartą za usługę przez Stripe Checkout', () => {
     });
   });
 
-  it('ponowienie płatności: otwarta sesja wraca bez nowej; opłacona — odmowa; wygasła — nowa sesja', async () => {
+  it('ponowienie płatności: otwarta sesja wraca bez nowej; opłacona – odmowa; wygasła – nowa sesja', async () => {
     const otwarta = uslugi({ sesje: [{ id: 'cs_1', status: 'open', url: 'https://checkout.stripe.test/cs_1' }] });
     await expect(otwarta.svc.getPaymentRetryUrl('u1', 's1')).resolves.toEqual({ url: 'https://checkout.stripe.test/cs_1' });
     expect(otwarta.stripe.createSubscriptionCheckoutSession).not.toHaveBeenCalled();

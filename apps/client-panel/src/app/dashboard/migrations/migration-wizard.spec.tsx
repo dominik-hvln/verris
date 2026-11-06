@@ -54,7 +54,7 @@ it('host odrzucony przez API (status blocked) zatrzymuje kreator na teście dost
   mockPreflight.mockResolvedValue({
     result: {
       ok: false,
-      checks: [{ kind: 'ftp', target: 'ftp://127.0.0.1:21', status: 'blocked', message: 'Host wskazuje na sieć prywatną — odrzucono.', latencyMs: 1 }],
+      checks: [{ kind: 'ftp', target: 'ftp://127.0.0.1:21', status: 'blocked', message: 'Host wskazuje na sieć prywatną – odrzucono.', latencyMs: 1 }],
       checkedAt: '2026-10-08T10:00:00Z',
     },
   });
@@ -76,7 +76,7 @@ it('błąd startu znika po cofnięciu do formularza', async () => {
   mockPreflight.mockResolvedValue({
     result: { ok: false, checks: [{ kind: 'ftp', target: 'ftp://x:21', status: 'unreachable', message: 'Brak połączenia: timeout', latencyMs: 1 }], checkedAt: 'x' },
   });
-  mockCreate.mockResolvedValue({ error: 'Host wskazuje na sieć prywatną — odrzucono.' });
+  mockCreate.mockResolvedValue({ error: 'Host wskazuje na sieć prywatną – odrzucono.' });
   await klik(przycisk('Dalej: test dostępów'));
   await klik(przycisk('Dalej: podsumowanie'));
   await klik([...el.querySelectorAll('input')].find((i) => i.type === 'checkbox')!);
@@ -109,7 +109,7 @@ it('akcja nieznana po deployu przy starcie: przycisk wraca, komunikat o odświe�
   expect(przycisk('Uruchom migrację').disabled).toBe(false);
 });
 
-it('D11: data końca obecnego hostingu idzie do API jako termin (koniec dnia), puste pole — bez terminu', async () => {
+it('D11: data końca obecnego hostingu idzie do API jako termin (koniec dnia), puste pole – bez terminu', async () => {
   mockPreflight.mockResolvedValue({
     result: { ok: true, checks: [{ kind: 'ftp', target: 'ftp://x:21', status: 'ok', message: 'OK', latencyMs: 1 }], checkedAt: 'x' },
   });

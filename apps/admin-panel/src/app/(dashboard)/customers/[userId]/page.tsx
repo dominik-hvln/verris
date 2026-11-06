@@ -69,7 +69,7 @@ export const dynamic = "force-dynamic";
 const STREFA = "Europe/Warsaw";
 
 const data = (iso: string | null | undefined, rok = true) =>
-  iso ? new Date(iso).toLocaleDateString("pl-PL", { day: "2-digit", month: "2-digit", ...(rok ? { year: "numeric" } : {}), timeZone: STREFA }) : "—";
+  iso ? new Date(iso).toLocaleDateString("pl-PL", { day: "2-digit", month: "2-digit", ...(rok ? { year: "numeric" } : {}), timeZone: STREFA }) : "–";
 function kiedy(iso: string) {
   const d = new Date(iso);
   const dzien = (x: Date) => x.toLocaleDateString("pl-PL", { timeZone: STREFA });
@@ -103,7 +103,7 @@ const AKCJE: Record<string, string> = {
   SUBSCRIPTION_OWNER_CHANGED: "Zmiana właściciela usługi",
   ADDON_PURCHASED: "Dodatek",
   ADDON_FULFILLED: "Dodatek zrealizowany",
-  ADDON_REFUNDED: "Dodatek — odmowa ze zwrotem",
+  ADDON_REFUNDED: "Dodatek – odmowa ze zwrotem",
   SUBSCRIPTION_LIMITS_CUSTOMIZED: "Limity indywidualne usługi",
   SUBSCRIPTION_LIMITS_RESET: "Przywrócono limity planu",
   PLAN_CHANGED: "Zmiana pakietu",
@@ -286,7 +286,7 @@ export default async function AdminCustomerCardPage({
               <Link href={`/customers/${u.subkontoKonta.id}`} className="font-mono underline">
                 {u.subkontoKonta.email}
               </Link>{" "}
-              — usługi, portfel i warunki są na koncie właściciela.
+              – usługi, portfel i warunki są na koncie właściciela.
             </p>
           ) : null}
           <h1 className="text-[28px] lg:text-[34px]">{nazwa}</h1>
@@ -336,7 +336,7 @@ export default async function AdminCustomerCardPage({
           <ul className="mt-1.5 flex flex-col gap-1 text-[13px]">
             {p.statusPageOpenIncidents.map((i) => (
               <li key={i.id}>
-                <span className="font-mono text-xs text-muted-foreground">{i.severity}</span> · {i.title} · {i.serverName} — {i.probeTarget} (od {kiedy(i.startedAt)})
+                <span className="font-mono text-xs text-muted-foreground">{i.severity}</span> · {i.title} · {i.serverName} – {i.probeTarget} (od {kiedy(i.startedAt)})
               </li>
             ))}
           </ul>
@@ -367,11 +367,11 @@ export default async function AdminCustomerCardPage({
         <Kpi etykieta="Zgłoszenia" wartosc={otwarteZgl.length} jednostka={plForm(otwarteZgl.length, "otwarte", "otwarte", "otwartych")}>
           {poTerminie[0] ? (
             <a href={zgloszenieHref(poTerminie[0].id)} className="text-[13px] font-semibold text-crit hover:underline">
-              #{poTerminie[0].id.slice(0, 8)} — po terminie SLA →
+              #{poTerminie[0].id.slice(0, 8)} – po terminie SLA →
             </a>
           ) : otwarteZgl[0] ? (
             <a href={zgloszenieHref(otwarteZgl[0].id)} className="text-[13px] font-semibold text-data-hi hover:underline">
-              #{otwarteZgl[0].id.slice(0, 8)} — {etykieta(TICKET_STATUS_PL, otwarteZgl[0].status).toLowerCase()} →
+              #{otwarteZgl[0].id.slice(0, 8)} – {etykieta(TICKET_STATUS_PL, otwarteZgl[0].status).toLowerCase()} →
             </a>
           ) : (
             <span className="text-[13px] text-muted-foreground">nic otwartego</span>
@@ -470,7 +470,7 @@ export default async function AdminCustomerCardPage({
                 </h2>
                 <LinkKarty href={`${baza}?sekcja=rozliczenia`}>Szczegóły</LinkKarty>
               </div>
-              <Para k="Sposób" v={zrodla.join(", ") || "—"} />
+              <Para k="Sposób" v={zrodla.join(", ") || "–"} />
               <Para k="Warunki indywidualne" v={indywidualne.length ? services(indywidualne.length) : "brak"} />
               <Para k="Dane do faktury" v={u.companyName && u.nip ? `komplet · NIP ${u.nip}` : u.nip ? `NIP ${u.nip} · bez nazwy firmy` : "osoba prywatna / brak NIP"} />
               {statusVat ? (
@@ -618,7 +618,7 @@ export default async function AdminCustomerCardPage({
               {p.paymentMethods.map((m) => (
                 <div key={m.id} className={WIERSZ}>
                   <span className="flex-1 text-sm">
-                    {m.brand ?? m.provider} •••• {m.last4 ?? "—"}
+                    {m.brand ?? m.provider} •••• {m.last4 ?? "–"}
                     {m.expMonth && m.expYear ? <span className="text-muted-foreground"> · ważna do {String(m.expMonth).padStart(2, "0")}/{m.expYear}</span> : null}
                   </span>
                   {m.isDefault ? (
@@ -694,8 +694,8 @@ export default async function AdminCustomerCardPage({
         <>
           <section className={`${KARTA} flex flex-col gap-2 p-5`} aria-label="Dostęp do konta" data-karta="dostep">
             <Para k="Logowanie dwuetapowe (2FA)" v={u.isTwoFactorEnabled ? "włączone" : "wyłączone"} />
-            <Para k="Logowanie" v={u.loginBlocked ? `zablokowane${u.loginBlockedReason ? ` — ${u.loginBlockedReason}` : ""}` : "dozwolone"} />
-            <Para k="Klient Stripe" v={u.stripeCustomerId ?? "—"} mono />
+            <Para k="Logowanie" v={u.loginBlocked ? `zablokowane${u.loginBlockedReason ? ` – ${u.loginBlockedReason}` : ""}` : "dozwolone"} />
+            <Para k="Klient Stripe" v={u.stripeCustomerId ?? "–"} mono />
             <Para k="ID konta" v={u.id} mono />
           </section>
           <ZespolKlientaKarta zespol={zespol} />
@@ -754,7 +754,7 @@ function PrzyciskAkcji({ d, className, children }: { d: DzialanieNaKarcie; class
     <span className="inline-flex items-center gap-2">
       <button type="button" disabled title={d.zablokowane} className={`${className} cursor-not-allowed`}>
         {children}
-        <span className="sr-only"> — {d.zablokowane}</span>
+        <span className="sr-only"> – {d.zablokowane}</span>
       </button>
       {d.wniosek ? (
         <Link href={d.href} className="text-xs font-semibold text-warn underline-offset-2 hover:underline">

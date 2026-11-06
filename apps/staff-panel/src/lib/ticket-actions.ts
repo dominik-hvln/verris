@@ -97,7 +97,7 @@ export async function staffPostReplyWithFiles(
   }
   // F2.5 — „Zapisz jako notatkę”: ta sama treść idzie do notatek wewnętrznych, nigdy do klienta.
   if (formData.get("rodzaj")?.toString() === "notatka") {
-    if (fileCount > 0) return { error: "Notatka nie przyjmuje załączników — wyślij je w odpowiedzi albo usuń z pola." };
+    if (fileCount > 0) return { error: "Notatka nie przyjmuje załączników – wyślij je w odpowiedzi albo usuń z pola." };
     return staffPostNote(ticketId, message);
   }
 
@@ -384,7 +384,7 @@ export async function staffZamknijZlecenieDodatku(
   tekst: string,
 ): Promise<{ ok: true; note: string } | { error: string }> {
   const t = tekst.trim();
-  if (wynik === "ODMOWA" && t.length < 10) return { error: "Podaj powód odmowy (min. 10 znaków) — klient go zobaczy." };
+  if (wynik === "ODMOWA" && t.length < 10) return { error: "Podaj powód odmowy (min. 10 znaków) – klient go zobaczy." };
   try {
     const id = encodeURIComponent(zakupId);
     const r =

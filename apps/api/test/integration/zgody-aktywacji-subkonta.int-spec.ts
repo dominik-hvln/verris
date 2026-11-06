@@ -38,7 +38,7 @@ async function zaproszenie(ownerUserId: string, email: string) {
   return token;
 }
 
-describe('P3-10 — zgody współpracownika przy aktywacji subkonta', () => {
+describe('P3-10 – zgody współpracownika przy aktywacji subkonta', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     await prisma().legalDocument.deleteMany({});
@@ -48,7 +48,7 @@ describe('P3-10 — zgody współpracownika przy aktywacji subkonta', () => {
   });
   afterAll(rozlacz);
 
-  it('aktywacja z zaproszenia zapisuje regulamin i politykę (źródło: aktywacja subkonta) — po zalogowaniu bez ponownej akceptacji', async () => {
+  it('aktywacja z zaproszenia zapisuje regulamin i politykę (źródło: aktywacja subkonta) – po zalogowaniu bez ponownej akceptacji', async () => {
     const { iam, consents } = serwisy();
     const wlasciciel = await prisma().user.create({ data: { email: `kasia-p310-${Date.now()}@test.verris.pl`, passwordHash: 'x' } });
     const email = `piotr-p310-${Date.now()}@test.verris.pl`;

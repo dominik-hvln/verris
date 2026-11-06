@@ -19,12 +19,12 @@ const wiersz = (status: string, amount = '25', notatka: string | null = null) =>
   zamknietoAt: notatka ? '2026-10-12T10:00:00Z' : null,
 });
 
-describe('M-33 — stan dodatku w historii', () => {
-  it('zrealizowany z notatką, zwrócony z powodem, bez opłaty — anulowany; w realizacji bez zmian', () => {
-    expect(stanDodatku(wiersz('DONE', '25', 'Przydzielono IP 203.0.113.10'))).toBe('Zrealizowany — Przydzielono IP 203.0.113.10');
+describe('M-33 – stan dodatku w historii', () => {
+  it('zrealizowany z notatką, zwrócony z powodem, bez opłaty – anulowany; w realizacji bez zmian', () => {
+    expect(stanDodatku(wiersz('DONE', '25', 'Przydzielono IP 203.0.113.10'))).toBe('Zrealizowany – Przydzielono IP 203.0.113.10');
     expect(stanDodatku(wiersz('DONE'))).toBe('Zrealizowany');
-    expect(stanDodatku(wiersz('REFUNDED', '25', 'Pula adresów IP jest wyczerpana.'))).toBe('Zwrócony — Pula adresów IP jest wyczerpana.');
-    expect(stanDodatku(wiersz('REFUNDED', '0', 'Pula adresów IP jest wyczerpana.'))).toBe('Anulowany — Pula adresów IP jest wyczerpana.');
+    expect(stanDodatku(wiersz('REFUNDED', '25', 'Pula adresów IP jest wyczerpana.'))).toBe('Zwrócony – Pula adresów IP jest wyczerpana.');
+    expect(stanDodatku(wiersz('REFUNDED', '0', 'Pula adresów IP jest wyczerpana.'))).toBe('Anulowany – Pula adresów IP jest wyczerpana.');
     expect(stanDodatku(wiersz('QUEUED'))).toBe('W realizacji');
   });
 
@@ -39,8 +39,8 @@ describe('M-33 — stan dodatku w historii', () => {
       />,
     );
     const t = tekst(html);
-    expect(t).toContain('Zwrócony — Pula adresów IP jest wyczerpana.');
-    expect(t).toContain('Zrealizowany — Skonfigurowaliśmy pocztę.');
+    expect(t).toContain('Zwrócony – Pula adresów IP jest wyczerpana.');
+    expect(t).toContain('Zrealizowany – Skonfigurowaliśmy pocztę.');
     expect(t).not.toContain('REFUNDED');
   });
 });

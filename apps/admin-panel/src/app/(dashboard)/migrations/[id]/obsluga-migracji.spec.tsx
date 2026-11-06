@@ -93,7 +93,7 @@ afterEach(async () => {
   k.remove();
 });
 
-it("braki checklisty: „Dalej” wyłączone z listą braków; bez braków — przejście na następny etap", async () => {
+it("braki checklisty: „Dalej” wyłączone z listą braków; bez braków – przejście na następny etap", async () => {
   await render(baza());
   expect(przycisk("Dalej: Do zmiany DNS").disabled).toBe(true);
   expect(k.querySelector('[aria-label="Brakuje do następnego etapu"]')!.textContent).toContain("TTL domen zmienione na 300");
@@ -125,7 +125,7 @@ it("„Po przełączeniu” wysyła okno poprawek; „Sprawdź DNS” pokazuje k
 });
 
 it("cofnięcie: tylko z wybranym etapem i powodem min. 10 znaków; błąd API na ekranie", async () => {
-  dzialanie.mockResolvedValue({ ok: false, error: "Ktoś właśnie zmienił etap tej migracji — odśwież stronę." });
+  dzialanie.mockResolvedValue({ ok: false, error: "Ktoś właśnie zmienił etap tej migracji – odśwież stronę." });
   await render(baza({ etap: "DO_ZMIANY_DNS", dalej: { etap: "PO_PRZELACZENIU", nazwa: "Po przełączeniu", braki: [] } }));
   expect(przycisk("Cofnij").disabled).toBe(true);
   await wpisz(pole("Cofnij do etapu") as HTMLInputElement, "TESTY");
@@ -137,7 +137,7 @@ it("cofnięcie: tylko z wybranym etapem i powodem min. 10 znaków; błąd API na
   expect(k.querySelector('[role="status"]')!.textContent).toContain("odśwież stronę");
 });
 
-it("raport: bez kompletu wyłączony z brakami; z kompletem — potwierdzenie, potem wysyłka", async () => {
+it("raport: bez kompletu wyłączony z brakami; z kompletem – potwierdzenie, potem wysyłka", async () => {
   await render(baza());
   expect(przycisk("Wyślij raport").disabled).toBe(true);
   expect(k.querySelector('[aria-label="Brakuje do raportu"]')!.textContent).toContain("Po przełączeniu");
@@ -186,7 +186,7 @@ it("Przerywacz i prowadzący: zapis przez ustawienia", async () => {
   await render(baza({ operatorzy: [{ id: "op2", email: "l2b@verris.pl" }] }));
   await klik(przycisk("Oznacz jako Przerywacz"));
   expect(dzialanie).toHaveBeenLastCalledWith("m1", "ustawienia", { przerywacz: true });
-  expect(przycisk("Przerywacz — zdejmij")).toBeDefined();
+  expect(przycisk("Przerywacz – zdejmij")).toBeDefined();
   await wpisz(pole("Prowadzi") as HTMLInputElement, "op2");
   await klik(przycisk("Zapisz"));
   expect(dzialanie).toHaveBeenLastCalledWith("m1", "ustawienia", {

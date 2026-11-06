@@ -149,7 +149,7 @@ export function CustomerOperationalForms({ detail, dostep = ADMIN }: Props) {
         <p className="text-xs text-muted-foreground leading-relaxed">
           Zablokowany klient nie zaloguje się, a wejście na jego konto z panelu też nie zadziała, dopóki blokada trwa.
         </p>
-        {bezZarzadzania ? <p className="text-xs text-amber-200">{bezZarzadzania} — blokadę zmienia starszy specjalista (L3).</p> : null}
+        {bezZarzadzania ? <p className="text-xs text-amber-200">{bezZarzadzania} – blokadę zmienia starszy specjalista (L3).</p> : null}
         <label className="flex items-center gap-3 cursor-pointer">
           <Checkbox
             checked={loginBlocked}
@@ -213,7 +213,7 @@ export function CustomerOperationalForms({ detail, dostep = ADMIN }: Props) {
             userId={detail.id}
             payload={{ newEmail: newEmail.trim() }}
             gotowe={newEmail.trim().includes("@")}
-            podpowiedz={`${bezZarzadzania}. Wpisz nowy adres i wyślij wniosek — zdecyduje kierownik zmiany.`}
+            podpowiedz={`${bezZarzadzania}. Wpisz nowy adres i wyślij wniosek – zdecyduje kierownik zmiany.`}
           />
         ) : (
           <>
@@ -258,7 +258,7 @@ export function CustomerOperationalForms({ detail, dostep = ADMIN }: Props) {
             typ="CUSTOMER_PASSWORD_RESET"
             userId={detail.id}
             payload={{}}
-            podpowiedz={`${bezZarzadzania}. Wyślij wniosek — zdecyduje kierownik zmiany.`}
+            podpowiedz={`${bezZarzadzania}. Wyślij wniosek – zdecyduje kierownik zmiany.`}
           />
         ) : (
           <>
@@ -325,7 +325,7 @@ export function CustomerOperationalForms({ detail, dostep = ADMIN }: Props) {
         {deleteErr ? <p className="text-sm text-rose-300">{deleteErr}</p> : null}
         {deleteOk ? (
           <p className="text-sm text-emerald-300">
-            Konto zanonimizowane. Odśwież listę klientów — profil nie będzie już dostępny.
+            Konto zanonimizowane. Odśwież listę klientów – profil nie będzie już dostępny.
           </p>
         ) : null}
         <button

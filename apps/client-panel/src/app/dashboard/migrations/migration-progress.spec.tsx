@@ -32,7 +32,7 @@ it('krok testu strony z uwagą „strona-bez-bazy” mówi, co zrobić z bazą',
 });
 
 /** P2-06 (decyzja 13) — sklep: przed przełączeniem DNS ostatnie kopiowanie bazy z krótką przerwą na starej stronie. */
-describe('plan przełączenia — sklep z bazą', () => {
+describe('plan przełączenia – sklep z bazą', () => {
   const plan = (o: Record<string, unknown>) =>
     ({
       migrationRequestId: 'm', domain: 'sklep.pl', status: 'waiting-dns', message: 'm', deltaSyncRecommended: false,

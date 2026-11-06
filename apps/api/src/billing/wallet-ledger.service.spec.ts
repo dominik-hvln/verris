@@ -130,7 +130,7 @@ describe('WalletLedgerService (F-02)', () => {
     ).rejects.toBeInstanceOf(ConflictException);
     // Treść trafia do klienta (panel pokazuje komunikat API) — po polsku, bez żargonu.
     await expect(service.debit({ userId: 'user-1', amount: '10.00', type: WalletTxType.CHARGE_AUTOSCALING })).rejects.toThrow(
-      'Za mało środków w portfelu — doładuj portfel i spróbuj ponownie.',
+      'Za mało środków w portfelu – doładuj portfel i spróbuj ponownie.',
     );
     await expect(service.debit({ userId: 'user-1', amount: '0', type: WalletTxType.CHARGE_AUTOSCALING })).rejects.toThrow(
       'Kwota musi być większa od zera.',

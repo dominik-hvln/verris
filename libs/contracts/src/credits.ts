@@ -28,9 +28,9 @@ export function formatCredits(
   opts: FormatOpts = {},
 ): string {
   const { withUnit = true, signed = false, fractionDigits = 2 } = opts;
-  if (amount === null || amount === undefined) return withUnit ? `— ${CREDIT_SHORT}` : '—';
+  if (amount === null || amount === undefined) return withUnit ? `– ${CREDIT_SHORT}` : '–';
   const num = typeof amount === 'string' ? Number.parseFloat(amount) : amount;
-  if (!Number.isFinite(num)) return withUnit ? `— ${CREDIT_SHORT}` : '—';
+  if (!Number.isFinite(num)) return withUnit ? `– ${CREDIT_SHORT}` : '–';
   const abs = Math.abs(num);
   const formatted = abs.toLocaleString('pl-PL', {
     minimumFractionDigits: fractionDigits,
@@ -45,9 +45,9 @@ export function formatPln(
   opts: { withCurrency?: boolean; fractionDigits?: number } = {},
 ): string {
   const { withCurrency = true, fractionDigits = 2 } = opts;
-  if (amount === null || amount === undefined) return withCurrency ? '— zł' : '—';
+  if (amount === null || amount === undefined) return withCurrency ? '– zł' : '–';
   const num = typeof amount === 'string' ? Number.parseFloat(amount) : amount;
-  if (!Number.isFinite(num)) return withCurrency ? '— zł' : '—';
+  if (!Number.isFinite(num)) return withCurrency ? '– zł' : '–';
   const formatted = Math.abs(num).toLocaleString('pl-PL', {
     minimumFractionDigits: fractionDigits,
     maximumFractionDigits: fractionDigits,
@@ -62,7 +62,7 @@ export function formatPlnAndCredits(
   currency = 'PLN',
 ): string {
   if (currency !== 'PLN') {
-    const num = typeof amount === 'string' ? amount : String(amount ?? '—');
+    const num = typeof amount === 'string' ? amount : String(amount ?? '–');
     return `${num} ${currency}`;
   }
   return `${formatCredits(amount)} (≈ ${formatPln(amount)})`;

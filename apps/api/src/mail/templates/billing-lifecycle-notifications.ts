@@ -54,7 +54,7 @@ export function slaCreditTemplate(ctx: SlaCreditContext): MailMessage {
       ``,
       `Wykryliśmy przestój infrastruktury dotyczący Twojej usługi **${escapeMarkdown(
         ctx.serviceName,
-      )}** (${escapeMarkdown(ctx.incidentDate.toLocaleDateString('pl-PL'))}, ~${dur}). Zgodnie z naszą gwarancją SLA **automatycznie doliczyliśmy rekompensatę do Twojego portfela** — nie musisz o nią wnioskować.`,
+      )}** (${escapeMarkdown(ctx.incidentDate.toLocaleDateString('pl-PL'))}, ~${dur}). Zgodnie z naszą gwarancją SLA **automatycznie doliczyliśmy rekompensatę do Twojego portfela** – nie musisz o nią wnioskować.`,
       ``,
       `- **Kredyt SLA:** ${escapeMarkdown(amount)}`,
       `- **Czas przestoju:** ~${dur}`,
@@ -117,7 +117,7 @@ export function walletTopupOkTemplate(ctx: WalletTopupOkContext): MailMessage {
   const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: 'Portfel doładowany',
-    preheader: `${formatPLN(ctx.amountPln)} — nowe saldo ${formatPLN(ctx.newBalancePln)}.`,
+    preheader: `${formatPLN(ctx.amountPln)} – nowe saldo ${formatPLN(ctx.newBalancePln)}.`,
     bodyMarkdown: [
       greeting,
       ``,
@@ -136,7 +136,7 @@ export function walletTopupOkTemplate(ctx: WalletTopupOkContext): MailMessage {
   return {
     to: ctx.to,
     tag: 'wallet.topup-ok',
-    subject: `[Verris] Doładowano portfel — ${formatPLN(ctx.amountPln)}`,
+    subject: `[Verris] Doładowano portfel – ${formatPLN(ctx.amountPln)}`,
     text,
     html,
   };
@@ -158,7 +158,7 @@ export function walletAutoTopupOkTemplate(ctx: WalletAutoTopupOkContext): MailMe
   const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: 'Auto-doładowanie portfela',
-    preheader: `Dodano ${formatPLN(ctx.amountPln)} — saldo ${formatPLN(ctx.newBalancePln)}.`,
+    preheader: `Dodano ${formatPLN(ctx.amountPln)} – saldo ${formatPLN(ctx.newBalancePln)}.`,
     bodyMarkdown: [
       greeting,
       ``,
@@ -176,7 +176,7 @@ export function walletAutoTopupOkTemplate(ctx: WalletAutoTopupOkContext): MailMe
   return {
     to: ctx.to,
     tag: 'wallet.auto-topup-ok',
-    subject: `[Verris] Auto-doładowanie — ${formatPLN(ctx.amountPln)}`,
+    subject: `[Verris] Auto-doładowanie – ${formatPLN(ctx.amountPln)}`,
     text,
     html,
   };
@@ -209,7 +209,7 @@ export function walletAutoTopupFailedTemplate(ctx: WalletAutoTopupFailedContext)
       ``,
       `**Powód:** ${escapeMarkdown(ctx.reason)}`,
       ``,
-      `Doładuj portfel ręcznie lub zaktualizuj zapisaną kartę w ustawieniach — inaczej odnowienia usług i autoskalowanie mogą się zatrzymać przy zerowym saldzie.`,
+      `Doładuj portfel ręcznie lub zaktualizuj zapisaną kartę w ustawieniach – inaczej odnowienia usług i autoskalowanie mogą się zatrzymać przy zerowym saldzie.`,
     ].join('\n'),
     cta: {
       label: 'Portfel i karty',
@@ -254,19 +254,19 @@ export function walletLowBalanceTemplate(ctx: WalletLowBalanceContext): MailMess
   const daysLine =
     ctx.daysUntilEmpty !== null && ctx.daysUntilEmpty > 0
       ? `Przy obecnym tempie wykorzystania środków portfel wystarczy jeszcze na **około ${ctx.daysUntilEmpty} dni**.`
-      : 'Środki w portfelu są niskie — zalecamy uzupełnienie, aby uniknąć przerwy w usługach.';
+      : 'Środki w portfelu są niskie – zalecamy uzupełnienie, aby uniknąć przerwy w usługach.';
 
   const autoTopupLine = ctx.hasAutoTopup
     ? ctx.nextAutoTopupAt
-      ? `Masz włączone **automatyczne doładowanie** — kolejna próba: **${escapeMarkdown(
+      ? `Masz włączone **automatyczne doładowanie** – kolejna próba: **${escapeMarkdown(
           formatDate(ctx.nextAutoTopupAt),
         )}**.`
-      : 'Masz włączone **automatyczne doładowanie** — uruchomi się, gdy saldo spadnie poniżej progu.'
+      : 'Masz włączone **automatyczne doładowanie** – uruchomi się, gdy saldo spadnie poniżej progu.'
     : 'Możesz **włączyć automatyczne doładowanie** w ustawieniach portfela, aby nigdy nie martwić się o saldo.';
 
   const { html, text } = renderEmailShell({
     title: 'Niskie saldo portfela Verris',
-    preheader: `Pozostało ${ctx.currentBalance} K — uzupełnij, by uniknąć przerwy w usługach.`,
+    preheader: `Pozostało ${ctx.currentBalance} K – uzupełnij, by uniknąć przerwy w usługach.`,
     bodyMarkdown: [
       greeting,
       ``,
@@ -282,14 +282,14 @@ export function walletLowBalanceTemplate(ctx: WalletLowBalanceContext): MailMess
       ``,
       autoTopupLine,
       ``,
-      `Aby kontynuować bez przerw — wszystkie odnowienia subskrypcji oraz autoskalowanie pobierają środki z tego portfela.`,
+      `Aby kontynuować bez przerw – wszystkie odnowienia subskrypcji oraz autoskalowanie pobierają środki z tego portfela.`,
     ].join('\n'),
     cta: {
       label: 'Doładuj portfel',
       url: `${ctx.panelUrl}/dashboard/billing`,
     },
     footnote:
-      'Próg powiadamiania możesz zmienić w "Portfel → Ustawienia". Limit to ochrona, a nie blokada — usługi działają dopóki w portfelu są środki.',
+      'Próg powiadamiania możesz zmienić w "Portfel → Ustawienia". Limit to ochrona, a nie blokada – usługi działają dopóki w portfelu są środki.',
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,
     category: 'TRANSACTIONAL',
@@ -298,7 +298,7 @@ export function walletLowBalanceTemplate(ctx: WalletLowBalanceContext): MailMess
   return {
     to: ctx.to,
     tag: 'wallet.low-balance',
-    subject: `[Verris] Niskie saldo portfela — ${ctx.currentBalance} K`,
+    subject: `[Verris] Niskie saldo portfela – ${ctx.currentBalance} K`,
     text,
     html,
   };
@@ -356,11 +356,11 @@ export function subscriptionRenewalReminderTemplate(
   const sourceLine = !ctx.payFromWallet
     ? 'Płatność zostanie pobrana **automatycznie** z karty zapisanej w Twoim koncie.'
     : hasShortfall
-      ? `⚠️ **Uwaga — środków w portfelu może zabraknąć.** Saldo to **${escapeMarkdown(
+      ? `⚠️ **Uwaga – środków w portfelu może zabraknąć.** Saldo to **${escapeMarkdown(
           ctx.walletBalance,
         )} K**, a odnowienie kosztuje **${escapeMarkdown(amount)}**. Doładuj co najmniej **${escapeMarkdown(
           shortfall as string,
-        )}**, aby uniknąć zawieszenia usługi. Jeśli odnowienie się nie powiedzie, usługa zostanie wstrzymana — Twoje dane i pliki zachowujemy.`
+        )}**, aby uniknąć zawieszenia usługi. Jeśli odnowienie się nie powiedzie, usługa zostanie wstrzymana – Twoje dane i pliki zachowujemy.`
       : `Płatność zostanie pobrana z **portfela Verris** (saldo: **${escapeMarkdown(
           ctx.walletBalance,
         )} K**). Środków wystarczy na to odnowienie.`;
@@ -376,7 +376,7 @@ export function subscriptionRenewalReminderTemplate(
 
   const { html, text } = renderEmailShell({
     title: `Subskrypcja "${ctx.serviceName}" zostanie odnowiona ${when}`,
-    preheader: `${escapeMarkdown(ctx.serviceName)} — odnowienie ${escapeMarkdown(formatDate(ctx.renewalDate))} (${escapeMarkdown(amount)})`,
+    preheader: `${escapeMarkdown(ctx.serviceName)} – odnowienie ${escapeMarkdown(formatDate(ctx.renewalDate))} (${escapeMarkdown(amount)})`,
     bodyMarkdown: [
       greeting,
       ``,
@@ -390,14 +390,14 @@ export function subscriptionRenewalReminderTemplate(
       ``,
       sourceLine,
       ``,
-      `Jeśli **nie chcesz odnawiać** subskrypcji — anuluj ją w panelu. Anulacja będzie skuteczna do końca obecnego okresu rozliczeniowego (dane i pliki **nie znikają natychmiast** — zachowujemy je 14 dni od daty wygaśnięcia).`,
+      `Jeśli **nie chcesz odnawiać** subskrypcji – anuluj ją w panelu. Anulacja będzie skuteczna do końca obecnego okresu rozliczeniowego (dane i pliki **nie znikają natychmiast** – zachowujemy je 14 dni od daty wygaśnięcia).`,
     ].join('\n'),
     cta: {
       label: ctaLabel,
       url: ctaUrl,
     },
     footnote:
-      'To wiadomość przypominająca — nie wymaga od Ciebie żadnej akcji, jeśli wszystko się zgadza. Subskrypcję możesz anulować w każdej chwili.',
+      'To wiadomość przypominająca – nie wymaga od Ciebie żadnej akcji, jeśli wszystko się zgadza. Subskrypcję możesz anulować w każdej chwili.',
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,
     category: 'TRANSACTIONAL',
@@ -410,7 +410,7 @@ export function subscriptionRenewalReminderTemplate(
     to: ctx.to,
     tag: `subscription.renewal-reminder.${tagSuffix}`,
     subject: hasShortfall
-      ? `[Verris] Doładuj portfel — odnowienie ${ctx.serviceName} ${when}`
+      ? `[Verris] Doładuj portfel – odnowienie ${ctx.serviceName} ${when}`
       : `[Verris] Odnowienie ${ctx.serviceName} ${when}`,
     text,
     html,
@@ -442,13 +442,13 @@ export function subscriptionRenewedTemplate(ctx: SubscriptionRenewedContext): Ma
 
   const invoiceLine = ctx.invoiceNumber
     ? `**Numer faktury:** ${escapeMarkdown(ctx.invoiceNumber)}${
-        ctx.invoiceUrl ? ` — [faktury w panelu](${ctx.invoiceUrl})` : ''
+        ctx.invoiceUrl ? ` – [faktury w panelu](${ctx.invoiceUrl})` : ''
       }`
-    : 'Faktura zostanie wystawiona w ciągu kolejnych 24 godzin — otrzymasz osobny e-mail.';
+    : 'Faktura zostanie wystawiona w ciągu kolejnych 24 godzin – otrzymasz osobny e-mail.';
 
   const { html, text } = renderEmailShell({
     title: `Subskrypcja "${ctx.serviceName}" została odnowiona`,
-    preheader: `Płatność ${escapeMarkdown(amount)} potwierdzona — usługa działa do ${escapeMarkdown(formatDate(ctx.newPeriodEnd))}.`,
+    preheader: `Płatność ${escapeMarkdown(amount)} potwierdzona – usługa działa do ${escapeMarkdown(formatDate(ctx.newPeriodEnd))}.`,
     bodyMarkdown: [
       greeting,
       ``,
@@ -462,13 +462,13 @@ export function subscriptionRenewedTemplate(ctx: SubscriptionRenewedContext): Ma
       ``,
       invoiceLine,
       ``,
-      `Wszystko jest gotowe — Twoja usługa działa nieprzerwanie.`,
+      `Wszystko jest gotowe – Twoja usługa działa nieprzerwanie.`,
     ].join('\n'),
     cta: ctx.invoiceUrl
       ? { label: 'Faktury w panelu', url: ctx.invoiceUrl }
       : { label: 'Zarządzaj subskrypcjami', url: `${ctx.panelUrl}/dashboard/services` },
     footnote:
-      'Wszystkie faktury (5 lat archiwum — wymóg PL) znajdziesz w sekcji "Portfel → Faktury" w panelu klienta.',
+      'Wszystkie faktury (5 lat archiwum – wymóg PL) znajdziesz w sekcji "Portfel → Faktury" w panelu klienta.',
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,
     category: 'TRANSACTIONAL',
@@ -477,7 +477,7 @@ export function subscriptionRenewedTemplate(ctx: SubscriptionRenewedContext): Ma
   return {
     to: ctx.to,
     tag: 'subscription.renewed',
-    subject: `[Verris] Subskrypcja ${ctx.serviceName} odnowiona — ${amount}`,
+    subject: `[Verris] Subskrypcja ${ctx.serviceName} odnowiona – ${amount}`,
     text,
     html,
   };
@@ -517,11 +517,11 @@ export function subscriptionPaymentFailedTemplate(
 
   // Bez prolongaty (KARENCJA_PLATNOSCI_DNI = 0): RenewalScheduler zawiesza w najbliższym przebiegu godzinowym.
   const suspendLine =
-    'Do czasu zapłaty usługa **zostanie zawieszona** — odwiedzający zobaczą komunikat o zawieszeniu strony, a pliki, bazy i poczta pozostaną nietknięte. Po opłaceniu faktury (także przy automatycznej ponownej próbie) przywrócimy usługę automatycznie.';
+    'Do czasu zapłaty usługa **zostanie zawieszona** – odwiedzający zobaczą komunikat o zawieszeniu strony, a pliki, bazy i poczta pozostaną nietknięte. Po opłaceniu faktury (także przy automatycznej ponownej próbie) przywrócimy usługę automatycznie.';
 
   const { html, text } = renderEmailShell({
     title: `Płatność za "${ctx.serviceName}" nie powiodła się`,
-    preheader: `Kwota ${escapeMarkdown(amount)} nie została pobrana — ${
+    preheader: `Kwota ${escapeMarkdown(amount)} nie została pobrana – ${
       ctx.nextRetryAt ? 'spróbujemy ponownie' : 'wymaga akcji'
     }.`,
     bodyMarkdown: [
@@ -548,7 +548,7 @@ export function subscriptionPaymentFailedTemplate(
       url: ctx.paymentUpdateUrl,
     },
     footnote:
-      'Twoje dane i pliki są bezpieczne — nawet po zawieszeniu usługi masz jeszcze 14 dni na uregulowanie płatności bez utraty danych.',
+      'Twoje dane i pliki są bezpieczne – nawet po zawieszeniu usługi masz jeszcze 14 dni na uregulowanie płatności bez utraty danych.',
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,
     category: 'TRANSACTIONAL',
@@ -557,7 +557,7 @@ export function subscriptionPaymentFailedTemplate(
   return {
     to: ctx.to,
     tag: 'subscription.payment-failed',
-    subject: `[Verris] Pilne — płatność za ${ctx.serviceName} odrzucona`,
+    subject: `[Verris] Pilne – płatność za ${ctx.serviceName} odrzucona`,
     text,
     html,
   };
@@ -584,7 +584,7 @@ export function subscriptionSuspendedTemplate(ctx: SubscriptionSuspendedContext)
 
   const { html, text } = renderEmailShell({
     title: `Subskrypcja "${ctx.serviceName}" została zawieszona`,
-    preheader: `Brak płatności — dane zachowujemy do ${escapeMarkdown(formatDate(ctx.dataDeletedAt))}.`,
+    preheader: `Brak płatności – dane zachowujemy do ${escapeMarkdown(formatDate(ctx.dataDeletedAt))}.`,
     bodyMarkdown: [
       greeting,
       ``,
@@ -595,20 +595,20 @@ export function subscriptionSuspendedTemplate(ctx: SubscriptionSuspendedContext)
       `## Co to oznacza`,
       ``,
       `- Usługa **przestała działać** (strony WWW niedostępne),`,
-      `- Twoje **dane są zachowane** — w tym pliki, e-maile, bazy danych,`,
+      `- Twoje **dane są zachowane** – w tym pliki, e-maile, bazy danych,`,
       `- Dane zachowujemy do **${escapeMarkdown(formatDate(ctx.dataDeletedAt))}** (14 dni od zakończenia subskrypcji),`,
       `- Po tym terminie konto zostanie **trwale usunięte** zgodnie z naszą polityką retencji.`,
       ``,
       `## Chcesz zachować usługę?`,
       ``,
-      `Napisz do nas w Centrum pomocy w panelu przed tą datą — ustalimy płatność i to, co dalej z Twoimi danymi.`,
+      `Napisz do nas w Centrum pomocy w panelu przed tą datą – ustalimy płatność i to, co dalej z Twoimi danymi.`,
     ].join('\n'),
     cta: {
       label: 'Napisz do nas',
       url: `${ctx.panelUrl}/dashboard/support`,
     },
     footnote:
-      'Jeśli to świadoma decyzja (rezygnacja) — nie musisz nic robić. Po 14 dniach automatycznie usuniemy Twoje dane zgodnie z RODO.',
+      'Jeśli to świadoma decyzja (rezygnacja) – nie musisz nic robić. Po 14 dniach automatycznie usuniemy Twoje dane zgodnie z RODO.',
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,
     category: 'TRANSACTIONAL',
@@ -617,7 +617,7 @@ export function subscriptionSuspendedTemplate(ctx: SubscriptionSuspendedContext)
   return {
     to: ctx.to,
     tag: 'subscription.suspended',
-    subject: `[Verris] Subskrypcja ${ctx.serviceName} zawieszona — dane do ${formatDate(ctx.dataDeletedAt)}`,
+    subject: `[Verris] Subskrypcja ${ctx.serviceName} zawieszona – dane do ${formatDate(ctx.dataDeletedAt)}`,
     text,
     html,
   };
@@ -649,15 +649,15 @@ export function subscriptionCancelledTemplate(ctx: SubscriptionCancelledContext)
   const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const opening = ctx.userInitiated
     ? `Potwierdzamy anulowanie subskrypcji **${escapeMarkdown(ctx.serviceName)}** zgodnie z Twoim zgłoszeniem.`
-    : `Subskrypcja **${escapeMarkdown(ctx.serviceName)}** została zakończona automatycznie — najczęściej z powodu nieuregulowanej płatności po terminie zawieszenia.`;
+    : `Subskrypcja **${escapeMarkdown(ctx.serviceName)}** została zakończona automatycznie – najczęściej z powodu nieuregulowanej płatności po terminie zawieszenia.`;
 
   const stillWorksLine =
     ctx.effectiveUntil.getTime() > ctx.cancelledAt.getTime()
-      ? `Usługa **działa nadal do ${escapeMarkdown(formatDate(ctx.effectiveUntil))}** (do końca opłaconego okresu) — pełnia funkcjonalności bez zmian.`
+      ? `Usługa **działa nadal do ${escapeMarkdown(formatDate(ctx.effectiveUntil))}** (do końca opłaconego okresu) – pełnia funkcjonalności bez zmian.`
       : 'Usługa została zakończona z dniem dzisiejszym.';
 
   const { html, text } = renderEmailShell({
-    title: `Subskrypcja "${ctx.serviceName}" — ${ctx.userInitiated ? 'anulacja potwierdzona' : 'usługa zakończona'}`,
+    title: `Subskrypcja "${ctx.serviceName}" – ${ctx.userInitiated ? 'anulacja potwierdzona' : 'usługa zakończona'}`,
     preheader: `Działa do ${escapeMarkdown(formatDate(ctx.effectiveUntil))}, dane do ${escapeMarkdown(formatDate(ctx.dataDeletedAt))}.`,
     bodyMarkdown: [
       greeting,
@@ -671,7 +671,7 @@ export function subscriptionCancelledTemplate(ctx: SubscriptionCancelledContext)
       `- Pliki, e-maile, bazy są **zachowane do ${escapeMarkdown(formatDate(ctx.dataDeletedAt))}** (14 dni od końca subskrypcji),`,
       `- Po tym terminie dane są **usuwane trwale** (RODO art. 17).`,
       ``,
-      `Jeśli zmienisz zdanie — napisz do nas w Centrum pomocy w panelu przed tym terminem.`,
+      `Jeśli zmienisz zdanie – napisz do nas w Centrum pomocy w panelu przed tym terminem.`,
       ``,
       `Dziękujemy za wspólny czas!`,
     ].join('\n'),
@@ -689,7 +689,7 @@ export function subscriptionCancelledTemplate(ctx: SubscriptionCancelledContext)
   return {
     to: ctx.to,
     tag: ctx.userInitiated ? 'subscription.cancelled.user' : 'subscription.cancelled.auto',
-    subject: `[Verris] Subskrypcja ${ctx.serviceName} — ${ctx.userInitiated ? 'potwierdzenie anulacji' : 'usługa zakończona'}`,
+    subject: `[Verris] Subskrypcja ${ctx.serviceName} – ${ctx.userInitiated ? 'potwierdzenie anulacji' : 'usługa zakończona'}`,
     text,
     html,
   };
@@ -715,17 +715,17 @@ export function trialStartedTemplate(ctx: TrialStartedContext): MailMessage {
     bodyMarkdown: [
       greeting,
       ``,
-      `Uruchomiliśmy dla Ciebie **darmowy okres próbny planu ${escapeMarkdown(ctx.planName)}**. Konto hostingowe jest już zakładane — za chwilę będzie gotowe w panelu.`,
+      `Uruchomiliśmy dla Ciebie **darmowy okres próbny planu ${escapeMarkdown(ctx.planName)}**. Konto hostingowe jest już zakładane – za chwilę będzie gotowe w panelu.`,
       ``,
       `## Co warto wiedzieć`,
       ``,
       `- **Okres próbny trwa do:** ${escapeMarkdown(formatDate(ctx.trialEndsAt))}.`,
       `- W trakcie próby masz pełnię możliwości planu (pliki, bazy, poczta, WordPress 1-click).`,
-      `- Aby zachować dane po próbie — **doładuj portfel i przekształć usługę na płatną** w panelu. Zrobisz to jednym kliknięciem.`,
+      `- Aby zachować dane po próbie – **doładuj portfel i przekształć usługę na płatną** w panelu. Zrobisz to jednym kliknięciem.`,
       `- Jeśli nic nie zrobisz, po tej dacie usługa zostanie zawieszona, a dane przechowamy jeszcze 14 dni.`,
     ].join('\n'),
     cta: { label: 'Otwórz panel', url: `${ctx.panelUrl}/dashboard` },
-    footnote: 'Okres próbny jest jednorazowy na konto. Bez automatycznych opłat — przekształcenie na płatną usługę zawsze potwierdzasz sam.',
+    footnote: 'Okres próbny jest jednorazowy na konto. Bez automatycznych opłat – przekształcenie na płatną usługę zawsze potwierdzasz sam.',
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,
     category: 'TRANSACTIONAL',
@@ -754,7 +754,7 @@ export function trialEndingSoonTemplate(ctx: TrialEndingSoonContext): MailMessag
       ``,
       `Aby usługa działała dalej bez przerwy: **doładuj portfel** i kliknij **„Przekształć na płatną"** przy usłudze. Pobierzemy wtedy opłatę za pierwszy miesiąc, a dalej rozliczamy się z portfela.`,
       ``,
-      `Jeśli nie przedłużysz — po tej dacie usługa zostanie zawieszona. Dane przechowamy jeszcze 14 dni — jeśli zechcesz wrócić, napisz do nas w tym czasie w Centrum pomocy.`,
+      `Jeśli nie przedłużysz – po tej dacie usługa zostanie zawieszona. Dane przechowamy jeszcze 14 dni – jeśli zechcesz wrócić, napisz do nas w tym czasie w Centrum pomocy.`,
     ].join('\n'),
     cta: { label: 'Przekształć usługę', url: `${ctx.panelUrl}/dashboard/services` },
     footnote: 'Wysyłamy to przypomnienie raz, przed końcem okresu próbnego.',
@@ -776,7 +776,7 @@ export function trialExpiredTemplate(ctx: TrialExpiredContext): MailMessage {
   const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: 'Okres próbny dobiegł końca',
-    preheader: 'Usługa została zawieszona — dane przechowujemy 14 dni.',
+    preheader: 'Usługa została zawieszona – dane przechowujemy 14 dni.',
     bodyMarkdown: [
       greeting,
       ``,
@@ -790,7 +790,7 @@ export function trialExpiredTemplate(ctx: TrialExpiredContext): MailMessage {
     panelUrl: ctx.panelUrl,
     category: 'TRANSACTIONAL',
   });
-  return { to: ctx.to, tag: 'trial.expired', subject: '[Verris] Okres próbny zakończony — usługa zawieszona', text, html };
+  return { to: ctx.to, tag: 'trial.expired', subject: '[Verris] Okres próbny zakończony – usługa zawieszona', text, html };
 }
 
 export interface TrialConvertedContext {
@@ -803,12 +803,12 @@ export interface TrialConvertedContext {
 export function trialConvertedTemplate(ctx: TrialConvertedContext): MailMessage {
   const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
-    title: 'Dziękujemy — usługa jest już płatna',
+    title: 'Dziękujemy – usługa jest już płatna',
     preheader: `Plan ${escapeMarkdown(ctx.planName)} działa dalej bez przerwy.`,
     bodyMarkdown: [
       greeting,
       ``,
-      `Twój okres próbny planu **${escapeMarkdown(ctx.planName)}** został pomyślnie **przekształcony na usługę płatną**. Wszystko działa dalej — bez przerwy i bez migracji danych.`,
+      `Twój okres próbny planu **${escapeMarkdown(ctx.planName)}** został pomyślnie **przekształcony na usługę płatną**. Wszystko działa dalej – bez przerwy i bez migracji danych.`,
       ``,
       `Kolejne rozliczenia pobieramy z portfela. Saldo i faktury znajdziesz w panelu.`,
     ].join('\n'),

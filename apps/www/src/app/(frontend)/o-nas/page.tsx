@@ -10,7 +10,7 @@ const OPIS =
   'Verris to polski hosting z autoskalowaniem: cena odnowienia znana z góry, przeniesienie strony za 0 zł i SLA 99,5% w regulaminie. Poznaj nasze zasady.';
 
 export const metadata: Metadata = {
-  title: 'O Verris — polski hosting z uczciwymi zasadami',
+  title: 'O Verris – polski hosting z uczciwymi zasadami',
   description: OPIS,
   alternates: { canonical: '/o-nas' },
 };

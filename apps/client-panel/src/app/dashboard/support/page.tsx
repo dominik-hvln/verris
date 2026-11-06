@@ -29,14 +29,14 @@ export default function SupportPage() {
   }, []);
 
   // Awaria ≠ „nie masz zgłoszeń”: liczniki pokazują „—”, lista mówi, co się stało (X-39).
-  const count = (pred: (t: TicketSummary) => boolean) => (loading ? "…" : blad ? "—" : tickets.filter(pred).length);
+  const count = (pred: (t: TicketSummary) => boolean) => (loading ? "…" : blad ? "–" : tickets.filter(pred).length);
   const open = (t: TicketSummary) => t.status !== "CLOSED";
 
   return (
     <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6">
       <PageHeaderRow
         title="Centrum pomocy"
-        description="Zgłoś problem lub napisz do zespołu wsparcia — odpowiadamy po polsku."
+        description="Zgłoś problem lub napisz do zespołu wsparcia – odpowiadamy po polsku."
         actions={
           <Link
             href="/dashboard/support/new"
@@ -54,7 +54,7 @@ export default function SupportPage() {
         <Kpi label="Rozwiązane" value={count((t) => !open(t))} foot={<span>zamknięte zgłoszenia</span>} />
         <Kpi
           label="Ostatnia aktywność"
-          value={loading || tickets.length === 0 ? "—" : format(new Date(Math.max(...tickets.map((t) => +new Date(t.updatedAt)))), "d MMM", { locale: pl })}
+          value={loading || tickets.length === 0 ? "–" : format(new Date(Math.max(...tickets.map((t) => +new Date(t.updatedAt)))), "d MMM", { locale: pl })}
           foot={<span>najnowsza zmiana w zgłoszeniach</span>}
         />
       </KpiStrip>
@@ -72,7 +72,7 @@ export default function SupportPage() {
           <p className="m-0 rounded-[10px] border border-line bg-card px-4 py-[22px] text-sm text-muted-foreground">Wczytywanie zgłoszeń…</p>
         ) : blad ? (
           <p className="m-0 rounded-[10px] border border-line bg-card px-4 py-[22px] text-sm text-warn">
-            Nie udało się pobrać zgłoszeń. Odśwież stronę za chwilę — jeśli problem wróci, napisz na{" "}
+            Nie udało się pobrać zgłoszeń. Odśwież stronę za chwilę – jeśli problem wróci, napisz na{" "}
             <a href="mailto:kontakt@verris.pl" className="text-data-hi underline">kontakt@verris.pl</a>.
           </p>
         ) : tickets.length === 0 ? (

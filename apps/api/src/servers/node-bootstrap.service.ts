@@ -165,7 +165,7 @@ export class NodeBootstrapService {
       },
     });
 
-    this.logger.log(`Bootstrap ${input.serverId}: ${phase}/${status}${message ? ` — ${message}` : ''}`);
+    this.logger.log(`Bootstrap ${input.serverId}: ${phase}/${status}${message ? ` – ${message}` : ''}`);
 
     // Konsolidacja: gdy węzeł dojdzie do CANARY (stack + agent gotowe), odpalamy po stronie control-plane
     // NS glue i rekord A nazwy hosta w OVH (nie blokuje raportu). Faza TLS czeka na ten rekord — przy jej
@@ -194,7 +194,7 @@ export class NodeBootstrapService {
         data: { serverId, phase: 'DNS', status: ok ? 'OK' : 'FAILED', message: `${message} (przy fazie ${phase})`.slice(0, 1000) },
       });
     if (!this.nodeDns.isConfigured()) {
-      await zapisz(false, 'OVH nie jest skonfigurowane — rekord A nazwy hosta i NS trzeba założyć ręcznie');
+      await zapisz(false, 'OVH nie jest skonfigurowane – rekord A nazwy hosta i NS trzeba założyć ręcznie');
       return;
     }
     if (this.nsWToku.has(serverId)) return;
@@ -206,7 +206,7 @@ export class NodeBootstrapService {
         res.ok,
         res.ok
           ? `OVH: rekord A nazwy hosta i NS ${res.ns1}, ${res.ns2} (control-plane)`
-          : `OVH: błędy przy zakładaniu DNS — ${bledy.join('; ')}`,
+          : `OVH: błędy przy zakładaniu DNS – ${bledy.join('; ')}`,
       );
     } catch (err) {
       this.logger.warn(`OVH NS glue (bootstrap) nie powiódł się dla ${serverId}: ${(err as Error).message}`);

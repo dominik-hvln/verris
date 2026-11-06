@@ -31,7 +31,7 @@ export default async function OpiekaZgloszenPage({ searchParams }: { searchParam
         <h1 className="text-[28px] lg:text-[34px]">Opieka nad zgłoszeniami</h1>
         <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
           Klient nigdy nie zgaduje, czy wiadomość do nas trafiła: każda z tych wiadomości idzie e-mailem i jest widoczna w zgłoszeniu (u klienta i w obsłudze).
-          Nie liczą się jako odpowiedź — terminy odpowiedzi biegną dalej, dopóki nie odpisze człowiek.
+          Nie liczą się jako odpowiedź – terminy odpowiedzi biegną dalej, dopóki nie odpisze człowiek.
         </p>
       </header>
 
@@ -73,9 +73,9 @@ export default async function OpiekaZgloszenPage({ searchParams }: { searchParam
               {oceny.map((o) => (
                 <tr key={o.agentId} className="border-t border-white/10">
                   <td data-label="Opiekun" className="py-2 pr-3 font-medium">{o.nazwa}</td>
-                  <td data-label="Ocena opiekuna" className="py-2 pr-3">{o.opiekun?.toLocaleString("pl-PL") ?? "—"} / 5</td>
-                  <td data-label="Obsługa ogólnie" className="py-2 pr-3">{o.support?.toLocaleString("pl-PL") ?? "—"} / 5</td>
-                  <td data-label="Rozwiązane" className="py-2 pr-3">{o.rozwiazanePct != null ? `${o.rozwiazanePct}%` : "—"}</td>
+                  <td data-label="Ocena opiekuna" className="py-2 pr-3">{o.opiekun?.toLocaleString("pl-PL") ?? "–"} / 5</td>
+                  <td data-label="Obsługa ogólnie" className="py-2 pr-3">{o.support?.toLocaleString("pl-PL") ?? "–"} / 5</td>
+                  <td data-label="Rozwiązane" className="py-2 pr-3">{o.rozwiazanePct != null ? `${o.rozwiazanePct}%` : "–"}</td>
                   <td data-label="Ocen" className="py-2">{o.ocen}</td>
                 </tr>
               ))}

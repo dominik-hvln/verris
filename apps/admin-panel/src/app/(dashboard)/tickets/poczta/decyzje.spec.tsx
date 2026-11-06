@@ -35,13 +35,13 @@ afterEach(() => {
 
 const przycisk = () => k.querySelector<HTMLButtonElement>('[data-akcja="pokaz-pliki"]');
 
-it("domyślnie tylko liczba plików — bez nazw i linków", () => {
+it("domyślnie tylko liczba plików – bez nazw i linków", () => {
   expect(przycisk()?.textContent).toBe("Pokaż pliki (2)");
   expect(k.textContent).not.toContain("zrzut.jpg");
   expect(k.querySelector("a")).toBeNull();
 });
 
-it("anulowane ostrzeżenie — dalej ukryte; potwierdzone — link z potwierdzam=1, pominięty plik bez linku", async () => {
+it("anulowane ostrzeżenie – dalej ukryte; potwierdzone – link z potwierdzam=1, pominięty plik bez linku", async () => {
   potwierdz.mockResolvedValueOnce(false);
   await act(async () => przycisk()!.click());
   expect(k.querySelector("a")).toBeNull();
@@ -50,10 +50,10 @@ it("anulowane ostrzeżenie — dalej ukryte; potwierdzone — link z potwierdzam
   const a = k.querySelectorAll("a");
   expect(a).toHaveLength(1);
   expect(a[0].getAttribute("href")).toBe(`/api/poczta-plik/${ID}/0?potwierdzam=1`);
-  expect(k.textContent).toContain("dowody.zip — pominięty: niedozwolony typ pliku");
+  expect(k.textContent).toContain("dowody.zip – pominięty: niedozwolony typ pliku");
 });
 
-it("abuse@: bez „Załóż zgłoszenie” (treść zgłaszającego nie trafia do klienta) — tylko dopisanie i odrzucenie", async () => {
+it("abuse@: bez „Załóż zgłoszenie” (treść zgłaszającego nie trafia do klienta) – tylko dopisanie i odrzucenie", async () => {
   await act(async () => root.render(<DecyzjePoczty id={ID} nadawca="anna@firma.pl" sugerowane={null} abuse />));
   expect(k.querySelector('[data-akcja="do-klienta"]')).toBeNull();
   expect(k.querySelector('[data-akcja="do-zgloszenia"]')).not.toBeNull();

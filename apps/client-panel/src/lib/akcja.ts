@@ -6,7 +6,7 @@
  * Jedyna naprawa po stronie klienta to przeładowanie strony, więc mówimy to wprost.
  */
 export const KOMUNIKAT_PO_AKTUALIZACJI =
-  'Panel został właśnie zaktualizowany — odśwież stronę (F5) i spróbuj ponownie. Wpisane dane trzeba będzie podać jeszcze raz.';
+  'Panel został właśnie zaktualizowany – odśwież stronę (F5) i spróbuj ponownie. Wpisane dane trzeba będzie podać jeszcze raz.';
 
 export async function bezpiecznaAkcja<T>(wywolanie: () => Promise<T>): Promise<T | { error: string }> {
   try {
@@ -14,6 +14,6 @@ export async function bezpiecznaAkcja<T>(wywolanie: () => Promise<T>): Promise<T
   } catch (e) {
     const opis = e instanceof Error ? `${e.name} ${e.message}` : String(e);
     if (/UnrecognizedActionError|Server Action .* was not found/i.test(opis)) return { error: KOMUNIKAT_PO_AKTUALIZACJI };
-    return { error: 'Nie udało się połączyć z panelem — sprawdź połączenie i spróbuj ponownie.' };
+    return { error: 'Nie udało się połączyć z panelem – sprawdź połączenie i spróbuj ponownie.' };
   }
 }

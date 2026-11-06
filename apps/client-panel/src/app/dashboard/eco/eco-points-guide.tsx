@@ -14,7 +14,7 @@ export function EcoPointsGuide({ platform }: { platform: EcoPlatformConfig }) {
           Jak zdobywasz punkty
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-neutral-400">
-          Poniżej pełna rozpiska — bez niespodzianek. Historia każdej transakcji jest też w sekcji
+          Poniżej pełna rozpiska – bez niespodzianek. Historia każdej transakcji jest też w sekcji
           „Historia punktów” na dole strony.
         </p>
       </div>

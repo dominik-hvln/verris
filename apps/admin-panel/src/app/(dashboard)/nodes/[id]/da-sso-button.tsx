@@ -84,7 +84,7 @@ export function DaSsoButton({ serverId, sshHost, srodek, daGotowe = true }: { se
           {daGotowe ? (
             // Decyzja 2026-09-29: port 2222 węzła przyjmuje tylko control-plane (zapora w profilu węzła) — tunel przez CP.
             <>
-              . Panel DA (:2222) też tylko z control-plane&apos;u — z przeglądarki tunel SOCKS przez control-plane:{" "}
+              . Panel DA (:2222) też tylko z control-plane&apos;u – z przeglądarki tunel SOCKS przez control-plane:{" "}
               <code>{komendy.tunelPanelu}</code> i przeglądarka z proxy <code>{komendy.przegladarkaPrzezTunel}</code>
             </>
           ) : null}
@@ -102,12 +102,12 @@ function PoOtwarciu({ url, komendy }: { url: string; komendy: ReturnType<typeof 
       połączenia tylko z control-plane&apos;u
       {komendy ? (
         <>
-          {" "}— uruchom tunel <code>{komendy.tunelPanelu}</code>, otwórz przeglądarkę przez tunel{" "}
+          {" "}– uruchom tunel <code>{komendy.tunelPanelu}</code>, otwórz przeglądarkę przez tunel{" "}
           <code>{komendy.przegladarkaPrzezTunel}</code> i wklej w niej{" "}
           <a href={url} target="_blank" rel="noopener noreferrer" className="underline">
             ten sam link
           </a>{" "}
-          (adres bez zmian — certyfikat jest na nazwę węzła)
+          (adres bez zmian – certyfikat jest na nazwę węzła)
         </>
       ) : null}
       .

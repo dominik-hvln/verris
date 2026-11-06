@@ -71,7 +71,7 @@ export default async function ClientTicketPage(props: { params: Promise<{ id: st
               <Link href={`/dashboard/support/${ticket.scalonoDoId}`} className="font-semibold">
                 #{ticket.scalonoDoId.slice(0, 8)}
               </Link>{" "}
-              — dotyczyło tej samej sprawy. Cała rozmowa jest teraz tam.
+              – dotyczyło tej samej sprawy. Cała rozmowa jest teraz tam.
             </p>
           ) : null}
 
@@ -81,7 +81,7 @@ export default async function ClientTicketPage(props: { params: Promise<{ id: st
               <div key={k.nazwa} className="flex flex-col gap-1.5">
                 <div className={`h-1 rounded-sm ${k.gotowe ? "bg-verris-green" : "bg-line-strong"}`} />
                 <b className={`text-[13.5px] ${k.gotowe ? "" : "text-muted-foreground"}`}>{k.nazwa}</b>
-                <span className="text-xs text-muted-foreground">{k.kiedy ? godz(k.kiedy) : "—"}</span>
+                <span className="text-xs text-muted-foreground">{k.kiedy ? godz(k.kiedy) : "–"}</span>
               </div>
             ))}
           </section>
@@ -123,7 +123,7 @@ export default async function ClientTicketPage(props: { params: Promise<{ id: st
               dueAt={ticket.slaResponseDueAt ?? null}
               status={ticket.status}
             />
-            <span className="text-[13.5px] leading-[1.5]">O każdej zmianie napiszemy e-mailem — nie musisz tu zaglądać.</span>
+            <span className="text-[13.5px] leading-[1.5]">O każdej zmianie napiszemy e-mailem – nie musisz tu zaglądać.</span>
           </section>
           {/* PB-43 — usługa, której dotyczy zgłoszenie */}
           <section className="flex flex-col gap-1.5 rounded-[10px] border border-line bg-card p-4" aria-labelledby="usl">
@@ -143,10 +143,10 @@ export default async function ClientTicketPage(props: { params: Promise<{ id: st
               Co się dzieje, gdy…
             </h2>
             <span className="text-[13px] leading-[1.5]">
-              <b>naprawa trwa dłużej</b> — dostaniesz informację „wciąż nad tym pracujemy”, najwyżej raz na dobę;
+              <b>naprawa trwa dłużej</b> – dostaniesz informację „wciąż nad tym pracujemy”, najwyżej raz na dobę;
             </span>
             <span className="text-[13px] leading-[1.5]">
-              <b>czekamy na Ciebie</b> — przypomnimy po 2 dniach, zamkniemy po 5 (zawsze możesz otworzyć ponownie przez 7 dni).
+              <b>czekamy na Ciebie</b> – przypomnimy po 2 dniach, zamkniemy po 5 (zawsze możesz otworzyć ponownie przez 7 dni).
             </span>
           </section>
         </aside>
@@ -171,7 +171,7 @@ function SlaBadge({
     return (
       <p className="flex items-center gap-2 text-[13.5px] text-data-hi">
         <CheckCircle2 className="h-4 w-4 shrink-0" />
-        Odpowiedzieliśmy — czas pierwszej odpowiedzi z Twojego planu to {slaHours} h.
+        Odpowiedzieliśmy – czas pierwszej odpowiedzi z Twojego planu to {slaHours} h.
       </p>
     );
   }
@@ -183,10 +183,10 @@ function SlaBadge({
     <p className={`flex items-start gap-2 text-[13.5px] leading-[1.5] ${overdue ? "text-warn" : ""}`}>
       <Clock className="mt-0.5 h-4 w-4 shrink-0" />
       {overdue ? (
-        <span>Przekraczamy czas pierwszej odpowiedzi z Twojego planu ({slaHours} h) — Twoje zgłoszenie ma pierwszeństwo.</span>
+        <span>Przekraczamy czas pierwszej odpowiedzi z Twojego planu ({slaHours} h) – Twoje zgłoszenie ma pierwszeństwo.</span>
       ) : (
         <span>
-          Czas pierwszej odpowiedzi z Twojego planu to <b>{slaHours} h</b>{due ? ` — odpowiemy najpóźniej ${format(due, "d MMM, HH:mm", { locale: pl })}` : ""}.
+          Czas pierwszej odpowiedzi z Twojego planu to <b>{slaHours} h</b>{due ? ` – odpowiemy najpóźniej ${format(due, "d MMM, HH:mm", { locale: pl })}` : ""}.
         </span>
       )}
     </p>

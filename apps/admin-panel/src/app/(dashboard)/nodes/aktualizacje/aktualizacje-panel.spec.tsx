@@ -60,7 +60,7 @@ it("tabela poprawek, wersje alt-php, CustomBuild i węzeł bez świeżych danych
   expect(el.querySelector("[data-custombuild-lista]")?.textContent).toContain("exim 4.98 → 4.98.1");
 });
 
-it("CVE: zły numer — komunikat bez zapytania; dobry — wynik per węzeł i instalacja tylko dla tych węzłów", async () => {
+it("CVE: zły numer – komunikat bez zapytania; dobry – wynik per węzeł i instalacja tylko dla tych węzłów", async () => {
   await act(async () => root.render(<AktualizacjePanel start={START} bezInstalacji={null} />));
   await wpisz("12345");
   expect(mockPobierz).not.toHaveBeenCalled();
@@ -90,7 +90,7 @@ it("instalacja floty: bez potwierdzenia nic się nie dzieje; z CustomBuild przek
 
   await act(async () => el.querySelector<HTMLInputElement>("[data-custombuild]")!.click());
   mockPotwierdz.mockResolvedValue(true);
-  mockZainstaluj.mockResolvedValue({ ok: false, error: "Aktualizacja floty już trwa — poczekaj na jej koniec." });
+  mockZainstaluj.mockResolvedValue({ ok: false, error: "Aktualizacja floty już trwa – poczekaj na jej koniec." });
   await act(async () => el.querySelector<HTMLButtonElement>("[data-instaluj-wszystkie]")!.click());
   expect(mockZainstaluj).toHaveBeenCalledWith({ custombuild: true });
   expect(el.textContent).toContain("Aktualizacja floty już trwa");

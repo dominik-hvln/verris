@@ -55,7 +55,7 @@ export default async function BillingPage() {
             </h2>
             <p className="text-3xl font-bold tabular-nums text-white">{b.walletNetPln} PLN</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Suma ze znakiem (+wpływy / −obciążenia), status COMPLETED — netto OKRESU.
+              Suma ze znakiem (+wpływy / −obciążenia), status COMPLETED – netto OKRESU.
             </p>
           </div>
           {eksport ? (

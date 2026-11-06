@@ -10,7 +10,7 @@ export const ODPYTANIE_MS = 10_000;
 export function tekstObecnosci(inni: { nazwa: string; pisze: boolean }[]): string | null {
   if (!inni.length) return null;
   const pisza = inni.filter((o) => o.pisze).map((o) => o.nazwa);
-  if (pisza.length) return `${pisza.join(", ")} ${pisza.length > 1 ? "piszą" : "pisze"} teraz odpowiedź — uzgodnij, kto odpisuje.`;
+  if (pisza.length) return `${pisza.join(", ")} ${pisza.length > 1 ? "piszą" : "pisze"} teraz odpowiedź – uzgodnij, kto odpisuje.`;
   return `${inni.map((o) => o.nazwa).join(", ")} ${inni.length > 1 ? "też to oglądają" : "też to ogląda"}.`;
 }
 

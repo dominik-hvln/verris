@@ -44,7 +44,7 @@ export function WpOverviewPanel({ serviceId }: { serviceId: string }) {
       const r = await checkAllWp(serviceId);
       if (r.ok) {
         setStan(r.data);
-        toast.success('Sprawdzanie wszystkich stron zlecone — wyniki pojawią się po kolei.');
+        toast.success('Sprawdzanie wszystkich stron zlecone – wyniki pojawią się po kolei.');
       } else toast.error(r.error);
     });
 
@@ -53,7 +53,7 @@ export function WpOverviewPanel({ serviceId }: { serviceId: string }) {
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-3">
         <div>
           <h3 className="m-0 text-[15px] font-bold text-foreground">Wszystkie strony WordPress</h3>
-          <p className="m-0 mt-0.5 text-[12.5px] text-muted-foreground">Stan z ostatniego sprawdzenia każdej domeny. Aktualizacje i poprawki — w zakładce WordPress strony.</p>
+          <p className="m-0 mt-0.5 text-[12.5px] text-muted-foreground">Stan z ostatniego sprawdzenia każdej domeny. Aktualizacje i poprawki – w zakładce WordPress strony.</p>
         </div>
         <button type="button" onClick={sprawdzWszystkie} disabled={pending || !stan || wToku} className={BTN}>
           {wToku ? 'Sprawdzam…' : 'Sprawdź wszystkie'}

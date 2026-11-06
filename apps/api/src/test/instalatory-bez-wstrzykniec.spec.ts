@@ -8,7 +8,7 @@ import { join } from 'path';
  */
 const skrypt = (n: string) => readFileSync(join(import.meta.dirname, '..', '..', '..', '..', 'ops', 'scripts', n), 'utf8');
 
-describe('instalatory aplikacji — dane klienta w poleceniach', () => {
+describe('instalatory aplikacji – dane klienta w poleceniach', () => {
   it.each([
     ['node-wp-install.sh', ['WP_SITE_TITLE', 'WP_ADMIN_USER', 'WP_ADMIN_PASS', 'WP_ADMIN_EMAIL']],
     ['node-app-install.sh', ['APP_ADMIN_USER', 'APP_ADMIN_PASS', 'APP_ADMIN_EMAIL', 'APP_DB_PASS']],

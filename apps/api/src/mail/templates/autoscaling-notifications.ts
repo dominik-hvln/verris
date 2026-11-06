@@ -67,7 +67,7 @@ export function autoscalingStartedTemplate(ctx: AutoscalingStartedContext): Mail
 
   const { html, text } = renderEmailShell({
     title: 'Autoskalowanie uruchomione',
-    preheader: `${escapeMarkdown(ctx.domain)} — podniesiono limity w odpowiedzi na ruch.`,
+    preheader: `${escapeMarkdown(ctx.domain)} – podniesiono limity w odpowiedzi na ruch.`,
     bodyMarkdown: [
       greeting,
       ``,
@@ -76,7 +76,7 @@ export function autoscalingStartedTemplate(ctx: AutoscalingStartedContext): Mail
       ...deltaLines,
       costLine,
       ``,
-      `Nie wyślemy kolejnych maili przy dalszych korektach w trakcie tego skoku — **jeden mail teraz** i **jeden, gdy wszystko wróci do planu bazowego** z krótkim podsumowaniem. Bieżące zużycie, historię i koszty na żywo znajdziesz w panelu → Autoskalowanie.`,
+      `Nie wyślemy kolejnych maili przy dalszych korektach w trakcie tego skoku – **jeden mail teraz** i **jeden, gdy wszystko wróci do planu bazowego** z krótkim podsumowaniem. Bieżące zużycie, historię i koszty na żywo znajdziesz w panelu → Autoskalowanie.`,
     ].join('\n'),
     cta: { label: 'Zobacz autoskalowanie', url: ctx.autoscalingUrl },
     footnote:
@@ -90,7 +90,7 @@ export function autoscalingStartedTemplate(ctx: AutoscalingStartedContext): Mail
     to: ctx.to,
     userId: ctx.userId,
     tag: 'autoscaling.started',
-    subject: `[Verris] Autoskalowanie uruchomione — ${ctx.domain}`,
+    subject: `[Verris] Autoskalowanie uruchomione – ${ctx.domain}`,
     text,
     html,
     category: 'TRANSACTIONAL',
@@ -117,15 +117,15 @@ export interface AutoscalingEndedContext {
 
 const END_REASON_COPY: Record<AutoscalingEndReason, { title: string; line: string }> = {
   RELAXED: {
-    title: 'Autoskalowanie zakończone — powrót do planu',
+    title: 'Autoskalowanie zakończone – powrót do planu',
     line: 'Ruch się unormował, więc limity wróciły do Twojego planu bazowego.',
   },
   CAP_REACHED: {
-    title: 'Autoskalowanie wstrzymane — limit kosztu',
+    title: 'Autoskalowanie wstrzymane – limit kosztu',
     line: 'Osiągnięto ustawiony limit kosztu autoskalowania (suma dopłat z ostatnich 30 dni), więc limity wróciły do planu bazowego. Limit możesz podnieść albo usunąć w panelu.',
   },
   WALLET_EMPTY: {
-    title: 'Autoskalowanie wstrzymane — portfel',
+    title: 'Autoskalowanie wstrzymane – portfel',
     line: 'Saldo portfela było zbyt niskie, by utrzymać podwyższone limity, więc wróciły do planu bazowego. Doładuj portfel, aby ponownie korzystać z autoskalowania.',
   },
   AUTO_DISABLED: {
@@ -140,7 +140,7 @@ export function autoscalingEndedTemplate(ctx: AutoscalingEndedContext): MailMess
 
   const { html, text } = renderEmailShell({
     title: copy.title,
-    preheader: `${escapeMarkdown(ctx.domain)} — podsumowanie autoskalowania.`,
+    preheader: `${escapeMarkdown(ctx.domain)} – podsumowanie autoskalowania.`,
     bodyMarkdown: [
       greeting,
       ``,
@@ -168,7 +168,7 @@ export function autoscalingEndedTemplate(ctx: AutoscalingEndedContext): MailMess
     // Zatrzymanie przez limit kosztu albo pusty portfel to informacja o pieniądzach — idzie zawsze,
     // także gdy klient wyłączył powiadomienia o autoskalowaniu (N-10).
     tag: ctx.reason === 'CAP_REACHED' || ctx.reason === 'WALLET_EMPTY' ? 'autoscaling.stopped' : 'autoscaling.ended',
-    subject: `[Verris] Autoskalowanie zakończone — ${ctx.domain}`,
+    subject: `[Verris] Autoskalowanie zakończone – ${ctx.domain}`,
     text,
     html,
     category: 'TRANSACTIONAL',

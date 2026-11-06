@@ -104,7 +104,7 @@ export function PublishDocForm() {
 
       <label className="block text-sm">
         <span className="text-muted-foreground text-xs uppercase tracking-wider">
-          Treść (Markdown — bez HTML, min. 200 znaków)
+          Treść (Markdown – bez HTML, min. 200 znaków)
         </span>
         <textarea
           value={contentMarkdown}

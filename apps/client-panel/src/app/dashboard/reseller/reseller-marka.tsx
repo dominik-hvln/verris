@@ -30,7 +30,7 @@ export function MarkaResellera({ ov, onZmiana }: { ov: ResellerOverview; onZmian
     setZajety(null);
     if (r.ok) {
       onZmiana(r.data);
-      toast.success('Nazwa marki zapisana — Twoi klienci zobaczą ją w panelu i w mailach.');
+      toast.success('Nazwa marki zapisana – Twoi klienci zobaczą ją w panelu i w mailach.');
     } else toast.error(r.error);
   };
 

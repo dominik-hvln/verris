@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 /** PB-26 — otwarte testy przed startem: zaproszenia i postęp testerów (docs/ops/BETA_TESTY.md). */
 const STATUSY: StatusZgloszenia[] = ["NOWE", "NIEPOTWIERDZONE", "ZAPROSZONE", "ODRZUCONE"];
 const data = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleString("pl-PL", { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Warsaw" }) : "—";
+  iso ? new Date(iso).toLocaleString("pl-PL", { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Warsaw" }) : "–";
 
 export default async function BetaPage({ searchParams }: { searchParams?: Promise<{ zgloszenia?: string }> }) {
   const bramka = await bramkaStrony("/beta");
@@ -109,7 +109,7 @@ export default async function BetaPage({ searchParams }: { searchParams?: Promis
                             {z.strona}
                           </a>
                         ) : (
-                          <span className="text-muted-foreground">—</span>
+                          <span className="text-muted-foreground">–</span>
                         )}
                         {z.obecnyHosting ? <div className="mt-1 text-muted-foreground">{z.obecnyHosting}</div> : null}
                       </td>
@@ -140,7 +140,7 @@ export default async function BetaPage({ searchParams }: { searchParams?: Promis
           ["Zaproszenia", rows.length],
           ["Kody użyte", uzyte.length],
           ["Testerzy z aktywną usługą", uzyte.length ? `${zUsluga} (${Math.round((zUsluga / uzyte.length) * 100)}%)` : "0"],
-          ["Kroki scenariuszy odhaczone", krokiWszystkie ? `${kroki} z ${krokiWszystkie} (${Math.round((kroki / krokiWszystkie) * 100)}%)` : "—"],
+          ["Kroki scenariuszy odhaczone", krokiWszystkie ? `${kroki} z ${krokiWszystkie} (${Math.round((kroki / krokiWszystkie) * 100)}%)` : "–"],
         ].map(([l, n]) => (
           <div key={String(l)} className="rounded-2xl border border-white/10 bg-[#0a0a0a] px-5 py-4">
             <div className="text-2xl font-bold text-white">{n}</div>

@@ -88,7 +88,7 @@ export async function changePlanAction(
           ok: false,
           error:
             err.message ||
-            'Niewystarczające saldo portfela — doładuj konto w sekcji Portfel.',
+            'Niewystarczające saldo portfela – doładuj konto w sekcji Portfel.',
         };
       }
       return { ok: false, error: err.message };

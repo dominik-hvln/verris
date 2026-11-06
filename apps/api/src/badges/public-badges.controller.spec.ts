@@ -28,7 +28,7 @@ function setup(site: object | null) {
 
 const req = (referer?: string) => ({ headers: { referer }, ip: '1.2.3.4' }) as never;
 
-describe('Badge — pieczęć na stronie klienta', () => {
+describe('Badge – pieczęć na stronie klienta', () => {
   it('na domenie usługi: pełna pieczęć, ramkę wolno osadzić, skrypt tylko z nonce, wyświetlenie liczone', async () => {
     const { ctrl, res, headers, eco } = setup({ seal, domain: 'piekarnia.pl', ecoToken: 'tok' });
     const html = await ctrl.seal('id', 'ciemny', req('https://www.piekarnia.pl/'), res as never);

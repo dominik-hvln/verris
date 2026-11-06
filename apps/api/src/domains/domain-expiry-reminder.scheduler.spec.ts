@@ -50,7 +50,7 @@ describe('DomainExpiryReminderScheduler', () => {
     expect(s.mailer.send).not.toHaveBeenCalled();
   });
 
-  it('bez rejestratora cena „w panelu”; konto zanonimizowane — bez maila', async () => {
+  it('bez rejestratora cena „w panelu”; konto zanonimizowane – bez maila', async () => {
     const s = stanowisko({ cenaBlad: true });
     await s.svc.okno(okno14, s.teraz);
     expect((s.mailer.send.mock.calls[0] as unknown as [{ text: string }])[0].text).toContain('aktualna cena w panelu');

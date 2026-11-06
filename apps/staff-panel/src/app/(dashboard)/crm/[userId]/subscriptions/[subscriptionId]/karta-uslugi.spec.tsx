@@ -80,7 +80,7 @@ const wolane = () => api.mock.calls.map((c) => c[0]);
 
 beforeEach(() => api.mockReset());
 
-describe("karta usługi — L1 Konsultant (podgląd)", () => {
+describe("karta usługi – L1 Konsultant (podgląd)", () => {
   it("otwiera się: nagłówek, konto, sekcje obsługi i diagnostyka; bez zmiany planu, migracji za klienta i podglądu konta", async () => {
     odpowiedzi(L1);
     const html = await render();
@@ -97,7 +97,7 @@ describe("karta usługi — L1 Konsultant (podgląd)", () => {
     expect(wolane()).not.toContain(`/admin/subscriptions/${SUB}/plan/eligible-plans`);
   });
 
-  it("D1 — karta przestarzała: link „Otwórz w panelu operatora” do karty usługi", async () => {
+  it("D1 – karta przestarzała: link „Otwórz w panelu operatora” do karty usługi", async () => {
     odpowiedzi(L1);
     const html = await render();
     expect(html).toContain("data-karta-przestarzala");
@@ -113,7 +113,7 @@ describe("karta usługi — L1 Konsultant (podgląd)", () => {
     expect(html).not.toContain("Migracja za klienta");
     expect(wolane()).not.toContain(`/admin/subscriptions/${SUB}/plan/eligible-plans`);
     // Nie wiadomo, kim jest operator — neutralny komunikat zamiast informacji dla L1 (L2/NOC też tu trafiają).
-    expect(html).toContain("Nie udało się odczytać uprawnień — karta w trybie podglądu.");
+    expect(html).toContain("Nie udało się odczytać uprawnień – karta w trybie podglądu.");
     expect(html).not.toContain("wykonuje obsługa od poziomu L2");
   });
 
@@ -126,7 +126,7 @@ describe("karta usługi — L1 Konsultant (podgląd)", () => {
   });
 });
 
-describe("karta usługi — z uprawnieniami (L2)", () => {
+describe("karta usługi – z uprawnieniami (L2)", () => {
   it("jak dotąd: zmiana planu, migracja za klienta, podgląd konta, diagnostyka; bez informacji dla L1", async () => {
     odpowiedzi(L2);
     const html = await render();

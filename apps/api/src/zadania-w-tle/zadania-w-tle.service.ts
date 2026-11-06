@@ -238,7 +238,7 @@ export class ZadaniaWTleService implements OnModuleDestroy {
     if (!RECZNE_URUCHOMIENIE.has(klucz)) throw new ForbiddenException('Tego zadania nie uruchamia się ręcznie.');
     const z = this.zadania.get(klucz);
     if (!z) throw new NotFoundException('Nie ma takiego zadania.');
-    if (this.trwa.has(klucz)) throw new ConflictException('Zadanie właśnie biegnie — poczekaj na koniec przebiegu.');
+    if (this.trwa.has(klucz)) throw new ConflictException('Zadanie właśnie biegnie – poczekaj na koniec przebiegu.');
     const instancja = z.dostawca.instance;
     if (!instancja) throw new ConflictException('Zadanie nie jest jeszcze gotowe.');
     // Rezerwacja przed pierwszym await: bez niej dwa równoczesne POST-y (dwa kliknięcia, dwóch administratorów)

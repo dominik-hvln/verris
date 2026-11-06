@@ -30,7 +30,7 @@ const ZRODLA = [
   join(KORZEN, 'docs/legal/consumer-info.md'),
 ];
 
-describe('White label — nazwa DirectAdmina nie trafia do klienta', () => {
+describe('White label – nazwa DirectAdmina nie trafia do klienta', () => {
   it('teksty dla klienta nie zawierają „DirectAdmin”', () => {
     const trafienia = ZRODLA.filter((p) => !WYJATKI.has(relative(KORZEN, p))).flatMap((p) =>
       readFileSync(p, 'utf8')
@@ -48,7 +48,7 @@ describe('White label — nazwa DirectAdmina nie trafia do klienta', () => {
  * danych logowania DirectAdmin…”). Wyjątki: kreator migracji (DirectAdmin u poprzedniego dostawcy)
  * i komunikaty wyłącznie dla administratora (ustawienia i audyt węzła).
  */
-describe('White label — błędy API dla klienta bez nazwy DirectAdmina', () => {
+describe('White label – błędy API dla klienta bez nazwy DirectAdmina', () => {
   const WYJATKI_API = new Set([
     'apps/api/src/subscriptions/migration-discovery.service.ts',
     'apps/api/src/servers/servers.service.ts',
@@ -72,7 +72,7 @@ describe('White label — błędy API dla klienta bez nazwy DirectAdmina', () =>
  * umykały mu pola zwracane w JSON-ie (`fetchError`, `notice`, `blad`) i napisy po `??` — a filtr wyjątków
  * pól JSON nie czyści. Pomijamy wpisy do logów (`this.logger.*`) i podpowiedzi tylko dla administratora.
  */
-describe('White label — stałe napisy w odpowiedziach API dla klienta', () => {
+describe('White label – stałe napisy w odpowiedziach API dla klienta', () => {
   const PLIKI = [
     'apps/api/src/servers/directadmin.service.ts',
     'apps/api/src/subscriptions/services.controller.ts',

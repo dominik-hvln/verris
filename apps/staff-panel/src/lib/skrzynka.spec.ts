@@ -1,7 +1,7 @@
 import { czyFiltry, linkStrony, zapytanieSkrzynki } from "./skrzynka";
 
 /** F2.5 — skrzynka: widok i filtry z formularza → zapytanie do API; stronicowanie zachowuje filtry. */
-describe("skrzynka — zapytanie do API", () => {
+describe("skrzynka – zapytanie do API", () => {
   it("domyślnie otwarte, sort „termin”, 50 na stronę", () => {
     expect(zapytanieSkrzynki({})).toEqual({ stan: "otwarte", sort: "termin", limit: "50" });
   });

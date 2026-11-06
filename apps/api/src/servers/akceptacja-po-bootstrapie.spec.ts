@@ -20,14 +20,14 @@ function serwis(bootstrapPhase: string | null) {
 }
 
 describe('akceptacja węzła dopiero po DONE bootstrapu', () => {
-  it.each(['AGENT', 'CANARY', 'TLS'])('faza %s — odmowa, status bez zmian, bez zadań na węźle', async (faza) => {
+  it.each(['AGENT', 'CANARY', 'TLS'])('faza %s – odmowa, status bez zmian, bez zadań na węźle', async (faza) => {
     const { s, update, nodeTasks } = serwis(faza);
     await expect(s.approveServer('s1', 'u1')).rejects.toThrow(/faza|Gotowe/);
     expect(update).not.toHaveBeenCalled();
     expect(nodeTasks.queueHostingProfile).not.toHaveBeenCalled();
   });
 
-  it.each(['DONE', null])('faza %s (null = węzeł bez bootstrapu v2) — akceptacja przechodzi', async (faza) => {
+  it.each(['DONE', null])('faza %s (null = węzeł bez bootstrapu v2) – akceptacja przechodzi', async (faza) => {
     const { s, update, audit } = serwis(faza);
     process.env.VERRIS_TLS_DEPLOY_WEBHOOK = 'https://cp.invalid/tls';
     const fetchSpy = vi.spyOn(globalThis, 'fetch');

@@ -1,6 +1,6 @@
 import { statusOffsite } from './offsite-status.js';
 
-describe('statusOffsite — panel nie obiecuje kopii, której nie ma', () => {
+describe('statusOffsite – panel nie obiecuje kopii, której nie ma', () => {
   const przebieg = new Date('2026-09-28T16:30:00Z');
   const srv = { lastOffsiteBackupOk: true, lastOffsiteBackupAt: przebieg };
 
@@ -20,7 +20,7 @@ describe('statusOffsite — panel nie obiecuje kopii, której nie ma', () => {
     expect(statusOffsite(null)).toEqual({ protected: false, pending: false, lastRunAt: null, lastRunOk: null });
   });
 
-  describe('F3.3 — wynik konta z raportu węzła ma pierwszeństwo przed przebiegiem węzła', () => {
+  describe('F3.3 – wynik konta z raportu węzła ma pierwszeństwo przed przebiegiem węzła', () => {
     const konto = new Date('2026-09-01T00:00:00Z');
     const udana = new Date('2026-09-27T03:40:00Z');
     const nieudana = new Date('2026-09-28T03:40:00Z');

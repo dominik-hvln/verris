@@ -113,7 +113,7 @@ describe('X-05 startTopupAction', () => {
   });
 });
 
-describe('X-05 quoteTopupAction — wycena VAT', () => {
+describe('X-05 quoteTopupAction – wycena VAT', () => {
   it('kwota poza zakresem → null bez pytania API', async () => {
     expect(await quoteTopupAction('2', 'PLN')).toBeNull();
     expect(await quoteTopupAction('x', 'PLN')).toBeNull();

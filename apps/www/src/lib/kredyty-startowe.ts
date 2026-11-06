@@ -62,6 +62,6 @@ export function kredytyNaStart(k: KredytyStartowe): string {
   const czesci: string[] = [];
   if (k.rocznie > 0) czesci.push(`${zlK(k.rocznie)} przy planie rocznym`);
   if (k.miesiecznie > 0) czesci.push(`${zlK(k.miesiecznie)} przy miesięcznym`);
-  if (!k.wlaczone || czesci.length === 0) return 'Pierwszy okres kosztuje tyle co odnowienie — cena z cennika, bez promocji na start.';
-  return `Przy pierwszym zakupie dostajesz darmowe kredyty na autoskalowanie: ${czesci.join(' albo ')}, ważne ${waznosc(k)} — opłacą dodatkową moc w szczycie. Pierwszy okres kosztuje tyle co odnowienie.`;
+  if (!k.wlaczone || czesci.length === 0) return 'Pierwszy okres kosztuje tyle co odnowienie – cena z cennika, bez promocji na start.';
+  return `Przy pierwszym zakupie dostajesz darmowe kredyty na autoskalowanie: ${czesci.join(' albo ')}, ważne ${waznosc(k)} – opłacą dodatkową moc w szczycie. Pierwszy okres kosztuje tyle co odnowienie.`;
 }

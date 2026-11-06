@@ -79,7 +79,7 @@ export function PocztaKontaPanel({ subscriptionId, dostep }: { subscriptionId: s
       setZgloszenie("");
       if (co === "usun") {
         setZaznaczone(new Set());
-        setMsg({ ok: true, tekst: "Usuwanie zlecone — serwer usunie wiadomości w ciągu minuty; liczba usuniętych pojawi się poniżej." });
+        setMsg({ ok: true, tekst: "Usuwanie zlecone – serwer usunie wiadomości w ciągu minuty; liczba usuniętych pojawi się poniżej." });
         return odczyt("kolejka");
       }
       setMsg({ ok: true, tekst: co === "zablokuj" ? "Wysyłka konta zablokowana na serwerze." : "Wysyłka konta przywrócona." });
@@ -100,11 +100,11 @@ export function PocztaKontaPanel({ subscriptionId, dostep }: { subscriptionId: s
     if (!lista.length) return;
     const podglad = lista
       .slice(0, 8)
-      .map((m) => `• ${m.nadawca || "<>"} → ${m.odbiorcy}: ${m.temat || "—"}`)
+      .map((m) => `• ${m.nadawca || "<>"} → ${m.odbiorcy}: ${m.temat || "–"}`)
       .join("\n");
     const reszta = lista.length > 8 ? `\n…i ${lista.length - 8} kolejnych` : "";
     const ile = `${lista.length} ${plForm(lista.length, "wiadomość", "wiadomości", "wiadomości")}`;
-    if (!(await potwierdz(`Usunąć z kolejki ${ile} konta? Tego nie da się cofnąć — nie wyjdą i nie wrócą do nadawcy.\n\n${podglad}${reszta}`, { akcja: "Usuń", niebezpieczne: true, tytul: "Usunąć wiadomości z kolejki?" }))) return;
+    if (!(await potwierdz(`Usunąć z kolejki ${ile} konta? Tego nie da się cofnąć – nie wyjdą i nie wrócą do nadawcy.\n\n${podglad}${reszta}`, { akcja: "Usuń", niebezpieczne: true, tytul: "Usunąć wiadomości z kolejki?" }))) return;
     zapisz("usun", lista.map((m) => m.id));
   };
 
@@ -121,23 +121,23 @@ export function PocztaKontaPanel({ subscriptionId, dostep }: { subscriptionId: s
           </h2>
           <Pomoc id="blokada-wysylki" />
         </div>
-        <p className="text-xs text-muted-foreground">Blokada działa na serwerze dla całego konta. Kolejka pokazuje tylko nagłówki — treści wiadomości nie widać.</p>
+        <p className="text-xs text-muted-foreground">Blokada działa na serwerze dla całego konta. Kolejka pokazuje tylko nagłówki – treści wiadomości nie widać.</p>
       </div>
 
       <section className="space-y-2" data-sekcja="wysylka">
         {brakStanu ? (
-          <p className="text-xs text-muted-foreground">{brakStanu} — stan wysyłki niedostępny.</p>
+          <p className="text-xs text-muted-foreground">{brakStanu} – stan wysyłki niedostępny.</p>
         ) : w ? (
           <div className="space-y-1 text-sm">
             <p data-wysylka={w.zablokowana ? "zablokowana" : "dziala"} className={w.zablokowana ? "text-rose-200" : "text-emerald-300"}>
-              {w.zablokowana ? `Wysyłka zablokowana od ${kiedy(w.od)}${w.przez ? ` (${w.przez})` : ""}${w.powod ? ` — ${w.powod}` : ""}.` : "Wysyłka działa."}
+              {w.zablokowana ? `Wysyłka zablokowana od ${kiedy(w.od)}${w.przez ? ` (${w.przez})` : ""}${w.powod ? ` – ${w.powod}` : ""}.` : "Wysyłka działa."}
             </p>
             {w.naWezle !== null && w.naWezle !== w.zablokowana ? (
               <p role="alert" className="text-xs text-amber-200" data-rozjazd="tak">
-                Na serwerze wysyłka jest {w.naWezle ? "zablokowana" : "odblokowana"} — inaczej niż w panelu. Użyj ponownie „{w.zablokowana ? "Zablokuj" : "Zwolnij"}”, by wyrównać.
+                Na serwerze wysyłka jest {w.naWezle ? "zablokowana" : "odblokowana"} – inaczej niż w panelu. Użyj ponownie „{w.zablokowana ? "Zablokuj" : "Zwolnij"}”, by wyrównać.
               </p>
             ) : null}
-            {w.obslugiwana === false ? <p className="text-xs text-amber-200">Serwer nie obsługuje blokady (exim.conf bez blacklist_usernames) — zaktualizuj exim.conf przez CustomBuild.</p> : null}
+            {w.obslugiwana === false ? <p className="text-xs text-amber-200">Serwer nie obsługuje blokady (exim.conf bez blacklist_usernames) – zaktualizuj exim.conf przez CustomBuild.</p> : null}
             {w.bladWezla ? <p className="text-xs text-amber-200">Nie udało się sprawdzić stanu na serwerze: {w.bladWezla}</p> : null}
           </div>
         ) : (
@@ -211,7 +211,7 @@ export function PocztaKontaPanel({ subscriptionId, dostep }: { subscriptionId: s
                     {kolejka.usuwanie.wToku
                       ? "w toku…"
                       : kolejka.usuwanie.blad
-                        ? `nie powiodło się — ${kolejka.usuwanie.blad}${kolejka.usuwanie.usunieto ? ` (wcześniej usunięto już ${kolejka.usuwanie.usunieto})` : ""}`
+                        ? `nie powiodło się – ${kolejka.usuwanie.blad}${kolejka.usuwanie.usunieto ? ` (wcześniej usunięto już ${kolejka.usuwanie.usunieto})` : ""}`
                         : `usunięto ${kolejka.usuwanie.usunieto ?? 0}, pominięto ${kolejka.usuwanie.pominieto ?? 0} (już wysłane albo nie z tego konta).`}
                   </p>
                 ) : null}

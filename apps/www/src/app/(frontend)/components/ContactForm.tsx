@@ -35,7 +35,7 @@ export function ContactForm() {
     });
     setBusy(false);
     if (!res.ok) {
-      setError('Nie udało się wysłać — spróbuj ponownie albo napisz na kontakt@verris.pl.');
+      setError('Nie udało się wysłać – spróbuj ponownie albo napisz na kontakt@verris.pl.');
       return;
     }
     // Lead do dataLayer (GTM → GA4/Ads/Meta), pomiar wyłącznie po zgodzie.
@@ -46,7 +46,7 @@ export function ContactForm() {
   if (sent) {
     return (
       <div className="form-ok" role="status">
-        Dziękujemy! Wiadomość została przyjęta — odezwiemy się na podany adres e-mail. Jeśli sprawa
+        Dziękujemy! Wiadomość została przyjęta – odezwiemy się na podany adres e-mail. Jeśli sprawa
         jest pilna, napisz bezpośrednio na{' '}
         <a href="mailto:kontakt@verris.pl">kontakt@verris.pl</a>.
       </div>

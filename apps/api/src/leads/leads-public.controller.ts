@@ -63,7 +63,7 @@ export class LeadsPublicController {
   @Header('Content-Type', 'text/html; charset=utf-8')
   @Header('Content-Security-Policy', CSP_STRONY_LINKU)
   async confirmStrona(@Query('token') token?: string): Promise<string> {
-    if (!token?.trim()) throw new BadRequestException('Brak tokenu — użyj linku z wiadomości.');
+    if (!token?.trim()) throw new BadRequestException('Brak tokenu – użyj linku z wiadomości.');
     if (!(await this.leads.tokenPotwierdzeniaIstnieje(token))) return NIEAKTUALNY;
     return stronaLinku(
       'Potwierdzić zgodę na wiadomości?',
@@ -77,7 +77,7 @@ export class LeadsPublicController {
   @Header('Content-Type', 'text/html; charset=utf-8')
   @Header('Content-Security-Policy', CSP_STRONY_LINKU)
   async confirm(@Body() body: TokenDto): Promise<string> {
-    if (!body?.token?.trim()) throw new BadRequestException('Brak tokenu — użyj linku z wiadomości.');
+    if (!body?.token?.trim()) throw new BadRequestException('Brak tokenu – użyj linku z wiadomości.');
     const { ok } = await this.leads.confirm(body.token.trim());
     if (!ok) return NIEAKTUALNY;
     return stronaLinku(
@@ -91,7 +91,7 @@ export class LeadsPublicController {
   @Header('Content-Type', 'text/html; charset=utf-8')
   @Header('Content-Security-Policy', CSP_STRONY_LINKU)
   async unsubscribeStrona(@Query('token') token?: string): Promise<string> {
-    if (!token?.trim()) throw new BadRequestException('Brak tokenu wypisu — użyj linku z wiadomości.');
+    if (!token?.trim()) throw new BadRequestException('Brak tokenu wypisu – użyj linku z wiadomości.');
     const stan = await this.leads.tokenWypisu(token);
     if (stan === 'brak') {
       return stronaLinku('Link nieaktualny', 'Ten link do wypisu jest nieprawidłowy albo dane zostały już usunięte. Napisz na kontakt@verris.pl, jeśli dalej dostajesz wiadomości.', undefined, true);

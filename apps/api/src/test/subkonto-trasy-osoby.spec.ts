@@ -11,8 +11,8 @@ import { ConsentsController } from '../compliance/consents.controller.js';
 const SUBKONTO = { userId: 'wlasciciel', principalUserId: 'subkonto' };
 const WLASCICIEL = { userId: 'wlasciciel', principalUserId: 'wlasciciel' };
 
-describe('Trasy osoby zalogowanej — subkonto widzi swoje, nie właściciela', () => {
-  it('powiadomienia: lista, przeczytaj wszystkie, przeczytaj jedno — dla osoby z sesji', async () => {
+describe('Trasy osoby zalogowanej – subkonto widzi swoje, nie właściciela', () => {
+  it('powiadomienia: lista, przeczytaj wszystkie, przeczytaj jedno – dla osoby z sesji', async () => {
     const svc = { listForUser: vi.fn(async () => []), markAllRead: vi.fn(async () => ({ updated: 0 })), markRead: vi.fn(async () => undefined) };
     const c = new NotificationsController(svc as never);
     await c.list(SUBKONTO);
@@ -25,7 +25,7 @@ describe('Trasy osoby zalogowanej — subkonto widzi swoje, nie właściciela', 
     expect(svc.listForUser).toHaveBeenLastCalledWith('wlasciciel', expect.anything());
   });
 
-  it('historia logowań i dziennik aktywności — osoby z sesji', async () => {
+  it('historia logowań i dziennik aktywności – osoby z sesji', async () => {
     const svc = { listMyLoginHistory: vi.fn(async () => []), listMyActivity: vi.fn(async () => []) };
     const c = new UsersController(svc as never);
     await c.loginHistory(SUBKONTO);
@@ -34,7 +34,7 @@ describe('Trasy osoby zalogowanej — subkonto widzi swoje, nie właściciela', 
     expect(svc.listMyActivity).toHaveBeenCalledWith('subkonto');
   });
 
-  it('historia zgód — osoby z sesji', async () => {
+  it('historia zgód – osoby z sesji', async () => {
     const svc = { listForUser: vi.fn(async () => []) };
     const c = new ConsentsController(svc as never, {} as never);
     await c.history(SUBKONTO);

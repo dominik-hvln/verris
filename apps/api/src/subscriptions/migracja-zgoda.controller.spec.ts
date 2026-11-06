@@ -7,7 +7,7 @@ import { MigracjaZgodaController } from './migracja-zgoda.controller.js';
  * operator) nie może jej sam zatwierdzić ani odrzucić — wpis byłby fałszywym dowodem zgody klienta.
  * Pełna ścieżka na prawdziwej bazie: test/integration/migracja-za-klienta.int-spec.ts.
  */
-describe('MigracjaZgodaController — decyzja tylko od właściciela', () => {
+describe('MigracjaZgodaController – decyzja tylko od właściciela', () => {
   const uslugi = () => ({
     przyjmij: vi.fn(async () => ({ id: 'm1', status: 'QUEUED' })),
     odrzuc: vi.fn(async () => ({ id: 'm1', stan: 'odrzucona' })),
@@ -36,7 +36,7 @@ describe('MigracjaZgodaController — decyzja tylko od właściciela', () => {
     expect(s.szczegoly).toHaveBeenCalled();
   });
 
-  it('właściciel we własnej sesji — decyzja przechodzi z jego IP', async () => {
+  it('właściciel we własnej sesji – decyzja przechodzi z jego IP', async () => {
     const s = uslugi();
     await new MigracjaZgodaController(s as never).przyjmij(wlasciciel, 's1', 'm1', { token: 't' }, zadanie);
     expect(s.przyjmij).toHaveBeenCalledWith(expect.objectContaining({ userId: 'klient', actorUserId: 'klient', ip: '203.0.113.5' }));

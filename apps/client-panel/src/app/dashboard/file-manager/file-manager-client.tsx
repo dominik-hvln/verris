@@ -85,7 +85,7 @@ async function withRetry<T>(fn: () => Promise<T>, attempts = 3, delayMs = 600): 
 }
 
 function formatModified(raw: string | null): string {
-  if (!raw) return '—';
+  if (!raw) return '–';
   // DA returns epoch seconds (sometimes ms); render a readable local date.
   const num = Number(raw);
   if (Number.isFinite(num) && num > 0) {
@@ -97,7 +97,7 @@ function formatModified(raw: string | null): string {
 }
 
 function formatSize(bytes: number): string {
-  if (!bytes) return '—';
+  if (!bytes) return '–';
   const units = ['B', 'KB', 'MB', 'GB'];
   let n = bytes;
   let i = 0;
@@ -334,13 +334,13 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
 
   const onCompressSelected = async () => {
     const suggested = selected.size === 1 ? Array.from(selected)[0].replace(/\.[^.]+$/, '') : `archiwum-${new Date().toISOString().slice(0, 10)}`;
-    const name = await zapytaj('Nazwa archiwum — plik .tar.gz powstanie w tym katalogu:', { tytul: 'Spakuj', akcja: 'Spakuj', domyslna: suggested });
+    const name = await zapytaj('Nazwa archiwum – plik .tar.gz powstanie w tym katalogu:', { tytul: 'Spakuj', akcja: 'Spakuj', domyslna: suggested });
     if (!name?.trim()) return;
     await runOnSelection('Spakowano do archiwum', (names) => fmCompress(serviceId, path, names, name.trim()));
   };
 
   const onChmodSelected = async () => {
-    const mode = await zapytaj('Uprawnienia ósemkowo — zwykle 644 dla plików, 755 dla katalogów:', { tytul: 'Zmień uprawnienia', akcja: 'Zmień', domyslna: '644' });
+    const mode = await zapytaj('Uprawnienia ósemkowo – zwykle 644 dla plików, 755 dla katalogów:', { tytul: 'Zmień uprawnienia', akcja: 'Zmień', domyslna: '644' });
     if (!mode) return;
     if (!/^[0-7]{3,4}$/.test(mode.trim())) {
       toast.error('Podaj uprawnienia ósemkowo, np. 644 lub 755.');
@@ -586,7 +586,7 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
                     </button>
                   </td>
                   <td data-label="Rozmiar" className="px-4 py-2 text-neutral-400">
-                    {entry.type === 'dir' ? '—' : formatSize(entry.sizeBytes)}
+                    {entry.type === 'dir' ? '–' : formatSize(entry.sizeBytes)}
                   </td>
                   <td data-label="Zmodyfikowano" className="px-4 py-2 text-neutral-500">{formatModified(entry.modified)}</td>
                   <td data-label="Akcje" className="px-4 py-2">

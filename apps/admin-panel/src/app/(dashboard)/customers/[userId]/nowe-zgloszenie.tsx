@@ -48,7 +48,7 @@ export function NoweZgloszenieKlienta({ userId, panelObslugi }: { userId: string
       </div>
       {nowe ? (
         <p className="text-[13px] text-muted-foreground">
-          Założone #{nowe.slice(0, 8)} —{" "}
+          Założone #{nowe.slice(0, 8)} –{" "}
           <a href={new URL(`/tickets/${nowe}`, panelObslugi).toString()} target="_blank" rel="noreferrer" className="font-semibold text-data-hi">
             otwórz w panelu obsługi ↗
           </a>

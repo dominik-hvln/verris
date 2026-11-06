@@ -74,7 +74,7 @@ async function bootstrap() {
   const shutdown = async (signal: string) => {
     if (shuttingDown) return;
     shuttingDown = true;
-    logger.log(`${signal} received — drenowanie ruchu przez ${drainMs}ms…`);
+    logger.log(`${signal} received – drenowanie ruchu przez ${drainMs}ms…`);
     beginDraining();
     await new Promise((resolve) => setTimeout(resolve, drainMs));
     logger.log('Zamykanie serwera HTTP…');

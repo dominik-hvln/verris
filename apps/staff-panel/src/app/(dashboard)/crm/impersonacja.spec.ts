@@ -19,13 +19,13 @@ import { staffImpersonateUserAction } from './actions';
 
 it('403 → komunikat o brakującym uprawnieniu', async () => {
   mockStaffApi.mockRejectedValue(new StaffApiError('Twoja rola nie ma uprawnień do tej operacji.', 403));
-  await expect(staffImpersonateUserAction('u1', 'Zgłoszenie #1234 — strona nie działa')).resolves.toEqual({
+  await expect(staffImpersonateUserAction('u1', 'Zgłoszenie #1234 – strona nie działa')).resolves.toEqual({
     ok: false,
     error: 'Twoja rola nie ma uprawnienia „Wejście na konto klienta”. Poproś administratora o jego nadanie.',
   });
 });
 
-it('inny błąd API — jego komunikat', async () => {
+it('inny błąd API – jego komunikat', async () => {
   mockStaffApi.mockRejectedValue(new StaffApiError('Powód impersonacji jest wymagany (min. 10 znaków).', 400));
   await expect(staffImpersonateUserAction('u1', 'krótki')).resolves.toMatchObject({ error: 'Powód impersonacji jest wymagany (min. 10 znaków).' });
 });

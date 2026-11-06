@@ -9,7 +9,7 @@ const OPIS =
   'Obsługuj strony klientów z jednego panelu Verris: szybki hosting, przeprowadzki za 0 zł, subkonta z uprawnieniami i prowizja z programu poleceń.';
 
 export const metadata: Metadata = {
-  title: 'Hosting dla agencji — program dla agencji | Verris',
+  title: 'Hosting dla agencji – program dla agencji | Verris',
   description: OPIS,
   alternates: { canonical: '/reseller' },
 };
@@ -58,7 +58,7 @@ const KROKI = [
 const FAQ: [string, string][] = [
   [
     'Ile zapłacą moi klienci?',
-    'Ceny z cennika Verris. Pracujemy nad własnym narzutem, który doliczysz do cen dla swoich klientów — do tego czasu klienci płacą cennik.',
+    'Ceny z cennika Verris. Pracujemy nad własnym narzutem, który doliczysz do cen dla swoich klientów – do tego czasu klienci płacą cennik.',
   ],
   [
     'Czy klienci zobaczą moją markę?',
@@ -143,7 +143,7 @@ export default function Page() {
               </div>
               <div>
                 <dt>Własny narzut</dt>
-                <dd>jeszcze nie — klienci płacą cennik Verris</dd>
+                <dd>jeszcze nie – klienci płacą cennik Verris</dd>
               </div>
             </dl>
           </Card>

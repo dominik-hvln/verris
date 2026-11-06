@@ -27,7 +27,7 @@ type Checks = {
 };
 
 function okDetail(label: string, explanation: string): ServiceHealthCheckDetailDto {
-  return { status: 'ok', label, explanation, whatToDo: 'Brak działań — parametr w normie.' };
+  return { status: 'ok', label, explanation, whatToDo: 'Brak działań – parametr w normie.' };
 }
 
 function warnDetail(
@@ -104,8 +104,8 @@ export function buildHealthCheckDetails(
   } else if (checks.mailOk === false) {
     out.mailOk = warnDetail(
       'Poczta',
-      `Serwer poczty ${meta.mailHost}:${meta.mailPort} — problem połączenia${meta.mailTls.error ? ` (${opisBleduPolaczenia(meta.mailTls.error)})` : ''}.`,
-      'Sprawdź ustawienia IMAP/SMTP w zakładce „Poczta”. Jeśli skrzynki w panelu działają, a klient pocztowy nie — zweryfikuj port i SSL. W razie wątpliwości napisz do supportu.',
+      `Serwer poczty ${meta.mailHost}:${meta.mailPort} – problem połączenia${meta.mailTls.error ? ` (${opisBleduPolaczenia(meta.mailTls.error)})` : ''}.`,
+      'Sprawdź ustawienia IMAP/SMTP w zakładce „Poczta”. Jeśli skrzynki w panelu działają, a klient pocztowy nie – zweryfikuj port i SSL. W razie wątpliwości napisz do supportu.',
     );
   }
 
@@ -144,7 +144,7 @@ export function fallbackHealthCheckDetails(checks: Checks): Partial<Record<Servi
   const generic = (label: string, ok: boolean) =>
     ok
       ? okDetail(label, 'Parametr w normie (szczegóły dostępne po odświeżeniu diagnostyki).')
-      : warnDetail(label, 'Wykryto problem — odśwież diagnostykę lub skontaktuj się ze wsparciem.', 'Kliknij „Odśwież” w przeglądzie usługi, aby zobaczyć pełny opis. Jeśli problem się utrzymuje, utwórz zgłoszenie do supportu.');
+      : warnDetail(label, 'Wykryto problem – odśwież diagnostykę lub skontaktuj się ze wsparciem.', 'Kliknij „Odśwież” w przeglądzie usługi, aby zobaczyć pełny opis. Jeśli problem się utrzymuje, utwórz zgłoszenie do supportu.');
 
   const out: Partial<Record<ServiceHealthCheckKey, ServiceHealthCheckDetailDto>> = {};
   if (checks.dnsOk != null) out.dnsOk = generic('DNS', checks.dnsOk);

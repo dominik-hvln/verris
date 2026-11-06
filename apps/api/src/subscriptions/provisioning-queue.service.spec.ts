@@ -23,7 +23,7 @@ describe('categorizeProvisioningError', () => {
 });
 
 
-describe('kategoriaBledu — status HTTP przed prozą', () => {
+describe('kategoriaBledu – status HTTP przed prozą', () => {
   it.each([
     'Brak węzłów hostingowych odpowiadających na sygnał życia. Skontaktuj się z BOK.',
     'Sprzedaż wstrzymana: trwa serwis infrastruktury. Spróbuj ponownie za chwilę.',
@@ -36,7 +36,7 @@ describe('kategoriaBledu — status HTTP przed prozą', () => {
   });
 });
 
-describe('ProvisioningQueueService — twarda porażka kończy job', () => {
+describe('ProvisioningQueueService – twarda porażka kończy job', () => {
   function stanowisko(blad: Error, zPaynow = 0) {
     const prisma = {
       account: { findUnique: vi.fn(async () => null) },
@@ -59,13 +59,13 @@ describe('ProvisioningQueueService — twarda porażka kończy job', () => {
   }
 
   it('błąd trwały przy 1. próbie: zwrot + UnrecoverableError (BullMQ nie ponawia i nie założy konta po zwrocie)', async () => {
-    const s = stanowisko(new BladEtapuProvisioningu('createAccount', 'Unable to Create User — A valid IP was not provided', 'Failed'));
+    const s = stanowisko(new BladEtapuProvisioningu('createAccount', 'Unable to Create User – A valid IP was not provided', 'Failed'));
     await expect(s.uruchom(0)).rejects.toBeInstanceOf(UnrecoverableError);
     expect(s.walletLedger.credit).toHaveBeenCalledTimes(1);
   });
 
   // Przegląd 13.10: zamówienie opłacone przez Paynow, a konto się nie założyło — sam wpis w dzienniku nie wystarczy.
-  it('twarda porażka zamówienia opłaconego przez Paynow: zwrot do portfela i alarm dla adminów; bez Paynow — bez alarmu', async () => {
+  it('twarda porażka zamówienia opłaconego przez Paynow: zwrot do portfela i alarm dla adminów; bez Paynow – bez alarmu', async () => {
     const z = stanowisko(new BladEtapuProvisioningu('createAccount', 'Unable to Create User', 'Failed'), 1);
     await expect(z.uruchom(0)).rejects.toBeInstanceOf(UnrecoverableError);
     expect(z.walletLedger.credit).toHaveBeenCalledTimes(1);
@@ -91,7 +91,7 @@ describe('ProvisioningQueueService — twarda porażka kończy job', () => {
   });
 });
 
-describe('ProvisioningQueueService.retryJob — ponowienie przez admina (Z-18, t1 03.10)', () => {
+describe('ProvisioningQueueService.retryJob – ponowienie przez admina (Z-18, t1 03.10)', () => {
   it('zeruje licznik prób: inaczej pierwsza ponowiona próba byłaby „ostatnią” i chwilowy błąd = twarda porażka', async () => {
     const job = { data: { subscriptionId: 's1', userId: 'u1' }, retry: vi.fn(async () => undefined) };
     const prisma = { subscription: { update: vi.fn(async () => ({})) } };
@@ -103,7 +103,7 @@ describe('ProvisioningQueueService.retryJob — ponowienie przez admina (Z-18, t
   });
 });
 
-describe('ProvisioningQueueService.listJobs — joby jednej usługi (karta usługi, plan E patch 9)', () => {
+describe('ProvisioningQueueService.listJobs – joby jednej usługi (karta usługi, plan E patch 9)', () => {
   function kolejka(joby: Record<string, { state: string; data: Record<string, unknown>; failedReason?: string }>) {
     const prisma = { subscription: { findUnique: vi.fn(async () => null) } };
     const svc = new ProvisioningQueueService(prisma as never, {} as never, {} as never, {} as never, {} as never);
@@ -124,7 +124,7 @@ describe('ProvisioningQueueService.listJobs — joby jednej usługi (karta usłu
     expect(r.rows).toEqual([expect.objectContaining({ id: 'stripe-s1', state: 'failed', failedReason: 'węzeł nie odpowiada' })]);
   });
 
-  it('z filtrem stanu — tylko joby w tym stanie', async () => {
+  it('z filtrem stanu – tylko joby w tym stanie', async () => {
     const k = kolejka({ 'wallet-s1': { state: 'completed', data: { type: 'wallet', subscriptionId: 's1', userId: 'u1' } } });
     expect((await k.svc.listJobs({ subscriptionId: 's1', state: 'failed' })).rows).toEqual([]);
     expect((await k.svc.listJobs({ subscriptionId: 's1' })).rows).toHaveLength(1);

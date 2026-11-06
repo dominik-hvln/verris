@@ -112,7 +112,7 @@ export default function SubdomainsManager({ serviceId }: { serviceId: string }) 
             disabled={domains.length === 0}
             aria-label="Domena"
             className="min-w-[10rem]"
-            placeholder="—"
+            placeholder="–"
             options={domains.map((d) => ({ value: d, label: d }))}
           />
         </div>

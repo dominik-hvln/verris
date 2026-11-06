@@ -40,7 +40,7 @@ async function fakturyKlienta(userId: string) {
   });
 }
 
-describe('Z-01 — faktura za obciążenie portfela', () => {
+describe('Z-01 – faktura za obciążenie portfela', () => {
   // Te testy opisują fakturę VAT z panelu (seria VFV) — tryb `panel`.
   // Tryb domyślny, zewnętrzny, ma własny blok na końcu pliku (FAK-01).
   // M-34 (2026-09-23): domyślnie dokument powstaje przy doładowaniu; tu sprawdzamy model przy obciążeniu.
@@ -57,7 +57,7 @@ describe('Z-01 — faktura za obciążenie portfela', () => {
       userId: u.id,
       type: WalletTxType.CHARGE_SUBSCRIPTION,
       amount: '45.00',
-      description: 'Abonament Verris Hosting — 1 mies.',
+      description: 'Abonament Verris Hosting – 1 mies.',
     });
 
     const [f] = await fakturyKlienta(u.id);
@@ -81,29 +81,29 @@ describe('Z-01 — faktura za obciążenie portfela', () => {
       userId: u.id,
       type: WalletTxType.CHARGE_DOMAIN,
       amount: '89.00',
-      description: 'Domena przyklad.pl — rejestracja na 1 rok',
+      description: 'Domena przyklad.pl – rejestracja na 1 rok',
     });
     const [f] = await fakturyKlienta(u.id);
     const pozycje = f.lineItems as unknown as Array<{ name: string; totalGross: string }>;
     expect(pozycje).toHaveLength(1);
-    expect(pozycje[0].name).toBe('Domena przyklad.pl — rejestracja na 1 rok');
+    expect(pozycje[0].name).toBe('Domena przyklad.pl – rejestracja na 1 rok');
     expect(pozycje[0].totalGross).toBe('89.00');
   });
 
-  it('autoskalowanie NIE dostaje własnej faktury — czeka na zbiorczą', async () => {
+  it('autoskalowanie NIE dostaje własnej faktury – czeka na zbiorczą', async () => {
     const u = await utworzKlienta('100.00');
     const tx = await ledger().debit({
       userId: u.id,
       type: WalletTxType.CHARGE_AUTOSCALING,
       amount: '0.12',
-      description: 'Autoskalowanie — blok 15 min',
+      description: 'Autoskalowanie – blok 15 min',
     });
     expect(await fakturyKlienta(u.id)).toHaveLength(0);
     const wpis = await prisma().walletTransaction.findUniqueOrThrow({ where: { id: tx.id } });
     expect(wpis.invoiceId).toBeNull();
   });
 
-  it('doładowanie nie tworzy faktury — to wpłata na poczet usług', async () => {
+  it('doładowanie nie tworzy faktury – to wpłata na poczet usług', async () => {
     const u = await utworzKlienta('0.00');
     await ledger().credit({ userId: u.id, type: WalletTxType.TOPUP, amount: '200.00' });
     expect(await fakturyKlienta(u.id)).toHaveLength(0);
@@ -176,7 +176,7 @@ describe('Z-01 — faktura za obciążenie portfela', () => {
         userId: u.id,
         type: WalletTxType.CHARGE_SUBSCRIPTION,
         amount: '45.00',
-        description: 'Abonament — próba przy zajętym numerze',
+        description: 'Abonament – próba przy zajętym numerze',
       }),
     ).rejects.toThrow();
 
@@ -252,7 +252,7 @@ describe('Z-01 — faktura za obciążenie portfela', () => {
   });
 });
 
-describe('Z-01 — faktura zbiorcza za miesiąc', () => {
+describe('Z-01 – faktura zbiorcza za miesiąc', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     await ustawModelFakturowania('przy_obciazeniu');
@@ -344,9 +344,9 @@ describe('Z-01 — faktura zbiorcza za miesiąc', () => {
 
   it('zbiera obciążenia miesiąca w jedną fakturę z pozycjami', async () => {
     const u = await utworzKlienta('100.00');
-    await obciazWstecz(u.id, '0.12', LIPIEC, 'Autoskalowanie — blok 15 min');
-    await obciazWstecz(u.id, '0.13', LIPIEC, 'Autoskalowanie — blok 15 min');
-    await obciazWstecz(u.id, '0.25', LIPIEC, 'Autoskalowanie — blok 15 min');
+    await obciazWstecz(u.id, '0.12', LIPIEC, 'Autoskalowanie – blok 15 min');
+    await obciazWstecz(u.id, '0.13', LIPIEC, 'Autoskalowanie – blok 15 min');
+    await obciazWstecz(u.id, '0.25', LIPIEC, 'Autoskalowanie – blok 15 min');
 
     await wystawZbiorcza(u.id, PIERWSZY_SIERPNIA);
 
@@ -362,7 +362,7 @@ describe('Z-01 — faktura zbiorcza za miesiąc', () => {
 
   it('powtórne uruchomienie NIE wystawia drugiej faktury na te same obciążenia', async () => {
     const u = await utworzKlienta('100.00');
-    await obciazWstecz(u.id, '1.00', LIPIEC, 'Autoskalowanie — blok 15 min');
+    await obciazWstecz(u.id, '1.00', LIPIEC, 'Autoskalowanie – blok 15 min');
 
     await wystawZbiorcza(u.id, PIERWSZY_SIERPNIA);
     await wystawZbiorcza(u.id, PIERWSZY_SIERPNIA);
@@ -372,8 +372,8 @@ describe('Z-01 — faktura zbiorcza za miesiąc', () => {
 
   it('nie obejmuje obciążeń spoza okresu', async () => {
     const u = await utworzKlienta('100.00');
-    await obciazWstecz(u.id, '1.00', LIPIEC, 'Autoskalowanie — lipiec');
-    await obciazWstecz(u.id, '2.00', new Date('2026-08-05T10:00:00Z'), 'Autoskalowanie — sierpień');
+    await obciazWstecz(u.id, '1.00', LIPIEC, 'Autoskalowanie – lipiec');
+    await obciazWstecz(u.id, '2.00', new Date('2026-08-05T10:00:00Z'), 'Autoskalowanie – sierpień');
 
     await wystawZbiorcza(u.id, PIERWSZY_SIERPNIA);
 
@@ -393,7 +393,7 @@ describe('Z-01 — faktura zbiorcza za miesiąc', () => {
       idempotencyKey: 'z01-duze',
     });
     await prisma().walletTransaction.update({ where: { id: duze.id }, data: { createdAt: LIPIEC } });
-    await obciazWstecz(u.id, '0.50', LIPIEC, 'Autoskalowanie — blok 15 min');
+    await obciazWstecz(u.id, '0.50', LIPIEC, 'Autoskalowanie – blok 15 min');
 
     await wystawZbiorcza(u.id, PIERWSZY_SIERPNIA);
 
@@ -408,8 +408,8 @@ describe('Z-01 — faktura zbiorcza za miesiąc', () => {
     // Niezmiennik całego Z-01: po przebiegu zbiorczym w domkniętym miesiącu
     // nie ma obciążenia sprzedażowego z `invoiceId = null`.
     const u = await utworzKlienta('500.00');
-    await obciazWstecz(u.id, '0.11', LIPIEC, 'Autoskalowanie — blok 15 min');
-    await obciazWstecz(u.id, '0.22', LIPIEC, 'Autoskalowanie — blok 15 min');
+    await obciazWstecz(u.id, '0.11', LIPIEC, 'Autoskalowanie – blok 15 min');
+    await obciazWstecz(u.id, '0.22', LIPIEC, 'Autoskalowanie – blok 15 min');
     const duze = await ledger().debit({
       userId: u.id,
       type: WalletTxType.CHARGE_DOMAIN,
@@ -438,7 +438,7 @@ describe('Z-01 — faktura zbiorcza za miesiąc', () => {
   });
 });
 
-describe('FAK-01 — faktury w programie księgowym (tryb domyślny)', () => {
+describe('FAK-01 – faktury w programie księgowym (tryb domyślny)', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     await ustawModelFakturowania('przy_obciazeniu');

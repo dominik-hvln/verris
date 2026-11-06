@@ -46,7 +46,7 @@ function otwarciaTd(jsx: string): string[] {
   return out;
 }
 
-describe('Q-09 — tabele w panelu klienta na telefonie', () => {
+describe('Q-09 – tabele w panelu klienta na telefonie', () => {
   it('test widzi tabele (sam się nie oszukuje)', () => {
     expect(tabele.length).toBeGreaterThan(10);
   });

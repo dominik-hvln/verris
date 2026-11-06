@@ -112,7 +112,7 @@ export class WebAuthnService {
       data: { webauthnChallenge: null, webauthnChallengeExpires: null },
     });
     if (zuzyte.count !== 1) {
-      throw new BadRequestException('Wyzwanie rejestracji passkey wygasło albo zostało już użyte — spróbuj dodać klucz jeszcze raz.');
+      throw new BadRequestException('Wyzwanie rejestracji passkey wygasło albo zostało już użyte – spróbuj dodać klucz jeszcze raz.');
     }
 
     const existingCount = await this.prisma.webAuthnCredential.count({ where: { userId } });

@@ -96,12 +96,12 @@ export class VpnService {
   ): Promise<{ peer: ReturnType<VpnService['toPublicPeer']>; clientConfig: string }> {
     if (!this.isConfigured()) {
       throw new BadRequestException(
-        'VPN nie jest skonfigurowany — ustaw VPN_WG_SERVER_PUBLIC_KEY i VPN_WG_ENDPOINT ' +
+        'VPN nie jest skonfigurowany – ustaw VPN_WG_SERVER_PUBLIC_KEY i VPN_WG_ENDPOINT ' +
           '(zob. ops/scripts/vpn-wireguard-setup.sh i DEPLOY.md → VPN).',
       );
     }
     const name = input.name.trim();
-    if (!name) throw new BadRequestException('Podaj nazwę (np. "Anna — laptop").');
+    if (!name) throw new BadRequestException('Podaj nazwę (np. "Anna – laptop").');
 
     const { privateKeyB64, publicKeyB64 } = generateWireguardKeypair();
     const presharedKey = randomBytes(32).toString('base64');
@@ -126,7 +126,7 @@ export class VpnService {
 
     const dns = this.clientDns();
     const clientConfig = [
-      `# Verris VPN — ${name} (wygenerowano ${new Date().toISOString()})`,
+      `# Verris VPN – ${name} (wygenerowano ${new Date().toISOString()})`,
       `# Konfiguracja jednorazowa: klucz prywatny NIE jest przechowywany na serwerze.`,
       `[Interface]`,
       `PrivateKey = ${privateKeyB64}`,
@@ -186,7 +186,7 @@ export class VpnService {
       ].join('\n');
     });
     return [
-      `# Verris VPN — peers (managed by control plane, do not edit)`,
+      `# Verris VPN – peers (managed by control plane, do not edit)`,
       `# generated=${new Date().toISOString()} count=${peers.length}`,
       '',
       ...blocks,

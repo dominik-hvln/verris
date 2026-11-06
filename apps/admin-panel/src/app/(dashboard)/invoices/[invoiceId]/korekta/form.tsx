@@ -66,7 +66,7 @@ export function KorektaForm({ faktura }: { faktura: FakturaDoKorekty }) {
         <p className="text-lg font-semibold text-emerald-200">Korekta {wynik.numer} wystawiona</p>
         <p className="mt-2 text-sm text-emerald-100/80">
           {zwrot > 0
-            ? `Do portfela klienta wróciło ${PLN.format(zwrot)} ${faktura.currency}. Zapis w księdze powstał w tej samej transakcji co dokument — nie ma drugiego kroku do wykonania.`
+            ? `Do portfela klienta wróciło ${PLN.format(zwrot)} ${faktura.currency}. Zapis w księdze powstał w tej samej transakcji co dokument – nie ma drugiego kroku do wykonania.`
             : "Kwoty się nie zmieniły, więc w portfelu nic się nie ruszyło."}
         </p>
         <p className="mt-2 text-xs text-emerald-100/60">
@@ -87,8 +87,8 @@ export function KorektaForm({ faktura }: { faktura: FakturaDoKorekty }) {
       <section className="flex flex-wrap gap-2">
         {(
           [
-            ["WARTOSCIOWA", "Wartościowa — zmienia kwoty"],
-            ["FORMALNA", "Formalna — poprawia dane nabywcy"],
+            ["WARTOSCIOWA", "Wartościowa – zmienia kwoty"],
+            ["FORMALNA", "Formalna – poprawia dane nabywcy"],
           ] as const
         ).map(([w, label]) => (
           <button
@@ -158,7 +158,7 @@ export function KorektaForm({ faktura }: { faktura: FakturaDoKorekty }) {
                         />
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums text-neutral-300">
-                        {wart === null ? "—" : PLN.format(wart)}
+                        {wart === null ? "–" : PLN.format(wart)}
                       </td>
                     </tr>
                   );
@@ -200,7 +200,7 @@ export function KorektaForm({ faktura }: { faktura: FakturaDoKorekty }) {
             )}
             {roznica > 0 && (
               <p className="mt-3 text-[11px] text-amber-200/70">
-                Korekta w górę NIE pobiera pieniędzy z portfela — dopłata jest zobowiązaniem
+                Korekta w górę NIE pobiera pieniędzy z portfela – dopłata jest zobowiązaniem
                 klienta, nie automatycznym obciążeniem.
               </p>
             )}
@@ -242,7 +242,7 @@ export function KorektaForm({ faktura }: { faktura: FakturaDoKorekty }) {
           className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-neutral-600"
         />
         <span className="mt-1 block text-[11px] text-neutral-500">
-          Pole obowiązkowe NA DOKUMENCIE — art. 106j ust. 2 pkt 4 ustawy o VAT. Trafia na PDF
+          Pole obowiązkowe NA DOKUMENCIE – art. 106j ust. 2 pkt 4 ustawy o VAT. Trafia na PDF
           i do KSeF-a, nie tylko do dziennika.
         </span>
       </label>

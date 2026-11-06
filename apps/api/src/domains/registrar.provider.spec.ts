@@ -2,7 +2,7 @@ import { ServiceUnavailableException } from '@nestjs/common';
 import { RegistrarProviderFactory, RejestrWynikNiepewny, stanOpenProvider } from './registrar.provider.js';
 
 /** 27.09 — wyszukiwarka pokazywała same „zajęte”: OpenProvider zwraca wyniki w innej kolejności niż zapytanie. */
-describe('OpenProvider — sprawdzanie dostępności', () => {
+describe('OpenProvider – sprawdzanie dostępności', () => {
   const cfg: Record<string, string> = {
     REGISTRAR_PROVIDER: 'openprovider', OPENPROVIDER_USERNAME: 'u', OPENPROVIDER_PASSWORD: 'p', OPENPROVIDER_OWNER_HANDLE: 'H',
   };
@@ -31,13 +31,13 @@ describe('OpenProvider — sprawdzanie dostępności', () => {
   });
 });
 
-describe('OpenProvider — zawieszona paczka (t1 04.10, sandbox: 504 po ~60 s)', () => {
+describe('OpenProvider – zawieszona paczka (t1 04.10, sandbox: 504 po ~60 s)', () => {
   const cfg: Record<string, string> = {
     REGISTRAR_PROVIDER: 'openprovider', OPENPROVIDER_USERNAME: 'u', OPENPROVIDER_PASSWORD: 'p', OPENPROVIDER_OWNER_HANDLE: 'H',
   };
   afterEach(() => vi.unstubAllGlobals());
 
-  it('paczki idą równolegle z limitem czasu — wiszące zapytanie nie blokuje pozostałych końcówek', async () => {
+  it('paczki idą równolegle z limitem czasu – wiszące zapytanie nie blokuje pozostałych końcówek', async () => {
     const sygnaly: (AbortSignal | undefined)[] = [];
     vi.stubGlobal('fetch', vi.fn(async (url: string, init: { body: string; signal?: AbortSignal }) => {
       sygnaly.push(init.signal);
@@ -73,7 +73,7 @@ describe('OpenProvider — zawieszona paczka (t1 04.10, sandbox: 504 po ~60 s)',
   });
 });
 
-describe('OpenProvider — odnowienie (t1 04.10: brak expiration_date w odpowiedzi)', () => {
+describe('OpenProvider – odnowienie (t1 04.10: brak expiration_date w odpowiedzi)', () => {
   const cfg: Record<string, string> = {
     REGISTRAR_PROVIDER: 'openprovider', OPENPROVIDER_USERNAME: 'u', OPENPROVIDER_PASSWORD: 'p', OPENPROVIDER_OWNER_HANDLE: 'H',
   };
@@ -89,7 +89,7 @@ describe('OpenProvider — odnowienie (t1 04.10: brak expiration_date w odpowied
   });
 });
 
-describe('OpenProvider — stan domeny (domknięcie transferu)', () => {
+describe('OpenProvider – stan domeny (domknięcie transferu)', () => {
   it('ACT = aktywna, FAI/DEL = nieudana, reszta i nieznane = w toku (bez zwrotu za udany transfer)', () => {
     expect(stanOpenProvider('ACT')).toBe('active');
     expect(stanOpenProvider('fai')).toBe('failed');
@@ -99,7 +99,7 @@ describe('OpenProvider — stan domeny (domknięcie transferu)', () => {
   });
 });
 
-describe('OpenProvider — błąd z przyczyną w `data` (D3 06.10: zamówienie SSL, „…see the details below:” bez szczegółów)', () => {
+describe('OpenProvider – błąd z przyczyną w `data` (D3 06.10: zamówienie SSL, „…see the details below:” bez szczegółów)', () => {
   const cfg: Record<string, string> = {
     REGISTRAR_PROVIDER: 'openprovider', OPENPROVIDER_USERNAME: 'u', OPENPROVIDER_PASSWORD: 'p', OPENPROVIDER_OWNER_HANDLE: 'H',
   };
@@ -121,7 +121,7 @@ describe('OpenProvider — błąd z przyczyną w `data` (D3 06.10: zamówienie S
   });
 });
 
-describe('OpenProvider — szczegóły błędu poza `data`', () => {
+describe('OpenProvider – szczegóły błędu poza `data`', () => {
   const cfg: Record<string, string> = {
     REGISTRAR_PROVIDER: 'openprovider', OPENPROVIDER_USERNAME: 'u', OPENPROVIDER_PASSWORD: 'p', OPENPROVIDER_OWNER_HANDLE: 'H',
   };
@@ -138,7 +138,7 @@ describe('OpenProvider — szczegóły błędu poza `data`', () => {
   });
 });
 
-describe('OpenProvider — zmiana serwerów nazw', () => {
+describe('OpenProvider – zmiana serwerów nazw', () => {
   const cfg: Record<string, string> = {
     REGISTRAR_PROVIDER: 'openprovider', OPENPROVIDER_USERNAME: 'u', OPENPROVIDER_PASSWORD: 'p', OPENPROVIDER_OWNER_HANDLE: 'H',
   };
@@ -158,7 +158,7 @@ describe('OpenProvider — zmiana serwerów nazw', () => {
 });
 
 /** Decyzja 15.10 (#1) — „rejestr nie odpowiedział” to nie odmowa: od tego zależy zwrot za domenę. */
-describe('OpenProvider — wynik niepewny a odmowa', () => {
+describe('OpenProvider – wynik niepewny a odmowa', () => {
   const cfg: Record<string, string> = {
     REGISTRAR_PROVIDER: 'openprovider', OPENPROVIDER_USERNAME: 'u', OPENPROVIDER_PASSWORD: 'p', OPENPROVIDER_OWNER_HANDLE: 'H',
   };

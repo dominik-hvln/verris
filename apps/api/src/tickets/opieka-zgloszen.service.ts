@@ -40,7 +40,7 @@ export const DOMYSLNE_AUTO: Record<RodzajAuto, UstawienieAuto & { nazwa: string;
     tytul: 'Otrzymaliśmy Twoje zgłoszenie',
     wlaczone: true,
     tresc:
-      'Dzień dobry, otrzymaliśmy zgłoszenie #{{nr}} „{{temat}}”. Zajmie się nim {{opiekun}} — odpowiemy {{termin}}. O każdej zmianie napiszemy e-mailem, nie musisz sprawdzać panelu.',
+      'Dzień dobry, otrzymaliśmy zgłoszenie #{{nr}} „{{temat}}”. Zajmie się nim {{opiekun}} – odpowiemy {{termin}}. O każdej zmianie napiszemy e-mailem, nie musisz sprawdzać panelu.',
   },
   ZAJMUJE_SIE: {
     nazwa: '„Opiekun się tym zajmuje”',
@@ -51,11 +51,11 @@ export const DOMYSLNE_AUTO: Record<RodzajAuto, UstawienieAuto & { nazwa: string;
   },
   WCIAZ_PRACUJEMY: {
     nazwa: '„Wciąż nad tym pracujemy”',
-    kiedy: 'Gdy zgłoszenie czeka na nas dłużej niż połowa czasu odpowiedzi, ale nie krócej niż 2 godziny — najwyżej raz na dobę.',
+    kiedy: 'Gdy zgłoszenie czeka na nas dłużej niż połowa czasu odpowiedzi, ale nie krócej niż 2 godziny – najwyżej raz na dobę.',
     tytul: 'Wciąż pracujemy nad Twoim zgłoszeniem',
     wlaczone: true,
     tresc:
-      'Wciąż pracujemy nad zgłoszeniem #{{nr}} „{{temat}}”. Sprawa wymaga trochę więcej czasu — {{opiekun}} odezwie się, gdy tylko będzie coś nowego. Nie musisz nic robić.',
+      'Wciąż pracujemy nad zgłoszeniem #{{nr}} „{{temat}}”. Sprawa wymaga trochę więcej czasu – {{opiekun}} odezwie się, gdy tylko będzie coś nowego. Nie musisz nic robić.',
   },
   PODZIEKOWANIE: {
     nazwa: 'Podziękowanie + ocena',
@@ -63,7 +63,7 @@ export const DOMYSLNE_AUTO: Record<RodzajAuto, UstawienieAuto & { nazwa: string;
     tytul: 'Dziękujemy za kontakt',
     wlaczone: true,
     tresc:
-      'Dziękujemy za kontakt! Zgłoszenie #{{nr}} oznaczyliśmy jako rozwiązane. Oceń proszę pomoc ({{opiekun}} i obsługę ogólnie) — to zajmie 10 sekund, ocenę znajdziesz poniżej. Jeśli coś jest nie tak, otworzysz zgłoszenie ponownie jednym kliknięciem.',
+      'Dziękujemy za kontakt! Zgłoszenie #{{nr}} oznaczyliśmy jako rozwiązane. Oceń proszę pomoc ({{opiekun}} i obsługę ogólnie) – to zajmie 10 sekund, ocenę znajdziesz poniżej. Jeśli coś jest nie tak, otworzysz zgłoszenie ponownie jednym kliknięciem.',
   },
 };
 
@@ -72,9 +72,9 @@ export const DOMYSLNE_AUTO: Record<RodzajAuto, UstawienieAuto & { nazwa: string;
  * taka zapisana „stara domyślna” to nie nadpisanie, więc dostaje bieżącą domyślną.
  */
 const STARE_DOMYSLNE = new Set([
-  'Dzień dobry, otrzymaliśmy zgłoszenie #{{nr}} „{{temat}}”. Zajmie się nim {{opiekun}} — odpowiemy najpóźniej {{termin}}. O każdej zmianie napiszemy e-mailem, nie musisz sprawdzać panelu.',
+  'Dzień dobry, otrzymaliśmy zgłoszenie #{{nr}} „{{temat}}”. Zajmie się nim {{opiekun}} – odpowiemy najpóźniej {{termin}}. O każdej zmianie napiszemy e-mailem, nie musisz sprawdzać panelu.',
   '{{opiekun}} przeczytał(a) zgłoszenie #{{nr}} i już nad nim pracuje. Odezwiemy się najpóźniej {{termin}}.',
-  'Dziękujemy za kontakt! Zgłoszenie #{{nr}} oznaczyliśmy jako rozwiązane. Oceń proszę pomoc ({{opiekun}} i obsługę ogólnie) — to zajmie 10 sekund: {{link}}. Jeśli coś jest nie tak, otworzysz zgłoszenie ponownie jednym kliknięciem.',
+  'Dziękujemy za kontakt! Zgłoszenie #{{nr}} oznaczyliśmy jako rozwiązane. Oceń proszę pomoc ({{opiekun}} i obsługę ogólnie) – to zajmie 10 sekund: {{link}}. Jeśli coś jest nie tak, otworzysz zgłoszenie ponownie jednym kliknięciem.',
 ]);
 
 const KLUCZ = 'support.autoWiadomosci';
@@ -324,7 +324,7 @@ export class OpiekaZgloszenService {
           category: 'SUPPORT',
           severity: 'warning',
           title: 'Klient czeka na odpowiedź',
-          body: `#${t.id.slice(0, 8)} — ${t.subject}. Wysłaliśmy „Wciąż nad tym pracujemy”.`,
+          body: `#${t.id.slice(0, 8)} – ${t.subject}. Wysłaliśmy „Wciąż nad tym pracujemy”.`,
           link: `/tickets/${t.id}`,
         });
       }
@@ -356,11 +356,11 @@ export class OpiekaZgloszenService {
     const t = await this.prisma.ticket.findUnique({ where: { id: ticketId } });
     if (!t || t.userId !== userId) throw new BadRequestException('Zgłoszenie nie istnieje.');
     // F3.7 — scalone zgłoszenie zostaje zamknięte; rozmowa toczy się w docelowym.
-    if (t.scalonoDoId) throw new BadRequestException(`To zgłoszenie połączyliśmy z #${t.scalonoDoId.slice(0, 8)} — napisz tam.`);
+    if (t.scalonoDoId) throw new BadRequestException(`To zgłoszenie połączyliśmy z #${t.scalonoDoId.slice(0, 8)} – napisz tam.`);
     if (t.status !== 'CLOSED') throw new BadRequestException('Zgłoszenie jest otwarte.');
     const zamkniete = t.resolvedAt ?? t.autoClosedAt ?? t.updatedAt;
     if (Date.now() - zamkniete.getTime() > REOPEN_DNI * DOBA_MS) {
-      throw new BadRequestException(`Minęło ${REOPEN_DNI} dni od zamknięcia — utwórz nowe zgłoszenie.`);
+      throw new BadRequestException(`Minęło ${REOPEN_DNI} dni od zamknięcia – utwórz nowe zgłoszenie.`);
     }
     await this.prisma.ticket.update({
       where: { id: ticketId },
@@ -373,7 +373,7 @@ export class OpiekaZgloszenService {
         category: 'SUPPORT',
         severity: 'warning',
         title: 'Klient otworzył zgłoszenie ponownie',
-        body: `#${t.id.slice(0, 8)} — ${t.subject}`,
+        body: `#${t.id.slice(0, 8)} – ${t.subject}`,
         link: `/tickets/${t.id}`,
       });
     }

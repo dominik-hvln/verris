@@ -17,7 +17,7 @@ const prismaKlienta = (profil: { status: string; markupPct: number } | null, own
   resellerProfile: { findUnique: vi.fn(async () => profil) },
 });
 
-describe('O-07 — narzut resellera: helper', () => {
+describe('O-07 – narzut resellera: helper', () => {
   it('flaga wyłączona → 0, bez zaglądania do bazy', async () => {
     const p = prismaKlienta({ status: 'ACTIVE', markupPct: 20 });
     expect(await narzutResellera(p as never, config(false), 'u1')).toBe(0);
@@ -62,7 +62,7 @@ describe('O-07 — narzut resellera: helper', () => {
   });
 });
 
-describe('O-07 — zakup usługi', () => {
+describe('O-07 – zakup usługi', () => {
   const STOP = new Error('STOP');
   const zbuduj = (o: { flaga?: boolean; profil?: { status: string; markupPct: number } | null; oferta?: Record<string, unknown> } = {}) => {
     const p = prismaKlienta(o.profil === undefined ? { status: 'ACTIVE', markupPct: 20 } : o.profil);
@@ -126,7 +126,7 @@ describe('O-07 — zakup usługi', () => {
     expect(d.resellerMarkupPct).toBeNull();
   });
 
-  it('karta dla klienta z narzutem — odmowa z podpowiedzią portfela', async () => {
+  it('karta dla klienta z narzutem – odmowa z podpowiedzią portfela', async () => {
     const { svc, create } = zbuduj();
     const wynik = svc.create('u1', dto(SubscriptionPaymentSource.STRIPE_CARD));
     await expect(wynik).rejects.toThrow(BadRequestException);
@@ -143,7 +143,7 @@ describe('O-07 — zakup usługi', () => {
   });
 });
 
-describe('O-07 — zmiana planu i przejście z okresu próbnego', () => {
+describe('O-07 – zmiana planu i przejście z okresu próbnego', () => {
   it('zmiana planu: dopłata i nowa cena od ceny z narzutem, snapshot procentu', async () => {
     const sub = {
       id: 'sub-1', userId: 'u1', planId: 'plan-a', status: SubscriptionStatus.ACTIVE, interval: 'MONTH', priceAmount: D(100),
@@ -197,7 +197,7 @@ describe('O-07 — zmiana planu i przejście z okresu próbnego', () => {
   });
 });
 
-describe('O-07 — prowizja resellera (scheduler)', () => {
+describe('O-07 – prowizja resellera (scheduler)', () => {
   const zbuduj = () => {
     const klucze = new Map<string, Record<string, unknown>>();
     const txFind = vi.fn(async () => [
@@ -239,7 +239,7 @@ describe('O-07 — prowizja resellera (scheduler)', () => {
   });
 });
 
-describe('O-07 — wypłata prowizji przez aktywnego resellera', () => {
+describe('O-07 – wypłata prowizji przez aktywnego resellera', () => {
   it('reseller bez zapisu do programu poleceń, przy wyłączonym programie, wypłaca do portfela', async () => {
     const prisma = {
       resellerProfile: { findUnique: vi.fn(async () => ({ status: 'ACTIVE' })) },
@@ -269,7 +269,7 @@ describe('O-07 — wypłata prowizji przez aktywnego resellera', () => {
   });
 });
 
-describe('O-07 — odpięcie od resellera przywraca cennik', () => {
+describe('O-07 – odpięcie od resellera przywraca cennik', () => {
   const zbuduj = () => {
     const txSubUpdate = vi.fn(async () => ({}));
     const txUserUpdate = vi.fn(async () => ({}));
@@ -290,7 +290,7 @@ describe('O-07 — odpięcie od resellera przywraca cennik', () => {
   it.each([
     ['reseller odpina klienta', (s: ResellerKlienciService) => s.odepnij('r1', 'c1')],
     ['klient odpina się sam', (s: ResellerKlienciService) => s.odepnijSie('c1')],
-  ])('%s — ceny bez narzutu w tej samej transakcji co odpięcie', async (_n, akcja) => {
+  ])('%s – ceny bez narzutu w tej samej transakcji co odpięcie', async (_n, akcja) => {
     const { svc, txSubUpdate, txUserUpdate, txFindMany } = zbuduj();
     await akcja(svc);
     expect(txUserUpdate).toHaveBeenCalledWith({ where: { id: 'c1' }, data: { resellerOwnerId: null } });

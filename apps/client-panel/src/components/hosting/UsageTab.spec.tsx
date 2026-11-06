@@ -52,7 +52,7 @@ const prognoza = (extra: Partial<ServiceForecastDto> = {}): ServiceForecastDto =
   unavailableReason: null,
   confidence: 'high',
   horizonDays: 7,
-  summary: 'Zasoby w normie — przy obecnym tempie żaden limit planu nie zostanie osiągnięty w ciągu 30 dni.',
+  summary: 'Zasoby w normie – przy obecnym tempie żaden limit planu nie zostanie osiągnięty w ciągu 30 dni.',
   // Kolejność z API celowo inna — panel układa CPU, RAM, Dysk, IO.
   resources: [zasob('IO', 3, 3), zasob('DISK', 42, 49), zasob('CPU', 6, 6), zasob('RAM', 11, 12)],
   recommendations: [],
@@ -73,7 +73,7 @@ afterEach(() => {
   document.body.innerHTML = '';
 });
 
-describe('UsageTab — podsumowanie i 4 wykresy z prognozą', () => {
+describe('UsageTab – podsumowanie i 4 wykresy z prognozą', () => {
   it('bez AI: 4 wykresy (historia + przerywana prognoza + limit), „teraz · za 7 dni”, stopka bez zdania o AI', async () => {
     await zamontuj(prognoza());
     expect(mockForecast).toHaveBeenCalledWith('s1'); // prognoza wczytuje się sama przy wejściu
@@ -95,7 +95,7 @@ describe('UsageTab — podsumowanie i 4 wykresy z prognozą', () => {
     }
     expect(karty[2]!.textContent).toContain('teraz 42% · za 7 dni 49%');
     const stopka = [...el.querySelectorAll('p')].find((p) => p.textContent?.startsWith('Prognoza orientacyjna'))!;
-    expect(stopka.textContent).toBe('Prognoza orientacyjna, liczona przez Verris z historycznych metryk — nie stanowi gwarancji.');
+    expect(stopka.textContent).toBe('Prognoza orientacyjna, liczona przez Verris z historycznych metryk – nie stanowi gwarancji.');
     expect(el.querySelector('[data-ai-generated]')).toBeNull();
     // 24 h CPU na żywo zostaje (piąty wykres)
     expect(el.querySelectorAll('[role="slider"]')).toHaveLength(5);
@@ -108,7 +108,7 @@ describe('UsageTab — podsumowanie i 4 wykresy z prognozą', () => {
     );
     const stopka = [...el.querySelectorAll('p')].find((p) => p.textContent?.startsWith('Prognoza orientacyjna'))!;
     expect(stopka.textContent).toBe(
-      'Prognoza orientacyjna, liczona przez Verris z historycznych metryk — nie stanowi gwarancji. Opis i rekomendacje tworzy AI.',
+      'Prognoza orientacyjna, liczona przez Verris z historycznych metryk – nie stanowi gwarancji. Opis i rekomendacje tworzy AI.',
     );
   });
 

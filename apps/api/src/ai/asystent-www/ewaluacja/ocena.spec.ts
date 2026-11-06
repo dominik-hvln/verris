@@ -5,7 +5,7 @@ import { zrodloCennika, zrodlaFaktow, zrodlaSpecyfikacji } from '../zrodla.js';
 
 const plik = JSON.parse(readFileSync(new URL('./pytania.json', import.meta.url), 'utf8')) as { pytania: PytanieEwaluacji[] };
 
-describe('ewaluacja asystenta www — pytania i ocena', () => {
+describe('ewaluacja asystenta www – pytania i ocena', () => {
   it('co najmniej 60 pytań, unikalne id, każda kategoria strażnika pokryta', () => {
     expect(plik.pytania.length).toBeGreaterThanOrEqual(60);
     expect(new Set(plik.pytania.map((p) => p.id)).size).toBe(plik.pytania.length);

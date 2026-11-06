@@ -19,7 +19,7 @@ export function sprawdzKatalog(k: string): string {
   const v = k.trim().replace(/^\/+|\/+$/g, '');
   if (!v) return '';
   if (!KATALOG_RE.test(v) || v.split('/').some((c) => c === '.' || c === '..')) {
-    throw new BadRequestException('Katalog to ścieżka w public_html, np. sklep albo blog/stary — litery, cyfry, . _ - /.');
+    throw new BadRequestException('Katalog to ścieżka w public_html, np. sklep albo blog/stary – litery, cyfry, . _ - /.');
   }
   return v;
 }
@@ -31,7 +31,7 @@ export function sprawdzSciezke(s: string): string {
   const v = s.trim();
   if (!v) return '';
   if (!poprawna(v)) {
-    throw new BadRequestException('Strona błędu to ścieżka w witrynie, np. /404.html — litery, cyfry, . _ - / bez spacji.');
+    throw new BadRequestException('Strona błędu to ścieżka w witrynie, np. /404.html – litery, cyfry, . _ - / bez spacji.');
   }
   return v;
 }
@@ -85,7 +85,7 @@ export class HtaccessService {
    */
   async phpKatalogu(subscriptionId: string, userId: string, input: { domain: string; katalog: string; php: string }) {
     const katalog = sprawdzKatalog(input.katalog);
-    if (!katalog) throw new BadRequestException('Podaj podkatalog — wersję PHP całej domeny zmieniasz wyżej.');
+    if (!katalog) throw new BadRequestException('Podaj podkatalog – wersję PHP całej domeny zmieniasz wyżej.');
     const m = /^([5-8])\.(\d)$/.exec(input.php.trim());
     if (input.php.trim() && !m) throw new BadRequestException('Nieprawidłowa wersja PHP.');
     return this.zlec(subscriptionId, userId, input.domain, {
@@ -114,7 +114,7 @@ export class HtaccessService {
     const wToku = await this.prisma.nodeTask.findFirst({
       where: { accountId: account.id, kind: NodeTaskKind.HTACCESS, status: { in: [NodeTaskStatus.QUEUED, NodeTaskStatus.RUNNING] } },
     });
-    if (wToku) throw new ConflictException('Zmiana ustawień strony jest już w toku — poczekaj na wynik.');
+    if (wToku) throw new ConflictException('Zmiana ustawień strony jest już w toku – poczekaj na wynik.');
     const task = await this.prisma.nodeTask.create({
       data: {
         serverId: account.serverId,
@@ -198,5 +198,5 @@ export function phpZLogu(log: string | null): string {
 
 function bladZLogu(log: string | null): string {
   const l = (log ?? '').split('\n').reverse().find((x) => x.startsWith('[htaccess] BŁĄD: '));
-  return l ? l.slice('[htaccess] BŁĄD: '.length).slice(0, 300) : 'Zmiana nie powiodła się. Napisz do nas — sprawdzimy to.';
+  return l ? l.slice('[htaccess] BŁĄD: '.length).slice(0, 300) : 'Zmiana nie powiodła się. Napisz do nas – sprawdzimy to.';
 }

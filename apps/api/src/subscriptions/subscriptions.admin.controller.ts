@@ -80,7 +80,7 @@ const ALLOWED_REASONS: SuspendReason[] = [
  */
 function wymagajPowoduOdStaff(actor: { role?: string }, powod: string | undefined): void {
   if (actor.role === Role.STAFF && (powod ?? '').trim().length < 10) {
-    throw new BadRequestException('Podaj powód operacji (min. 10 znaków) — zapisze się w dzienniku.');
+    throw new BadRequestException('Podaj powód operacji (min. 10 znaków) – zapisze się w dzienniku.');
   }
 }
 
@@ -120,7 +120,7 @@ export class SubscriptionsAdminController {
     const sub = await this.prisma.subscription.findUnique({ where: { id }, select: { userId: true, user: { select: { role: true } } } });
     if (!sub) throw new NotFoundException('Usługa nie istnieje.');
     if (actor.role !== Role.ADMIN && sub.user?.role !== Role.USER) {
-      throw new ForbiddenException('Personel obsługuje wyłącznie usługi klientów — usługę konta zespołu obsługuje administrator.');
+      throw new ForbiddenException('Personel obsługuje wyłącznie usługi klientów – usługę konta zespołu obsługuje administrator.');
     }
     return { userId: sub.userId };
   }
@@ -381,7 +381,7 @@ export class SubscriptionsAdminController {
     let reason: SuspendReason;
     if (actor.role === Role.STAFF) {
       if (!(POWODY_ZAWIESZENIA_OPERATORA as readonly string[]).includes(dto.reason)) {
-        throw new BadRequestException('Zawieszenie za brak płatności ustawia administrator — wybierz nadużycie, decyzję obsługi albo prośbę klienta.');
+        throw new BadRequestException('Zawieszenie za brak płatności ustawia administrator – wybierz nadużycie, decyzję obsługi albo prośbę klienta.');
       }
       wymagajPowoduOdStaff(actor, dto.note);
       reason = dto.reason as SuspendReason;

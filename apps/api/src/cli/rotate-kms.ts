@@ -201,7 +201,7 @@ function parseArgs(argv: string[]): RotationOptions {
   }
   if (!explicit) {
     console.warn(
-      '[rotate-kms] No mode specified — defaulting to --dry-run (no writes). ' +
+      '[rotate-kms] No mode specified – defaulting to --dry-run (no writes). ' +
         'Pass --apply to actually rotate.',
     );
   }
@@ -385,7 +385,7 @@ async function main(): Promise<void> {
 
     if (totalErrors > 0) {
       console.error(
-        `[rotate-kms] Completed with ${totalErrors} errors — investigate before deploying NEW_KMS_KEY.`,
+        `[rotate-kms] Completed with ${totalErrors} errors – investigate before deploying NEW_KMS_KEY.`,
       );
       process.exitCode = 1;
     } else if (options.dryRun) {

@@ -68,7 +68,7 @@ export default async function BazaWiedzyPage({ searchParams }: { searchParams: P
         <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-muted-foreground">Wiedza</span>
         <h1 className="font-display text-[30px] font-extrabold tracking-[-0.02em]">Baza wiedzy</h1>
         <p className="text-sm text-muted-foreground">
-          Opublikowane artykuły pomocy — te same, które widzi klient. Gotowe odpowiedzi do zgłoszeń są w{" "}
+          Opublikowane artykuły pomocy – te same, które widzi klient. Gotowe odpowiedzi do zgłoszeń są w{" "}
           <Link href="/knowledge/odpowiedzi" className="underline">bazie odpowiedzi</Link>.
         </p>
       </header>

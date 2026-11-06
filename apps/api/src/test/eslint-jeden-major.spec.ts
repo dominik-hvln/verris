@@ -28,7 +28,7 @@ function manifesty(): Array<{ plik: string; json: Record<string, Record<string, 
 
 const majorZeSpecyfikacji = (spec: string) => Number(/(\d+)/.exec(spec)?.[1] ?? NaN);
 
-describe('DEP-02 — jeden major ESLinta', () => {
+describe('DEP-02 – jeden major ESLinta', () => {
   it(`każda deklaracja eslint / @eslint/js wskazuje major ${MAJOR}`, () => {
     const zle: string[] = [];
     for (const { plik, json } of manifesty()) {

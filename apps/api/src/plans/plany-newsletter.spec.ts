@@ -23,7 +23,7 @@ function krotka(id: string): string[] {
     .map((s) => s.replace(/\u0000/g, ',').trim());
 }
 
-describe('Q-05 — pakiety Newsletter', () => {
+describe('Q-05 – pakiety Newsletter', () => {
   it('cennik zgodny z decyzją: 19/190 zł i 49/490 zł brutto, limity kontaktów i wysyłek', () => {
     expect(PLANY_NEWSLETTER.map((p) => [p.slug, p.priceMonthly, p.priceYearly, p.emmMaxContacts, p.emmMonthlySends])).toEqual([
       ['newsletter-start', '19.00', '190.00', 1000, 5000],

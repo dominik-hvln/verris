@@ -47,8 +47,8 @@ export function UstawieniaDrzewForm({ panel }: { panel: PanelDrzew }) {
             value={u.srodowisko}
             onChange={(v) => ustaw({ srodowisko: v as UstawieniaDrzew['srodowisko'] })}
             options={[
-              { value: 'test', label: 'Testowe (RC) — rc.api.posadzimy.pl' },
-              { value: 'produkcja', label: 'Produkcja — api.posadzimy.pl' },
+              { value: 'test', label: 'Testowe (RC) – rc.api.posadzimy.pl' },
+              { value: 'produkcja', label: 'Produkcja – api.posadzimy.pl' },
             ]}
           />
           <p className={`text-xs ${tokenOk ? 'text-emerald-300' : 'text-amber-300'}`}>
@@ -92,7 +92,7 @@ export function UstawieniaDrzewForm({ panel }: { panel: PanelDrzew }) {
         <div className="space-y-1 sm:col-span-2">
           <p className="text-xs font-medium text-neutral-300">Certyfikat (stały, decyzja z 4.11.2026)</p>
           <p className="text-xs text-neutral-400">
-            Nagłówek „{CERTYFIKAT_VERRIS.customerName}”, tekst „{CERTYFIKAT_VERRIS.certificateText}” — także przy własnym
+            Nagłówek „{CERTYFIKAT_VERRIS.customerName}”, tekst „{CERTYFIKAT_VERRIS.certificateText}” – także przy własnym
             drzewie klienta. Do partnera sadzenia nie wysyłamy żadnych danych klientów.
           </p>
         </div>
@@ -101,7 +101,7 @@ export function UstawieniaDrzewForm({ panel }: { panel: PanelDrzew }) {
       <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-neutral-300">
         <p className="font-semibold text-white">Podgląd (hosting 449 zł/rok i 45 zł/mies. brutto, bez rabatu na start, zapłacone pieniędzmi)</p>
         <p className="mt-1 text-xs text-neutral-400">
-          Wkład liczy się tylko od części opłaty zapłaconej pieniędzmi — kredyty z kodów (np. BETA), promocji, poleceń
+          Wkład liczy się tylko od części opłaty zapłaconej pieniędzmi – kredyty z kodów (np. BETA), promocji, poleceń
           i rekompensat schodzą z portfela najpierw i nie dają wkładu.
         </p>
         <ul className="mt-2 space-y-1">

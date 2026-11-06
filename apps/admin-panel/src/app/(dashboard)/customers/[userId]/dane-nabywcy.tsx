@@ -53,7 +53,7 @@ export function DaneNabywcy({ userId, kraj, nip, zablokowane }: { userId: string
       </label>
       {zablokowane ? (
         <span aria-disabled="true" title={zablokowane} className={`${PRZYCISK} cursor-not-allowed self-start opacity-50`}>
-          Zmień dane nabywcy<span className="sr-only"> — {zablokowane}</span>
+          Zmień dane nabywcy<span className="sr-only"> – {zablokowane}</span>
         </span>
       ) : (
         <button type="button" disabled={pending || !gotowy} onClick={() => void zapisz()} className={`${PRZYCISK} self-start`}>

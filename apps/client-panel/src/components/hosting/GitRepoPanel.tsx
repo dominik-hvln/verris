@@ -130,7 +130,7 @@ export function GitRepoPanel({ serviceId, domains, odswiezNr = 0 }: { serviceId:
         {stan?.klucz ? (
           <CopyValue value={stan.klucz} />
         ) : (
-          <button type="button" onClick={() => op('key', 'Tworzę klucz — pojawi się za chwilę.')} disabled={zajete} className={BTN}>
+          <button type="button" onClick={() => op('key', 'Tworzę klucz – pojawi się za chwilę.')} disabled={zajete} className={BTN}>
             Utwórz klucz
           </button>
         )}
@@ -157,7 +157,7 @@ export function GitRepoPanel({ serviceId, domains, odswiezNr = 0 }: { serviceId:
       </div>
       <div className="border-t border-line px-4 py-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-[13px] font-medium text-foreground">Webhook — wdrożenie po każdym pushu</span>
+          <span className="text-[13px] font-medium text-foreground">Webhook – wdrożenie po każdym pushu</span>
           <button type="button" onClick={webhook} disabled={zajete} className={BTN}>
             {stan?.webhooki.some((w) => w.katalog === katalog.trim()) ? 'Nowy adres (stary przestanie działać)' : 'Utwórz adres webhooka'}
           </button>
@@ -169,7 +169,7 @@ export function GitRepoPanel({ serviceId, domains, odswiezNr = 0 }: { serviceId:
               <CopyValue value={nowyWebhook} />
             </div>
             <p className="m-0 mt-1 text-[12px] text-muted-foreground">
-              Skopiuj teraz — pokazujemy go tylko raz. GitHub: Settings → Webhooks → Add webhook → Payload URL, zdarzenie „push”. GitLab: Settings → Webhooks → Push events.
+              Skopiuj teraz – pokazujemy go tylko raz. GitHub: Settings → Webhooks → Add webhook → Payload URL, zdarzenie „push”. GitLab: Settings → Webhooks → Push events.
             </p>
           </div>
         ) : null}
@@ -200,7 +200,7 @@ export function GitRepoPanel({ serviceId, domains, odswiezNr = 0 }: { serviceId:
         />
       ) : null}
       <p className="m-0 border-t border-line px-4 py-2 text-[12px] text-muted-foreground">
-        Jeśli katalog nie jest pusty, dotychczasowe pliki przeniesiemy obok (nazwa z dopiskiem „verris-przed-git”) — nic nie znika.
+        Jeśli katalog nie jest pusty, dotychczasowe pliki przeniesiemy obok (nazwa z dopiskiem „verris-przed-git”) – nic nie znika.
       </p>
 
       {stan?.operacje.length ? (
@@ -221,7 +221,7 @@ export function GitRepoPanel({ serviceId, domains, odswiezNr = 0 }: { serviceId:
               {o.budowanie || o.zmienne != null || o.trwaloS != null ? (
                 <p className="m-0 mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[12px] text-muted-foreground">
                   {o.budowanie === 'ok' ? <span data-budowanie="ok">Budowanie: gotowe</span> : null}
-                  {o.budowanie === 'blad' ? <span data-budowanie="blad" className="font-semibold text-crit">Budowanie: błąd — szczegóły w logu</span> : null}
+                  {o.budowanie === 'blad' ? <span data-budowanie="blad" className="font-semibold text-crit">Budowanie: błąd – szczegóły w logu</span> : null}
                   {o.budowanie === 'brak' ? <span data-budowanie="brak">Bez budowania</span> : null}
                   {o.zmienne != null && o.zmienne > 0 ? (
                     <span>
@@ -323,7 +323,7 @@ function BudowanieIZmienne({
       const zm = Object.keys(ustaw).length || usun.length ? { zmienne: { ...(Object.keys(ustaw).length ? { ustaw } : {}), ...(usun.length ? { usun } : {}) } } : {};
       const r = await zapiszKonfiguracjeGit(serviceId, { domain: domena, dir: katalog || undefined, budowanie: doPresetu(preset), ...zm });
       if (r.ok) {
-        toast.success('Zapisano — zadziała przy następnym wdrożeniu.');
+        toast.success('Zapisano – zadziała przy następnym wdrożeniu.');
         onZapisano(r.status);
       } else toast.error(r.error);
     });
@@ -389,7 +389,7 @@ function BudowanieIZmienne({
           </button>
         </div>
         <p className="m-0 mt-1 text-[12px] text-muted-foreground">
-          Plik .env jest czytelny tylko dla Twojego konta. Jeśli .env jest w repozytorium, wdrożenie się zatrzyma — usuń go z repozytorium.
+          Plik .env jest czytelny tylko dla Twojego konta. Jeśli .env jest w repozytorium, wdrożenie się zatrzyma – usuń go z repozytorium.
         </p>
       </div>
 

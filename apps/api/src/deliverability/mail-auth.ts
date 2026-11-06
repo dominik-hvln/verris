@@ -104,7 +104,7 @@ function spfCheck(i: MailAuthInput): MailAuthCheck {
     return {
       ...base,
       status: 'fail',
-      detail: 'Brak rekordu SPF — serwery odbiorców nie wiedzą, kto może wysyłać pocztę z Twojej domeny, więc częściej trafia ona do spamu.',
+      detail: 'Brak rekordu SPF – serwery odbiorców nie wiedzą, kto może wysyłać pocztę z Twojej domeny, więc częściej trafia ona do spamu.',
       suggestion: { host: '@', type: 'TXT', value: inZone ? mergeSpf(inZone.value, i.sendingIp) : recommendedSpf(i.sendingIp), replaces },
     };
   }
@@ -112,7 +112,7 @@ function spfCheck(i: MailAuthInput): MailAuthCheck {
     return {
       ...base,
       status: 'fail',
-      detail: `Domena ma ${spfs.length} rekordy SPF, a dozwolony jest jeden — odbiorcy traktują to jako błąd. Zostaw jeden rekord (poniżej) i usuń pozostałe.`,
+      detail: `Domena ma ${spfs.length} rekordy SPF, a dozwolony jest jeden – odbiorcy traktują to jako błąd. Zostaw jeden rekord (poniżej) i usuń pozostałe.`,
       suggestion: { host: '@', type: 'TXT', value: mergeSpf(spfs[0], i.sendingIp), replaces },
     };
   }
@@ -121,7 +121,7 @@ function spfCheck(i: MailAuthInput): MailAuthCheck {
     return {
       ...base,
       status: 'fail',
-      detail: 'Rekord SPF odwołuje się do _spf.verris.pl, który nie istnieje — przez to SPF kończy się błędem. Zastąp go rekordem poniżej.',
+      detail: 'Rekord SPF odwołuje się do _spf.verris.pl, który nie istnieje – przez to SPF kończy się błędem. Zastąp go rekordem poniżej.',
       suggestion: { host: '@', type: 'TXT', value: mergeSpf(spf, i.sendingIp), replaces },
     };
   }
@@ -129,7 +129,7 @@ function spfCheck(i: MailAuthInput): MailAuthCheck {
     return {
       ...base,
       status: 'warn',
-      detail: `Rekord SPF nie wymienia wprost serwera Verris${i.sendingIp ? ` (${i.sendingIp})` : ''} — jeśli wysyłasz pocztę przez nasz serwer, dopisz go.`,
+      detail: `Rekord SPF nie wymienia wprost serwera Verris${i.sendingIp ? ` (${i.sendingIp})` : ''} – jeśli wysyłasz pocztę przez nasz serwer, dopisz go.`,
       suggestion: { host: '@', type: 'TXT', value: mergeSpf(spf, i.sendingIp), replaces },
     };
   }
@@ -157,14 +157,14 @@ function dkimCheck(i: MailAuthInput): MailAuthCheck {
     return {
       ...base,
       status: 'warn',
-      detail: 'Klucz DKIM jest w strefie DNS Verris, ale nie widać go w publicznym DNS — domena korzysta z innych serwerów DNS. Dodaj ten rekord u swojego dostawcy DNS.',
+      detail: 'Klucz DKIM jest w strefie DNS Verris, ale nie widać go w publicznym DNS – domena korzysta z innych serwerów DNS. Dodaj ten rekord u swojego dostawcy DNS.',
       suggestion: { host, type: 'TXT', value: normTxt(key.value), inZone: true },
     };
   }
   return {
     ...base,
     status: 'warn',
-    detail: 'Nie widać klucza DKIM, więc poczta nie jest podpisywana. Włącz podpis — klucz utworzymy na serwerze i dopiszemy do strefy DNS.',
+    detail: 'Nie widać klucza DKIM, więc poczta nie jest podpisywana. Włącz podpis – klucz utworzymy na serwerze i dopiszemy do strefy DNS.',
     action: 'enable-dkim',
   };
 }
@@ -180,7 +180,7 @@ function dmarcCheck(i: MailAuthInput): MailAuthCheck {
     return {
       ...base,
       status: 'fail',
-      detail: 'Brak rekordu DMARC — nic nie mówi odbiorcom, co zrobić z pocztą podszywającą się pod Twoją domenę.',
+      detail: 'Brak rekordu DMARC – nic nie mówi odbiorcom, co zrobić z pocztą podszywającą się pod Twoją domenę.',
       suggestion: { host: '_dmarc', type: 'TXT', value: 'v=DMARC1; p=quarantine; adkim=r; aspf=r', replaces },
     };
   }
@@ -188,7 +188,7 @@ function dmarcCheck(i: MailAuthInput): MailAuthCheck {
     return {
       ...base,
       status: 'fail',
-      detail: `Domena ma ${recs.length} rekordy DMARC — odbiorcy ignorują wtedy wszystkie. Zostaw jeden.`,
+      detail: `Domena ma ${recs.length} rekordy DMARC – odbiorcy ignorują wtedy wszystkie. Zostaw jeden.`,
       suggestion: { host: '_dmarc', type: 'TXT', value: recs.find((r) => !/p=none/i.test(r)) ?? recs[0], replaces },
     };
   }
@@ -197,7 +197,7 @@ function dmarcCheck(i: MailAuthInput): MailAuthCheck {
     return {
       ...base,
       status: 'warn',
-      detail: 'DMARC tylko monitoruje (p=none) — fałszywa poczta nadal dociera. Gdy SPF i DKIM działają, zaostrz politykę.',
+      detail: 'DMARC tylko monitoruje (p=none) – fałszywa poczta nadal dociera. Gdy SPF i DKIM działają, zaostrz politykę.',
       suggestion: { host: '_dmarc', type: 'TXT', value: recs[0].replace(/((?:^|;)\s*p=)none/i, '$1quarantine'), replaces },
     };
   }

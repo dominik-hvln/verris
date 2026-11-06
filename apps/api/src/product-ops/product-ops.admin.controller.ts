@@ -196,9 +196,9 @@ export class ProductOpsAdminController {
       activeServers === 0 ? 'no active compute node' : null,
       // Obietnice verris.pl, które muszą być prawdą w dniu startu (przegląd treści 2026-09-25):
       // Brak wiersza = domyślnie włączone (PLATFORM_SETTING_DEFAULTS); blokuje tylko jawne wyłączenie.
-      slaCredits != null && slaCredits.value.trim() !== '1' ? 'SLA credits disabled — verris.pl promises automatic compensation (sla.creditsEnabled)' : null,
+      slaCredits != null && slaCredits.value.trim() !== '1' ? 'SLA credits disabled – verris.pl promises automatic compensation (sla.creditsEnabled)' : null,
       this.config && !this.config.get<string>('REGISTRAR_PROVIDER')
-        ? 'domain registrar not configured — verris.pl offers domain registration (REGISTRAR_PROVIDER)'
+        ? 'domain registrar not configured – verris.pl offers domain registration (REGISTRAR_PROVIDER)'
         : null,
     ].filter(Boolean);
     return {

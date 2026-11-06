@@ -21,7 +21,7 @@ function stanowisko(role = 'USER', profil: unknown = null) {
   return { svc: new ResellerService(prisma as never, audit as never, { send } as never), repo, audit, send };
 }
 
-describe('ResellerService — zatwierdzenie wniosku (O-08)', () => {
+describe('ResellerService – zatwierdzenie wniosku (O-08)', () => {
   it('PENDING → ACTIVE wysyła klientowi mail z linkiem; zawieszenie nie', async () => {
     const send = vi.fn(async () => undefined);
     const profil = { id: 'p', userId: 'u1', status: 'PENDING', brandName: 'Studio', markupPct: 25, code: 'rsl_abc', createdAt: new Date(), updatedAt: new Date() };
@@ -111,7 +111,7 @@ describe('ResellerService.setMarkup (O-07)', () => {
   });
 });
 
-describe('ResellerService — panel operatora', () => {
+describe('ResellerService – panel operatora', () => {
   it('lista pokazuje e-mail klienta, nie samo ID', async () => {
     const profil = { id: 'p', userId: 'u1', status: 'PENDING', brandName: null, markupPct: 20, code: 'rsl_a', createdAt: new Date(), updatedAt: new Date() };
     const prisma = { resellerProfile: { findMany: vi.fn(async () => [profil]) }, user: { findMany: vi.fn(async () => [{ id: 'u1', email: 'studio@x.pl' }]) } };

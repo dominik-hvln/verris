@@ -83,7 +83,7 @@ export function DeliverabilityPanel({ serviceId, domains = [] }: { serviceId: st
           <Loader2 className="h-4 w-4 animate-spin" /> Sprawdzamy rekordy DNS domeny…
         </p>
       ) : !report ? (
-        <p className="text-sm text-muted-foreground">Nie udało się sprawdzić — spróbuj ponownie za chwilę.</p>
+        <p className="text-sm text-muted-foreground">Nie udało się sprawdzić – spróbuj ponownie za chwilę.</p>
       ) : !report.domain ? (
         <p className="text-sm text-muted-foreground">Konto nie ma jeszcze domeny.</p>
       ) : (
@@ -180,7 +180,7 @@ function CheckRow({
               </button>
               {report.usesPlatformDns === false ? (
                 <p className="text-xs text-muted-foreground">
-                  DNS domeny jest u innego dostawcy — po włączeniu pokażemy rekord TXT do skopiowania tam.
+                  DNS domeny jest u innego dostawcy – po włączeniu pokażemy rekord TXT do skopiowania tam.
                 </p>
               ) : null}
             </div>
@@ -231,7 +231,7 @@ function CheckRow({
                 </button>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  Domena korzysta z DNS u innego dostawcy (np. rejestratora) — dodaj tam ten rekord. Kliknij wartość, aby ją skopiować.
+                  Domena korzysta z DNS u innego dostawcy (np. rejestratora) – dodaj tam ten rekord. Kliknij wartość, aby ją skopiować.
                 </p>
               )}
             </div>

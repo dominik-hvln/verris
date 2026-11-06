@@ -46,7 +46,7 @@ describe('X-05 szablony ról subkont', () => {
     expect(canShowWalletBalance(c)).toBe(false);
   });
 
-  it('DevOps: usługi, DNS, poczta, pliki — bez płatności', () => {
+  it('DevOps: usługi, DNS, poczta, pliki – bez płatności', () => {
     const c = ctx(preset('devops').permissions);
     for (const href of ['/dashboard/services/x', '/dashboard/dns', '/dashboard/email', '/dashboard/file-manager', '/dashboard/ssl']) {
       expect(canAccessDashboardRoute(href, c)).toBe(true);
@@ -54,7 +54,7 @@ describe('X-05 szablony ról subkont', () => {
     expect(canAccessDashboardRoute('/dashboard/billing', c)).toBe(false);
   });
 
-  it('Podgląd (P3-05): odczyt usług, domen i ticketów — bez płatności, portfela, plików i DNS (jak w opisie)', () => {
+  it('Podgląd (P3-05): odczyt usług, domen i ticketów – bez płatności, portfela, plików i DNS (jak w opisie)', () => {
     const c = ctx(preset('readonly').permissions);
     for (const href of ['/dashboard/services', '/dashboard/domains', '/dashboard/support']) {
       expect(canAccessDashboardRoute(href, c)).toBe(true);

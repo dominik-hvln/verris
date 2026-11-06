@@ -19,7 +19,7 @@ function baza() {
   return { db, wpisy, user };
 }
 
-describe('Eko-punkty — passkey raz na konto', () => {
+describe('Eko-punkty – passkey raz na konto', () => {
   it('rejestracja → usunięcie → rejestracja nowego klucza: jeden wpis i 5 pkt', async () => {
     const b = baza();
     const svc = new EcoPointsService({} as never);

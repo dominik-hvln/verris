@@ -81,7 +81,7 @@ export function utworzQrZModulu(modul: unknown): UtworzQr {
   const m = modul as { create?: unknown; default?: { create?: unknown } };
   if (typeof m?.create === 'function') return m.create as UtworzQr;
   if (typeof m?.default?.create === 'function') return m.default.create as UtworzQr;
-  throw new Error('qrcode: brak funkcji create — nieznany kształt modułu');
+  throw new Error('qrcode: brak funkcji create – nieznany kształt modułu');
 }
 
 export function macierzQr(tresc: string): MacierzQr {

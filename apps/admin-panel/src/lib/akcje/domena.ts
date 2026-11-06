@@ -45,7 +45,7 @@ export const AKCJE_DOMENY: AkcjaObiektu<DomenaDlaAkcji>[] = [
     id: "odnow-verris",
     grupa: "Rejestrator",
     nazwa: "Odnów na koszt Verris",
-    opis: "Bez opłaty klienta — gdy błąd był po naszej stronie.",
+    opis: "Bez opłaty klienta – gdy błąd był po naszej stronie.",
     perm: { wszystkie: ["DOMAINS_MANAGE", "BILLING_MANAGE"] },
     kiedy: uNas,
     href: (d) => karta(d, "akcja-odnow-verris"),

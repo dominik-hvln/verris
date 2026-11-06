@@ -90,7 +90,7 @@ export default async function RuntimeErrorsPage() {
                         {new Date(e.at).toLocaleString("pl-PL")}
                       </td>
                       <td className="px-3 py-2 font-medium">{e.type}</td>
-                      <td className="px-3 py-2">{e.status ?? "—"}</td>
+                      <td className="px-3 py-2">{e.status ?? "–"}</td>
                       <td className="px-3 py-2 font-mono text-xs">
                         {e.method} {e.path}
                       </td>

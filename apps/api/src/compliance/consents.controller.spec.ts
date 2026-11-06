@@ -1,7 +1,7 @@
 import { ConsentsController } from './consents.controller.js';
 
 /** 26.09 — operator w sesji wsparcia nie może złożyć zgody za klienta (fałszywy dowód zgody). */
-describe('ConsentsController — zgody tylko od klienta', () => {
+describe('ConsentsController – zgody tylko od klienta', () => {
   const consents = { acceptCurrent: vi.fn(), acceptDpa: vi.fn() };
   const prefs = { update: vi.fn() };
   const c = new ConsentsController(consents as never, prefs as never);

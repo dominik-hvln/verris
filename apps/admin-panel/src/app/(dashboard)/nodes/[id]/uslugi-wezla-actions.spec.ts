@@ -34,7 +34,7 @@ it("trasy: stan, sprawdź, restart, restart wspólnej z potwierdzeniem, log z fi
   ]);
 });
 
-it("403 WYMAGA_WNIOSKU — propozycja wniosku; inne 403 — nazwa uprawnienia; nieznana akcja bez API", async () => {
+it("403 WYMAGA_WNIOSKU – propozycja wniosku; inne 403 – nazwa uprawnienia; nieznana akcja bez API", async () => {
   api.mockRejectedValueOnce(new AdminApiError("Twoja rola nie ma uprawnień do tej operacji.", 403, { code: "WYMAGA_WNIOSKU", operacja: "NODE_SERVICE_RESTART" }));
   expect(await uslugiWezlaAction("w1", "restart-wspolnej", { usluga: "exim" })).toMatchObject({ ok: false, wniosek: true });
   api.mockRejectedValueOnce(new AdminApiError("Forbidden", 403));

@@ -26,7 +26,7 @@ it("akcje trafiają na trasy karty domeny; koszt Verris na osobną trasę; NS pr
   ]);
 });
 
-it("nieznana akcja — bez API; 403 — nazwa brakującego uprawnienia; inna odmowa — jej treść", async () => {
+it("nieznana akcja – bez API; 403 – nazwa brakującego uprawnienia; inna odmowa – jej treść", async () => {
   expect(await akcjaDomenyAction("d1", "constructor" as never, { powod: "x".repeat(12) })).toEqual({ ok: false, error: "Nieznana akcja." });
   expect(api).not.toHaveBeenCalled();
   api.mockRejectedValue(new AdminApiError("Forbidden", 403));
@@ -34,10 +34,10 @@ it("nieznana akcja — bez API; 403 — nazwa brakującego uprawnienia; inna odm
     ok: false,
     error: "Twoja rola nie ma uprawnienia DOMAINS_MANAGE i BILLING_MANAGE.",
   });
-  api.mockRejectedValue(new AdminApiError("Personel może zmieniać wyłącznie domeny klientów — domenę konta zespołu zmienia administrator.", 403));
+  api.mockRejectedValue(new AdminApiError("Personel może zmieniać wyłącznie domeny klientów – domenę konta zespołu zmienia administrator.", 403));
   expect(await akcjaDomenyAction("d1", "kod-epp", { powod: "x".repeat(12) })).toEqual({
     ok: false,
-    error: "Personel może zmieniać wyłącznie domeny klientów — domenę konta zespołu zmienia administrator.",
+    error: "Personel może zmieniać wyłącznie domeny klientów – domenę konta zespołu zmienia administrator.",
   });
 });
 

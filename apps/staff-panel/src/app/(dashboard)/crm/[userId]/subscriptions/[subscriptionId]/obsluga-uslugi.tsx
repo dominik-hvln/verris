@@ -73,7 +73,7 @@ export async function ObslugaUslugi({
   return (
     <>
       {account && zuzycie ? (
-        <Sekcja tytul="Zasoby" opis="Zużycie względem limitów konta — ostatnie 24 h, odświeżane co 30 s.">
+        <Sekcja tytul="Zasoby" opis="Zużycie względem limitów konta – ostatnie 24 h, odświeżane co 30 s.">
           <ZasobyPanel subscriptionId={subscriptionId} poczatkowe={zuzycie} />
         </Sekcja>
       ) : null}

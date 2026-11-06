@@ -39,7 +39,7 @@ describe('bezpiecznyLookup', () => {
  * zakresy prywatne: domena klienta po sprawdzeniu (resolvePublicHost) przełączona na publiczny adres
  * control-plane albo węzła prowadziła połączenie z zaufanego adresu, z pominięciem zapory.
  */
-describe('bezpiecznyLookup — adresy serwerów Verris (DNS rebinding)', () => {
+describe('bezpiecznyLookup – adresy serwerów Verris (DNS rebinding)', () => {
   const env = process.env.VERRIS_CONTROL_PLANE_IPS;
   afterEach(() => {
     ustawZrodloAdresowWezlow(null);

@@ -148,7 +148,7 @@ export function parsujFa3(xml: string): Record<string, unknown> {
   const wynik = parser.parse(xml) as Record<string, unknown>;
   const faktura = wynik.Faktura as Record<string, unknown> | undefined;
   if (!faktura || typeof faktura !== 'object') {
-    throw new WizualizacjaFa3Error('To nie jest dokument FA(3) — brak elementu Faktura.');
+    throw new WizualizacjaFa3Error('To nie jest dokument FA(3) – brak elementu Faktura.');
   }
   return faktura;
 }
@@ -210,7 +210,7 @@ export function wizualizacjaFa3(xml: string): WizualizacjaFa3 {
   if (zw.P_19N != null) adnotacje.push({ pole: 'P_19N', wartosc: txt(zw.P_19N) ?? '', tekst: null });
   if (zw.P_19 != null) {
     const podstawa = txt(zw.P_19A) ?? txt(zw.P_19B) ?? txt(zw.P_19C);
-    adnotacje.push({ pole: 'P_19', wartosc: txt(zw.P_19) ?? '', tekst: `zwolnienie z VAT${podstawa ? ` — ${podstawa}` : ''}` });
+    adnotacje.push({ pole: 'P_19', wartosc: txt(zw.P_19) ?? '', tekst: `zwolnienie z VAT${podstawa ? ` – ${podstawa}` : ''}` });
   }
   const nst = obj(adn.NoweSrodkiTransportu);
   if (nst.P_22N != null) adnotacje.push({ pole: 'P_22N', wartosc: txt(nst.P_22N) ?? '', tekst: null });

@@ -71,7 +71,7 @@ export function DomainStep({
     <section>
       <h2 className="text-xl font-bold text-white">3. Domena główna</h2>
       <p className="text-neutral-400 text-sm mt-1">
-        Podłącz własną domenę albo zarejestruj nową w trakcie zamówienia — opłata za domenę
+        Podłącz własną domenę albo zarejestruj nową w trakcie zamówienia – opłata za domenę
         zostanie pobrana z portfela.
       </p>
 
@@ -111,7 +111,7 @@ export function DomainStep({
             <p id="domena-blad" className="mt-2 text-sm text-rose-300">{bladDomeny}</p>
           ) : zapisAscii ? (
             <p className="mt-2 text-xs text-neutral-400">
-              Domenę z polskimi znakami założymy w zapisie technicznym <span className="font-mono">{zapisAscii}</span> —
+              Domenę z polskimi znakami założymy w zapisie technicznym <span className="font-mono">{zapisAscii}</span> –
               tak samo działa w przeglądarce i poczcie.
             </p>
           ) : null}
@@ -119,7 +119,7 @@ export function DomainStep({
           <p id="domena-u-rejestratora" className="mt-3 text-sm text-neutral-400">
             Domena może zostać tam, gdzie jest teraz. Po zakupie pokażemy w panelu, co dokładnie przepisać w ustawieniach
             domeny u tej firmy, żeby {dlaPoczty ? 'poczta zaczęła działać' : 'strona i poczta zaczęły działać'}. To zajmuje
-            kilka minut. Jeśli wolisz zrobić to z nami, napisz w Centrum pomocy — przeprowadzimy Cię krok po kroku.
+            kilka minut. Jeśli wolisz zrobić to z nami, napisz w Centrum pomocy – przeprowadzimy Cię krok po kroku.
           </p>
         </div>
       ) : (
@@ -155,7 +155,7 @@ export function DomainStep({
           {results ? (
             <div className="mt-4 space-y-2">
               {results.length === 0 ? (
-                <p className="text-sm text-neutral-400">Brak wyników — spróbuj innej nazwy.</p>
+                <p className="text-sm text-neutral-400">Brak wyników – spróbuj innej nazwy.</p>
               ) : (
                 results.map((row) => {
                   const selected = value.register?.name === row.domain;

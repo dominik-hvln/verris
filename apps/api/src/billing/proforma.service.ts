@@ -171,9 +171,9 @@ export class ProformaService {
     });
     if (!u || u.anonymizedAt) throw new NotFoundException('Klient nie istnieje.');
     if (z.operator.role !== 'ADMIN' && u.role !== 'USER') {
-      throw new ForbiddenException('Personel wystawia proformy wyłącznie klientom — konto zespołu obsługuje administrator.');
+      throw new ForbiddenException('Personel wystawia proformy wyłącznie klientom – konto zespołu obsługuje administrator.');
     }
-    if (u.customerOwnerId) throw new BadRequestException('To subkonto — proformę wystaw właścicielowi konta (portfel jest u niego).');
+    if (u.customerOwnerId) throw new BadRequestException('To subkonto – proformę wystaw właścicielowi konta (portfel jest u niego).');
 
     const wolne = (z.pozycje ?? []).map((p) => {
       const nazwa = (p.nazwa ?? '').trim().replace(/\s+/g, ' ');
@@ -190,7 +190,7 @@ export class ProformaService {
       // Wpłata do proformy trafia do portfela; odnowienie z portfela robi harmonogram (renewal.scheduler.ts).
       // Usługa na karcie cyklicznej odnawia się z karty — proforma dałaby drugie obciążenie za ten sam okres.
       if (o.sub.paymentSource !== 'WALLET') {
-        throw new ConflictException('Ta usługa odnawia się z karty — proforma na odnowienie dotyczy usług rozliczanych z portfela.');
+        throw new ConflictException('Ta usługa odnawia się z karty – proforma na odnowienie dotyczy usług rozliczanych z portfela.');
       }
       pozycje.push({ nazwa: o.nazwa, brutto: o.doZaplaty });
       traktowanie = o.traktowanie;
@@ -266,15 +266,15 @@ export class ProformaService {
       kwota: kwota2(suma.brutto),
       link,
       komunikat: mail
-        ? `Wystawiono proformę ${pf.number} na ${kwota2(suma.brutto)} zł — klient dostał e-mail z linkiem do płatności.`
-        : `Wystawiono proformę ${pf.number} na ${kwota2(suma.brutto)} zł, ale e-mail nie wyszedł — przekaż klientowi link: ${link}`,
+        ? `Wystawiono proformę ${pf.number} na ${kwota2(suma.brutto)} zł – klient dostał e-mail z linkiem do płatności.`
+        : `Wystawiono proformę ${pf.number} na ${kwota2(suma.brutto)} zł, ale e-mail nie wyszedł – przekaż klientowi link: ${link}`,
     };
   }
 
   async anuluj(z: { id: string; operator: Operator; powod: string; teraz?: Date }) {
     const powod = (z.powod ?? '').trim();
     if (powod.length < MIN_POWOD_ANULOWANIA) {
-      throw new BadRequestException(`Podaj powód anulowania (min. ${MIN_POWOD_ANULOWANIA} znaków) — zapisze się w dzienniku.`);
+      throw new BadRequestException(`Podaj powód anulowania (min. ${MIN_POWOD_ANULOWANIA} znaków) – zapisze się w dzienniku.`);
     }
     const pf = await this.prisma.proforma.findUnique({
       where: { id: z.id },
@@ -288,7 +288,7 @@ export class ProformaService {
       where: { id: pf.id, status: 'WYSTAWIONA' },
       data: { status: 'ANULOWANA', cancelledAt: z.teraz ?? new Date(), cancelReason: powod.slice(0, 500) },
     });
-    if (count === 0) throw new ConflictException('Tej proformy nie można anulować — jest już opłacona albo anulowana.');
+    if (count === 0) throw new ConflictException('Tej proformy nie można anulować – jest już opłacona albo anulowana.');
     await this.audit?.record({
       action: ProformaActions.PROFORMA_ANULOWANA,
       userId: pf.userId,
@@ -394,10 +394,10 @@ export async function pozycjaOdnowieniaUslugi(d: ZaleznosciOdnowienia, userId: s
     sub.status === SubscriptionStatus.PAST_DUE ||
     (o.zawieszona === true && sub.status === SubscriptionStatus.SUSPENDED);
   if (!odnawialna || sub.cancelAt || !sub.currentPeriodEnd) {
-    throw new ConflictException('Ta usługa nie ma zaplanowanego odnowienia — proforma nie jest potrzebna.');
+    throw new ConflictException('Ta usługa nie ma zaplanowanego odnowienia – proforma nie jest potrzebna.');
   }
   if (sub.paymentSource === 'MANUAL') {
-    throw new ConflictException('Tę usługę rozliczasz bezpośrednio ze swoim opiekunem — proforma z panelu nie dotyczy.');
+    throw new ConflictException('Tę usługę rozliczasz bezpośrednio ze swoim opiekunem – proforma z panelu nie dotyczy.');
   }
 
   const brutto = await d.promo.resolveNextRenewalAmount({

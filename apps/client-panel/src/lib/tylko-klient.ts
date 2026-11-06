@@ -6,7 +6,7 @@ import { apiFetch } from "@/lib/api";
  * zespołu w panel.verris.pl przechodziło — zespół działał w panelu klienta na własnym koncie, poza ścieżką impersonacji.
  */
 export const KONTO_ZESPOLU =
-  "To konto zespołu Verris — panel klienta jest tylko dla klientów. Do konta klienta wejdziesz przez „Zaloguj jako klient” w panelu operatora.";
+  "To konto zespołu Verris – panel klienta jest tylko dla klientów. Do konta klienta wejdziesz przez „Zaloguj jako klient” w panelu operatora.";
 
 /** Sprawdza świeżo wydany token przed zapisaniem sesji. Błąd sprawdzenia = odmowa (jak w panelu obsługi). */
 export async function sesjaKlienta(token: string): Promise<{ ok: true } | { ok: false; error: string }> {
@@ -14,7 +14,7 @@ export async function sesjaKlienta(token: string): Promise<{ ok: true } | { ok: 
   try {
     rola = (await apiFetch<{ role?: string }>("/users/me", { unauthenticated: true, headers: { Authorization: `Bearer ${token}` } })).role;
   } catch {
-    return { ok: false, error: "Nie udało się zweryfikować konta — spróbuj ponownie." };
+    return { ok: false, error: "Nie udało się zweryfikować konta – spróbuj ponownie." };
   }
   if (rola === "ADMIN" || rola === "STAFF") {
     // Sesja wydana przez API nie zostaje w przeglądarce — zamykamy ją, żeby nie wisiała na liście sesji.

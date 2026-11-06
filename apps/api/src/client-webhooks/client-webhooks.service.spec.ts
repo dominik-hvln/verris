@@ -75,7 +75,7 @@ describe('ClientWebhooksService', () => {
   });
 });
 
-describe('ClientWebhooksService — zdarzenia rozliczeń (L-10)', () => {
+describe('ClientWebhooksService – zdarzenia rozliczeń (L-10)', () => {
   it('invoice.issued / subscription.* są na liście zdarzeń do wyboru', async () => {
     const s = stanowisko();
     const r = await s.svc.dodaj('u1', { url: 'https://hook.example.com/x', events: ['invoice.issued', 'subscription.renewed', 'subscription.past_due'] });

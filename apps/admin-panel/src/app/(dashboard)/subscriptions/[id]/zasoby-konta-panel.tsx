@@ -12,8 +12,8 @@ import { zasobyKontaAction, type Wynik, type ZasobyKonta } from "./zasoby-konta-
  * zleca świeży odczyt SQL i 5xx (tylko czyta logi); faulty przysyła agent węzła co ~10 min.
  */
 const ODSWIEZANIE_MS = 5000;
-const liczba = (n: number | null | undefined) => (n == null ? "—" : n.toLocaleString("pl-PL"));
-const kiedy = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleString("pl-PL") : "—");
+const liczba = (n: number | null | undefined) => (n == null ? "–" : n.toLocaleString("pl-PL"));
+const kiedy = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleString("pl-PL") : "–");
 const TON = { ok: "text-muted-foreground", warn: "text-amber-200", crit: "text-rose-200" } as const;
 // Czas odczytu (klient) — reguła purity nie przepuszcza Date.now() w ciele komponentu.
 const chwila = () => Date.now();
@@ -40,12 +40,12 @@ function diagnoza(d: ZasobyKonta): string | null {
   const f = d.faulty;
   if (!f.doba && !f.tydzien) return null;
   const doba = ZASOBY.filter((z) => (f.doba?.[z.klucz] ?? 0) > 0);
-  if (doba.length) return `W ostatniej dobie konto odbijało się od limitu: ${doba.map((z) => `${z.nazwa} — ${z.skutek}`).join("; ")}.`;
+  if (doba.length) return `W ostatniej dobie konto odbijało się od limitu: ${doba.map((z) => `${z.nazwa} – ${z.skutek}`).join("; ")}.`;
   const tydzien = ZASOBY.filter((z) => (f.tydzien?.[z.klucz] ?? 0) > 0);
   if (tydzien.length) return `W dobie bez przekroczeń; w 7 dni: ${tydzien.map((z) => z.nazwa).join(", ")}.`;
   // Brak okna (węzeł go nie podał albo raport ucięty bez tego konta) to nie „zero” — nie twierdzimy, że było czysto.
-  if (!f.doba || !f.tydzien) return f.doba ? "W dobie bez przekroczeń; 7 dni — brak danych z węzła." : "Doba — brak danych z węzła.";
-  return "Bez przekroczeń limitów w 7 dni — przyczyny szukaj w błędach 5xx i wolnych zapytaniach.";
+  if (!f.doba || !f.tydzien) return f.doba ? "W dobie bez przekroczeń; 7 dni – brak danych z węzła." : "Doba – brak danych z węzła.";
+  return "Bez przekroczeń limitów w 7 dni – przyczyny szukaj w błędach 5xx i wolnych zapytaniach.";
 }
 
 export function ZasobyKontaPanel({ subscriptionId, dostep }: { subscriptionId: string; dostep: DostepDoAkcji }) {
@@ -109,7 +109,7 @@ export function ZasobyKontaPanel({ subscriptionId, dostep }: { subscriptionId: s
       <div className={ramka} role="region" aria-labelledby="zasoby-konta-naglowek">
         {naglowek}
         <p className="text-xs text-muted-foreground" data-zablokowane={brak}>
-          {brak} — faulty limitów, inody, 5xx i wolne SQL konta są dla L2 i wyżej.
+          {brak} – faulty limitów, inody, 5xx i wolne SQL konta są dla L2 i wyżej.
         </p>
       </div>
     );
@@ -160,8 +160,8 @@ export function ZasobyKontaPanel({ subscriptionId, dostep }: { subscriptionId: s
                     <tr key={z.klucz} className="border-t border-white/5" data-zasob={z.klucz}>
                       <td className="py-1 text-neutral-200">{z.nazwa}</td>
                       <td className="py-1 font-mono text-neutral-300">{limitZasobu(z.klucz, d.limity)}</td>
-                      <td className={`py-1 text-right font-mono ${doba ? "text-rose-200" : "text-neutral-300"}`}>{doba == null ? "—" : liczba(doba)}</td>
-                      <td className={`py-1 text-right font-mono ${tydzien ? "text-amber-200" : "text-neutral-300"}`}>{tydzien == null ? "—" : liczba(tydzien)}</td>
+                      <td className={`py-1 text-right font-mono ${doba ? "text-rose-200" : "text-neutral-300"}`}>{doba == null ? "–" : liczba(doba)}</td>
+                      <td className={`py-1 text-right font-mono ${tydzien ? "text-amber-200" : "text-neutral-300"}`}>{tydzien == null ? "–" : liczba(tydzien)}</td>
                     </tr>
                   );
                 })}
@@ -169,7 +169,7 @@ export function ZasobyKontaPanel({ subscriptionId, dostep }: { subscriptionId: s
             </table>
             {d.faulty.pozaRaportem ? (
               <p className="text-xs text-amber-200" data-raport="poza">
-                Konto nie jest aktywne — węzeł nie raportuje jego odbić od limitów (brak danych, także sprzed zawieszenia).
+                Konto nie jest aktywne – węzeł nie raportuje jego odbić od limitów (brak danych, także sprzed zawieszenia).
               </p>
             ) : raport ? (
               <p className={`text-xs ${TON[raport.ton]}`} data-raport={raport.ton}>
@@ -216,7 +216,7 @@ export function ZasobyKontaPanel({ subscriptionId, dostep }: { subscriptionId: s
                   <p className="text-[11px] text-muted-foreground">odczyt {kiedy(d.strona.odczytano)}</p>
                 </>
               ) : (
-                <p className="text-xs text-muted-foreground">{d.strona.wToku ? "Odczyt w toku…" : "Jeszcze nie odczytano — „Wczytaj SQL i 5xx z serwera”."}</p>
+                <p className="text-xs text-muted-foreground">{d.strona.wToku ? "Odczyt w toku…" : "Jeszcze nie odczytano – „Wczytaj SQL i 5xx z serwera”."}</p>
               )}
             </section>
 
@@ -242,7 +242,7 @@ export function ZasobyKontaPanel({ subscriptionId, dostep }: { subscriptionId: s
                   </ul>
                 )
               ) : (
-                <p className="text-xs text-muted-foreground">{d.wolneSql.wToku ? "Odczyt w toku…" : "Jeszcze nie odczytano — „Wczytaj SQL i 5xx z serwera”."}</p>
+                <p className="text-xs text-muted-foreground">{d.wolneSql.wToku ? "Odczyt w toku…" : "Jeszcze nie odczytano – „Wczytaj SQL i 5xx z serwera”."}</p>
               )}
               {d.wolneSql.odczytano ? <p className="text-[11px] text-muted-foreground">odczyt {kiedy(d.wolneSql.odczytano)}</p> : null}
             </section>

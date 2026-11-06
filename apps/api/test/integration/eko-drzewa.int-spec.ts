@@ -68,7 +68,7 @@ async function usluga(userId: string, over: Record<string, unknown> = {}) {
 const wklad = (userId: string, czesci: number, createdAt: Date) =>
   prisma().ecoWkladDrzewa.create({ data: { userId, zrodlo: 'USLUGA', czesci, createdAt } });
 
-describe('EKO — drzewa (posadzimy.pl na atrapie)', () => {
+describe('EKO – drzewa (posadzimy.pl na atrapie)', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 
@@ -282,7 +282,7 @@ describe('EKO — drzewa (posadzimy.pl na atrapie)', () => {
   const tx = (userId: string, type: string, amount: string, at: Date, over: Record<string, unknown> = {}) =>
     prisma().walletTransaction.create({ data: { userId, type: type as never, amount, balanceAfter: '0', createdAt: at, ...over } });
 
-  it('usługa z portfela w całości z kodu BETA — brak wkładu; punkty za płatność zostają', async () => {
+  it('usługa z portfela w całości z kodu BETA – brak wkładu; punkty za płatność zostają', async () => {
     const { svc } = uslugi();
     const u = await klient();
     const sub = await usluga(u.id, { paymentSource: 'WALLET' });
@@ -295,7 +295,7 @@ describe('EKO — drzewa (posadzimy.pl na atrapie)', () => {
     expect(await prisma().ecoWkladDrzewa.count({ where: { userId: u.id } })).toBe(0);
   });
 
-  it('usługa częściowo z kodu — wkład proporcjonalny do części z pieniędzy; odnowienie po zjedzeniu kodu — pełny', async () => {
+  it('usługa częściowo z kodu – wkład proporcjonalny do części z pieniędzy; odnowienie po zjedzeniu kodu – pełny', async () => {
     const { svc } = uslugi();
     const u = await klient();
     const sub = await usluga(u.id, { paymentSource: 'WALLET' });
@@ -323,7 +323,7 @@ describe('EKO — drzewa (posadzimy.pl na atrapie)', () => {
     expect(await svc.wkladZUslugi(p, { userId: u.id, subscriptionId: sub.id, referenceId: 'odn-c', pierwsza: false })).toBe(70);
   });
 
-  it('rekompensata SLA nie daje wkładu; usługa z portfela bez obciążenia (0 zł) — brak wkładu', async () => {
+  it('rekompensata SLA nie daje wkładu; usługa z portfela bez obciążenia (0 zł) – brak wkładu', async () => {
     const { svc } = uslugi();
     const u = await klient();
     const sub = await usluga(u.id, { paymentSource: 'WALLET', priceAmount: '45.00', interval: 'MONTH' });
@@ -340,7 +340,7 @@ describe('EKO — drzewa (posadzimy.pl na atrapie)', () => {
   // Decyzja 17 (4.11.2026) — do API partnera nie idą dane klientów (prawdziwy klient HTTP na atrapie fetch)
   // ---------------------------------------------------------------------------------------------------------------
 
-  it('body make_order: tylko Verris — także przy własnym drzewie klienta; bez nazwy, e-maila, NIP klienta', async () => {
+  it('body make_order: tylko Verris – także przy własnym drzewie klienta; bez nazwy, e-maila, NIP klienta', async () => {
     await sadzenieProd();
     const zadania: Array<{ url: string; body: Record<string, unknown> }> = [];
     let nrZam = 0;

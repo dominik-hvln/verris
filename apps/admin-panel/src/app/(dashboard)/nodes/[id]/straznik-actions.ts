@@ -20,7 +20,7 @@ export interface StanStraznika {
   zdarzenia: ZdarzenieStraznika[];
 }
 type Wynik<T> = { ok: true; dane: T } | { ok: false; error: string };
-const blad = (e: unknown) => (e instanceof AdminApiError ? e.message : "Nie udało się — spróbuj ponownie.");
+const blad = (e: unknown) => (e instanceof AdminApiError ? e.message : "Nie udało się – spróbuj ponownie.");
 const baza = (id: string) => `/admin/servers/${encodeURIComponent(id)}/straznik`;
 
 export async function pobierzStraznika(serverId: string): Promise<Wynik<StanStraznika>> {

@@ -14,7 +14,7 @@ vi.mock('tls', async (orig) => {
  *  - niezweryfikowana, darmowa rezerwacja sufiksu („com.pl”) albo cudzej domeny-rodzica blokowała bez końca
  *    innym klientom domeny dodatkowe i aliasy (Z-10 uznawał każdy wpis Domain za dowód własności).
  */
-describe('Domeny — rezerwacje i sonda TLS', () => {
+describe('Domeny – rezerwacje i sonda TLS', () => {
   const DZIEN = 86400000;
   type Wiersz = { id: string; name: string; userId: string; status: string; registrarProvider: string | null; createdAt: Date };
 

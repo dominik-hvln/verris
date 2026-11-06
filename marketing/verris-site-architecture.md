@@ -1,4 +1,4 @@
-# Verris — architektura informacji (verris.pl)
+# Verris – architektura informacji (verris.pl)
 
 Nowa strona wielostronicowa (nie one-page). Wzorzec rynkowy PL (dhosting.pl, cyberfolks.pl),
 URL-e i nazwy po polsku pod słowa kluczowe. Zasada 3 kliknięć: każda ważna strona ≤3 kliknięcia od home.
@@ -17,14 +17,14 @@ URL-e i nazwy po polsku pod słowa kluczowe. Zasada 3 kliknięć: każda ważna 
 ├─ /reseller                          Program resellerski
 ├─ /funkcje                           Funkcje (hub)
 │  ├─ /funkcje/autoskalowanie         Autoskalowanie (pillar techniczny)
-│  ├─ /funkcje/migracja               Migracja — informacyjnie → CTA /przenies-strone
+│  ├─ /funkcje/migracja               Migracja – informacyjnie → CTA /przenies-strone
 │  ├─ /funkcje/ssl                    Certyfikaty SSL
 │  ├─ /funkcje/kopie-zapasowe         Kopie zapasowe i odtwarzanie
 │  ├─ /funkcje/analityka-bez-cookies  Prywatna analityka bez cookies
 │  ├─ /funkcje/rodo-i-dpa             RODO, DPA, podprocesorzy
 │  └─ /funkcje/sla                    SLA 99,5% z rekompensatami
 ├─ /cennik                            Cennik hostingu (+ odnośniki do VPS/domen)
-├─ /przenies-strone                   Landing migracyjny (konwersja — istnieje)
+├─ /przenies-strone                   Landing migracyjny (konwersja – istnieje)
 ├─ /blog                              Blog (lista, z Payload)
 │  └─ /blog/{slug}                    Wpis bloga
 ├─ /pomoc                             Pomoc / baza wiedzy (hub + FAQ)
@@ -35,7 +35,7 @@ URL-e i nazwy po polsku pod słowa kluczowe. Zasada 3 kliknięć: każda ważna 
 
 **Programmatic SEO (faza 2, nie budujemy teraz):**
 `/hosting-dla/{use-case}` (sklepu, agencji, wordpress, bloga) oraz `/vs/{konkurent}`
-(tylko weryfikowalne fakty z datą — decyzja Dominika; bez deprecjonowania).
+(tylko weryfikowalne fakty z datą – decyzja Dominika; bez deprecjonowania).
 
 ## 2. Nawigacja
 
@@ -55,7 +55,7 @@ E-mail marketing, Reseller, Poczta) · Funkcje · Cennik · Blog · Pomoc · **[
 
 | Strona | URL | Rodzic | Nawigacja | Priorytet |
 |---|---|---|---|---|
-| Home | `/` | — | — | ★★★ |
+| Home | `/` | – | – | ★★★ |
 | Hosting | `/hosting` | / | header (mega) | ★★★ |
 | Hosting WordPress | `/hosting/wordpress` | /hosting | mega | ★★ |
 | Hosting sklep | `/hosting/sklep` | /hosting | mega | ★★ |
@@ -69,7 +69,7 @@ E-mail marketing, Reseller, Poczta) · Funkcje · Cennik · Blog · Pomoc · **[
 | Cennik | `/cennik` | / | header | ★★★ |
 | Migracja (LP) | `/przenies-strone` | / | header/mega | ★★★ |
 | Blog | `/blog` | / | header | ★★ |
-| Wpis | `/blog/{slug}` | /blog | — | ★★ |
+| Wpis | `/blog/{slug}` | /blog | – | ★★ |
 | Pomoc | `/pomoc` | / | header | ★ |
 | O nas | `/o-nas` | / | footer | ★ |
 | Kontakt | `/kontakt` | / | footer | ★★ |

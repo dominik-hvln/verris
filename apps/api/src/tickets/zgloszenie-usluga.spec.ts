@@ -41,15 +41,15 @@ async function wpuszcza(klasa: Type<unknown>, metoda: string, role: Rola, uprawn
   return true;
 }
 
-describe('PB-43 — uprawnienia', () => {
-  it('zmiana usługi zgłoszenia: TICKETS_MANAGE; klient i sam podgląd — nie', async () => {
+describe('PB-43 – uprawnienia', () => {
+  it('zmiana usługi zgłoszenia: TICKETS_MANAGE; klient i sam podgląd – nie', async () => {
     expect(await wpuszcza(TicketsController, 'adminLinkSubscription', 'USER')).toBe(false);
     expect(await wpuszcza(TicketsController, 'adminLinkSubscription', 'STAFF', ['TICKETS_VIEW'])).toBe(false);
     expect(await wpuszcza(TicketsController, 'adminLinkSubscription', 'STAFF', ['TICKETS_MANAGE'])).toBe(true);
     expect(await wpuszcza(TicketsController, 'adminLinkSubscription', 'ADMIN')).toBe(true);
   });
 
-  it('diagnostyka z rozmowy: TICKETS_MANAGE (odpytuje węzeł i zapisuje stan); sam podgląd, klient i operator bez zgłoszeń — nie', async () => {
+  it('diagnostyka z rozmowy: TICKETS_MANAGE (odpytuje węzeł i zapisuje stan); sam podgląd, klient i operator bez zgłoszeń – nie', async () => {
     expect(await wpuszcza(ZgloszenieDiagnostykaController, 'diagnostyka', 'USER')).toBe(false);
     expect(await wpuszcza(ZgloszenieDiagnostykaController, 'diagnostyka', 'STAFF', ['NODES_VIEW'])).toBe(false);
     expect(await wpuszcza(ZgloszenieDiagnostykaController, 'diagnostyka', 'STAFF', ['TICKETS_VIEW'])).toBe(false);
@@ -58,7 +58,7 @@ describe('PB-43 — uprawnienia', () => {
   });
 });
 
-describe('PB-43 — zakres usług subkonta w widoku zgłoszenia', () => {
+describe('PB-43 – zakres usług subkonta w widoku zgłoszenia', () => {
   it('kontroler przekazuje zakres do widoku zgłoszenia i do widoku po dołączeniu plików', async () => {
     const svc = { findOne: vi.fn(async () => ({})), addOpeningAttachments: vi.fn(async () => ({})) };
     const c = new TicketsController(svc as never, {} as never, {} as never, {} as never, {} as never, {} as never);
@@ -70,7 +70,7 @@ describe('PB-43 — zakres usług subkonta w widoku zgłoszenia', () => {
   });
 });
 
-describe('PB-43 — zmiana usługi zgłoszenia przy równoległej zmianie', () => {
+describe('PB-43 – zmiana usługi zgłoszenia przy równoległej zmianie', () => {
   it('ktoś zmienił powiązanie między odczytem a zapisem → 409, bez wpisu na osi i w dzienniku', async () => {
     const prisma = {
       ticket: {
@@ -90,7 +90,7 @@ describe('PB-43 — zmiana usługi zgłoszenia przy równoległej zmianie', () =
   });
 });
 
-describe('PB-43 — walidacja wejścia', () => {
+describe('PB-43 – walidacja wejścia', () => {
   const bledy = (klasa: Type<object>, v: object) =>
     validateSync(plainToInstance(klasa, v), { whitelist: true, forbidNonWhitelisted: true }).map((e) => e.property);
 
@@ -116,7 +116,7 @@ describe('PB-43 — walidacja wejścia', () => {
   });
 });
 
-describe('PB-43 — katalog runbooków', () => {
+describe('PB-43 – katalog runbooków', () => {
   it('najczęstsze sprawy mają runbook z krokami; stare klucze zostają', () => {
     for (const k of ['strona-nie-dziala', 'poczta', 'ssl', 'migracja-zatrzymana', 'hosting-dns-tls-check', 'billing-payment-check']) {
       expect(RUNBOOK_KLUCZE).toContain(k);
@@ -134,7 +134,7 @@ describe('PB-43 — katalog runbooków', () => {
     expect(zalecanyRunbook(null, 'TECHNICAL').klucz).toBe('hosting-dns-tls-check');
   });
 
-  it('kroki dla obsługi — bez portu panelu serwera i nazwy silnika', () => {
+  it('kroki dla obsługi – bez portu panelu serwera i nazwy silnika', () => {
     const wszystko = RUNBOOKI.flatMap((r) => [r.nazwa, r.kiedy, ...r.kroki]).join('\n');
     expect(wszystko).not.toMatch(/DirectAdmin|\bDA\b|CustomBuild|2222/);
   });

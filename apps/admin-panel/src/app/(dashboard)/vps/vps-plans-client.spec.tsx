@@ -49,7 +49,7 @@ afterEach(() => {
   jest.clearAllMocks();
 });
 
-describe("Nowy plan VPS — cena i typ", () => {
+describe("Nowy plan VPS – cena i typ", () => {
   it("cena z przecinkiem (polska przeglądarka) zapisuje się jako 44.99, typ domyślny z katalogu", async () => {
     act(() => wpisz(pole("Cena/mies."), "44,99"));
     await act(async () => przycisk("Utwórz plan").click());

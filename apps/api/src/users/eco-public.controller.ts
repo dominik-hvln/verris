@@ -105,7 +105,7 @@ function renderEcoBadgeEmbed(input: { czesciDrzew: number; theme: EcoBadgeTheme;
   const color = dark ? '#F4F4EE' : '#0C1A14';
   const border = dark ? 'rgba(52,229,160,.28)' : '#BFE3D0';
   const pixelSrc = `/public/eco/badge/${encodeURIComponent(input.token)}/impression.gif`;
-  const tekst = input.czesciDrzew >= 100 ? `Verris — ${opisPosadzonychDrzew(input.czesciDrzew)}` : 'Hosting Verris';
+  const tekst = input.czesciDrzew >= 100 ? `Verris – ${opisPosadzonychDrzew(input.czesciDrzew)}` : 'Hosting Verris';
 
   return `<!doctype html>
 <html lang="pl">

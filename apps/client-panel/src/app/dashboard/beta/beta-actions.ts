@@ -25,7 +25,7 @@ type Wynik = { ok: true; postep: PostepBetaDto } | { ok: false; blad: string };
 
 function opisBledu(err: unknown): string {
   const m = (err as { message?: unknown })?.message;
-  return typeof m === "string" && m ? m : "Nie udało się zapisać — spróbuj ponownie.";
+  return typeof m === "string" && m ? m : "Nie udało się zapisać – spróbuj ponownie.";
 }
 
 export async function ustawKrokBetaAction(krokId: string, zrobione: boolean): Promise<Wynik> {

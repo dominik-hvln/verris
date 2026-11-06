@@ -22,7 +22,7 @@ describe("zmienDaneNabywcyAction", () => {
     expect((await zmienDaneNabywcyAction("u1", { kraj: "Polska", nip: "", powod: "zgłoszenie" })).ok).toBe(false);
     expect((await zmienDaneNabywcyAction("u1", { kraj: "PL", nip: "", powod: "abc" })).ok).toBe(false);
     expect(adminApi).not.toHaveBeenCalled();
-    adminApi.mockRejectedValue(new AdminApiError("Kraj i NIP są takie same jak w profilu — nic do zmiany."));
-    expect(await zmienDaneNabywcyAction("u1", { kraj: "PL", nip: "1", powod: "zgłoszenie" })).toEqual({ ok: false, error: "Kraj i NIP są takie same jak w profilu — nic do zmiany." });
+    adminApi.mockRejectedValue(new AdminApiError("Kraj i NIP są takie same jak w profilu – nic do zmiany."));
+    expect(await zmienDaneNabywcyAction("u1", { kraj: "PL", nip: "1", powod: "zgłoszenie" })).toEqual({ ok: false, error: "Kraj i NIP są takie same jak w profilu – nic do zmiany." });
   });
 });

@@ -16,7 +16,7 @@ import {
  * Najważniejszy przypadek jest ostatni: trasa, której nikt nie sklasyfikował,
  * ma być ODMÓWIONA. Do 2026-08-21 była przepuszczana i to jest cała treść Z-04.
  */
-describe('CustomerPermissionsGuard — zachowanie', () => {
+describe('CustomerPermissionsGuard – zachowanie', () => {
   const guard = (jawne?: CustomerPermission[]) =>
     new CustomerPermissionsGuard({
       getAllAndOverride: () => jawne,
@@ -34,7 +34,7 @@ describe('CustomerPermissionsGuard — zachowanie', () => {
     }) as never;
 
   describe('właściciel konta', () => {
-    it('przechodzi wszędzie — ten strażnik go nie dotyczy', () => {
+    it('przechodzi wszędzie – ten strażnik go nie dotyczy', () => {
       for (const [m, p] of [
         ['POST', '/vps'],
         ['POST', '/me/account-deletion'],
@@ -49,7 +49,7 @@ describe('CustomerPermissionsGuard — zachowanie', () => {
     });
   });
 
-  describe('subkonto — trasy z uprawnieniem', () => {
+  describe('subkonto – trasy z uprawnieniem', () => {
     const sub = (...uprawnienia: CustomerPermission[]) => ({
       customerOwnerId: 'wlasciciel-1',
       customerPermissions: uprawnienia,
@@ -83,7 +83,7 @@ describe('CustomerPermissionsGuard — zachowanie', () => {
     });
   });
 
-  describe('subkonto — operacje zastrzeżone dla właściciela', () => {
+  describe('subkonto – operacje zastrzeżone dla właściciela', () => {
     // Każda z tych tras była przed poprawką w pełni otwarta dla subkonta
     // z dowolnym (albo żadnym) uprawnieniem.
     const ZASTRZEZONE: Array<[string, string, string]> = [
@@ -100,7 +100,7 @@ describe('CustomerPermissionsGuard — zachowanie', () => {
       ['POST', '/servers/handshake', 'powierzchnia węzła'],
     ];
 
-    it.each(ZASTRZEZONE)('%s %s — %s: odmowa mimo pełni uprawnień', (metoda, sciezka) => {
+    it.each(ZASTRZEZONE)('%s %s – %s: odmowa mimo pełni uprawnień', (metoda, sciezka) => {
       const wszystkie = Object.values(CustomerPermission) as CustomerPermission[];
       expect(() =>
         guard().canActivate(
@@ -113,7 +113,7 @@ describe('CustomerPermissionsGuard — zachowanie', () => {
     });
   });
 
-  describe('subkonto — dostęp do treści strony wymaga FILES_MANAGE (nie wystarczy „usługi”)', () => {
+  describe('subkonto – dostęp do treści strony wymaga FILES_MANAGE (nie wystarczy „usługi”)', () => {
     const sub = (...u: CustomerPermission[]) => ({ customerOwnerId: 'wlasciciel-1', customerPermissions: u });
     const TRESC: Array<[string, string]> = [
       ['GET', '/services/:id/files'],
@@ -172,7 +172,7 @@ describe('CustomerPermissionsGuard — zachowanie', () => {
     });
   });
 
-  describe('subkonto — operacje kosztowe wymagają właściwego uprawnienia', () => {
+  describe('subkonto – operacje kosztowe wymagają właściwego uprawnienia', () => {
     const sub = (...u: CustomerPermission[]) => ({
       customerOwnerId: 'wlasciciel-1',
       customerPermissions: u,
@@ -190,7 +190,7 @@ describe('CustomerPermissionsGuard — zachowanie', () => {
       expect(guard().canActivate(zadanie('POST', '/vps/:id/power', sub(CustomerPermission.SERVICES_MANAGE)))).toBe(true);
     });
 
-    it('Q-08: snapshot VPS-a (płatny) wymaga SERVICES_MANAGE i BILLING_MANAGE; przywrócenie, reinstalacja i konsola — SERVICES_MANAGE', () => {
+    it('Q-08: snapshot VPS-a (płatny) wymaga SERVICES_MANAGE i BILLING_MANAGE; przywrócenie, reinstalacja i konsola – SERVICES_MANAGE', () => {
       expect(guard().canActivate(zadanie('POST', '/vps/:id/snapshots', sub(CustomerPermission.SERVICES_MANAGE)))).toBe(false);
       expect(
         guard().canActivate(zadanie('POST', '/vps/:id/snapshots', sub(CustomerPermission.SERVICES_MANAGE, CustomerPermission.BILLING_MANAGE))),
@@ -207,7 +207,7 @@ describe('CustomerPermissionsGuard — zachowanie', () => {
       }
     });
 
-    it('P3-02: podgląd usługi i VPS-a zostaje przy SERVICES_READ; trasy bez :id (okres próbny) — jak dotąd', () => {
+    it('P3-02: podgląd usługi i VPS-a zostaje przy SERVICES_READ; trasy bez :id (okres próbny) – jak dotąd', () => {
       expect(guard().canActivate(zadanie('GET', '/subscriptions/:id', sub(CustomerPermission.SERVICES_READ)))).toBe(true);
       expect(guard().canActivate(zadanie('GET', '/vps/:id', sub(CustomerPermission.SERVICES_READ)))).toBe(true);
       expect(guard().canActivate(zadanie('POST', '/subscriptions/trial', sub(CustomerPermission.SERVICES_MANAGE)))).toBe(true);
@@ -241,7 +241,7 @@ describe('CustomerPermissionsGuard — zachowanie', () => {
   });
 
   describe('domyślna odpowiedź dla nieznanej trasy', () => {
-    it('to ODMOWA, nie przepuszczenie — sedno Z-04', () => {
+    it('to ODMOWA, nie przepuszczenie – sedno Z-04', () => {
       expect(inferCustomerRoutePermissions('POST', '/zupelnie/nowa/trasa')).toBe('ODMOWA');
       expect(() =>
         guard().canActivate(
@@ -254,7 +254,7 @@ describe('CustomerPermissionsGuard — zachowanie', () => {
     });
   });
 
-  describe('wnioskowanie ze ścieżki — przypadki, które muszą zostać jak były', () => {
+  describe('wnioskowanie ze ścieżki – przypadki, które muszą zostać jak były', () => {
     const infer = inferCustomerRoutePermissions;
 
     it('hosting-dns przed ogólną regułą services', () => {
@@ -279,8 +279,8 @@ describe('CustomerPermissionsGuard — zachowanie', () => {
   });
 });
 
-describe('CustomerPermissionsGuard — dziennik odmów (Z-10)', () => {
-  it('odmowa ZAPISU trafia do dziennika właściciela raz na 10 min dla tej samej trasy; odczyt i przepuszczenie — nie', () => {
+describe('CustomerPermissionsGuard – dziennik odmów (Z-10)', () => {
+  it('odmowa ZAPISU trafia do dziennika właściciela raz na 10 min dla tej samej trasy; odczyt i przepuszczenie – nie', () => {
     const record = vi.fn(async () => undefined);
     const g = new CustomerPermissionsGuard({ getAllAndOverride: () => undefined } as never, { record } as never);
     const ctx = (method: string, path: string, perms: CustomerPermission[]) =>
@@ -312,15 +312,15 @@ describe('CustomerPermissionsGuard — dziennik odmów (Z-10)', () => {
 
 // Audyt 13.10 (services-fallback-webmail-sso-and-content) — SSO webmaila wymaga uprawnienia pocztowego,
 // nie dziedziczy SERVICES_MANAGE z ogólnej reguły /services.
-describe('SSO do webmaila — tylko z EMAIL_MANAGE', () => {
+describe('SSO do webmaila – tylko z EMAIL_MANAGE', () => {
   it('POST /services/:id/hosting-webmail-login → EMAIL_MANAGE', () => {
     const w = inferCustomerRoutePermissions('POST', '/services/abc/hosting-webmail-login');
     expect(w).toEqual(['EMAIL_MANAGE']);
   });
 });
 
-describe('P3-07 — dziennik odmów bez automatycznych zapytań strony', () => {
-  it('wycena/podgląd (POST bez zmian) nie trafia do dziennika właściciela; zakup — tak', () => {
+describe('P3-07 – dziennik odmów bez automatycznych zapytań strony', () => {
+  it('wycena/podgląd (POST bez zmian) nie trafia do dziennika właściciela; zakup – tak', () => {
     const record = vi.fn();
     const g = new CustomerPermissionsGuard({ getAllAndOverride: () => undefined } as never, { record } as never);
     const ctx = (method: string, path: string) =>

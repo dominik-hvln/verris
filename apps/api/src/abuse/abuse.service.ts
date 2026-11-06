@@ -160,7 +160,7 @@ export class AbuseService {
     const koncowa = dto.status === 'ACTION_TAKEN' || dto.status === 'REJECTED';
     const uzasadnienie = dto.decision?.trim() ?? '';
     if (koncowa && uzasadnienie.length < 20) {
-      throw new BadRequestException('Decyzja wymaga uzasadnienia (min. 20 znaków) — dostanie je zgłaszający.');
+      throw new BadRequestException('Decyzja wymaga uzasadnienia (min. 20 znaków) – dostanie je zgłaszający.');
     }
     let zawieszono = false;
     let wysylkaZablokowana = false;
@@ -168,14 +168,14 @@ export class AbuseService {
     // cokolwiek zmieni się na węźle: inaczej odmowa zawieszenia zostawiała zablokowaną wysyłkę bez zapisanej decyzji.
     if (dto.blockSending) {
       if (dto.status !== 'ACTION_TAKEN') throw new BadRequestException('Wysyłkę blokuje się razem z decyzją „Podjęto działania”.');
-      if (!r.subscriptionId) throw new BadRequestException('Zgłoszenie nie jest dopasowane do usługi — zablokuj wysyłkę z karty usługi.');
+      if (!r.subscriptionId) throw new BadRequestException('Zgłoszenie nie jest dopasowane do usługi – zablokuj wysyłkę z karty usługi.');
       if (rola !== 'ADMIN' && !(await uprawnieniaOperatora(this.prisma, staffId)).includes('MAIL_SEND_BLOCK')) {
         throw new ForbiddenException('Blokada wysyłki wymaga uprawnienia MAIL_SEND_BLOCK. Zapisz decyzję bez blokady albo poproś osobę z uprawnieniem.');
       }
     }
     if (dto.suspendService) {
       if (dto.status !== 'ACTION_TAKEN') throw new BadRequestException('Usługę zawiesza się razem z decyzją „Podjęto działania”.');
-      if (!r.subscriptionId) throw new BadRequestException('Zgłoszenie nie jest dopasowane do usługi — zawieś ją z karty usługi.');
+      if (!r.subscriptionId) throw new BadRequestException('Zgłoszenie nie jest dopasowane do usługi – zawieś ją z karty usługi.');
       if (rola !== 'ADMIN' && !(await uprawnieniaOperatora(this.prisma, staffId)).includes('SUBSCRIPTIONS_SUSPEND')) {
         throw new ForbiddenException('Zawieszenie usługi wymaga uprawnienia SUBSCRIPTIONS_SUSPEND. Zapisz decyzję bez zawieszenia albo wyślij wniosek z karty usługi.');
       }

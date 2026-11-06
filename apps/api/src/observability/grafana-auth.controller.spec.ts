@@ -39,7 +39,7 @@ describe('GrafanaAuthController', () => {
   });
 });
 
-describe('Grafana SSO — bilet i sesja tylko dla hosta Grafany', () => {
+describe('Grafana SSO – bilet i sesja tylko dla hosta Grafany', () => {
   function zbuduj(user: Record<string, unknown> | null = admin) {
     const jwt = {
       verify: vi.fn((t: string) => (t === 'sesja-grafany' ? { sub: 'a', tv: 2, purpose: 'grafana' } : { sub: 'a', tv: 2 })),

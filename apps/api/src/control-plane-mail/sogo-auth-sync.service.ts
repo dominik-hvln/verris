@@ -19,7 +19,7 @@ export class SogoAuthSyncService {
 
   async upsert(email: string, plainPassword: string): Promise<void> {
     if (!this.isConfigured()) {
-      this.logger.warn('SOGo auth sync skipped — set SOGO_MYSQL_HOST and SOGO_MYSQL_PASSWORD');
+      this.logger.warn('SOGo auth sync skipped – set SOGO_MYSQL_HOST and SOGO_MYSQL_PASSWORD');
       return;
     }
 

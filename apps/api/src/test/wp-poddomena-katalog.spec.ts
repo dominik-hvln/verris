@@ -15,7 +15,7 @@ const funkcje = (plik: string) => {
   return s.slice(s.indexOf('katalog_strony() {'), s.indexOf('\n}\n', s.indexOf('bez_dowiazan() {')) + 3);
 };
 
-describe.each(['node-wp-install.sh', 'node-wp-update.sh'])('%s — katalog strony', (plik) => {
+describe.each(['node-wp-install.sh', 'node-wp-update.sh'])('%s – katalog strony', (plik) => {
   const dom = mkdtempSync(join(tmpdir(), 'wp-home-'));
   mkdirSync(join(dom, 'domains/d3.hvln.pl/public_html/beta'), { recursive: true });
   mkdirSync(join(dom, 'domains/test2.d3.hvln.pl/public_html'), { recursive: true });
@@ -43,7 +43,7 @@ describe.each(['node-wp-install.sh', 'node-wp-update.sh'])('%s — katalog stron
   });
 });
 
-describe('node-wp-update.sh — wycofanie nieudanej aktualizacji', () => {
+describe('node-wp-update.sh – wycofanie nieudanej aktualizacji', () => {
   const skrypt = readFileSync(join(KORZEN, 'ops', 'scripts', 'node-wp-update.sh'), 'utf8');
   const fragment = skrypt.slice(skrypt.indexOf('osobne_strony() {'), skrypt.indexOf('# koniec funkcji wycofania'));
   const zapisz = (dom: string, wzgl: string, tresc: string) => {
@@ -132,7 +132,7 @@ describe('node-wp-update.sh — wycofanie nieudanej aktualizacji', () => {
   });
 });
 
-describe('API — strona konta: domena albo poddomena znana DirectAdminowi', () => {
+describe('API – strona konta: domena albo poddomena znana DirectAdminowi', () => {
   const da = Object.create(DirectAdminService.prototype) as DirectAdminService & Record<string, unknown>;
   const pytania: string[] = [];
   Object.assign(da, {
@@ -158,7 +158,7 @@ describe('API — strona konta: domena albo poddomena znana DirectAdminowi', () 
   });
 });
 
-describe('Instalator WordPressa — bezpieczne ustawienia od razu', () => {
+describe('Instalator WordPressa – bezpieczne ustawienia od razu', () => {
   it('wyłącza edytor plików w kokpicie przed zgłoszeniem sukcesu (I-08; próba bety 06.10)', () => {
     const s = readFileSync(join(KORZEN, 'ops', 'scripts', 'node-wp-install.sh'), 'utf8');
     const edytor = s.indexOf('config set DISALLOW_FILE_EDIT true --raw');

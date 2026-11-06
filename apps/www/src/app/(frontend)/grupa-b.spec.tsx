@@ -57,7 +57,7 @@ async function render(el: ReactElement | Promise<ReactElement>) {
   return renderToStaticMarkup(await el);
 }
 
-describe('grupa B — /przenies-strone', () => {
+describe('grupa B – /przenies-strone', () => {
   it('metadane, jedno h1, HowTo z 6 krokami, FAQPage, BreadcrumbList i kotwica #poradniki', async () => {
     const mod = await import('./przenies-strone/page');
     const html = await render(mod.default());
@@ -77,7 +77,7 @@ describe('grupa B — /przenies-strone', () => {
   });
 });
 
-describe('grupa B — poradniki /przenies-strone/[zrodlo]', () => {
+describe('grupa B – poradniki /przenies-strone/[zrodlo]', () => {
   it('generateStaticParams daje cztery źródła, bez marek hostingów', async () => {
     const mod = await import('./przenies-strone/[zrodlo]/page');
     expect(mod.generateStaticParams().map((p) => p.zrodlo)).toEqual(['z-cpanel', 'z-plesk', 'z-ftp']);
@@ -105,7 +105,7 @@ describe('grupa B — poradniki /przenies-strone/[zrodlo]', () => {
   });
 });
 
-describe('grupa B — /jak-wybrac-hosting', () => {
+describe('grupa B – /jak-wybrac-hosting', () => {
   it('metadane, jedno h1, Article + ItemList(10) + FAQPage + BreadcrumbList, data aktualizacji', async () => {
     const mod = await import('./jak-wybrac-hosting/page');
     const html = await render(mod.default());
@@ -125,7 +125,7 @@ describe('grupa B — /jak-wybrac-hosting', () => {
   });
 });
 
-describe('grupa B — /domeny', () => {
+describe('grupa B – /domeny', () => {
   it('metadane, h1, Service + FAQPage + BreadcrumbList; wyszukiwarka to formularz GET do panelu, bez udawanych wyników i [cena]', async () => {
     const mod = await import('./domeny/page');
     const html = await render(mod.default());
@@ -137,7 +137,7 @@ describe('grupa B — /domeny', () => {
   });
 });
 
-describe('grupa B — /poczta', () => {
+describe('grupa B – /poczta', () => {
   // 1.11.2026: opis bez ceny (ceny wyłącznie z API, strażnik ceny-na-sztywno.spec.ts); cena samej poczty w treści z lib/ceny.
   it('metadane bez ceny na sztywno, cena poczty z modułu cen, jedno h1, Service + FAQPage + BreadcrumbList, bez obietnic spoza kodu', async () => {
     const mod = await import('./poczta/page');
@@ -154,7 +154,7 @@ describe('grupa B — /poczta', () => {
   });
 });
 
-describe('grupa B — /vps', () => {
+describe('grupa B – /vps', () => {
   const env = process.env.NEXT_PUBLIC_FEATURE_VPS;
   afterEach(() => {
     process.env.NEXT_PUBLIC_FEATURE_VPS = env;

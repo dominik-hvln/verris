@@ -65,7 +65,7 @@ const zl = (id: string, status: MigrationStatus, o: Partial<Zlecenie> = {}): Zle
   id, userId: 'u1', subscriptionId: 'sub1', status, targetDomain: `${id}.pl`, completedAt: null, attentionAt: null, secretsPurgedAt: null, ...o,
 });
 
-describe('purgeExpiredSecrets — zlecenia przekazane obsłudze (ATTENTION)', () => {
+describe('purgeExpiredSecrets – zlecenia przekazane obsłudze (ATTENTION)', () => {
   it(`hasła zlecenia w ATTENTION dłużej niż ${MIGRATION_SECRET_TTL_ATTENTION_DAYS} dni są usuwane; zespół dostaje informację`, async () => {
     expect([MIGRATION_SECRET_TTL_ATTENTION_DAYS, MIGRATION_SECRET_PRZYPOMNIENIE_ATTENTION_DAYS]).toEqual([14, 11]);
     const z = [
@@ -87,7 +87,7 @@ describe('purgeExpiredSecrets — zlecenia przekazane obsłudze (ATTENTION)', ()
     expect(tytuly.map((t) => t.userId)).toEqual(['staff_1', 'admin_1']);
   });
 
-  it('3 dni przed usunięciem — jedno przypomnienie dla zespołu na zlecenie, nie co godzinę', async () => {
+  it('3 dni przed usunięciem – jedno przypomnienie dla zespołu na zlecenie, nie co godzinę', async () => {
     const z = [zl('czeka', MigrationStatus.ATTENTION, { attentionAt: temu(12) })];
     const { s, notifications, zdarzenia } = srodowisko(z);
     expect((await s.purgeExpiredSecrets()).przypomniano).toBe(1);

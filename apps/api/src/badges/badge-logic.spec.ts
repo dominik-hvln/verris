@@ -3,7 +3,7 @@ import { dailyUptime, downIntervals, embeddedOnDomain, sealReason, windowPct } f
 const DAY = 24 * 60 * 60 * 1000;
 const now = Date.UTC(2026, 8, 23, 12, 0, 0);
 
-describe('badge — dostępność per dzień', () => {
+describe('badge – dostępność per dzień', () => {
   it('awaria 1 h wczoraj = ~95,83% wczoraj, 100% dziś; dni przed monitorem = brak danych', () => {
     const yesterdayNoon = Date.UTC(2026, 8, 22, 12, 0, 0);
     const iv = downIntervals([{ createdAt: new Date(yesterdayNoon + 3600_000), durationS: 3600 }], null, now);
@@ -27,7 +27,7 @@ describe('badge — dostępność per dzień', () => {
   });
 });
 
-describe('badge — pieczęć', () => {
+describe('badge – pieczęć', () => {
   const ok = {
     active: true,
     monitor: { enabled: true, lastStatus: 'UP', lastCheckedAt: new Date(now - 60_000), tlsExpiresAt: new Date(now + 30 * DAY) },

@@ -33,7 +33,7 @@ function wpuszcza(metoda: Metoda, user: { role: string; userId: string }, uprawn
 
 const STAFF = { role: 'STAFF', userId: 'op' };
 
-describe('KbAdminController — B2: zapis tylko z KB_MANAGE', () => {
+describe('KbAdminController – B2: zapis tylko z KB_MANAGE', () => {
   it('kontroler ma trasy zapisu i odczytu (sanity), strażnik uprawnień wpięty na klasie', () => {
     expect(ZAPIS.length).toBeGreaterThanOrEqual(7);
     expect(ODCZYT.length).toBeGreaterThanOrEqual(4);
@@ -44,7 +44,7 @@ describe('KbAdminController — B2: zapis tylko z KB_MANAGE', () => {
     for (const m of ZAPIS) expect({ m, ok: await wpuszcza(m, STAFF, ['TICKETS_VIEW', 'TICKETS_MANAGE']) }).toEqual({ m, ok: false });
   });
 
-  it('STAFF z KB_MANAGE i ADMIN — zapis dozwolony', async () => {
+  it('STAFF z KB_MANAGE i ADMIN – zapis dozwolony', async () => {
     for (const m of ZAPIS) {
       expect(await wpuszcza(m, STAFF, ['KB_MANAGE'])).toBe(true);
       expect(await wpuszcza(m, { role: 'ADMIN', userId: 'a' }, [])).toBe(true);

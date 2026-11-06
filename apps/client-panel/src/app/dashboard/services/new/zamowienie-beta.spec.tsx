@@ -204,7 +204,7 @@ it('P1-02: bez dostępnej próby nie ma tekstów o darmowym okresie próbnym', a
 });
 
 // P1-05, P4-2, P1-06, P4-8, P4-10: parametry jak na www, bez kodów i angielskich słów, ceny w zł brutto.
-it('P4-2/P1-05/P4-8/P4-10: hosting — limity jak na www, ceny w zł brutto z netto; bez kodów planu i MONTH/YEAR', async () => {
+it('P4-2/P1-05/P4-8/P4-10: hosting – limity jak na www, ceny w zł brutto z netto; bez kodów planu i MONTH/YEAR', async () => {
   const t = await pokaz('type=hosting');
   expect(t).toContain('do 2 vCPU (limit)');
   expect(t).toContain('do 8 GB RAM (limit)');
@@ -214,7 +214,7 @@ it('P4-2/P1-05/P4-8/P4-10: hosting — limity jak na www, ceny w zł brutto z ne
   expect(t).toMatch(/36,59\s?zł netto · z portfela 45,00\s?K/);
 });
 
-it('P4-2/P4-8: poczta — miejsce, skrzynki i wysyłka zamiast CPU i RAM; tekst domeny bez „hostingu”', async () => {
+it('P4-2/P4-8: poczta – miejsce, skrzynki i wysyłka zamiast CPU i RAM; tekst domeny bez „hostingu”', async () => {
   const t = await pokaz('type=email');
   expect(t).toContain('10 GB miejsca na pocztę (NVMe)');
   expect(t).toContain('Skrzynki bez limitu liczby');

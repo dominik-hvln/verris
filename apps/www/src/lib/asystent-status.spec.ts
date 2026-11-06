@@ -19,7 +19,7 @@ function odpowiedz(status: number, cialo: unknown): Response {
   } as Response;
 }
 
-describe('asystentDostepny — GET /public/asystent/status', () => {
+describe('asystentDostepny – GET /public/asystent/status', () => {
   const apiUrl = process.env.API_URL;
   afterEach(() => {
     global.fetch = fetchOryginalny;
@@ -72,7 +72,7 @@ describe('asystentDostepny — GET /public/asystent/status', () => {
   });
 });
 
-describe('layout verris.pl — widget z przełącznika w adminie', () => {
+describe('layout verris.pl – widget z przełącznika w adminie', () => {
   const layout = readFileSync(join(__dirname, '../app/(frontend)/layout.tsx'), 'utf8');
 
   it('pobiera status po stronie serwera i przekazuje go do widgetu', () => {
@@ -81,7 +81,7 @@ describe('layout verris.pl — widget z przełącznika w adminie', () => {
     expect(layout).not.toContain('NEXT_PUBLIC_ASYSTENT');
   });
 
-  it('render per żądanie (headers()), bez statycznego trybu — status nie zamarza z czasu builda', () => {
+  it('render per żądanie (headers()), bez statycznego trybu – status nie zamarza z czasu builda', () => {
     expect(layout).toContain('headers()');
     expect(layout).not.toMatch(/export const (dynamic|revalidate)\b/);
   });

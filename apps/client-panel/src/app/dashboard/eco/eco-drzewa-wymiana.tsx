@@ -31,14 +31,14 @@ export function EcoDrzewaWymiana({
     () =>
       PROCENTY.map((p) => {
         const koszt = punktyZaProcent(p, punktyNaDrzewo);
-        return { value: String(p), label: `${p}% drzewa — ${koszt} pkt`, disabled: koszt > punkty };
+        return { value: String(p), label: `${p}% drzewa – ${koszt} pkt`, disabled: koszt > punkty };
       }),
     [punkty, punktyNaDrzewo],
   );
   const maksDrzew = Math.min(maksWlasnychNaRaz, Math.floor(punkty / punktyNaDrzewo));
   const opcjeDrzewa = Array.from({ length: Math.max(1, maksDrzew) }, (_, i) => i + 1).map((n) => ({
     value: String(n),
-    label: `${n} ${plForm(n, 'drzewo', 'drzewa', 'drzew')} — ${n * punktyNaDrzewo} pkt`,
+    label: `${n} ${plForm(n, 'drzewo', 'drzewa', 'drzew')} – ${n * punktyNaDrzewo} pkt`,
     disabled: n * punktyNaDrzewo > punkty,
   }));
   const koszt = cel === 'PULA' ? punktyZaProcent(procent, punktyNaDrzewo) : drzewa * punktyNaDrzewo;
@@ -54,7 +54,7 @@ export function EcoDrzewaWymiana({
     setMsg(null);
     const r = await wymienNaDrzewoAction(cel === 'PULA' ? { cel, procent } : { cel, drzewa });
     setBusy(false);
-    setMsg('error' in r ? { ok: false, text: r.error } : { ok: true, text: `Gotowe — wymieniono ${r.punktyWydane} pkt.` });
+    setMsg('error' in r ? { ok: false, text: r.error } : { ok: true, text: `Gotowe – wymieniono ${r.punktyWydane} pkt.` });
   };
 
   return (
@@ -96,7 +96,7 @@ export function EcoDrzewaWymiana({
           )}
           {cel === 'WLASNE' && maksDrzew < 1 ? (
             <p className="text-xs text-neutral-500">
-              Własne drzewo to {punktyNaDrzewo} pkt — brakuje Ci {Math.max(0, punktyNaDrzewo - punkty)} pkt.
+              Własne drzewo to {punktyNaDrzewo} pkt – brakuje Ci {Math.max(0, punktyNaDrzewo - punkty)} pkt.
             </p>
           ) : null}
         </div>

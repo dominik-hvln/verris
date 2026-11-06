@@ -145,7 +145,7 @@ export function HostingProfilePanel({
         </h2>
         <p className="text-xs text-muted-foreground mt-1">
           Jednym kliknięciem: profil hostingowy (Exim/Dovecot, FTP, MariaDB/Governor, CageFS,
-          LiteSpeed/LSPHP) oraz szablon strony domyślnej Verris w DirectAdmin — każda nowa domena
+          LiteSpeed/LSPHP) oraz szablon strony domyślnej Verris w DirectAdmin – każda nowa domena
           na węźle dostanie placeholder od razu. Domyślnie bez długiego rebuild PHP/LS.
         </p>
       </div>
@@ -218,10 +218,10 @@ export function HostingProfilePanel({
             <p className="text-xs text-sky-200">
               {latest.status === "RUNNING"
                 ? runningStuck
-                  ? `Profil w tle (Governor/CustomBuild) — może trwać do ~60 min. Log na żywo poniżej (heartbeat co ~60 s). Na węźle: tail -f /var/log/verris-tasks/${latest.id}.log oraz systemctl status verris-task@${latest.id.replace(/-/g, "")}`
-                  : "Profil wykonywany na węźle — log odświeża się co ~60 s. Governor/CustomBuild może potrwać kilka–kilkadziesiąt minut."
+                  ? `Profil w tle (Governor/CustomBuild) – może trwać do ~60 min. Log na żywo poniżej (heartbeat co ~60 s). Na węźle: tail -f /var/log/verris-tasks/${latest.id}.log oraz systemctl status verris-task@${latest.id.replace(/-/g, "")}`
+                  : "Profil wykonywany na węźle – log odświeża się co ~60 s. Governor/CustomBuild może potrwać kilka–kilkadziesiąt minut."
                 : queuedStuck
-                  ? "Zadanie czeka >90 s — na węźle brakuje agenta zadań. Zainstaluj skrypt poniżej (SSH)."
+                  ? "Zadanie czeka >90 s – na węźle brakuje agenta zadań. Zainstaluj skrypt poniżej (SSH)."
                   : "Agent odbierze zadanie w ciągu ~1 minuty. Odświeżanie co 5 s."}
             </p>
           )}
@@ -243,7 +243,7 @@ export function HostingProfilePanel({
       <div className="border-t border-white/10 pt-3 space-y-2">
         <p className="text-xs text-muted-foreground">
           {queuedStuck
-            ? "Wymagana jednorazowa instalacja agenta zadań na węźle (agent-3 — systemd template + logi):"
+            ? "Wymagana jednorazowa instalacja agenta zadań na węźle (agent-3 – systemd template + logi):"
             : "Węzeł sprzed agent-3? Jednorazowa instalacja agenta zadań na SSH:"}
         </p>
         {!agentScript ? (

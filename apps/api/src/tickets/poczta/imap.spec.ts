@@ -58,7 +58,7 @@ describe('klient IMAP', () => {
     }
   });
 
-  it('literał ponad limit i brak odpowiedzi — przerwanie z błędem', async () => {
+  it('literał ponad limit i brak odpowiedzi – przerwanie z błędem', async () => {
     const s = new PassThrough();
     const imap = new PolaczenieImap(s, { maxLiteral: 10, timeoutMs: 50 });
     s.write('* 1 FETCH (BODY[] {999}\r\n');

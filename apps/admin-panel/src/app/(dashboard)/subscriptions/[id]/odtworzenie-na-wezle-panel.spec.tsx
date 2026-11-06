@@ -47,7 +47,7 @@ afterEach(() => {
   stanMock.mockReset();
 });
 
-describe("Odtworzenie na innym węźle — wynik listy kopii", () => {
+describe("Odtworzenie na innym węźle – wynik listy kopii", () => {
   it("lista gotowa i pusta → komunikat o braku kopii z prefiksem węzła źródłowego", async () => {
     stanMock.mockResolvedValue(stan("COMPLETED", []));
     await render();

@@ -100,7 +100,7 @@ export class FilesService {
    */
   private odmowDlaSystemowych(...sciezki: string[]): void {
     if (sciezki.some(jestWpisemSystemowym)) {
-      throw new ForbiddenException('Ten element jest zarządzany przez serwer — nie można go otwierać ani zmieniać.');
+      throw new ForbiddenException('Ten element jest zarządzany przez serwer – nie można go otwierać ani zmieniać.');
     }
   }
 

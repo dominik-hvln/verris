@@ -14,7 +14,7 @@ import { miesiecznieZRocznej, netto, zl, zlGrosze, type CenaPakietu } from '@/li
 const KROKI = ['Domena', 'Okres', 'Konto i płatność'] as const;
 
 const DOMENY = [
-  { tytul: 'Mam domenę gdzie indziej', opis: 'Zostaw ją u obecnego rejestratora — w panelu pokażemy, jakie rekordy ustawić.', pozycja: 'Domena zewnętrzna', cena: '0 zł' },
+  { tytul: 'Mam domenę gdzie indziej', opis: 'Zostaw ją u obecnego rejestratora – w panelu pokażemy, jakie rekordy ustawić.', pozycja: 'Domena zewnętrzna', cena: '0 zł' },
   { tytul: 'Nowa domena', opis: 'Zarejestrujesz ją w panelu razem z hostingiem.', pozycja: 'Rejestracja domeny', cena: 'wg cennika domen' },
   { tytul: 'Przenieś domenę do Verris', opis: 'Potrzebny kod AuthInfo od obecnego rejestratora.', pozycja: 'Transfer domeny', cena: 'wg cennika domen' },
 ] as const;
@@ -23,10 +23,10 @@ const DOMENY = [
 const okresy = (c: CenaPakietu) => [
   {
     rok: true,
-    tytul: `Rocznie — ${zl(c.rocznie)}`,
+    tytul: `Rocznie – ${zl(c.rocznie)}`,
     opis: `Około ${zl(miesiecznieZRocznej(c))} miesięcznie, taniej o ${zl(c.miesiecznie * 12 - c.rocznie)} niż 12 × ${zl(c.miesiecznie)}. Netto ${zl(netto(c.rocznie))}.`,
   },
-  { rok: false, tytul: `Miesięcznie — ${zl(c.miesiecznie)}`, opis: `Bez zobowiązania, rezygnujesz, kiedy chcesz. Netto ${zl(netto(c.miesiecznie))}.` },
+  { rok: false, tytul: `Miesięcznie – ${zl(c.miesiecznie)}`, opis: `Bez zobowiązania, rezygnujesz, kiedy chcesz. Netto ${zl(netto(c.miesiecznie))}.` },
 ];
 
 const nic = () => () => {};
@@ -99,7 +99,7 @@ export function AZamowienie({ cena: c }: { cena: CenaPakietu }) {
         <section className="card a-order-step" hidden={!widac(2)} aria-labelledby="krok-3">
           <h2 id="krok-3">3. Konto i płatność</h2>
           <p>
-            W panelu Verris założysz konto (e-mail i dane do faktury — NIP, jeśli kupujesz na firmę), zaakceptujesz{' '}
+            W panelu Verris założysz konto (e-mail i dane do faktury – NIP, jeśli kupujesz na firmę), zaakceptujesz{' '}
             <a href={LEGAL}>regulamin i politykę prywatności</a>, a potem zapłacisz kartą, BLIK-iem albo szybkim przelewem.
           </p>
           <a

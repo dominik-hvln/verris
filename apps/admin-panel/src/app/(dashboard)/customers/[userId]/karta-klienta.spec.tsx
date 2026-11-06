@@ -110,7 +110,7 @@ describe("PB-46 karta klienta admina", () => {
   it("usługi: diagnostyka DNS i TLS dla domeny konta", async () => {
     const html = await render("uslugi");
     expect(html).toContain("Diagnostyka DNS i TLS");
-    expect(html).toContain("Hosting — sklep.pl");
+    expect(html).toContain("Hosting – sklep.pl");
   });
 
   it("rozliczenia: faktura prowadzi do swojej strony (plan E, patch 10)", async () => {
@@ -137,7 +137,7 @@ describe("PB-46 karta klienta admina", () => {
 });
 
 /** Plan E, patch 11 — działania na kliencie z /deliverability, /resellers i /referral-enrollments na karcie. */
-describe("karta klienta — działania (patch 11)", () => {
+describe("karta klienta – działania (patch 11)", () => {
   const otwarte = { id: "t-1", subject: "Nie działa poczta", status: "OPEN", priority: "NORMAL", createdAt: "2026-10-09T10:00:00Z", firstResponseAt: null, slaResponseDueAt: null, replyCount: 0 };
   function dane(o: { cordons?: unknown; resellers?: unknown; zgloszenia?: unknown; dostep?: unknown } = {}) {
     api.mockImplementation(async (sciezka: string) => {
@@ -179,7 +179,7 @@ describe("karta klienta — działania (patch 11)", () => {
     expect(html).toContain('id="akcje-klienta"');
   });
 
-  it("F2.5 — Zgłoszenia: „Nowe zgłoszenie w imieniu klienta” z TICKETS_MANAGE, bez niego — brak formularza", async () => {
+  it("F2.5 – Zgłoszenia: „Nowe zgłoszenie w imieniu klienta” z TICKETS_MANAGE, bez niego – brak formularza", async () => {
     dane();
     const html = await render("zgloszenia");
     expect(html).toContain('id="nowe-zgloszenie"');
@@ -236,7 +236,7 @@ it("każda kotwica z rejestru działań klienta istnieje na karcie", () => {
 });
 
 /** Fala 1B — gotowe endpointy API na karcie: maile do klienta, historia logowań, „Kto oglądał”. */
-describe("karta klienta — komunikacja, logowania, kto oglądał (fala 1B)", () => {
+describe("karta klienta – komunikacja, logowania, kto oglądał (fala 1B)", () => {
   const mail = { id: "m1", category: "TRANSACTIONAL", tag: "security.password-reset", subject: "Ustaw nowe hasło", status: "SENT", createdAt: "2026-10-09T10:00:00Z", sentAt: "2026-10-09T10:00:01Z", errorMessage: null };
   function dane(extra: Record<string, unknown>) {
     api.mockImplementation(async (sciezka: string) => {
@@ -259,7 +259,7 @@ describe("karta klienta — komunikacja, logowania, kto oglądał (fala 1B)", ()
     expect(html).toContain("Wybierz mail z listy.");
   });
 
-  it("F3.8: „Napisz do klienta” nad historią z CUSTOMERS_VIEW + TICKETS_MANAGE; bez TICKETS_MANAGE — tylko historia", async () => {
+  it("F3.8: „Napisz do klienta” nad historią z CUSTOMERS_VIEW + TICKETS_MANAGE; bez TICKETS_MANAGE – tylko historia", async () => {
     const z = (permissions: string[]) => ({ "/staff/me/access": { role: "STAFF", isAdmin: false, permissions }, [`/admin/email-log/user/${UID}?limit=50`]: [mail] });
     dane(z(["CUSTOMERS_VIEW", "TICKETS_MANAGE"]));
     const html = await renderZ("komunikacja");
@@ -271,7 +271,7 @@ describe("karta klienta — komunikacja, logowania, kto oglądał (fala 1B)", ()
     expect(bez).toContain("Ustaw nowe hasło");
   });
 
-  it("podgląd pokazuje to, co oddało API (tokeny zamaskowane w API), a mail innego klienta — nie", async () => {
+  it("podgląd pokazuje to, co oddało API (tokeny zamaskowane w API), a mail innego klienta – nie", async () => {
     const podglad = { ...mail, toEmail: "anna@test.pl", userId: UID, providerId: "smtp", messageId: null, campaignId: null, metadata: { listUnsubscribeUrl: "https://api.verris.pl/unsubscribe?token=•••" } };
     dane({ [`/admin/email-log/user/${UID}?limit=50`]: [mail], "/admin/email-log/m1": podglad });
     const html = await renderZ("komunikacja", "m1");
@@ -297,7 +297,7 @@ describe("karta klienta — komunikacja, logowania, kto oglądał (fala 1B)", ()
     expect(html).toContain("nowe urządzenie");
   });
 
-  it("dziennik: „Kto oglądał” — tylko otwarcia przez operatorów, z adresem operatora", async () => {
+  it("dziennik: „Kto oglądał” – tylko otwarcia przez operatorów, z adresem operatora", async () => {
     dane({
       [`/admin/users/${UID}/staff-audit?limit=200`]: {
         rows: [
@@ -315,7 +315,7 @@ describe("karta klienta — komunikacja, logowania, kto oglądał (fala 1B)", ()
 });
 
 /** Fala 1B — działanie „Dane nabywcy” (PATCH /admin/billing/nabywcy/:id/vat/dane, BILLING_MANAGE). */
-describe("karta klienta — dane nabywcy (fala 1B)", () => {
+describe("karta klienta – dane nabywcy (fala 1B)", () => {
   function dane(dostep: unknown, vat: unknown = { kraj: "PL", nip: "7792512345", pozaUe: false, wymagaWeryfikacji: false, weryfikacja: null }) {
     api.mockImplementation(async (sciezka: string) => {
       if (sciezka.split("?")[0] === `/admin/users/${UID}/customer-profile`) return profil;
@@ -363,10 +363,10 @@ describe("karta klienta — dane nabywcy (fala 1B)", () => {
 });
 
 /** F2.4 — notatki wewnętrzne: wiele, z autorem i datą, przypięte pierwsze; dopisuje L1 (TICKETS_MANAGE), audytor tylko czyta. */
-describe("F2.4 — notatki na karcie klienta", () => {
+describe("F2.4 – notatki na karcie klienta", () => {
   const NOTATKI = {
     notatki: [
-      { id: "n1", tresc: "VIP — dzwonić przed zmianami", przypieta: true, utworzono: "2026-10-01T08:00:00Z", autor: null },
+      { id: "n1", tresc: "VIP – dzwonić przed zmianami", przypieta: true, utworzono: "2026-10-01T08:00:00Z", autor: null },
       { id: "n2", tresc: "Zaległość wyjaśniona", przypieta: false, utworzono: "2026-10-09T08:00:00Z", autor: { id: "op", nazwa: "Anna Nowak" } },
     ],
   };
@@ -387,7 +387,7 @@ describe("F2.4 — notatki na karcie klienta", () => {
     z({ role: "STAFF", isAdmin: false, permissions: ["CUSTOMERS_VIEW", "TICKETS_MANAGE"] });
     const k = karta(await render("przeglad"));
     expect(k).toContain("Notatki wewnętrzne");
-    expect(k.indexOf("VIP — dzwonić")).toBeLessThan(k.indexOf("Zaległość wyjaśniona"));
+    expect(k.indexOf("VIP – dzwonić")).toBeLessThan(k.indexOf("Zaległość wyjaśniona"));
     expect(k).toContain('data-notatka="przypieta"');
     expect(k).toContain("Anna Nowak");
     expect(k).toContain("notatka sprzed zmian");
@@ -395,7 +395,7 @@ describe("F2.4 — notatki na karcie klienta", () => {
     expect(k).toContain("Odepnij");
   });
 
-  it("audytor (bez TICKETS_MANAGE i CUSTOMERS_MANAGE) — tylko odczyt; błąd API — „Nie udało się wczytać”", async () => {
+  it("audytor (bez TICKETS_MANAGE i CUSTOMERS_MANAGE) – tylko odczyt; błąd API – „Nie udało się wczytać”", async () => {
     z({ role: "STAFF", isAdmin: false, permissions: ["CUSTOMERS_VIEW", "TICKETS_VIEW"] });
     const k = karta(await render("przeglad"));
     expect(k).toContain("Zaległość wyjaśniona");
@@ -429,15 +429,15 @@ describe("F2.4 — notatki na karcie klienta", () => {
 });
 
 /** F3.6 — Rozliczenia: rejestr ruchów portfela (BILLING_VIEW), wpłata i korekta (BILLING_MANAGE), przypomnienia i zawieszenia. */
-describe("F3.6 — rozliczenia na karcie klienta", () => {
+describe("F3.6 – rozliczenia na karcie klienta", () => {
   const ruchy = {
     saldo: "133.45",
     waluta: "PLN",
     subkonto: false,
     total: 30,
     wiersze: [
-      { id: "w1", type: "TOPUP", status: "COMPLETED", amount: "123.45", currency: "PLN", balanceAfter: "133.45", description: "Wpłata przelewem — Faktura 7", paymentProvider: "PRZELEW", paymentRef: "AB-1234", faktura: { id: "f7", number: "VDR/2026/10/0007" }, paynowDoZwrotu: null, createdAt: "2026-10-10T10:00:00Z" },
-      { id: "w2", type: "ADJUSTMENT", status: "COMPLETED", amount: "-5.00", currency: "PLN", balanceAfter: "10.00", description: "Korekta salda — obsługa Verris", paymentProvider: "MANUAL", paymentRef: null, faktura: null, paynowDoZwrotu: null, createdAt: "2026-10-09T10:00:00Z" },
+      { id: "w1", type: "TOPUP", status: "COMPLETED", amount: "123.45", currency: "PLN", balanceAfter: "133.45", description: "Wpłata przelewem – Faktura 7", paymentProvider: "PRZELEW", paymentRef: "AB-1234", faktura: { id: "f7", number: "VDR/2026/10/0007" }, paynowDoZwrotu: null, createdAt: "2026-10-10T10:00:00Z" },
+      { id: "w2", type: "ADJUSTMENT", status: "COMPLETED", amount: "-5.00", currency: "PLN", balanceAfter: "10.00", description: "Korekta salda – obsługa Verris", paymentProvider: "MANUAL", paymentRef: null, faktura: null, paynowDoZwrotu: null, createdAt: "2026-10-09T10:00:00Z" },
     ],
   };
   const windykacja = {
@@ -451,7 +451,7 @@ describe("F3.6 — rozliczenia na karcie klienta", () => {
   const proformy = {
     rows: [
       { id: "pf-1", numer: "PRO/2026/10/0001", status: "WYSTAWIONA", kwota: "49.20", netto: "40.00", vat: "9.20", waluta: "PLN", wystawiono: "2026-10-12T08:00:00Z", termin: "2026-10-19T08:00:00Z", oplacono: null, anulowano: null, pozycje: [{ nazwa: "Wdrożenie sklepu", brutto: "49.20" }], subscriptionId: null, faktura: null, powodAnulowania: null, wystawil: "op1" },
-      { id: "pf-2", numer: "PRO/2026/10/0002", status: "OPLACONA", kwota: "45.00", netto: "36.59", vat: "8.41", waluta: "PLN", wystawiono: "2026-10-11T08:00:00Z", termin: "2026-10-18T08:00:00Z", oplacono: "2026-10-11T09:00:00Z", anulowano: null, pozycje: [{ nazwa: "Hosting — odnowienie", brutto: "45.00" }], subscriptionId: "s1", faktura: { id: "f9", number: "VDR/2026/10/0009" }, powodAnulowania: null, wystawil: "op1" },
+      { id: "pf-2", numer: "PRO/2026/10/0002", status: "OPLACONA", kwota: "45.00", netto: "36.59", vat: "8.41", waluta: "PLN", wystawiono: "2026-10-11T08:00:00Z", termin: "2026-10-18T08:00:00Z", oplacono: "2026-10-11T09:00:00Z", anulowano: null, pozycje: [{ nazwa: "Hosting – odnowienie", brutto: "45.00" }], subscriptionId: "s1", faktura: { id: "f9", number: "VDR/2026/10/0009" }, powodAnulowania: null, wystawil: "op1" },
     ],
   };
   const sciezki: string[] = [];
@@ -498,7 +498,7 @@ describe("F3.6 — rozliczenia na karcie klienta", () => {
     expect(html).toContain("brakuje 40.00 K");
   });
 
-  it("L1 (BILLING_VIEW bez BILLING_MANAGE): rejestr i przypomnienia tak, wpłata i korekta — nie", async () => {
+  it("L1 (BILLING_VIEW bez BILLING_MANAGE): rejestr i przypomnienia tak, wpłata i korekta – nie", async () => {
     dane({ role: "STAFF", isAdmin: false, permissions: ["CUSTOMERS_VIEW", "BILLING_VIEW"] });
     const html = await renderStrona();
     expect(html).toContain('data-rejestr-portfela=""');
@@ -507,7 +507,7 @@ describe("F3.6 — rozliczenia na karcie klienta", () => {
     expect(html).toContain('data-sekcja="windykacja"');
   });
 
-  it("K4 — proformy: Finanse wystawiają i anulują (tylko WYSTAWIONĄ), przelew może opłacić proformę; L1 tylko widzi", async () => {
+  it("K4 – proformy: Finanse wystawiają i anulują (tylko WYSTAWIONĄ), przelew może opłacić proformę; L1 tylko widzi", async () => {
     dane({ role: "STAFF", isAdmin: false, permissions: ["CUSTOMERS_VIEW", "BILLING_VIEW", "BILLING_MANAGE"] });
     const html = await renderStrona();
     const sekcja = html.split('data-sekcja="proformy"')[1]!;
@@ -529,7 +529,7 @@ describe("F3.6 — rozliczenia na karcie klienta", () => {
     expect((await renderStrona()).split('data-sekcja="proformy"')[1]).toContain("Nie udało się wczytać proform.");
   });
 
-  it("bez BILLING_VIEW: skrót ruchów z profilu, bez zapytań o rozliczenia; awaria API — „Nie udało się wczytać”", async () => {
+  it("bez BILLING_VIEW: skrót ruchów z profilu, bez zapytań o rozliczenia; awaria API – „Nie udało się wczytać”", async () => {
     dane({ role: "STAFF", isAdmin: false, permissions: ["CUSTOMERS_VIEW"] });
     const html = await renderStrona();
     expect(sciezki.some((s) => s.startsWith("/admin/rozliczenia/"))).toBe(false);
@@ -546,7 +546,7 @@ describe("F3.6 — rozliczenia na karcie klienta", () => {
  * biorą powód blokady z tego samego rejestru (lib/akcje/klient.ts). Zgodność rejestru ze strażnikami API dla każdej
  * roli systemowej pilnuje apps/api/src/test/macierz-menu-stron.spec.ts.
  */
-describe("karta klienta — przyciski poza listą „Działania” wg rejestru (weryfikacja 11.10)", () => {
+describe("karta klienta – przyciski poza listą „Działania” wg rejestru (weryfikacja 11.10)", () => {
   // Uprawnienia roli systemowej „L1 Konsultant” (apps/api/src/staff-roles/role-systemowe.ts).
   const L1 = { role: "STAFF", isAdmin: false, permissions: ["DASHBOARD_VIEW", "CUSTOMERS_VIEW", "TICKETS_VIEW", "TICKETS_MANAGE", "BILLING_VIEW"] };
   function dane(dostep: unknown) {
@@ -608,7 +608,7 @@ describe("karta klienta — przyciski poza listą „Działania” wg rejestru (
     expect(html).not.toContain('disabled="" title="Wymaga');
   });
 
-  it("L4 (BILLING_MANAGE, CUSTOMERS_MANAGE, bez roli administratora): kredyty, reset i blokada aktywne, usunięcie — nie", async () => {
+  it("L4 (BILLING_MANAGE, CUSTOMERS_MANAGE, bez roli administratora): kredyty, reset i blokada aktywne, usunięcie – nie", async () => {
     dane({ role: "STAFF", isAdmin: false, permissions: [...L1.permissions, "CUSTOMERS_IMPERSONATE", "CUSTOMERS_MANAGE", "BILLING_MANAGE"] });
     const html = await render("przeglad");
     expect(naglowek(html)).not.toContain(`disabled=""`);

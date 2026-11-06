@@ -21,7 +21,7 @@ import { faqSchema, graph, serviceSchema } from '@/lib/schema';
  * Ceny wyłącznie z lib/ceny (GET /plans) — bez kwot wpisanych na sztywno.
  */
 export const metadata: Metadata = {
-  title: 'Poczta w domenie — firmowy e-mail | Verris',
+  title: 'Poczta w domenie – firmowy e-mail | Verris',
   description:
     'Firmowa poczta na własnej domenie: skrzynki bez limitu liczby, do 100 GB na skrzynkę, webmail, SPF, DKIM i DMARC w panelu, przeniesienie skrzynek w cenie.',
   alternates: { canonical: '/poczta' },
@@ -68,7 +68,7 @@ const PARAMETRY: [string, string][] = [
 ];
 
 const WEBMAIL: { t: string; od: string; nowa: boolean }[] = [
-  { t: 'Zamówienie #1042 — opłacone', od: 'sklep@pracownia-anna.pl · 10:24', nowa: true },
+  { t: 'Zamówienie #1042 – opłacone', od: 'sklep@pracownia-anna.pl · 10:24', nowa: true },
   { t: 'Pytanie o termin dostawy', od: 'Marek W. · 9:51', nowa: true },
   { t: 'Faktura za październik', od: 'biuro rachunkowe · wczoraj', nowa: true },
   { t: 'Oferta współpracy', od: 'Piotr K. · wt.', nowa: false },
@@ -100,11 +100,11 @@ export default async function Page() {
     ],
     [
       'Ile skrzynek mogę mieć?',
-      'Nie liczymy skrzynek. Granicą są zasoby konta — 50 GB miejsca NVMe w pakiecie, wspólne dla stron i poczty. Jedna skrzynka może mieć do 100 GB.',
+      'Nie liczymy skrzynek. Granicą są zasoby konta – 50 GB miejsca NVMe w pakiecie, wspólne dla stron i poczty. Jedna skrzynka może mieć do 100 GB.',
     ],
     [
       'Czy przeniesiecie maile ze starej poczty?',
-      'Tak, w cenie. Zakładamy skrzynki u nas i kopiujemy wiadomości z folderami — potrzebujemy tylko haseł przenoszonych skrzynek.',
+      'Tak, w cenie. Zakładamy skrzynki u nas i kopiujemy wiadomości z folderami – potrzebujemy tylko haseł przenoszonych skrzynek.',
     ],
     [
       'Dlaczego moje maile trafiają do spamu?',
@@ -118,7 +118,7 @@ export default async function Page() {
       'Czy mogę wysyłać newsletter z firmowej skrzynki?',
       EMAIL_MARKETING_W_SPRZEDAZY
         ? 'Zwykła skrzynka ma dzienny limit wysyłki, żeby chronić reputację serwera. Do newsletterów służy osobna usługa e-mail marketingu.'
-        : 'Zwykła skrzynka ma dzienny limit wysyłki, żeby chronić reputację serwera — nie służy do masowych kampanii.',
+        : 'Zwykła skrzynka ma dzienny limit wysyłki, żeby chronić reputację serwera – nie służy do masowych kampanii.',
     ],
   ];
 

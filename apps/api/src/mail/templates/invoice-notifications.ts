@@ -70,12 +70,12 @@ export function invoiceIssuedTemplate(ctx: InvoiceIssuedContext): MailMessage {
   const nazwa = ctx.rozliczeniowy ? 'Dokument rozliczeniowy' : 'Faktura';
   const { html, text } = renderEmailShell({
     title: `${nazwa} ${ctx.number} ${ctx.rozliczeniowy ? 'jest gotowy' : 'jest gotowa'}`,
-    preheader: `${formatMoney(ctx.amount, ctx.currency)} — pobierz w panelu klienta.`,
+    preheader: `${formatMoney(ctx.amount, ctx.currency)} – pobierz w panelu klienta.`,
     bodyMarkdown: [
       greeting,
       ``,
       ctx.rozliczeniowy
-        ? `Rozliczyliśmy płatność za usługi Verris. Ten dokument potwierdza rozliczenie i nie jest fakturą VAT — fakturę VAT wystawimy odrębnie i udostępnimy w panelu klienta.`
+        ? `Rozliczyliśmy płatność za usługi Verris. Ten dokument potwierdza rozliczenie i nie jest fakturą VAT – fakturę VAT wystawimy odrębnie i udostępnimy w panelu klienta.`
         : `Wystawiliśmy fakturę VAT za usługi Verris.`,
       ``,
       `## Szczegóły`,
@@ -85,14 +85,14 @@ export function invoiceIssuedTemplate(ctx: InvoiceIssuedContext): MailMessage {
       `- **Data wystawienia:** ${escapeMarkdown(formatDate(ctx.issuedAt))}`,
       paidLine,
       ``,
-      `Plik PDF jest dostępny w sekcji **Portfel → Faktury** w panelu klienta. Wszystkie faktury archiwizujemy przez 5 lat — wymóg ustawy o rachunkowości.`,
+      `Plik PDF jest dostępny w sekcji **Portfel → Faktury** w panelu klienta. Wszystkie faktury archiwizujemy przez 5 lat – wymóg ustawy o rachunkowości.`,
     ].join('\n'),
     cta: {
       label: ctx.rozliczeniowy ? 'Pobierz dokument' : 'Pobierz fakturę',
       url: ctx.invoiceUrl,
     },
     footnote:
-      'Aby pobrać PDF musisz być zalogowany — tak chronimy Twoje dane finansowe. W razie problemów: kontakt@verris.pl.',
+      'Aby pobrać PDF musisz być zalogowany – tak chronimy Twoje dane finansowe. W razie problemów: kontakt@verris.pl.',
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,
     category: 'TRANSACTIONAL',
@@ -101,7 +101,7 @@ export function invoiceIssuedTemplate(ctx: InvoiceIssuedContext): MailMessage {
   return {
     to: ctx.to,
     tag: 'invoice.issued',
-    subject: `[Verris] ${nazwa} ${ctx.number} — ${formatMoney(ctx.amount, ctx.currency)}`,
+    subject: `[Verris] ${nazwa} ${ctx.number} – ${formatMoney(ctx.amount, ctx.currency)}`,
     text,
     html,
   };
@@ -128,7 +128,7 @@ export function proformaWystawionaTemplate(ctx: ProformaWystawionaContext): Mail
   const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: `Proforma ${ctx.number} do zapłaty`,
-    preheader: `${formatMoney(ctx.amount, ctx.currency)} — zapłać w panelu klienta do ${formatDate(ctx.dueAt)}.`,
+    preheader: `${formatMoney(ctx.amount, ctx.currency)} – zapłać w panelu klienta do ${formatDate(ctx.dueAt)}.`,
     bodyMarkdown: [
       greeting,
       ``,
@@ -143,7 +143,7 @@ export function proformaWystawionaTemplate(ctx: ProformaWystawionaContext): Mail
       `Proforma nie jest fakturą VAT. Po zaksięgowaniu wpłaty środki trafią do Twojego portfela, a dokument za wpłatę znajdziesz w sekcji **Płatności → Faktury**.`,
     ].join('\n'),
     cta: { label: 'Zobacz i zapłać', url: ctx.payUrl },
-    footnote: 'Aby zapłacić, musisz być zalogowany — tak chronimy Twoje dane finansowe. W razie pytań: kontakt@verris.pl.',
+    footnote: 'Aby zapłacić, musisz być zalogowany – tak chronimy Twoje dane finansowe. W razie pytań: kontakt@verris.pl.',
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,
     category: 'TRANSACTIONAL',
@@ -151,7 +151,7 @@ export function proformaWystawionaTemplate(ctx: ProformaWystawionaContext): Mail
   return {
     to: ctx.to,
     tag: 'proforma.issued',
-    subject: `[Verris] Proforma ${ctx.number} — ${formatMoney(ctx.amount, ctx.currency)}`,
+    subject: `[Verris] Proforma ${ctx.number} – ${formatMoney(ctx.amount, ctx.currency)}`,
     text,
     html,
   };
@@ -166,7 +166,7 @@ export function proformaAnulowanaTemplate(ctx: { to: string; firstName: string |
     bodyMarkdown: [
       greeting,
       ``,
-      `Anulowaliśmy proformę **${escapeMarkdown(ctx.number)}** — nie trzeba jej płacić. Jeśli wpłata była już w drodze, trafi do Twojego portfela i możesz ją wykorzystać na usługi albo poprosić nas o zwrot.`,
+      `Anulowaliśmy proformę **${escapeMarkdown(ctx.number)}** – nie trzeba jej płacić. Jeśli wpłata była już w drodze, trafi do Twojego portfela i możesz ją wykorzystać na usługi albo poprosić nas o zwrot.`,
     ].join('\n'),
     cta: { label: 'Przejdź do płatności', url: `${ctx.panelUrl}/dashboard/billing` },
     footnote: 'W razie pytań: kontakt@verris.pl.',

@@ -62,7 +62,7 @@ afterEach(async () => {
   k.remove();
 });
 
-it("„Zrealizowano”: najpierw potwierdzenie (anulowanie — nic), potem zamknięcie z notatką i odświeżenie", async () => {
+it("„Zrealizowano”: najpierw potwierdzenie (anulowanie – nic), potem zamknięcie z notatką i odświeżenie", async () => {
   await montuj();
   expect(k.textContent).toContain("Dedykowane IP · 25,00 zł · czeka na realizację");
   await wpisz("Przydzielono IP 203.0.113.10");
@@ -80,8 +80,8 @@ it("„Zrealizowano”: najpierw potwierdzenie (anulowanie — nic), potem zamkn
   expect(k.querySelector('[role="status"]')!.textContent).toBe("Zlecenie zamknięte. Klient dostał informację w zgłoszeniu.");
 });
 
-it("„Odmowa ze zwrotem”: zablokowana bez powodu; z powodem — potwierdzenie z kwotą zwrotu; błąd API (409) widać", async () => {
-  zamknij.mockResolvedValueOnce({ error: "Tego zlecenia nie da się już zamknąć — jest zrealizowany. Odśwież stronę." });
+it("„Odmowa ze zwrotem”: zablokowana bez powodu; z powodem – potwierdzenie z kwotą zwrotu; błąd API (409) widać", async () => {
+  zamknij.mockResolvedValueOnce({ error: "Tego zlecenia nie da się już zamknąć – jest zrealizowany. Odśwież stronę." });
   await montuj();
   expect(q('[data-akcja="odmowa"]')!.disabled).toBe(true);
   await wpisz("Pula adresów IP jest wyczerpana.");
@@ -94,7 +94,7 @@ it("„Odmowa ze zwrotem”: zablokowana bez powodu; z powodem — potwierdzenie
   expect(k.querySelector('[role="alert"]')!.textContent).toContain("jest zrealizowany");
 });
 
-it("uprawnienia: L2 — tylko „Zrealizowano” i informacja o L4; L1 — bez przycisków", async () => {
+it("uprawnienia: L2 – tylko „Zrealizowano” i informacja o L4; L1 – bez przycisków", async () => {
   await montuj({ mozeZwrocic: false });
   expect(q('[data-akcja="zrealizowano"]')).not.toBeNull();
   expect(q('[data-akcja="odmowa"]')).toBeNull();
@@ -108,9 +108,9 @@ it("uprawnienia: L2 — tylko „Zrealizowano” i informacja o L4; L1 — bez p
   expect(k.querySelector("textarea")).toBeNull();
 });
 
-it("zamknięte zlecenie: stan i notatka, bez przycisków; brak zleceń — brak karty", async () => {
+it("zamknięte zlecenie: stan i notatka, bez przycisków; brak zleceń – brak karty", async () => {
   await montuj({ zlecenia: [{ ...ZLECENIE, status: "REFUNDED", notatka: "Pula adresów IP jest wyczerpana.", zamknietoAt: "2026-10-12T10:30:00Z" }] });
-  expect(k.textContent).toContain("odmowa — opłata zwrócona · 12.10, 12:30");
+  expect(k.textContent).toContain("odmowa – opłata zwrócona · 12.10, 12:30");
   expect(k.textContent).toContain("„Pula adresów IP jest wyczerpana.”");
   expect(q("button")).toBeNull();
   await act(async () => root.unmount());

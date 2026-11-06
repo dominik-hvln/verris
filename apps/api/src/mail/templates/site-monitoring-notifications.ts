@@ -22,7 +22,7 @@ export function siteDownTemplate(ctx: SiteDownContext): MailMessage {
   const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**!` : 'Cześć!';
   const { html, text } = renderEmailShell({
     title: `Twoja strona ${escapeMarkdown(ctx.domain)} nie odpowiada`,
-    preheader: `Monitoring Verris: ${escapeMarkdown(ctx.domain)} — ${escapeMarkdown(ctx.reason)}.`,
+    preheader: `Monitoring Verris: ${escapeMarkdown(ctx.domain)} – ${escapeMarkdown(ctx.reason)}.`,
     bodyMarkdown: [
       greeting,
       ``,
@@ -32,13 +32,13 @@ export function siteDownTemplate(ctx: SiteDownContext): MailMessage {
       `- **Problem:** ${escapeMarkdown(ctx.reason)}`,
       `- **Wykryto:** ${ctx.checkedAt.toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw' })}`,
       ``,
-      `Sprawdzamy stronę co minutę — **napiszemy ponownie, gdy wróci do działania.**`,
+      `Sprawdzamy stronę co minutę – **napiszemy ponownie, gdy wróci do działania.**`,
       ``,
       `Co możesz zrobić teraz:`,
       ``,
-      `1. Otwórz stronę w trybie incognito — może to chwilowy problem z siecią.`,
+      `1. Otwórz stronę w trybie incognito – może to chwilowy problem z siecią.`,
       `2. Sprawdź status usługi i ostatnie zmiany (wtyczki, aktualizacje) w panelu.`,
-      `3. Jeśli problem trwa, odpowiedz na tego maila albo napisz w panelu (Wsparcie → Nowe zgłoszenie) — pomożemy.`,
+      `3. Jeśli problem trwa, odpowiedz na tego maila albo napisz w panelu (Wsparcie → Nowe zgłoszenie) – pomożemy.`,
     ].join('\n'),
     cta: { label: 'Zobacz usługę w panelu', url: ctx.serviceUrl },
     footnote:
@@ -80,7 +80,7 @@ export function siteRecoveredTemplate(ctx: SiteRecoveredContext): MailMessage {
     bodyMarkdown: [
       greeting,
       ``,
-      `Dobra wiadomość — **${escapeMarkdown(ctx.domain)}** znowu odpowiada.`,
+      `Dobra wiadomość – **${escapeMarkdown(ctx.domain)}** znowu odpowiada.`,
       ``,
       `- **Czas niedostępności:** ~${duration}`,
       `- **Przywrócono:** ${ctx.recoveredAt.toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw' })}`,
@@ -125,17 +125,17 @@ export function monitoringPaidLapsedTemplate(ctx: MonitoringPaidLapsedContext): 
     ctx.paidIntervalMinutes === 1 ? 'co minutę' : `co ${ctx.paidIntervalMinutes} min`;
   const { html, text } = renderEmailShell({
     title: `Szybki monitoring ${escapeMarkdown(ctx.domain)} został wstrzymany`,
-    preheader: `Brak środków w portfelu — wróciliśmy do monitoringu co ${ctx.freeIntervalMinutes} min.`,
+    preheader: `Brak środków w portfelu – wróciliśmy do monitoringu co ${ctx.freeIntervalMinutes} min.`,
     bodyMarkdown: [
       greeting,
       ``,
       `Nie mogliśmy pobrać miesięcznej opłaty za **szybki monitoring** strony **${escapeMarkdown(
         ctx.domain,
-      )}** — w portfelu zabrakło środków.`,
+      )}** – w portfelu zabrakło środków.`,
       ``,
-      `**Twoja strona jest nadal monitorowana** — wróciliśmy tylko do standardowego sprawdzania co **${ctx.freeIntervalMinutes} min** (zamiast ${paidEvery}). Nic nie zniknęło, alerty o awariach działają dalej.`,
+      `**Twoja strona jest nadal monitorowana** – wróciliśmy tylko do standardowego sprawdzania co **${ctx.freeIntervalMinutes} min** (zamiast ${paidEvery}). Nic nie zniknęło, alerty o awariach działają dalej.`,
       ``,
-      `Aby przywrócić szybkie sprawdzanie (${ctx.monthlyPrice} K/mies.), doładuj portfel i włącz je ponownie w panelu — zakładka **Monitoring** przy usłudze.`,
+      `Aby przywrócić szybkie sprawdzanie (${ctx.monthlyPrice} K/mies.), doładuj portfel i włącz je ponownie w panelu – zakładka **Monitoring** przy usłudze.`,
     ].join('\n'),
     cta: { label: 'Doładuj i włącz ponownie', url: `${ctx.panelUrl}/dashboard/billing` },
     footnote:
@@ -148,7 +148,7 @@ export function monitoringPaidLapsedTemplate(ctx: MonitoringPaidLapsedContext): 
   return {
     to: ctx.to,
     tag: 'monitoring.paid-lapsed',
-    subject: `[Verris] Szybki monitoring ${ctx.domain} wstrzymany — doładuj portfel`,
+    subject: `[Verris] Szybki monitoring ${ctx.domain} wstrzymany – doładuj portfel`,
     text,
     html,
   };
@@ -180,7 +180,7 @@ export function sslExpiringTemplate(ctx: SslExpiringContext): MailMessage {
     title: expired
       ? `Certyfikat SSL dla ${escapeMarkdown(ctx.domain)} wygasł`
       : `Certyfikat SSL dla ${escapeMarkdown(ctx.domain)} ${whenLabel}`,
-    preheader: `SSL ${escapeMarkdown(ctx.domain)} — ważny do ${escapeMarkdown(
+    preheader: `SSL ${escapeMarkdown(ctx.domain)} – ważny do ${escapeMarkdown(
       ctx.expiresAt.toLocaleDateString('pl-PL'),
     )}.`,
     bodyMarkdown: [
@@ -194,13 +194,13 @@ export function sslExpiringTemplate(ctx: SslExpiringContext): MailMessage {
             ctx.expiresAt.toLocaleDateString('pl-PL'),
           )}).`,
       ``,
-      `Jeśli używasz darmowego certyfikatu **Let's Encrypt** z panelu — zwykle odnawia się automatycznie i nie musisz nic robić. Ten e-mail to zabezpieczenie na wypadek, gdyby odnowienie się nie powiodło.`,
+      `Jeśli używasz darmowego certyfikatu **Let's Encrypt** z panelu – zwykle odnawia się automatycznie i nie musisz nic robić. Ten e-mail to zabezpieczenie na wypadek, gdyby odnowienie się nie powiodło.`,
       ``,
       `Co warto zrobić:`,
       ``,
       `1. Otwórz zakładkę **SSL** przy usłudze i sprawdź status certyfikatu.`,
-      `2. Jeśli to certyfikat Let's Encrypt — kliknij „Odnów" / wygeneruj ponownie.`,
-      `3. Jeśli wgrywasz własny certyfikat — przygotuj nowy przed datą wygaśnięcia.`,
+      `2. Jeśli to certyfikat Let's Encrypt – kliknij „Odnów" / wygeneruj ponownie.`,
+      `3. Jeśli wgrywasz własny certyfikat – przygotuj nowy przed datą wygaśnięcia.`,
     ].join('\n'),
     cta: { label: 'Zarządzaj certyfikatem SSL', url: ctx.serviceUrl },
     footnote:

@@ -2,7 +2,7 @@ import { ForbiddenException } from '@nestjs/common';
 import { DodatkiOperatoraAdminController } from './dodatki-operatora.admin.controller.js';
 
 /** Audyt Fali 3 (D3) — podgląd dodatków usługi: STAFF tylko usługi klientów (USER), konta zespołu — ADMIN. */
-describe('DodatkiOperatoraAdminController.dodatki — reguła właściciela', () => {
+describe('DodatkiOperatoraAdminController.dodatki – reguła właściciela', () => {
   function zbuduj(rola: string) {
     const addons = { overview: vi.fn(async () => ({ katalog: [], posiadane: [] })) };
     const prisma = { subscription: { findUnique: vi.fn(async () => ({ userId: 'u1', user: { role: rola } })) } };

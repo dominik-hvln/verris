@@ -151,12 +151,12 @@ async function otwieraSie(href: string, uprawnienia: readonly string[]): Promise
   if (!s) return 'brak strony w mapie STRONY';
   if (!spelnia(s.perm, uprawnienia)) return `bramka strony: ${JSON.stringify(s.perm)}`;
   for (const a of s.api ?? []) {
-    for (const t of trasa(a)) if (!(await wpuszcza(t, uprawnienia))) return `API ${a} (${t.nazwa}) — 403`;
+    for (const t of trasa(a)) if (!(await wpuszcza(t, uprawnienia))) return `API ${a} (${t.nazwa}) – 403`;
   }
   return null;
 }
 
-describe('weryfikacja 11.10 — macierz: menu ⊆ strony, które się otworzą (każda rola systemowa)', () => {
+describe('weryfikacja 11.10 – macierz: menu ⊆ strony, które się otworzą (każda rola systemowa)', () => {
   it('parser widzi mapę stron i menu (strażnik przed pustym testem)', () => {
     expect(STRONY.size).toBeGreaterThan(70);
     expect(MENU.length).toBeGreaterThan(50);
@@ -206,7 +206,7 @@ describe('weryfikacja 11.10 — macierz: menu ⊆ strony, które się otworzą (
  * e-maila, blokada, usunięcie RODO) były aktywne. Przyciski biorą teraz powód z rejestru lib/akcje/klient.ts; tu — że rejestr
  * zgadza się z prawdziwymi strażnikami tras, które te przyciski wołają: aktywne w panelu ⇔ API przepuści (dla każdej roli).
  */
-describe('weryfikacja 11.10 — przyciski karty klienta ⇔ strażnicy API (każda rola systemowa)', () => {
+describe('weryfikacja 11.10 – przyciski karty klienta ⇔ strażnicy API (każda rola systemowa)', () => {
   const AKCJE = akcjeKlienta();
   const PRZYCISKI = ['kredyty', 'napisz', 'zaloguj', 'reset', 'email', 'blokada-logowania', 'usuniecie'];
 
@@ -226,7 +226,7 @@ describe('weryfikacja 11.10 — przyciski karty klienta ⇔ strażnicy API (każ
     expect(rozjazdy).toEqual([]);
   });
 
-  it('L1 Konsultant: API odmawia kredytów, wejścia na konto, resetu hasła, zmiany e-maila, blokady i usunięcia; mail serwisowy — tak', async () => {
+  it('L1 Konsultant: API odmawia kredytów, wejścia na konto, resetu hasła, zmiany e-maila, blokady i usunięcia; mail serwisowy – tak', async () => {
     const l1 = ROLE_SYSTEMOWE.find((r) => r.name === 'L1 Konsultant')!.permissions;
     const wynik: Record<string, boolean> = {};
     for (const id of PRZYCISKI) {

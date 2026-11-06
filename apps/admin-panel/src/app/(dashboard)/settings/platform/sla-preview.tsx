@@ -11,7 +11,7 @@ export function SlaPreview({ data }: { data: SlaPodglad | null }) {
         <NieWczytano co="podglądu kredytów SLA" />
       ) : data.pozycje.length === 0 ? (
         <p className="text-xs text-neutral-400">
-          Za {data.okres} nikomu nie przysługuje rekompensata — każda usługa hostingowa miała dostępność co najmniej 99,5%
+          Za {data.okres} nikomu nie przysługuje rekompensata – każda usługa hostingowa miała dostępność co najmniej 99,5%
           (albo nie było incydentów MAJOR).
         </p>
       ) : (

@@ -36,7 +36,7 @@ function stanowisko(transport: boolean) {
   return { svc, prisma, audit, mailer, campaign };
 }
 
-describe('Q-05 — e-mail marketing tylko przez własny transport', () => {
+describe('Q-05 – e-mail marketing tylko przez własny transport', () => {
   it('bez transportu: kampania zostaje roboczą, klient dostaje polski komunikat, admin powód w dzienniku', async () => {
     const s = stanowisko(false);
     const blad = await s.svc.sendCampaign('u1', 's1', 'c1').catch((e: unknown) => e);
@@ -53,7 +53,7 @@ describe('Q-05 — e-mail marketing tylko przez własny transport', () => {
     expect(s.mailer.send).not.toHaveBeenCalled();
   });
 
-  it('bez transportu: trwająca kampania wstrzymana przed zapisem wysyłek — nikt nie jest oznaczony jako wysłany', async () => {
+  it('bez transportu: trwająca kampania wstrzymana przed zapisem wysyłek – nikt nie jest oznaczony jako wysłany', async () => {
     const s = stanowisko(false);
     s.campaign.status = 'SENDING';
     expect(await s.svc.sendNextBatch('c1')).toEqual({ done: true, processed: 0 });

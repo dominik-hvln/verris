@@ -70,7 +70,7 @@ afterEach(() => {
   document.body.innerHTML = '';
 });
 
-describe('ServiceSubscriptionTab — rezygnacja na koniec okresu', () => {
+describe('ServiceSubscriptionTab – rezygnacja na koniec okresu', () => {
   it('z cancelAt: „Działa do”, informacja o rezygnacji, bez przycisku „Zrezygnuj z usługi”', async () => {
     await zamontuj(usluga({ cancelAt: '2026-11-08T10:00:00Z', events: [{ id: 'e1', type: 'CANCEL_SCHEDULED', createdAt: '2026-10-11T10:00:00Z' }] as never }));
     expect(el.textContent).toContain('Działa do');
@@ -86,7 +86,7 @@ describe('ServiceSubscriptionTab — rezygnacja na koniec okresu', () => {
     expect([...el.querySelectorAll('button')].map((b) => b.textContent)).toContain('Zrezygnuj z usługi');
   });
 
-  it('P3-02: subkonto i dostęp z własnego konta — bez przycisku, z informacją, że rezygnacja należy do właściciela', async () => {
+  it('P3-02: subkonto i dostęp z własnego konta – bez przycisku, z informacją, że rezygnacja należy do właściciela', async () => {
     for (const u of [{ isSubaccount: true }, { isSubaccount: false, actingFor: { ownerUserId: 'o1' } }]) {
       fetchSidebarUser.mockResolvedValueOnce(u);
       await zamontuj(usluga());
@@ -103,7 +103,7 @@ describe('ServiceSubscriptionTab — rezygnacja na koniec okresu', () => {
  * K3 — limity ustalone przez obsługę dla tej usługi: klient widzi je w zakładce „Subskrypcja i płatności” obok planu,
  * bez słowa „custom” i nazw infrastruktury; bez nadpisań sekcji nie ma.
  */
-describe('ServiceSubscriptionTab — limity ustalone indywidualnie', () => {
+describe('ServiceSubscriptionTab – limity ustalone indywidualnie', () => {
   it('lista nadpisanych limitów z wartością z planu i drogą do obsługi przy zmianie planu', async () => {
     await zamontuj(
       usluga({
@@ -121,7 +121,7 @@ describe('ServiceSubscriptionTab — limity ustalone indywidualnie', () => {
     expect(sekcja.textContent).not.toMatch(/custom|DirectAdmin|LVE/i);
   });
 
-  it('bez nadpisań — bez sekcji', async () => {
+  it('bez nadpisań – bez sekcji', async () => {
     await zamontuj(usluga({ limityIndywidualne: [] }));
     expect(el.querySelector('[data-sekcja="limity-indywidualne"]')).toBeNull();
   });

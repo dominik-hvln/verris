@@ -69,7 +69,7 @@ async function wyslij() {
   });
 }
 
-describe('ZglosUwage — widoczność (tester albo flaga beta.zglos-uwage)', () => {
+describe('ZglosUwage – widoczność (tester albo flaga beta.zglos-uwage)', () => {
   it('ani tester, ani flaga → przycisku nie ma', () => {
     render({ flagi: {}, mozeZglaszac: true });
     expect(przycisk()).toBeNull();
@@ -109,7 +109,7 @@ describe('ZglosUwage — widoczność (tester albo flaga beta.zglos-uwage)', () 
   });
 });
 
-describe('ZglosUwage — formularz', () => {
+describe('ZglosUwage – formularz', () => {
   async function otworz() {
     await act(async () => przycisk()!.click());
   }
@@ -148,7 +148,7 @@ describe('ZglosUwage — formularz', () => {
     expect(fd.get('subscriptionId')).toBe(USLUGA.id);
     expect((fd.getAll('files') as File[]).map((f) => f.name)).toEqual(['zrzut-ekranu.jpg']);
     const status = el.querySelector('[role="status"]')!;
-    expect(status.textContent).toContain('Dziękujemy — zgłoszenie #ab12cd34 utworzone');
+    expect(status.textContent).toContain('Dziękujemy – zgłoszenie #ab12cd34 utworzone');
     expect(status.querySelector('a')?.getAttribute('href')).toBe('/dashboard/support/ab12cd34-0000-4000-8000-000000000000');
   });
 
@@ -256,7 +256,7 @@ describe('ZglosUwage — formularz', () => {
     expect(document.activeElement).toBe(przycisk());
   });
 
-  it('A3-6: tryb wskazywania z klawiatury — Tab nie jest łapany przez ukryte okno, Enter wybiera element z fokusem', async () => {
+  it('A3-6: tryb wskazywania z klawiatury – Tab nie jest łapany przez ukryte okno, Enter wybiera element z fokusem', async () => {
     const strona = document.createElement('section');
     strona.innerHTML = '<h2>Domeny</h2><a href="#x" id="dodaj">Dodaj domenę</a>';
     document.body.appendChild(strona);

@@ -4,7 +4,7 @@ import { prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } fr
  * Decyzja 07.10: nowe konto ma WAF w trybie blokowania. Tryb bez zastosowanego zadania = brak bloku
  * w .htaccess = konfiguracja serwera (SecRuleEngine On), więc baza musi mówić „ON”, a nie „Detekcja”.
  */
-describe('WAF — domyślnie blokowanie', () => {
+describe('WAF – domyślnie blokowanie', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 

@@ -48,7 +48,7 @@ export default async function InvoicesPage({
 
       <PageHeaderRow
         title="Faktury"
-        description="Dokumenty za wpłaty — PDF i duplikat pobierzesz z listy."
+        description="Dokumenty za wpłaty – PDF i duplikat pobierzesz z listy."
       />
       <p className="max-w-3xl text-sm text-neutral-400">
         {ZASADA_FAKTUR} {ZASADA_KREDYTOW_Z_KODU}

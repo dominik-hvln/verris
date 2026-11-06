@@ -102,7 +102,7 @@ async function wiersz() {
   return prisma().stripeWebhookEvent.findUnique({ where: { eventId: EVENT_ID } });
 }
 
-describe('Z-05 — webhook płatności przeciwko prawdziwej bazie', () => {
+describe('Z-05 – webhook płatności przeciwko prawdziwej bazie', () => {
   beforeEach(async () => {
     await wyczyscBaze();
   });
@@ -120,7 +120,7 @@ describe('Z-05 — webhook płatności przeciwko prawdziwej bazie', () => {
     expect(w?.attempts).toBe(1);
   });
 
-  it('powtórna dostawa PRZETWORZONEGO zdarzenia to duplikat — portfel nie rośnie', async () => {
+  it('powtórna dostawa PRZETWORZONEGO zdarzenia to duplikat – portfel nie rośnie', async () => {
     const { serwis, ksiegowania } = zbudujSerwis({ padnij: () => false });
     await serwis.handleStripeWebhook(zdarzenie(), 'sig');
     const drugi = await serwis.handleStripeWebhook(zdarzenie(), 'sig');
@@ -134,7 +134,7 @@ describe('Z-05 — webhook płatności przeciwko prawdziwej bazie', () => {
   // Sedno Z-05
   // ═══════════════════════════════════════════════════════════════════════
 
-  it('handler, który padł, zostawia zdarzenie w FAILED — NIE w stanie „obsłużone"', async () => {
+  it('handler, który padł, zostawia zdarzenie w FAILED – NIE w stanie „obsłużone"', async () => {
     let pada = true;
     const { serwis } = zbudujSerwis({ padnij: () => pada });
 
@@ -152,7 +152,7 @@ describe('Z-05 — webhook płatności przeciwko prawdziwej bazie', () => {
     pada = false;
   });
 
-  it('PONOWIENIE PO AWARII KSIĘGUJE PORTFEL — to jest cały Z-05', async () => {
+  it('PONOWIENIE PO AWARII KSIĘGUJE PORTFEL – to jest cały Z-05', async () => {
     let pada = true;
     const { serwis, ksiegowania } = zbudujSerwis({ padnij: () => pada });
 

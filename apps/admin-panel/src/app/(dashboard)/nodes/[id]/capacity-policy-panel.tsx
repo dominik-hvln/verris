@@ -94,7 +94,7 @@ export function CapacityPolicyPanel({
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Wstrzymanie dotyczy tylko nowych kont na tym węźle — istniejące działają, sprzedaż na platformie trwa.
+        Wstrzymanie dotyczy tylko nowych kont na tym węźle – istniejące działają, sprzedaż na platformie trwa.
       </p>
 
       {/* Przełącznik „Przyjmuje nowe konta” (F3: dawniej „Cordonuj”) — ta sama flaga co w nagłówku karty. */}
@@ -155,12 +155,12 @@ export function CapacityPolicyPanel({
         <p className="text-[11px] text-muted-foreground">
           Ile razy węzeł może <strong>sprzedać</strong> ponad swoją pojemność fizyczną.
           W LVE limity RAM i CPU są sufitami burst, nie rezerwacjami, więc 1,0 oznacza,
-          że węzeł rezerwuje pełny limit planu na każde konto — przy bazie 8&nbsp;GB daje to
+          że węzeł rezerwuje pełny limit planu na każde konto – przy bazie 8&nbsp;GB daje to
           16 kont na maszynie ze 128&nbsp;GB. Osobna bramka i tak nie wpuści konta, gdy
           <strong> realne</strong> zużycie przekroczy pojemność minus headroom.
         </p>
         <p className="text-[11px] text-amber-200/80">
-          Dysk ma niższy limit (maks. 3,0), bo quota dyskowa jest realnie egzekwowana —
+          Dysk ma niższy limit (maks. 3,0), bo quota dyskowa jest realnie egzekwowana –
           klient może ją wypełnić w całości, a miejsca nie da się wtedy odzyskać inaczej
           niż migracją kont.
         </p>

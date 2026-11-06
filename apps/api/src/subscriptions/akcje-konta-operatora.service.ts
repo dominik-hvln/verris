@@ -115,10 +115,10 @@ export class AkcjeKontaOperatoraService {
     // tylko na usługach klientów (USER). Inaczej L3 zmieniłby MX/A domeny administratora i przejął jego pocztę
     // (np. reset hasła do panelu admina), a L2 zresetowałby hasła skrzynek zespołu. Usługi zespołu — tylko ADMIN.
     if (z.operatorRole !== 'ADMIN' && sub.user.role !== 'USER') {
-      throw new ForbiddenException('Personel może zmieniać wyłącznie usługi klientów — usługę konta zespołu zmienia administrator.');
+      throw new ForbiddenException('Personel może zmieniać wyłącznie usługi klientów – usługę konta zespołu zmienia administrator.');
     }
     const powod = (z.powod ?? '').trim();
-    if (powod.length < MIN_POWOD) throw new BadRequestException(`Podaj powód (min. ${MIN_POWOD} znaków) — zapisze się w dzienniku.`);
+    if (powod.length < MIN_POWOD) throw new BadRequestException(`Podaj powód (min. ${MIN_POWOD} znaków) – zapisze się w dzienniku.`);
     const zgloszenieId = await this.zgloszenia.zgloszenieKlienta(sub.userId, z.zgloszenie);
     const konto = { id: sub.account.id, daUsername: sub.account.daUsername, serverId: sub.account.serverId };
     const w: Wlasciciel = { userId: sub.userId, email: sub.user.email, firstName: sub.user.firstName, domena: sub.account.domain, zgloszenieId, konto };

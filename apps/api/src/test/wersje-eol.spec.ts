@@ -24,7 +24,7 @@ const deklarowane: [string, string, string | undefined][] = [
   ['alpine (ops/docker/minio)', 'alpine', /alpine:(\d+\.\d+)/.exec(czytaj('ops/docker/minio/Dockerfile'))?.[1]],
 ];
 
-describe('PB-38 — deklarowane środowiska mają wsparcie przed sobą', () => {
+describe('PB-38 – deklarowane środowiska mają wsparcie przed sobą', () => {
   it.each(deklarowane)('%s', (_opis, klucz, wersja) => {
     expect(wersja).toBeDefined();
     const wpis = eol.srodowiska[klucz]?.[wersja!];
@@ -32,7 +32,7 @@ describe('PB-38 — deklarowane środowiska mają wsparcie przed sobą', () => {
     expect(wpis!.zrodlo).toMatch(/^https:\/\//);
     const dni = Math.floor((new Date(`${wpis!.koniec}T00:00:00Z`).getTime() - Date.now()) / 86_400_000);
     expect(
-      dni >= eol.okno_ostrzezenia_dni ? '' : `${klucz} ${wersja}: koniec wsparcia ${wpis!.koniec} (za ${dni} dni) — zaplanuj podniesienie`,
+      dni >= eol.okno_ostrzezenia_dni ? '' : `${klucz} ${wersja}: koniec wsparcia ${wpis!.koniec} (za ${dni} dni) – zaplanuj podniesienie`,
     ).toBe('');
   });
 });

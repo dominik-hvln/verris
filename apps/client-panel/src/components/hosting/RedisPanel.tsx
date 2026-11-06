@@ -21,7 +21,7 @@ const TEKSTY: Record<Silnik, { tytul: string; nazwa: string; opis: (mb: number) 
     opis: (mb) => `Własna instancja dla konta, ${mb} MB pamięci, tylko przez gniazdo w katalogu konta. Dla aplikacji, które wolą Memcached (np. LiteSpeed Cache, Drupal, Magento).`,
     wylacz: 'Wyłączyć Memcached? Aplikacje, które z niego korzystają, stracą cache (zadziałają, ale wolniej).',
     gniazdo:
-      'W aplikacji wpisz ścieżkę gniazda zamiast hosta i portu. Rozszerzenie PHP memcached włączamy dla bieżącej wersji PHP konta — po zmianie wersji włącz je w PHP i serwer → rozszerzenia.',
+      'W aplikacji wpisz ścieżkę gniazda zamiast hosta i portu. Rozszerzenie PHP memcached włączamy dla bieżącej wersji PHP konta – po zmianie wersji włącz je w PHP i serwer → rozszerzenia.',
   },
 };
 
@@ -57,7 +57,7 @@ export function RedisPanel({ serviceId, silnik = 'redis' }: { serviceId: string;
       const r = await setRedis(serviceId, wlacz, silnik);
       if (r.ok) {
         setStan(r.status);
-        toast.success(wlacz ? `Włączanie: ${T.nazwa} — gotowe w ciągu minuty.` : `Wyłączanie: ${T.nazwa} zlecone.`);
+        toast.success(wlacz ? `Włączanie: ${T.nazwa} – gotowe w ciągu minuty.` : `Wyłączanie: ${T.nazwa} zlecone.`);
       } else toast.error(r.error);
     });
   };

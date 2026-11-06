@@ -25,7 +25,7 @@ export default async function MigrationsPage({
   return (
     <HostingPageWrapper
       title="Migracje"
-      description="Przenieś stronę, bazy i pocztę ze starego hostingu — automatycznie i z postępem na żywo."
+      description="Przenieś stronę, bazy i pocztę ze starego hostingu – automatycznie i z postępem na żywo."
     >
       {!service ? (
         <HostingNoServiceState serviceId={serviceId} />
@@ -36,7 +36,7 @@ export default async function MigrationsPage({
             <div className="grid gap-3 sm:grid-cols-2">
               <SafetyPoint
                 title="Hasła szyfrujemy i kasujemy"
-                desc="Dane dostępowe trafiają do zaszyfrowanego sejfu (AES-256). Używamy ich wyłącznie podczas transferu, a po zakończeniu migracji automatycznie je usuwamy — nie zostają u nas na stałe."
+                desc="Dane dostępowe trafiają do zaszyfrowanego sejfu (AES-256). Używamy ich wyłącznie podczas transferu, a po zakończeniu migracji automatycznie je usuwamy – nie zostają u nas na stałe."
               />
               <SafetyPoint
                 title="Pełna kontrola i wgląd"
@@ -48,7 +48,7 @@ export default async function MigrationsPage({
               />
               <SafetyPoint
                 title="Ty decydujesz, my wykonujemy"
-                desc="Przenosimy tylko to, co wskażesz: pliki, wybrane bazy i skrzynki. Nie modyfikujemy niczego u starego dostawcy — jedynie odczytujemy dane do skopiowania."
+                desc="Przenosimy tylko to, co wskażesz: pliki, wybrane bazy i skrzynki. Nie modyfikujemy niczego u starego dostawcy – jedynie odczytujemy dane do skopiowania."
               />
             </div>
             <p className="mt-3 text-xs text-neutral-500">

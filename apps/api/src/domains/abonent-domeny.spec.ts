@@ -31,7 +31,7 @@ function zbuduj(provider: Record<string, unknown>, domena: Record<string, unknow
   return { service, prisma, audit };
 }
 
-describe('A-13 — abonent domeny to klient', () => {
+describe('A-13 – abonent domeny to klient', () => {
   it('rejestracja zakłada uchwyt klienta PRZED obciążeniem i rejestruje na niego', async () => {
     const kolejnosc: string[] = [];
     const provider = {
@@ -99,7 +99,7 @@ describe('A-13 — abonent domeny to klient', () => {
   });
 });
 
-describe('A-15 / A-09 — blokada i kod transferu', () => {
+describe('A-15 / A-09 – blokada i kod transferu', () => {
   it('blokada: rejestrator + stan w bazie + audyt', async () => {
     const provider = { setTransferLock: vi.fn() };
     const { service, prisma, audit } = zbuduj(provider);

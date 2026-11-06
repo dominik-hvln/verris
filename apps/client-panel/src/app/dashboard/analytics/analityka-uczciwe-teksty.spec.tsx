@@ -29,7 +29,7 @@ const stats = (countries: AnalyticsStats['countries']): AnalyticsStats =>
     devices: [{ deviceType: 'desktop', count: 10 }],
   }) as unknown as AnalyticsStats;
 
-describe('analityka — tylko to, co naprawdę zbieramy', () => {
+describe('analityka – tylko to, co naprawdę zbieramy', () => {
   let root: Root;
   let el: HTMLElement;
   beforeEach(() => {

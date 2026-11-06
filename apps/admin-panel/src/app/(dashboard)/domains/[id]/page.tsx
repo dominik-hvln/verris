@@ -16,8 +16,8 @@ import { PonowZamowienie } from "../ponow-zamowienie";
 
 export const dynamic = "force-dynamic";
 
-const kiedy = (iso: string | null) => (iso ? new Date(iso).toLocaleString("pl-PL", { timeZone: "Europe/Warsaw" }) : "—");
-const dzien = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("pl-PL", { timeZone: "Europe/Warsaw" }) : "—");
+const kiedy = (iso: string | null) => (iso ? new Date(iso).toLocaleString("pl-PL", { timeZone: "Europe/Warsaw" }) : "–");
+const dzien = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("pl-PL", { timeZone: "Europe/Warsaw" }) : "–");
 
 /** Zdarzenia w historii domeny (dziennik i webhook rejestratora) po polsku; reszta — kod akcji. */
 const ZDARZENIA: Record<string, string> = {
@@ -92,14 +92,14 @@ export default async function KartaDomenyPage({ params }: { params: Promise<{ id
       </div>
 
       <section className={`${KARTA} grid grid-cols-1 gap-4 p-5 text-sm sm:grid-cols-2 xl:grid-cols-4`} aria-label="Przegląd domeny">
-        <Para k="Rejestrator">{d.uNas ? `${d.registrarProvider ?? "—"} · ${d.registrarExternalId}` : "poza Verris"}</Para>
-        <Para k="Stan u rejestratora">{d.registrarStatus ?? "—"}</Para>
-        <Para k="Wygasa">{d.uNas ? dzien(d.expiresAt) : "—"}</Para>
+        <Para k="Rejestrator">{d.uNas ? `${d.registrarProvider ?? "–"} · ${d.registrarExternalId}` : "poza Verris"}</Para>
+        <Para k="Stan u rejestratora">{d.registrarStatus ?? "–"}</Para>
+        <Para k="Wygasa">{d.uNas ? dzien(d.expiresAt) : "–"}</Para>
         <Para k="Automatyczne odnowienie">{d.autoRenew ? "tak" : "nie"}</Para>
-        <Para k="Blokada transferu">{d.uNas ? (d.transferLock ? "tak" : "nie") : "—"}</Para>
-        <Para k="Ukrycie WHOIS">{d.uNas ? (d.whoisPrivacy ? "tak" : "nie") : "—"}</Para>
+        <Para k="Blokada transferu">{d.uNas ? (d.transferLock ? "tak" : "nie") : "–"}</Para>
+        <Para k="Ukrycie WHOIS">{d.uNas ? (d.whoisPrivacy ? "tak" : "nie") : "–"}</Para>
         <Para k="Serwery nazw">
-          <span className="font-mono text-[13px]">{d.nameservers.length ? d.nameservers.join(", ") : "—"}</span>
+          <span className="font-mono text-[13px]">{d.nameservers.length ? d.nameservers.join(", ") : "–"}</span>
         </Para>
         <Para k="Ostatnia synchronizacja">{kiedy(d.lastRegistrarSyncAt)}</Para>
         <Para k="Klient">
@@ -114,7 +114,7 @@ export default async function KartaDomenyPage({ params }: { params: Promise<{ id
               konto {d.usluga.stanKonta.toLowerCase()}
             </LinkJesli>
           ) : (
-            "—"
+            "–"
           )}
         </Para>
         <Para k="Dodana">{dzien(d.createdAt)}</Para>
@@ -123,7 +123,7 @@ export default async function KartaDomenyPage({ params }: { params: Promise<{ id
       {d.uNas ? (
         <DzialaniaDomeny domainId={d.id} domena={d.name} transferLock={d.transferLock} nameservers={d.nameservers} saldoKlienta={d.klient.walletBalance} dostep={dostep} />
       ) : (
-        <p className={`${KARTA} p-5 text-sm text-muted-foreground`}>Domena nie jest zarejestrowana przez Verris — blokadą, kodem EPP i odnowieniem zarządza jej obecny rejestrator.</p>
+        <p className={`${KARTA} p-5 text-sm text-muted-foreground`}>Domena nie jest zarejestrowana przez Verris – blokadą, kodem EPP i odnowieniem zarządza jej obecny rejestrator.</p>
       )}
 
       {d.uNas ? (
@@ -145,7 +145,7 @@ export default async function KartaDomenyPage({ params }: { params: Promise<{ id
                 {TYP_ZAMOWIENIA[z.type] ?? z.type} · {lata(z.years)}
               </span>
               <span className="text-[12.5px] text-muted-foreground">
-                {kiedy(z.createdAt)} · {z.priceAmount ? `${z.priceAmount} ${z.currency}` : "—"}
+                {kiedy(z.createdAt)} · {z.priceAmount ? `${z.priceAmount} ${z.currency}` : "–"}
                 {z.type === "RENEW" && z.status === "COMPLETED" && !z.walletTxId ? " · na koszt Verris" : ""}
               </span>
               {z.lastError ? <span className="break-all text-[12px] text-crit">{z.lastError}</span> : null}

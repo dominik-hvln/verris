@@ -36,7 +36,7 @@ $table_prefix = 'wp_';`;
     expect(parsujKonfiguracje('wordpress', `<?php define('DB_HOST', 'localhost');`)).toBeNull();
   });
 
-  it('który plik czytać — po zawartości katalogu strony', () => {
+  it('który plik czytać – po zawartości katalogu strony', () => {
     expect(plikDoOdczytu({ pliki: ['index.php', 'wp-config.php'], katalogi: ['wp-content'] })?.cms).toBe('wordpress');
     expect(plikDoOdczytu({ pliki: ['index.php'], katalogi: ['app', 'modules', 'themes', 'classes'] })?.plik).toBe('app/config/parameters.php');
     expect(plikDoOdczytu({ pliki: ['configuration.php'], katalogi: ['administrator'] })?.cms).toBe('joomla');

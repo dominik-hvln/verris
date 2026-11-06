@@ -12,19 +12,19 @@ export const KROKI_PRZEPROWADZKI: KrokPrzeprowadzki[] = [
   {
     etykieta: 'Domena',
     tytul: 'Wybierz domenę z listy',
-    tekst: 'Domenę docelową wybierasz z domen swojego konta w Verris — nie da się jej pomylić ani wpisać cudzej.',
+    tekst: 'Domenę docelową wybierasz z domen swojego konta w Verris – nie da się jej pomylić ani wpisać cudzej.',
     zaCiebie: 'pokazujemy tylko domeny Twojej usługi; jeśli strona działała wcześniej pod innym adresem, podajesz go w kreatorze.',
   },
   {
     etykieta: 'Skąd',
     tytul: 'Sprawdzamy, gdzie dziś jest strona',
-    tekst: 'Odczytujemy rekordy DNS domeny i podpowiadamy adres starego serwera — poprawisz go, jeśli jest inny.',
+    tekst: 'Odczytujemy rekordy DNS domeny i podpowiadamy adres starego serwera – poprawisz go, jeśli jest inny.',
     zaCiebie: 'odczyt rekordów A, MX i NS oraz nazwy serwera, na którym stoi strona.',
   },
   {
     etykieta: 'Dostęp',
     tytul: 'Podajesz dostęp do starego hostingu',
-    tekst: 'Login do starego panelu (np. cPanel albo Plesk), a jeśli go nie masz — dane FTP lub SFTP.',
+    tekst: 'Login do starego panelu (np. cPanel albo Plesk), a jeśli go nie masz – dane FTP lub SFTP.',
     zaCiebie: 'test dostępów przed startem, z czytelnym komunikatem, jeśli coś nie pasuje.',
   },
   {
@@ -36,7 +36,7 @@ export const KROKI_PRZEPROWADZKI: KrokPrzeprowadzki[] = [
   {
     etykieta: 'Postęp',
     tytul: 'Każdy etap widzisz na żywo',
-    tekst: 'Pliki, baza, konfiguracja strony i poczta — postęp odświeża się w panelu, a po zakończeniu dostajesz raport mailem.',
+    tekst: 'Pliki, baza, konfiguracja strony i poczta – postęp odświeża się w panelu, a po zakończeniu dostajesz raport mailem.',
     zaCiebie: 'porównujemy liczbę plików i wierszy w bazie ze źródłem, żeby nic nie zginęło po drodze.',
   },
   {

@@ -27,7 +27,7 @@ describe('CSP paneli', () => {
   // 09.10: CSP paneli z nonce ustawia aplikacja (libs/ui/src/csp.ts; testy form-action/connect-src są
   // w apps/client-panel/src/middleware.spec.ts). Drugi CSP z Caddy przeglądarka stosuje RAZEM z nim —
   // polityka bez nonce zablokowałaby skrypty Nexta. Caddy daje tylko wartość domyślną (`?`), gdy upstream jej nie wysłał.
-  it('Caddy nie nadpisuje CSP paneli — tylko domyślny (?) dla odpowiedzi bez CSP z aplikacji', () => {
+  it('Caddy nie nadpisuje CSP paneli – tylko domyślny (?) dla odpowiedzi bez CSP z aplikacji', () => {
     const linie = panel.split('\n').map((l) => l.trim()).filter((l) => /^[?+-]?Content-Security-Policy\b/.test(l));
     expect(linie).toHaveLength(1);
     expect(linie[0]).toMatch(/^\?Content-Security-Policy "/);

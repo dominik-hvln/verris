@@ -77,7 +77,7 @@ describe('obserwacja egressu kontenerów nie blokuje', () => {
     expect(OBSERWACJA).not.toMatch(/\bOUTPUT\b/);
   });
 
-  it('tryb obserwacji jest wyłączny — nie uruchamia reszty hardeningu', () => {
+  it('tryb obserwacji jest wyłączny – nie uruchamia reszty hardeningu', () => {
     const linie = SKRYPT.split('\n').filter((l) => !/^\s*#/.test(l));
 
     // WYWOŁANIE, nie definicja. Pierwsza wersja tej asercji szukała napisu

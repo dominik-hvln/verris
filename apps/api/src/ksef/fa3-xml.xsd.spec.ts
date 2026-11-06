@@ -8,7 +8,7 @@ import { FAKTURY_TESTOWE, walidujXsd, XMLLINT_DOSTEPNY, xmlFaktury } from '../te
  *
  * Wymaga `xmllint` (libxml2-utils). Bez niego test jest pomijany — i to widać w raporcie.
  */
-describe.skipIf(!XMLLINT_DOSTEPNY)('FA(3) — walidacja oficjalnym XSD', () => {
+describe.skipIf(!XMLLINT_DOSTEPNY)('FA(3) – walidacja oficjalnym XSD', () => {
   it.each(FAKTURY_TESTOWE)('%s: dokument zgodny ze schematem', (_nazwa, faktura) => {
     const wynik = walidujXsd(xmlFaktury(faktura()));
     expect(wynik.bledy).not.toMatch(/fails to validate|error/i);

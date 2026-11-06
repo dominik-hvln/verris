@@ -36,7 +36,7 @@ const GRUPY: { title: string; id: string; items: Funkcja[] }[] = [
       {
         tag: 'LiteSpeed Enterprise',
         title: 'LiteSpeed i dyski NVMe',
-        text: 'Szybki serwer WWW z pamięcią podręczną i dyski NVMe — także dla stron otwieranych w telefonie.',
+        text: 'Szybki serwer WWW z pamięcią podręczną i dyski NVMe – także dla stron otwieranych w telefonie.',
         href: '/specyfikacja',
         more: 'Parametry',
         po: true,
@@ -142,7 +142,7 @@ const GWARANCJE: { tag: string; title: string; text: string; href: string; more:
   {
     tag: 'SLA',
     title: 'SLA 99,5% z rekompensatą',
-    text: 'Gdy dostępność w miesiącu spadnie poniżej 99,5%, rekompensatę w kredytach (od 5% do całej opłaty za miesiąc) przyznajemy automatycznie, bez wniosku — tak stoi w regulaminie.',
+    text: 'Gdy dostępność w miesiącu spadnie poniżej 99,5%, rekompensatę w kredytach (od 5% do całej opłaty za miesiąc) przyznajemy automatycznie, bez wniosku – tak stoi w regulaminie.',
     href: '/funkcje/sla',
     more: 'Zasady SLA',
   },
@@ -165,7 +165,7 @@ const GWARANCJE: { tag: string; title: string; text: string; href: string; more:
 const FAQ: [string, string][] = [
   [
     'Czy któreś funkcje są płatne osobno?',
-    'Funkcje z tej strony są w cenie hostingu. Osobno płacisz za rejestrację domen oraz za autoskalowanie, gdy ruch przekroczy pakiet — najwyżej do limitu kosztu, który sam ustawiasz w panelu.',
+    'Funkcje z tej strony są w cenie hostingu. Osobno płacisz za rejestrację domen oraz za autoskalowanie, gdy ruch przekroczy pakiet – najwyżej do limitu kosztu, który sam ustawiasz w panelu.',
   ],
   [
     'Czy mogę mieć kilka stron na jednym koncie?',

@@ -6,7 +6,7 @@ import { NodeStackReadinessService } from './node-stack-readiness.service.js';
  * na jego użytkowników — ssh=OFF z planu zdejmował SSH włączone przez klienta (powłoka /bin/false).
  * Po naprawie pakietów SSH wraca tym samym zadaniem węzła co przełącznik w panelu.
  */
-describe('NodeStackReadinessService.repairDaPackages — SSH klientów przeżywa naprawę pakietów', () => {
+describe('NodeStackReadinessService.repairDaPackages – SSH klientów przeżywa naprawę pakietów', () => {
   const zad = (mode: string, status: NodeTaskStatus = NodeTaskStatus.COMPLETED) => ({ status, payload: { mode } });
   function uslugaZ(zadaniaKont: Record<string, ReturnType<typeof zad>[]>) {
     const prisma = {
@@ -23,7 +23,7 @@ describe('NodeStackReadinessService.repairDaPackages — SSH klientów przeżywa
     return { svc, prisma, da };
   }
 
-  it('włączone SSH (ostatnia zmiana „enable”) dostaje zadanie enable; wyłączone, bez historii i w toku — nie', async () => {
+  it('włączone SSH (ostatnia zmiana „enable”) dostaje zadanie enable; wyłączone, bez historii i w toku – nie', async () => {
     const { svc, prisma, da } = uslugaZ({
       wlaczone: [zad('keys'), zad('enable'), zad('disable')],
       wylaczone: [zad('disable'), zad('enable')],

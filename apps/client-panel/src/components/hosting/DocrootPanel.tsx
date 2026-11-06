@@ -34,7 +34,7 @@ export function DocrootPanel({ serviceId, domain }: { serviceId: string; domain:
       if (r.ok) {
         setObecny(r.docroot.katalog);
         setKatalog(r.docroot.katalog);
-        toast.success('Zapisano — serwer przełączy katalog w ciągu kilku minut.');
+        toast.success('Zapisano – serwer przełączy katalog w ciągu kilku minut.');
       } else toast.error(r.error);
     });
 
@@ -43,7 +43,7 @@ export function DocrootPanel({ serviceId, domain }: { serviceId: string; domain:
     <section className="mt-8">
       <SectionHead
         title="Katalog główny strony"
-        desc="Katalog, z którego domena serwuje stronę — np. public dla Laravela. Subdomeny zostają przy swoich katalogach."
+        desc="Katalog, z którego domena serwuje stronę – np. public dla Laravela. Subdomeny zostają przy swoich katalogach."
       />
       {blad ? <p role="alert" className="m-0 my-2 rounded-[8px] border border-line px-3 py-2 text-[13px] text-crit">Nie udało się wczytać: {blad}</p> : null}
       <div className="rounded-[10px] border border-line bg-card px-4 py-3">
@@ -60,7 +60,7 @@ export function DocrootPanel({ serviceId, domain }: { serviceId: string; domain:
             className={`${INPUT} flex-1 basis-40`}
           />
         </div>
-        <p className="m-0 mt-1 text-[12px] text-muted-foreground">Katalog musi już istnieć. Puste pole — strona z public_html.</p>
+        <p className="m-0 mt-1 text-[12px] text-muted-foreground">Katalog musi już istnieć. Puste pole – strona z public_html.</p>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
           <span className="text-[12px] text-muted-foreground">
             {obecny === null ? (blad ? 'Nie udało się odczytać ustawienia z serwera.' : 'Wczytywanie…') : `Teraz: public_html${obecny ? `/${obecny}` : ''}`}

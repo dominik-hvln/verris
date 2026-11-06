@@ -96,7 +96,7 @@ export default function StagingTab({ serviceId }: StagingTabProps) {
     <div className="space-y-5">
       <SectionHead
         title="Kopia robocza (staging)"
-        desc={`Bezpieczna kopia strony pod adresem ${status.stagingDomain}. Testuj zmiany bez ryzyka, a gdy wszystko działa — opublikuj jednym kliknięciem. Dla WordPressa kopiujemy też bazę i podmieniamy adresy; przed publikacją robimy kopię produkcji.`}
+        desc={`Bezpieczna kopia strony pod adresem ${status.stagingDomain}. Testuj zmiany bez ryzyka, a gdy wszystko działa – opublikuj jednym kliknięciem. Dla WordPressa kopiujemy też bazę i podmieniamy adresy; przed publikacją robimy kopię produkcji.`}
       />
 
       {inflight && (
@@ -110,7 +110,7 @@ export default function StagingTab({ serviceId }: StagingTabProps) {
       {status.lastTask?.status === 'FAILED' && (
         <div className="flex items-start gap-2 rounded-[10px] border border-crit/30 bg-crit/12 px-4 py-3 text-sm text-crit">
           <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-          Ostatnia operacja nie powiodła się: {status.lastTask.errorMessage ?? 'błąd'} — spróbuj
+          Ostatnia operacja nie powiodła się: {status.lastTask.errorMessage ?? 'błąd'} – spróbuj
           ponownie lub napisz do BOK.
         </div>
       )}
@@ -217,7 +217,7 @@ export default function StagingTab({ serviceId }: StagingTabProps) {
             <div className="rounded-[10px] border border-warn/30 bg-warn-soft p-5 space-y-3">
               <p className="text-sm text-warn">
                 <strong>Publikacja zastąpi obecną wersję {status.domain}</strong> zawartością
-                stagingu (pliki i — dla WordPressa — baza danych). Przed zmianą zapiszemy kopię
+                stagingu (pliki i – dla WordPressa – baza danych). Przed zmianą zapiszemy kopię
                 zapasową produkcji na Twoim koncie (<code>~/.verris/backups</code>).
               </p>
               <div className="flex gap-2">

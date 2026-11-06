@@ -111,10 +111,10 @@ describe('ApiTokenGuard (L-09)', () => {
   });
 });
 
-describe('subkonto — zakresy tokenu i zdarzenia webhooków (L-09/L-10)', () => {
+describe('subkonto – zakresy tokenu i zdarzenia webhooków (L-09/L-10)', () => {
   const sk = (...p: string[]) => ({ userId: 'owner', customerOwnerId: 'owner', customerPermissions: p });
 
-  it('token: tworzy wyłącznie właściciel — subkonto (nawet z pełnymi uprawnieniami) i sesja wsparcia dostają 403 (decyzja 28.09)', async () => {
+  it('token: tworzy wyłącznie właściciel – subkonto (nawet z pełnymi uprawnieniami) i sesja wsparcia dostają 403 (decyzja 28.09)', async () => {
     const create = vi.fn(async () => ({ token: 't', view: {} }));
     const c = new ApiTokensController({ create } as never);
     expect(() => c.create(sk('SETTINGS_MANAGE', 'DNS_MANAGE', 'SERVICES_READ'), { name: 'CI', scopes: ['services:read'] })).toThrow('właściciel');

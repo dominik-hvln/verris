@@ -55,14 +55,14 @@ export function iamSubaccountInviteTemplate(ctx: IamInviteContext): MailMessage 
       'Cześć!',
       ``,
       ctx.maKonto
-        ? `${kto} udostępnia Ci swoje konto w panelu Verris. Masz już konto Verris — przyjmiesz zaproszenie ze swojego konta i będziesz przełączać się między kontami bez nowego loginu.`
+        ? `${kto} udostępnia Ci swoje konto w panelu Verris. Masz już konto Verris – przyjmiesz zaproszenie ze swojego konta i będziesz przełączać się między kontami bez nowego loginu.`
         : `${kto} zaprasza Cię do współpracy w panelu Verris. Dostaniesz własny login (subkonto) do tego konta.`,
       ``,
       zakres,
       ``,
       ...(uprawnienia.length ? ['Możesz:', '', ...uprawnienia.map((u) => `- ${u}`), ''] : []),
       ...(ctx.label ? [`Etykieta dostępu: **${escapeMarkdown(ctx.label)}**`, ''] : []),
-      'Usunąć konta, zrezygnować z usługi ani zmienić dostępu innych osób nie możesz — to zostaje u właściciela konta.',
+      'Usunąć konta, zrezygnować z usługi ani zmienić dostępu innych osób nie możesz – to zostaje u właściciela konta.',
       ``,
       ctx.maKonto
         ? `Kliknij poniżej i zaloguj się swoim kontem. Link wygasa po **${ctx.expiresDays} dniach**.`
@@ -102,8 +102,8 @@ export function iamDostepOdebranyTemplate(ctx: IamDostepOdebranyContext): MailMe
       `Twój dostęp do konta **${escapeMarkdown(ctx.ownerName)}** w panelu Verris został wyłączony przez właściciela tego konta.`,
       '',
       ctx.wlasneKonto
-        ? 'Twoje własne konto Verris działa bez zmian — znika z niego tylko przełączanie na to konto.'
-        : 'Nie zalogujesz się już na to subkonto. Jeśli to pomyłka, skontaktuj się z osobą, która Cię zaprosiła — może przywrócić dostęp.',
+        ? 'Twoje własne konto Verris działa bez zmian – znika z niego tylko przełączanie na to konto.'
+        : 'Nie zalogujesz się już na to subkonto. Jeśli to pomyłka, skontaktuj się z osobą, która Cię zaprosiła – może przywrócić dostęp.',
     ].join('\n'),
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,

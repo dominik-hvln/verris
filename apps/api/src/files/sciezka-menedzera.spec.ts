@@ -18,7 +18,7 @@ function klientDa() {
   return { k, get };
 }
 
-describe('menedżer plików — ścieżka w adresie CMD_FILE_MANAGER', () => {
+describe('menedżer plików – ścieżka w adresie CMD_FILE_MANAGER', () => {
   it.each([
     ['/%2e%2e/CMD_API_SHOW_USER_CONFIG'],
     ['/%2E%2E/CMD_API_SHOW_USER_CONFIG?json=yes'],

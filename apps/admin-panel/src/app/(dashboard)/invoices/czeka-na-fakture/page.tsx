@@ -31,7 +31,7 @@ export default async function CzekaNaFakturePage() {
         <h1 className="mt-1 text-[28px] lg:text-[34px]">Czeka na fakturę VAT</h1>
         <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
           Faktury VAT wystawiamy w programie księgowym. Panel wystawia dokument rozliczeniowy
-          (seria VDR/VDK) — po wystawieniu faktury w programie wpisz tu jej numer. Klient zobaczy
+          (seria VDR/VDK) – po wystawieniu faktury w programie wpisz tu jej numer. Klient zobaczy
           go przy dokumencie w swoim panelu.
         </p>
       </header>
@@ -58,7 +58,7 @@ export default async function CzekaNaFakturePage() {
               {wiersze.map((w) => (
                 <tr key={w.id} className="border-t border-white/5">
                   <td className="whitespace-nowrap px-3 py-2 text-neutral-300">
-                    {(w.paidAt ?? w.issuedAt ?? "").slice(0, 10) || "—"}
+                    {(w.paidAt ?? w.issuedAt ?? "").slice(0, 10) || "–"}
                   </td>
                   <td className="px-3 py-2 font-mono text-white">
                     {w.number}
@@ -77,10 +77,10 @@ export default async function CzekaNaFakturePage() {
                     </Link>
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums">
-                    {w.netAmount ? PLN.format(Number(w.netAmount)) : "—"}
+                    {w.netAmount ? PLN.format(Number(w.netAmount)) : "–"}
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums">
-                    {w.vatAmount ? PLN.format(Number(w.vatAmount)) : "—"}
+                    {w.vatAmount ? PLN.format(Number(w.vatAmount)) : "–"}
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums text-white">
                     {PLN.format(Number(w.amount))} {w.currency}

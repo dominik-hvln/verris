@@ -57,10 +57,10 @@ export function PlatnoscKartaBaner({ serviceId, onGotowe }: { serviceId: string;
     <div role="status" className="flex items-start gap-3 rounded-xl border border-cyan-400/25 bg-cyan-500/10 p-4 text-sm">
       <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-cyan-300" />
       <div>
-        <p className="font-semibold">Płatność przyjęta — uruchamiamy usługę.</p>
+        <p className="font-semibold">Płatność przyjęta – uruchamiamy usługę.</p>
         <p className="text-muted-foreground">
           {etap === 'dlugo'
-            ? 'To trwa dłużej niż zwykle. Odśwież stronę za kilka minut — jeśli usługa dalej nie działa, napisz do pomocy.'
+            ? 'To trwa dłużej niż zwykle. Odśwież stronę za kilka minut – jeśli usługa dalej nie działa, napisz do pomocy.'
             : 'Zwykle trwa to do minuty. Strona odświeży się sama.'}
         </p>
       </div>

@@ -11,14 +11,14 @@ import { CATALOG, katalogPaneluPrestaShop } from '../subscriptions/app-install.s
  */
 const skrypt = (n: string) => readFileSync(join(import.meta.dirname, '..', '..', '..', '..', 'ops', 'scripts', n), 'utf8');
 
-describe('I-01 — instalator aplikacji', () => {
+describe('I-01 – instalator aplikacji', () => {
   const s = skrypt('node-app-install.sh');
 
   it.each(Object.keys(CATALOG))('%s: jest gałąź instalatora na węźle', (slug) => {
     expect(s).toMatch(new RegExp(`^\\s+${slug}\\)\\s`, 'm'));
   });
 
-  it('PrestaShop: paczka z najnowszego stabilnego wydania, które ją ma (9.x na GitHubie jest bez paczek — t1 01.10)', () => {
+  it('PrestaShop: paczka z najnowszego stabilnego wydania, które ją ma (9.x na GitHubie jest bez paczek – t1 01.10)', () => {
     const f = s.slice(s.indexOf('install_prestashop() {'), s.indexOf('install_joomla() {'));
     expect(f).not.toContain('releases/latest/download/prestashop.zip');
     const py = f.match(/python3 -c '\n([\s\S]*?)'\)"/)![1];
@@ -36,7 +36,7 @@ describe('I-01 — instalator aplikacji', () => {
     expect(f.indexOf('rm -f index.php Install_PrestaShop.html')).toBeLessThan(f.indexOf('unzip -q -o prestashop.zip'));
   });
 
-  it('pobranie paczki dociągane od miejsca zerwania (t1 01.10: MediaWiki — serwer zrywa po ~70 s)', () => {
+  it('pobranie paczki dociągane od miejsca zerwania (t1 01.10: MediaWiki – serwer zrywa po ~70 s)', () => {
     const f = s.slice(s.indexOf('pobierz() {'), s.indexOf('\n}\n', s.indexOf('pobierz() {')));
     expect(f).toMatch(/for i in [\d ]+; do\n\s+curl -fsSL -C - "\$1" -o "\$tmp" && break/);
     expect(f).toContain('blad "Nie udało się pobrać paczki');
@@ -81,7 +81,7 @@ describe('I-01 — instalator aplikacji', () => {
     return r.stdout;
   };
   const domyslna = (d: string) => {
-    writeFileSync(join(d, 'index.html'), '<title>x — hosting verris</title>');
+    writeFileSync(join(d, 'index.html'), '<title>x – hosting verris</title>');
     mkdirSync(join(d, 'assets'));
     writeFileSync(join(d, 'assets', 'logo.svg'), '<svg/>');
     // DA 1.710 (t1, 29.09): cgi-bin z samym .htaccess „Options -Indexes”.

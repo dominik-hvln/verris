@@ -104,7 +104,7 @@ export function PasskeyLoginButton() {
         {isPending ? 'Logowanie…' : 'Zaloguj się passkey'}
       </button>
       <p className="text-center text-xs text-muted-foreground">
-        Bez hasła — wybierz passkey zapisany na tym urządzeniu.
+        Bez hasła – wybierz passkey zapisany na tym urządzeniu.
       </p>
       {error && <p className="text-xs text-rose-300">{error}</p>}
     </div>

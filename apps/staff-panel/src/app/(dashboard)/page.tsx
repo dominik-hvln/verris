@@ -47,7 +47,7 @@ export default async function StaffInboxPage({ searchParams }: { searchParams: P
   const p = await searchParams;
   const filterUserId = p.userId;
   const widok = widokZ(p.widok);
-  if ((await sesjaLubAwaria()) === "awaria") return <p role="alert" className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">Panel chwilowo nie łączy się z serwerem — odśwież stronę za chwilę.</p>;
+  if ((await sesjaLubAwaria()) === "awaria") return <p role="alert" className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">Panel chwilowo nie łączy się z serwerem – odśwież stronę za chwilę.</p>;
 
   let lista: ListaZgloszen | null = null;
   let error: string | null = null;
@@ -172,7 +172,7 @@ export default async function StaffInboxPage({ searchParams }: { searchParams: P
         })}
         {rows.length === 0 ? (
           <p className="px-6 py-16 text-center text-sm text-muted-foreground">
-            {error ? "Nie udało się wczytać zgłoszeń — zobacz komunikat powyżej." : czyFiltry(p) ? "Nic nie pasuje do filtrów." : "Nic tu nie czeka — wszystko obsłużone."}
+            {error ? "Nie udało się wczytać zgłoszeń – zobacz komunikat powyżej." : czyFiltry(p) ? "Nic nie pasuje do filtrów." : "Nic tu nie czeka – wszystko obsłużone."}
           </p>
         ) : null}
       </section>

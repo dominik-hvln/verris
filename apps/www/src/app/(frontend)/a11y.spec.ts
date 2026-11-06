@@ -16,8 +16,8 @@ function tsx(dir: string): string[] {
   });
 }
 
-describe('verris.pl — dostępność', () => {
-  it('link w ciągłym tekście jest podkreślony (mięta vs treść ma kontrast 1,1:1 — kolor to za mało)', () => {
+describe('verris.pl – dostępność', () => {
+  it('link w ciągłym tekście jest podkreślony (mięta vs treść ma kontrast 1,1:1 – kolor to za mało)', () => {
     expect(CSS).toMatch(/p a:not\(\.btn\)[^{]*\{[^}]*text-decoration:\s*underline/);
   });
 

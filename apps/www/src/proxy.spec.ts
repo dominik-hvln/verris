@@ -12,7 +12,7 @@ const nonceZ = (csp: string) => /'nonce-([^']+)'/.exec(scriptSrc(csp))?.[1];
 const zadanie = (sciezka: string, naglowki: Record<string, string> = {}) =>
   proxy(new NextRequest(`http://localhost:3005${sciezka}`, { headers: naglowki }));
 
-describe('proxy www — CSP z nonce', () => {
+describe('proxy www – CSP z nonce', () => {
   it.each(['/', '/cennik', '/hosting/wordpress', '/blog/jak-przeniesc-strone', '/administracja'])(
     '%s: CSP z nonce i strict-dynamic, bez unsafe-inline w script-src',
     (sciezka) => {

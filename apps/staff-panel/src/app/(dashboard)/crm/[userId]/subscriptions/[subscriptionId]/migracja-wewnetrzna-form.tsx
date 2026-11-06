@@ -38,7 +38,7 @@ export function MigracjaWewnetrznaForm({
   const [zlecono, setZlecono] = useState(false);
 
   if (wezly.length === 0) {
-    return <p className="text-sm text-muted-foreground">Brak innego aktywnego węzła — nie ma dokąd przenieść konta.</p>;
+    return <p className="text-sm text-muted-foreground">Brak innego aktywnego węzła – nie ma dokąd przenieść konta.</p>;
   }
 
   const nazwa = (w: WezelDocelowy) => `${w.name ?? w.id}${w.region ? ` (${w.region})` : ""}`;
@@ -53,7 +53,7 @@ export function MigracjaWewnetrznaForm({
     setPotwierdz(false);
     if (!r.ok) return setMsg({ ok: false, text: r.error });
     setZlecono(true);
-    setMsg({ ok: true, text: "Zlecono migrację wewnętrzną. Worker przygotuje kopię konta i zgłoszenie — zobaczysz je w historii migracji." });
+    setMsg({ ok: true, text: "Zlecono migrację wewnętrzną. Worker przygotuje kopię konta i zgłoszenie – zobaczysz je w historii migracji." });
   };
 
   return (

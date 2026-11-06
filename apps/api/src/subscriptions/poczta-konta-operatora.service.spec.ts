@@ -92,7 +92,7 @@ const z = (powod = 'Spam z formularza kontaktowego, zgłoszenie z RBL', operator
   powod,
 });
 
-describe('F3.1 PocztaKontaOperatoraService — blokada wysyłki', () => {
+describe('F3.1 PocztaKontaOperatoraService – blokada wysyłki', () => {
   const env = process.env.SECURITY_ALERT_EMAIL;
   beforeEach(() => {
     process.env.SECURITY_ALERT_EMAIL = 'security@verris.test';
@@ -176,7 +176,7 @@ describe('F3.1 PocztaKontaOperatoraService — blokada wysyłki', () => {
     expect(await dwa.kordon.isCordoned(WLASCICIEL)).toBe(true);
   });
 
-  it('przegląd: blokada na koncie już w kordonie automatycznym nie podmienia jego powodu — zwolnienie blokady go nie zdejmuje', async () => {
+  it('przegląd: blokada na koncie już w kordonie automatycznym nie podmienia jego powodu – zwolnienie blokady go nie zdejmuje', async () => {
     const { svc, kordon } = zbuduj();
     await kordon.cordon(WLASCICIEL, 'skok wysyłki: 500/min > 200');
     await svc.zablokuj(z());

@@ -39,11 +39,11 @@ export function dataExportReadyTemplate(ctx: DataExportReadyContext): MailMessag
 
   const { html, text } = renderEmailShell({
     title: 'Twój eksport danych jest gotowy',
-    preheader: `Plik ZIP (${sizeStr}) — link aktywny do ${expiresStr}.`,
+    preheader: `Plik ZIP (${sizeStr}) – link aktywny do ${expiresStr}.`,
     bodyMarkdown: [
       greeting,
       ``,
-      `Przygotowaliśmy paczkę zawierającą wszystkie dane osobowe, jakie Verris przechowuje na Twój temat (RODO art. 20 — prawo do przenoszenia danych).`,
+      `Przygotowaliśmy paczkę zawierającą wszystkie dane osobowe, jakie Verris przechowuje na Twój temat (RODO art. 20 – prawo do przenoszenia danych).`,
       ``,
       `## Szczegóły eksportu`,
       ``,
@@ -62,14 +62,14 @@ export function dataExportReadyTemplate(ctx: DataExportReadyContext): MailMessag
       `- log audytowy operacji na koncie,`,
       `- historia zgód RODO oraz preferencji marketingowych.`,
       ``,
-      `Hash hasła, sekrety 2FA oraz hasła kont hostingowych są oznaczone w plikach jako \`[REDACTED]\` — to wartości techniczne, których nigdy nie udostępniamy.`,
+      `Hash hasła, sekrety 2FA oraz hasła kont hostingowych są oznaczone w plikach jako \`[REDACTED]\` – to wartości techniczne, których nigdy nie udostępniamy.`,
     ].join('\n'),
     cta: {
       label: 'Pobierz paczkę',
       url: ctx.downloadUrl,
     },
     footnote:
-      'Link jest osobisty i działa do daty wygaśnięcia — każdy, kto go ma, pobierze Twoje dane, więc nie udostępniaj go nikomu. Jeśli to nie Ty zgłaszasz żądanie, daj nam znać: rodo@verris.pl.',
+      'Link jest osobisty i działa do daty wygaśnięcia – każdy, kto go ma, pobierze Twoje dane, więc nie udostępniaj go nikomu. Jeśli to nie Ty zgłaszasz żądanie, daj nam znać: rodo@verris.pl.',
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,
     category: 'TRANSACTIONAL',

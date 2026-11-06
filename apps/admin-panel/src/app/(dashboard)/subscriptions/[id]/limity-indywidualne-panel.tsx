@@ -58,7 +58,7 @@ export function LimityIndywidualnePanel({ subscriptionId, limity, isAdmin }: { s
           <label key={l.pole} className="block space-y-1" data-limit={l.pole}>
             <span className="text-xs text-neutral-400">
               {l.etykieta}
-              {jednostka(l.pole) ? ` (${jednostka(l.pole)})` : ""} — w planie: {formatLimitu(l.pole, l.plan)}
+              {jednostka(l.pole) ? ` (${jednostka(l.pole)})` : ""} – w planie: {formatLimitu(l.pole, l.plan)}
               {l.nadpisanie !== null ? <span className="text-amber-200"> · teraz {formatLimitu(l.pole, l.nadpisanie)}</span> : null}
             </span>
             <input
@@ -77,7 +77,7 @@ export function LimityIndywidualnePanel({ subscriptionId, limity, isAdmin }: { s
       <div className="grid gap-2 md:grid-cols-[2fr_1fr]">
         <label className="block space-y-1">
           <span className="text-xs text-neutral-400">Powód do dziennika (min. {MIN_POWOD_LIMITOW} znaków)</span>
-          <input value={powod} onChange={(e) => setPowod(e.target.value)} maxLength={500} disabled={zablokowane} placeholder="np. umowa z klientem z 12.10 — więcej miejsca na pocztę" className={POLE} />
+          <input value={powod} onChange={(e) => setPowod(e.target.value)} maxLength={500} disabled={zablokowane} placeholder="np. umowa z klientem z 12.10 – więcej miejsca na pocztę" className={POLE} />
         </label>
         <label className="block space-y-1">
           <span className="text-xs text-neutral-400">Zgłoszenie klienta</span>

@@ -30,7 +30,7 @@ afterEach(() => {
 const przycisk = (tekst: string) => [...k.querySelectorAll("button")].find((b) => b.textContent?.includes(tekst))!;
 
 /** Beta „Zgłoś uwagę” — flaga bety powstaje wyłączona (brak flagi = wyłączona), flaga modułu — włączona. */
-describe("FeatureFlags — zakładanie flag", () => {
+describe("FeatureFlags – zakładanie flag", () => {
   it("flaga bety: przycisk „+ flaga”, założona jako wyłączona; moduł jak dotąd włączony", async () => {
     act(() => root.render(<FeatureFlags rows={[]} />));
     await act(async () => przycisk("Zgłoś uwagę").click());

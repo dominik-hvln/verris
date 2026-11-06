@@ -10,6 +10,6 @@ export async function uruchomZadanie(klucz: string): Promise<{ ok: true } | { ok
     revalidatePath("/system/zadania");
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof AdminApiError ? e.message : "Nie udało się — spróbuj ponownie." };
+    return { ok: false, error: e instanceof AdminApiError ? e.message : "Nie udało się – spróbuj ponownie." };
   }
 }

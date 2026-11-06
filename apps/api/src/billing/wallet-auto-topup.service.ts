@@ -24,9 +24,9 @@ const ZAKSIEGOWANIE_PRZED_ZAPISEM_PROBY_MS = 10 * 60_000;
 export function powodBlokadyPonowienia(r: { enabled: boolean; lastAttemptOk: boolean | null; lastAttemptError: string | null }): string | null {
   if (!r.enabled) return 'Auto-doładowanie jest wyłączone przez klienta.';
   if (r.lastAttemptOk === null) return 'Próba auto-doładowania właśnie trwa albo jeszcze się nie odbyła.';
-  if (r.lastAttemptOk) return 'Ostatnie auto-doładowanie się udało — nie ma czego ponawiać.';
+  if (r.lastAttemptOk) return 'Ostatnie auto-doładowanie się udało – nie ma czego ponawiać.';
   if (/^status=(processing|requires_capture)/.test(r.lastAttemptError ?? '')) {
-    return 'Płatność jest w przetwarzaniu u operatora kart — poczekaj na jej wynik.';
+    return 'Płatność jest w przetwarzaniu u operatora kart – poczekaj na jej wynik.';
   }
   return null;
 }
@@ -34,9 +34,9 @@ export function powodBlokadyPonowienia(r: { enabled: boolean; lastAttemptOk: boo
 const POWODY_AUTODOLADOWANIA: [RegExp, string][] = [
   [/insufficient.?funds|brak\w* środków/i, 'Na karcie brakuje środków.'],
   [/expired|wygas/i, 'Karta wygasła.'],
-  [/3ds|authenticat|requires_action|autoryzacj/i, 'Karta wymaga dodatkowej autoryzacji (3DS) — zmień metodę płatności lub doładuj portfel ręcznie.'],
+  [/3ds|authenticat|requires_action|autoryzacj/i, 'Karta wymaga dodatkowej autoryzacji (3DS) – zmień metodę płatności lub doładuj portfel ręcznie.'],
   [/declin|do.not.honor|odrzuci/i, 'Bank odrzucił płatność kartą.'],
-  [/brak zapisanej karty|no such payment.?method/i, 'Brak zapisanej karty — ustaw domyślną metodę płatności.'],
+  [/brak zapisanej karty|no such payment.?method/i, 'Brak zapisanej karty – ustaw domyślną metodę płatności.'],
 ];
 
 /**
@@ -222,7 +222,7 @@ export class WalletAutoTopupService {
         select: { id: true },
       });
       if (!zaksiegowane) {
-        this.logger.warn(`auto-topup user=${rule.userId}: poprzednie obciążenie udane, wpłata niezaksięgowana — bez kolejnego obciążenia (sprawdź webhook Stripe).`);
+        this.logger.warn(`auto-topup user=${rule.userId}: poprzednie obciążenie udane, wpłata niezaksięgowana – bez kolejnego obciążenia (sprawdź webhook Stripe).`);
         return { wynik: 'pominieto', powod: 'Poprzednie auto-doładowanie się udało, ale wpłata nie jest jeszcze zaksięgowana (czekamy na potwierdzenie Stripe).' };
       }
     }
@@ -242,14 +242,14 @@ export class WalletAutoTopupService {
     if (!stripePm?.startsWith('pm_')) {
       // Przegląd F3.6 — „Ponów” z panelu bez karty nie jest nową próbą: bez maila do klienta przy każdym kliknięciu
       // (i bez dwóch maili przy dwóch kliknięciach naraz — tu nie ma jeszcze zajęcia reguły). Operator dostaje odmowę.
-      if (ponowienie) return { wynik: 'pominieto', powod: 'Klient nie ma zapisanej karty — ponowienie niemożliwe, klient musi dodać kartę w panelu.' };
+      if (ponowienie) return { wynik: 'pominieto', powod: 'Klient nie ma zapisanej karty – ponowienie niemożliwe, klient musi dodać kartę w panelu.' };
       await this.touchFailure(
         rule.userId,
-        'Brak zapisanej karty — ustaw domyślną metodę płatności.',
+        'Brak zapisanej karty – ustaw domyślną metodę płatności.',
         null,
         rule,
       );
-      return { wynik: 'blad', powod: 'Brak zapisanej karty — ustaw domyślną metodę płatności.' };
+      return { wynik: 'blad', powod: 'Brak zapisanej karty – ustaw domyślną metodę płatności.' };
     }
 
     const minor = Math.round(rule.topupAmount.toNumber() * 100);
@@ -267,7 +267,7 @@ export class WalletAutoTopupService {
         : { userId: rule.userId, enabled: true, OR: [{ cooldownUntil: null }, { cooldownUntil: { lte: teraz } }] },
       data: { cooldownUntil: new Date(teraz.getTime() + COOLDOWN_MS), lastAttemptAt: teraz, lastAttemptOk: null },
     });
-    if (zajete.count === 0) return { wynik: 'pominieto', powod: 'Inna próba właśnie trwa — odśwież listę.' };
+    if (zajete.count === 0) return { wynik: 'pominieto', powod: 'Inna próba właśnie trwa – odśwież listę.' };
 
     // Ponowienie ma własny klucz Stripe: klucz godzinowy zwróciłby zapamiętaną odmowę z poprzedniej próby.
     const piIdempotencyKey = ponowienie
@@ -298,7 +298,7 @@ export class WalletAutoTopupService {
       });
 
       if (pi.status === 'requires_action') {
-        const powod = 'Karta wymaga dodatkowej autoryzacji (3DS) — zmień metodę płatności lub doładuj przez Checkout.';
+        const powod = 'Karta wymaga dodatkowej autoryzacji (3DS) – zmień metodę płatności lub doładuj przez Checkout.';
         await this.touchFailure(rule.userId, powod, pi.id, rule);
         return { wynik: 'blad', powod };
       }

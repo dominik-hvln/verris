@@ -43,7 +43,7 @@ describe('stałe zgodne z API', () => {
 });
 
 describe('walidujZgloszenie', () => {
-  it('poprawne dane — brak błędów', () => {
+  it('poprawne dane – brak błędów', () => {
     expect(walidujZgloszenie(DANE)).toEqual({});
   });
 

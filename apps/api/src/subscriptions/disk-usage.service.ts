@@ -25,7 +25,7 @@ export class DiskUsageService {
     const wToku = await this.prisma.nodeTask.findFirst({
       where: { accountId: account.id, kind: NodeTaskKind.DISK_USAGE, status: { in: [NodeTaskStatus.QUEUED, NodeTaskStatus.RUNNING] } },
     });
-    if (wToku) throw new ConflictException('Liczenie już trwa — wynik za chwilę.');
+    if (wToku) throw new ConflictException('Liczenie już trwa – wynik za chwilę.');
     await this.prisma.nodeTask.create({
       data: {
         serverId: account.serverId,

@@ -188,7 +188,7 @@ export class BackupOffsiteService {
     if (k.roUser && !k.roPass) throw new BadRequestException('Podaj hasło subkonta tylko do odczytu.');
     const glob = (await this.wczytaj())?.k;
     if (glob && glob.cryptPass === k.cryptPass) {
-      throw new BadRequestException('Hasło szyfrowania węzła musi być inne niż wspólne hasło floty — inaczej klucz jednego węzła nadal otwiera kopie innych.');
+      throw new BadRequestException('Hasło szyfrowania węzła musi być inne niż wspólne hasło floty – inaczej klucz jednego węzła nadal otwiera kopie innych.');
     }
     if (stare && (stare.cryptPass !== k.cryptPass || stare.cryptSalt !== k.cryptSalt)) {
       await this.audit.record({ action: 'BACKUP_OFFSITE_CRYPT_CHANGED', actorUserId, details: { serverId, host: k.host } });
@@ -229,7 +229,7 @@ export class BackupOffsiteService {
     const w = await this.wczytajWezla(sourceServerId);
     if (w?.k.pobranoAt) {
       if (!w.k.roUser || !w.k.roPass) {
-        throw new BadRequestException('Węzeł źródłowy nie ma subkonta tylko do odczytu w danych kopii off-site — uzupełnij je na karcie węzła.');
+        throw new BadRequestException('Węzeł źródłowy nie ma subkonta tylko do odczytu w danych kopii off-site – uzupełnij je na karcie węzła.');
       }
       return { rodzaj: 'wlasne', k: { ...w.k, user: w.k.roUser, pass: w.k.roPass } };
     }

@@ -67,9 +67,9 @@ it("wczytanie z serwera zleca zadanie", async () => {
  * Weryfikacja 11.10 — o 14:52 czasu PL panel pokazał koniec okna 16:42: czas z logu exima (lokalny węzła) brany za UTC.
  * Nowy agent podaje UTC z „Z”; wynik starszego agenta (bez strefy) — czas serwera wprost, bez przeliczania.
  */
-it("okno dziennika: UTC z agenta → czas PL; czas bez strefy (starszy agent) — bez przesunięcia", () => {
+it("okno dziennika: UTC z agenta → czas PL; czas bez strefy (starszy agent) – bez przesunięcia", () => {
   expect(okno("2026-10-11T12:42:40Z")).toBe("11.10.2026, 14:42");
   expect(okno("2026-10-11T14:42:40")).toBe("11.10.2026, 14:42");
   expect(okno("2026-10-11T01:40:00Z")).toBe("11.10.2026, 03:40");
-  expect(okno(null)).toBe("—");
+  expect(okno(null)).toBe("–");
 });

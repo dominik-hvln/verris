@@ -21,9 +21,9 @@ interface Signal {
 
 const SIGNALS: Signal[] = [
   { key: "handshake", label: "Agent połączony (bootstrap)", detail: "Węzeł wykonał handshake z control-plane." },
-  { key: "bootstrapDone", label: "Bootstrap zakończony", detail: "Faza „Gotowe” — po certyfikacie panelu (TLS)." },
+  { key: "bootstrapDone", label: "Bootstrap zakończony", detail: "Faza „Gotowe” – po certyfikacie panelu (TLS)." },
   { key: "heartbeatFresh", label: "Agent raportuje na żywo", detail: "Telemetria z ostatnich 5 minut." },
-  { key: "active", label: "Węzeł aktywny", detail: "Status ACTIVE — zaakceptowany do ruchu." },
+  { key: "active", label: "Węzeł aktywny", detail: "Status ACTIVE – zaakceptowany do ruchu." },
   { key: "daConfigured", label: "DirectAdmin skonfigurowany", detail: "Zapisany login key DA (test API gotowy)." },
 ];
 
@@ -129,7 +129,7 @@ export function NodeLiveStatus({
         })}
       </ul>
       <p className="mt-3 text-[11px] text-muted-foreground">
-        Panel sam odświeża stan — gdy krok faktycznie zadziała na węźle, zaświeci się tutaj na zielono.
+        Panel sam odświeża stan – gdy krok faktycznie zadziała na węźle, zaświeci się tutaj na zielono.
       </p>
     </div>
   );

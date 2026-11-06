@@ -344,8 +344,8 @@ export const REJESTR_WNIOSKOW = {
       const u = await z.prisma.user.findUnique({ where: { id: klientId }, select: { isInternal: true } });
       if (Boolean(u?.isInternal) !== p.isInternal) return null;
       return p.isInternal
-        ? 'Bez zmian — konto było już oznaczone jako wewnętrzne.'
-        : 'Bez zmian — konto nie było już oznaczone jako wewnętrzne.';
+        ? 'Bez zmian – konto było już oznaczone jako wewnętrzne.'
+        : 'Bez zmian – konto nie było już oznaczone jako wewnętrzne.';
     },
     async wykonaj(p, k, z) {
       await z.uzytkownicy.patchCustomerOperational(
@@ -365,7 +365,7 @@ export const REJESTR_WNIOSKOW = {
     doZlozenia: 'CUSTOMERS_VIEW',
     dto: ZasileniePortfelaPayload,
     wymagaKlienta: true,
-    opis: (p) => `Zasilenie portfela: ${kwotaPl(Number(p.amount))}${p.description ? ` — ${p.description}` : ''}`,
+    opis: (p) => `Zasilenie portfela: ${kwotaPl(Number(p.amount))}${p.description ? ` – ${p.description}` : ''}`,
     async wykonaj(p, k, z) {
       // Klucz idempotencji z id wniosku — drugi raz ten sam wniosek nie zasili portfela (obok blokady statusu).
       const tx = await z.portfel.adminCreditWallet({
@@ -388,7 +388,7 @@ export const REJESTR_WNIOSKOW = {
     doZlozenia: 'CUSTOMERS_VIEW',
     dto: AnulowanieDokumentuPayload,
     wymagaKlienta: true,
-    opis: (p) => `Anulowanie dokumentu — ${p.powod}`,
+    opis: (p) => `Anulowanie dokumentu – ${p.powod}`,
     async sprawdzPrzyZlozeniu(p, klientId, z) {
       const f = await z.prisma.invoice.findUnique({ where: { id: p.invoiceId }, select: { id: true, userId: true, number: true, status: true } });
       if (!f || f.userId !== klientId) throw new NotFoundException('Dokument nie istnieje na koncie tego klienta.');
@@ -398,7 +398,7 @@ export const REJESTR_WNIOSKOW = {
     },
     async bezZmian(p, _klientId, z) {
       const f = await z.prisma.invoice.findUnique({ where: { id: p.invoiceId }, select: { id: true, userId: true, number: true, status: true } });
-      return f?.status === 'VOID' ? `Bez zmian — dokument ${f.number} był już anulowany.` : null;
+      return f?.status === 'VOID' ? `Bez zmian – dokument ${f.number} był już anulowany.` : null;
     },
     async wykonaj(p, k, z) {
       const r = await z.anulowanie.anuluj({ invoiceId: p.invoiceId, powod: p.powod, aktorUserId: k.decydujacy.userId });
@@ -422,7 +422,7 @@ export const REJESTR_WNIOSKOW = {
     },
     async bezZmian(p, klientId, z) {
       const obecny = await z.prisma.user.findUnique({ where: { id: klientId }, select: { email: true } });
-      return obecny?.email?.toLowerCase() === p.newEmail.trim().toLowerCase() ? 'Bez zmian — klient ma już ten adres e-mail.' : null;
+      return obecny?.email?.toLowerCase() === p.newEmail.trim().toLowerCase() ? 'Bez zmian – klient ma już ten adres e-mail.' : null;
     },
     async wykonaj(p, k, z) {
       const r = await z.uzytkownicy.changeCustomerEmail(k.klientId!, k.decydujacy.userId, p.newEmail, k.uzasadnienie, { ipAddress: null, userAgent: null });
@@ -436,7 +436,7 @@ export const REJESTR_WNIOSKOW = {
     doZlozenia: 'CUSTOMERS_VIEW',
     dto: ResetHaslaPayload,
     wymagaKlienta: true,
-    opis: () => 'Reset hasła — klient dostanie link do ustawienia nowego',
+    opis: () => 'Reset hasła – klient dostanie link do ustawienia nowego',
     wymagaWnioskuMimoUprawnien: (_p, klientId, z) => z.uzytkownicy.resetWymagaWniosku(klientId!),
     async wykonaj(_p, k, z) {
       const r = await z.uzytkownicy.resetCustomerPassword(
@@ -449,8 +449,8 @@ export const REJESTR_WNIOSKOW = {
       );
       return {
         komunikat: r.linkWyslany
-          ? `Hasło zresetowane — link wysłany na ${r.email}.`
-          : `Hasło zresetowane, ale mail z linkiem nie wyszedł — klient może użyć „Nie pamiętasz hasła?”.`,
+          ? `Hasło zresetowane – link wysłany na ${r.email}.`
+          : `Hasło zresetowane, ale mail z linkiem nie wyszedł – klient może użyć „Nie pamiętasz hasła?”.`,
       };
     },
   }),
@@ -462,16 +462,16 @@ export const REJESTR_WNIOSKOW = {
     doZlozenia: 'SUBSCRIPTIONS_MANAGE',
     dto: ZawieszenieUslugiPayload,
     wymagaKlienta: true,
-    opis: (p) => `Zawieszenie usługi — strona, poczta i FTP klienta przestaną działać${zgl(p.zgloszenie)}`,
+    opis: (p) => `Zawieszenie usługi – strona, poczta i FTP klienta przestaną działać${zgl(p.zgloszenie)}`,
     async sprawdzPrzyZlozeniu(p, klientId, z) {
       const s = await uslugaKlienta(p.subscriptionId, klientId, z);
       if (s.status === 'SUSPENDED') throw new BadRequestException('Usługa jest już zawieszona.');
-      if (ZAKONCZONE.includes(s.status)) throw new BadRequestException('Usługa jest zakończona — nie ma czego zawieszać.');
+      if (ZAKONCZONE.includes(s.status)) throw new BadRequestException('Usługa jest zakończona – nie ma czego zawieszać.');
       await z.zawieszenie.zgloszenieKlienta(klientId!, p.zgloszenie);
     },
     async bezZmian(p, _klientId, z) {
       const s = await z.prisma.subscription.findUnique({ where: { id: p.subscriptionId }, select: { userId: true, status: true } });
-      return s?.status === 'SUSPENDED' ? 'Bez zmian — usługa była już zawieszona.' : null;
+      return s?.status === 'SUSPENDED' ? 'Bez zmian – usługa była już zawieszona.' : null;
     },
     async wykonaj(p, k, z) {
       await z.zawieszenie.zawies({
@@ -500,7 +500,7 @@ export const REJESTR_WNIOSKOW = {
     },
     async bezZmian(p, _klientId, z) {
       const s = await z.prisma.subscription.findUnique({ where: { id: p.subscriptionId }, select: { userId: true, status: true } });
-      return s && s.status !== 'SUSPENDED' ? 'Bez zmian — usługa nie była już zawieszona.' : null;
+      return s && s.status !== 'SUSPENDED' ? 'Bez zmian – usługa nie była już zawieszona.' : null;
     },
     async wykonaj(p, k, z) {
       await z.zawieszenie.odwies({
@@ -527,15 +527,15 @@ export const REJESTR_WNIOSKOW = {
     async sprawdzPrzyZlozeniu(p, klientId, z) {
       const s = await uslugaKlienta(p.subscriptionId, klientId, z);
       if (s.status !== 'ACTIVE') throw new BadRequestException('Datę odnowienia zmienisz tylko w aktywnej usłudze.');
-      if (!p.przed) throw new BadRequestException('Brak obecnej daty odnowienia we wniosku — odśwież kartę usługi.');
+      if (!p.przed) throw new BadRequestException('Brak obecnej daty odnowienia we wniosku – odśwież kartę usługi.');
       const okres = await z.prisma.subscription.findUnique({ where: { id: p.subscriptionId }, select: { userId: true, status: true, currentPeriodEnd: true } });
       if (okres?.currentPeriodEnd?.getTime() !== new Date(p.przed).getTime()) {
-        throw new ConflictException('Data odnowienia usługi zmieniła się (np. po odnowieniu) — odśwież kartę i złóż wniosek ponownie.');
+        throw new ConflictException('Data odnowienia usługi zmieniła się (np. po odnowieniu) – odśwież kartę i złóż wniosek ponownie.');
       }
       await z.zawieszenie.zgloszenieKlienta(klientId!, p.zgloszenie);
     },
     async wykonaj(p, k, z) {
-      if (!p.przed) throw new BadRequestException('Wniosek złożono bez obecnej daty odnowienia — złóż go ponownie z karty usługi.');
+      if (!p.przed) throw new BadRequestException('Wniosek złożono bez obecnej daty odnowienia – złóż go ponownie z karty usługi.');
       const r = await z.cyklZycia.zmienDateOdnowienia({
         subscriptionId: p.subscriptionId,
         operator: k.decydujacy,
@@ -556,13 +556,13 @@ export const REJESTR_WNIOSKOW = {
     doZlozenia: 'SUBSCRIPTIONS_MANAGE',
     dto: DodatekPayload,
     wymagaKlienta: true,
-    opis: (p) => `Dodatek ${p.slug}${p.przedluz ? ' (przedłużenie)' : ''} — ${p.platnosc === 'GRATIS' ? 'gratis (koszt Verris)' : 'z portfela klienta'}${zgl(p.zgloszenie)}`,
+    opis: (p) => `Dodatek ${p.slug}${p.przedluz ? ' (przedłużenie)' : ''} – ${p.platnosc === 'GRATIS' ? 'gratis (koszt Verris)' : 'z portfela klienta'}${zgl(p.zgloszenie)}`,
     async sprawdzPrzyZlozeniu(p, klientId, z) {
       const s = await uslugaKlienta(p.subscriptionId, klientId, z);
-      if (ZAKONCZONE.includes(s.status)) throw new BadRequestException('Usługa jest zakończona — dodatku nie dodasz.');
+      if (ZAKONCZONE.includes(s.status)) throw new BadRequestException('Usługa jest zakończona – dodatku nie dodasz.');
       const zgloszenieId = await z.zawieszenie.zgloszenieKlienta(klientId!, p.zgloszenie);
       if (p.platnosc === 'PORTFEL' && !zgloszenieId) {
-        throw new BadRequestException('Obciążenie portfela klienta tylko na jego zamówienie — podaj numer jego zgłoszenia albo wybierz gratis.');
+        throw new BadRequestException('Obciążenie portfela klienta tylko na jego zamówienie – podaj numer jego zgłoszenia albo wybierz gratis.');
       }
       // Audyt Fali 3 — ta sama reguła co przy wykonaniu (addon.service.ts): wiadomość klienta z panelu.
       if (p.platnosc === 'PORTFEL') await wymagajProsbyKlienta(z.prisma, zgloszenieId!, 'Obciążenie portfela klienta', { subscriptionId: p.subscriptionId });
@@ -605,12 +605,12 @@ export const REJESTR_WNIOSKOW = {
     },
     async bezZmian(p, _klientId, z) {
       const t = await z.prisma.ticket.findUnique({ where: { id: p.zrodloId }, select: { userId: true, scalonoDoId: true } });
-      return t?.scalonoDoId === p.celId ? `Bez zmian — zgłoszenie było już scalone z #${p.celId.slice(0, 8)}.` : null;
+      return t?.scalonoDoId === p.celId ? `Bez zmian – zgłoszenie było już scalone z #${p.celId.slice(0, 8)}.` : null;
     },
     async wykonaj(p, k, z) {
       const powod = `${k.uzasadnienie?.trim() || 'Scalenie zgłoszeń'} (wniosek ${k.wniosekId.slice(0, 8)})`;
       const r = await z.zgloszenia.adminMerge(p.zrodloId, p.celId, k.decydujacy.userId, powod);
-      return { komunikat: `Scalono — wątek w zgłoszeniu #${r.celId.slice(0, 8)}.`, celId: r.celId };
+      return { komunikat: `Scalono – wątek w zgłoszeniu #${r.celId.slice(0, 8)}.`, celId: r.celId };
     },
   }),
   NODE_SERVICE_RESTART: definicja<RestartUslugiWezlaPayload>({
@@ -621,7 +621,7 @@ export const REJESTR_WNIOSKOW = {
     doZlozenia: 'NODE_SERVICES',
     dto: RestartUslugiWezlaPayload,
     wymagaKlienta: false,
-    opis: (p) => `Restart: ${uslugaWezla(p.usluga)?.etykieta ?? p.usluga} na węźle ${p.serverId.slice(0, 8)} — przerwa dla wszystkich kont węzła`,
+    opis: (p) => `Restart: ${uslugaWezla(p.usluga)?.etykieta ?? p.usluga} na węźle ${p.serverId.slice(0, 8)} – przerwa dla wszystkich kont węzła`,
     async sprawdzPrzyZlozeniu(p, _klientId, z) {
       const w = await z.uslugiWezla.wezel(p.serverId);
       if (w.status !== 'ACTIVE' && w.status !== 'MAINTENANCE') throw new BadRequestException('Węzeł nie jest aktywny.');

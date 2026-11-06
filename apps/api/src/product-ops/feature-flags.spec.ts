@@ -6,7 +6,7 @@ const f = (o: Partial<FlagaDoOceny> = {}): FlagaDoOceny => ({
 });
 const teraz = new Date('2026-09-23T12:00:00Z');
 
-describe('N-12 — ocena flagi', () => {
+describe('N-12 – ocena flagi', () => {
   it('domyślnie włączona / wyłączona', () => {
     expect(ocenFlage(f({ enabledDefault: true }), 'u1', [], teraz)).toBe(true);
     expect(ocenFlage(f(), 'u1', [], teraz)).toBe(false);

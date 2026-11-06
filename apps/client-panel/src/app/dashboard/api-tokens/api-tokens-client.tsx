@@ -68,7 +68,7 @@ export function ApiTokensClient({ mozeTworzyc = true }: { mozeTworzyc?: boolean 
   };
 
   const revoke = async (id: string, nazwa: string) => {
-    const ok = await potwierdz(`Unieważnić token „${nazwa}”? Skrypty, które go używają, przestaną działać od razu — tego nie da się cofnąć.`, {
+    const ok = await potwierdz(`Unieważnić token „${nazwa}”? Skrypty, które go używają, przestaną działać od razu – tego nie da się cofnąć.`, {
       akcja: 'Unieważnij',
       niebezpieczne: true,
     });
@@ -94,12 +94,12 @@ export function ApiTokensClient({ mozeTworzyc = true }: { mozeTworzyc?: boolean 
 
       {created ? (
         <section className="rounded-2xl border border-emerald-500/40 bg-emerald-500/5 p-5 space-y-3">
-          <div className="flex items-center gap-2 text-emerald-200 font-semibold"><ShieldAlert className="h-5 w-5" /> Skopiuj token teraz — pokazujemy go tylko raz</div>
+          <div className="flex items-center gap-2 text-emerald-200 font-semibold"><ShieldAlert className="h-5 w-5" /> Skopiuj token teraz – pokazujemy go tylko raz</div>
           <div className="flex items-center gap-2">
             <code data-prywatne className="flex-1 break-all rounded-lg bg-black/50 border border-white/10 px-3 py-2 text-sm text-emerald-300 font-mono">{created}</code>
             <button onClick={copy} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-500">{copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />} {copied ? 'Skopiowano' : 'Kopiuj'}</button>
           </div>
-          <p className="text-xs text-neutral-400">Użyj go w nagłówku: <code className="text-neutral-300">Authorization: Bearer &lt;token&gt;</code>. Po zamknięciu nie odzyskasz sekretu — utwórz nowy, jeśli go zgubisz.</p>
+          <p className="text-xs text-neutral-400">Użyj go w nagłówku: <code className="text-neutral-300">Authorization: Bearer &lt;token&gt;</code>. Po zamknięciu nie odzyskasz sekretu – utwórz nowy, jeśli go zgubisz.</p>
         </section>
       ) : null}
 
@@ -194,7 +194,7 @@ export function ApiTokensClient({ mozeTworzyc = true }: { mozeTworzyc?: boolean 
           Odczyt: <code>GET /api/v1/me</code>, <code>/services</code>, <code>/services/:id</code>, <code>/billing/wallet</code>, <code>/invoices</code>,{' '}
           <code>/services/:id/dns?domain=</code> (dns:read), <code>/services/:id/deploy?domain=</code> (deploy:write), <code>/services/:id/mailboxes</code> (mail:read).
           Zapis: <code>POST /services/:id/dns</code> i <code>/services/:id/dns/delete</code> z polami domain, name, type, value (dns:write);{' '}
-          <code>POST /services/:id/deploy</code> z polem domain (i opcjonalnie dir) — pobiera zmiany z repozytorium Git (deploy:write);{' '}
+          <code>POST /services/:id/deploy</code> z polem domain (i opcjonalnie dir) – pobiera zmiany z repozytorium Git (deploy:write);{' '}
           <code>POST /services/:id/mailboxes</code> (email, password, opcjonalnie quotaMb), <code>/mailboxes/password</code>, <code>/mailboxes/quota</code> i{' '}
           <code>/mailboxes/delete</code> (mail:write). Webhooki (zdarzenia wysyłane na Twój adres) ustawisz niżej.
         </p>
@@ -204,7 +204,7 @@ export function ApiTokensClient({ mozeTworzyc = true }: { mozeTworzyc?: boolean 
           rel="noopener"
           className="mt-2 inline-block text-xs font-semibold text-emerald-400 hover:underline"
         >
-          Pełna dokumentacja API — pola, błędy, limity, podpis webhooków ↗
+          Pełna dokumentacja API – pola, błędy, limity, podpis webhooków ↗
         </a>
       </section>
     </div>

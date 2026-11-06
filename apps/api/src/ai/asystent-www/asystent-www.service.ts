@@ -26,7 +26,7 @@ import {
   odczytajKonfiguracjeAsystenta,
   type KonfiguracjaAsystenta,
 } from './konfiguracja.js';
-import { BEZPIECZNA_ODPOWIEDZ, DOPISEK_PONOWNEJ_PROBY, sprawdzWhiteLabel } from './filtr-white-label.js';
+import { BEZPIECZNA_ODPOWIEDZ, DOPISEK_PONOWNEJ_PROBY, bezPauzy, sprawdzWhiteLabel } from './filtr-white-label.js';
 import { ODPOWIEDZ_NIE_WIEM, ODPOWIEDZI_STRAZNIKA, PROMPT_STRAZNIKA, PROMPT_SYSTEMOWY } from './prompt.js';
 import {
   blokZrodel,
@@ -57,7 +57,7 @@ export interface OdpowiedzAsystenta {
 export type KodBleduAsystenta = 'NIEDOSTEPNY' | 'BRAK_KONFIGURACJI' | 'CAPTCHA_WYMAGANA' | 'LIMIT_ROZMOWY' | 'LIMIT_DOBOWY';
 
 const KOMUNIKAT_NIEDOSTEPNY =
-  'Asystent jest chwilowo niedostępny. Zostaw numer w „Poproś o telefon” — oddzwonimy w dni robocze 9–17.';
+  'Asystent jest chwilowo niedostępny. Zostaw numer w „Poproś o telefon” – oddzwonimy w dni robocze 9–17.';
 
 function blad(status: HttpStatus, kod: KodBleduAsystenta, message: string): HttpException {
   return new HttpException({ statusCode: status, kod, message }, status);
@@ -199,7 +199,7 @@ export class AsystentWwwService {
       throw blad(
         HttpStatus.TOO_MANY_REQUESTS,
         'LIMIT_ROZMOWY',
-        'Ta rozmowa jest już długa. Zacznij nową albo zostaw numer w „Poproś o telefon” — przekażemy ją człowiekowi.',
+        'Ta rozmowa jest już długa. Zacznij nową albo zostaw numer w „Poproś o telefon” – przekażemy ją człowiekowi.',
       );
     }
 
@@ -351,7 +351,7 @@ export class AsystentWwwService {
       koszt += r.kosztUsd;
       await this.loguj(FUNKCJA_ODPOWIEDZ, r, { chars: pytanie.length, zrodla: zrodla.length, proba });
       const v = parsujJson(r.wynik) as { odpowiedz?: unknown; zrodla?: unknown; nieWiem?: unknown } | null;
-      const tekst = typeof v?.odpowiedz === 'string' ? v.odpowiedz.trim() : '';
+      const tekst = typeof v?.odpowiedz === 'string' ? bezPauzy(v.odpowiedz.trim()) : '';
       const przyjete = przyjmijZrodla(v?.zrodla, zrodla);
       const nieWiem = v?.nieWiem === true || !tekst || przyjete.length === 0;
       // Bez cytowanego źródła odpowiedź nie trafia do klienta — zamiast niej standardowe „nie wiem”.

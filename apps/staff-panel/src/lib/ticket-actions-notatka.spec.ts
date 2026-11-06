@@ -32,7 +32,7 @@ it("„Zapisz jako notatkę” idzie na /notatki, nie na /replies", async () => 
   expect(mockMultipart).not.toHaveBeenCalled();
 });
 
-it("notatka z plikiem — odmowa bez wywołania API (plik nie pójdzie do klienta jako odpowiedź)", async () => {
+it("notatka z plikiem – odmowa bez wywołania API (plik nie pójdzie do klienta jako odpowiedź)", async () => {
   const r = await staffPostReplyWithFiles("t1", formularz({ message: "Log w załączniku", rodzaj: "notatka" }, new File(["x"], "log.txt")));
   expect(r).toEqual({ error: expect.stringMatching(/Notatka nie przyjmuje załączników/) });
   expect(mockStaffApi).not.toHaveBeenCalled();
@@ -44,7 +44,7 @@ it("zwykła odpowiedź dalej idzie na /replies", async () => {
   expect(mockStaffApi).toHaveBeenCalledWith("/tickets/admin/t1/replies", { method: "POST", body: { message: "Dzień dobry, sprawdzamy.", czekaj: "tak" } });
 });
 
-it("pusta notatka — komunikat bez wywołania API", async () => {
+it("pusta notatka – komunikat bez wywołania API", async () => {
   await expect(staffPostNote("t1", " ")).resolves.toEqual({ error: "Notatka jest za krótka." });
   expect(mockStaffApi).not.toHaveBeenCalled();
 });

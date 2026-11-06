@@ -99,7 +99,7 @@ const ZDARZENIA: Record<string, string> = {
   MIGRATION_CONSENT_ACCEPTED: "Klient zgodził się",
   MIGRATION_CONSENT_REJECTED: "Klient odmówił",
   MIGRATION_CONSENT_EXPIRED: "Prośba o zgodę wygasła",
-  MIGRATION_ESCALATED: "Automat zatrzymany — wymaga uwagi",
+  MIGRATION_ESCALATED: "Automat zatrzymany – wymaga uwagi",
   MIGRATION_ATTENTION_RESOLVED: "Uwaga rozwiązana",
   MIGRATION_WORKER_JOB_QUEUED: "Krok w kolejce",
   MIGRATION_WORKER_JOB_STARTED: "Krok rozpoczęty",
@@ -133,11 +133,11 @@ export function opisZdarzenia(akcja: string, szczegoly: unknown): string {
   const nazwa = ZDARZENIA[akcja] ?? akcja;
   const d = szczegoly && typeof szczegoly === "object" ? (szczegoly as Record<string, unknown>) : {};
   if (akcja === "MIGRATION_STAGE_CHANGED") {
-    const powod = typeof d.powod === "string" ? ` — ${d.powod}` : "";
+    const powod = typeof d.powod === "string" ? ` – ${d.powod}` : "";
     return `${nazwa}: ${nazwaEtapu(String(d.z))} → ${nazwaEtapu(String(d.na))}${powod}`;
   }
   if (akcja === "MIGRATION_CHECKLIST_UPDATED" && typeof d.pole === "string") {
-    return `${nazwa}: ${POLA[d.pole] ?? d.pole} ${d.odhaczone ? "✓" : "— wyczyszczone"}`;
+    return `${nazwa}: ${POLA[d.pole] ?? d.pole} ${d.odhaczone ? "✓" : "– wyczyszczone"}`;
   }
   if (akcja === "MIGRATION_HANDLING_UPDATED" && d.zmiany && typeof d.zmiany === "object") {
     return `${nazwa}: ${Object.keys(d.zmiany as object).map((k) => POLA[k] ?? k).join(", ")}`;

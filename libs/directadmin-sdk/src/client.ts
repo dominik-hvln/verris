@@ -313,7 +313,7 @@ export class DirectAdminClient {
       if (left > 0) {
         // „ETIMEDOUT" w treści: klasyfikatory błędów (provisioning) uznają to za błąd przejściowy.
         const err = new Error(
-          `connect ETIMEDOUT ${config.host} — węzeł nie odpowiadał przed chwilą, kolejna próba za ${Math.ceil(left / 1000)} s`,
+          `connect ETIMEDOUT ${config.host} – węzeł nie odpowiadał przed chwilą, kolejna próba za ${Math.ceil(left / 1000)} s`,
         ) as Error & { code?: string };
         err.code = 'ETIMEDOUT_CIRCUIT';
         throw err;
@@ -489,7 +489,7 @@ export class DirectAdminClient {
   private assertFileManagerOk(data: unknown): void {
     const params = this.daPayloadToParams(data);
     if (params.get('error') === '1') {
-      const powod = [params.get('text'), params.get('details')].filter((x) => x && x.trim()).join(' — ');
+      const powod = [params.get('text'), params.get('details')].filter((x) => x && x.trim()).join(' – ');
       throw bladDa(powod || 'DirectAdmin file manager operation failed');
     }
   }
@@ -1012,7 +1012,7 @@ export class DirectAdminClient {
     }
     const przelaczniki = PRZELACZNIKI_KONTA.filter((k) => obecne[k] === 'ON' || obecne[k] === 'OFF');
     if (przelaczniki.length === 0) {
-      throw new Error(`DirectAdmin: nie odczytano ustawień konta ${username} — limitów nie zmieniono.`);
+      throw new Error(`DirectAdmin: nie odczytano ustawień konta ${username} – limitów nie zmieniono.`);
     }
     const body = new URLSearchParams({ action: 'customize', user: username });
     const pole = (nazwa: string, v: DaLimit, minLimit = 0) => {
@@ -1509,7 +1509,7 @@ export class DirectAdminClient {
       throw bladDa(
         typeof res.data === 'string' && res.data.trim().startsWith('<')
           ? 'CMD_ADMIN_SETTINGS odpowiedział stroną HTML zamiast ustawień'
-          : 'CMD_ADMIN_SETTINGS odpowiedział bez JSON — nie da się odczytać listy blokad wysyłki',
+          : 'CMD_ADMIN_SETTINGS odpowiedział bez JSON – nie da się odczytać listy blokad wysyłki',
       );
     }
     return parseEmailBlacklist(res.data);
@@ -1523,7 +1523,7 @@ export class DirectAdminClient {
     if (!/^[a-z][a-z0-9]{0,15}$/.test(username)) throw new Error(`Niepoprawna nazwa użytkownika: ${username.slice(0, 20)}`);
     const przed = await this.getEmailSendBlacklist();
     if (!przed.dostepne) {
-      throw bladDa('Węzeł nie obsługuje blokady wysyłki (brak HAVE_BLACKLIST_USERNAMES w ustawieniach exima — zaktualizuj exim.conf przez CustomBuild).');
+      throw bladDa('Węzeł nie obsługuje blokady wysyłki (brak HAVE_BLACKLIST_USERNAMES w ustawieniach exima – zaktualizuj exim.conf przez CustomBuild).');
     }
     const res = await this.client.post(
       '/CMD_ADMIN_SETTINGS',
@@ -1855,7 +1855,7 @@ export class DirectAdminClient {
     if (error && error !== '0') {
       const details = params.get('details');
       const text = params.get('text');
-      throw bladDa([text, details].filter(Boolean).join(' — ') || 'DirectAdmin odrzucił operację', 'DirectAdmin API Error: ');
+      throw bladDa([text, details].filter(Boolean).join(' – ') || 'DirectAdmin odrzucił operację', 'DirectAdmin API Error: ');
     }
     return {
       success: true as const,

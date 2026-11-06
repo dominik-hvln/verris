@@ -20,7 +20,7 @@ const zarzadzane = () =>
     where: { OR: [{ sourceRef: { startsWith: 'pomoc:' } }, { sourceRef: { startsWith: 'docs-ops:' } }] },
   });
 
-describe('Patch 7 — synchronizacja wiedzy STAFF', () => {
+describe('Patch 7 – synchronizacja wiedzy STAFF', () => {
   beforeEach(async () => {
     await prisma().aiKnowledgeDoc.deleteMany({});
   });

@@ -26,7 +26,7 @@ import { CommandPalette } from "./command-palette";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
-describe("Cmd+K — tryb obiekt → działanie (prowadzi do karty, nie wykonuje)", () => {
+describe("Cmd+K – tryb obiekt → działanie (prowadzi do karty, nie wykonuje)", () => {
   let root: Root;
   let el: HTMLElement;
   const czekaj = (ms: number) => act(async () => new Promise((r) => setTimeout(r, ms)));
@@ -91,7 +91,7 @@ describe("Cmd+K — tryb obiekt → działanie (prowadzi do karty, nie wykonuje)
     expect(push).toHaveBeenCalledWith("/nodes/n1?sekcja=aktualizacje#onboard-live");
   });
 
-  it("bez NODES_MANAGE — działanie wyszarzone z powodem, Enter nic nie robi", async () => {
+  it("bez NODES_MANAGE – działanie wyszarzone z powodem, Enter nic nie robi", async () => {
     await otworz({ isAdmin: false, permissions: ["NODES_VIEW"] });
     await wpisz("onboard t1");
     const b = [...document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button[aria-disabled="true"]')].find((x) => x.textContent?.includes("Onboard LIVE · t1"));
@@ -176,7 +176,7 @@ describe("Cmd+K — tryb obiekt → działanie (prowadzi do karty, nie wykonuje)
     expect(mockSzukaj).toHaveBeenCalledWith("awaria");
   });
 
-  describe("fala 1B — SSO do DA węzła uruchamia się od razu z palety", () => {
+  describe("fala 1B – SSO do DA węzła uruchamia się od razu z palety", () => {
     const okno = { location: { href: "" }, close: jest.fn(), opener: {} as unknown };
     let open: jest.SpyInstance;
     beforeEach(() => {
@@ -191,7 +191,7 @@ describe("Cmd+K — tryb obiekt → działanie (prowadzi do karty, nie wykonuje)
     });
     afterEach(() => open.mockRestore());
 
-    it("admin: węzeł + Tab + „sso” + Enter — ta sama akcja serwera co przycisk na karcie, bez przechodzenia na kartę", async () => {
+    it("admin: węzeł + Tab + „sso” + Enter – ta sama akcja serwera co przycisk na karcie, bez przechodzenia na kartę", async () => {
       mockSso.mockResolvedValue({ data: { url: "https://t1.example:2222/api/login/url?key=jednorazowy", sshHost: null, sshCommand: null } });
       await otworz();
       await wpisz("t1");

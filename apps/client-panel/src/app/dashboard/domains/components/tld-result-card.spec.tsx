@@ -13,7 +13,7 @@ Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
 /** A-11, t1 04.10: TLD bez odpowiedzi rejestru pokazywał się jako „Zajęta” — klient myślał, że domena jest zajęta. */
 it.each([
-  [{ label: '.online', available: false, unknown: true }, 'Nie sprawdzono — spróbuj później'],
+  [{ label: '.online', available: false, unknown: true }, 'Nie sprawdzono – spróbuj później'],
   [{ label: '.pl', available: false }, 'Zajęta'],
 ])('%o → %s', async (result, tekst) => {
   const el = document.createElement('div');

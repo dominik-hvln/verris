@@ -11,7 +11,7 @@ import { prisma, rozlacz, utworzWezel, wyczyscBaze } from './setup.js';
 const DZIEN = 86_400_000;
 const temu = (dni: number) => new Date(Date.now() - dni * DZIEN);
 
-describe('audyt Fali 3 — retencja danych osobowych', () => {
+describe('audyt Fali 3 – retencja danych osobowych', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 

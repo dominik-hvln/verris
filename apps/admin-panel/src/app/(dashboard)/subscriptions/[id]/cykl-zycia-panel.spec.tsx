@@ -74,7 +74,7 @@ it("nowy koniec okresu: dzień z kalendarza, godzina jak w obecnym końcu", () =
   expect(nowyKoniec("2026-11-27", null)).toBeNull();
 });
 
-it("przegląd 12.10 — dni liczone w Polsce, nie w UTC: koniec okresu tuż przed północą UTC", () => {
+it("przegląd 12.10 – dni liczone w Polsce, nie w UTC: koniec okresu tuż przed północą UTC", () => {
   // 23:30 UTC = 00:30 następnego dnia w Polsce (CET) — dzień usługi to 27.11, nie 26.11.
   const poznym = "2026-11-26T23:30:00.000Z";
   expect(plusDni(poznym, 0)).toBe("2026-11-27");
@@ -85,7 +85,7 @@ it("przegląd 12.10 — dni liczone w Polsce, nie w UTC: koniec okresu tuż prze
   expect(plusDni("2026-10-20T22:30:00.000Z", 7)).toBe("2026-10-28");
 });
 
-it("L2: anulacja wymaga powodu, potwierdzenia; wysyła powód i zgłoszenie; data odnowienia i dodatek — tylko wniosek", async () => {
+it("L2: anulacja wymaga powodu, potwierdzenia; wysyła powód i zgłoszenie; data odnowienia i dodatek – tylko wniosek", async () => {
   await render(AKTYWNA, L2);
   expect(przycisk("anuluj").disabled).toBe(true);
   await wpisz(k.querySelector('[data-pole="powod"]')!, POWOD);
@@ -122,7 +122,7 @@ it("L4: zmienia datę bezpośrednio (po powodzie i potwierdzeniu)", async () => 
 
 it("anulowana: stan „działa do” i cofnięcie; bez zmiany daty", async () => {
   await render({ ...AKTYWNA, cancelAt: KONIEC }, L2);
-  expect(k.textContent).toContain("Anulowana — działa do");
+  expect(k.textContent).toContain("Anulowana – działa do");
   expect(k.querySelector('[data-sekcja="data-odnowienia"]')).toBeNull();
   await wpisz(k.querySelector('[data-pole="powod"]')!, POWOD);
   await klik(przycisk("cofnij-anulacje"));
@@ -148,12 +148,12 @@ it("zaległa: obietnica zapłaty od L3 (dni z listy); L2 widzi brak uprawnienia"
   expect(cykl).toHaveBeenCalledWith("s1", "obietnica-zaplaty", { powod: POWOD, zgloszenie: undefined, dni: 5 });
 });
 
-it("przegląd F3.5: zespół abuse (samo SUBSCRIPTIONS_SUSPEND) nie daje obietnicy zapłaty — jak w API", async () => {
+it("przegląd F3.5: zespół abuse (samo SUBSCRIPTIONS_SUSPEND) nie daje obietnicy zapłaty – jak w API", async () => {
   await render({ ...AKTYWNA, status: "PAST_DUE" }, { isAdmin: false, permissions: ["CUSTOMERS_VIEW", "SUBSCRIPTIONS_SUSPEND"] });
   expect(k.querySelector('[data-akcja="obietnica"]')).toBeNull();
 });
 
-it("L4: dodatek z portfela klienta tylko ze zgłoszeniem; gratis — od razu", async () => {
+it("L4: dodatek z portfela klienta tylko ze zgłoszeniem; gratis – od razu", async () => {
   await render(AKTYWNA, L4);
   await wpisz(k.querySelector('[data-pole="powod"]')!, POWOD);
   await wpisz(k.querySelector('input[aria-label="Dodatek"]')!, "dedicated_ip");
@@ -166,7 +166,7 @@ it("L4: dodatek z portfela klienta tylko ze zgłoszeniem; gratis — od razu", a
   expect(k.textContent).toContain("Dodano.");
 });
 
-it("weryfikacja 11.10: aktywny priorytet — „Przedłuż o 30 dni” z jawnym przedłużeniem, nie drugi taki sam dodatek", async () => {
+it("weryfikacja 11.10: aktywny priorytet – „Przedłuż o 30 dni” z jawnym przedłużeniem, nie drugi taki sam dodatek", async () => {
   dodatki.mockResolvedValue({
     ok: true,
     wynik: {

@@ -254,12 +254,12 @@ export class CustomerIamService {
         const wylaczone = await this.prisma.user.findUnique({ where: { id: existing.id }, select: { subaccountDisabledAt: true } });
         throw new ConflictException(
           wylaczone?.subaccountDisabledAt
-            ? 'To adres Twojego wyłączonego subkonta. Włącz je ponownie albo usuń subkonto — wtedy możesz wysłać nowe zaproszenie.'
-            : 'Ta osoba ma już subkonto na Twoim koncie — zmień jej uprawnienia na liście subkont.',
+            ? 'To adres Twojego wyłączonego subkonta. Włącz je ponownie albo usuń subkonto – wtedy możesz wysłać nowe zaproszenie.'
+            : 'Ta osoba ma już subkonto na Twoim koncie – zmień jej uprawnienia na liście subkont.',
         );
       }
       if (existing.role !== Role.USER || existing.customerOwnerId || existing.anonymizedAt) {
-        throw new ConflictException('Na ten adres nie można wysłać zaproszenia — użyj innego adresu.');
+        throw new ConflictException('Na ten adres nie można wysłać zaproszenia – użyj innego adresu.');
       }
       const jest = await this.prisma.customerMembership.findUnique({
         where: { ownerUserId_memberUserId: { ownerUserId, memberUserId: existing.id } },
@@ -329,7 +329,7 @@ export class CustomerIamService {
     }
     const existing = await this.prisma.user.findUnique({ where: { email: invite.email } });
     if (existing) {
-      throw new ConflictException('Konto z tym adresem już istnieje — zaloguj się i przyjmij zaproszenie ze swojego konta.');
+      throw new ConflictException('Konto z tym adresem już istnieje – zaloguj się i przyjmij zaproszenie ze swojego konta.');
     }
     const passwordHash = await bcrypt.hash(dto.password, 12);
     const user = await this.prisma.$transaction(async (tx) => {

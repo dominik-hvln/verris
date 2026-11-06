@@ -83,7 +83,7 @@ const GENERUJE_KLIENTA = /db:generate|prisma generate|@verris\/database build/;
 const BUDUJE_BIBLIOTEKI = /@verris\/database.*run build|turbo run build|pnpm build/;
 const POTRZEBUJE_KLIENTA = new RegExp(`db:seed|prisma db seed|${URUCHAMIA_JEST.source}`);
 
-describe('X-17 — joby CI budują to, czego ich kroki potrzebują', () => {
+describe('X-17 – joby CI budują to, czego ich kroki potrzebują', () => {
   it('plik ci.yml daje się rozłożyć na joby', () => {
     const lista = joby();
     expect(lista.length).toBeGreaterThanOrEqual(5);
@@ -102,7 +102,7 @@ describe('X-17 — joby CI budują to, czego ich kroki potrzebują', () => {
       throw new Error(
         `Joby uruchamiające testy bez zbudowania bibliotek: ${winni.join(', ')}.\n\n` +
           '@verris/database ma main: dist/index.js. Bez `dist/` jest nie rozwiąże modułu\n' +
-          'i zestawy testowe NIE WYSTARTUJĄ — job będzie czerwony w sposób, który wygląda\n' +
+          'i zestawy testowe NIE WYSTARTUJĄ – job będzie czerwony w sposób, który wygląda\n' +
           'jak awaria testów, a jest awarią konfiguracji.\n\n' +
           'Dodaj krok:\n' +
           '  - name: Build workspace libraries\n' +
@@ -121,7 +121,7 @@ describe('X-17 — joby CI budują to, czego ich kroki potrzebują', () => {
     if (winni.length > 0) {
       throw new Error(
         `Joby wołające kod importujący @verris/database bez wygenerowanego klienta: ${winni.join(', ')}.\n\n` +
-          'Klient Prismy nie jest w repozytorium — powstaje z `prisma generate`.\n' +
+          'Klient Prismy nie jest w repozytorium – powstaje z `prisma generate`.\n' +
           'Dodaj krok:\n' +
           '  - name: Generate Prisma client\n' +
           '    run: pnpm --filter @verris/database db:generate',
@@ -174,7 +174,7 @@ describe('X-17 — joby CI budują to, czego ich kroki potrzebują', () => {
     expect(job!.tresc).not.toMatch(/(jest|vitest)\s+(run\s+)?--config/);
   });
 
-  it('kontrola samego strażnika — rozpoznaje job bez budowania', () => {
+  it('kontrola samego strażnika – rozpoznaje job bez budowania', () => {
     const atrapa = `  zly-job:
     steps:
       - name: Generate Prisma client

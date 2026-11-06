@@ -35,7 +35,7 @@ function limitSrodowisko() {
   return { dir, virtual, uruchom, plik: join(virtual, 'limit_klient1'), exim: () => existsSync(join(dir, 'exim')) };
 }
 
-describe('F3.1 — limit wysyłki konta (node-mail-queue.sh, tryb limit)', () => {
+describe('F3.1 – limit wysyłki konta (node-mail-queue.sh, tryb limit)', () => {
   it('odczyt bez własnego limitu: „domyslny” i limit domyślny serwera', () => {
     const s = limitSrodowisko();
     const r = s.uruchom({ MQ_USER: 'klient1' });
@@ -93,7 +93,7 @@ const LOG = [
   '2026-10-10 10:03:00 1tAAAA-00000000004-AAAA => biuro <biuro@firma.pl> R=virtual_user T=dovecot_lmtp_udp',
 ].join('\n');
 
-describe('F3.1 — najwięksi nadawcy i odrzucenia węzła (node-mail-log.sh, tryb stats)', () => {
+describe('F3.1 – najwięksi nadawcy i odrzucenia węzła (node-mail-log.sh, tryb stats)', () => {
   const uruchom = (env: Record<string, string>) => {
     const dir = mkdtempSync(join(tmpdir(), 'stats-'));
     writeFileSync(join(dir, 'mainlog'), LOG + '\n');
@@ -113,7 +113,7 @@ describe('F3.1 — najwięksi nadawcy i odrzucenia węzła (node-mail-log.sh, tr
     expect(r.out).not.toMatch(/[a-z0-9._-]+@[a-z0-9.-]+/i);
   });
 
-  it('weryfikacja 11.10: węzeł w strefie Europe/Warsaw — okno w UTC (14:42 czasu PL = 12:42Z), nie czas lokalny udający UTC', () => {
+  it('weryfikacja 11.10: węzeł w strefie Europe/Warsaw – okno w UTC (14:42 czasu PL = 12:42Z), nie czas lokalny udający UTC', () => {
     const r = uruchom({ ML_MODE: 'stats', TZ: 'Europe/Warsaw' });
     expect(r.rc).toBe(0);
     // 10.10 to czas letni (CEST, +02:00): 10:00 lokalnie = 08:00Z.

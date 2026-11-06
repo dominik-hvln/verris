@@ -74,10 +74,10 @@ export default async function StaffCrmPage({
                   <td className="px-4 py-3">
                     {u.firstName || u.lastName
                       ? `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim()
-                      : "—"}
+                      : "–"}
                   </td>
                   <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{u.email}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{u.companyName ?? "—"}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{u.companyName ?? "–"}</td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {new Date(u.createdAt).toLocaleDateString("pl-PL")}
                   </td>

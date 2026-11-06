@@ -7,7 +7,7 @@ import { procent } from './drzewa-wyliczenia';
 const STATUS: Record<ZamowienieSadzenia['status'], string> = {
   OCZEKUJE: 'Czeka',
   WYSYLANE: 'W wysyłce',
-  NIEPEWNE: 'Niepewne — sprawdź u partnera',
+  NIEPEWNE: 'Niepewne – sprawdź u partnera',
   ZLOZONE: 'Złożone, bez certyfikatu',
   POSADZONE: 'Posadzone',
 };
@@ -24,7 +24,7 @@ export function ZamowieniaSadzenia({ panel }: { panel: PanelDrzew }) {
       <h2 className="text-sm font-bold uppercase tracking-widest text-emerald-400">Pula i zamówienia</h2>
       <ul className="grid gap-2 text-sm text-neutral-300 sm:grid-cols-2">
         <li>Pula (nieprzydzielone): {procent(panel.pulaCzesci)} drzewa</li>
-        <li>Wkłady łącznie — z usług: {procent(panel.wkladyCzesci.USLUGA ?? 0)}, z punktów: {procent(panel.wkladyCzesci.PUNKTY ?? 0)}</li>
+        <li>Wkłady łącznie – z usług: {procent(panel.wkladyCzesci.USLUGA ?? 0)}, z punktów: {procent(panel.wkladyCzesci.PUNKTY ?? 0)}</li>
         <li>Posadzone (produkcja, z certyfikatem): {panel.posadzoneProdukcja}</li>
         <li>Posadzone w API testowym (nie liczą się): {panel.posadzoneTest}</li>
       </ul>
@@ -48,7 +48,7 @@ export function ZamowieniaSadzenia({ panel }: { panel: PanelDrzew }) {
               return (
                 <tr key={z.id} className="border-t border-white/5 align-top">
                   <td className="py-2 pr-3">{new Date(z.createdAt).toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw' })}</td>
-                  <td className="pr-3">{z.rodzaj === 'PULA' ? 'Zbiorcze' : `Własne (${z.klient ?? '—'})`}</td>
+                  <td className="pr-3">{z.rodzaj === 'PULA' ? 'Zbiorcze' : `Własne (${z.klient ?? '–'})`}</td>
                   <td className="pr-3">{z.liczbaDrzew}</td>
                   <td className="pr-3">
                     {STATUS[z.status]}
@@ -57,7 +57,7 @@ export function ZamowieniaSadzenia({ panel }: { panel: PanelDrzew }) {
                   </td>
                   <td className="pr-3">{z.srodowisko}</td>
                   <td className="pr-3">
-                    {z.orderId ?? '—'}
+                    {z.orderId ?? '–'}
                     {z.certificateUrl ? (
                       <div>
                         <a href={z.certificateUrl} target="_blank" rel="noopener noreferrer" className="text-emerald-400 underline">
@@ -79,7 +79,7 @@ export function ZamowieniaSadzenia({ panel }: { panel: PanelDrzew }) {
                           })
                         }
                       >
-                        Nie ma u partnera — ponów
+                        Nie ma u partnera – ponów
                       </button>
                     ) : null}
                     {z.status === 'NIEPEWNE' || z.status === 'ZLOZONE' ? (
@@ -109,7 +109,7 @@ export function ZamowieniaSadzenia({ panel }: { panel: PanelDrzew }) {
                             })
                           }
                         >
-                          Jest u partnera — zapisz
+                          Jest u partnera – zapisz
                         </button>
                       </div>
                     ) : null}

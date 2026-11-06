@@ -2,7 +2,7 @@ import { promises as dns } from 'dns';
 import { DeliverabilityService } from './deliverability.service.js';
 
 /** E-18 — wynik sprawdzenia blacklist: „nie wiemy” nie może wyglądać jak „czysto”. */
-describe('DeliverabilityService.check — RBL', () => {
+describe('DeliverabilityService.check – RBL', () => {
   const svc = new DeliverabilityService({} as never, {} as never, {} as never);
   const rbl = async (odpowiedzi: Record<string, string[] | Error>) => {
     vi.spyOn(dns, 'resolveTxt').mockRejectedValue(Object.assign(new Error('x'), { code: 'ENOTFOUND' }));

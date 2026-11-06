@@ -7,7 +7,7 @@ import { VatWeryfikacjaService } from './vat-weryfikacja.service.js';
  * DTO (MinLength) liczy znaki PRZED przycięciem, więc same spacje przechodziły walidację,
  * a w User.vatWeryfikacjaPodstawa i w dzienniku lądował pusty tekst. Serwis liczy po trim().
  */
-describe('VatWeryfikacjaService — podstawa i powód nie mogą być puste', () => {
+describe('VatWeryfikacjaService – podstawa i powód nie mogą być puste', () => {
   const prisma = {
     user: { findUnique: vi.fn(), update: vi.fn() },
     auditLog: { create: vi.fn() },

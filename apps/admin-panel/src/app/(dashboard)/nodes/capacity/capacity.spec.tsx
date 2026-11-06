@@ -14,7 +14,7 @@ const t1 = {
   region: "DE-NBG",
   status: "ACTIVE",
   accounts: 1,
-  pozaPula: "poza pulą — wstrzymany",
+  pozaPula: "poza pulą – wstrzymany",
   acceptsNewAccounts: false,
   reservedHeadroomPercent: 0,
   maxAccounts: null,

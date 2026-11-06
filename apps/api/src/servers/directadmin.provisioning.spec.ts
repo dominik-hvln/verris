@@ -101,7 +101,7 @@ describe('Synchronizacja pakietów DA z planami', () => {
     expect(upsert.mock.calls.map(([spec]) => spec.name)).toEqual(['starter', 'pro']);
   });
 
-  it('Q-05: pakiet DA, audyt węzła i stan LVE tylko dla planów z kontem na węźle — nie dla e-mail marketingu', () => {
+  it('Q-05: pakiet DA, audyt węzła i stan LVE tylko dla planów z kontem na węźle – nie dla e-mail marketingu', () => {
     expect(PLANY_Z_PAKIETEM_DA).toEqual({ isActive: true, productKind: { in: ['HOSTING', 'EMAIL'] } });
     for (const plik of ['directadmin.service.ts', 'node-audit.service.ts', 'node-tasks.service.ts']) {
       const src = readFileSync(resolve(import.meta.dirname, plik), 'utf8');
@@ -110,7 +110,7 @@ describe('Synchronizacja pakietów DA z planami', () => {
     }
   });
 
-  it('domyślnie tylko brakujące — istniejącego pakietu nie zapisuje (t1 02.10: zapis nałożył ssh=OFF na konta)', async () => {
+  it('domyślnie tylko brakujące – istniejącego pakietu nie zapisuje (t1 02.10: zapis nałożył ssh=OFF na konta)', async () => {
     const { svc } = serwis(WEZEL, { plan: { findMany: vi.fn(async () => [plan('starter'), plan('pro')]) } });
     const c = klient();
     vi.spyOn(svc, 'getClientForServer').mockResolvedValue(c);
@@ -176,7 +176,7 @@ describe('Markowe NS na węźle', () => {
   });
 });
 
-describe('Markowe NS — przepisanie NS w istniejących strefach (H-16, t2 13.10)', () => {
+describe('Markowe NS – przepisanie NS w istniejących strefach (H-16, t2 13.10)', () => {
   type R = { id: string; name: string; type: string; value: string; ttl: number | null };
   function strefa(rekordy: Array<Omit<R, 'id' | 'ttl'>>, o: { nieZapisuj?: boolean } = {}) {
     const { svc } = serwis(WEZEL);

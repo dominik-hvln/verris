@@ -45,7 +45,7 @@ describe('AllExceptionsFilter', () => {
     expect(obsluz(provisioning(), '/staff/migrations/m1').tresc.message).toMatch(/^DirectAdmin package/);
   });
 
-  it('PB-47 — kod odmowy „wymaga wniosku” dociera do panelu, inne pola wyjątku nie', () => {
+  it('PB-47 – kod odmowy „wymaga wniosku” dociera do panelu, inne pola wyjątku nie', () => {
     const r = obsluz(
       new ForbiddenException({ code: 'WYMAGA_WNIOSKU', operacja: 'CUSTOMER_INTERNAL_FLAG', message: 'Wymaga wniosku.', sekret: 'x' }),
       '/admin/users/u1/operational',

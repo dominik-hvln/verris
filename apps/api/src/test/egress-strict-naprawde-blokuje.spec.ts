@@ -183,7 +183,7 @@ function uruchomZDockerem() {
 
 const DROP_STRICT = /-A VERRIS_EGRESS_STRICT .*-j DROP .*verris-strict-egress-host/;
 
-describe('SEC-01 — strict naprawdę odrzuca', () => {
+describe('SEC-01 – strict naprawdę odrzuca', () => {
   it('po tygodniu pomiaru z pełnym pokryciem zakłada regułę DROP i kończy się zerem', () => {
     const r = uruchom({
       zmierzone: ['140.82.121.33,tcp:443', '185.12.64.1,udp:53'],
@@ -207,7 +207,7 @@ describe('SEC-01 — strict naprawdę odrzuca', () => {
     expect(r.wywolania.filter((w) => /-m cgroup/.test(w))).toEqual([]);
   });
 
-  it('--wymus-strict zakłada DROP mimo celów spoza allowlisty — i mówi, że to robi', () => {
+  it('--wymus-strict zakłada DROP mimo celów spoza allowlisty – i mówi, że to robi', () => {
     const r = uruchom({
       zmierzone: ['5.6.7.8,tcp:443'],
       wAllowliscie: [],
@@ -220,7 +220,7 @@ describe('SEC-01 — strict naprawdę odrzuca', () => {
   });
 });
 
-describe('SEC-06 (warunek wstępny) — strict nie odetnie ruchu, którego nikt nie zmierzył', () => {
+describe('SEC-06 (warunek wstępny) – strict nie odetnie ruchu, którego nikt nie zmierzył', () => {
   it('odmawia, gdy host łączył się z celem 80/443 spoza allowlisty, i nazywa ten cel', () => {
     const r = uruchom({
       zmierzone: ['140.82.121.33,tcp:443', '5.6.7.8,tcp:443'],
@@ -275,7 +275,7 @@ describe('SEC-06 (warunek wstępny) — strict nie odetnie ruchu, którego nikt 
   });
 });
 
-describe('SEC-03 — strict obejmuje DNS i SMTP', () => {
+describe('SEC-03 – strict obejmuje DNS i SMTP', () => {
   it('DNS i SMTP do celów z list: strict zakłada DROP dla 53 (udp+tcp) i 25/465/587', () => {
     const r = uruchom({
       zmierzone: ['185.12.64.1,udp:53', '178.63.123.4,tcp:25'],
@@ -294,7 +294,7 @@ describe('SEC-03 — strict obejmuje DNS i SMTP', () => {
   it.each([
     ['9.9.9.9,udp:53', 'obcy resolwer (np. tunel DNS)'],
     ['1.2.3.4,tcp:587', 'obcy serwer SMTP'],
-  ])('odmawia strict, gdy host łączył się z %s — %s', (cel) => {
+  ])('odmawia strict, gdy host łączył się z %s – %s', (cel) => {
     const r = uruchom({ zmierzone: [cel], wAllowliscie: [], pomiarOdDni: 8, argumenty: ['--strict'] });
     expect(r.kod).toBe(1);
     expect(r.wyjscie).toContain(cel);
@@ -308,7 +308,7 @@ describe('SEC-03 — strict obejmuje DNS i SMTP', () => {
   });
 });
 
-describe('SEC-04 — ruch do kontenerów nie jest egressem', () => {
+describe('SEC-04 – ruch do kontenerów nie jest egressem', () => {
   const r = uruchom({
     zmierzone: ['140.82.121.33,tcp:443'],
     wAllowliscie: ['140.82.121.33'],
@@ -331,7 +331,7 @@ describe('SEC-04 — ruch do kontenerów nie jest egressem', () => {
   );
 });
 
-describe('SEC-04 — anty-skan nie liczy ruchu do kontenerów (01.10: docker-proxy IPv6 → DROP całego IPv6)', () => {
+describe('SEC-04 – anty-skan nie liczy ruchu do kontenerów (01.10: docker-proxy IPv6 → DROP całego IPv6)', () => {
   it.each(['iptables', 'ip6tables'])('%s VERRIS_ANTISCAN zwalnia lo, docker0 i br-+ przed licznikiem', (bin) => {
     const r = uruchom({ zmierzone: null, wAllowliscie: [], pomiarOdDni: null, argumenty: [], ipv6: '1' });
     expect(r.kod).toBe(0);
@@ -346,7 +346,7 @@ describe('SEC-04 — anty-skan nie liczy ruchu do kontenerów (01.10: docker-pro
   });
 });
 
-describe('SEC-05 — pomiar jest zapisem, nie próbką', () => {
+describe('SEC-05 – pomiar jest zapisem, nie próbką', () => {
   const r = uruchom({ zmierzone: null, wAllowliscie: [], pomiarOdDni: null, argumenty: [] });
 
   it('przebieg domyślny zakłada zbiór pomiaru i nic nie odrzuca w strict', () => {
@@ -355,7 +355,7 @@ describe('SEC-05 — pomiar jest zapisem, nie próbką', () => {
     expect(r.wywolania.some((w) => DROP_STRICT.test(w))).toBe(false);
   });
 
-  it('każde NOWE połączenie TCP i UDP trafia do zbioru — bez ogranicznika częstotliwości', () => {
+  it('każde NOWE połączenie TCP i UDP trafia do zbioru – bez ogranicznika częstotliwości', () => {
     const zapis = r.wywolania.filter((w) =>
       /^iptables -A VERRIS_EGRESS_SEEN .*-j SET --add-set verris_egress_seen dst,dst/.test(w),
     );
@@ -363,7 +363,7 @@ describe('SEC-05 — pomiar jest zapisem, nie próbką', () => {
     for (const w of zapis) expect(w).not.toMatch(/-m limit/);
   });
 
-  it('TCP liczy tylko SYN — spóźnione odpowiedzi do skanerów SSH to nie ruch wychodzący', () => {
+  it('TCP liczy tylko SYN – spóźnione odpowiedzi do skanerów SSH to nie ruch wychodzący', () => {
     const tcp = r.wywolania.filter((w) => /-p tcp .*-j SET --add-set verris_egress_seen(_fwd)? /.test(w));
     expect(tcp.length).toBeGreaterThan(0);
     for (const w of tcp) expect(w).toMatch(/-p tcp --syn /);
@@ -374,7 +374,7 @@ describe('SEC-05 — pomiar jest zapisem, nie próbką', () => {
   });
 });
 
-describe('SEC-09 — kontenery nie sięgają do metadanych chmury', () => {
+describe('SEC-09 – kontenery nie sięgają do metadanych chmury', () => {
   it('przebieg domyślny odrzuca ruch kontenerów do 169.254.0.0/16 i wpina to w DOCKER-USER', () => {
     // Atrapa odpowiada na `-L` kodem 1 („brak łańcucha"), więc tu podmieniamy
     // tylko tę odpowiedź: DOCKER-USER istnieje, jak na produkcji.
@@ -387,7 +387,7 @@ describe('SEC-09 — kontenery nie sięgają do metadanych chmury', () => {
   });
 });
 
-describe('X-41 — pomiar kontenerów ma własną datę początku', () => {
+describe('X-41 – pomiar kontenerów ma własną datę początku', () => {
   it('--obserwuj-kontenery zakłada zbiór pomiaru kontenerów i zapisuje, od kiedy mierzy', () => {
     process.env.EGRESS_ATRAPA_DOCKER = '1';
     try {
@@ -402,7 +402,7 @@ describe('X-41 — pomiar kontenerów ma własną datę początku', () => {
   });
 });
 
-describe('SEC-01 — instalator nie włącza strict po cichu', () => {
+describe('SEC-01 – instalator nie włącza strict po cichu', () => {
   it('żadna linia kodu instalatora nie woła --strict', () => {
     const kod = readFileSync(INSTALATOR, 'utf8')
       .split('\n')
@@ -411,7 +411,7 @@ describe('SEC-01 — instalator nie włącza strict po cichu', () => {
   });
 });
 
-describe('IPv6 — ta sama ochrona po IPv6', () => {
+describe('IPv6 – ta sama ochrona po IPv6', () => {
   const V6_REJECT = /^ip6tables -A VERRIS_EGRESS_STRICT .*-j REJECT .*verris-strict-egress-host/;
 
   it('przebieg domyślny: pomiar IPv6 (inet6), bogony i IOC w ip6tables, bez strict', () => {
@@ -453,7 +453,7 @@ describe('IPv6 — ta sama ochrona po IPv6', () => {
     expect(readFileSync(join(r.sec, 'egress-tryb'), 'utf8').trim()).toBe('strict');
   });
 
-  it('pomiar IPv6 krótszy niż tydzień: odmowa i ŻADNEJ reguły strict — także IPv4', () => {
+  it('pomiar IPv6 krótszy niż tydzień: odmowa i ŻADNEJ reguły strict – także IPv4', () => {
     const r = uruchom({
       zmierzone: ['140.82.121.33,tcp:443'],
       wAllowliscie: ['140.82.121.33'],
@@ -497,7 +497,7 @@ describe('IPv6 — ta sama ochrona po IPv6', () => {
   });
 });
 
-describe('SEC-03 — wyjątek DNS dla resolwera lokalnego', () => {
+describe('SEC-03 – wyjątek DNS dla resolwera lokalnego', () => {
   it('użytkownik z egress-allow-dns-owners.txt wychodzi z łańcucha przed DROP DNS', () => {
     const r = uruchom({
       zmierzone: ['185.12.64.1,udp:53'],
@@ -529,7 +529,7 @@ describe('SEC-03 — wyjątek DNS dla resolwera lokalnego', () => {
   });
 });
 
-describe('Restart hosta — verris-egress.service', () => {
+describe('Restart hosta – verris-egress.service', () => {
   it('--zapisz-pomiar zrzuca zbiory pomiaru do pliku 0600', () => {
     const r = uruchom({ zmierzone: ['1.2.3.4,tcp:443'], wAllowliscie: [], pomiarOdDni: 3, argumenty: ['--zapisz-pomiar'] });
     expect(r.kod).toBe(0);
@@ -573,7 +573,7 @@ describe('Restart hosta — verris-egress.service', () => {
   });
 });
 
-describe('SEC-06 — adresy usług za CDN dopisywane na bieżąco (--odswiez)', () => {
+describe('SEC-06 – adresy usług za CDN dopisywane na bieżąco (--odswiez)', () => {
   const scena = (z: Partial<Scena> = {}): Scena => ({
     zmierzone: null,
     wAllowliscie: ['140.82.121.33'],
@@ -709,7 +709,7 @@ describe('Domeny klientów poza allowlistą hosta (decyzja 06.10: DNS ustawia kl
     expect(inst).toMatch(/rm -f \/etc\/verris\/security\/egress-allow-hostnames\.local\.txt/);
   });
 
-  it('jednostki systemd nie podmieniają ALLOW_HOSTS — czytają domyślną ścieżkę skryptu', () => {
+  it('jednostki systemd nie podmieniają ALLOW_HOSTS – czytają domyślną ścieżkę skryptu', () => {
     for (const plik of ['verris-egress.service', 'verris-egress-odswiez.service']) {
       expect(readFileSync(join(KORZEN, 'ops', 'systemd', plik), 'utf8')).not.toMatch(/ALLOW_HOSTS/);
     }

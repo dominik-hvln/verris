@@ -15,7 +15,7 @@ export function LegalShell({ children }: { children: React.ReactNode }) {
     <div className="v2-content legal-doc flex min-h-screen flex-col bg-background text-foreground">
       <header className="sticky top-0 z-30 border-b border-line bg-background/90 backdrop-blur print:hidden">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
-          <a href={WWW} aria-label="Verris — strona główna" className="inline-flex items-center gap-1 text-foreground">
+          <a href={WWW} aria-label="Verris – strona główna" className="inline-flex items-center gap-1 text-foreground">
             <VerrisMark className="h-9 w-9 shrink-0 text-verris-green" />
             <VerrisWordmark className="h-[18px] shrink-0" />
           </a>
@@ -44,7 +44,7 @@ export function LegalShell({ children }: { children: React.ReactNode }) {
       <footer className="mt-16 border-t border-line print:hidden">
         <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-10 text-sm sm:px-6 md:grid-cols-[1.4fr_1fr_1fr]">
           <div>
-            <a href={WWW} aria-label="Verris — strona główna" className="inline-flex items-center gap-1 text-foreground">
+            <a href={WWW} aria-label="Verris – strona główna" className="inline-flex items-center gap-1 text-foreground">
               <VerrisMark className="h-8 w-8 shrink-0 text-verris-green" />
               <VerrisWordmark className="h-4 shrink-0" />
             </a>
@@ -74,7 +74,7 @@ export function LegalShell({ children }: { children: React.ReactNode }) {
                 <a href="mailto:rodo@verris.pl" className={link}>
                   rodo@verris.pl
                 </a>{" "}
-                <span className="text-muted-foreground">— ochrona danych</span>
+                <span className="text-muted-foreground">– ochrona danych</span>
               </li>
               <li>
                 <a href="mailto:kontakt@verris.pl" className={link}>

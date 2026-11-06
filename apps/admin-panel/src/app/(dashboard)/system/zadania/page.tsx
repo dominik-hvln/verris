@@ -89,7 +89,7 @@ export default async function ZadaniaWTlePage() {
         })}
       </section>
       <p className="text-xs text-muted-foreground">
-        Błąd widać, gdy zadanie zakończyło się wyjątkiem. Zadania, które same łapią błędy i tylko je logują, są tu „działa” — szczegóły w Błędach aplikacji i w logu API.
+        Błąd widać, gdy zadanie zakończyło się wyjątkiem. Zadania, które same łapią błędy i tylko je logują, są tu „działa” – szczegóły w Błędach aplikacji i w logu API.
       </p>
     </div>
   );

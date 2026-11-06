@@ -21,7 +21,7 @@ function stanowisko(uprawnienia: string[]) {
   return { svc: new SearchService(prisma as never), prisma };
 }
 
-describe('SearchService — typy według uprawnień', () => {
+describe('SearchService – typy według uprawnień', () => {
   it('admin: wszystkie typy, węzeł ze statusem i linkiem do karty', async () => {
     const s = stanowisko([]);
     const r = await s.svc.search('t1', { role: 'ADMIN', userId: 'a' });
@@ -51,7 +51,7 @@ describe('SearchService — typy według uprawnień', () => {
     expect(s.prisma.user.findUnique).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'op' } }));
   });
 
-  it('faktura prowadzi do strony faktury (BILLING_VIEW); z samym CUSTOMERS_VIEW — do rozliczeń klienta', async () => {
+  it('faktura prowadzi do strony faktury (BILLING_VIEW); z samym CUSTOMERS_VIEW – do rozliczeń klienta', async () => {
     const r = await stanowisko(['BILLING_VIEW']).svc.search('FV/1', { role: 'STAFF', userId: 'op' });
     expect(r.results).toEqual([expect.objectContaining({ type: 'invoice', href: '/invoices/f1' })]);
     const zKlientami = await stanowisko(['CUSTOMERS_VIEW']).svc.search('FV/1', { role: 'STAFF', userId: 'op' });
@@ -70,7 +70,7 @@ describe('SearchService — typy według uprawnień', () => {
     expect(r.results.find((x) => x.type === 'service')).toMatchObject({ id: 's1', status: 'PROVISIONING', userId: 'u1', href: '/subscriptions/s1' });
   });
 
-  it('weryfikacja 12.10 — domena usuniętego konta w wyniku bez technicznego przyrostka', async () => {
+  it('weryfikacja 12.10 – domena usuniętego konta w wyniku bez technicznego przyrostka', async () => {
     const s = stanowisko([]);
     s.prisma.account.findMany.mockResolvedValueOnce([
       { id: 'a1', domain: 'z18b.d3.hvln.pl~usuniete-97c925b0-a215-40bc-9c78-28752e3cc91b', daUsername: 'z18b', subscriptionId: 's9', userId: 'u1' },
@@ -101,7 +101,7 @@ describe('SearchService — typy według uprawnień', () => {
     expect(zKlientami.results.find((x) => x.type === 'ticket')?.href).toBe('/customers/u1?sekcja=zgloszenia');
   });
 
-  it('zgłoszenie po numerze „#abcd1234” szuka po początku ID; zwykły tekst — tylko po temacie', async () => {
+  it('zgłoszenie po numerze „#abcd1234” szuka po początku ID; zwykły tekst – tylko po temacie', async () => {
     const s = stanowisko(['TICKETS_VIEW']);
     await s.svc.search('#ABCD1234', { role: 'STAFF', userId: 'op' });
     expect(s.prisma.ticket.findMany).toHaveBeenLastCalledWith(
@@ -111,7 +111,7 @@ describe('SearchService — typy według uprawnień', () => {
     expect(s.prisma.ticket.findMany).toHaveBeenLastCalledWith(expect.objectContaining({ where: { OR: [{ subject: { contains: 'poczta', mode: 'insensitive' } }] } }));
   });
 
-  it('krótkie zapytanie — bez zapytań do bazy, ale z listą pominiętych typów', async () => {
+  it('krótkie zapytanie – bez zapytań do bazy, ale z listą pominiętych typów', async () => {
     const s = stanowisko(['NODES_VIEW']);
     expect(await s.svc.search('t', { role: 'STAFF', userId: 'op' })).toEqual({ results: [], pominiete: ['user', 'service', 'domain', 'domena', 'invoice', 'ticket', 'migration'] });
     expect(s.prisma.server.findMany).not.toHaveBeenCalled();

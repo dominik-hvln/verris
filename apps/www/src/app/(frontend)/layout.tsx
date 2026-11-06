@@ -17,13 +17,13 @@ import { asystentDostepny } from '@/lib/asystent-status';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://verris.pl'),
-  title: 'Verris — polski hosting z autoskalowaniem. Hosting bez gwiazdek.',
+  title: 'Verris – polski hosting z autoskalowaniem. Hosting bez gwiazdek.',
   description:
-    `Hosting współdzielony ${VPS_W_SPRZEDAZY ? 'z autoskalowaniem, VPS i domeny' : 'z autoskalowaniem i domeny'} w jednym panelu. Cena odnowienia znana z góry — bez pułapek odnowień. Migracja i SSL za 0 zł, SLA 99,5% z automatycznymi rekompensatami, kopie z samodzielnym odtwarzaniem.`,
+    `Hosting współdzielony ${VPS_W_SPRZEDAZY ? 'z autoskalowaniem, VPS i domeny' : 'z autoskalowaniem i domeny'} w jednym panelu. Cena odnowienia znana z góry – bez pułapek odnowień. Migracja i SSL za 0 zł, SLA 99,5% z automatycznymi rekompensatami, kopie z samodzielnym odtwarzaniem.`,
   alternates: { canonical: '/' },
   robots: { index: true, follow: true },
   openGraph: {
-    title: 'Verris — hosting bez gwiazdek. Skaluj świadomie.',
+    title: 'Verris – hosting bez gwiazdek. Skaluj świadomie.',
     description:
       `Polski ${OFERTA_KROTKO}. Płacisz tyle, ile widzisz. Migracja za 0 zł, SLA 99,5% z rekompensatami.`,
     url: 'https://verris.pl/',
@@ -31,12 +31,12 @@ export const metadata: Metadata = {
     type: 'website',
     siteName: 'Verris',
     images: [
-      { url: '/og-default.png', width: 1200, height: 630, alt: 'Verris — Hosting bez gwiazdek.' },
+      { url: '/og-default.png', width: 1200, height: 630, alt: 'Verris – Hosting bez gwiazdek.' },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Verris — hosting bez gwiazdek. Skaluj świadomie.',
+    title: 'Verris – hosting bez gwiazdek. Skaluj świadomie.',
     description:
       `Polski ${OFERTA_KROTKO}. Płacisz tyle, ile widzisz. Migracja za 0 zł, SLA 99,5% z rekompensatami.`,
     images: ['/og-default.png'],

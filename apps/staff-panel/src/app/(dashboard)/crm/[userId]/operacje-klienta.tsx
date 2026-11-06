@@ -15,7 +15,7 @@ export interface FakturaDoAnulowania {
 const POLE = "w-full rounded-lg border border-white/10 bg-black/60 px-3 py-2 text-sm text-white";
 const PRZYCISK =
   "rounded-lg border border-cyan-500/35 bg-cyan-500/15 px-3 py-1.5 text-xs font-semibold text-cyan-100 hover:bg-cyan-500/25 disabled:opacity-50";
-const BRAK = "Twoja rola nie ma tego uprawnienia — wyślij wniosek.";
+const BRAK = "Twoja rola nie ma tego uprawnienia – wyślij wniosek.";
 
 /**
  * Jedna operacja: z uprawnieniem — „Wykonaj” (endpoint bezpośredni); bez — „Wyślij wniosek” z tymi samymi
@@ -96,7 +96,7 @@ export function OperacjeKlienta({
   return (
     <div className="mt-4 space-y-4">
       {isInternal === null ? (
-        <p className="text-xs text-muted-foreground">Nie udało się odczytać, czy konto jest wewnętrzne — odśwież stronę.</p>
+        <p className="text-xs text-muted-foreground">Nie udało się odczytać, czy konto jest wewnętrzne – odśwież stronę.</p>
       ) : (
         <Operacja
           typ="CUSTOMER_INTERNAL_FLAG"
@@ -109,7 +109,7 @@ export function OperacjeKlienta({
         >
           <p className="text-sm text-white">
             Teraz: <strong>{isInternal ? "wewnętrzne" : "zwykłe konto klienta"}</strong>
-            {` — ${isInternal ? "zdjęcie oznaczenia" : "oznaczenie jako wewnętrzne"}`}
+            {` – ${isInternal ? "zdjęcie oznaczenia" : "oznaczenie jako wewnętrzne"}`}
           </p>
         </Operacja>
       )}
@@ -126,7 +126,7 @@ export function OperacjeKlienta({
       >
         <div className="grid gap-2 sm:grid-cols-[10rem_1fr]">
           <input aria-label="Kwota (K)" inputMode="decimal" placeholder="Kwota, np. 25,00" value={kwota} onChange={(e) => setKwota(e.target.value)} className={POLE} />
-          <input aria-label="Powód zasilenia" placeholder="Powód — widzi go klient (min. 10 znaków)" maxLength={255} value={opis} onChange={(e) => setOpis(e.target.value)} className={POLE} />
+          <input aria-label="Powód zasilenia" placeholder="Powód – widzi go klient (min. 10 znaków)" maxLength={255} value={opis} onChange={(e) => setOpis(e.target.value)} className={POLE} />
         </div>
       </Operacja>
 

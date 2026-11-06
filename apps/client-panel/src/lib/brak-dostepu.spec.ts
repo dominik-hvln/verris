@@ -11,7 +11,7 @@ import { tylkoDostepne, type PaletteItem } from '@/components/panel/command-pale
 const PIOTR = { isSubaccount: true, customerPermissions: ['SERVICES_READ', 'TICKETS_READ'] };
 const WLASCICIEL = { isSubaccount: false, customerPermissions: null };
 
-describe('P3-08 — komunikat zamiast cichego przekierowania', () => {
+describe('P3-08 – komunikat zamiast cichego przekierowania', () => {
   it('adres pulpitu niesie ścieżkę zablokowanej strony', () => {
     expect(adresBrakuDostepu('/dashboard/billing/invoices')).toBe(`/dashboard?${PARAM_BRAK_DOSTEPU}=%2Fdashboard%2Fbilling%2Finvoices`);
   });
@@ -41,7 +41,7 @@ describe('P3-08 — komunikat zamiast cichego przekierowania', () => {
   });
 });
 
-describe('P3-08 — wyszukiwarka bez akcji spoza uprawnień', () => {
+describe('P3-08 – wyszukiwarka bez akcji spoza uprawnień', () => {
   const items: PaletteItem[] = [
     { label: 'Usługi', hint: 'strona', href: '/dashboard/services' },
     { label: 'Zamów nową usługę', hint: 'akcja', href: '/dashboard/services/new' },

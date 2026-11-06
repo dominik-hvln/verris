@@ -44,7 +44,7 @@ describe('X-04 kody promocyjne', () => {
     expect((await prisma().promoCode.findUniqueOrThrow({ where: { id: c.id } })).redemptionCount).toBe(1);
   });
 
-  it('podwójne kliknięcie (dwa równoczesne żądania) — portfel zasilony raz', async () => {
+  it('podwójne kliknięcie (dwa równoczesne żądania) – portfel zasilony raz', async () => {
     const k = await klient();
     await kod('DWAKLIK');
     const s = promo();
@@ -153,7 +153,7 @@ describe('X-04 kody promocyjne', () => {
       expect(await prisma().promoRedemption.count()).toBe(1);
     });
 
-    it('nieudany zakup oddaje kod — klient może go użyć ponownie', async () => {
+    it('nieudany zakup oddaje kod – klient może go użyć ponownie', async () => {
       const k = await klient();
       await doladuj(k.id, 100);
       const plan = await utworzPlan({ priceMonthly: 50 });
@@ -193,7 +193,7 @@ describe('X-04 kody promocyjne', () => {
   // B1 — kod da się wyłączyć albo skrócić w trakcie akcji. Sedno: zmiana z panelu działa od razu
   // i na zakupie nowej usługi, i na odnowieniu z portfela (appliesToRenewals), a w dzienniku jest
   // stan przed i po.
-  describe('B1 — wyłączenie i skrócenie kodu (PATCH)', () => {
+  describe('B1 – wyłączenie i skrócenie kodu (PATCH)', () => {
     const admin = () =>
       prisma().user.create({ data: { email: `promo-admin-${Date.now()}-${Math.random()}@test.verris.pl`, passwordHash: 'x', role: 'ADMIN' } as never });
     const uslugi = () => {
@@ -255,7 +255,7 @@ describe('X-04 kody promocyjne', () => {
       expect(await saldo(k.id)).toBe(200);
     });
 
-    it('odnowienie: kod aktywny daje rabat, wyłączony lub przeterminowany — cena listowa', async () => {
+    it('odnowienie: kod aktywny daje rabat, wyłączony lub przeterminowany – cena listowa', async () => {
       const a = await admin();
       const aktywny = await kod('ODN-AKT', { kind: PromoKind.SERVICE_PERCENT_OFF, value: 50, appliesToRenewals: true });
       const wylaczony = await kod('ODN-OFF', { kind: PromoKind.SERVICE_PERCENT_OFF, value: 50, appliesToRenewals: true });
@@ -273,7 +273,7 @@ describe('X-04 kody promocyjne', () => {
       expect(await saldo(k3.id)).toBe(200);
     });
 
-    it('limit i opis: null zdejmuje limit, pusty opis = brak; zła data i ujemny limit — 400', async () => {
+    it('limit i opis: null zdejmuje limit, pusty opis = brak; zła data i ujemny limit – 400', async () => {
       const a = await admin();
       const c = await kod('LIMIT', { maxRedemptions: 5, description: 'stary' });
       const po = await promo().updatePromoCode({ id: c.id, maxRedemptions: null, description: '  ', actorUserId: a.id });

@@ -4,7 +4,7 @@ import { sekcjeSpecyfikacji, sekcjeWidoczne } from './specyfikacja';
 const stawki = (s: ReturnType<typeof sekcjeSpecyfikacji>) =>
   s.flatMap((x) => x.wiersze).find(([p]) => p.startsWith('Stawki autoskalowania'));
 
-describe('lib/specyfikacja — jedno źródło dla /specyfikacja i /hosting', () => {
+describe('lib/specyfikacja – jedno źródło dla /specyfikacja i /hosting', () => {
   it('stawki brutto z modułu cen dają ten sam tekst, który /specyfikacja miała wpisany na sztywno', () => {
     expect(stawki(sekcjeSpecyfikacji(CENY_ZAPASOWE.stawki))).toEqual([
       'Stawki autoskalowania (brutto)',

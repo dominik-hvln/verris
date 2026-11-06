@@ -8,7 +8,7 @@ import { TotpService } from './totp.service.js';
  * SEKRET TOTP — w adres api.qrserver.com, więc drugi składnik logowania każdego
  * klienta i pracownika trafiał do obcego serwisu i jego logów.
  */
-describe('2FA — QR bez obcych serwisów', () => {
+describe('2FA – QR bez obcych serwisów', () => {
   it('startEnrollment zwraca QR jako SVG data URL z tym samym sekretem', async () => {
     const prisma = {
       user: {

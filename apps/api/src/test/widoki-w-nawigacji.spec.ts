@@ -65,7 +65,7 @@ function cele(tresc: string): string[] {
 const wzor = (t: string) => new RegExp('^' + t.replace(/\[[^\]]+\]/g, '[^/]+') + '$');
 const PLIKI_RAMY = /^(layout|template|error|not-found|loading)\.tsx?$/;
 
-describe('PB-23 — każdy widok osiągalny z menu albo zakładki', () => {
+describe('PB-23 – każdy widok osiągalny z menu albo zakładki', () => {
   for (const [panel, cfg] of Object.entries(PANELE)) {
     it(panel, () => {
       const src = join(KORZEN, 'apps', panel, 'src');

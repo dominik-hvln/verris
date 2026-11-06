@@ -72,7 +72,7 @@ function kod(sciezka: string): string {
     .join('\n');
 }
 
-describe('X-32 — martwy job da się odrzucić, ale tylko ze śladem', () => {
+describe('X-32 – martwy job da się odrzucić, ale tylko ze śladem', () => {
   const usluga = kod(USLUGA);
   const kontroler = kod(KONTROLER);
 
@@ -143,7 +143,7 @@ describe('X-32 — martwy job da się odrzucić, ale tylko ze śladem', () => {
   });
 });
 
-describe('X-32 — panel mówi, czego ta operacja NIE robi', () => {
+describe('X-32 – panel mówi, czego ta operacja NIE robi', () => {
   // Pliki czytane LENIWIE, wewnątrz asercji. Odczyt na poziomie `describe`
   // wywalałby cały plik testowy, zanim cokolwiek się policzy — a wtedy nie
   // wiadomo, ILE asercji czerwieni się na starym kodzie, tylko że „nie

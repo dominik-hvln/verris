@@ -39,7 +39,7 @@ function pillFromDetail(d: ServiceHealthCheckDetailDto) {
   }
   return {
     className: 'border-line-strong bg-raised text-muted-foreground',
-    label: '—',
+    label: '–',
   };
 }
 
@@ -66,7 +66,7 @@ function fallbackDetail(
     : {
         status: 'warn',
         label: labels[key],
-        explanation: 'Wykryto problem — odśwież diagnostykę, aby zobaczyć szczegóły.',
+        explanation: 'Wykryto problem – odśwież diagnostykę, aby zobaczyć szczegóły.',
         whatToDo: 'Kliknij „Odśwież” powyżej. Jeśli problem się utrzymuje, utwórz zgłoszenie do supportu.',
       };
 }
@@ -188,7 +188,7 @@ export function HealthCheckDetails({
     <div className="mt-4 space-y-2">
       <p className="text-[11px] font-medium text-muted-foreground flex items-center gap-1.5">
         <HelpCircle className="h-3.5 w-3.5" />
-        Diagnostyka — kliknij wiersz, aby zobaczyć szczegóły i co zrobić
+        Diagnostyka – kliknij wiersz, aby zobaczyć szczegóły i co zrobić
       </p>
       <ul className="space-y-1.5">
         {items.map(({ key, detail }) => {

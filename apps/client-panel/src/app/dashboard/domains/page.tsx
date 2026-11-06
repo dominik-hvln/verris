@@ -229,7 +229,7 @@ export default function DomainsPage() {
                             {domain.autoRenew ? <span className="ml-1.5 text-muted-foreground">odnawia się sama</span> : null}
                           </span>
                         ) : (
-                          <span className="text-muted-foreground">{domain.kind === 'HOSTING' ? 'przy usłudze' : '—'}</span>
+                          <span className="text-muted-foreground">{domain.kind === 'HOSTING' ? 'przy usłudze' : '–'}</span>
                         )}
                       </td>
                       <td data-label="Akcje" className={`${TD} w-10 text-right`} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>

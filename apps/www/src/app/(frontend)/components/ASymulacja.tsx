@@ -107,9 +107,9 @@ export function ASymulacja({ cenaMiesieczna = CENY_ZAPASOWE.hosting.miesiecznie 
     c <= 100
       ? 'moc w cenie pakietu'
       : (L[i + 1] ?? 0) > L[i] * 1.2
-        ? 'ruch rośnie — dokładamy mocy'
+        ? 'ruch rośnie – dokładamy mocy'
         : L[i] < c / 1.6
-          ? 'ruch maleje — moc wraca do pakietu'
+          ? 'ruch maleje – moc wraca do pakietu'
           : 'dodatkowa moc na czas szczytu';
 
   return (
@@ -196,7 +196,7 @@ export function ASymulacja({ cenaMiesieczna = CENY_ZAPASOWE.hosting.miesiecznie 
         >
           <span>
             <strong>Autoskalowanie</strong>
-            <small>{auto ? 'włączone — moc rośnie z ruchem' : 'wyłączone — stała moc pakietu'}</small>
+            <small>{auto ? 'włączone – moc rośnie z ruchem' : 'wyłączone – stała moc pakietu'}</small>
           </span>
           <span className="a-knob" aria-hidden="true">
             <span />
@@ -221,7 +221,7 @@ export function ASymulacja({ cenaMiesieczna = CENY_ZAPASOWE.hosting.miesiecznie 
               ? `Płacisz tylko za nie, do limitu z panelu. Potem znów ${zl(cenaMiesieczna)}.`
               : przeciazona
                 ? 'Strona zwalnia, koszyki zostają porzucone.'
-                : 'Na razie wszystko w normie — poczekaj na czwartek.'}
+                : 'Na razie wszystko w normie – poczekaj na czwartek.'}
           </small>
         </div>
       </div>

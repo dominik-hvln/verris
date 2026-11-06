@@ -123,7 +123,7 @@ describe("PB-46 karta klienta w panelu obsługi", () => {
     expect(karty(html)).toEqual(KARTY_SEKCJI.przeglad.filter((k) => !KARTY_TYLKO_ADMIN.includes(k)));
   });
 
-  it("D1 — karta przestarzała: link „Otwórz w panelu operatora” do karty klienta", async () => {
+  it("D1 – karta przestarzała: link „Otwórz w panelu operatora” do karty klienta", async () => {
     odpowiedzi(PODGLAD);
     const html = await render();
     expect(html).toContain("data-karta-przestarzala");

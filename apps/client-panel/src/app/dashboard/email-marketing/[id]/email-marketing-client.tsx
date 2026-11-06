@@ -277,7 +277,7 @@ function ListCard({
     if (!email.trim()) return;
     start(async () => {
       const r = await addContact(subscriptionId, list.id, { email, firstName: firstName || undefined });
-      if (r.ok) { setEmail(''); setFirstName(''); flash('ok', list.doubleOptIn ? 'Dodano — wysłaliśmy mail z potwierdzeniem.' : 'Kontakt dodany.'); await load(); await onChange(); }
+      if (r.ok) { setEmail(''); setFirstName(''); flash('ok', list.doubleOptIn ? 'Dodano – wysłaliśmy mail z potwierdzeniem.' : 'Kontakt dodany.'); await load(); await onChange(); }
       else flash('err', r.error);
     });
   };
@@ -340,7 +340,7 @@ function ListCard({
           </div>
 
           <details className="rounded-xl border border-white/10 bg-black/20 p-3">
-            <summary className="cursor-pointer text-xs font-medium text-neutral-300">Import masowy (CSV: email,imię,nazwisko — jeden na linię)</summary>
+            <summary className="cursor-pointer text-xs font-medium text-neutral-300">Import masowy (CSV: email,imię,nazwisko – jeden na linię)</summary>
             <textarea value={csv} onChange={(e) => setCsv(e.target.value)} rows={4} placeholder={'jan@firma.pl,Jan,Kowalski\nanna@firma.pl,Anna'} className="emm-inp2 mt-2 font-mono text-xs" />
             <label className="mt-2 flex items-start gap-2 text-[11px] text-neutral-400">
               <Checkbox checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 h-3.5 w-3.5 accent-fuchsia-500" />
@@ -360,7 +360,7 @@ function ListCard({
                   <div className="min-w-0">
                     <p className="break-words text-white">{c.email}</p>
                     <p className="text-[11px] text-neutral-500">
-                      {[c.firstName, c.lastName].filter(Boolean).join(' ') || '—'} · <ContactStatus status={c.status} />
+                      {[c.firstName, c.lastName].filter(Boolean).join(' ') || '–'} · <ContactStatus status={c.status} />
                     </p>
                   </div>
                   <button onClick={() => remove(c.id)} className="text-neutral-500 hover:text-rose-300">
@@ -432,7 +432,7 @@ function CampaignsTab({
   const send = (id: string) => {
     start(async () => {
       const r = await sendCampaign(subscriptionId, id);
-      if (r.ok) { flash('ok', 'Wysyłka rozpoczęta — kampania jest wysyłana w tle.'); await onChange(); }
+      if (r.ok) { flash('ok', 'Wysyłka rozpoczęta – kampania jest wysyłana w tle.'); await onChange(); }
       else flash('err', r.error);
     });
   };

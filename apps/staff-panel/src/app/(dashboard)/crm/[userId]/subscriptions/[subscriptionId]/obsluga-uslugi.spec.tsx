@@ -40,7 +40,7 @@ function odpowiedzi(nadpisz: Odpowiedzi = {}) {
     [`/admin/subscriptions/${SUB}/hosting-restore/status`]: null,
     [`/admin/subscriptions/${SUB}/migrations`]: [
       { id: "e2", type: "MIGRATION_INTERNAL_QUEUED", createdAt: "2026-10-08T11:00:00Z", details: { requestId: "e1", ticketId: "t-77" } },
-      { id: "e1", type: "MIGRATION_INTERNAL_REQUESTED", createdAt: "2026-10-08T10:55:00Z", details: { targetServerId: "n2", notes: "Węzeł przeciążony — zgłoszenie #77" } },
+      { id: "e1", type: "MIGRATION_INTERNAL_REQUESTED", createdAt: "2026-10-08T10:55:00Z", details: { targetServerId: "n2", notes: "Węzeł przeciążony – zgłoszenie #77" } },
     ],
     "/admin/servers": [
       { id: "n1", name: "wezel-1", region: "PL", status: "ACTIVE" },
@@ -62,7 +62,7 @@ const render = async (account: { domain: string; serverId: string | null } | nul
 
 beforeEach(() => api.mockReset());
 
-describe("ObslugaUslugi — render", () => {
+describe("ObslugaUslugi – render", () => {
   it("z uprawnieniami: zasoby, kopie z odtwarzaniem, migracja na aktywny inny węzeł, historia z etykietami", async () => {
     odpowiedzi();
     const html = await render();
@@ -78,7 +78,7 @@ describe("ObslugaUslugi — render", () => {
     expect(html).toContain("Zleć migrację wewnętrzną");
     expect(html).toContain("Zlecono przeniesienie konta na inny serwer");
     expect(html).toContain("Węzeł docelowy: wezel-2");
-    expect(html).toContain("Powód: Węzeł przeciążony — zgłoszenie #77");
+    expect(html).toContain("Powód: Węzeł przeciążony – zgłoszenie #77");
     expect(html).toContain('href="/tickets/t-77"');
   });
 
@@ -92,7 +92,7 @@ describe("ObslugaUslugi — render", () => {
   });
 });
 
-describe("ObslugaUslugi — błędy", () => {
+describe("ObslugaUslugi – błędy", () => {
   it("węzeł nie oddaje kopii → komunikat w sekcji kopii, reszta karty działa", async () => {
     odpowiedzi({ [`/admin/subscriptions/${SUB}/hosting-backups`]: new Blad("Serwer konta nie odpowiada.", 502) });
     const html = await render();
@@ -123,7 +123,7 @@ describe("ObslugaUslugi — błędy", () => {
   });
 });
 
-describe("ObslugaUslugi — uprawnienia (403)", () => {
+describe("ObslugaUslugi – uprawnienia (403)", () => {
   it("403 z API → komunikat o brakującym uprawnieniu; zasoby i historię migracji otwiera też „Podgląd klientów” (L1-KARTA)", async () => {
     api.mockRejectedValue(new Blad("Twoja rola nie ma uprawnień do tej operacji.", 403));
     const html = await render();
@@ -203,21 +203,21 @@ describe("ObslugaUslugi — uprawnienia (403)", () => {
 describe("akcje obsługi", () => {
   it("odtworzenie: wysyła zakres i powód; 403 → komunikat o uprawnieniu", async () => {
     api.mockResolvedValueOnce({ id: "j1" });
-    const wejscie = { subscriptionId: SUB, userId: "u1", backupId: "b1", scopeFiles: true, scopeDatabases: false, scopeEmail: false, safetyBackup: true, reason: "Zgłoszenie #77 — kopia z wczoraj" };
+    const wejscie = { subscriptionId: SUB, userId: "u1", backupId: "b1", scopeFiles: true, scopeDatabases: false, scopeEmail: false, safetyBackup: true, reason: "Zgłoszenie #77 – kopia z wczoraj" };
     await expect(odtworzZKopiiAction(wejscie)).resolves.toEqual({ ok: true });
     expect(api).toHaveBeenCalledWith(`/admin/subscriptions/${SUB}/hosting-restore`, {
       method: "POST",
-      body: { backupId: "b1", scopeFiles: true, scopeDatabases: false, scopeEmail: false, safetyBackup: true, reason: "Zgłoszenie #77 — kopia z wczoraj" },
+      body: { backupId: "b1", scopeFiles: true, scopeDatabases: false, scopeEmail: false, safetyBackup: true, reason: "Zgłoszenie #77 – kopia z wczoraj" },
     });
     api.mockRejectedValueOnce(new Blad("Twoja rola nie ma uprawnień do tej operacji.", 403));
     await expect(odtworzZKopiiAction(wejscie)).resolves.toMatchObject({ ok: false, error: expect.stringContaining("„Subskrypcje i usługi”") });
   });
 
   it("migracja: błąd walidacji z API przechodzi do operatora", async () => {
-    api.mockRejectedValueOnce(new Blad("Docelowy węzeł nie jest aktywny — wybierz aktywny węzeł.", 400));
+    api.mockRejectedValueOnce(new Blad("Docelowy węzeł nie jest aktywny – wybierz aktywny węzeł.", 400));
     await expect(zlecMigracjeWewnetrznaAction({ subscriptionId: SUB, userId: "u1", targetServerId: "n3", notes: "Przeciążenie węzła n1" })).resolves.toEqual({
       ok: false,
-      error: "Docelowy węzeł nie jest aktywny — wybierz aktywny węzeł.",
+      error: "Docelowy węzeł nie jest aktywny – wybierz aktywny węzeł.",
     });
     expect(api).toHaveBeenCalledWith(`/admin/subscriptions/${SUB}/internal-migration`, { method: "POST", body: { targetServerId: "n3", notes: "Przeciążenie węzła n1" } });
   });

@@ -53,7 +53,7 @@ export class BlokadyIpKontaService {
     if (!sub) throw new NotFoundException('Usługa nie istnieje.');
     if (!sub.account) throw new NotFoundException('Usługa nie ma konta hostingowego.');
     if (operatorRole !== 'ADMIN' && sub.user?.role !== 'USER') {
-      throw new ForbiddenException('Personel widzi adresy IP wyłącznie na usługach klientów — usługę konta zespołu sprawdza administrator.');
+      throw new ForbiddenException('Personel widzi adresy IP wyłącznie na usługach klientów – usługę konta zespołu sprawdza administrator.');
     }
     return { userId: sub.userId, account: sub.account };
   }
@@ -143,7 +143,7 @@ export class BlokadyIpKontaService {
     if (!(await this.pelnyDostep(operatorUserId, operatorRole))) {
       const znane = new Set((await this.adresyKlienta(userId)).map((a) => a.ip));
       if (!znane.has(adres)) {
-        throw new ForbiddenException('Ten adres nie występuje w logowaniach ani zgłoszeniach klienta — sprawdzi go NOC.');
+        throw new ForbiddenException('Ten adres nie występuje w logowaniach ani zgłoszeniach klienta – sprawdzi go NOC.');
       }
     }
     await this.wezel.zlec(account.serverId, operatorUserId, 'list', adres, account.id);
@@ -174,7 +174,7 @@ export class BlokadyIpKontaService {
           const zLogowan = (await this.adresyKlienta(w.userId)).filter((a) => a.zrodla.includes('logowanie')).map((a) => a.ip);
           const zeZgloszenia = (await this.adresyKlienta(w.userId, w.zgloszenieId)).map((a) => a.ip);
           if (!zLogowan.includes(adres) && !zeZgloszenia.includes(adres)) {
-            throw new ForbiddenException('Adres nie pochodzi z logowań klienta ani z tego zgłoszenia — odblokuje go NOC.');
+            throw new ForbiddenException('Adres nie pochodzi z logowań klienta ani z tego zgłoszenia – odblokuje go NOC.');
           }
         }
         const t = await this.wezel.zlec(w.konto.serverId, z.operatorUserId, 'unban', adres, w.konto.id);

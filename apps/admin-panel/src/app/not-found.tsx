@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { VerrisMark } from "@/components/verris-mark";
 
-export const metadata: Metadata = { title: "Nie ma takiej strony — Verris Core" };
+export const metadata: Metadata = { title: "Nie ma takiej strony – Verris Core" };
 
 /**
  * Weryfikacja 11.10 — nieistniejący adres (np. /services/<id>) pokazywał domyślną czarną stronę Next.js po angielsku

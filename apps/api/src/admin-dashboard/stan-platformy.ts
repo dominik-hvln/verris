@@ -63,9 +63,9 @@ export function pozaPula(s: WezelWejscie): string | null {
   if (s.status === 'INIT') return 'zakładanie węzła';
   if (s.status === 'PENDING_APPROVAL') return 'czeka na zatwierdzenie';
   if (s.status === 'DEPROVISIONING') return 'wycofywany';
-  if (s.status === 'MAINTENANCE') return 'poza pulą — serwis';
-  if (!s.onboardVerifiedAt) return 'poza pulą — onboard';
-  if (!s.acceptsNewAccounts) return 'poza pulą — wstrzymany';
+  if (s.status === 'MAINTENANCE') return 'poza pulą – serwis';
+  if (!s.onboardVerifiedAt) return 'poza pulą – onboard';
+  if (!s.acceptsNewAccounts) return 'poza pulą – wstrzymany';
   return null;
 }
 

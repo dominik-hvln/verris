@@ -73,7 +73,7 @@ export function UmowaPowierzenia({
             </span>
           ) : ostatnia ? (
             <span className="text-amber-300">
-              Masz zaakceptowaną wersję {ostatnia.documentVersion}. Aktualna to {aktualna} — zaakceptuj ją, żeby pobrać nowy egzemplarz.
+              Masz zaakceptowaną wersję {ostatnia.documentVersion}. Aktualna to {aktualna} – zaakceptuj ją, żeby pobrać nowy egzemplarz.
             </span>
           ) : (
             <span className="text-neutral-300">Nie zaakceptowano jeszcze umowy powierzenia (aktualna wersja {aktualna}).</span>

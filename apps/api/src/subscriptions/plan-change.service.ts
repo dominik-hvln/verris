@@ -118,12 +118,12 @@ export class PlanChangeService {
     const sub = await this.loadForOwner(userId, subscriptionId);
     if (sub.paymentSource === SubscriptionPaymentSource.MANUAL) {
       throw new BadRequestException(
-        'Ta usługa ma rozliczenie ręczne — zmiana planu wymaga kontaktu z supportem.',
+        'Ta usługa ma rozliczenie ręczne – zmiana planu wymaga kontaktu z supportem.',
       );
     }
     if (sub.individualPrice != null) {
       throw new BadRequestException(
-        'Ta usługa ma indywidualne warunki — zmianę planu ustali z Tobą nasza obsługa.',
+        'Ta usługa ma indywidualne warunki – zmianę planu ustali z Tobą nasza obsługa.',
       );
     }
     return this.executePlanChange(sub, targetPlanId, {
@@ -223,7 +223,7 @@ export class PlanChangeService {
       ctx.initiatedBy === 'client'
     ) {
       throw new BadRequestException(
-        'Ta usługa ma rozliczenie ręczne — zmiana planu wymaga kontaktu z supportem.',
+        'Ta usługa ma rozliczenie ręczne – zmiana planu wymaga kontaktu z supportem.',
       );
     }
 
@@ -267,7 +267,7 @@ export class PlanChangeService {
       data: { updatedAt: new Date() },
     });
     if (zajete.count === 0) {
-      throw new ConflictException('Plan tej usługi właśnie się zmienia — odśwież stronę i sprawdź wynik.');
+      throw new ConflictException('Plan tej usługi właśnie się zmienia – odśwież stronę i sprawdź wynik.');
     }
 
     let walletTxId: string | null = null;
@@ -412,7 +412,7 @@ export class PlanChangeService {
       }
       if (stripeUpdated) {
         this.logger.error(
-          `Plan change failed after Stripe update sub=${sub.id} — wymaga ręcznej weryfikacji w Stripe`,
+          `Plan change failed after Stripe update sub=${sub.id} – wymaga ręcznej weryfikacji w Stripe`,
         );
       }
       throw err;
@@ -470,41 +470,41 @@ export class PlanChangeService {
     }
     if (!sub.account) {
       throw new BadRequestException(
-        'Usługa nie ma jeszcze konta hostingowego — poczekaj na provisioning.',
+        'Usługa nie ma jeszcze konta hostingowego – poczekaj na provisioning.',
       );
     }
     // Przegląd 15.10: zmiana planu w okresie próbnym liczyła dopłatę od okresu triala (prawie pełna cena), a trial
     // i tak wygasał bez zwrotu. Najpierw przejście na płatny plan.
     if (sub.isTrial && !sub.trialConvertedAt) {
-      throw new BadRequestException('W okresie próbnym nie zmienisz planu — najpierw przejdź na płatną usługę, potem zmień plan.');
+      throw new BadRequestException('W okresie próbnym nie zmienisz planu – najpierw przejdź na płatną usługę, potem zmień plan.');
     }
     // Q-05 — zmiana tylko w obrębie tego samego produktu. Hosting przełączony na plan poczty
     // albo newslettera dostałby na węźle pakiet z cudzymi limitami (pushDaLimits).
     if (target.productKind !== sub.plan.productKind) {
-      throw new BadRequestException('Wybrany plan dotyczy innej usługi — zmiana planu działa w obrębie tej samej usługi.');
+      throw new BadRequestException('Wybrany plan dotyczy innej usługi – zmiana planu działa w obrębie tej samej usługi.');
     }
     // K3 — przy limitach indywidualnych zmiana planu nadpisałaby na serwerze dysk (pushDaLimits) i zostawiła resztę
     // nadpisań na nowym planie. Wariant minimalny: blokada dla klienta i admina; admin najpierw przywraca limity planu.
     if (maNadpisania(sub.limitOverrides)) {
       throw new BadRequestException(
         obsluga
-          ? 'Usługa ma limity indywidualne — najpierw „Przywróć limity planu” (karta usługi → Operacje), potem zmień plan i w razie potrzeby ustaw limity ponownie.'
-          : 'Ta usługa ma limity ustalone indywidualnie — zmianę planu ustalisz z obsługą Verris: napisz zgłoszenie w Centrum pomocy.',
+          ? 'Usługa ma limity indywidualne – najpierw „Przywróć limity planu” (karta usługi → Operacje), potem zmień plan i w razie potrzeby ustaw limity ponownie.'
+          : 'Ta usługa ma limity ustalone indywidualnie – zmianę planu ustalisz z obsługą Verris: napisz zgłoszenie w Centrum pomocy.',
       );
     }
     if (sub.planId === target.id && sub.interval === targetInterval) {
       throw new BadRequestException(
-        'Ta usługa ma już wybrany plan i okres rozliczeniowy — wybierz inny plan lub okres.',
+        'Ta usługa ma już wybrany plan i okres rozliczeniowy – wybierz inny plan lub okres.',
       );
     }
     if (!sub.currentPeriodStart || !sub.currentPeriodEnd) {
       throw new BadRequestException(
-        'Brak danych o bieżącym okresie rozliczeniowym — skontaktuj się z supportem.',
+        'Brak danych o bieżącym okresie rozliczeniowym – skontaktuj się z supportem.',
       );
     }
     if (sub.currentPeriodEnd <= new Date()) {
       throw new BadRequestException(
-        'Bieżący okres rozliczeniowy wygasł — odśwież usługę lub skontaktuj się z supportem.',
+        'Bieżący okres rozliczeniowy wygasł – odśwież usługę lub skontaktuj się z supportem.',
       );
     }
   }
@@ -635,7 +635,7 @@ export class PlanChangeService {
     targetInterval: BillingInterval,
   ) {
     if (!sub.stripeSubscriptionId) {
-      throw new BadRequestException('Brak powiązania ze Stripe — skontaktuj się z supportem.');
+      throw new BadRequestException('Brak powiązania ze Stripe – skontaktuj się z supportem.');
     }
     const priceId =
       targetInterval === BillingInterval.YEAR

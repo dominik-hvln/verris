@@ -46,12 +46,12 @@ export function PoleKontaWewnetrznego({ userId, checked, disabled, onChange, doz
         <span className="text-sm text-white">
           Konto wewnętrzne (testowe)
           <span className="block text-xs text-muted-foreground">
-            Poza metrykami biznesowymi (MRR, churn, saldo portfeli); w kolejce „czeka na fakturę” oznaczone — prawdziwa wpłata nadal wymaga faktury VAT.
+            Poza metrykami biznesowymi (MRR, churn, saldo portfeli); w kolejce „czeka na fakturę” oznaczone – prawdziwa wpłata nadal wymaga faktury VAT.
           </span>
           {dozwolone === false ? (
             <span className="mt-1 block text-xs text-amber-200">
               Zmiana wymaga uprawnienia „Oznaczanie konta jako wewnętrzne” (kierownik zmiany).
-              {userId ? " Wyślij wniosek — zdecyduje osoba z uprawnieniem." : " Poproś przełożonego o zmianę."}
+              {userId ? " Wyślij wniosek – zdecyduje osoba z uprawnieniem." : " Poproś przełożonego o zmianę."}
             </span>
           ) : null}
         </span>

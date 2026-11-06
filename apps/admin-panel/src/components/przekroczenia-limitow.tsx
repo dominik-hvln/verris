@@ -51,7 +51,7 @@ export function PrzekroczeniaLimitow({ dane, teraz, zWezlem }: { dane: Przekrocz
             ? "Brak aktywnych węzłów."
             : bezProblemow
               ? "Żadne konto nie odbiło się od limitu w ostatnich 7 dniach."
-              : "Brak danych — żaden węzeł nie przysłał aktualnego raportu."}
+              : "Brak danych – żaden węzeł nie przysłał aktualnego raportu."}
         </div>
       ) : (
         <div className={`${KARTA} overflow-x-auto`}>

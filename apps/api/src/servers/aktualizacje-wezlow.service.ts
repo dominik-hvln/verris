@@ -172,6 +172,6 @@ function wynikCve(
   }
   const komunikat = doZalatania.length
     ? `${cve}: poprawka czeka na ${doZalatania.length} z ${wezly.length} węzłów.`
-    : `${cve}: żaden węzeł nie ma oczekującej poprawki. To znaczy, że jest już zainstalowana albo dystrybucja jeszcze jej nie wydała — bez sprawdzenia advisory producenta nie da się tego rozróżnić.`;
+    : `${cve}: żaden węzeł nie ma oczekującej poprawki. To znaczy, że jest już zainstalowana albo dystrybucja jeszcze jej nie wydała – bez sprawdzenia advisory producenta nie da się tego rozróżnić.`;
   return { cve, doZalatania, bezPoprawkiNaLiscie, bezDanych, komunikat };
 }

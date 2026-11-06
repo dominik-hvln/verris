@@ -9,7 +9,7 @@ import {
 } from "./impersonation-actions";
 
 function formatRemaining(expiresAt: string | null): string {
-  if (!expiresAt) return "—";
+  if (!expiresAt) return "–";
   const ms = new Date(expiresAt).getTime() - Date.now();
   if (ms <= 0) return "0:00";
   const mins = Math.floor(ms / 60000);

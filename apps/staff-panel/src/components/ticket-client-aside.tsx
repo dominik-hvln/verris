@@ -10,7 +10,7 @@ const INV_STATUS = maleLitery(INVOICE_STATUS_PL);
 const TICKET_STATUS = maleLitery(TICKET_STATUS_PL);
 
 const TZ = "Europe/Warsaw";
-const dzien = (s: string | null) => (s ? new Date(s).toLocaleDateString("pl-PL", { timeZone: TZ }) : "—");
+const dzien = (s: string | null) => (s ? new Date(s).toLocaleDateString("pl-PL", { timeZone: TZ }) : "–");
 const dzienGodz = (s: string) => new Date(s).toLocaleString("pl-PL", { timeZone: TZ, day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 const ton = (score: number | null) => (score == null ? "text-muted-foreground" : score >= 80 ? "text-data-hi" : score >= 50 ? "text-warn" : "text-crit");
 
@@ -77,11 +77,11 @@ export function TicketClientAside({
           </div>
           <div className="flex justify-between text-[13.5px]">
             <span className="text-muted-foreground">Saldo</span>
-            <span className="font-mono">{c.client.walletBalance != null ? `${c.client.walletBalance} K` : "—"}</span>
+            <span className="font-mono">{c.client.walletBalance != null ? `${c.client.walletBalance} K` : "–"}</span>
           </div>
           <div className="flex justify-between text-[13.5px]">
             <span className="text-muted-foreground">Kondycja</span>
-            <span className={`font-semibold ${ton(c.healthScore)}`}>{c.healthScore != null ? `${c.healthScore} / 100` : "—"}</span>
+            <span className={`font-semibold ${ton(c.healthScore)}`}>{c.healthScore != null ? `${c.healthScore} / 100` : "–"}</span>
           </div>
           <div className="mt-1 flex flex-wrap gap-2">
             <Link href={`/crm/${userId}`} className="inline-flex h-8 items-center rounded-[9px] border border-line-strong bg-card px-3 text-[13px] font-semibold text-foreground no-underline hover:border-primary">
@@ -104,11 +104,11 @@ export function TicketClientAside({
                 <span className="text-[12.5px] text-crit">strona nie odpowiada</span>
               ) : (
                 <span className="text-[12.5px] text-muted-foreground">
-                  {s.plan ?? "—"} · {SUB_STATUS[s.status] ?? s.status} · SSL do {dzien(s.sslExpiresAt)}
+                  {s.plan ?? "–"} · {SUB_STATUS[s.status] ?? s.status} · SSL do {dzien(s.sslExpiresAt)}
                 </span>
               )}
               <span className="text-[12px] text-muted-foreground">
-                kondycja <span className={ton(s.healthScore)}>{s.healthScore ?? "—"}</span> · okres do {dzien(s.currentPeriodEnd)}
+                kondycja <span className={ton(s.healthScore)}>{s.healthScore ?? "–"}</span> · okres do {dzien(s.currentPeriodEnd)}
               </span>
             </span>
           </Wiersz>

@@ -51,7 +51,7 @@ export function FileSearchPanel({ serviceId, domain }: { serviceId: string; doma
   const w = stan?.wynik ?? null;
   return (
     <section className="mt-8">
-      <SectionHead title="Szukaj plików" desc={`W katalogu /domains/${domain}/public_html — po fragmencie nazwy, tekście w treści albo obu naraz.`} />
+      <SectionHead title="Szukaj plików" desc={`W katalogu /domains/${domain}/public_html – po fragmencie nazwy, tekście w treści albo obu naraz.`} />
       {bladWczytania && !stan ? <p role="alert" className="m-0 my-2 rounded-[8px] border border-line px-3 py-2 text-[13px] text-crit">Nie udało się wczytać: {bladWczytania}</p> : null}
       <div className="rounded-[10px] border border-line bg-card">
         <form onSubmit={szukaj} className="grid gap-3 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
@@ -73,7 +73,7 @@ export function FileSearchPanel({ serviceId, domain }: { serviceId: string; doma
             <p className="m-0 text-[12.5px] text-muted-foreground">
               {[stan.zapytanie.name && `nazwa „${stan.zapytanie.name}”`, stan.zapytanie.text && `tekst „${stan.zapytanie.text}”`].filter(Boolean).join(' i ')}:{' '}
               {w.pliki.length ? `${w.pliki.length}${w.ucieto ? '+ plików' : ` ${plForm(w.pliki.length, 'plik', 'pliki', 'plików')}`}` : 'nic nie znaleziono'}
-              {w.ucieto ? ' — pokazujemy pierwsze 500, zawęź wyszukiwanie.' : '.'}
+              {w.ucieto ? ' – pokazujemy pierwsze 500, zawęź wyszukiwanie.' : '.'}
             </p>
             {w.pliki.length ? (
               <ul className="m-0 mt-2 max-h-[420px] list-none overflow-y-auto p-0 text-[12.5px]">

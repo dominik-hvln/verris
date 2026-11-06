@@ -12,7 +12,7 @@ export function plForm(count: number, one: string, few: string, many: string): s
 
 /** 99,98% — API zwraca już wartość obciętą do 2 miejsc, więc nic tu nie zaokrągla w górę. */
 export function pct(v: number | null): string {
-  if (v === null) return '—';
+  if (v === null) return '–';
   return `${v.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
 }
 

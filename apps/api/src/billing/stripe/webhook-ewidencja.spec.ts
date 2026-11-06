@@ -36,7 +36,7 @@ const wiersz = (o: Partial<WierszZdarzenia>): WierszZdarzenia => ({
   ...o,
 });
 
-describe('Z-05 — decyzja o zdarzeniu', () => {
+describe('Z-05 – decyzja o zdarzeniu', () => {
   it('brak wiersza → przetwarzaj', () => {
     expect(decyzja(null, T0)).toEqual({ rodzaj: 'przetwarzaj' });
   });
@@ -90,7 +90,7 @@ describe('Z-05 — decyzja o zdarzeniu', () => {
   });
 });
 
-describe('Z-05 — odstępy ponowień', () => {
+describe('Z-05 – odstępy ponowień', () => {
   it('rosną, nie maleją', () => {
     const odstepy = [1, 2, 3, 4].map(
       (p) => nastepnaProba(p, T0).getTime() - T0.getTime(),
@@ -100,7 +100,7 @@ describe('Z-05 — odstępy ponowień', () => {
     }
   });
 
-  it('pierwsza próba jest szybka — przejściowy timeout naprawia się sam', () => {
+  it('pierwsza próba jest szybka – przejściowy timeout naprawia się sam', () => {
     expect(nastepnaProba(1, T0).getTime() - T0.getTime()).toBe(1 * MIN);
   });
 
@@ -125,7 +125,7 @@ describe('Z-05 — odstępy ponowień', () => {
   });
 });
 
-describe('Z-05 — próg alertu', () => {
+describe('Z-05 – próg alertu', () => {
   const stan = (o: Partial<Parameters<typeof czyAlarmowac>[0]> = {}) => ({
     status: 'FAILED' as const,
     attempts: 1,
@@ -170,7 +170,7 @@ describe('Z-05 — próg alertu', () => {
   });
 });
 
-describe('Z-05 — retencja i podejmowanie', () => {
+describe('Z-05 – retencja i podejmowanie', () => {
   it('granica czyszczenia leży dokładnie 90 dni wstecz', () => {
     const g = granicaCzyszczeniaTresci(T0);
     expect(Math.round((T0.getTime() - g.getTime()) / (24 * 60 * 60 * 1000))).toBe(
@@ -217,7 +217,7 @@ export function bezKomentarzy(zrodlo: string): string {
     .join('\n');
 }
 
-describe('Z-05 — strażniki na powrót starego zachowania', () => {
+describe('Z-05 – strażniki na powrót starego zachowania', () => {
   const zrodla = pliki(SRC).map((p) => ({
     sciezka: relative(SRC, p),
     kod: bezKomentarzy(readFileSync(p, 'utf8')),
@@ -241,7 +241,7 @@ describe('Z-05 — strażniki na powrót starego zachowania', () => {
     expect(
       winne.length === 0
         ? ''
-        : `Zakładanie StripeWebhookEvent bez pola \`status\` — wiersz bez stanu znaczy ` +
+        : `Zakładanie StripeWebhookEvent bez pola \`status\` – wiersz bez stanu znaczy ` +
           `„widziałem", a kod przeczyta go jako „obsłużyłem" (Z-05):\n  ${winne.join('\n  ')}`,
     ).toBe('');
   });

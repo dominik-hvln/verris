@@ -36,7 +36,7 @@ export async function createPromoAction(
   if (input.kind === "PERCENT_BONUS") {
     return {
       ok: false,
-      error: 'Typ PERCENT_BONUS (doładowanie portfela) twórz ręcznie w API — w panelu użyj FIXED_CREDIT lub SERVICE_PERCENT_OFF.',
+      error: 'Typ PERCENT_BONUS (doładowanie portfela) twórz ręcznie w API – w panelu użyj FIXED_CREDIT lub SERVICE_PERCENT_OFF.',
     };
   }
 
@@ -64,7 +64,7 @@ export async function createPromoAction(
     if (err instanceof AdminApiError) {
       return { ok: false, error: err.message };
     }
-    return { ok: false, error: "Nie udało się utworzyć kodu — sprawdź logi API." };
+    return { ok: false, error: "Nie udało się utworzyć kodu – sprawdź logi API." };
   }
 
   revalidatePath("/promo-codes");

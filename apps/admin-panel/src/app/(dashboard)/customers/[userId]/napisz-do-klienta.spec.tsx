@@ -50,7 +50,7 @@ it("szablon wypełniony domeną i imieniem; wysyłka z potwierdzeniem i numerem 
   expect(k.textContent).toContain("Wysłano");
 });
 
-it("treść promocyjna — ostrzeżenie i zablokowana wysyłka", async () => {
+it("treść promocyjna – ostrzeżenie i zablokowana wysyłka", async () => {
   await wpisz(pole<HTMLTextAreaElement>('textarea[aria-label="Treść"]'), "Dzień dobry, mamy dla Ciebie rabat 20% na kolejny rok hostingu.");
   expect(pole('[data-ostrzezenie]').textContent).toContain("promocyjną");
   expect(pole<HTMLButtonElement>('[data-akcja="wyslij-mail"]').disabled).toBe(true);

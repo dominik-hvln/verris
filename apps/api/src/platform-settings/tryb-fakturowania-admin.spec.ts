@@ -28,7 +28,7 @@ function usluga(wyslaneBezStatusu = 0, wKolejce = 0, doWyjasnienia = 0) {
   return { s, wiersze, audyt };
 }
 
-describe('Tryb fakturowania — przełącznik admina', () => {
+describe('Tryb fakturowania – przełącznik admina', () => {
   it('domyślnie zewnetrzny', async () => {
     await expect(usluga().s.getTrybFakturowania()).resolves.toEqual({ tryb: 'zewnetrzny' });
   });
@@ -53,7 +53,7 @@ describe('Tryb fakturowania — przełącznik admina', () => {
 
 // Przegląd 13.10 — przełączenie TEST → PROD przy fakturach wysłanych, a bez statusu: sprawdzanie poszłoby do PROD
 // z numerem sesji z TEST, faktury wisiałyby jako „wysłane” i zajmowały kolejkę wysyłki na zawsze.
-describe('KSeF — zmiana środowiska', () => {
+describe('KSeF – zmiana środowiska', () => {
   const ustaw = (s: PlatformSettingsService, env: 'test' | 'prod') =>
     s.updateKsefSettings({ enabled: true, env, nip: '5260250274' }, 'admin-1');
 
@@ -83,7 +83,7 @@ describe('KSeF — zmiana środowiska', () => {
     expect(wiersze.get('ksef.env')).toBe('test');
   });
 
-  it('bez faktur w toku — zmiana przechodzi; to samo środowisko (np. nowy token) — bez sprawdzania', async () => {
+  it('bez faktur w toku – zmiana przechodzi; to samo środowisko (np. nowy token) – bez sprawdzania', async () => {
     const pusta = usluga(0);
     pusta.wiersze.set('faktury.tryb', 'panel');
     pusta.wiersze.set('ksef.env', 'test');

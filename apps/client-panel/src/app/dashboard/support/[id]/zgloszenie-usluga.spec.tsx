@@ -16,7 +16,7 @@ const baza = {
 };
 const html = async () => renderToStaticMarkup(await ClientTicketPage({ params: Promise.resolve({ id: baza.id }) }));
 
-describe('widok zgłoszenia — usługa', () => {
+describe('widok zgłoszenia – usługa', () => {
   it('powiązana usługa z linkiem do karty usługi', async () => {
     mockTicket.mockResolvedValue({ ...baza, subscription: { id: 's1', serviceTag: 'wnbgswgc', plan: { name: 'Hosting' }, account: { domain: 'sklep.pl' } } });
     const h = await html();
@@ -24,14 +24,14 @@ describe('widok zgłoszenia — usługa', () => {
     expect(h).toContain('sklep.pl (wnbgswgc)');
   });
 
-  it('bez usługi — mówi to wprost', async () => {
+  it('bez usługi – mówi to wprost', async () => {
     mockTicket.mockResolvedValue({ ...baza, subscription: null });
     expect(await html()).toContain('Zgłoszenie nie dotyczy konkretnej usługi.');
   });
 });
 
-describe('widok zgłoszenia — połączone z innym (przegląd F3.7)', () => {
-  it('zamknięte zwykłe — ocena; połączone z innym — bez oceny (ocenia się zgłoszenie docelowe)', async () => {
+describe('widok zgłoszenia – połączone z innym (przegląd F3.7)', () => {
+  it('zamknięte zwykłe – ocena; połączone z innym – bez oceny (ocenia się zgłoszenie docelowe)', async () => {
     mockTicket.mockResolvedValue({ ...baza, status: 'CLOSED', resolvedAt: '2026-10-08T09:00:00Z' });
     expect(await html()).toContain('data-ocena');
     mockTicket.mockResolvedValue({ ...baza, status: 'CLOSED', resolvedAt: '2026-10-08T09:00:00Z', scalonoDoId: '12345678-0000-0000-0000-000000000000' });

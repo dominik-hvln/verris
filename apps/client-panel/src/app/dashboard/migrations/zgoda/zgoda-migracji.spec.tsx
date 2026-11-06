@@ -73,7 +73,7 @@ it('czeka na decyzję: co i skąd (z odmianą), tekst upoważnienia z kreatora, 
 it('„Zgadzam się” wysyła token z linku; po sukcesie przyciski znikają', async () => {
   mockPrzyjmij.mockResolvedValue({ ok: true, migration: {} });
   await act(async () => root.render(<ZgodaMigracji serviceId="s1" prosba={prosba()} token="tok-z-maila" />));
-  await klik(przycisk('Zgadzam się — uruchom')!);
+  await klik(przycisk('Zgadzam się – uruchom')!);
   expect(mockPrzyjmij).toHaveBeenCalledWith({ serviceId: 's1', migrationId: prosba().id, token: 'tok-z-maila' });
   expect(el.textContent).toContain('Zatwierdzono tę migrację');
   expect(przycisk('Zgadzam się')).toBeUndefined();
@@ -82,7 +82,7 @@ it('„Zgadzam się” wysyła token z linku; po sukcesie przyciski znikają', a
 it('błąd API (np. limit migracji) zostaje na ekranie, przyciski dalej są', async () => {
   mockPrzyjmij.mockResolvedValue({ error: 'Dla tej usługi trwa już migracja.' });
   await act(async () => root.render(<ZgodaMigracji serviceId="s1" prosba={prosba()} />));
-  await klik(przycisk('Zgadzam się — uruchom')!);
+  await klik(przycisk('Zgadzam się – uruchom')!);
   expect(el.textContent).toContain('Dla tej usługi trwa już migracja.');
   expect(przycisk('Zgadzam się')).toBeDefined();
 });

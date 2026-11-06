@@ -101,7 +101,7 @@ describe('kandydaci, sygnały, linia karty, opis floty, odpowiedź AI', () => {
         { nazwa: 'fsn-02', wPuli: true, resources: [zasob('DISK', 50, 20)], zapas: zapas(19) },
         { nazwa: 'serwis', wPuli: false, resources: [], zapas: zapas(50) },
       ]),
-    ).toBe('Najbliżej limitu: fsn-01 — RAM za ok. 9 dni. Pula floty zmieści jeszcze ok. 22 konta w pakiecie standardowym.');
+    ).toBe('Najbliżej limitu: fsn-01 – RAM za ok. 9 dni. Pula floty zmieści jeszcze ok. 22 konta w pakiecie standardowym.');
     expect(opisFloty([{ nazwa: 'a', wPuli: true, resources: [], zapas: zapas(5) }])).toBe('Wszystkie węzły w normie przez 30 dni. Pula floty zmieści jeszcze ok. 5 kont w pakiecie standardowym.');
   });
 
@@ -114,7 +114,7 @@ describe('kandydaci, sygnały, linia karty, opis floty, odpowiedź AI', () => {
   });
 });
 
-describe('PrognozaWezlaService — AI tylko komentuje liczby panelu', () => {
+describe('PrognozaWezlaService – AI tylko komentuje liczby panelu', () => {
   const serwer = {
     id: 'w1',
     name: 'fsn-01',

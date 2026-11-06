@@ -73,7 +73,7 @@ export function AutoscalingForm({
             )}
           </div>
           <p id={`${enabledId}-desc`} className="mt-1 text-xs text-neutral-400">
-            Bez autoskalowania strona nie skorzysta z większych limitów podczas piku —
+            Bez autoskalowania strona nie skorzysta z większych limitów podczas piku –
             może odpowiadać wolniej, ale nie zostanie obciążona dodatkowo.
           </p>
         </div>
@@ -125,13 +125,13 @@ export function AutoscalingForm({
             min="0"
             max="99999.99"
             step="0.01"
-            placeholder="np. 30 — puste albo 0 = bez limitu"
+            placeholder="np. 30 – puste albo 0 = bez limitu"
             className="mt-1.5 w-full rounded-lg bg-black border border-white/10 px-3 py-2.5 text-white focus:border-emerald-400 focus:outline-none"
           />
         </label>
         <p className="mt-2 text-[11px] text-neutral-500">
           Liczymy sumę dopłat za dodatkową moc z ostatnich 30 dni (1 zł = 1 K). Gdy dojdzie do limitu, nie
-          dokładamy więcej zasobów — w razie skoku strona zwolni, ale nie zapłacisz więcej. Bez limitu płacisz za
+          dokładamy więcej zasobów – w razie skoku strona zwolni, ale nie zapłacisz więcej. Bez limitu płacisz za
           faktyczne użycie według cennika.
         </p>
       </div>

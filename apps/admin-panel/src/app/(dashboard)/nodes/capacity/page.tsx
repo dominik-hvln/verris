@@ -83,8 +83,8 @@ export default async function FleetCapacityPage() {
           <Gauge className="h-7 w-7 text-sky-300" /> Pojemność floty
         </h1>
         <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-          <b className="text-white">Zużycie</b> — ile konta realnie używają teraz (telemetria), wobec sprzętu węzła: tu widać ryzyko
-          przeciążenia. <b className="text-white">Sprzedane</b> — suma limitów planów wobec tego, co węzeł może sprzedać (sprzęt ×
+          <b className="text-white">Zużycie</b> – ile konta realnie używają teraz (telemetria), wobec sprzętu węzła: tu widać ryzyko
+          przeciążenia. <b className="text-white">Sprzedane</b> – suma limitów planów wobec tego, co węzeł może sprzedać (sprzęt ×
           overcommit): tu widać miejsce na nowe konta. Ten sam podział stosuje automatyczny przydział kont.
         </p>
       </header>
@@ -203,7 +203,7 @@ function Bar({ label, pct: value, detail, muted = false }: { label: string; pct:
     <div>
       <div className="mb-1 flex items-center justify-between text-xs">
         <span className="text-muted-foreground">{label}</span>
-        <span className={value == null ? "text-muted-foreground" : tone.text}>{value == null ? "—" : `${value}%`}</span>
+        <span className={value == null ? "text-muted-foreground" : tone.text}>{value == null ? "–" : `${value}%`}</span>
       </div>
       <div className={`${muted ? "h-1.5" : "h-2"} w-full overflow-hidden rounded-full bg-white/10`}>
         <div className={`h-full rounded-full ${tone.bg} ${muted ? "opacity-60" : ""}`} style={{ width: `${Math.min(value ?? 0, 100)}%` }} />

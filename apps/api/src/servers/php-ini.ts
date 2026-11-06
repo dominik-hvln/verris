@@ -54,7 +54,7 @@ export function sprawdzUstawieniaPhp(wejscie: Record<string, unknown>): Ustawien
   const upload = mb(wynik.upload_max_filesize);
   const post = mb(wynik.post_max_size);
   if (upload !== undefined && post !== undefined && post < upload) {
-    throw new BadRequestException('post_max_size musi być co najmniej równe upload_max_filesize — inaczej wysyłka dużego pliku się nie powiedzie.');
+    throw new BadRequestException('post_max_size musi być co najmniej równe upload_max_filesize – inaczej wysyłka dużego pliku się nie powiedzie.');
   }
   return wynik;
 }

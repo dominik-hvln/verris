@@ -8,12 +8,12 @@ keyword: "ile kosztuje przeniesienie strony"
 cluster: "Migracja"
 type: "spoke"
 status: "draft"
-faq: [{"q": "Czy strona będzie niedostępna?", "a": "Nie. Migracja odbywa się obok działającej witryny; przełączasz DNS dopiero po testach."}, {"q": "Co, jeśli obecny dostawca utrudnia przekazanie danych?", "a": "Do plików i bazy zwykle masz dostęp samodzielnie (FTP/panel). W razie problemów podpowiemy, co pobrać."}, {"q": "Czy migracja obejmuje pocztę?", "a": "Tak — skrzynki i wiadomości przenosimy razem ze stroną."}]
+faq: [{"q": "Czy strona będzie niedostępna?", "a": "Nie. Migracja odbywa się obok działającej witryny; przełączasz DNS dopiero po testach."}, {"q": "Co, jeśli obecny dostawca utrudnia przekazanie danych?", "a": "Do plików i bazy zwykle masz dostęp samodzielnie (FTP/panel). W razie problemów podpowiemy, co pobrać."}, {"q": "Czy migracja obejmuje pocztę?", "a": "Tak – skrzynki i wiadomości przenosimy razem ze stroną."}]
 ---
 
 # Ile trwa i ile kosztuje przeniesienie strony na inny hosting
 
-**W skrócie:** typowa strona firmowa przenosi się w kilka godzin, a cały proces — łącznie z propagacją DNS — zamyka się zwykle w 1–2 dniach. Koszt zależy od dostawcy: bywa płatny, bywa „zrób to sam". W Verris migracja strony i poczty jest **bezpłatna** w ramach zamówienia hostingu.
+**W skrócie:** typowa strona firmowa przenosi się w kilka godzin, a cały proces – łącznie z propagacją DNS – zamyka się zwykle w 1–2 dniach. Koszt zależy od dostawcy: bywa płatny, bywa „zrób to sam". W Verris migracja strony i poczty jest **bezpłatna** w ramach zamówienia hostingu.
 
 ## Co zajmuje czas
 
@@ -29,24 +29,24 @@ Największą zmienną nie jest technika, tylko **czas odpowiedzi obecnego dostaw
 
 ## Od czego zależy czas
 
-- **Rozmiar strony** — sklep z tysiącami zdjęć trwa dłużej niż wizytówka.
+- **Rozmiar strony** – sklep z tysiącami zdjęć trwa dłużej niż wizytówka.
 - **Liczba skrzynek** i objętość poczty.
-- **Złożoność** — integracje, płatności, niestandardowe konfiguracje.
-- **TTL w DNS** — obniżony wcześniej skraca propagację.
+- **Złożoność** – integracje, płatności, niestandardowe konfiguracje.
+- **TTL w DNS** – obniżony wcześniej skraca propagację.
 
 ## Ile to kosztuje
 
 Na rynku spotkasz trzy modele:
 
-1. **Płatna migracja** — jednorazowa opłata za usługę.
-2. **„Zrób to sam"** — dostajesz instrukcję i powodzenia.
-3. **Migracja w cenie** — dostawca przenosi Cię, bo zależy mu, żebyś przyszedł.
+1. **Płatna migracja** – jednorazowa opłata za usługę.
+2. **„Zrób to sam"** – dostajesz instrukcję i powodzenia.
+3. **Migracja w cenie** – dostawca przenosi Cię, bo zależy mu, żebyś przyszedł.
 
-W Verris działa model trzeci: [migracja jest bezpłatna](/przenies-strone), bez limitu liczby plików i bez dopłat za bazy danych. Wykonuje ją zespół albo — jeśli wolisz kontrolę — migrator w panelu. Sam hosting to 45 zł/mies lub 449 zł/rok brutto.
+W Verris działa model trzeci: [migracja jest bezpłatna](/przenies-strone), bez limitu liczby plików i bez dopłat za bazy danych. Wykonuje ją zespół albo – jeśli wolisz kontrolę – migrator w panelu. Sam hosting to 45 zł/mies lub 449 zł/rok brutto.
 
 ## Czy warto czekać na „lepszy moment"
 
-Nie przenoś się w szczycie sprzedaży ani tuż przed kampanią — poza tym każdy moment jest dobry. Im dłużej zwlekasz, tym dłużej płacisz [cenę po odnowieniu](/blog/drogie-odnowienie-hostingu).
+Nie przenoś się w szczycie sprzedaży ani tuż przed kampanią – poza tym każdy moment jest dobry. Im dłużej zwlekasz, tym dłużej płacisz [cenę po odnowieniu](/blog/drogie-odnowienie-hostingu).
 
 ## FAQ
 
@@ -57,7 +57,7 @@ Nie. Migracja odbywa się obok działającej witryny; przełączasz DNS dopiero 
 Do plików i bazy zwykle masz dostęp samodzielnie (FTP/panel). W razie problemów podpowiemy, co pobrać.
 
 **Czy migracja obejmuje pocztę?**
-Tak — skrzynki i wiadomości przenosimy razem ze stroną.
+Tak – skrzynki i wiadomości przenosimy razem ze stroną.
 
 ---
 

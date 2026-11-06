@@ -5,7 +5,7 @@ import { ProductOpsAdminController, PROVISIONING_DO_NAPRAWY } from './product-op
  * Nieudane zakładanie usługi, która potem została anulowana (zwrot wypłacony), to
  * historia — wcześniej cztery testowe zamówienia z maja–lipca blokowały start na zawsze.
  */
-describe('PROD-03 — preflight GO-LIVE', () => {
+describe('PROD-03 – preflight GO-LIVE', () => {
   function kontroler(liczby: { provisioning: number; sla?: string | null; rejestrator?: string }) {
     const subscriptionCount = vi.fn(async () => liczby.provisioning);
     const prisma = {

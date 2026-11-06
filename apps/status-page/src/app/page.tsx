@@ -25,7 +25,7 @@ export default async function StatusPage() {
     <>
       <header className="st-header">
         <div className="st-wrap">
-          <Link href="/" className="st-brand" aria-label="Verris — status usług">
+          <Link href="/" className="st-brand" aria-label="Verris – status usług">
             <Logo />
           </Link>
           <Link href="/zaufanie" className="st-btn">
@@ -42,7 +42,7 @@ export default async function StatusPage() {
             Sondy sprawdzają usługi co 30 sekund. Dostępność to odsetek udanych prób w danym okresie; dni liczymy w czasie
             polskim, a dni bez pomiarów nie wchodzą do średniej. Krótkie zakłócenie to przerwa do 5 minut w ciągu doby.
           </p>
-          <p>SLA: 99,5% w miesiącu — zasady rekompensat opisuje regulamin.</p>
+          <p>SLA: 99,5% w miesiącu – zasady rekompensat opisuje regulamin.</p>
         </footer>
       </main>
     </>
@@ -64,7 +64,7 @@ function Widok({ data }: { data: PublicStatusDto }) {
       {services.length > 0 ? (
         <Uslugi services={services} zdarzenia={zdarzenia} prace={data.maintenance} teraz={data.generatedAt} />
       ) : (
-        <p className="sv-pusto">Brak skonfigurowanych sond — stan usług pojawi się tutaj po ich uruchomieniu.</p>
+        <p className="sv-pusto">Brak skonfigurowanych sond – stan usług pojawi się tutaj po ich uruchomieniu.</p>
       )}
 
       <div className="sv-dol" style={wykres ? undefined : { gridTemplateColumns: '1fr' }}>
@@ -101,7 +101,7 @@ function scalZdarzenia(aktywne: PublicIncidentDto[], ostatnie: PublicIncidentDto
 const TYTUL = {
   OK: 'Wszystkie usługi działają',
   DEGRADED: 'Część usług działa wolniej lub z przerwami',
-  DOWN: 'Awaria — część usług jest niedostępna',
+  DOWN: 'Awaria – część usług jest niedostępna',
   NONE: 'Brak danych o usługach',
 } as const;
 
@@ -160,7 +160,7 @@ function Czas({ usluga }: { usluga: PublicServiceDto }) {
   return (
     <section className="sv-sek" aria-labelledby="czas-h">
       <h2 id="czas-h" className="sv-h">
-        Czas odpowiedzi — {usluga.name.toLowerCase()}
+        Czas odpowiedzi – {usluga.name.toLowerCase()}
       </h2>
       <div className="sv-wykres">
         <div className="sv-wykres-glowka">

@@ -15,9 +15,9 @@ import {
 const INPUT = 'w-full rounded-[7px] border border-line bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-data';
 const BTN = 'inline-flex items-center gap-2 whitespace-nowrap rounded-[7px] border border-line-strong bg-card px-[13px] py-2 text-sm font-medium text-foreground hover:bg-raised disabled:opacity-50';
 const BLEDY = [
-  ['e404', '404 — nie znaleziono', '/404.html'],
-  ['e403', '403 — brak dostępu', '/403.html'],
-  ['e500', '500 — błąd serwera', '/500.html'],
+  ['e404', '404 – nie znaleziono', '/404.html'],
+  ['e403', '403 – brak dostępu', '/403.html'],
+  ['e500', '500 – błąd serwera', '/500.html'],
 ] as const;
 
 /**
@@ -66,7 +66,7 @@ export function HtaccessPanel({ serviceId, domain }: { serviceId: string; domain
       const r = await saveHtaccess(serviceId, domain, form);
       if (r.ok) {
         przyjmij(r.status);
-        toast.success('Zapis zlecony — sprawdzimy stronę po zmianie.');
+        toast.success('Zapis zlecony – sprawdzimy stronę po zmianie.');
       } else toast.error(r.error);
     });
   const odczytaj = () =>
@@ -84,7 +84,7 @@ export function HtaccessPanel({ serviceId, domain }: { serviceId: string; domain
     <section className="mt-8">
       <SectionHead
         title="Ustawienia serwera WWW"
-        desc="Zapisywane w pliku .htaccess strony, w osobnym bloku — reguły WordPressa i Twoje własne zostają bez zmian."
+        desc="Zapisywane w pliku .htaccess strony, w osobnym bloku – reguły WordPressa i Twoje własne zostają bez zmian."
       />
       {bladWczytania && !stan ? <p role="alert" className="m-0 my-2 rounded-[8px] border border-line px-3 py-2 text-[13px] text-crit">Nie udało się wczytać: {bladWczytania}</p> : null}
       <div className="rounded-[10px] border border-line bg-card">
@@ -99,7 +99,7 @@ export function HtaccessPanel({ serviceId, domain }: { serviceId: string; domain
               onChange={(v) => ustaw({ indexes: v as HtaccessUstawienia['indexes'] })}
               options={[
                 { value: 'default', label: 'Domyślnie (ustawienie serwera)' },
-                { value: 'off', label: 'Ukryta — zalecane' },
+                { value: 'off', label: 'Ukryta – zalecane' },
                 { value: 'on', label: 'Widoczna' },
               ]}
               className="w-full"
@@ -112,13 +112,13 @@ export function HtaccessPanel({ serviceId, domain }: { serviceId: string; domain
               <Switch checked={f.hsts} onChange={(v) => ustaw({ hsts: v })} label="HSTS" disabled={zajete} /> {f.hsts ? 'Włączone na rok' : 'Wyłączone'}
             </div>
             <p className="m-0 mt-1 text-[12px] text-muted-foreground">
-              Przeglądarka przez rok łączy się ze stroną tylko przez HTTPS. Włącz, gdy certyfikat SSL działa — wyłączenie zadziała u odwiedzających dopiero po tym czasie.
+              Przeglądarka przez rok łączy się ze stroną tylko przez HTTPS. Włącz, gdy certyfikat SSL działa – wyłączenie zadziała u odwiedzających dopiero po tym czasie.
             </p>
           </div>
         </div>
         <div className="border-t border-line px-4 py-3">
           <span className="block text-[13px] font-medium text-foreground">Własne strony błędów</span>
-          <p className="m-0 mt-0.5 text-[12px] text-muted-foreground">Ścieżka pliku w katalogu strony, np. /404.html. Puste pole — strona błędu serwera.</p>
+          <p className="m-0 mt-0.5 text-[12px] text-muted-foreground">Ścieżka pliku w katalogu strony, np. /404.html. Puste pole – strona błędu serwera.</p>
           <div className="mt-2 grid gap-3 sm:grid-cols-3">
             {BLEDY.map(([k, etykieta, przyklad]) => (
               <label key={k} className="block min-w-0 text-[13px] font-medium text-foreground">

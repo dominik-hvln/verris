@@ -13,7 +13,7 @@ import { faqSchema, graph, serviceSchema } from '@/lib/schema';
 const WYSZUKIWARKA = `${PANEL}/dashboard/domains/buy`;
 
 export const metadata: Metadata = {
-  title: 'Domeny — rejestracja i transfer bez pułapek | Verris',
+  title: 'Domeny – rejestracja i transfer bez pułapek | Verris',
   description:
     'Rejestracja i transfer domen bez automatycznych odnowień. Przypomnienia 30, 14 i 7 dni przed końcem, DNSSEC i kod transferu w panelu.',
   alternates: { canonical: '/domeny' },
@@ -27,8 +27,8 @@ const KONTROLA: [string, string][] = [
 ];
 
 const TRANSFER: [string, string][] = [
-  ['Pobierz kod transferu', 'Kod AuthInfo dostaniesz u obecnego rejestratora — zwykle w jego panelu.'],
-  ['Wpisz domenę i kod w panelu Verris', 'Wybierz transfer w kreatorze domen i opłać go — cenę zobaczysz przed zamówieniem.'],
+  ['Pobierz kod transferu', 'Kod AuthInfo dostaniesz u obecnego rejestratora – zwykle w jego panelu.'],
+  ['Wpisz domenę i kod w panelu Verris', 'Wybierz transfer w kreatorze domen i opłać go – cenę zobaczysz przed zamówieniem.'],
   ['Potwierdź transfer', 'Jeśli rejestr albo obecny rejestrator poprosi o potwierdzenie mailem, kliknij link w wiadomości.'],
   ['Gotowe', 'Domena jest u nas, a DNS ustawiasz w tym samym panelu co hosting.'],
 ];
@@ -36,7 +36,7 @@ const TRANSFER: [string, string][] = [
 const FAQ: [string, string][] = [
   [
     'Ile kosztuje domena .pl?',
-    'Cenę rejestracji i cenę odnowienia pokazujemy obok siebie w kreatorze zakupu w panelu — przed zamówieniem, żebyś znał koszt także w kolejnych latach. Ceny są brutto.',
+    'Cenę rejestracji i cenę odnowienia pokazujemy obok siebie w kreatorze zakupu w panelu – przed zamówieniem, żebyś znał koszt także w kolejnych latach. Ceny są brutto.',
   ],
   [
     'Czy domena odnowi się sama?',
@@ -48,16 +48,16 @@ const FAQ: [string, string][] = [
   ],
   [
     'Czy muszę przenosić domenę, żeby uruchomić stronę na Verris?',
-    'Nie. Wystarczy zmienić rekordy DNS, aby wskazywały na nasze serwery — domena może zostać u obecnego rejestratora. Transfer jest opcjonalny i zrobisz go w dowolnym momencie.',
+    'Nie. Wystarczy zmienić rekordy DNS, aby wskazywały na nasze serwery – domena może zostać u obecnego rejestratora. Transfer jest opcjonalny i zrobisz go w dowolnym momencie.',
   ],
   [
     'Jak długo trwa transfer domeny?',
     'To zależy od końcówki i obecnego rejestratora. Jeśli DNS domeny się nie zmienia, strona i poczta działają w tym czasie normalnie.',
   ],
-  ['Kto zarządza blokadą transferu?', 'Ty — blokadę transferu włączasz i zdejmujesz sam w panelu.'],
+  ['Kto zarządza blokadą transferu?', 'Ty – blokadę transferu włączasz i zdejmujesz sam w panelu.'],
   [
     'Czy rejestrację domeny można cofnąć?',
-    'Nie. Rejestracja domeny jest nieodwracalna — informujemy o tym wprost przed zamówieniem, bez ukrytych zapisów.',
+    'Nie. Rejestracja domeny jest nieodwracalna – informujemy o tym wprost przed zamówieniem, bez ukrytych zapisów.',
   ],
 ];
 
@@ -117,7 +117,7 @@ export default function DomenyPage() {
                 </button>
               </div>
               <p className="b-przypis">
-                Dostępność i ceny sprawdzisz w kreatorze domen w panelu Verris — po zalogowaniu albo założeniu konta.
+                Dostępność i ceny sprawdzisz w kreatorze domen w panelu Verris – po zalogowaniu albo założeniu konta.
               </p>
             </form>
           </Card>
@@ -146,7 +146,7 @@ export default function DomenyPage() {
             title="Jak przenieść domenę do Verris?"
             lead={
               <>
-                Domena może też zostać u obecnego rejestratora — wtedy wystarczy zmienić DNS. Przenosisz całą stronę?
+                Domena może też zostać u obecnego rejestratora – wtedy wystarczy zmienić DNS. Przenosisz całą stronę?
                 Zobacz <Link href="/przenies-strone">darmowe przeniesienie strony</Link>.
               </>
             }
@@ -176,7 +176,7 @@ export default function DomenyPage() {
 
       <CTABand
         title="Znajdź domenę dla swojej strony"
-        text="Sprawdź dostępność i ceny w panelu — a hosting dołóż w tej samej chwili."
+        text="Sprawdź dostępność i ceny w panelu – a hosting dołóż w tej samej chwili."
         primaryLabel="Wyszukaj domenę"
         primaryHref={WYSZUKIWARKA}
         secondary={{ label: 'Zobacz hosting', href: '/hosting' }}

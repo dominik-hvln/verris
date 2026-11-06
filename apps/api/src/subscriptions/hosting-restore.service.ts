@@ -108,7 +108,7 @@ export class HostingRestoreService {
     // spoza serwera) przywraca obsługa; klient przywraca tylko kopie użytkownika.
     if (!input.isAdmin && jestKopiaAdministratora(backup.fileName)) {
       throw new BadRequestException(
-        'Tę kopię przywraca obsługa Verris — napisz zgłoszenie i podaj nazwę archiwum.',
+        'Tę kopię przywraca obsługa Verris – napisz zgłoszenie i podaj nazwę archiwum.',
       );
     }
 
@@ -254,7 +254,7 @@ export class HostingRestoreService {
         await this.fail(
           job.id,
           job.subscriptionId,
-          'Serwer nie potwierdził odtworzenia w ciągu 2 godzin — sprawdź dane albo napisz do nas, sprawdzimy to.',
+          'Serwer nie potwierdził odtworzenia w ciągu 2 godzin – sprawdź dane albo napisz do nas, sprawdzimy to.',
           undefined,
           job.requestedByUserId,
         );
@@ -296,7 +296,7 @@ export class HostingRestoreService {
     const before = await this.directAdmin.listHostingBackups(subscriptionId, userId);
     if (before.fetchError) {
       this.logger.warn(`Hosting restore sub=${subscriptionId}: lista kopii niedostępna: ${before.fetchError}`);
-      throw new Error('Nie da się odczytać listy kopii — przywracanie wstrzymane, dane nie zostały zmienione.');
+      throw new Error('Nie da się odczytać listy kopii – przywracanie wstrzymane, dane nie zostały zmienione.');
     }
     const known = new Set(before.rows.map((r) => r.fileName));
     await this.directAdmin.createHostingSiteBackupNow(subscriptionId, userId);
@@ -305,7 +305,7 @@ export class HostingRestoreService {
       const now = await this.directAdmin.listHostingBackups(subscriptionId, userId);
       if (!now.fetchError && now.rows.some((r) => !known.has(r.fileName))) return;
     }
-    throw new Error('Kopia bezpieczeństwa nie powstała w ciągu 15 minut — przywracanie wstrzymane, dane nie zostały zmienione.');
+    throw new Error('Kopia bezpieczeństwa nie powstała w ciągu 15 minut – przywracanie wstrzymane, dane nie zostały zmienione.');
   }
 
   private async setStatus(id: string, status: HostingRestoreStatus): Promise<void> {

@@ -93,7 +93,7 @@ describe('panel mówi, co się stało', () => {
       }
     });
 
-    it('odróżnia „nie zdążyło" od „odmówiło" — to dwie różne naprawy', () => {
+    it('odróżnia „nie zdążyło" od „odmówiło" – to dwie różne naprawy', () => {
       const czas = opiszBladSieci(bladUndici('UND_ERR_CONNECT_TIMEOUT'), 20_000);
       expect(czas.czyPrzekroczonyCzas).toBe(true);
       expect(czas.komunikat).toContain('20 s');

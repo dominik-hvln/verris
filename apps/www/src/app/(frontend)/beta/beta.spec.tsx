@@ -31,7 +31,7 @@ beforeAll(async () => {
     .replace(/\s+/g, ' ');
 });
 
-describe('/beta — treść', () => {
+describe('/beta – treść', () => {
   it('sekcje z makiety i termin grudzień 2026', () => {
     for (const t of ['Testy przed startem · grudzień 2026', 'Kogo szukamy', 'Jak to wygląda', 'Co testujesz', 'Uczciwie o testach', 'Autoskalowanie', 'Zgłoś się do testów', 'Pytania o testy']) {
       expect(tekst).toContain(t);
@@ -73,7 +73,7 @@ describe('/beta — treść', () => {
   });
 });
 
-describe('/beta — SEO strony tymczasowej', () => {
+describe('/beta – SEO strony tymczasowej', () => {
   it('noindex, follow i kanoniczny adres /beta', () => {
     const m = strona().metadata;
     expect(m.robots).toEqual({ index: false, follow: true });
@@ -85,7 +85,7 @@ describe('/beta — SEO strony tymczasowej', () => {
   });
 });
 
-describe('/beta — formularz', () => {
+describe('/beta – formularz', () => {
   it('pola z etykietami, zakres jako przełączniki z aria-pressed w fieldset', () => {
     for (const [id, label] of [
       ['bt-imie', 'Imię'],

@@ -313,11 +313,11 @@ export class DomenyOperatoraService {
     doDziennika?: (r: T) => Szczegoly,
   ): Promise<T> {
     if (z.operatorRole !== 'ADMIN' && cel.rolaKlienta !== 'USER') {
-      throw new ForbiddenException('Personel może zmieniać wyłącznie domeny klientów — domenę konta zespołu zmienia administrator.');
+      throw new ForbiddenException('Personel może zmieniać wyłącznie domeny klientów – domenę konta zespołu zmienia administrator.');
     }
     const powod = (z.powod ?? '').trim();
     if (powod.length < MIN_POWOD_DOMENY) {
-      throw new BadRequestException(`Podaj powód (min. ${MIN_POWOD_DOMENY} znaków) — zapisze się w dzienniku.`);
+      throw new BadRequestException(`Podaj powód (min. ${MIN_POWOD_DOMENY} znaków) – zapisze się w dzienniku.`);
     }
     const zgloszenieId = await zgloszenieKlienta(this.prisma, cel.userId, z.zgloszenie);
     const dziennik = (wynik: Szczegoly) =>

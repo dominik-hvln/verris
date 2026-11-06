@@ -34,7 +34,7 @@ export function accountProvisionedTemplate(ctx: AccountProvisionedContext): Mail
 
   const { html, text } = renderEmailShell({
     title: 'Twoje konto hostingowe jest gotowe!',
-    preheader: `Plan ${escapeMarkdown(ctx.planName)} — strona ${escapeMarkdown(ctx.domain)} aktywna.`,
+    preheader: `Plan ${escapeMarkdown(ctx.planName)} – strona ${escapeMarkdown(ctx.domain)} aktywna.`,
     bodyMarkdown: [
       greeting,
       ``,
@@ -45,16 +45,16 @@ export function accountProvisionedTemplate(ctx: AccountProvisionedContext): Mail
       `- **Plan:** ${escapeMarkdown(ctx.planName)}`,
       `- **Domena główna:** ${escapeMarkdown(ctx.domain)}`,
       `- **Login hostingowy:** \`${escapeMarkdown(ctx.daUsername)}\` (prefiks nazw baz danych i kont FTP)`,
-      `- **Hasło:** w panelu klienta przy usłudze — nie wysyłamy haseł e-mailem`,
+      `- **Hasło:** w panelu klienta przy usłudze – nie wysyłamy haseł e-mailem`,
       ``,
       `**Pierwsze kroki:**`,
       ``,
-      `1. Otwórz usługę w panelu klienta — znajdziesz tam dane logowania do panelu hostingowego i FTP.`,
+      `1. Otwórz usługę w panelu klienta – znajdziesz tam dane logowania do panelu hostingowego i FTP.`,
       `2. Skieruj domenę na nasze serwery nazw albo ustaw rekordy A/AAAA na adres serwera podany przy usłudze.`,
       `3. Certyfikat SSL (Let's Encrypt) próbujemy wystawić od razu; jeśli domena jeszcze nie wskazuje na nasz serwer, wystawisz go jednym kliknięciem w zakładce SSL.`,
       `4. Wgraj pliki przez menedżer plików w panelu albo przez FTP/SFTP.`,
       ``,
-      `Przenosisz stronę z innego hostingu? W panelu klienta jest **kreator migracji** — przeniesie pliki, bazy i pocztę.`,
+      `Przenosisz stronę z innego hostingu? W panelu klienta jest **kreator migracji** – przeniesie pliki, bazy i pocztę.`,
     ].join('\n'),
     cta: {
       label: 'Otwórz panel klienta',
@@ -69,7 +69,7 @@ export function accountProvisionedTemplate(ctx: AccountProvisionedContext): Mail
   return {
     to: ctx.to,
     tag: 'hosting.account-provisioned',
-    subject: `[Verris] ${ctx.domain} — hosting aktywny, witamy!`,
+    subject: `[Verris] ${ctx.domain} – hosting aktywny, witamy!`,
     text,
     html,
   };
@@ -100,7 +100,7 @@ export function accountSuspendedPaymentTemplate(
 
   const { html, text } = renderEmailShell({
     title: `Konto ${ctx.domain} zostało zawieszone`,
-    preheader: `Brak płatności — masz czas do ${escapeMarkdown(formatDate(ctx.expiresAt))}.`,
+    preheader: `Brak płatności – masz czas do ${escapeMarkdown(formatDate(ctx.expiresAt))}.`,
     bodyMarkdown: [
       greeting,
       ``,
@@ -110,9 +110,9 @@ export function accountSuspendedPaymentTemplate(
       ``,
       `## Co teraz`,
       ``,
-      `- **Strona internetowa nie działa** — odwiedzający widzą stronę zastępczą,`,
+      `- **Strona internetowa nie działa** – odwiedzający widzą stronę zastępczą,`,
       `- **e-maile na tej domenie nie są dostarczane** (wszystkie wysłane do Ciebie odbijają się),`,
-      `- **dane są jednak zachowane** (pliki, bazy, e-maile) — w naszych backupach i na serwerze,`,
+      `- **dane są jednak zachowane** (pliki, bazy, e-maile) – w naszych backupach i na serwerze,`,
       `- masz czas do **${escapeMarkdown(formatDate(ctx.expiresAt))}** (14 dni) na uregulowanie płatności,`,
       `- jeśli płatność nie wpłynie, usługa wygaśnie, a konto zostanie **trwale usunięte ${escapeMarkdown(
         formatDate(ctx.hardDeleteAt),
@@ -120,14 +120,14 @@ export function accountSuspendedPaymentTemplate(
       ``,
       `## Jak przywrócić usługę`,
       ``,
-      `1. Doładuj portfel — pobierzemy opłatę w ciągu godziny albo od razu przyciskiem „Opłać z portfela” przy usłudze; przy płatności kartą opłać zaległą fakturę w Rozliczeniach,`,
+      `1. Doładuj portfel – pobierzemy opłatę w ciągu godziny albo od razu przyciskiem „Opłać z portfela” przy usłudze; przy płatności kartą opłać zaległą fakturę w Rozliczeniach,`,
       `2. Usługa wróci automatycznie po zaksięgowaniu płatności, bez utraty danych. W razie pytań napisz do nas w Centrum pomocy.`,
     ].join('\n'),
     cta: {
       label: 'Opłać zaległość',
       url: `${ctx.panelUrl}/dashboard/billing`,
     },
-    footnote: `Jeśli to świadoma decyzja (rezygnacja) — nie musisz nic robić. Konto usuniemy automatycznie ${formatDate(ctx.hardDeleteAt)}.`,
+    footnote: `Jeśli to świadoma decyzja (rezygnacja) – nie musisz nic robić. Konto usuniemy automatycznie ${formatDate(ctx.hardDeleteAt)}.`,
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,
     category: 'TRANSACTIONAL',
@@ -136,7 +136,7 @@ export function accountSuspendedPaymentTemplate(
   return {
     to: ctx.to,
     tag: 'hosting.account-suspended-payment',
-    subject: `[Verris] ${ctx.domain} — konto zawieszone, opłać do ${formatDate(ctx.expiresAt)}`,
+    subject: `[Verris] ${ctx.domain} – konto zawieszone, opłać do ${formatDate(ctx.expiresAt)}`,
     text,
     html,
   };
@@ -173,14 +173,14 @@ export function domainExpiryReminderTemplate(
 
   const urgencyLine =
     ctx.window === 'T_MINUS_7'
-      ? '⚠️ **Został tydzień** — po wygaśnięciu strona i poczta w tej domenie przestaną działać.'
+      ? '⚠️ **Został tydzień** – po wygaśnięciu strona i poczta w tej domenie przestaną działać.'
       : ctx.window === 'T_MINUS_14'
-        ? 'Zostały dwa tygodnie — zalecamy odnowienie w najbliższych dniach.'
+        ? 'Zostały dwa tygodnie – zalecamy odnowienie w najbliższych dniach.'
         : 'Masz jeszcze sporo czasu, ale przypominamy z wyprzedzeniem, żebyś mógł zaplanować odnowienie spokojnie.';
 
   const { html, text } = renderEmailShell({
     title: `Domena ${ctx.domain} wygasa ${when}`,
-    preheader: `${escapeMarkdown(ctx.domain)} — odnów do ${escapeMarkdown(formatDate(ctx.expiresAt))}.`,
+    preheader: `${escapeMarkdown(ctx.domain)} – odnów do ${escapeMarkdown(formatDate(ctx.expiresAt))}.`,
     bodyMarkdown: [
       greeting,
       ``,
@@ -191,16 +191,16 @@ export function domainExpiryReminderTemplate(
       `## Odnowienie`,
       ``,
       `- **Cena:** ${escapeMarkdown(ctx.renewalPrice)}`,
-      `- **Bez przerwy w działaniu** — odnowienie przed datą wygaśnięcia gwarantuje, że strona i e-maile cały czas działają,`,
-      `- **Po wygaśnięciu** rozpoczyna się okres karencji (zwykle 30-45 dni dla domen .pl/.eu, krócej dla niektórych innych) — domena nadal jest Twoja, ale strona nie działa,`,
-      `- **Po karencji** domena trafia do puli wolnych — kto pierwszy, ten lepszy.`,
+      `- **Bez przerwy w działaniu** – odnowienie przed datą wygaśnięcia gwarantuje, że strona i e-maile cały czas działają,`,
+      `- **Po wygaśnięciu** rozpoczyna się okres karencji (zwykle 30-45 dni dla domen .pl/.eu, krócej dla niektórych innych) – domena nadal jest Twoja, ale strona nie działa,`,
+      `- **Po karencji** domena trafia do puli wolnych – kto pierwszy, ten lepszy.`,
     ].join('\n'),
     cta: {
       label: 'Odnów domenę',
       url: `${ctx.panelUrl}/dashboard/domains`,
     },
     footnote:
-      'Domen nie odnawiamy automatycznie — o odnowieniu zawsze decydujesz Ty. Przypomnimy jeszcze na 14 i 7 dni przed terminem.',
+      'Domen nie odnawiamy automatycznie – o odnowieniu zawsze decydujesz Ty. Przypomnimy jeszcze na 14 i 7 dni przed terminem.',
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,
     category: 'TRANSACTIONAL',
@@ -237,8 +237,8 @@ export function accountQuotaAlertTemplate(ctx: AccountQuotaAlertContext): MailMe
   const lines: string[] = [greeting, '', `Twoje konto **${escapeMarkdown(ctx.domain)}** zbliża się do limitów:`, ''];
   if (ctx.diskPct != null) lines.push(`- **Dysk:** wykorzystane ${ctx.diskPct}%`);
   if (ctx.bandwidthPct != null) lines.push(`- **Transfer (bież. okres):** wykorzystany ${ctx.bandwidthPct}%`);
-  if (ctx.cpuHotPct != null) lines.push(`- **Procesor:** przy limicie przez ${ctx.cpuHotPct}% ostatniej doby — strona może wtedy zwalniać`);
-  if (ctx.ramHotPct != null) lines.push(`- **Pamięć RAM:** przy limicie przez ${ctx.ramHotPct}% ostatniej doby — procesy mogą być przerywane`);
+  if (ctx.cpuHotPct != null) lines.push(`- **Procesor:** przy limicie przez ${ctx.cpuHotPct}% ostatniej doby – strona może wtedy zwalniać`);
+  if (ctx.ramHotPct != null) lines.push(`- **Pamięć RAM:** przy limicie przez ${ctx.ramHotPct}% ostatniej doby – procesy mogą być przerywane`);
   lines.push('', '## Co możesz zrobić', '');
   const rady: string[] = [];
   if (ctx.diskPct != null || ctx.bandwidthPct != null) rady.push('Usuń zbędne pliki i stare kopie lub wyczyść logi.');
@@ -281,15 +281,15 @@ export function accountDeletionReminderTemplate(ctx: AccountDeletionReminderCont
   const data = formatDate(ctx.deleteAt);
   const { html, text } = renderEmailShell({
     title: `Konto ${ctx.domain} zostanie usunięte ${data}`,
-    preheader: `Usługa jest zakończona — konto hostingowe zniknie ${escapeMarkdown(data)}.`,
+    preheader: `Usługa jest zakończona – konto hostingowe zniknie ${escapeMarkdown(data)}.`,
     bodyMarkdown: [
       greeting,
       ``,
-      `Konto hostingowe **${escapeMarkdown(ctx.domain)}** zostanie **trwale usunięte ${escapeMarkdown(data)}** — razem z plikami, bazami danych i pocztą. Usługa, do której należy, jest już zakończona.`,
+      `Konto hostingowe **${escapeMarkdown(ctx.domain)}** zostanie **trwale usunięte ${escapeMarkdown(data)}** – razem z plikami, bazami danych i pocztą. Usługa, do której należy, jest już zakończona.`,
       ``,
       `Jeśli chcesz je zachować, napisz do nas w Centrum pomocy w panelu przed tą datą.`,
       ``,
-      `Jeśli to świadoma decyzja — nie musisz nic robić.`,
+      `Jeśli to świadoma decyzja – nie musisz nic robić.`,
     ].join('\n'),
     cta: { label: 'Napisz do nas', url: `${ctx.panelUrl}/dashboard/support` },
     footnote: 'Wysyłamy to przypomnienie raz, 3 dni przed usunięciem konta.',
@@ -322,7 +322,7 @@ export interface KomunikatKonta {
   cta: string;
 }
 
-const ZAPYTAJ = 'Jeśli problem się powtarza, napisz do nas — sprawdzimy to.';
+const ZAPYTAJ = 'Jeśli problem się powtarza, napisz do nas – sprawdzimy to.';
 
 /** `d` — domena w treści (w mailu pogrubiona, po escapeMarkdown), `domena` — w tytule. */
 function komunikat(rodzaj: KomunikatKontaRodzaj, d: string, domena: string): KomunikatKonta {
@@ -332,7 +332,7 @@ function komunikat(rodzaj: KomunikatKontaRodzaj, d: string, domena: string): Kom
         tytul: `Nie udało się wystawić certyfikatu SSL dla ${domena}`,
         tresc: `Próba wystawienia bezpłatnego certyfikatu SSL (Let's Encrypt) dla ${d} nie powiodła się.`,
         rady: [
-          'Sprawdź w zakładce „Domeny i DNS”, czy domena (i wariant z www) kieruje na Twój serwer Verris — najczęstszą przyczyną jest nieustawiony albo świeżo zmieniony DNS.',
+          'Sprawdź w zakładce „Domeny i DNS”, czy domena (i wariant z www) kieruje na Twój serwer Verris – najczęstszą przyczyną jest nieustawiony albo świeżo zmieniony DNS.',
           'Gdy DNS jest poprawny, ponów wystawienie certyfikatu w zakładce „Certyfikaty SSL”.',
           ZAPYTAJ,
         ],
@@ -364,9 +364,9 @@ function komunikat(rodzaj: KomunikatKontaRodzaj, d: string, domena: string): Kom
         tytul: `Konto ${domena} jest przy limicie transferu`,
         tresc: `Transfer konta ${d} w bieżącym okresie jest wykorzystany do limitu planu albo blisko niego.`,
         rady: [
-          'Sprawdź w zakładce „Zużycie zasobów”, co generuje ruch — częstą przyczyną są boty i duże pliki do pobrania.',
+          'Sprawdź w zakładce „Zużycie zasobów”, co generuje ruch – częstą przyczyną są boty i duże pliki do pobrania.',
           'Włącz cache strony (np. LSCache dla WordPressa), żeby ograniczyć transfer.',
-          'Jeśli ruch jest naturalny, napisz do nas — dobierzemy rozwiązanie.',
+          'Jeśli ruch jest naturalny, napisz do nas – dobierzemy rozwiązanie.',
         ],
         tab: 'usage',
         cta: 'Sprawdź wykorzystanie',
@@ -377,7 +377,7 @@ function komunikat(rodzaj: KomunikatKontaRodzaj, d: string, domena: string): Kom
         tresc: `Tworzenie kopii zapasowej konta ${d} zakończyło się błędem.`,
         rady: [
           'Spróbuj ponownie w zakładce „Kopie zapasowe”.',
-          'Sprawdź, czy na koncie jest wolne miejsce — pełny dysk to częsta przyczyna.',
+          'Sprawdź, czy na koncie jest wolne miejsce – pełny dysk to częsta przyczyna.',
           ZAPYTAJ,
         ],
         tab: 'backups',
@@ -429,17 +429,17 @@ export function sslPlatnyKomunikat(rodzaj: SslPlatnyRodzaj, domena: string, wyga
     case 'zainstalowany':
       return {
         tytul: `Certyfikat SSL dla ${domena} jest zainstalowany`,
-        tresc: `Płatny certyfikat SSL dla ${domena} został wydany i zainstalowany na Twoim koncie${wygasa ? ` — ważny do ${formatDate(wygasa)}` : ''}.`,
+        tresc: `Płatny certyfikat SSL dla ${domena} został wydany i zainstalowany na Twoim koncie${wygasa ? ` – ważny do ${formatDate(wygasa)}` : ''}.`,
       };
     case 'odrzucony':
       return {
         tytul: `Nie udało się wystawić certyfikatu SSL dla ${domena}`,
-        tresc: `Wystawca nie potwierdził własności domeny ${domena} i zamówienie zostało zamknięte. Opłata wróciła do portfela — możesz zamówić certyfikat ponownie.`,
+        tresc: `Wystawca nie potwierdził własności domeny ${domena} i zamówienie zostało zamknięte. Opłata wróciła do portfela – możesz zamówić certyfikat ponownie.`,
       };
     case 'wygasa':
       return {
         tytul: `Certyfikat SSL dla ${domena} wygasa${wygasa ? ` ${formatDate(wygasa)}` : ' wkrótce'}`,
-        tresc: `Płatny certyfikat SSL dla ${domena} wygasa${wygasa ? ` ${formatDate(wygasa)}` : ' wkrótce'}. Płatnych certyfikatów nie odnawiamy automatycznie — zamów nowy w zakładce „Certyfikaty SSL”, żeby strona nie straciła kłódki.`,
+        tresc: `Płatny certyfikat SSL dla ${domena} wygasa${wygasa ? ` ${formatDate(wygasa)}` : ' wkrótce'}. Płatnych certyfikatów nie odnawiamy automatycznie – zamów nowy w zakładce „Certyfikaty SSL”, żeby strona nie straciła kłódki.`,
       };
   }
 }
@@ -473,17 +473,17 @@ const HASLO_RODZAJ: Record<HasloResetowaneRodzaj, { czego: string; skutek: strin
   skrzynka: {
     czego: 'skrzynki e-mail',
     skutek: 'Programy pocztowe i telefon przestaną pobierać pocztę, dopóki nie wpiszesz w nich nowego hasła.',
-    gdzie: 'Przycisk poniżej otwiera zakładkę „Poczta” — przy skrzynce wybierz „Zmień hasło”.',
+    gdzie: 'Przycisk poniżej otwiera zakładkę „Poczta” – przy skrzynce wybierz „Zmień hasło”.',
   },
   ftp: {
     czego: 'konta FTP',
     skutek: 'Program FTP nie połączy się, dopóki nie wpiszesz w nim nowego hasła.',
-    gdzie: 'Przycisk poniżej otwiera zakładkę „FTP i SSH” — przy koncie wybierz „Zmień hasło”.',
+    gdzie: 'Przycisk poniżej otwiera zakładkę „FTP i SSH” – przy koncie wybierz „Zmień hasło”.',
   },
   baza: {
     czego: 'użytkownika bazy danych',
     skutek: 'Strona korzystająca z tego użytkownika nie połączy się z bazą, dopóki nie wpiszesz nowego hasła w jej konfiguracji (np. wp-config.php).',
-    gdzie: 'Przycisk poniżej otwiera zakładkę „Bazy danych” — przy użytkowniku bazy wybierz „Zmień hasło”.',
+    gdzie: 'Przycisk poniżej otwiera zakładkę „Bazy danych” – przy użytkowniku bazy wybierz „Zmień hasło”.',
   },
 };
 
@@ -513,13 +513,13 @@ export function hasloResetowaneTemplate(ctx: HasloResetowaneContext): MailMessag
     bodyMarkdown: [
       greeting,
       '',
-      `Obsługa Verris zresetowała hasło ${r.czego} **${escapeMarkdown(ctx.nazwa)}**${ctx.zgloszenie ? ` (zgłoszenie ${escapeMarkdown(ctx.zgloszenie)})` : ''}. Dotychczasowe hasło już nie działa, a nowego nie zna nikt — ustaw własne w panelu.`,
+      `Obsługa Verris zresetowała hasło ${r.czego} **${escapeMarkdown(ctx.nazwa)}**${ctx.zgloszenie ? ` (zgłoszenie ${escapeMarkdown(ctx.zgloszenie)})` : ''}. Dotychczasowe hasło już nie działa, a nowego nie zna nikt – ustaw własne w panelu.`,
       '',
       r.skutek,
       '',
       r.gdzie,
       '',
-      'Jeśli nikt z Twojej strony nie kontaktował się z nami w tej sprawie — od razu napisz na kontakt@verris.pl.',
+      'Jeśli nikt z Twojej strony nie kontaktował się z nami w tej sprawie – od razu napisz na kontakt@verris.pl.',
     ].join('\n'),
     cta: { label: 'Ustaw nowe hasło', url: ctx.ctaUrl },
     footnote: 'Nigdy nie prosimy o hasło mailem ani telefonicznie.',
@@ -527,5 +527,5 @@ export function hasloResetowaneTemplate(ctx: HasloResetowaneContext): MailMessag
     panelUrl: ctx.panelUrl,
     category: 'TRANSACTIONAL',
   });
-  return { to: ctx.to, tag: `hosting.haslo-reset.${ctx.rodzaj}`, subject: 'Ustaw nowe hasło — Verris', text, html };
+  return { to: ctx.to, tag: `hosting.haslo-reset.${ctx.rodzaj}`, subject: 'Ustaw nowe hasło – Verris', text, html };
 }

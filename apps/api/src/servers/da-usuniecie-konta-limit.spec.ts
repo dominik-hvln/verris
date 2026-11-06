@@ -5,7 +5,7 @@ import { CZAS_USUWANIA_KONTA_MS, DirectAdminClient } from '@verris/directadmin-s
  * bazy, pocztę i strefy w tym samym żądaniu CMD_API_SELECT_USERS delete=yes — domyślny limit odczytów (15 s)
  * kończył się przed odpowiedzią, a konto zostawało w panelu jako aktywne.
  */
-describe('DirectAdminClient.deleteAccount — limit czasu', () => {
+describe('DirectAdminClient.deleteAccount – limit czasu', () => {
   it('usuwanie konta ma własny, długi limit (≥ 2 min), nie domyślne 15 s', async () => {
     const klient = new DirectAdminClient({ host: 'da.test', port: 2222, username: 'admin', loginKey: 'x', secure: true });
     const post = vi.fn(async () => ({ data: 'error=0&text=Users deleted' }));

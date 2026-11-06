@@ -49,7 +49,7 @@ export function ZasobyPanel({ subscriptionId, poczatkowe }: { subscriptionId: st
     <div className="space-y-3">
       {!wynik.ok ? <p className="text-sm text-rose-300">{wynik.error}</p> : null}
       {!dane ? null : !a ? (
-        <p className="text-sm text-muted-foreground">Brak konta hostingowego — nie ma czego mierzyć.</p>
+        <p className="text-sm text-muted-foreground">Brak konta hostingowego – nie ma czego mierzyć.</p>
       ) : (
         <>
           <p className="text-[11px] text-muted-foreground">

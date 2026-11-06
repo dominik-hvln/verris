@@ -19,11 +19,11 @@ function odpowiedz() {
   return { r, res: { setHeader: (k: string, v: string) => void (r.naglowki[k] = v), send: (t: string) => void (r.tresc = t) } };
 }
 
-describe('F2.4 — listy operatora (PostgreSQL)', () => {
+describe('F2.4 – listy operatora (PostgreSQL)', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 
-  it('usługi: ponad 200 — wszystkie przez stronicowanie; filtry węzeł/plan/stan/wyszukiwanie; liczniki stanów', async () => {
+  it('usługi: ponad 200 – wszystkie przez stronicowanie; filtry węzeł/plan/stan/wyszukiwanie; liczniki stanów', async () => {
     const [w1, w2] = [await utworzWezel(), await utworzWezel()];
     const [p1, p2] = [await utworzPlan({ productKind: 'HOSTING' }), await utworzPlan({ productKind: 'HOSTING' })];
     const konta = [];

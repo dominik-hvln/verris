@@ -44,7 +44,7 @@ interface OvhGlue {
 }
 
 const GLUE_DENIED_HINT =
-  'Wygeneruj nowy OVH consumer key z prawem POST /domain/verris.pl/glueRecord (obecny klucz ma zwykle tylko /domain/zone/* — patrz ops/docs/OVH_NODE_NS_AUTOMATION.md).';
+  'Wygeneruj nowy OVH consumer key z prawem POST /domain/verris.pl/glueRecord (obecny klucz ma zwykle tylko /domain/zone/* – patrz ops/docs/OVH_NODE_NS_AUTOMATION.md).';
 
 /**
  * Automates branded nameservers for a compute node at OVH:
@@ -311,7 +311,7 @@ export class NodeDnsService {
   private formatOvhError(err: unknown): string {
     const msg = (err as Error).message ?? String(err);
     if (/not been granted/i.test(msg)) {
-      return `${msg} — ${GLUE_DENIED_HINT}`;
+      return `${msg} – ${GLUE_DENIED_HINT}`;
     }
     return msg;
   }
@@ -324,7 +324,7 @@ export class NodeDnsService {
   async zwolnijNazwyWezla(serverId: string): Promise<NsProvisionStep[]> {
     const steps: NsProvisionStep[] = [];
     if (!this.ovh.isConfigured()) {
-      steps.push({ step: 'OVH', status: 'skipped', detail: 'integracja OVH nieskonfigurowana — usuń rekordy ręcznie' });
+      steps.push({ step: 'OVH', status: 'skipped', detail: 'integracja OVH nieskonfigurowana – usuń rekordy ręcznie' });
       return steps;
     }
     const server = await this.prisma.server.findUnique({ where: { id: serverId } });

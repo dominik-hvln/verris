@@ -22,6 +22,6 @@ export function poprawnyNip(nip: string): boolean {
 export function bladNipuPl(nip: string | null | undefined): string | null {
   if (!nip?.trim()) return null;
   if (!cyfryNipu(nip)) return 'NIP: 10 cyfr, np. 123-456-32-18 (numer VAT-UE z prefiksem innego kraju wpisz przy kraju tej firmy).';
-  if (!poprawnyNip(nip)) return 'Ten NIP ma błędną cyfrę kontrolną — sprawdź, czy nie ma literówki.';
+  if (!poprawnyNip(nip)) return 'Ten NIP ma błędną cyfrę kontrolną – sprawdź, czy nie ma literówki.';
   return null;
 }

@@ -131,7 +131,7 @@ export default async function BlogPage({ searchParams }: { searchParams: SP }) {
       <SubHero
         eyebrow="Blog Verris"
         title="Poradniki, dzięki którym Twoja strona działa szybciej i sprawia mniej kłopotów"
-        lead="Przeprowadzki stron, wolny WordPress, maile w spamie, faktury rosnące przy odnowieniu. Piszemy o tym, z czym właściciele stron i sklepów mierzą się naprawdę — konkretnie i krok po kroku."
+        lead="Przeprowadzki stron, wolny WordPress, maile w spamie, faktury rosnące przy odnowieniu. Piszemy o tym, z czym właściciele stron i sklepów mierzą się naprawdę – konkretnie i krok po kroku."
         crumbs={[{ label: 'Blog' }]}
       />
 
@@ -227,7 +227,7 @@ export default async function BlogPage({ searchParams }: { searchParams: SP }) {
 
       <CTABand
         title="Masz pytanie, na które nie ma tu wpisu?"
-        text={`Napisz do nas — odpowiadamy zwykle w ciągu dnia roboczego. Hosting Verris: ${cenaPakietu(ceny.hosting)}, odnowienie po cenie z cennika.`}
+        text={`Napisz do nas – odpowiadamy zwykle w ciągu dnia roboczego. Hosting Verris: ${cenaPakietu(ceny.hosting)}, odnowienie po cenie z cennika.`}
         secondary={{ label: 'Napisz do nas', href: '/kontakt' }}
       />
     </main>

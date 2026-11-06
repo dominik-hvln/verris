@@ -69,7 +69,7 @@ export function DiskUsagePanel({ serviceId }: { serviceId: string }) {
         desc={
           stan?.policzono
             ? `Pomiar z ${new Date(stan.policzono).toLocaleString('pl-PL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}${stan.razem ? ` · razem ${rozmiar(stan.razem.kb)}${stan.razem.pliki !== null ? `, ${stan.razem.pliki.toLocaleString('pl-PL')} ${plForm(stan.razem.pliki, 'plik', 'pliki', 'plików')}` : ''}` : ''}.`
-            : 'Serwer policzy rozmiar i liczbę plików w katalogach konta — potrwa to około minuty.'
+            : 'Serwer policzy rozmiar i liczbę plików w katalogach konta – potrwa to około minuty.'
         }
         action={
           <button

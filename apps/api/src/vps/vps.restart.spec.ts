@@ -21,7 +21,7 @@ function usluga(status: string, okresKoniec = new Date(Date.now() + 10 * DZIEN))
   return { svc, vps, prisma, hetzner };
 }
 
-describe('VPS — restart nie wyprowadza serwera z rozliczeń', () => {
+describe('VPS – restart nie wyprowadza serwera z rozliczeń', () => {
   it('restart działającego VPS-a zostawia status RUNNING (nie REBOOTING)', async () => {
     const t = usluga('RUNNING');
     const r = await t.svc.power('u1', 'v1', 'reboot');
@@ -30,7 +30,7 @@ describe('VPS — restart nie wyprowadza serwera z rozliczeń', () => {
     expect(t.vps.status).toBe('RUNNING');
   });
 
-  it('VPS po restarcie trafia do odnowienia — brak środków po terminie → wstrzymanie', async () => {
+  it('VPS po restarcie trafia do odnowienia – brak środków po terminie → wstrzymanie', async () => {
     const t = usluga('RUNNING', new Date(Date.now() - DZIEN));
     await t.svc.power('u1', 'v1', 'reboot');
     const findMany = vi.fn(async ({ where }: { where: { status: { in: string[] } } }) =>

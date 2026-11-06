@@ -43,7 +43,7 @@ const BLEDY_DA: Array<[string, unknown]> = [
   ['JSON error=1', { error: '1', text: 'Skrzynka już istnieje' }],
 ];
 
-describe('Poczta — skrzynki (CMD_API_POP)', () => {
+describe('Poczta – skrzynki (CMD_API_POP)', () => {
   it('tworzy skrzynkę z dokładnymi polami; „&” i nowa linia w haśle nie doklejają parametrów', async () => {
     const s = stanowisko();
     const haslo = 'Tajne&quota=0\nx=1';
@@ -132,7 +132,7 @@ describe('Poczta — skrzynki (CMD_API_POP)', () => {
   });
 });
 
-describe('Poczta — webmail skrzynki jednym kliknięciem', () => {
+describe('Poczta – webmail skrzynki jednym kliknięciem', () => {
   it('skrzynka z cudzej domeny → odmowa przed DA; zła postać adresu → 400', async () => {
     const s = stanowisko();
     await expect(s.svc.createHostingWebmailLogin('s1', 'u1', 'jan@obca.pl')).rejects.toThrow();
@@ -141,7 +141,7 @@ describe('Poczta — webmail skrzynki jednym kliknięciem', () => {
   });
 });
 
-describe('Poczta — przekierowania (CMD_API_EMAIL_FORWARDERS)', () => {
+describe('Poczta – przekierowania (CMD_API_EMAIL_FORWARDERS)', () => {
   it('normalizuje alias do lewej części i skleja adresy docelowe przecinkiem', async () => {
     const s = stanowisko();
     await s.svc.createHostingEmailForward('s1', 'u1', { name: ' Biuro@firma.pl ', destinations: 'a@x.pl; b@y.pl\nc@z.pl' });
@@ -176,7 +176,7 @@ describe('Poczta — przekierowania (CMD_API_EMAIL_FORWARDERS)', () => {
   });
 });
 
-describe('Poczta — autorespondery (CMD_API_EMAIL_AUTORESPONDER)', () => {
+describe('Poczta – autorespondery (CMD_API_EMAIL_AUTORESPONDER)', () => {
   it('nowy autoresponder → create; kopia do adresu jako cc=ON + email', async () => {
     const s = stanowisko({ get: { '/CMD_API_EMAIL_AUTORESPONDER': {} } });
     await s.svc.setHostingAutoresponder('s1', 'u1', { name: 'Jan', text: 'Urlop do 5.10', cc: 'szef@firma.pl' });
@@ -201,7 +201,7 @@ describe('Poczta — autorespondery (CMD_API_EMAIL_AUTORESPONDER)', () => {
   });
 });
 
-describe('Poczta — catch-all i antyspam', () => {
+describe('Poczta – catch-all i antyspam', () => {
   it('catch-all: adres docelowy walidowany; tryby blackhole/fail mapują się na tokeny DA', async () => {
     const s = stanowisko();
     await expect(s.svc.setHostingCatchAll('s1', 'u1', { mode: 'address', address: 'x\ny' })).rejects.toThrow('catch-all');

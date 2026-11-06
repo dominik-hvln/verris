@@ -201,19 +201,19 @@ function Tresc({
         </div>
         <div className={kartaKpi}>
           <span className="text-[12.5px] text-muted-foreground">Średnie CPU · {nazwaZakresu}</span>
-          <span className={liczba}>{kpi.cpuSrednie == null ? "—" : `${kpi.cpuSrednie}%`}</span>
+          <span className={liczba}>{kpi.cpuSrednie == null ? "–" : `${kpi.cpuSrednie}%`}</span>
           <Wykres punkty={kpi.cpu} od={od} do={doT} etykieta={`Średnie CPU floty, ${nazwaZakresu}`} wysokosc={28} obszar={false} />
         </div>
         <div className={kartaKpi}>
           <span className="text-[12.5px] text-muted-foreground">Średnia pamięć · {nazwaZakresu}</span>
-          <span className={liczba}>{kpi.ramSrednie == null ? "—" : `${kpi.ramSrednie}%`}</span>
+          <span className={liczba}>{kpi.ramSrednie == null ? "–" : `${kpi.ramSrednie}%`}</span>
           <Wykres punkty={kpi.ram} od={od} do={doT} etykieta={`Średnia pamięć floty, ${nazwaZakresu}`} ton="data-2" wysokosc={28} obszar={false} />
         </div>
         <div className={kartaKpi}>
           <Link href="/nodes/capacity" className="text-[12.5px] text-muted-foreground hover:text-foreground hover:underline">
             Pojemność floty
           </Link>
-          <span className={liczba}>{poj ? `${poj.proc}%` : "—"}</span>
+          <span className={liczba}>{poj ? `${poj.proc}%` : "–"}</span>
           <span className="block h-2 overflow-hidden rounded-[4px] bg-raised" role="img" aria-label={poj ? `${poj.proc}% sprzedawalnej pojemności` : "brak danych"}>
             <span className={`block h-full ${PASEK[ton(poj?.proc ?? null, 75, 90) ?? "data"]}`} style={{ width: `${Math.min(100, poj?.proc ?? 0)}%` }} />
           </span>
@@ -267,7 +267,7 @@ function Tresc({
                       <span>· {plural(w.accounts, "konto", "konta", "kont")}</span>
                       {w.pozaPula ? (
                         <Pigulka ton="warn" kropka={false} className="!px-2 !py-0.5 !text-[11px]">
-                          {w.pozaPula.startsWith("poza pulą") ? w.pozaPula : `poza pulą — ${w.pozaPula}`}
+                          {w.pozaPula.startsWith("poza pulą") ? w.pozaPula : `poza pulą – ${w.pozaPula}`}
                         </Pigulka>
                       ) : null}
                     </div>
@@ -278,14 +278,14 @@ function Tresc({
                   <div className="rounded-[10px] bg-background px-3 pb-1.5 pt-3">
                     <div className="mb-1.5 flex justify-between text-xs text-muted-foreground">
                       <span>CPU</span>
-                      <span className={`font-mono ${TEKST[tonCpu ?? "data"]}`}>{w.cpuNow == null ? "—" : `${w.cpuNow}%`}</span>
+                      <span className={`font-mono ${TEKST[tonCpu ?? "data"]}`}>{w.cpuNow == null ? "–" : `${w.cpuNow}%`}</span>
                     </div>
                     <Wykres punkty={w.cpu} od={od} do={doT} etykieta={`CPU ${w.name}, ${nazwaZakresu}`} ton={tonCpu ?? "data"} />
                   </div>
                   <div className="rounded-[10px] bg-background px-3 pb-1.5 pt-3">
                     <div className="mb-1.5 flex justify-between text-xs text-muted-foreground">
                       <span>Pamięć</span>
-                      <span className={`font-mono ${TEKST[tonRam ?? "data"]}`}>{w.ramNow == null ? "—" : `${w.ramNow}%`}</span>
+                      <span className={`font-mono ${TEKST[tonRam ?? "data"]}`}>{w.ramNow == null ? "–" : `${w.ramNow}%`}</span>
                     </div>
                     <Wykres punkty={w.ram} od={od} do={doT} etykieta={`Pamięć ${w.name}, ${nazwaZakresu}`} ton={tonRam ?? "data-2"} />
                   </div>
@@ -294,7 +294,7 @@ function Tresc({
                 <div className="flex flex-col gap-1.5">
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>Dysk</span>
-                    <span className={`font-mono ${TEKST[tonDysk ?? "data"]}`}>{w.diskPct == null ? "—" : `${w.diskPct}%`}</span>
+                    <span className={`font-mono ${TEKST[tonDysk ?? "data"]}`}>{w.diskPct == null ? "–" : `${w.diskPct}%`}</span>
                   </div>
                   <span className="block h-1.5 overflow-hidden rounded-[3px] bg-raised" role="img" aria-label={w.diskPct == null ? "dysk: brak próbek" : `dysk ${w.diskPct}%`}>
                     <span className={`block h-full ${PASEK[tonDysk ?? "data"]}`} style={{ width: `${Math.min(100, w.diskPct ?? 0)}%` }} />

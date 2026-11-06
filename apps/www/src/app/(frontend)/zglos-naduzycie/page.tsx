@@ -3,7 +3,7 @@ import { SubHero } from '../components/ui';
 import { AbuseForm } from '../components/AbuseForm';
 
 export const metadata: Metadata = {
-  title: 'Zgłoś nadużycie — Verris',
+  title: 'Zgłoś nadużycie – Verris',
   description: 'Zgłoś phishing, malware, spam lub nielegalną treść na stronie hostowanej w Verris. Każde zgłoszenie rozpatruje człowiek i informujemy o decyzji.',
   alternates: { canonical: '/zglos-naduzycie' },
 };
@@ -15,7 +15,7 @@ export default function Page() {
       <SubHero
         eyebrow="Nadużycia"
         title="Zgłoś nadużycie"
-        lead="Phishing, złośliwe oprogramowanie, spam albo nielegalna treść na stronie hostowanej u nas? Zgłoś — rozpatrzy to człowiek, a o decyzji poinformujemy Cię mailem."
+        lead="Phishing, złośliwe oprogramowanie, spam albo nielegalna treść na stronie hostowanej u nas? Zgłoś – rozpatrzy to człowiek, a o decyzji poinformujemy Cię mailem."
         crumbs={[{ label: 'Zgłoś nadużycie' }]}
       />
       <section>
@@ -31,7 +31,7 @@ export default function Page() {
               </div>
               <div className="icard">
                 <h2>Co dzieje się dalej</h2>
-                <p>Od razu dostajesz potwierdzenie z numerem. Po sprawdzeniu — decyzję z uzasadnieniem. Jeśli ograniczymy usługę, klient też dostaje uzasadnienie i może się odwołać.</p>
+                <p>Od razu dostajesz potwierdzenie z numerem. Po sprawdzeniu – decyzję z uzasadnieniem. Jeśli ograniczymy usługę, klient też dostaje uzasadnienie i może się odwołać.</p>
               </div>
             </div>
           </div>

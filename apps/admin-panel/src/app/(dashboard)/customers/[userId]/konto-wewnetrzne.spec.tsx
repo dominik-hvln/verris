@@ -11,7 +11,7 @@ const api = adminApi as jest.Mock;
 const pole = (dozwolone: boolean | null) =>
   renderToStaticMarkup(<PoleKontaWewnetrznego checked={false} onChange={() => undefined} dozwolone={dozwolone} />);
 
-describe("PB-47 — konto wewnętrzne na karcie klienta", () => {
+describe("PB-47 – konto wewnętrzne na karcie klienta", () => {
   it("bez uprawnienia: przełącznik nieaktywny i podpowiedź; z uprawnieniem: aktywny, bez podpowiedzi", () => {
     const bez = pole(false);
     expect(bez).toContain("disabled=\"\"");

@@ -63,7 +63,7 @@ it("„opłacone do” trafia do zlecenia jako data (południe), komunikat: bez 
   expect(el.textContent).toContain("okres opłacony u poprzedniego usługodawcy do 2027-03-15");
 });
 
-it("bez daty — zwykłe zlecenie (bez pola oplaconeDo)", async () => {
+it("bez daty – zwykłe zlecenie (bez pola oplaconeDo)", async () => {
   const zaloz = jest.fn().mockResolvedValue({ ok: true });
   await act(async () => root.render(<WarunkiIndywidualne userId="u1" dane={dane} akcje={{ zaloz, ustaw: jest.fn(), poza: jest.fn() }} />));
   const powodPole = [...el.querySelectorAll("label")].filter((l) => l.textContent?.startsWith("Powód (do audytu)")).pop()!.querySelector("input")!;

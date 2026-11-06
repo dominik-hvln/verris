@@ -10,7 +10,7 @@ import { join } from "node:path";
 const STAFF = __dirname;
 const ADMIN = join(__dirname, "../../../../../../../../admin-panel/src/app/(dashboard)/subscriptions/[id]");
 
-describe("PB-42 konto klienta — staff i admin mają ten sam panel", () => {
+describe("PB-42 konto klienta – staff i admin mają ten sam panel", () => {
   it.each(["konto-klienta-panel.tsx", "konto-klienta-widok.tsx"])("%s", (plik) => {
     expect(readFileSync(join(STAFF, plik), "utf8")).toBe(readFileSync(join(ADMIN, plik), "utf8"));
   });

@@ -37,7 +37,7 @@ export default async function ClosedTicketsPage({ searchParams }: { searchParams
       <div>
         <h1 className="text-3xl font-bold text-white">Zamknięte</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Historia zamkniętych zgłoszeń — najnowsze na górze.
+          Historia zamkniętych zgłoszeń – najnowsze na górze.
           {filterUserId ? (
             <>
               {" "}
@@ -67,7 +67,7 @@ export default async function ClosedTicketsPage({ searchParams }: { searchParams
               >
                 <span className="font-medium truncate block flex items-center gap-2">
                   <MessageSquare className="h-3.5 w-3.5 shrink-0 text-neutral-500" />
-                  #{t.id.slice(0, 8)} — {t.subject}
+                  #{t.id.slice(0, 8)} – {t.subject}
                 </span>
                 <span className="text-muted-foreground text-xs block mt-1">
                   {[t.user.firstName, t.user.lastName].filter(Boolean).join(" ") || t.user.email}
@@ -91,7 +91,7 @@ export default async function ClosedTicketsPage({ searchParams }: { searchParams
           ))}
         </ul>
         {rows.length === 0 ? (
-          <div className="py-14 text-center text-muted-foreground text-sm">{error ? 'Nie udało się wczytać zgłoszeń — zobacz komunikat powyżej.' : 'Brak zamkniętych zgłoszeń.'}</div>
+          <div className="py-14 text-center text-muted-foreground text-sm">{error ? 'Nie udało się wczytać zgłoszeń – zobacz komunikat powyżej.' : 'Brak zamkniętych zgłoszeń.'}</div>
         ) : null}
       </div>
       {lista ? <Stronicowanie strona={lista.page} stron={lista.totalPages} razem={lista.total} link={(s) => linkStrony(p, s, "/tickets/closed")} /> : null}

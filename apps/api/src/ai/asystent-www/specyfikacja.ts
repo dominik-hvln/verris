@@ -18,7 +18,7 @@ export const SPECYFIKACJA: SekcjaSpecyfikacji[] = [
       ['Stawki autoskalowania', 'według cennika (źródło: cennik), naliczane w blokach 15 minut'],
       ['Limit kosztu autoskalowania', 'opcjonalny: limit kosztu na 30 dni (suma dopłat z ostatnich 30 dni), ustawiasz przy zamówieniu albo w panelu; bez limitu płacisz za faktyczne użycie'],
       ['Transfer', 'bez limitu'],
-      ['Strony, domeny, skrzynki, bazy, konta FTP', 'bez limitu liczbowego — ograniczają je tylko zasoby konta'],
+      ['Strony, domeny, skrzynki, bazy, konta FTP', 'bez limitu liczbowego – ograniczają je tylko zasoby konta'],
     ],
   },
   {
@@ -28,7 +28,7 @@ export const SPECYFIKACJA: SekcjaSpecyfikacji[] = [
       ['Panel', 'panel Verris po polsku'],
       ['Serwer WWW', 'LiteSpeed Enterprise', true],
       ['Izolacja kont', 'własne limity CPU, RAM i procesów oraz osobny system plików dla każdego konta', true],
-      ['PHP', '8.5 i 8.4 (domyślna 8.4) oraz każda kolejna stabilna wersja; dla starszych stron także 8.3, 8.2, 8.1, 8.0 i 7.4 (7.4 i 8.0 bez poprawek bezpieczeństwa) — wersja osobno dla każdej domeny'],
+      ['PHP', '8.5 i 8.4 (domyślna 8.4) oraz każda kolejna stabilna wersja; dla starszych stron także 8.3, 8.2, 8.1, 8.0 i 7.4 (7.4 i 8.0 bez poprawek bezpieczeństwa) – wersja osobno dla każdej domeny'],
       ['Limity PHP (php.ini)', 'zmieniasz w panelu dla każdej domeny: memory_limit od 32 do 2048 MB, max_execution_time od 10 do 600 s, upload_max_filesize i post_max_size do 1024 MB, max_input_vars do 20 000; pamięć ogranicza też limit RAM konta'],
       ['PHP w podkatalogu', 'inna wersja dla wybranego katalogu strony', true],
       ['Rozszerzenia PHP i php.ini', 'przełączniki w panelu', true],
@@ -51,7 +51,7 @@ export const SPECYFIKACJA: SekcjaSpecyfikacji[] = [
     id: 'bezpieczenstwo',
     wiersze: [
       ['Zapora aplikacji (WAF)', 'ModSecurity z regułami OWASP CRS', true],
-      ['Skaner złośliwego oprogramowania', 'ImunifyAV — skan w tle i na żądanie', true],
+      ['Skaner złośliwego oprogramowania', 'ImunifyAV – skan w tle i na żądanie', true],
       ['Ochrona DDoS', 'filtrowanie L3/L4 w sieci centrum danych i limity połączeń na serwerze WWW', true],
       ['Bezpieczeństwo konta', 'logowanie dwuskładnikowe, klucze dostępu (passkeys), subkonta z uprawnieniami, tokeny API'],
     ],
@@ -76,7 +76,7 @@ export const SPECYFIKACJA: SekcjaSpecyfikacji[] = [
     id: 'kopie-gwarancje',
     wiersze: [
       ['Kopia na serwerze', 'codziennie, 7 ostatnich kopii'],
-      ['Samodzielne przywracanie', 'pliki, bazy danych i poczta — z panelu, bez zgłoszenia'],
+      ['Samodzielne przywracanie', 'pliki, bazy danych i poczta – z panelu, bez zgłoszenia'],
       ['Kopia poza serwerem', 'szyfrowana, z każdego z ostatnich 30 dni', true],
       ['Kopia bezpieczeństwa przed przywróceniem', 'domyślnie włączona', true],
       ['Dane', 'w Unii Europejskiej (EOG)'],

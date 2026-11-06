@@ -14,7 +14,7 @@ function kontroler(stan: string, wynik = 'POTWIERDZONE') {
   return { c: new BetaZgloszeniaPublicController(zgl as never, { verify: vi.fn() } as never), zgl };
 }
 
-describe('Link potwierdzenia bety — GET pokazuje przycisk, POST potwierdza', () => {
+describe('Link potwierdzenia bety – GET pokazuje przycisk, POST potwierdza', () => {
   it('GET z ważnym tokenem: strona z formularzem POST, bez wykonania akcji', async () => {
     const { c, zgl } = kontroler('DO_POTWIERDZENIA');
     const html = await c.potwierdzStrona('tok-"<x>');
@@ -54,7 +54,7 @@ describe('Link potwierdzenia bety — GET pokazuje przycisk, POST potwierdza', (
   });
 });
 
-describe('A1-04 — imię w formularzu /beta i w mailach', () => {
+describe('A1-04 – imię w formularzu /beta i w mailach', () => {
   const bledyImienia = async (imie: string) =>
     (
       await validate(

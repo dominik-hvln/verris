@@ -39,7 +39,7 @@ const STAN = {
   bladStanu: null,
   restart: null,
   log: {
-    klucz: "exim-main", etykieta: "Poczta — dziennik Exima", filtr: null, wToku: false, kiedy: "2026-10-11T08:01:00Z", zrodlo: "/var/log/exim/mainlog",
+    klucz: "exim-main", etykieta: "Poczta – dziennik Exima", filtr: null, wToku: false, kiedy: "2026-10-11T08:01:00Z", zrodlo: "/var/log/exim/mainlog",
     dopasowanych: 2, pokazano: 2, maska: true, linie: ["<= •••@firma.pl", "=> •••@example.com"], blad: null,
   },
   watchdog: { kiedy: "2026-10-11T08:00:30Z", swiezy: true, nieDzialaja: ["dovecot"], uslugi: [] },
@@ -87,7 +87,7 @@ it("watchdog, stan usług i log z informacją o masce; usługa tylko do podgląd
   expect(q("pre")!.textContent).toContain("•••@firma.pl");
 });
 
-it("NOC: restart pomocniczej i uruchomienie stojącej wspólnej — z powodem i potwierdzeniem; działająca wspólna — wniosek, bez API", async () => {
+it("NOC: restart pomocniczej i uruchomienie stojącej wspólnej – z powodem i potwierdzeniem; działająca wspólna – wniosek, bez API", async () => {
   await montuj(false);
   expect(q('[data-akcja="restart-fail2ban"]')!.disabled).toBe(true);
   await wpisz(k.querySelector<HTMLInputElement>('input[aria-label="Powód restartu"]')!, "fail2ban nie zdejmuje blokad");
@@ -104,7 +104,7 @@ it("NOC: restart pomocniczej i uruchomienie stojącej wspólnej — z powodem i 
   expect(q('[data-wyslij-wniosek="NODE_SERVICE_RESTART"]')!.textContent).toBe(JSON.stringify({ serverId: "w1", usluga: "exim" }));
 });
 
-it("ADMIN: działająca usługa wspólna — przepisanie nazwy węzła, restart-wspolnej; anulowanie — nic", async () => {
+it("ADMIN: działająca usługa wspólna – przepisanie nazwy węzła, restart-wspolnej; anulowanie – nic", async () => {
   await montuj(true);
   await wpisz(k.querySelector<HTMLInputElement>('input[aria-label="Powód restartu"]')!, "kolejka poczty stoi od godziny");
   zapytaj.mockResolvedValueOnce(null);
@@ -123,7 +123,7 @@ it("log: wybrany log, liczba linii w granicach 20–500, filtr", async () => {
   expect(akcja).toHaveBeenLastCalledWith("w1", "log", { log: "system", linie: 500, filtr: "1abc", domena: "", uzytkownik: "", od: undefined, do: undefined });
 });
 
-it("14.10 — filtry domeny, użytkownika i czasu idą do akcji (czas jako ISO UTC)", async () => {
+it("14.10 – filtry domeny, użytkownika i czasu idą do akcji (czas jako ISO UTC)", async () => {
   await montuj(true);
   await wpisz(k.querySelector<HTMLInputElement>('input[aria-label="Domena"]')!, " Firma.PL ");
   await wpisz(k.querySelector<HTMLInputElement>('input[aria-label="Użytkownik"]')!, "klient1");
@@ -138,9 +138,9 @@ it("14.10 — filtry domeny, użytkownika i czasu idą do akcji (czas jako ISO U
   expect(isoZPola("nie-data")).toBeUndefined();
 });
 
-it("14.10 — wynik z filtrami: opis, zakres przeszukanego okna; agent sprzed 14.10 — ostrzeżenie, że filtry nie zadziałały", async () => {
+it("14.10 – wynik z filtrami: opis, zakres przeszukanego okna; agent sprzed 14.10 – ostrzeżenie, że filtry nie zadziałały", async () => {
   const log = {
-    ...STAN.log, klucz: "ssh", etykieta: "SSH — logowania (secure)", zrodlo: "/var/log/secure", domena: null, uzytkownik: "root",
+    ...STAN.log, klucz: "ssh", etykieta: "SSH – logowania (secure)", zrodlo: "/var/log/secure", domena: null, uzytkownik: "root",
     od: "2026-10-14T00:00:00.000Z", do: null, zakres: { od: "2026-10-13T20:00:00.000Z", do: "2026-10-14T00:30:00.000Z" }, zastosowane: ["uzytkownik", "czas"],
   };
   akcja.mockResolvedValue({ ok: true, wynik: { ...STAN, log } });
@@ -152,7 +152,7 @@ it("14.10 — wynik z filtrami: opis, zakres przeszukanego okna; agent sprzed 14
   expect(opisFiltrow({ ...log, uzytkownik: null, od: null, zastosowane: null }).ostrzezenie).toBeNull();
 });
 
-describe("poprawka 12.10 — świeży watchdog a migawka z „Sprawdź na serwerze”", () => {
+describe("poprawka 12.10 – świeży watchdog a migawka z „Sprawdź na serwerze”", () => {
   const STARA = {
     ...STAN,
     uslugi: {
@@ -175,20 +175,20 @@ describe("poprawka 12.10 — świeży watchdog a migawka z „Sprawdź na serwer
     akcja.mockResolvedValue({ ok: true, wynik: STARA });
     await montuj(false);
     const ftp = q('[data-usluga="ftp"]')!;
-    expect(ftp.textContent).toContain("nie działa — wg watchdoga 14:05");
+    expect(ftp.textContent).toContain("nie działa – wg watchdoga 14:05");
     expect(ftp.textContent).not.toContain("działa od");
     expect(ftp.querySelector("td[title]")!.getAttribute("title")).toBe("Migawka z 14:00 11.10: działa");
-    expect(q('[data-usluga="dovecot"]')!.textContent).toContain("działa — wg watchdoga 14:05");
+    expect(q('[data-usluga="dovecot"]')!.textContent).toContain("działa – wg watchdoga 14:05");
     expect(q('[data-usluga="exim"]')!.textContent).toContain("działa");
     expect(q('[data-usluga="exim"]')!.textContent).not.toContain("wg watchdoga");
     expect(q('[data-migawka="starsza"]')!.textContent).toBe(
-      "Szczegóły z 14:00 11.10 (działa od, restarty) — starsze niż watchdog; odśwież „Sprawdź na serwerze”.",
+      "Szczegóły z 14:00 11.10 (działa od, restarty) – starsze niż watchdog; odśwież „Sprawdź na serwerze”.",
     );
     // FTP stoi wg watchdoga — NOC może go uruchomić (serwer i tak sprawdza stan w chwili wykonania).
     expect(q('[data-akcja="restart-ftp"]')!.textContent).toBe("Uruchom");
   });
 
-  it("migawka nowsza od raportu albo raport nieświeży — tabela bez zmian, bez oznaczenia", async () => {
+  it("migawka nowsza od raportu albo raport nieświeży – tabela bez zmian, bez oznaczenia", async () => {
     akcja.mockResolvedValue({ ok: true, wynik: { ...STARA, uslugi: { ...STARA.uslugi, kiedy: "2026-10-12T12:06:00Z" } } });
     await montuj(false);
     expect(q('[data-usluga="ftp"]')!.textContent).not.toContain("wg watchdoga");

@@ -102,7 +102,7 @@ export class ControlPlaneMailService {
     const existing = await this.prisma.controlPlaneMailbox.findUnique({ where: { email } });
     if (existing) {
       throw new ConflictException(
-        `Skrzynka ${email} już istnieje. Odśwież stronę — jeśli nie widzisz hasła IMAP, użyj „Reset hasła”.`,
+        `Skrzynka ${email} już istnieje. Odśwież stronę – jeśli nie widzisz hasła IMAP, użyj „Reset hasła”.`,
       );
     }
 
@@ -266,11 +266,11 @@ export class ControlPlaneMailService {
       throw new ConflictException(
         zajety.targetId === mailboxId
           ? `Alias ${aliasEmail} już wskazuje na tę skrzynkę.`
-          : `Alias ${aliasEmail} jest już przypisany do ${zajety.target.email} — usuń go tam, potem dodaj tutaj.`,
+          : `Alias ${aliasEmail} jest już przypisany do ${zajety.target.email} – usuń go tam, potem dodaj tutaj.`,
       );
     }
     if (await this.prisma.controlPlaneMailbox.findUnique({ where: { email: aliasEmail }, select: { id: true } })) {
-      throw new ConflictException(`${aliasEmail} to osobna skrzynka — nie może być jednocześnie aliasem.`);
+      throw new ConflictException(`${aliasEmail} to osobna skrzynka – nie może być jednocześnie aliasem.`);
     }
 
     let row;
@@ -420,7 +420,7 @@ export class ControlPlaneMailService {
     const expiresAt = new Date(row.createdAt.getTime() + MAIL_FORWARD_CONFIRM_TTL_HOURS * 3600_000);
     if (new Date() > expiresAt) {
       await this.prisma.controlPlaneMailForward.delete({ where: { id: row.id } });
-      return { ok: false, html: this.forwardConfirmHtml(false, 'Link wygasł — poproś admina o nowe przekierowanie.') };
+      return { ok: false, html: this.forwardConfirmHtml(false, 'Link wygasł – poproś admina o nowe przekierowanie.') };
     }
 
     await this.prisma.controlPlaneMailForward.update({
@@ -449,7 +449,7 @@ export class ControlPlaneMailService {
     const color = success ? '#10b981' : '#f43f5e';
     return `<!DOCTYPE html><html lang="pl"><head><meta charset="utf-8"><title>${title}</title></head>
 <body style="font-family:system-ui,sans-serif;max-width:32rem;margin:3rem auto;padding:1rem;color:#e5e5e5;background:#0a0a0a">
-<h1 style="color:${color}">${title}</h1><p>${message}</p><p style="color:#737373;font-size:0.875rem">Verris — poczta zespołu</p></body></html>`;
+<h1 style="color:${color}">${title}</h1><p>${message}</p><p style="color:#737373;font-size:0.875rem">Verris – poczta zespołu</p></body></html>`;
   }
 
   async importMailboxesFromCsv(
@@ -641,7 +641,7 @@ export class ControlPlaneMailService {
         hasMailbox: false as const,
         mailHost,
         sogoUrl,
-        hint: 'Skrzynka @verris.pl nie jest jeszcze przypisana — poproś administratora.',
+        hint: 'Skrzynka @verris.pl nie jest jeszcze przypisana – poproś administratora.',
       };
     }
 
@@ -665,7 +665,7 @@ export class ControlPlaneMailService {
         username: mailbox.email,
       },
       caldavUrl: `${sogoUrl.replace(/\/$/, '')}/dav/${encodeURIComponent(mailbox.email)}/Calendar/personal/`,
-      documentation: 'Outlook, Thunderbird lub Apple Mail — użyj haseł IMAP z onboarding admina.',
+      documentation: 'Outlook, Thunderbird lub Apple Mail – użyj haseł IMAP z onboarding admina.',
     };
   }
 
@@ -675,7 +675,7 @@ export class ControlPlaneMailService {
     }
     if (!opts?.allowReserved && RESERVED_LOCAL_PARTS.has(localPart)) {
       throw new BadRequestException(
-        `Local-part „${localPart}” jest zarezerwowany — możesz go wskazać wyłącznie jako alias istniejącej skrzynki.`,
+        `Local-part „${localPart}” jest zarezerwowany – możesz go wskazać wyłącznie jako alias istniejącej skrzynki.`,
       );
     }
   }

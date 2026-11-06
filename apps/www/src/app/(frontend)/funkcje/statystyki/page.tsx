@@ -25,9 +25,9 @@ export const metadata: Metadata = {
 };
 
 const CO_ZOBACZYSZ: [string, string][] = [
-  ['Odwiedzający i odsłony', 'Suma i wykres dzień po dniu — za ostatnie 7, 30 albo 90 dni.'],
+  ['Odwiedzający i odsłony', 'Suma i wykres dzień po dniu – za ostatnie 7, 30 albo 90 dni.'],
   ['Najczęściej czytane strony', 'Dziesięć podstron, które przyciągają najwięcej ludzi. Widzisz, co działa, a co nikogo nie obchodzi.'],
-  ['Skąd przychodzą', 'Wyszukiwarka, media społecznościowe, newsletter czy wpis na forum — źródła wejść w jednej liście, osobno wejścia bezpośrednie.'],
+  ['Skąd przychodzą', 'Wyszukiwarka, media społecznościowe, newsletter czy wpis na forum – źródła wejść w jednej liście, osobno wejścia bezpośrednie.'],
   ['Urządzenia', 'Ilu ludzi wchodzi z telefonu, ilu z komputera, a ilu z tabletu.'],
 ];
 
@@ -37,7 +37,7 @@ const ZASADY: string[] = [
   'respektujemy ustawienie „Nie śledź” (Do Not Track) w przeglądarce',
   'dane trzymamy 90 dni, potem usuwają się automatycznie',
   'znane boty i roboty indeksujące pomijamy',
-  'jeden lekki skrypt ładowany z atrybutem defer — nie blokuje wyświetlania strony',
+  'jeden lekki skrypt ładowany z atrybutem defer – nie blokuje wyświetlania strony',
 ];
 
 const KROKI: Step[] = [
@@ -61,7 +61,7 @@ const FAQ: [string, string][] = [
   ],
   ['Jak długo trzymacie dane?', '90 dni. Starsze zdarzenia usuwamy automatycznie.'],
   ['Czy statystyki spowalniają stronę?', 'Skrypt jest mały i ładuje się z atrybutem defer, więc nie blokuje wyświetlania strony.'],
-  ['Czy statystyki kosztują coś ekstra?', 'Nie. Są w cenie hostingu — możesz dodać do 25 stron na jedną usługę.'],
+  ['Czy statystyki kosztują coś ekstra?', 'Nie. Są w cenie hostingu – możesz dodać do 25 stron na jedną usługę.'],
 ];
 
 export default async function Page() {
@@ -81,7 +81,7 @@ export default async function Page() {
             <h1>Wiesz, kto Cię odwiedza. Bez cookies i bez śledzenia</h1>
             <p className="lead">
               Statystyki są wbudowane w hosting. Nie zapisujemy plików cookies, nie przechowujemy adresów IP i nie
-              śledzimy ludzi między stronami — więc nie dokładasz kolejnej pozycji do banera zgód.
+              śledzimy ludzi między stronami – więc nie dokładasz kolejnej pozycji do banera zgód.
             </p>
             <div className="hero2-cta">
               <Button href={ZAMOW} cta="subhero">
@@ -113,7 +113,7 @@ export default async function Page() {
               </div>
             </div>
             <div className="c-prev-b" style={{ paddingTop: 0 }}>
-              <p className="c-note">Ilustracja widoku z panelu — bez danych prawdziwej strony.</p>
+              <p className="c-note">Ilustracja widoku z panelu – bez danych prawdziwej strony.</p>
             </div>
           </Card>
         </div>
@@ -177,7 +177,7 @@ export default async function Page() {
 
       <CTABand
         title="Poznaj swoich odwiedzających bez cookies"
-        text={`Statystyki są w cenie hostingu — ${cenaPakietu(c)}. Włączasz je w panelu.`}
+        text={`Statystyki są w cenie hostingu – ${cenaPakietu(c)}. Włączasz je w panelu.`}
         secondary={{ label: 'Wszystkie funkcje', href: '/funkcje' }}
       />
     </main>

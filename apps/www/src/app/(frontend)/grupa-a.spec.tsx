@@ -41,7 +41,7 @@ function typyJsonLd(html: string): string[] {
   return out;
 }
 
-describe.each(STRONY)('grupa A — $sciezka', (s) => {
+describe.each(STRONY)('grupa A – $sciezka', (s) => {
   const { default: Strona, metadata } = s.modul();
   let html = '';
   let tekst = '';

@@ -13,7 +13,7 @@ export const HEALTH: Record<ServiceHealthSummaryDto['label'], { tone: Tone; text
  * nazw usług serwera; odbieranie działa (blokada dotyczy wysyłki z logowaniem i ze skryptów konta).
  */
 export const WYSYLKA_WSTRZYMANA_OPIS =
-  'Obsługa Verris wstrzymała wysyłkę poczty z tego konta — wiadomości nie wychodzą, odbieranie działa. Napisz do nas, a wyjaśnimy, co dalej.';
+  'Obsługa Verris wstrzymała wysyłkę poczty z tego konta – wiadomości nie wychodzą, odbieranie działa. Napisz do nas, a wyjaśnimy, co dalej.';
 
 /**
  * Status w nagłówku karty usługi. Blokada wysyłki przez obsługę wygrywa z „Wszystko działa” — wcześniej nagłówek

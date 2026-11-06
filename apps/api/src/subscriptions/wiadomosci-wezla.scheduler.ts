@@ -147,7 +147,7 @@ export class WiadomosciWezlaScheduler {
         cursor = page[page.length - 1].id;
       }
     } catch (err) {
-      this.logger.error(`wiadomości węzła — przebieg przerwany: ${(err as Error).message}`);
+      this.logger.error(`wiadomości węzła – przebieg przerwany: ${(err as Error).message}`);
     } finally {
       this.busy = false;
     }
@@ -224,6 +224,6 @@ export class WiadomosciWezlaScheduler {
         category: 'TRANSACTIONAL',
         fromRole: 'SUPPORT',
       })
-      .catch((err) => this.logger.warn(`komunikat ${rodzaj} — mail nie wyszedł (konto ${k.id}): ${(err as Error).message}`));
+      .catch((err) => this.logger.warn(`komunikat ${rodzaj} – mail nie wyszedł (konto ${k.id}): ${(err as Error).message}`));
   }
 }

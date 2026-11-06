@@ -79,7 +79,7 @@ export async function testMailSettingsAction(to?: string): Promise<{
         ok: false,
         providerId: result.providerId,
         error:
-          `Wysyłka nie powiodła się (provider: ${result.providerId ?? '—'}). ` +
+          `Wysyłka nie powiodła się (provider: ${result.providerId ?? '–'}). ` +
           'Zobacz dokładny błąd w EmailLog / logach API.',
       };
     }

@@ -200,7 +200,7 @@ export class PocztaPrzychodzacaService {
         wynik: 'SPAM',
         powod: spam,
         tresc: m.tekst,
-        zalaczniki: [...m.zalaczniki.map((z) => ({ nazwa: z.nazwa, pominiety: 'spam — nie zapisano' })), ...pominiete(m.pominiete)] as never,
+        zalaczniki: [...m.zalaczniki.map((z) => ({ nazwa: z.nazwa, pominiety: 'spam – nie zapisano' })), ...pominiete(m.pominiete)] as never,
       });
     }
 
@@ -261,7 +261,7 @@ export class PocztaPrzychodzacaService {
     // Audyt Fali 3 — adres konta zmieniony przez obsługę w ostatnich 24 h: maila z NOWEGO adresu nie przyjmujemy
     // automatycznie jako klienta (pracownik mógł wpisać swój adres) — kolejka z podpowiedzią konta.
     if (k && !k.odmowa && (await zmianyEmailaPrzezObsluge(this.prisma, u.id)).length) {
-      return { id: k.id, odmowa: `adres e-mail konta zmieniła obsługa w ciągu ${BLOKADA_RESETU_PO_ZMIANIE_EMAILA_H} h — potwierdź tożsamość klienta` };
+      return { id: k.id, odmowa: `adres e-mail konta zmieniła obsługa w ciągu ${BLOKADA_RESETU_PO_ZMIANIE_EMAILA_H} h – potwierdź tożsamość klienta` };
     }
     return k;
   }
@@ -281,7 +281,7 @@ export class PocztaPrzychodzacaService {
     });
     const w = wpisy.find((x) => x.userId && String((x.details as { fromEmail?: unknown } | null)?.fromEmail ?? '').toLowerCase() === adres);
     return w?.userId
-      ? { id: w.userId, odmowa: `POPRZEDNI adres klienta — e-mail konta zmieniła obsługa w ciągu ${BLOKADA_RESETU_PO_ZMIANIE_EMAILA_H} h; możliwe przejęcie konta, przekaż pilnie administratorowi` }
+      ? { id: w.userId, odmowa: `POPRZEDNI adres klienta – e-mail konta zmieniła obsługa w ciągu ${BLOKADA_RESETU_PO_ZMIANIE_EMAILA_H} h; możliwe przejęcie konta, przekaż pilnie administratorowi` }
       : null;
   }
 
@@ -334,7 +334,7 @@ export class PocztaPrzychodzacaService {
       const r = await this.tickets.odpowiedzZPoczty(ticketId, userId, trescZgloszenia(m), m.zalaczniki, (replyId) =>
         this.prisma.pocztaPrzychodzaca.create({ data: { ...baza, wynik: 'ODPOWIEDZ', ticketId, replyId, userId, zalaczniki: pominiete(m.pominiete) as never } }),
       );
-      if (r.pominietePliki) this.logger.warn(`Zgłoszenie ${ticketId}: limit załączników — pominięto ${r.pominietePliki}`);
+      if (r.pominietePliki) this.logger.warn(`Zgłoszenie ${ticketId}: limit załączników – pominięto ${r.pominietePliki}`);
     });
   }
 
@@ -460,7 +460,7 @@ export class PocztaPrzychodzacaService {
   /** Plik od nieznanego nadawcy — tylko po świadomym „Pokaż” (potwierdzenie), zawsze jako pobranie, nie podgląd. */
   async plik(id: string, nr: number, potwierdzam: boolean, aktor: AktorPoczty): Promise<{ stream: Readable; nazwa: string; typ: string }> {
     if (!potwierdzam) {
-      throw new BadRequestException('Plik od nieznanego nadawcy, bez skanu antywirusowego — potwierdź „Pokaż”, żeby go pobrać.');
+      throw new BadRequestException('Plik od nieznanego nadawcy, bez skanu antywirusowego – potwierdź „Pokaż”, żeby go pobrać.');
     }
     const w = await this.prisma.pocztaPrzychodzaca.findUnique({ where: { id }, select: { zalaczniki: true, nadawca: true, rodzaj: true } });
     const z = w ? listaZalacznikow(w.zalaczniki)[nr] : undefined;
@@ -473,7 +473,7 @@ export class PocztaPrzychodzacaService {
   private async wKolejce(id: string) {
     const w = await this.prisma.pocztaPrzychodzaca.findUnique({ where: { id } });
     if (!w) throw new NotFoundException('Nie ma takiej wiadomości.');
-    if (!(W_KOLEJCE as readonly string[]).includes(w.wynik)) throw new ConflictException('Tę wiadomość ktoś już obsłużył — odśwież listę.');
+    if (!(W_KOLEJCE as readonly string[]).includes(w.wynik)) throw new ConflictException('Tę wiadomość ktoś już obsłużył – odśwież listę.');
     return w;
   }
 
@@ -496,7 +496,7 @@ export class PocztaPrzychodzacaService {
     const pliki = listaZalacznikow(w.zalaczniki).filter((z) => z.klucz);
     const kiedy = `${w.otrzymano.toISOString().slice(0, 16).replace('T', ' ')} UTC`;
     const opis = `Mail od ${w.nadawcaNazwa ? `${w.nadawcaNazwa} ` : ''}<${w.nadawca}> (${kiedy})`;
-    const notatkaPlikow = pliki.length ? ` Załączniki (${pliki.length}): ${pliki.map((p) => p.nazwa).join(', ')} — w „Poczta bez klienta”, za „Pokaż”.` : '';
+    const notatkaPlikow = pliki.length ? ` Załączniki (${pliki.length}): ${pliki.map((p) => p.nazwa).join(', ')} – w „Poczta bez klienta”, za „Pokaż”.` : '';
     let ticketId: string;
     if (dto.userId || dto.email) {
       const k = await this.prisma.user.findFirst({
@@ -513,7 +513,7 @@ export class PocztaPrzychodzacaService {
       // treść i podpis zgłaszającego to jego dane. Do sprawy klienta — notatka wewnętrzna („Dopisz do zgłoszenia”).
       // Przegląd F3.7.
       if (abuse) {
-        throw new BadRequestException('Mail z abuse@ dopisz do zgłoszenia jako notatkę — klient nie może zobaczyć treści ani danych zgłaszającego.');
+        throw new BadRequestException('Mail z abuse@ dopisz do zgłoszenia jako notatkę – klient nie może zobaczyć treści ani danych zgłaszającego.');
       }
       // Zajęcie wpisu przed utworzeniem zgłoszenia — dwa kliknięcia nie założą dwóch zgłoszeń.
       await this.zajmij(id, w.wynik, actorUserId);
@@ -530,11 +530,11 @@ export class PocztaPrzychodzacaService {
         await this.prisma.pocztaPrzychodzaca.update({ where: { id }, data: { wynik: w.wynik, obsluzylId: null, obsluzono: null } });
         throw e;
       }
-      await this.tickets.adminAddNote(ticketId, actorUserId, `${opis} — zgłoszenie założone z poczty bez klienta.${notatkaPlikow}`, { zrodlo: 'poczta' });
+      await this.tickets.adminAddNote(ticketId, actorUserId, `${opis} – zgłoszenie założone z poczty bez klienta.${notatkaPlikow}`, { zrodlo: 'poczta' });
     } else {
       const nr = dto.zgloszenieId!.toLowerCase();
       const pasujace = await this.prisma.ticket.findMany({ where: nr.length === 8 ? { id: { startsWith: nr } } : { id: nr }, select: { id: true }, take: 2 });
-      if (pasujace.length !== 1) throw new NotFoundException(pasujace.length ? 'Kilka zgłoszeń pasuje do numeru — podaj pełny identyfikator.' : 'Nie znaleziono zgłoszenia.');
+      if (pasujace.length !== 1) throw new NotFoundException(pasujace.length ? 'Kilka zgłoszeń pasuje do numeru – podaj pełny identyfikator.' : 'Nie znaleziono zgłoszenia.');
       const t = pasujace[0];
       await this.zajmij(id, w.wynik, actorUserId);
       ticketId = t.id;
@@ -559,7 +559,7 @@ export class PocztaPrzychodzacaService {
       where: { id, wynik },
       data: { wynik: 'PRZYPISANY', obsluzylId: actorUserId, obsluzono: new Date() },
     });
-    if (count !== 1) throw new ConflictException('Tę wiadomość ktoś już obsłużył — odśwież listę.');
+    if (count !== 1) throw new ConflictException('Tę wiadomość ktoś już obsłużył – odśwież listę.');
   }
 
   /** Odrzucenie (spam albo nie do nas): treść i pliki kasowane od razu; opcjonalnie blokada nadawcy. */
@@ -573,13 +573,13 @@ export class PocztaPrzychodzacaService {
     // Audyt Fali 3 — mail dotyczący konta, którego e-mail ta sama osoba zmieniła w ostatnich 24 h (np. sprzeciw klienta
     // ze starego adresu), odrzuca ktoś inny: sprawca nie wygasi kanału, którym klient zgłasza przejęcie konta.
     if (w.userId && (await zmianyEmailaPrzezObsluge(this.prisma, w.userId)).includes(aktor.principalUserId ?? aktor.userId)) {
-      throw new ForbiddenException('Ten mail dotyczy konta, którego adres e-mail zmieniłeś w ciągu doby — odrzuci go inna osoba albo administrator.');
+      throw new ForbiddenException('Ten mail dotyczy konta, którego adres e-mail zmieniłeś w ciągu doby – odrzuci go inna osoba albo administrator.');
     }
     const { count } = await this.prisma.pocztaPrzychodzaca.updateMany({
       where: { id, wynik: w.wynik },
       data: { wynik: 'ODRZUCONY', powod: powod.slice(0, 300), tresc: null, obsluzylId: actorUserId, obsluzono: new Date(), zalaczniki: [] },
     });
-    if (count !== 1) throw new ConflictException('Tę wiadomość ktoś już obsłużył — odśwież listę.');
+    if (count !== 1) throw new ConflictException('Tę wiadomość ktoś już obsłużył – odśwież listę.');
     for (const z of listaZalacznikow(w.zalaczniki)) if (z.klucz) await this.usunPlik(z.klucz);
     if (dto.zablokuj && w.nadawca) await this.zablokuj(w.nadawca, `odrzucony mail: ${powod}`, aktor);
     await this.audit.record({ action: 'POCZTA_ZGLOSZEN_ODRZUCONA', actorUserId, details: { pocztaId: id, nadawca: w.nadawca, powod, zablokowano: !!dto.zablokuj } });
@@ -600,7 +600,7 @@ export class PocztaPrzychodzacaService {
     // Audyt Fali 3 — blokada całej domeny wycisza też zgłoszenia nadużyć z tej domeny (CERT, inny hosting): tylko zespół
     // nadużyć albo ADMIN. Pojedynczy adres (spamer) — jak dotąd TICKETS_MANAGE.
     if (w.startsWith('@') && !(await this.zespolNaduzyc(aktor))) {
-      throw new ForbiddenException('Blokadę całej domeny zakłada zespół nadużyć albo administrator — zablokuj konkretny adres.');
+      throw new ForbiddenException('Blokadę całej domeny zakłada zespół nadużyć albo administrator – zablokuj konkretny adres.');
     }
     const row = await this.prisma.pocztaBlokadaNadawcy.upsert({
       where: { wzorzec: w },
@@ -665,5 +665,5 @@ const pominiete = (p: readonly PominietyZalacznik[]): ZapisanyZalacznik[] => p.m
 function trescZgloszenia(m: MailPrzychodzacy): string {
   const tekst = m.tekst.trim() || '(pusta wiadomość)';
   if (!m.pominiete.length) return tekst;
-  return `${tekst}\n\n${m.pominiete.map((p) => `[Nie dołączono pliku „${p.nazwa}” — ${p.powod}. Dozwolone: PDF, JPG, PNG, GIF, WebP, TXT, CSV, LOG do 8 MB.]`).join('\n')}`;
+  return `${tekst}\n\n${m.pominiete.map((p) => `[Nie dołączono pliku „${p.nazwa}” – ${p.powod}. Dozwolone: PDF, JPG, PNG, GIF, WebP, TXT, CSV, LOG do 8 MB.]`).join('\n')}`;
 }

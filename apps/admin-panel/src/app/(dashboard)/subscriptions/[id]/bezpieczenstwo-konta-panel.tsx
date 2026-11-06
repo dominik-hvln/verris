@@ -122,9 +122,9 @@ export function BezpieczenstwoKontaPanel({ subscriptionId, dostep }: { subscript
         setPliki(new Set());
         setWpisy(new Set());
       }
-      if (co === "odblokuj-ip") setMsg({ ok: true, tekst: "Odblokowanie zlecone — serwer zdejmie blokadę w ciągu minuty." });
-      if (co === "kwarantanna") setMsg({ ok: true, tekst: "Kwarantanna zlecona — pliki znikną ze strony w ciągu minuty, kopie zostaną na koncie." });
-      if (co === "przywroc") setMsg({ ok: true, tekst: "Przywrócenie zlecone — pliki wrócą na swoje miejsce w ciągu minuty." });
+      if (co === "odblokuj-ip") setMsg({ ok: true, tekst: "Odblokowanie zlecone – serwer zdejmie blokadę w ciągu minuty." });
+      if (co === "kwarantanna") setMsg({ ok: true, tekst: "Kwarantanna zlecona – pliki znikną ze strony w ciągu minuty, kopie zostaną na koncie." });
+      if (co === "przywroc") setMsg({ ok: true, tekst: "Przywrócenie zlecone – pliki wrócą na swoje miejsce w ciągu minuty." });
     });
 
   // Okno potwierdzenia PRZED transition (React 19: okno otwarte w środku async transition się nie pokazuje).
@@ -197,7 +197,7 @@ export function BezpieczenstwoKontaPanel({ subscriptionId, dostep }: { subscript
                 ))}
               </div>
             ) : ip ? (
-              <p className="text-xs text-muted-foreground">Brak adresów z logowań klienta i jego zgłoszeń (90 dni) — poproś o adres w zgłoszeniu.</p>
+              <p className="text-xs text-muted-foreground">Brak adresów z logowań klienta i jego zgłoszeń (90 dni) – poproś o adres w zgłoszeniu.</p>
             ) : null}
             <div className="flex flex-wrap items-center gap-2">
               <input value={adres} onChange={(e) => setAdres(e.target.value)} maxLength={45} disabled={pending} placeholder="Adres IP klienta, np. 83.12.44.201" aria-label="Adres IP" className={`${POLE} max-w-xs font-mono`} />
@@ -218,7 +218,7 @@ export function BezpieczenstwoKontaPanel({ subscriptionId, dostep }: { subscript
                   <ul className="space-y-0.5 text-rose-200">
                     {sprawdzenie.blokady.map((b) => (
                       <li key={b.jail}>
-                        Zablokowany: {b.powod} — od {kiedy(b.od)}, {b.stala ? "na stałe" : `do ${kiedy(b.do)}`}
+                        Zablokowany: {b.powod} – od {kiedy(b.od)}, {b.stala ? "na stałe" : `do ${kiedy(b.do)}`}
                       </li>
                     ))}
                   </ul>
@@ -233,7 +233,7 @@ export function BezpieczenstwoKontaPanel({ subscriptionId, dostep }: { subscript
                 {ip.operacja.wToku
                   ? "w toku…"
                   : ip.operacja.blad
-                    ? `nie powiodło się — ${ip.operacja.blad}`
+                    ? `nie powiodło się – ${ip.operacja.blad}`
                     : ip.operacja.odblokowano
                       ? `zdjęto ${ip.operacja.odblokowano} ${plForm(ip.operacja.odblokowano, "blokadę", "blokady", "blokad")}.`
                       : "adres nie był zablokowany."}
@@ -289,7 +289,7 @@ export function BezpieczenstwoKontaPanel({ subscriptionId, dostep }: { subscript
             )}
             {malware.kwarantanna.length ? (
               <div className="space-y-1 pt-2" data-kwarantanna="lista">
-                <p className="text-neutral-300">W kwarantannie ({malware.kwarantanna.length}) — klient może je usunąć na stałe albo przywrócić:</p>
+                <p className="text-neutral-300">W kwarantannie ({malware.kwarantanna.length}) – klient może je usunąć na stałe albo przywrócić:</p>
                 <ul className="space-y-1 font-mono">
                   {malware.kwarantanna.map((w) => (
                     <li key={w.id} className="flex items-start gap-2 break-all">

@@ -94,10 +94,10 @@ export class CyklZyciaUslugiService {
     if (!s) throw new NotFoundException('Usługa nie istnieje.');
     // Ta sama twarda reguła co akcje konta (F2.2): STAFF zmienia tylko usługi klientów; usługi zespołu — ADMIN.
     if (z.operator.role !== 'ADMIN' && s.user.role !== 'USER') {
-      throw new ForbiddenException('Personel może zmieniać wyłącznie usługi klientów — usługę konta zespołu zmienia administrator.');
+      throw new ForbiddenException('Personel może zmieniać wyłącznie usługi klientów – usługę konta zespołu zmienia administrator.');
     }
     const powod = (z.powod ?? '').trim();
-    if (powod.length < MIN_POWOD_CYKLU) throw new BadRequestException(`Podaj powód (min. ${MIN_POWOD_CYKLU} znaków) — zapisze się w dzienniku.`);
+    if (powod.length < MIN_POWOD_CYKLU) throw new BadRequestException(`Podaj powód (min. ${MIN_POWOD_CYKLU} znaków) – zapisze się w dzienniku.`);
     const zgloszenieId = await zgloszenieKlienta(this.prisma, s.userId, z.zgloszenie);
     return { s, zgloszenieId, powod };
   }
@@ -136,7 +136,7 @@ export class CyklZyciaUslugiService {
       try {
         await this.stripe.cancelSubscription(s.stripeSubscriptionId!, { atPeriodEnd: true });
       } catch (err) {
-        throw new ConflictException(`System płatności nie przyjął rezygnacji — nic nie zmieniono: ${bladStripe(err)}`);
+        throw new ConflictException(`System płatności nie przyjął rezygnacji – nic nie zmieniono: ${bladStripe(err)}`);
       }
       return this.poAnulacji(z, s, { powod, zgloszenieId, koniec: s.cancelAt });
     }
@@ -149,7 +149,7 @@ export class CyklZyciaUslugiService {
       try {
         await this.stripe.cancelSubscription(s.stripeSubscriptionId!, { atPeriodEnd: true });
       } catch (err) {
-        throw new ConflictException(`System płatności nie przyjął rezygnacji — nic nie zmieniono: ${bladStripe(err)}`);
+        throw new ConflictException(`System płatności nie przyjął rezygnacji – nic nie zmieniono: ${bladStripe(err)}`);
       }
     }
     const { count } = await this.prisma.subscription.updateMany({
@@ -166,8 +166,8 @@ export class CyklZyciaUslugiService {
       if (kartowa(s)) await this.rozjazd(z, s, { akcja: 'anulacja-na-koniec-okresu', powod, zgloszenieId });
       throw new ConflictException(
         kartowa(s)
-          ? 'System płatności przyjął rezygnację, ale stan usługi zmienił się w międzyczasie — sprawdź kartę usługi (wpis w dzienniku zapisany).'
-          : 'Stan usługi zmienił się w międzyczasie — odśwież kartę.',
+          ? 'System płatności przyjął rezygnację, ale stan usługi zmienił się w międzyczasie – sprawdź kartę usługi (wpis w dzienniku zapisany).'
+          : 'Stan usługi zmienił się w międzyczasie – odśwież kartę.',
       );
     }
     return this.poAnulacji(z, s, { powod, zgloszenieId, koniec });
@@ -193,7 +193,7 @@ export class CyklZyciaUslugiService {
       const ss = await this.stripe.retrieveSubscription(stripeSubscriptionId);
       return ss.cancel_at_period_end || !!ss.cancel_at || ss.status === 'canceled';
     } catch (err) {
-      throw new ConflictException(`Nie udało się sprawdzić stanu w systemie płatności — nic nie zmieniono: ${bladStripe(err)}`);
+      throw new ConflictException(`Nie udało się sprawdzić stanu w systemie płatności – nic nie zmieniono: ${bladStripe(err)}`);
     }
   }
 
@@ -217,18 +217,18 @@ export class CyklZyciaUslugiService {
   async cofnijAnulacje(z: ZlecenieCyklu) {
     const { s, zgloszenieId, powod } = await this.przygotuj(z);
     if (s.status === SubscriptionStatus.CANCELED || s.status === SubscriptionStatus.EXPIRED) {
-      throw new BadRequestException('Usługa jest już zakończona — anulacji nie da się cofnąć. Klient zamawia usługę od nowa.');
+      throw new BadRequestException('Usługa jest już zakończona – anulacji nie da się cofnąć. Klient zamawia usługę od nowa.');
     }
-    if (!s.cancelAt) return { bezZmian: true, komunikat: 'Usługa nie jest anulowana — nic do cofnięcia.' };
+    if (!s.cancelAt) return { bezZmian: true, komunikat: 'Usługa nie jest anulowana – nic do cofnięcia.' };
     if (s.status !== SubscriptionStatus.ACTIVE || s.cancelAt.getTime() <= Date.now()) {
-      throw new BadRequestException('Okres już minął — usługa jest właśnie kończona. Cofnięcia nie da się wykonać.');
+      throw new BadRequestException('Okres już minął – usługa jest właśnie kończona. Cofnięcia nie da się wykonać.');
     }
     // Audyt Fali 3 — cofnięcie rezygnacji, którą złożył klient, wznawia obciążanie jego portfela albo karty. Jak przy
     // skróceniu okresu i dodatku z portfela: tylko na jego prośbę (numer jego zgłoszenia) albo decyzją administratora.
     // Rezygnacja bez wpisu źródła (np. ustawiona z systemu płatności) liczy się jak rezygnacja klienta.
     if (!(await this.anulowanaPrzezObsluge(s.id))) {
       if (z.operator.role !== 'ADMIN' && !zgloszenieId) {
-        throw new BadRequestException('Rezygnację złożył klient — cofniesz ją tylko na jego prośbę: podaj numer jego zgłoszenia.');
+        throw new BadRequestException('Rezygnację złożył klient – cofniesz ją tylko na jego prośbę: podaj numer jego zgłoszenia.');
       }
       // Audyt Fali 3 — prośba to wiadomość klienta z panelu (nie zgłoszenie obsługi „w imieniu” ani mail).
       // Przegląd 12.10 — zgłoszenie w sprawie tej usługi, otwarte, z wiadomością klienta nowszą niż jego rezygnacja.
@@ -242,14 +242,14 @@ export class CyklZyciaUslugiService {
       }
       // W oknie odnowienia cofnięcie oznacza obciążenie w najbliższym przebiegu, a klient nie zdąży zrezygnować ponownie.
       if (s.paymentSource !== 'MANUAL' && s.cancelAt.getTime() - Date.now() < OKNO_ODNOWIENIA_MS) {
-        throw new BadRequestException('Do końca okresu została mniej niż doba — rezygnacji klienta już nie cofniesz. Po zakończeniu klient zamówi usługę ponownie.');
+        throw new BadRequestException('Do końca okresu została mniej niż doba – rezygnacji klienta już nie cofniesz. Po zakończeniu klient zamówi usługę ponownie.');
       }
     }
     if (kartowa(s)) {
       try {
         await this.stripe.cofnijAnulacjeSubskrypcji(s.stripeSubscriptionId!);
       } catch (err) {
-        throw new ConflictException(`System płatności nie przyjął cofnięcia rezygnacji — nic nie zmieniono: ${bladStripe(err)}`);
+        throw new ConflictException(`System płatności nie przyjął cofnięcia rezygnacji – nic nie zmieniono: ${bladStripe(err)}`);
       }
     }
     const { count } = await this.prisma.subscription.updateMany({
@@ -263,8 +263,8 @@ export class CyklZyciaUslugiService {
         if (kartowa(s)) await this.rozjazd(z, s, { akcja: 'cofniecie-anulacji', powod, zgloszenieId });
         throw new ConflictException(
           kartowa(s)
-            ? 'System płatności przyjął cofnięcie rezygnacji, ale stan usługi zmienił się w międzyczasie — sprawdź kartę usługi (wpis w dzienniku zapisany).'
-            : 'Stan usługi zmienił się w międzyczasie — odśwież kartę.',
+            ? 'System płatności przyjął cofnięcie rezygnacji, ale stan usługi zmienił się w międzyczasie – sprawdź kartę usługi (wpis w dzienniku zapisany).'
+            : 'Stan usługi zmienił się w międzyczasie – odśwież kartę.',
         );
       }
     }
@@ -276,7 +276,7 @@ export class CyklZyciaUslugiService {
       zgloszenieId,
       szczegoly: {},
     });
-    return { bezZmian: false, komunikat: 'Anulacja cofnięta — usługa odnowi się normalnie.' };
+    return { bezZmian: false, komunikat: 'Anulacja cofnięta – usługa odnowi się normalnie.' };
   }
 
   /**
@@ -317,27 +317,27 @@ export class CyklZyciaUslugiService {
       throw new BadRequestException('Datę odnowienia zmienisz tylko w aktywnej usłudze. Przy zaległości użyj obietnicy zapłaty.');
     }
     if (!(z.przed instanceof Date) || Number.isNaN(z.przed.getTime())) {
-      throw new BadRequestException('Brak obecnej daty odnowienia — odśwież kartę usługi.');
+      throw new BadRequestException('Brak obecnej daty odnowienia – odśwież kartę usługi.');
     }
     if (z.przed.getTime() !== stary.getTime()) {
       throw new ConflictException(
-        `Data odnowienia zmieniła się od otwarcia formularza lub złożenia wniosku (teraz ${dzienPl(stary)}, np. po odnowieniu) — nic nie zmieniono. Odśwież kartę i zdecyduj ponownie.`,
+        `Data odnowienia zmieniła się od otwarcia formularza lub złożenia wniosku (teraz ${dzienPl(stary)}, np. po odnowieniu) – nic nie zmieniono. Odśwież kartę i zdecyduj ponownie.`,
       );
     }
-    if (s.cancelAt) throw new BadRequestException('Usługa jest anulowana na koniec okresu — najpierw cofnij anulację.');
+    if (s.cancelAt) throw new BadRequestException('Usługa jest anulowana na koniec okresu – najpierw cofnij anulację.');
     // Przegląd F3.5 — okres próbny kończy harmonogram prób z `trialEndsAt` (trial-expiry.scheduler.ts), nie z końca
     // okresu: przesunięcie currentPeriodEnd byłoby pozorne (klient widzi nową datę, a próba i tak wygasa).
     if (s.isTrial) {
-      throw new BadRequestException('To okres próbny — kończy się z końcem próby. Zmiana daty dotyczy płatnej usługi.');
+      throw new BadRequestException('To okres próbny – kończy się z końcem próby. Zmiana daty dotyczy płatnej usługi.');
     }
     if (kartowa(s)) {
       throw new BadRequestException(
-        'Usługa jest opłacana kartą cyklicznie — datę odnowienia ustala system płatności. Zmiana daty tej usługi czeka na decyzję właściciela.',
+        'Usługa jest opłacana kartą cyklicznie – datę odnowienia ustala system płatności. Zmiana daty tej usługi czeka na decyzję właściciela.',
       );
     }
     const teraz = Date.now();
     if (s.paymentSource !== 'MANUAL' && stary.getTime() - teraz < OKNO_ODNOWIENIA_MS) {
-      throw new BadRequestException('Do odnowienia zostało mniej niż doba — trwa automatyczne odnowienie. Zmień datę po nim albo użyj obietnicy zapłaty.');
+      throw new BadRequestException('Do odnowienia zostało mniej niż doba – trwa automatyczne odnowienie. Zmień datę po nim albo użyj obietnicy zapłaty.');
     }
     if (nowa.getTime() - teraz < OKNO_ODNOWIENIA_MS) {
       throw new BadRequestException('Nowa data musi być co najmniej dobę od teraz.');
@@ -347,7 +347,7 @@ export class CyklZyciaUslugiService {
     }
     const skrocenie = nowa.getTime() < stary.getTime();
     if (skrocenie && !zgloszenieId) {
-      throw new BadRequestException('Skrócenie opłaconego okresu tylko na prośbę klienta — podaj numer jego zgłoszenia.');
+      throw new BadRequestException('Skrócenie opłaconego okresu tylko na prośbę klienta – podaj numer jego zgłoszenia.');
     }
     // Audyt Fali 3 — prośba to wiadomość klienta z panelu (nie zgłoszenie obsługi „w imieniu” ani mail).
     if (skrocenie) await wymagajProsbyKlienta(this.prisma, zgloszenieId!, 'Skrócenie opłaconego okresu', { subscriptionId: s.id });
@@ -355,7 +355,7 @@ export class CyklZyciaUslugiService {
       where: { id: s.id, status: SubscriptionStatus.ACTIVE, cancelAt: null, currentPeriodEnd: stary },
       data: { currentPeriodEnd: nowa },
     });
-    if (count === 0) throw new ConflictException('Stan usługi zmienił się w międzyczasie (np. odnowienie) — odśwież kartę.');
+    if (count === 0) throw new ConflictException('Stan usługi zmienił się w międzyczasie (np. odnowienie) – odśwież kartę.');
     const dni = Math.round((nowa.getTime() - stary.getTime()) / DZIEN);
     const szczegoly = { przed: stary.toISOString(), po: nowa.toISOString(), dni };
     await this.prisma.subscriptionEvent.create({ data: { subscriptionId: s.id, type: 'RENEWAL_DATE_CHANGED', details: { source: 'OPERATOR', ...szczegoly } } });
@@ -390,7 +390,7 @@ export class CyklZyciaUslugiService {
         this.prisma.subscriptionEvent.findFirst({ where: { subscriptionId: s.id, type: 'PAYMENT_PROMISE' }, orderBy: { createdAt: 'desc' }, select: { createdAt: true } }),
       ]);
       if (obietnica && (!nieudana || obietnica.createdAt >= nieudana.createdAt)) {
-        throw new ForbiddenException('W tej zaległości obietnica już była — kolejną daje administrator.');
+        throw new ForbiddenException('W tej zaległości obietnica już była – kolejną daje administrator.');
       }
     }
     const doKiedy = new Date(Date.now() + z.dni * DZIEN);
@@ -398,7 +398,7 @@ export class CyklZyciaUslugiService {
       where: { id: s.id, status: SubscriptionStatus.PAST_DUE },
       data: { paymentPromiseUntil: doKiedy },
     });
-    if (count === 0) throw new ConflictException('Stan usługi zmienił się w międzyczasie — odśwież kartę.');
+    if (count === 0) throw new ConflictException('Stan usługi zmienił się w międzyczasie – odśwież kartę.');
     await this.prisma.subscriptionEvent.create({
       data: { subscriptionId: s.id, type: 'PAYMENT_PROMISE', details: { source: 'OPERATOR', do: doKiedy.toISOString(), dni: z.dni } },
     });
@@ -426,7 +426,7 @@ export class CyklZyciaUslugiService {
       zgloszenieId,
       szczegoly: {},
     });
-    return { bezZmian: false, komunikat: 'Obietnica odwołana — przy zaległości usługa zostanie zawieszona w najbliższym przebiegu.' };
+    return { bezZmian: false, komunikat: 'Obietnica odwołana – przy zaległości usługa zostanie zawieszona w najbliższym przebiegu.' };
   }
 }
 

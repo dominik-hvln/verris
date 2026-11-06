@@ -64,7 +64,7 @@ async function klientZFaktura(saldo: string, brutto: string) {
   return { user: u, faktura: f };
 }
 
-describe('M-06 — faktura korygująca', () => {
+describe('M-06 – faktura korygująca', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 
@@ -122,14 +122,14 @@ describe('M-06 — faktura korygująca', () => {
     const k1 = await s.wystaw({
       invoiceId: a.faktura.id,
       rodzaj: 'WARTOSCIOWA',
-      przyczyna: 'Zwrot częściowy — awaria usługi',
+      przyczyna: 'Zwrot częściowy – awaria usługi',
       pozycjePo: [{ nazwa: 'Abonament', ilosc: 1, cenaBrutto: '61.50' }],
       aktorUserId: a.user.id,
     });
     const k2 = await s.wystaw({
       invoiceId: b.faktura.id,
       rodzaj: 'WARTOSCIOWA',
-      przyczyna: 'Zwrot częściowy — awaria usługi',
+      przyczyna: 'Zwrot częściowy – awaria usługi',
       pozycjePo: [{ nazwa: 'Abonament', ilosc: 1, cenaBrutto: '61.50' }],
       aktorUserId: b.user.id,
     });
@@ -328,7 +328,7 @@ describe('M-06 — faktura korygująca', () => {
       korekty().wystaw({
         invoiceId: faktura.id,
         rodzaj: 'WARTOSCIOWA',
-        przyczyna: 'Zwrot po reklamacji — numer zajęty',
+        przyczyna: 'Zwrot po reklamacji – numer zajęty',
         pozycjePo: [{ nazwa: 'Abonament', ilosc: 1, cenaBrutto: '61.50' }],
         aktorUserId: user.id,
       }),
@@ -361,14 +361,14 @@ describe('M-06 — faktura korygująca', () => {
     await s.wystaw({
       invoiceId: faktura.id,
       rodzaj: 'WARTOSCIOWA',
-      przyczyna: 'Pierwsza korekta — rabat',
+      przyczyna: 'Pierwsza korekta – rabat',
       pozycjePo: [{ nazwa: 'Abonament', ilosc: 1, cenaBrutto: '200.00' }],
       aktorUserId: user.id,
     });
     await s.wystaw({
       invoiceId: faktura.id,
       rodzaj: 'FORMALNA',
-      przyczyna: 'Druga korekta — poprawka adresu',
+      przyczyna: 'Druga korekta – poprawka adresu',
       nabywcaPo: { name: 'Klient testowy', nip: '1234563218', address: 'Nowa 1' },
       aktorUserId: user.id,
     });

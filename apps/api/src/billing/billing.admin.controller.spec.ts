@@ -8,7 +8,7 @@ import { BillingAdminController } from './billing.admin.controller.js';
 const meta = (klucz: keyof BillingAdminController, key: string): unknown =>
   Reflect.getMetadata(key, BillingAdminController.prototype[klucz] as object);
 
-describe('BillingAdminController — kody promocyjne (metadane RBAC)', () => {
+describe('BillingAdminController – kody promocyjne (metadane RBAC)', () => {
   it('PATCH kodu: ADMIN + STAFF z PROMO_MANAGE, z wpiętym StaffPermissionsGuard', () => {
     expect((meta('updatePromo', ROLES_KEY) as Role[]).slice().sort()).toEqual([Role.ADMIN, Role.STAFF].sort());
     expect(meta('updatePromo', STAFF_PERMISSIONS_KEY)).toEqual(['PROMO_MANAGE']);

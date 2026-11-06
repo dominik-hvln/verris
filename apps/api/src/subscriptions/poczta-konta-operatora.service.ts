@@ -165,7 +165,7 @@ export class PocztaKontaOperatoraService {
     });
     if (!sub) throw new NotFoundException('Usługa nie istnieje.');
     if (operatorRole !== 'ADMIN' && sub.user.role !== 'USER') {
-      throw new ForbiddenException('Personel widzi pocztę wyłącznie usług klientów — usługę konta zespołu obsługuje administrator.');
+      throw new ForbiddenException('Personel widzi pocztę wyłącznie usług klientów – usługę konta zespołu obsługuje administrator.');
     }
     if (!sub.account) throw new NotFoundException('Usługa nie ma konta hostingowego.');
     return { userId: sub.userId, account: sub.account };
@@ -206,7 +206,7 @@ export class PocztaKontaOperatoraService {
     if (account.status === 'DELETED' || account.status === 'PROVISIONING') throw new BadRequestException('Konto hostingowe nie działa na serwerze.');
     const zadania = await this.zadaniaLimitu(account.id);
     if (zadania.some((t) => t.status === NodeTaskStatus.QUEUED || t.status === NodeTaskStatus.RUNNING)) {
-      throw new ConflictException('Poprzednia operacja na limicie jeszcze trwa — chwila.');
+      throw new ConflictException('Poprzednia operacja na limicie jeszcze trwa – chwila.');
     }
     return this.prisma.nodeTask.create({
       data: {
@@ -278,7 +278,7 @@ export class PocztaKontaOperatoraService {
     const fraza = (szukaj ?? '').trim();
     if (fraza && !FRAZA_KOLEJKI.test(fraza)) throw new BadRequestException('Fraza: do 100 znaków, bez znaków sterujących.');
     const zadania = await this.zadania(account.id);
-    if (stanKolejki(zadania).wToku) throw new ConflictException('Kolejka już się wczytuje — chwila.');
+    if (stanKolejki(zadania).wToku) throw new ConflictException('Kolejka już się wczytuje – chwila.');
     const domeny = await this.domenyKonta(subscriptionId, userId, account.domain);
     await this.prisma.nodeTask.create({
       data: {
@@ -305,7 +305,7 @@ export class PocztaKontaOperatoraService {
    */
   private async domenyKonta(subscriptionId: string, userId: string, glowna: string): Promise<string[]> {
     const { domains, fetchError } = await this.directAdmin.listHostingDomainsForSubscription(subscriptionId, userId);
-    if (fetchError) throw new ServiceUnavailableException(`Nie udało się odczytać domen konta z serwera — kolejka nie została wczytana. ${fetchError}`.slice(0, 300));
+    if (fetchError) throw new ServiceUnavailableException(`Nie udało się odczytać domen konta z serwera – kolejka nie została wczytana. ${fetchError}`.slice(0, 300));
     return [...new Set([glowna, ...domains.map((d) => d.name)].map((d) => d.toLowerCase()))].slice(0, 200);
   }
 
@@ -324,11 +324,11 @@ export class PocztaKontaOperatoraService {
       async (w) => {
         const zadania = await this.zadania(w.konto.id);
         const stan = stanKolejki(zadania);
-        if (stan.usuwanie?.wToku) throw new ConflictException('Poprzednie usuwanie jeszcze trwa — chwila.');
+        if (stan.usuwanie?.wToku) throw new ConflictException('Poprzednie usuwanie jeszcze trwa – chwila.');
         const podglad = zadania.find((t) => (t.payload as { mode?: string } | null)?.mode === 'list' && t.status === NodeTaskStatus.COMPLETED);
         const widziane = new Set(stan.wiadomosci.map((m) => m.id));
         if (!podglad || Date.now() - (podglad.completedAt ?? podglad.createdAt).getTime() > WAZNOSC_PODGLADU_MS || lista.some((i) => !widziane.has(i))) {
-          throw new BadRequestException('Odśwież podgląd kolejki — usunąć można tylko wiadomości z podglądu sprzed najwyżej godziny.');
+          throw new BadRequestException('Odśwież podgląd kolejki – usunąć można tylko wiadomości z podglądu sprzed najwyżej godziny.');
         }
         const domeny = (podglad.payload as { domains?: string } | null)?.domains ?? '';
         const t = await this.prisma.nodeTask.create({

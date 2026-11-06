@@ -29,9 +29,9 @@ async function operator() {
   });
 }
 
-const tresc = { subject: 'Wysyłka spamu z Twojego konta', message: 'Wykryliśmy masową wysyłkę z jednej skrzynki — zmień hasło.' };
+const tresc = { subject: 'Wysyłka spamu z Twojego konta', message: 'Wykryliśmy masową wysyłkę z jednej skrzynki – zmień hasło.' };
 
-describe('F2.5 — zgłoszenie w imieniu klienta', () => {
+describe('F2.5 – zgłoszenie w imieniu klienta', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     maile.length = 0;

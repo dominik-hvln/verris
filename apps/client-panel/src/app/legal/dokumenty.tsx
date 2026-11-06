@@ -34,7 +34,7 @@ export const LEGAL_DOCS: { kind: LegalKind; slug: string; label: string; short: 
     slug: "privacy",
     label: "Polityka prywatności",
     short: "Prywatność",
-    description: "Jak Verris przetwarza dane osobowe — podstawy prawne, cele, odbiorcy i Twoje prawa.",
+    description: "Jak Verris przetwarza dane osobowe – podstawy prawne, cele, odbiorcy i Twoje prawa.",
   },
   {
     kind: "COOKIES",

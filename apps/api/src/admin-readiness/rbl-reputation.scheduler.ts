@@ -111,7 +111,7 @@ export class RblReputationScheduler {
               nodeRblNieznanyTemplate({ to: a.email, firstName: a.firstName, nodeName: name, nodeId: s.id, ip, zones: unknown, panelUrl: this.panelUrl() }),
             );
           }
-          this.logger.warn(`RBL unknown: ${name} (${ip}) — no answer from ${unknown.join(', ')}`);
+          this.logger.warn(`RBL unknown: ${name} (${ip}) – no answer from ${unknown.join(', ')}`);
         } else if (lastAlert && (!lastCleared || lastCleared < lastAlert)) {
           // Był alert, IP już czyste i jeszcze nie potwierdzone → przywrócenie.
           await this.audit.record({ action: 'NODE_RBL_CLEARED', details: { serverId: s.id, name, ip } });

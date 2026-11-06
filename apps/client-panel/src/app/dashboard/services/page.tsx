@@ -35,7 +35,7 @@ const PROVISIONING: Record<NonNullable<ServiceSummaryDto['provisioning']>['stage
   queued: 'w kolejce',
   running: 'zakładamy konto',
   retrying: 'powtarzamy próbę',
-  failed: 'błąd konfiguracji — napisz do pomocy',
+  failed: 'błąd konfiguracji – napisz do pomocy',
   completed: 'gotowe',
 };
 
@@ -111,7 +111,7 @@ export default async function ServicesPage() {
         <div className="relative overflow-hidden rounded-[10px] border border-line bg-card px-6 py-12 text-center">
           <div aria-hidden className="verris-pattern-bg pointer-events-none absolute inset-0 opacity-[0.06]" />
           <h2 className="relative font-display text-2xl font-bold text-foreground">Nie masz jeszcze żadnej usługi</h2>
-          <p className="relative mx-auto mt-2 max-w-md text-muted-foreground">Wybierz plan dopasowany do Twojej strony — konto założymy w kilka sekund.</p>
+          <p className="relative mx-auto mt-2 max-w-md text-muted-foreground">Wybierz plan dopasowany do Twojej strony – konto założymy w kilka sekund.</p>
           {mozeZamawiac ? (
             <Link href="/dashboard/services/new" className="relative mt-6 inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground">
               <Plus className="h-4 w-4" /> Wybierz plan
@@ -204,11 +204,11 @@ function ServicesTable({ services }: { services: ServiceSummaryDto[] }) {
                       <small className="ml-0.5 font-mono text-[11px] font-medium text-muted-foreground">/100</small>
                     </span>
                   ) : (
-                    <span className="text-muted-foreground">—</span>
+                    <span className="text-muted-foreground">–</span>
                   )}
                 </td>
                 <td className={`${TD} font-mono text-[12.5px] text-muted-foreground [&>*]:whitespace-nowrap`} data-label="Zasoby">
-                  {a ? `${a.cpuLimit}% CPU · ${(a.ramLimitMb / 1024).toLocaleString('pl-PL', { maximumFractionDigits: 1 })} GB RAM · ${Math.round(a.diskLimitMb / 1024)} GB` : '—'}
+                  {a ? `${a.cpuLimit}% CPU · ${(a.ramLimitMb / 1024).toLocaleString('pl-PL', { maximumFractionDigits: 1 })} GB RAM · ${Math.round(a.diskLimitMb / 1024)} GB` : '–'}
                 </td>
                 <td className={`${TD} whitespace-nowrap tabular-nums`} data-label="Odnowienie">
                   {termin.data ? (
@@ -221,7 +221,7 @@ function ServicesTable({ services }: { services: ServiceSummaryDto[] }) {
                       dataKrotka(termin.data)
                     )
                   ) : (
-                    '—'
+                    '–'
                   )}
                 </td>
                 <td className={`${TD} whitespace-nowrap tabular-nums`} data-label="Cena">

@@ -28,7 +28,7 @@ const tekst = async (m: { default: () => Promise<ReactElement> }) =>
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ');
 
-describe('/hosting — makieta 1.11', () => {
+describe('/hosting – makieta 1.11', () => {
   beforeEach(() => {
     ceny = CENY_TESTOWE;
   });
@@ -62,7 +62,7 @@ describe('/hosting — makieta 1.11', () => {
   });
 });
 
-describe('/przenies-strone — makieta 1.11', () => {
+describe('/przenies-strone – makieta 1.11', () => {
   beforeEach(() => {
     ceny = CENY_TESTOWE;
   });

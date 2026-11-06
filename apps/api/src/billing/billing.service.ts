@@ -252,7 +252,7 @@ export class BillingService {
       metadata: { userId, kind: 'add_card' },
     });
     await this.audit.record({ action: 'PAYMENT_METHOD_ADD_STARTED', userId, actorUserId: userId, details: { sessionId: session.id } });
-    if (!session.url) throw new BadRequestException('Operator płatności nie zwrócił adresu formularza — spróbuj ponownie.');
+    if (!session.url) throw new BadRequestException('Operator płatności nie zwrócił adresu formularza – spróbuj ponownie.');
     return { url: session.url };
   }
 
@@ -289,7 +289,7 @@ export class BillingService {
         // Już odpięta / nie istnieje w Stripe — cel osiągnięty, sprzątamy u siebie.
         if (!/not attached|no such paymentmethod|resource_missing/i.test(msg)) {
           this.logger.warn(`detachPaymentMethod user=${userId} pm=${pm.id}: ${msg}`);
-          throw new BadRequestException('Operator płatności nie potwierdził usunięcia karty — spróbuj ponownie za chwilę.');
+          throw new BadRequestException('Operator płatności nie potwierdził usunięcia karty – spróbuj ponownie za chwilę.');
         }
       }
     }
@@ -445,20 +445,20 @@ export class BillingService {
       });
       if (!u || u.anonymizedAt) throw new NotFoundException('Klient nie istnieje.');
       // Subkonto nie ma własnego portfela (płaci właściciel) — także dla administratora.
-      if (u.customerOwnerId) throw new BadRequestException('To subkonto — portfel należy do właściciela konta.');
+      if (u.customerOwnerId) throw new BadRequestException('To subkonto – portfel należy do właściciela konta.');
       if (opts.actorRole !== 'ADMIN') {
         if (u.role !== 'USER') {
-          throw new ForbiddenException('Personel zasila wyłącznie portfele klientów — konto zespołu obsługuje administrator.');
+          throw new ForbiddenException('Personel zasila wyłącznie portfele klientów – konto zespołu obsługuje administrator.');
         }
         if ((opts.description?.trim().length ?? 0) < MIN_POWOD_UZNANIA) {
-          throw new BadRequestException(`Podaj powód (min. ${MIN_POWOD_UZNANIA} znaków) — zapisze się w dzienniku i w historii portfela.`);
+          throw new BadRequestException(`Podaj powód (min. ${MIN_POWOD_UZNANIA} znaków) – zapisze się w dzienniku i w historii portfela.`);
         }
       }
     }
     if (opts.idempotencyKey) {
       const juz = await this.ledger.findByIdempotencyKey(opts.idempotencyKey);
       if (juz && (juz.userId !== opts.userId || !new Prisma.Decimal(juz.amount).eq(new Prisma.Decimal(opts.amount)))) {
-        throw new ConflictException('Ten klucz operacji użyto już do innej operacji — odśwież formularz.');
+        throw new ConflictException('Ten klucz operacji użyto już do innej operacji – odśwież formularz.');
       }
     }
     const description = opts.description?.trim() || 'Uznanie od Zespołu Verris';
@@ -577,8 +577,8 @@ export class BillingService {
     if (opts.metoda === 'paynow' && !przezPaynow) {
       throw new BadRequestException(
         paynow === null
-          ? 'Płatności Paynow nie są jeszcze włączone — wybierz płatność kartą.'
-          : 'Paynow przyjmuje wpłaty tylko w PLN — dla EUR i USD wybierz płatność kartą.',
+          ? 'Płatności Paynow nie są jeszcze włączone – wybierz płatność kartą.'
+          : 'Paynow przyjmuje wpłaty tylko w PLN – dla EUR i USD wybierz płatność kartą.',
       );
     }
     // https://docs.paynow.pl/docs/reference/v3/send-payment-request — amount >= 100 (1,00 zł).
@@ -688,11 +688,11 @@ export class BillingService {
     } catch (err) {
       await this.prisma.paynowPlatnosc.update({ where: { id: rek.id }, data: { status: 'ERROR' } });
       this.logger.error(`Paynow: nie utworzono płatności ${rek.id} user=${i.user.id}: ${err instanceof Error ? err.message : String(err)}`);
-      throw new BadRequestException('Operator płatności nie przyjął zlecenia — spróbuj ponownie za chwilę.');
+      throw new BadRequestException('Operator płatności nie przyjął zlecenia – spróbuj ponownie za chwilę.');
     }
     if (!odp.redirectUrl || !odp.paymentId) {
       await this.prisma.paynowPlatnosc.update({ where: { id: rek.id }, data: { status: 'ERROR', paymentId: odp.paymentId ?? null } });
-      throw new BadRequestException('Operator płatności nie zwrócił adresu płatności — spróbuj ponownie.');
+      throw new BadRequestException('Operator płatności nie zwrócił adresu płatności – spróbuj ponownie.');
     }
     await this.prisma.paynowPlatnosc.update({
       where: { id: rek.id },
@@ -726,14 +726,14 @@ export class BillingService {
     const pf = await this.prisma.proforma.findFirst({ where: { id: proformaId, userId } });
     if (!pf) throw new NotFoundException('Nie znaleziono proformy.');
     if (pf.status !== 'WYSTAWIONA') {
-      throw new ConflictException(pf.status === 'OPLACONA' ? 'Ta proforma jest już opłacona.' : 'Ta proforma została anulowana — nie trzeba jej płacić.');
+      throw new ConflictException(pf.status === 'OPLACONA' ? 'Ta proforma jest już opłacona.' : 'Ta proforma została anulowana – nie trzeba jej płacić.');
     }
     // Przegląd 15.10 — proforma „odnowienie” musi dalej opisywać to, co klient kupuje (okres, plan, cena).
     const powod = await powodNieaktualnejProformy({ prisma: this.prisma, promo: this.promo, ustal: (u) => this.doladowanie.ustalTraktowanie(u) }, pf);
-    if (powod) throw new ConflictException(`Proforma ${pf.number} jest nieaktualna: ${powod}. Nie płać jej — napisz do nas po nową.`);
+    if (powod) throw new ConflictException(`Proforma ${pf.number} jest nieaktualna: ${powod}. Nie płać jej – napisz do nas po nową.`);
     const paynow = this.paynowKlient();
     if (!paynow || pf.currency !== 'PLN') {
-      throw new BadRequestException('Płatność online jest chwilowo niedostępna — zapłać przelewem, w tytule wpisz numer proformy.');
+      throw new BadRequestException('Płatność online jest chwilowo niedostępna – zapłać przelewem, w tytule wpisz numer proformy.');
     }
     const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true, email: true, walletCurrency: true } });
     if (!user) throw new NotFoundException('Nie znaleziono konta.');
@@ -741,7 +741,7 @@ export class BillingService {
     const { url } = await this.utworzDoladowaniePaynow(paynow, {
       user,
       minor,
-      description: `Proforma ${pf.number} — Verris`,
+      description: `Proforma ${pf.number} – Verris`,
       meta: { kind: 'proforma', proformaId: pf.id, ...((pf.vatMeta ?? {}) as Record<string, string>) },
       amount: new Prisma.Decimal(pf.amount),
       bonus: null,
@@ -759,7 +759,7 @@ export class BillingService {
    */
   sprawdzPaynowZamowienia(): void {
     if (!this.paynowKlient()) {
-      throw new BadRequestException('Płatność BLIK-iem lub przelewem jest chwilowo niedostępna — wybierz płatność z portfela albo kartą.');
+      throw new BadRequestException('Płatność BLIK-iem lub przelewem jest chwilowo niedostępna – wybierz płatność z portfela albo kartą.');
     }
   }
 
@@ -781,7 +781,7 @@ export class BillingService {
       subscriptionId: sub.id,
       kwotaK: z.kwotaK,
       waluta: sub.currency,
-      opis: `${sub.plan.name} — ${sub.interval === 'YEAR' ? '12 mies.' : '1 mies.'}${z.domena ? ` (${z.domena})` : ''} — Verris`,
+      opis: `${sub.plan.name} – ${sub.interval === 'YEAR' ? '12 mies.' : '1 mies.'}${z.domena ? ` (${z.domena})` : ''} – Verris`,
       dodatkowe: { ...(z.domena ? { domena: z.domena } : {}), ...(z.region ? { region: z.region } : {}) },
     });
   }
@@ -804,15 +804,15 @@ export class BillingService {
     });
     if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
     if (sub.paymentSource !== 'WALLET') {
-      throw new ConflictException('Ta usługa nie jest rozliczana z portfela — zaległą płatność opłacisz w Rozliczeniach.');
+      throw new ConflictException('Ta usługa nie jest rozliczana z portfela – zaległą płatność opłacisz w Rozliczeniach.');
     }
     if (sub.status === 'PENDING_PAYMENT') return this.ponowZamowieniePaynow(paynow!, userId, sub);
     if (sub.status === 'SUSPENDED') {
       if (!zawieszonaPrzezKarencje(sub.events)) {
-        throw new ConflictException('Usługę zawiesiła obsługa — napisz do pomocy, aby ją wznowić.');
+        throw new ConflictException('Usługę zawiesiła obsługa – napisz do pomocy, aby ją wznowić.');
       }
       if (sub.currentPeriodEnd && sub.currentPeriodEnd > teraz) {
-        throw new ConflictException('Ten okres jest już opłacony — usługa wróci automatycznie w ciągu godziny.');
+        throw new ConflictException('Ten okres jest już opłacony – usługa wróci automatycznie w ciągu godziny.');
       }
     } else if (sub.status !== 'PAST_DUE') {
       throw new ConflictException('Usługa nie ma zaległej płatności.');
@@ -833,7 +833,7 @@ export class BillingService {
       subscriptionId: sub.id,
       kwotaK,
       waluta: sub.currency,
-      opis: `${sub.plan.name} — odnowienie${sub.account?.domain ? ` (${sub.account.domain})` : ''} — Verris`,
+      opis: `${sub.plan.name} – odnowienie${sub.account?.domain ? ` (${sub.account.domain})` : ''} – Verris`,
       dodatkowe: {},
     });
   }
@@ -847,7 +847,7 @@ export class BillingService {
     // Zamówienie już raz obciążone i zwrócone (nieudane zakładanie) ma zużyty klucz pierwszej opłaty — kolejne
     // obciążenie byłoby „idempotentnym trafieniem” bez pobrania. Takie zamówienie klient składa od nowa.
     if (await this.ledger.findByIdempotencyKey(kluczPierwszejOplaty(sub.id))) {
-      throw new ConflictException('Tego zamówienia nie udało się uruchomić, a środki wróciły do portfela — zamów usługę ponownie.');
+      throw new ConflictException('Tego zamówienia nie udało się uruchomić, a środki wróciły do portfela – zamów usługę ponownie.');
     }
     const poprzednia = await this.prisma.paynowPlatnosc.findFirst({
       where: { userId, ...gdziePlatnoscZamowienia(sub.id, 'nowa') },
@@ -855,13 +855,13 @@ export class BillingService {
       select: { status: true, meta: true },
     });
     if (!poprzednia) {
-      throw new ConflictException('To zamówienie opłacisz z portfela — doładuj portfel albo zamów usługę ponownie z płatnością BLIK lub przelewem.');
+      throw new ConflictException('To zamówienie opłacisz z portfela – doładuj portfel albo zamów usługę ponownie z płatnością BLIK lub przelewem.');
     }
     if (poprzednia.status === 'CONFIRMED') {
-      throw new ConflictException('Płatność za to zamówienie już do nas dotarła — usługa jest uruchamiana.');
+      throw new ConflictException('Płatność za to zamówienie już do nas dotarła – usługa jest uruchamiana.');
     }
     if (poprzednia.status === 'NEW' || poprzednia.status === 'PENDING') {
-      throw new ConflictException('Poprzednia płatność za to zamówienie jeszcze trwa — poczekaj na jej wynik (przelew bywa księgowany z opóźnieniem).');
+      throw new ConflictException('Poprzednia płatność za to zamówienie jeszcze trwa – poczekaj na jej wynik (przelew bywa księgowany z opóźnieniem).');
     }
     const m = (poprzednia.meta ?? {}) as Record<string, string>;
     return this.zaplacZamowieniePaynow(userId, {
@@ -885,7 +885,7 @@ export class BillingService {
     },
   ): Promise<{ url: string }> {
     if ((z.waluta ?? 'PLN').toUpperCase() !== 'PLN') {
-      throw new BadRequestException('Paynow przyjmuje wpłaty tylko w PLN — wybierz płatność kartą.');
+      throw new BadRequestException('Paynow przyjmuje wpłaty tylko w PLN – wybierz płatność kartą.');
     }
     const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true, email: true, walletCurrency: true } });
     if (!user) throw new NotFoundException('Nie znaleziono konta.');
@@ -895,7 +895,7 @@ export class BillingService {
     const kwota = wplataZaK(z.kwotaK, traktowanie);
     const minor = Number(kwota.mul(100).toFixed(0));
     // https://docs.paynow.pl/docs/reference/v3/send-payment-request — amount >= 100 (1,00 zł).
-    if (minor < 100) throw new BadRequestException('Minimalna kwota płatności przez Paynow to 1 zł — opłać usługę z portfela.');
+    if (minor < 100) throw new BadRequestException('Minimalna kwota płatności przez Paynow to 1 zł – opłać usługę z portfela.');
     const { url } = await this.utworzDoladowaniePaynow(paynow, {
       user,
       minor,
@@ -1001,7 +1001,7 @@ export class BillingService {
         category: 'SYSTEM',
         severity: 'warning',
         title: 'Opłacone zamówienie nie zostało zrealizowane',
-        body: `Klient zapłacił przez Paynow za ${meta.zamowienieTyp === 'odnowienie' ? 'odnowienie usługi' : 'nową usługę'}, ale realizacja się nie udała (${powod.slice(0, 200)}). Środki są w portfelu klienta — sprawdź usługę i skontaktuj się z klientem.`,
+        body: `Klient zapłacił przez Paynow za ${meta.zamowienieTyp === 'odnowienie' ? 'odnowienie usługi' : 'nową usługę'}, ale realizacja się nie udała (${powod.slice(0, 200)}). Środki są w portfelu klienta – sprawdź usługę i skontaktuj się z klientem.`,
         link: `/customers/${userId}`,
       })),
     });
@@ -1207,7 +1207,7 @@ export class BillingService {
 
   private async zglosNiezgodnoscPaynow(rek: RekordPaynow, paymentId: string, status: string): Promise<void> {
     this.logger.error(
-      `Paynow: powiadomienie ${paymentId} (${status}) dla doładowania ${rek.id}, które ma płatność ${rek.paymentId} — bez księgowania`,
+      `Paynow: powiadomienie ${paymentId} (${status}) dla doładowania ${rek.id}, które ma płatność ${rek.paymentId} – bez księgowania`,
     );
     await this.audit.record({
       action: 'PAYNOW_PLATNOSC_NIEZGODNA',
@@ -1222,7 +1222,7 @@ export class BillingService {
         category: 'SYSTEM',
         severity: 'warning',
         title: 'Paynow: potwierdzona płatność nie pasuje do doładowania',
-        body: `Płatność ${paymentId} potwierdzona dla doładowania ${rek.id} (oczekiwana ${rek.paymentId}). Portfel nie został uznany — sprawdź w panelu Paynow i uznaj ręcznie.`,
+        body: `Płatność ${paymentId} potwierdzona dla doładowania ${rek.id} (oczekiwana ${rek.paymentId}). Portfel nie został uznany – sprawdź w panelu Paynow i uznaj ręcznie.`,
         link: `/customers/${rek.userId}`,
       })),
     });
@@ -1267,11 +1267,11 @@ export class BillingService {
       // przegląd 12.10): zwrot mógł zostać przyjęty. Odmową jest tylko odpowiedź błędu Paynow (PaynowBlad). Nie zapisujemy
       // cofnięcia na ślepo i nie zlecamy drugiego — operator sprawdza w panelu Paynow i, jeśli zwrot jest, zapisuje go
       // trybem „zwrot zrobiony w Paynow”.
-      this.logger.error(`Paynow: zwrot ${rek.paymentId} — ${err instanceof Error ? err.message : String(err)}; stan zwrotu nieznany, do sprawdzenia w panelu Paynow`);
+      this.logger.error(`Paynow: zwrot ${rek.paymentId} – ${err instanceof Error ? err.message : String(err)}; stan zwrotu nieznany, do sprawdzenia w panelu Paynow`);
       throw new ConflictException(
         err instanceof PaynowBezTresci
-          ? 'Paynow przyjął zlecenie zwrotu, ale nie podał jego numeru. Sprawdź zwrot w panelu Paynow — jeśli jest, zapisz go przyciskiem „Zwrot zrobiony w Paynow”; nie zlecaj go drugi raz.'
-          : 'Paynow nie odpowiedział na zlecenie zwrotu (przekroczony czas albo zerwane połączenie) — zwrot mógł zostać przyjęty. Sprawdź go w panelu Paynow — jeśli jest, zapisz go przyciskiem „Zwrot zrobiony w Paynow”; nie zlecaj go drugi raz.',
+          ? 'Paynow przyjął zlecenie zwrotu, ale nie podał jego numeru. Sprawdź zwrot w panelu Paynow – jeśli jest, zapisz go przyciskiem „Zwrot zrobiony w Paynow”; nie zlecaj go drugi raz.'
+          : 'Paynow nie odpowiedział na zlecenie zwrotu (przekroczony czas albo zerwane połączenie) – zwrot mógł zostać przyjęty. Sprawdź go w panelu Paynow – jeśli jest, zapisz go przyciskiem „Zwrot zrobiony w Paynow”; nie zlecaj go drugi raz.',
       );
     }
     const wplata = await this.prisma.walletTransaction.findUniqueOrThrow({ where: { id: i.walletTxId } });
@@ -1283,9 +1283,9 @@ export class BillingService {
       // Przegląd 12.10 — kwotę sprawdzaliśmy przed blokadą: dwa równoległe zwroty (np. dwa zapisy „zwrot zrobiony
       // w Paynow” na różne kwoty) mogły razem przekroczyć wpłatę i cofnąć z portfela więcej, niż klient zapłacił.
       if (narastajaco > rek.kwotaMinor) {
-        this.logger.error(`Paynow: zwrot ${odp.refundId} (${kwotaMinor} gr) przekroczyłby wpłatę ${rek.id} — nie zapisano`);
+        this.logger.error(`Paynow: zwrot ${odp.refundId} (${kwotaMinor} gr) przekroczyłby wpłatę ${rek.id} – nie zapisano`);
         throw new ConflictException(
-          `Suma zwrotów przekroczyłaby wpłatę (zostało ${((rek.kwotaMinor - r.zwroconoMinor) / 100).toFixed(2)} zł) — równolegle zapisano inny zwrot. Nic nie cofnięto z portfela; sprawdź zwroty w panelu Paynow.`,
+          `Suma zwrotów przekroczyłaby wpłatę (zostało ${((rek.kwotaMinor - r.zwroconoMinor) / 100).toFixed(2)} zł) – równolegle zapisano inny zwrot. Nic nie cofnięto z portfela; sprawdź zwroty w panelu Paynow.`,
         );
       }
       await tx.paynowPlatnosc.update({
@@ -1296,7 +1296,7 @@ export class BillingService {
         wplata,
         zwroconoMinorNarastajaco: narastajaco,
         idempotencyKey: `paynow:zwrot:${odp.refundId}`,
-        opis: i.wPaneluPaynow ? 'Zwrot wykonany w panelu Paynow — cofnięcie doładowania' : 'Zwrot płatności Paynow — cofnięcie doładowania',
+        opis: i.wPaneluPaynow ? 'Zwrot wykonany w panelu Paynow – cofnięcie doładowania' : 'Zwrot płatności Paynow – cofnięcie doładowania',
         metadata: { paynowRefundId: odp.refundId, paynowId: rek.id },
       });
     });
@@ -1352,7 +1352,7 @@ export class BillingService {
       // Inna dostawa tego samego zdarzenia jest właśnie obsługiwana. NIE wolno
       // odpowiedzieć 200 — tamta dostawa może paść, a Stripe uznałby zdarzenie
       // za doręczone. 409 każe mu ponowić później.
-      this.logger.warn(`Stripe webhook ${event.id} już w obsłudze — proszę o ponowienie`);
+      this.logger.warn(`Stripe webhook ${event.id} już w obsłudze – proszę o ponowienie`);
       throw new ConflictException({
         received: false,
         reason: 'zdarzenie w trakcie obsługi',
@@ -1503,7 +1503,7 @@ export class BillingService {
     }
     if (!wiersz.payload) {
       throw new BadRequestException(
-        `Zdarzenie ${eventId} nie ma zapisanej treści — nie da się go ponowić. ` +
+        `Zdarzenie ${eventId} nie ma zapisanej treści – nie da się go ponowić. ` +
           `Treść jest czyszczona po ${DNI_PRZECHOWANIA_TRESCI} dniach od przetworzenia, ` +
           `a zdarzenia sprzed 2026-08-22 nigdy jej nie miały.`,
       );
@@ -1513,7 +1513,7 @@ export class BillingService {
     // To samo przejęcie co przy webhooku: zdarzenie właśnie przetwarzane (świeża dzierżawa) nie idzie
     // drugi raz równolegle — „Ponów” w adminie albo harmonogram ponowień przy redelivery ze Stripe.
     if (decyzja(wiersz as WierszZdarzenia, teraz).rodzaj === 'wTrakcie') {
-      throw new ConflictException(`Zdarzenie ${eventId} jest właśnie przetwarzane — spróbuj za chwilę`);
+      throw new ConflictException(`Zdarzenie ${eventId} jest właśnie przetwarzane – spróbuj za chwilę`);
     }
     const { count } = await this.prisma.stripeWebhookEvent.updateMany({
       where: { eventId, status: wiersz.status, claimedAt: wiersz.claimedAt },
@@ -1610,7 +1610,7 @@ export class BillingService {
     if (!wplata) {
       // Przegląd 15.10: zwrot albo spór za płatność kartą, która NIE była doładowaniem (np. faktura subskrypcji kartą)
       // kończył się cichym „pomijam” — usługa działała dalej, faktura zostawała opłacona, nikt nie wiedział.
-      this.logger.warn(`${event.type} ${event.id}: brak doładowania dla ${o.payment_intent} — zgłaszam do decyzji`);
+      this.logger.warn(`${event.type} ${event.id}: brak doładowania dla ${o.payment_intent} – zgłaszam do decyzji`);
       await this.zglosZwrotBezDoladowania(event, o, spor);
       return;
     }
@@ -1621,7 +1621,7 @@ export class BillingService {
         wplata,
         zwroconoMinorNarastajaco: kwotaMinor,
         idempotencyKey: `stripe:${event.id}`,
-        opis: spor ? 'Spór o płatność (chargeback) — cofnięcie doładowania' : 'Zwrot płatności — cofnięcie doładowania',
+        opis: spor ? 'Spór o płatność (chargeback) – cofnięcie doładowania' : 'Zwrot płatności – cofnięcie doładowania',
         metadata: { stripeEvent: event.id, powod: o.reason ?? null },
       }),
     );
@@ -1658,10 +1658,10 @@ export class BillingService {
         userId: a.id,
         category: 'SYSTEM',
         severity: 'warning',
-        title: spor ? 'Spór o płatność kartą (chargeback) — nie doładowanie' : 'Zwrot płatności kartą — nie doładowanie',
+        title: spor ? 'Spór o płatność kartą (chargeback) – nie doładowanie' : 'Zwrot płatności kartą – nie doładowanie',
         body:
           `${klient?.email ?? `klient Stripe ${o.customer ?? '?'}`}: ${kwota} zł (${o.payment_intent})` +
-          `${faktura ? `, faktura ${faktura.number}` : ''}. Usługa i faktura bez zmian — zdecyduj o usłudze i wystaw korektę.`,
+          `${faktura ? `, faktura ${faktura.number}` : ''}. Usługa i faktura bez zmian – zdecyduj o usłudze i wystaw korektę.`,
         link: klient ? `/customers/${klient.id}` : null,
       })),
     });
@@ -1756,9 +1756,9 @@ export class BillingService {
     const oProwizjach = !maProwizje
       ? ''
       : !prowizje
-        ? ' Prowizji partnera nie przeliczono (błąd) — sprawdź je ręcznie przed wypłatą.'
+        ? ' Prowizji partnera nie przeliczono (błąd) – sprawdź je ręcznie przed wypłatą.'
         : `${prowizje.zmniejszono.greaterThan(0) ? ` Prowizje partnera zmniejszono o ${prowizje.zmniejszono.toFixed(2)} zł.` : ''}${
-            prowizje.pozostalo.greaterThan(0) ? ` Prowizje od ${prowizje.pozostalo.toFixed(2)} zł tej wpłaty są już wypłacone albo zarezerwowane do przelewu — zdecyduj o potrąceniu.` : ''
+            prowizje.pozostalo.greaterThan(0) ? ` Prowizje od ${prowizje.pozostalo.toFixed(2)} zł tej wpłaty są już wypłacone albo zarezerwowane do przelewu – zdecyduj o potrąceniu.` : ''
           }`;
     const admini = await this.prisma.user.findMany({ where: { role: 'ADMIN', loginBlocked: false }, select: { id: true } });
     await this.prisma.notification.createMany({
@@ -1856,7 +1856,7 @@ export class BillingService {
     }
 
     if (session.payment_status !== 'paid') {
-      this.logger.warn(`Ignoring session ${session.id} — payment_status=${session.payment_status}`);
+      this.logger.warn(`Ignoring session ${session.id} – payment_status=${session.payment_status}`);
       return;
     }
 
@@ -2036,7 +2036,7 @@ export class BillingService {
     });
     if (!updated) {
       this.logger.debug(
-        `${event.type} for unknown subscription stripe=${stripeSub.id} — ignoring`,
+        `${event.type} for unknown subscription stripe=${stripeSub.id} – ignoring`,
       );
     }
   }
@@ -2096,7 +2096,7 @@ export class BillingService {
 
     if (!verrisUserId) {
       this.logger.warn(
-        `${event.type}: cannot map invoice=${invoice.id} to a local user — skipping`,
+        `${event.type}: cannot map invoice=${invoice.id} to a local user – skipping`,
       );
       return;
     }
@@ -2163,7 +2163,7 @@ export class BillingService {
     const subscriptionId = getInvoiceSubscriptionId(invoice);
     if (!subscriptionId) {
       this.logger.warn(
-        `invoice.payment_failed without subscription on invoice=${invoice.id} — ignoring`,
+        `invoice.payment_failed without subscription on invoice=${invoice.id} – ignoring`,
       );
       return;
     }
@@ -2414,7 +2414,7 @@ export class BillingService {
     });
     if (!user || user.anonymizedAt || !user.email) return;
     const panelUrl = this.panelUrl();
-    const topupAmount = user.walletAutoTopup?.topupAmount?.toFixed(2) ?? '—';
+    const topupAmount = user.walletAutoTopup?.topupAmount?.toFixed(2) ?? '–';
     const message = walletAutoTopupFailedTemplate({
       to: user.email,
       firstName: user.firstName,

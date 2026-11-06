@@ -1,7 +1,7 @@
 import { ktoregoDotyczy, opisTrasy } from './opis-trasy';
 
 /** P3-07 — dziennik IAM pokazywał surowe trasy API („DELETE /subscriptions/:id”). */
-describe('P3-07 — opis wpisu dziennika po ludzku', () => {
+describe('P3-07 – opis wpisu dziennika po ludzku', () => {
   it('trasy szczegółowe', () => {
     expect(opisTrasy({ method: 'DELETE', route: '/subscriptions/:id' })).toBe('rezygnacja z usługi');
     expect(opisTrasy({ method: 'POST', route: '/me/consent/accept-current' })).toBe('akceptacja regulaminu i polityki prywatności');
@@ -17,7 +17,7 @@ describe('P3-07 — opis wpisu dziennika po ludzku', () => {
     }
   });
 
-  it('bez trasy — brak opisu; kogo dotyczy — nazwa i adres', () => {
+  it('bez trasy – brak opisu; kogo dotyczy – nazwa i adres', () => {
     expect(opisTrasy(null)).toBeNull();
     expect(opisTrasy({ memberId: 'x' })).toBeNull();
     expect(ktoregoDotyczy({ nazwa: 'Piotr Nowak', email: 'piotr@firma.pl' })).toBe('Piotr Nowak (piotr@firma.pl)');

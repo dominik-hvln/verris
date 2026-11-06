@@ -293,7 +293,7 @@ export default function SitePage() {
             <KpiStrip>
               <Kpi
                 label={simple ? 'Czy strona działa' : 'Odpowiedź strony'}
-                value={monitor?.lastResponseMs != null && !simple ? monitor.lastResponseMs : monitor ? (monitor.lastStatus === 'UP' ? 'Działa' : monitor.lastStatus === 'DOWN' ? 'Nie działa' : '—') : '—'}
+                value={monitor?.lastResponseMs != null && !simple ? monitor.lastResponseMs : monitor ? (monitor.lastStatus === 'UP' ? 'Działa' : monitor.lastStatus === 'DOWN' ? 'Nie działa' : '–') : '–'}
                 unit={monitor?.lastResponseMs != null && !simple ? 'ms' : undefined}
                 foot={
                   <span>
@@ -309,9 +309,9 @@ export default function SitePage() {
               />
               <Kpi
                 label="Certyfikat SSL"
-                value={sslRow?.daysLeft != null ? sslRow.daysLeft : ssl === undefined ? '…' : '—'}
+                value={sslRow?.daysLeft != null ? sslRow.daysLeft : ssl === undefined ? '…' : '–'}
                 unit={sslRow?.daysLeft != null ? 'dni' : undefined}
-                foot={<span>{sslRow ? (sslRow.status === 'NONE' ? 'brak certyfikatu' : sslRow.status === 'MISMATCH' ? 'nie obejmuje tej domeny — wystaw ponownie' : sslRow.isLetsEncrypt ? 'Let’s Encrypt · odnawia się sam' : sslRow.issuer) : 'brak danych'}</span>}
+                foot={<span>{sslRow ? (sslRow.status === 'NONE' ? 'brak certyfikatu' : sslRow.status === 'MISMATCH' ? 'nie obejmuje tej domeny – wystaw ponownie' : sslRow.isLetsEncrypt ? 'Let’s Encrypt · odnawia się sam' : sslRow.issuer) : 'brak danych'}</span>}
               >
                 {sslRow?.daysLeft != null ? (
                   <Meter pct={(sslRow.daysLeft / 90) * 100} tone={sslRow.status === 'VALID' ? 'data' : 'warn'} tipText={`${sslRow.daysLeft} z 90 dni\ndo wygaśnięcia`} />
@@ -319,12 +319,12 @@ export default function SitePage() {
               </Kpi>
               <Kpi
                 label="Wersja PHP"
-                value={ok(php)?.currentVersion ?? (php === undefined ? '…' : ok(php) ? 'konto' : '—')}
+                value={ok(php)?.currentVersion ?? (php === undefined ? '…' : ok(php) ? 'konto' : '–')}
                 foot={<span>{ok(php) && !ok(php)?.currentVersion ? 'wersja konta' : ok(php)?.versions.length ? `dostępne: ${ok(php)?.versions.join(', ')}` : 'ustawienie per domena'}</span>}
               />
               <Kpi
                 label="Poczta w domenie"
-                value={mail === undefined ? '…' : !skrzynkiNieznane ? boxes.length : '—'}
+                value={mail === undefined ? '…' : !skrzynkiNieznane ? boxes.length : '–'}
                 unit={!skrzynkiNieznane && mail !== undefined ? plForm(boxes.length, 'skrzynka', 'skrzynki', 'skrzynek') : undefined}
                 foot={<span>{skrzynkiNieznane ? 'nie udało się wczytać' : boxes.length ? boxes.slice(0, 2).map((b) => b.email.split('@')[0]).join(', ') : 'brak skrzynek'}</span>}
               />
@@ -338,8 +338,8 @@ export default function SitePage() {
                   <ul className="m-0 list-none rounded-[10px] border border-line bg-card p-0">
                     {(
                       [
-                        ['dns', 'Domena i DNS', aRecord ? `A → ${aRecord.value}` : ok(dns)?.fetchError ? 'nie udało się odczytać strefy' : `${records.length} ${plForm(records.length, 'rekord', 'rekordy', 'rekordów')} w strefie`, records.length ? `${records.length} ${plForm(records.length, 'rekord', 'rekordy', 'rekordów')}` : '—'],
-                        ['ssl', 'Certyfikat SSL', sslRow?.coveredNames.length ? sslRow.coveredNames.slice(0, 3).join(', ') : 'brak certyfikatu', sslRow?.daysLeft != null ? `${sslRow.daysLeft} ${plForm(sslRow.daysLeft, 'dzień', 'dni', 'dni')}` : '—'],
+                        ['dns', 'Domena i DNS', aRecord ? `A → ${aRecord.value}` : ok(dns)?.fetchError ? 'nie udało się odczytać strefy' : `${records.length} ${plForm(records.length, 'rekord', 'rekordy', 'rekordów')} w strefie`, records.length ? `${records.length} ${plForm(records.length, 'rekord', 'rekordy', 'rekordów')}` : '–'],
+                        ['ssl', 'Certyfikat SSL', sslRow?.coveredNames.length ? sslRow.coveredNames.slice(0, 3).join(', ') : 'brak certyfikatu', sslRow?.daysLeft != null ? `${sslRow.daysLeft} ${plForm(sslRow.daysLeft, 'dzień', 'dni', 'dni')}` : '–'],
                         ['db', 'Bazy danych', 'bazy są wspólne dla konta', ''],
                         ['mail', 'Poczta', skrzynkiNieznane ? 'nie udało się wczytać skrzynek' : boxes.length ? `${boxes.length} ${plForm(boxes.length, 'skrzynka', 'skrzynki', 'skrzynek')} w tej domenie` : 'brak skrzynek', ''],
                         ['php', 'PHP', ok(php)?.currentVersion ? `wersja ${ok(php)?.currentVersion}` : ok(php) ? 'wersja konta' : 'brak danych', ''],
@@ -378,7 +378,7 @@ export default function SitePage() {
                       </ul>
                     ) : (
                       <p className="m-0 px-4 py-[22px] text-sm text-muted-foreground">
-                        {monitor ? 'Bez przerw w działaniu — nic do pokazania.' : 'Historia pojawi się, gdy monitoring obejmie tę domenę.'}
+                        {monitor ? 'Bez przerw w działaniu – nic do pokazania.' : 'Historia pojawi się, gdy monitoring obejmie tę domenę.'}
                       </p>
                     )}
                   </div>
@@ -416,7 +416,7 @@ export default function SitePage() {
         {tab === 'dns' ? (
           <section>
             <SectionHead title={`Rekordy DNS · ${domain}`} desc="Zmiany działają zwykle w kilka minut." />
-            {ok(dns)?.fetchError ? <p className="mb-3 text-[13.5px] text-warn">Nie udało się odczytać strefy — spróbuj za chwilę.</p> : null}
+            {ok(dns)?.fetchError ? <p className="mb-3 text-[13.5px] text-warn">Nie udało się odczytać strefy – spróbuj za chwilę.</p> : null}
             <UkladZBokiem bok={<DnssecPanel key={`dnssec-${domain}`} serviceId={serviceId} domain={domain} />}>
               {dns === undefined ? <Loading /> : <DnsManager serviceId={serviceId} domain={domain} records={records} onChanged={reloadDns} />}
             </UkladZBokiem>
@@ -444,7 +444,7 @@ export default function SitePage() {
 
         {tab === 'db' ? (
           <section>
-            <SectionHead title="Bazy danych" desc="Bazy są wspólne dla całego konta — każda strona może używać dowolnej z nich." />
+            <SectionHead title="Bazy danych" desc="Bazy są wspólne dla całego konta – każda strona może używać dowolnej z nich." />
             <DatabasesTab serviceId={serviceId} />
           </section>
         ) : null}
@@ -552,7 +552,7 @@ function SslSection({
     start(async () => {
       const r = await requestLetsEncryptSslAction(serviceId, domain, true);
       if (r.ok) {
-        toast.success('Certyfikat zamówiony — pojawi się w ciągu kilku minut.');
+        toast.success('Certyfikat zamówiony – pojawi się w ciągu kilku minut.');
         onChanged();
       } else toast.error(r.error ?? 'Nie udało się zamówić certyfikatu.');
     });
@@ -575,10 +575,10 @@ function SslSection({
           <ul className="m-0 list-none p-0">
             <li className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-0.5 px-4 py-[11px]">
               <b className="text-sm font-semibold text-foreground">Ważność</b>
-              <span className="row-span-2 text-right text-[13px] tabular-nums">{row?.daysLeft != null ? `${row.daysLeft} ${plForm(row.daysLeft, 'dzień', 'dni', 'dni')}` : '—'}</span>
+              <span className="row-span-2 text-right text-[13px] tabular-nums">{row?.daysLeft != null ? `${row.daysLeft} ${plForm(row.daysLeft, 'dzień', 'dni', 'dni')}` : '–'}</span>
               <span className="text-[12.5px] text-muted-foreground">
                 {row?.status === 'MISMATCH'
-                  ? `obejmuje tylko ${row.coveredNames.join(', ')} — przeglądarka odrzuci ${row.domain}; wystaw certyfikat ponownie`
+                  ? `obejmuje tylko ${row.coveredNames.join(', ')} – przeglądarka odrzuci ${row.domain}; wystaw certyfikat ponownie`
                   : row?.coveredNames.length ? `obejmuje ${row.coveredNames.join(', ')}` : 'strona otwiera się bez kłódki'}
                 {row?.daysLeft != null ? <Meter pct={(row.daysLeft / 90) * 100} tone={row.status === 'VALID' ? 'data' : 'warn'} tipText={`${row.daysLeft} z 90 dni\ndo wygaśnięcia`} /> : null}
               </span>
@@ -615,7 +615,7 @@ function PhpSection({
       start(async () => {
         const r = await setDomainPhp(serviceId, domain, v);
         if (r.ok) {
-          toast.success(v ? `Zlecono PHP ${v} dla ${domain} — zwykle trwa do minuty.` : `Zlecono powrót ${domain} do wersji konta.`);
+          toast.success(v ? `Zlecono PHP ${v} dla ${domain} – zwykle trwa do minuty.` : `Zlecono powrót ${domain} do wersji konta.`);
           onChanged();
         } else toast.error(r.error);
       }),

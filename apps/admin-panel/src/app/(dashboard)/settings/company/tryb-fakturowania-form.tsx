@@ -49,7 +49,7 @@ export function TrybFakturowaniaForm() {
         </h2>
         <p className="text-xs text-muted-foreground mt-1">
           „Program księgowy”: panel wystawia dokumenty rozliczeniowe (VDR/VDK), a fakturę VAT wystawiasz poza panelem.
-          „Panel”: panel wystawia faktury VAT (VFV/VFK) i — gdy KSeF jest włączony niżej — wysyła je do KSeF, a klient
+          „Panel”: panel wystawia faktury VAT (VFV/VFK) i – gdy KSeF jest włączony niżej – wysyła je do KSeF, a klient
           dostaje PDF z kodem QR. Zmiana działa od następnego dokumentu i dotyczy wszystkich klientów. Powrót do
           „programu księgowego” wyłącza wysyłkę do KSeF.
         </p>

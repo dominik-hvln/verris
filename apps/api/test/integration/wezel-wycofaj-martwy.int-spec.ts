@@ -30,7 +30,7 @@ describe('Wycofanie martwego węzła', () => {
     expect(dns.zwolnione).toBe(1);
   });
 
-  it('żywy węzeł z kontami, zła nazwa albo aktywna płatność Stripe — odmowa bez zmian', async () => {
+  it('żywy węzeł z kontami, zła nazwa albo aktywna płatność Stripe – odmowa bez zmian', async () => {
     const zywy = await utworzWezel({ name: 'zywy' });
     const planZ = await utworzPlan();
     await utworzKonto({ serverId: zywy.id, planId: planZ.id });
@@ -49,7 +49,7 @@ describe('Wycofanie martwego węzła', () => {
     expect(dns.zwolnione).toBe(0);
   });
 
-  it('decyzja 15.10: żywy węzeł BEZ kont (przed reinstalacją) — wycofanie od razu, nazwy w DNS zwolnione', async () => {
+  it('decyzja 15.10: żywy węzeł BEZ kont (przed reinstalacją) – wycofanie od razu, nazwy w DNS zwolnione', async () => {
     const w = await utworzWezel({ name: 't2' }); // sygnał przed chwilą
     const r = await serwery().wycofajMartwyWezel(w.id, 't2', 'admin');
     expect(r.usunieteKonta).toEqual([]);

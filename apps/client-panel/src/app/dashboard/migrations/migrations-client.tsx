@@ -21,14 +21,14 @@ type Wybor = Zakres | 'poczta';
 
 // Każdy rodzaj migracji to osobny formularz — wybór na początku (uwaga Dominika, t1 02.10).
 const OPCJE: Array<{ id: Wybor; tytul: string; opis: string }> = [
-  { id: 'strona', tytul: 'Cała strona', opis: 'Pliki i bazy danych razem — np. WordPress albo sklep.' },
+  { id: 'strona', tytul: 'Cała strona', opis: 'Pliki i bazy danych razem – np. WordPress albo sklep.' },
   { id: 'pliki', tytul: 'Pliki', opis: 'Same pliki z serwera FTP/SFTP.' },
   { id: 'baza', tytul: 'Baza danych', opis: 'Jedna lub kilka baz MySQL.' },
   { id: 'poczta', tytul: 'Poczta', opis: 'Wiadomości i foldery jednej skrzynki (IMAP).' },
   {
     id: 'wszystko',
     tytul: 'Wszystko naraz',
-    opis: 'Zaawansowane: pliki, bazy i skrzynki w jednej migracji — brakujące skrzynki założymy u nas.',
+    opis: 'Zaawansowane: pliki, bazy i skrzynki w jednej migracji – brakujące skrzynki założymy u nas.',
   },
 ];
 
@@ -102,7 +102,7 @@ export function BanerZgody({ serviceId, bundle }: { serviceId: string; bundle: M
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-cyan-400/40 bg-cyan-500/[0.08] p-4">
       <div>
-        <p className="font-semibold text-white">Obsługa przygotowała migrację — sprawdź i zatwierdź</p>
+        <p className="font-semibold text-white">Obsługa przygotowała migrację – sprawdź i zatwierdź</p>
         <p className="mt-1 text-xs text-neutral-300">
           Przeniesienie {bundle.targetDomain ?? 'strony'} wystartuje dopiero po Twojej zgodzie
           {termin ? ` (prośba ważna do ${termin})` : ''}.

@@ -95,7 +95,7 @@ export function CreatePromoForm() {
         >
           <Gift className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
           <span>
-            <span className="block text-sm font-semibold text-white">Voucher — kredyty na portfel</span>
+            <span className="block text-sm font-semibold text-white">Voucher – kredyty na portfel</span>
             <span className="block text-[11px] text-foreground">Dodaje stałą kwotę K po wpisaniu kodu.</span>
           </span>
         </button>
@@ -189,7 +189,7 @@ export function CreatePromoForm() {
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           maxLength={120}
-          placeholder={isService ? "np. Promocja startowa −15%" : "np. Bonus powitalny — styczeń"}
+          placeholder={isService ? "np. Promocja startowa −15%" : "np. Bonus powitalny – styczeń"}
           className="mt-1.5 w-full rounded-lg bg-black/60 border border-white/10 px-3 py-2 text-white text-sm focus:border-emerald-400 focus:outline-none placeholder:text-neutral-600"
         />
       </label>

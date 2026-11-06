@@ -9,7 +9,7 @@ import { prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } fr
  * OPERATOR_ACCOUNT_VIEWED z operatorem i klientem w dzienniku, a „Aktywność konta” klienta go nie pokazuje
  * (to odczyt obsługi, nie zmiana na koncie). Węzeł (DirectAdmin) zastąpiony atrapą.
  */
-describe('PB-42 — podgląd konta klienta przez obsługę', () => {
+describe('PB-42 – podgląd konta klienta przez obsługę', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 

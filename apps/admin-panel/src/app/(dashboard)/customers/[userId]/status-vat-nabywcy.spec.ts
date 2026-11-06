@@ -10,7 +10,7 @@ import { cofnijWeryfikacjeVatAction, weryfikacjaVatAction } from "../actions";
 import { opisStatusuVat } from "./status-vat-opis";
 
 /** Decyzja 09.10 — „Zweryfikuj status VAT nabywcy” na karcie klienta: walidacja, wywołanie API, opis statusu. */
-describe("weryfikacja VAT nabywcy — karta klienta", () => {
+describe("weryfikacja VAT nabywcy – karta klienta", () => {
   beforeEach(() => adminApi.mockReset());
 
   it("podstawa za krótka → błąd bez API; poprawna → POST z podstawą", async () => {
@@ -44,6 +44,6 @@ describe("weryfikacja VAT nabywcy — karta klienta", () => {
         weryfikacja: { at: "2026-10-09T10:00:00Z", przez: "op", podstawa: "Rejestr CH", kraj: "CH", aktualna: true },
       }),
     ).toContain("Rejestr CH");
-    expect(opisStatusuVat({ kraj: "PL", pozaUe: false, wymagaWeryfikacji: false, weryfikacja: null })).toBe("Polska — 23%");
+    expect(opisStatusuVat({ kraj: "PL", pozaUe: false, wymagaWeryfikacji: false, weryfikacja: null })).toBe("Polska – 23%");
   });
 });

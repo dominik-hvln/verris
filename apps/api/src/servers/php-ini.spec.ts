@@ -2,7 +2,7 @@ import { blokHtaccessPhp, odczytajUserIni, sprawdzUstawieniaPhp } from './php-in
 
 const Z = { begin: '; BEGIN VERRIS PHP', end: '; END VERRIS PHP' };
 
-describe('B-05 — ustawienia PHP (.user.ini)', () => {
+describe('B-05 – ustawienia PHP (.user.ini)', () => {
   it('poprawne wartości: normalizacja jednostki i On/Off, puste pola pominięte', () => {
     expect(sprawdzUstawieniaPhp({ memory_limit: '512m', display_errors: 'off', max_input_time: '-1', 'date.timezone': 'Europe/Warsaw', upload_max_filesize: '' }))
       .toEqual({ memory_limit: '512M', display_errors: 'Off', max_input_time: '-1', 'date.timezone': 'Europe/Warsaw' });
@@ -26,7 +26,7 @@ describe('B-05 — ustawienia PHP (.user.ini)', () => {
   });
 });
 
-describe('B-05 — te same dyrektywy dla LiteSpeed w .htaccess', () => {
+describe('B-05 – te same dyrektywy dla LiteSpeed w .htaccess', () => {
   it('php_value / php_flag w <IfModule LiteSpeed>; pusty zestaw → brak bloku', () => {
     expect(blokHtaccessPhp({ memory_limit: '256M', display_errors: 'Off', 'date.timezone': 'Europe/Warsaw' })).toBe(
       '<IfModule LiteSpeed>\nphp_value memory_limit 256M\nphp_flag display_errors off\nphp_value date.timezone Europe/Warsaw\n</IfModule>',

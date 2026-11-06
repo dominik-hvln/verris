@@ -134,7 +134,7 @@ export class DbTransferService {
     const wToku = await this.prisma.nodeTask.findFirst({
       where: { accountId: account.id, kind: NodeTaskKind.DB_TRANSFER, status: { in: [NodeTaskStatus.QUEUED, NodeTaskStatus.RUNNING] } },
     });
-    if (wToku) throw new ConflictException('Inna operacja na bazie jest już w toku — poczekaj na wynik.');
+    if (wToku) throw new ConflictException('Inna operacja na bazie jest już w toku – poczekaj na wynik.');
     return this.prisma.nodeTask.create({
       data: {
         serverId: account.serverId,
@@ -254,5 +254,5 @@ export function bladDlaKlienta(log: string | null, errorMessage: string | null):
   const mysql = [...linie].reverse().find((l) => /^ERROR \d+ \(\w+\)/.test(l));
   const tekst = mysql && skrypt?.includes('import przerwany') ? `${skrypt.slice('[db-transfer] BŁĄD: '.length)} Powód: ${mysql}` : skrypt?.slice('[db-transfer] BŁĄD: '.length) ?? mysql;
   if (tekst) return tekst.replace(/\/home\/[a-z0-9]+\//g, '~/').slice(0, 500);
-  return errorMessage ? 'Operacja nie powiodła się. Napisz do nas — sprawdzimy to.' : 'Operacja nie powiodła się.';
+  return errorMessage ? 'Operacja nie powiodła się. Napisz do nas – sprawdzimy to.' : 'Operacja nie powiodła się.';
 }

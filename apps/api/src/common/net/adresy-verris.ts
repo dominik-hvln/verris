@@ -55,7 +55,7 @@ export function ustawZrodloAdresowWezlow(zrodlo: ZrodloAdresowWezlow | null): vo
 
 export async function adresyWezlow(): Promise<string[]> {
   if (!zrodloWezlow) {
-    if (process.env.NODE_ENV === 'production') throw new BadRequestException('Nie można teraz sprawdzić hosta — spróbuj ponownie za chwilę.');
+    if (process.env.NODE_ENV === 'production') throw new BadRequestException('Nie można teraz sprawdzić hosta – spróbuj ponownie za chwilę.');
     return [];
   }
   return (await zrodloWezlow()).filter((a): a is string => !!a && !!a.trim()).map((a) => a.trim());

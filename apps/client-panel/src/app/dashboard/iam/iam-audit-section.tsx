@@ -30,7 +30,7 @@ export async function IamAuditSection() {
                 </span>
                 {entry.actor?.name && (
                   <span className="ml-2 text-neutral-500">
-                    — {pokazEmail(entry.actor.name)}
+                    – {pokazEmail(entry.actor.name)}
                     {/* Imię subkonta bywa takie samo jak właściciela — adres rozstrzyga, kto to zrobił. */}
                     {entry.actor.email && pokazEmail(entry.actor.email) !== pokazEmail(entry.actor.name) ? ` (${pokazEmail(entry.actor.email)})` : ''}
                   </span>

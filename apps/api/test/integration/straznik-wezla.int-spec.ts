@@ -38,7 +38,7 @@ const zdarzenie = (stan: ZdarzenieStraznikaDto['stan'], o: Partial<ZdarzenieStra
   ...o,
 });
 
-describe('Strażnik węzła — raporty i alarmy', () => {
+describe('Strażnik węzła – raporty i alarmy', () => {
   const fetchMock = vi.fn();
   beforeEach(async () => {
     await wyczyscBaze();
@@ -66,7 +66,7 @@ describe('Strażnik węzła — raporty i alarmy', () => {
     const { straznik } = uslugi();
     await straznik.przyjmij(w.id, zdarzenie('naprawa'));
     expect(await prisma().notification.count()).toBe(0);
-    await straznik.przyjmij(w.id, zdarzenie('naprawiono', { kroki: [...zdarzenie('naprawa').kroki, { at: 'x', krok: 'sprawdzenie d3.hvln.pl', wynik: 'HTTP 200 — OK' }] }));
+    await straznik.przyjmij(w.id, zdarzenie('naprawiono', { kroki: [...zdarzenie('naprawa').kroki, { at: 'x', krok: 'sprawdzenie d3.hvln.pl', wynik: 'HTTP 200 – OK' }] }));
     await straznik.przyjmij(w.id, zdarzenie('naprawiono'));
     const z = await prisma().zdarzenieStraznika.findMany();
     expect(z).toHaveLength(1);
@@ -74,19 +74,19 @@ describe('Strażnik węzła — raporty i alarmy', () => {
     expect(z[0].zakonczonoAt).not.toBeNull();
     const n = await prisma().notification.findMany({ where: { userId: a.id } });
     expect(n).toHaveLength(1);
-    expect(n[0]).toMatchObject({ title: 'Węzeł t1: awaria naprawiona automatycznie (izolacja kont (LVE) — strony PHP nie działają)', severity: 'info', link: `/nodes/${w.id}?sekcja=uslugi#straznik` });
+    expect(n[0]).toMatchObject({ title: 'Węzeł t1: awaria naprawiona automatycznie (izolacja kont (LVE) – strony PHP nie działają)', severity: 'info', link: `/nodes/${w.id}?sekcja=uslugi#straznik` });
     expect(n[0].body).toContain('1. restart LiteSpeed: wykonany');
     expect(maile.map((m) => m.subject)).toEqual([`[Verris] ✅ ${n[0].title}`]);
     expect(push).toEqual([expect.objectContaining({ topic: 'verris-alarmy-test', priority: 3, click: expect.stringContaining(`/nodes/${w.id}?sekcja=uslugi#straznik`) })]);
     expect(fetchMock.mock.calls[0][0]).toBe('https://ntfy.sh/');
   });
 
-  it('nie_naprawiono i restart węzła: alarm krytyczny (push priorytet 5); bez ALERT_PUSH_URL — bez pusha', async () => {
+  it('nie_naprawiono i restart węzła: alarm krytyczny (push priorytet 5); bez ALERT_PUSH_URL – bez pusha', async () => {
     await admin();
     const w = await utworzWezel({ name: 't1' });
     const { straznik } = uslugi();
     await straznik.przyjmij(w.id, zdarzenie('restart'));
-    expect(push.pop()).toMatchObject({ priority: 5, title: 'Węzeł t1: strażnik restartuje węzeł (izolacja kont (LVE) — strony PHP nie działają)' });
+    expect(push.pop()).toMatchObject({ priority: 5, title: 'Węzeł t1: strażnik restartuje węzeł (izolacja kont (LVE) – strony PHP nie działają)' });
     delete process.env.ALERT_PUSH_URL;
     await straznik.przyjmij(w.id, zdarzenie('nie_naprawiono', { id: '7f1c2b1e-0d3a-4b8e-9b1a-1c2d3e4f5a6b', rodzaj: 'usluga:exim', objaw: 'Usługa exim włączona, a w stanie: failed.' }));
     expect(push).toEqual([]);
@@ -115,12 +115,12 @@ describe('Strażnik węzła — raporty i alarmy', () => {
     await straznik.przyjmij(w.id, zdarzenie('naprawiono'));
     const l = await straznik.lista(w.id);
     expect(l.restartWezla).toBe(false);
-    expect(l.zdarzenia[0]).toMatchObject({ nazwa: 'izolacja kont (LVE) — strony PHP nie działają', stan: 'naprawiono' });
+    expect(l.zdarzenia[0]).toMatchObject({ nazwa: 'izolacja kont (LVE) – strony PHP nie działają', stan: 'naprawiono' });
     expect(l.zdarzenia[0]).not.toHaveProperty('diagnoza');
     expect((await straznik.diagnoza(w.id, l.zdarzenia[0].id)).diagnoza).toContain('enter LVE (1003)');
   });
 
-  it('zadanie węzła pada na błędzie systemowym (CageFS / LVE): alarm raz na godzinę; zwykły błąd zadania — bez alarmu', async () => {
+  it('zadanie węzła pada na błędzie systemowym (CageFS / LVE): alarm raz na godzinę; zwykły błąd zadania – bez alarmu', async () => {
     await admin();
     const w = await utworzWezel({ name: 't1' });
     const { zadania } = uslugi();

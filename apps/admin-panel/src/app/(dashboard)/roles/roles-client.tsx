@@ -109,7 +109,7 @@ export function RolesClient({ catalog, initialRoles }: { catalog: PermItem[]; in
                   </div>
                   <div className="flex shrink-0 gap-1">
                     {r.isSystem ? (
-                      <button onClick={() => clone(r)} disabled={pending} title="Rola systemowa jest stała — powstanie edytowalna kopia" className="rounded-md border border-white/10 px-2 py-1 text-xs text-neutral-200 hover:text-white disabled:opacity-50">Sklonuj</button>
+                      <button onClick={() => clone(r)} disabled={pending} title="Rola systemowa jest stała – powstanie edytowalna kopia" className="rounded-md border border-white/10 px-2 py-1 text-xs text-neutral-200 hover:text-white disabled:opacity-50">Sklonuj</button>
                     ) : (
                       <button onClick={() => startEdit(r)} className="rounded-md border border-white/10 px-2 py-1 text-xs text-neutral-200 hover:text-white">Edytuj</button>
                     )}

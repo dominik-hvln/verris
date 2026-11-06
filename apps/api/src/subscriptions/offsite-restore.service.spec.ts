@@ -22,7 +22,7 @@ function zbuduj(opts: { wlasciciel?: boolean; wToku?: boolean; zadania?: Array<R
   return { svc: new OffsiteRestoreService(prisma as never, audit as never), prisma, audit };
 }
 
-describe('OffsiteRestoreService — X-08', () => {
+describe('OffsiteRestoreService – X-08', () => {
   it.each([
     '../../etc/passwd.tar.gz',
     '/home/inny/backup.tar.gz',
@@ -78,7 +78,7 @@ describe('OffsiteRestoreService — X-08', () => {
     expect(stan.archives[0].modifiedAt).toBe('2026-09-20T03:00:00.000Z');
   });
 
-  it('„na serwerze” tylko dla pobranej wersji dnia — lista z innego dnia ma „Pobierz” (t1 01.10)', async () => {
+  it('„na serwerze” tylko dla pobranej wersji dnia – lista z innego dnia ma „Pobierz” (t1 01.10)', async () => {
     const t = (id: string, payload: Record<string, string>, dt: number) => ({
       id, status: 'COMPLETED', payload, outputLog: 'VERRIS-OFFSITE-FILE user.admin.k.tar.zst|5|2026-09-30 01:56:53',
       completedAt: new Date(dt), updatedAt: new Date(dt), createdAt: new Date(dt), errorMessage: null,

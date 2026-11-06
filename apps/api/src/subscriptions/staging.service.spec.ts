@@ -4,7 +4,7 @@ import { StagingService } from './staging.service.js';
  * I-11 — pierwsze utworzenie kopii roboczej po nieudanej próbie (retest D3 29.09): baza stgXXXX
  * z poprzedniej próby nie może zostać na koncie jako sierota; cudze bazy zostają nietknięte.
  */
-describe('StagingService.createOrRefresh — sprzątanie bazy z nieudanej próby', () => {
+describe('StagingService.createOrRefresh – sprzątanie bazy z nieudanej próby', () => {
   it('usuwa tylko <login>_stgXXXX, potem zakłada nową bazę i zadanie', async () => {
     const account = { id: 'a1', domain: 'firma.pl', daUsername: 'klient1', serverId: 's1', stagingCreatedAt: null, stagingSyncedAt: null };
     const prisma = {
@@ -32,7 +32,7 @@ describe('StagingService.createOrRefresh — sprzątanie bazy z nieudanej próby
     }));
   });
 
-  it('subdomena z poprzedniej próby już jest — nie zakłada jej drugi raz, tylko kolejkuje kopiowanie', async () => {
+  it('subdomena z poprzedniej próby już jest – nie zakłada jej drugi raz, tylko kolejkuje kopiowanie', async () => {
     const account = { id: 'a1', domain: 'firma.pl', daUsername: 'klient1', serverId: 's1', stagingCreatedAt: null, stagingSyncedAt: null };
     const prisma = {
       subscription: { findFirst: vi.fn(async () => ({ id: 'sub1', account })) },

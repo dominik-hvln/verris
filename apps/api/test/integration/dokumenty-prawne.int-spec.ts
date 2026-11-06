@@ -15,7 +15,7 @@ describe('PB-03 publikacja dokumentów prawnych', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 
-  it('ta sama wersja z inną treścią — odmowa, stara treść nietknięta; nowy numer przechodzi i jest obowiązujący', async () => {
+  it('ta sama wersja z inną treścią – odmowa, stara treść nietknięta; nowy numer przechodzi i jest obowiązujący', async () => {
     const admin = await prisma().user.create({ data: { email: `adm-${Date.now()}@test.verris.pl`, passwordHash: 'x', role: 'ADMIN' } });
     const pub = (version: string, t: string) =>
       svc().publish({ kind: LegalDocumentKind.TERMS, version, title: 'Regulamin', contentMarkdown: tresc(t), publishedById: admin.id });

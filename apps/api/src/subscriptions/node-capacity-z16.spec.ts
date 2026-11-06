@@ -25,7 +25,7 @@ function polityka(over: Partial<PolitykaPojemnosci> = {}): PolitykaPojemnosci {
   };
 }
 
-describe('Z-16 — wolna pojemność węzła dla autoskalowania', () => {
+describe('Z-16 – wolna pojemność węzła dla autoskalowania', () => {
   it('pusty węzeł oddaje całą pojemność', () => {
     const w = wolneDoZadysponowania({
       fizyczna: WEZEL,
@@ -64,7 +64,7 @@ describe('Z-16 — wolna pojemność węzła dla autoskalowania', () => {
     expect(z4x.ramMb).toBe(4 * WEZEL.ramMb - 100 * 1024);
   });
 
-  it('NIGDY nie zwraca wartości ujemnych — brak miejsca to „nie rośnij", nie „zabierz"', () => {
+  it('NIGDY nie zwraca wartości ujemnych – brak miejsca to „nie rośnij", nie „zabierz"', () => {
     const w = wolneDoZadysponowania({
       fizyczna: WEZEL,
       sprzedane: { cpu: 99999, ramMb: 999 * 1024, diskMb: 99 * 1024 * 1024 },
@@ -111,7 +111,7 @@ describe('Z-16 — wolna pojemność węzła dla autoskalowania', () => {
   });
 });
 
-describe('Z-16 — krotność autoskalowania bierze się z planu, nie z ukrytego sufitu', () => {
+describe('Z-16 – krotność autoskalowania bierze się z planu, nie z ukrytego sufitu', () => {
   it('sufit oferty Verris jest teraz osiągalny', () => {
     // Oferta: 2 vCPU → 24 (12×), 8 GB → 64 (8×), 50 GB → 1000 GB (20×).
     // Przed Z-16 silnik przycinał wszystko do 10×, więc CPU i dysk nie dowoziły.
@@ -124,7 +124,7 @@ describe('Z-16 — krotność autoskalowania bierze się z planu, nie z ukrytego
     expect(krotnoscAutoskalowania(20)).toBeGreaterThan(10);
   });
 
-  it('granica nadal istnieje — jako ochrona przed literówką w planie', () => {
+  it('granica nadal istnieje – jako ochrona przed literówką w planie', () => {
     expect(krotnoscAutoskalowania(1000)).toBe(MAKS_KROTNOSC_AUTOSKALOWANIA);
   });
 

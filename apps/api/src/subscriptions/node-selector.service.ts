@@ -61,7 +61,7 @@ export class NodeSelectorService {
       if (err.message.startsWith('Sprzedaż wstrzymana')) throw err;
       this.logger.warn(`Zakup planu ${plan.slug} odrzucony przed pobraniem opłaty: ${err.message}`);
       throw new ServiceUnavailableException(
-        'Sprzedaż jest chwilowo wstrzymana — nie mamy teraz wolnego miejsca na serwerach. Nic nie pobraliśmy. ' +
+        'Sprzedaż jest chwilowo wstrzymana – nie mamy teraz wolnego miejsca na serwerach. Nic nie pobraliśmy. ' +
           'Spróbuj ponownie później albo napisz do pomocy.',
       );
     }
@@ -71,7 +71,7 @@ export class NodeSelectorService {
     // Q-05 — produkt aplikacyjny (e-mail marketing) nie ma konta na węźle. Jedno miejsce, przez które
     // przechodzi każde zakładanie konta (zakup, kolejka, okres próbny, ponowienie przez admina).
     if (plan.productKind === 'EMAIL_MARKETING') {
-      throw new BadRequestException(`Plan ${plan.slug} to usługa aplikacyjna — nie zakłada konta na serwerze.`);
+      throw new BadRequestException(`Plan ${plan.slug} to usługa aplikacyjna – nie zakłada konta na serwerze.`);
     }
     // Tylko węzły ACTIVE, które NIE są „cordoned" (acceptsNewAccounts=false).
     // Cordon pozwala wstrzymać przyjmowanie nowych kont na pojedynczym węźle bez
@@ -124,7 +124,7 @@ export class NodeSelectorService {
       });
       if (inMaintenance.length > 0) {
         this.logger.warn(
-          `Provisioning blocked — ${inMaintenance.length} node(s) in MAINTENANCE.`,
+          `Provisioning blocked – ${inMaintenance.length} node(s) in MAINTENANCE.`,
         );
         const firstReason = inMaintenance.find((s) => s.maintenanceReason)?.maintenanceReason;
         throw new ServiceUnavailableException(
@@ -203,7 +203,7 @@ export class NodeSelectorService {
         // operacyjna, nie zwykłe „węzeł pełny" — musi być widoczna w logu.
         if (!dopasowanie.telemetriaSwieza && fizyczna.ramMb > 0) {
           this.logger.warn(
-            `Węzeł ${server.id} bez świeżej telemetrii (>${SWIEZOSC_TELEMETRII_MIN} min) — ` +
+            `Węzeł ${server.id} bez świeżej telemetrii (>${SWIEZOSC_TELEMETRII_MIN} min) – ` +
               `nadsubskrypcja zdegradowana do 1,0×, odmowa: ${dopasowanie.powod}.`,
           );
         }

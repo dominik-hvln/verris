@@ -70,7 +70,7 @@ function PrywatnoscSubkonta() {
         Pracujesz na subkoncie. Eksport danych i usunięcie konta dotyczą całego konta, więc robi je właściciel konta.
       </p>
       <p>
-        Swoje imię i nazwisko zmienisz w zakładce „Profil”, a hasło — w „Bezpieczeństwo”. W sprawie danych tego subkonta
+        Swoje imię i nazwisko zmienisz w zakładce „Profil”, a hasło – w „Bezpieczeństwo”. W sprawie danych tego subkonta
         (wgląd, usunięcie) napisz do właściciela konta albo do nas:{" "}
         <a href="mailto:rodo@verris.pl" className="underline underline-offset-2">rodo@verris.pl</a>.
       </p>
@@ -662,7 +662,7 @@ function BillingTab({
         </FormField>
         <FormField
           label="NIP / numer VAT-UE"
-          description="Polska firma: 10 cyfr NIP — sprawdzamy cyfrę kontrolną. Firma z innego kraju UE: numer VAT-UE z prefiksem kraju (np. DE123456789), sprawdzany w VIES przy doładowaniu — ważny oznacza dokument bez polskiego VAT (odwrotne obciążenie) i cenę netto. Zmianę NIP-u zapisujemy w dzienniku konta; obowiązuje od kolejnej faktury."
+          description="Polska firma: 10 cyfr NIP – sprawdzamy cyfrę kontrolną. Firma z innego kraju UE: numer VAT-UE z prefiksem kraju (np. DE123456789), sprawdzany w VIES przy doładowaniu – ważny oznacza dokument bez polskiego VAT (odwrotne obciążenie) i cenę netto. Zmianę NIP-u zapisujemy w dzienniku konta; obowiązuje od kolejnej faktury."
         >
           <Input
             value={form.nip}

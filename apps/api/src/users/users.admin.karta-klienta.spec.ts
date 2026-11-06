@@ -54,7 +54,7 @@ function serwis(audit: { record: ReturnType<typeof vi.fn> } = { record: vi.fn(as
   return new UsersAdminService(prisma as never, {} as never, audit as never, {} as never, status as never, {} as never, {} as never);
 }
 
-describe('PB-46 profil 360° — notatka wewnętrzna', () => {
+describe('PB-46 profil 360° – notatka wewnętrzna', () => {
   it('STAFF dostaje notatkę (wcześniej null, choć `operational-detail` ją oddawał)', async () => {
     const p = await serwis().getCustomer360('u1', { actorUserId: 's1', actorRole: Role.STAFF });
     expect(p.user.adminInternalNote).toBe(TARGET.adminInternalNote);
@@ -66,7 +66,7 @@ describe('PB-46 profil 360° — notatka wewnętrzna', () => {
   });
 });
 
-describe('decyzja 08.10 — otwarcie karty klienta przez operatora w dzienniku', () => {
+describe('decyzja 08.10 – otwarcie karty klienta przez operatora w dzienniku', () => {
   it('STAFF otwiera kartę → wpis OPERATOR_CUSTOMER_CARD_VIEWED (klient = userId, operator = actor, zakładka)', async () => {
     const audit = { record: vi.fn(async () => undefined) };
     await serwis(audit).getCustomer360('u1', { actorUserId: 's1', actorRole: Role.STAFF, sekcja: 'rozliczenia' });
@@ -94,7 +94,7 @@ describe('decyzja 08.10 — otwarcie karty klienta przez operatora w dzienniku',
     expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'OPERATOR_CUSTOMER_CARD_VIEWED', actorUserId: 'a1', details: {} }));
   });
 
-  it('odmowa (STAFF na koncie nie-klienta) nie jest otwarciem — brak wpisu', async () => {
+  it('odmowa (STAFF na koncie nie-klienta) nie jest otwarciem – brak wpisu', async () => {
     const audit = { record: vi.fn(async () => undefined) };
     await expect(
       serwis(audit, { ...TARGET, role: Role.STAFF }).getCustomer360('u1', { actorUserId: 's1', actorRole: Role.STAFF }),
@@ -159,19 +159,19 @@ describe('PB-46 strażnicy karty klienta (zachowanie, nie metadane)', () => {
     expect(await wpuszcza('customerProfile', Role.STAFF, [])).toBe(false);
   });
 
-  it.each(['changeEmail', 'resetPassword'] as const)('D9 %s: STAFF z CUSTOMERS_MANAGE (L3) — tak; sam podgląd (L1/L2) — 403 (wniosek); ADMIN — tak', async (m) => {
+  it.each(['changeEmail', 'resetPassword'] as const)('D9 %s: STAFF z CUSTOMERS_MANAGE (L3) – tak; sam podgląd (L1/L2) – 403 (wniosek); ADMIN – tak', async (m) => {
     expect(await wpuszcza(m, Role.STAFF, ZARZADZANIE)).toBe(true);
     expect(await wpuszcza(m, Role.STAFF, PODGLAD)).toBe(false);
     expect(await wpuszcza(m, Role.ADMIN, [])).toBe(true);
   });
 
-  it('D9 historia logowań: STAFF z CUSTOMERS_VIEW — tak, bez — 403', async () => {
+  it('D9 historia logowań: STAFF z CUSTOMERS_VIEW – tak, bez – 403', async () => {
     expect(await wpuszcza('loginHistory', Role.STAFF, PODGLAD)).toBe(true);
     expect(await wpuszcza('loginHistory', Role.STAFF, [])).toBe(false);
   });
 });
 
-describe('PB-46 PATCH operational — blokada, notatka i flaga konta wewnętrznego', () => {
+describe('PB-46 PATCH operational – blokada, notatka i flaga konta wewnętrznego', () => {
   function kontroler() {
     const admin = { patchCustomerOperational: vi.fn(async () => ({ ok: true })) };
     const c = new UsersAdminController(admin as never, {} as never, {} as never, {} as never, {} as never);
@@ -180,7 +180,7 @@ describe('PB-46 PATCH operational — blokada, notatka i flaga konta wewnętrzne
   const req = { headers: {}, ip: '127.0.0.1', socket: {} } as never;
   const staff = { userId: 's1', email: 's@verris.pl', role: Role.STAFF };
 
-  it('flagę „konto wewnętrzne” od STAFF rozstrzyga serwis wg uprawnień (PB-47: CUSTOMERS_INTERNAL_FLAG, inaczej 403 WYMAGA_WNIOSKU) — kontroler przekazuje aktora', async () => {
+  it('flagę „konto wewnętrzne” od STAFF rozstrzyga serwis wg uprawnień (PB-47: CUSTOMERS_INTERNAL_FLAG, inaczej 403 WYMAGA_WNIOSKU) – kontroler przekazuje aktora', async () => {
     const { c, admin } = kontroler();
     await c.patchOperational(staff, 'u1', { loginBlocked: true, isInternal: true }, req);
     expect(admin.patchCustomerOperational).toHaveBeenCalledWith(
@@ -211,7 +211,7 @@ describe('PB-46 PATCH operational — blokada, notatka i flaga konta wewnętrzne
   });
 });
 
-describe('Fala 1B — „Kto oglądał” (staff-audit) z adresem operatora', () => {
+describe('Fala 1B – „Kto oglądał” (staff-audit) z adresem operatora', () => {
   it('wiersz ma actorEmail operatora, który otworzył kartę', async () => {
     const wpis = { id: 'l1', action: 'OPERATOR_CUSTOMER_CARD_VIEWED', ipAddress: null, userAgent: null, actorUserId: 'op1', impersonatedBy: null, details: { sekcja: 'dziennik' }, createdAt: new Date('2026-10-10T08:00:00Z') };
     const prisma = {
@@ -233,7 +233,7 @@ describe('Fala 1B — „Kto oglądał” (staff-audit) z adresem operatora', ()
  * miała pokazywać własne działania operatora na tym kliencie, a filtr gubił klienta: wychodziły działania operatora
  * na wszystkich kontach. Konto operatora/administratora — tylko dla ADMIN-a.
  */
-describe('przegląd Fali 2A — staff-audit dla STAFF', () => {
+describe('przegląd Fali 2A – staff-audit dla STAFF', () => {
   const serwis = (rola: Role = Role.USER) => {
     const prisma = {
       user: { findUnique: vi.fn(async () => ({ id: 'u1', email: 'anna@test.pl', role: rola })), findMany: vi.fn(async () => []) },
@@ -255,7 +255,7 @@ describe('przegląd Fali 2A — staff-audit dla STAFF', () => {
     expect(prisma.auditLog.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { OR: [{ userId: 'u1' }, { actorUserId: 'u1' }] } }));
   });
 
-  it('STAFF na koncie operatora — 403 bez odczytu dziennika', async () => {
+  it('STAFF na koncie operatora – 403 bez odczytu dziennika', async () => {
     const { prisma, s } = serwis(Role.STAFF);
     await expect(s.getCustomerAuditTrail({ targetUserId: 'u1', actorUserId: 'op1', actorRole: Role.STAFF, limit: 50 })).rejects.toBeInstanceOf(ForbiddenException);
     expect(prisma.auditLog.findMany).not.toHaveBeenCalled();
@@ -267,7 +267,7 @@ describe('przegląd Fali 2A — staff-audit dla STAFF', () => {
  * zgłoszenia). Dla STAFF bez stanu bezpieczeństwa zespołu: ostatnie logowanie, 2FA, passkey, Grafana — D9 zostawia
  * logowania operatorów administratorowi, a panel operatora pokazuje teraz tę listę L1.
  */
-describe('przegląd Fali 2A — lista kont: zespół bez stanu bezpieczeństwa dla STAFF', () => {
+describe('przegląd Fali 2A – lista kont: zespół bez stanu bezpieczeństwa dla STAFF', () => {
   const konto = (id: string, role: Role) => ({
     id, email: `${id}@x.pl`, firstName: null, lastName: null, role, walletBalance: { toString: () => '0' }, createdAt: new Date('2026-10-01T00:00:00Z'),
     isTwoFactorEnabled: true, loginBlocked: false, canAccessGrafana: true, anonymizedAt: null, isInternal: false, _count: { subscriptions: 0 },

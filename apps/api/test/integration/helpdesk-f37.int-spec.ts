@@ -43,7 +43,7 @@ async function ludzie() {
   return { op, op2, jan, ola };
 }
 
-const POWOD = 'Ta sama sprawa — duplikat z maila';
+const POWOD = 'Ta sama sprawa – duplikat z maila';
 
 /** Źródło z pełnym wątkiem: plik w pierwszej wiadomości, odpowiedź klienta z plikiem, odpowiedź obsługi i notatka. */
 async function zrodlo(klientId: string, opId: string, id?: string) {
@@ -60,7 +60,7 @@ async function zrodlo(klientId: string, opId: string, id?: string) {
   return t;
 }
 
-describe('F3.7 — scalanie zgłoszeń', () => {
+describe('F3.7 – scalanie zgłoszeń', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     await prisma().pocztaPrzychodzaca.deleteMany({});
@@ -100,7 +100,7 @@ describe('F3.7 — scalanie zgłoszeń', () => {
     // Źródło: zamknięte, wskazuje cel, klient widzi tylko pierwszą wiadomość i informację o połączeniu.
     const zr = await tickets.findOne(a.id, jan.id);
     expect(zr).toMatchObject({ status: 'CLOSED', scalonoDoId: b.id });
-    expect(zr.replies.map((r) => [r.automatic, r.message])).toEqual([['SCALONE', `Połączyliśmy to zgłoszenie z #${b.id.slice(0, 8)} — dalsza rozmowa toczy się tam.`]]);
+    expect(zr.replies.map((r) => [r.automatic, r.message])).toEqual([['SCALONE', `Połączyliśmy to zgłoszenie z #${b.id.slice(0, 8)} – dalsza rozmowa toczy się tam.`]]);
     expect(zr.replies[0].autor).toBeNull();
     expect(JSON.stringify(zr)).not.toContain('NOTATKA-WEWNETRZNA');
 
@@ -118,7 +118,7 @@ describe('F3.7 — scalanie zgłoszeń', () => {
     expect(maile).toEqual([]);
   });
 
-  it('odmowy: inny klient, to samo zgłoszenie, krótki powód, ponownie, cel scalony — bez żadnych zmian', async () => {
+  it('odmowy: inny klient, to samo zgłoszenie, krótki powód, ponownie, cel scalony – bez żadnych zmian', async () => {
     const { tickets } = uslugi();
     const { op, jan, ola } = await ludzie();
     const a = await zrodlo(jan.id, op.id);
@@ -174,7 +174,7 @@ describe('F3.7 — scalanie zgłoszeń', () => {
     const jan = await prisma().user.create({ data: { email: 'jan@klient.pl', passwordHash: 'x' } });
     const ID = '1a2b3c4d-0000-4000-8000-0000000000aa';
     await prisma().ticket.create({ data: { id: ID, userId: jan.id, subject: 'DNS', message: 'x' } });
-    const b = await prisma().ticket.create({ data: { userId: jan.id, subject: 'DNS — nowe', message: 'y' } });
+    const b = await prisma().ticket.create({ data: { userId: jan.id, subject: 'DNS – nowe', message: 'y' } });
     await tickets.adminMerge(ID, b.id, op.id, POWOD);
     const eml = readFileSync(join(import.meta.dirname, '../../src/tickets/poczta/__fixtures__/odpowiedz-gmail.eml'));
     const imap = await atrapaImap({ wiadomosci: new Map([[1, eml]]) });
@@ -189,7 +189,7 @@ describe('F3.7 — scalanie zgłoszeń', () => {
   });
 });
 
-describe('F3.7 — makra, akcje masowe, działy', () => {
+describe('F3.7 – makra, akcje masowe, działy', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     await prisma().cannedResponse.deleteMany({});
@@ -203,9 +203,9 @@ describe('F3.7 — makra, akcje masowe, działy', () => {
     const t = await tickets.create(jan.id, { subject: 'DNS', message: 'Nie działa domena.' });
     await prisma().ticket.update({ where: { id: t.id }, data: { assignedToId: op2.id } });
     const m = await prisma().cannedResponse.create({
-      data: { title: 'Rozwiązane — DNS', content: 'Dzień dobry {{imie}}, rekordy poprawione.', makroStan: 'CLOSED', makroTagi: ['dns'], makroPrzypisz: 'JA' },
+      data: { title: 'Rozwiązane – DNS', content: 'Dzień dobry {{imie}}, rekordy poprawione.', makroStan: 'CLOSED', makroTagi: ['dns'], makroPrzypisz: 'JA' },
     });
-    expect((await makra.lista(t.id)).map((x) => [x.title, x.content])).toEqual([['Rozwiązane — DNS', 'Dzień dobry Jan, rekordy poprawione.']]);
+    expect((await makra.lista(t.id)).map((x) => [x.title, x.content])).toEqual([['Rozwiązane – DNS', 'Dzień dobry Jan, rekordy poprawione.']]);
     await makra.zastosuj(t.id, m.id, op.id);
     const po = await tickets.adminFindOne(t.id);
     expect(po).toMatchObject({ status: 'CLOSED', assignedToId: op.id, tags: ['dns'] });
@@ -247,7 +247,7 @@ describe('F3.7 — makra, akcje masowe, działy', () => {
     await tickets.adminMerge(ids[2]!, ids[1]!, op.id, POWOD);
     const r = await tickets.adminBulk(op.id, { ids, akcja: 'stan', status: 'IN_PROGRESS' });
     expect(r).toMatchObject({ zmienione: 2, bezZmian: 0 });
-    expect(r.bledy).toEqual([{ id: ids[2], blad: 'Zgłoszenie scalone — stan zmienia się w zgłoszeniu docelowym.' }]);
+    expect(r.bledy).toEqual([{ id: ids[2], blad: 'Zgłoszenie scalone – stan zmienia się w zgłoszeniu docelowym.' }]);
     const wpisy = await prisma().auditLog.findMany({ where: { action: 'TICKETS_BULK_CHANGED' }, orderBy: { createdAt: 'asc' } });
     expect(wpisy).toHaveLength(5);
     expect(wpisy.at(-1)!.details).toMatchObject({ akcja: 'stan', wartosc: 'IN_PROGRESS', zmienione: [ids[0], ids[1]] });
@@ -271,7 +271,7 @@ describe('F3.7 — makra, akcje masowe, działy', () => {
   });
 });
 
-describe('F3.7 — raporty obsługi', () => {
+describe('F3.7 – raporty obsługi', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 
@@ -323,7 +323,7 @@ describe('F3.7 — raporty obsługi', () => {
   });
 });
 
-describe('F3.7 — przegląd: scalone zgłoszenie zostaje zamknięte i bez nazwiska obsługi', () => {
+describe('F3.7 – przegląd: scalone zgłoszenie zostaje zamknięte i bez nazwiska obsługi', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     maile.length = 0;
@@ -359,7 +359,7 @@ describe('F3.7 — przegląd: scalone zgłoszenie zostaje zamknięte i bez nazwi
     expect((await raporty.raport(7)).csat).toEqual({ ocen: 0, obsluga: null, opiekun: null, rozwiazanePct: null });
   });
 
-  it('wyścig: scalenie między odczytem a zapisem odpowiedzi — odpowiedź odrzucona, źródło zostaje zamknięte i puste', async () => {
+  it('wyścig: scalenie między odczytem a zapisem odpowiedzi – odpowiedź odrzucona, źródło zostaje zamknięte i puste', async () => {
     const { op, jan } = await ludzie();
     const a = await prisma().ticket.create({ data: { userId: jan.id, subject: 'A', message: 'a' } });
     const b = await prisma().ticket.create({ data: { userId: jan.id, subject: 'B', message: 'b' } });

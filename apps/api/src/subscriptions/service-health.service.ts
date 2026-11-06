@@ -35,7 +35,7 @@ export interface ComputedHealthSummary {
   wysylkaWstrzymana?: boolean;
 }
 
-export const WYSYLKA_WSTRZYMANA = 'Wysyłka poczty wstrzymana przez obsługę — napisz do nas.';
+export const WYSYLKA_WSTRZYMANA = 'Wysyłka poczty wstrzymana przez obsługę – napisz do nas.';
 
 /**
  * Weryfikacja 11.10 — nagłówek karty usługi mówił „Wszystko działa”, choć obsługa zablokowała wysyłkę poczty konta
@@ -136,7 +136,7 @@ export class ServiceHealthService {
     if (sub.status !== 'ACTIVE' || !sub.account) {
       const summary = this.pendingSummary(
         sub.status === 'PROVISIONING'
-          ? 'Usługa jest w trakcie zakładania — health score pojawi się po aktywacji.'
+          ? 'Usługa jest w trakcie zakładania – health score pojawi się po aktywacji.'
           : 'Health score dostępny tylko dla aktywnej usługi z kontem hostingowym.',
       );
       return summary;
@@ -445,7 +445,7 @@ export class ServiceHealthService {
           : `DNS domeny ${domain} nie wskazuje na serwer hostingu`,
       );
     if (checks.tlsOk === false) parts.push('brak ważnego certyfikatu HTTPS na domenie');
-    if (checks.panelTlsOk === false) parts.push('bezpieczne połączenie z serwerem wymaga uwagi — sprawdzamy to');
+    if (checks.panelTlsOk === false) parts.push('bezpieczne połączenie z serwerem wymaga uwagi – sprawdzamy to');
     if (checks.mailOk === false) parts.push('serwer poczty nie odpowiada');
     if (checks.lveOk === false) parts.push('wysokie obciążenie CPU');
     if (checks.backupFresh === false) parts.push('brak świeżej kopii zapasowej (>8 dni)');

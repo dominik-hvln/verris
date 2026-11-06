@@ -228,7 +228,7 @@ export class AutoscalingBillingService {
             type: WalletTxType.CHARGE_AUTOSCALING,
             amount,
             description:
-              `Autoskalowanie — blok ${BILLING_BLOCK_MINUTES} min ` +
+              `Autoskalowanie – blok ${BILLING_BLOCK_MINUTES} min ` +
               `(cpu+${account.scaledCpu}% ram+${account.scaledRamMb}MB disk+${account.scaledDiskMb}MB)`,
             idempotencyKey,
             subscriptionId: account.subscriptionId,
@@ -264,7 +264,7 @@ export class AutoscalingBillingService {
             await zwolnij();
             this.logger.warn(
               `Autoscaling block billing: wallet insufficient for sub=${account.subscriptionId} ` +
-                `amount=${amount} — pausing, engine will disable shortly`,
+                `amount=${amount} – pausing, engine will disable shortly`,
             );
             break;
           }
@@ -409,7 +409,7 @@ export class AutoscalingBillingService {
         type: WalletTxType.CHARGE_AUTOSCALING,
         amount,
         description:
-          `Autoskalowanie — dopłata za podbicie w bloku ` +
+          `Autoskalowanie – dopłata za podbicie w bloku ` +
           `(${opisZmiany(stan, account)}, ${minutyPl(minuty)} min)`,
         // Jeden klucz na (usługa, blok, poziom docelowy): ponowienie po błędzie nie pobierze drugi raz.
         idempotencyKey:

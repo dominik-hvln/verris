@@ -17,7 +17,7 @@ interface Defaults {
 }
 
 const CATEGORIES: { value: string; label: string }[] = [
-  { value: "", label: "— wszystkie —" },
+  { value: "", label: "– wszystkie –" },
   { value: "ADMIN_OPS", label: "Operacje admina (plany / klienci / faktury / węzły)" },
   { value: "RODO", label: "RODO (zgody, eksport, usunięcie konta)" },
   { value: "SECURITY", label: "Bezpieczeństwo (logowania, hasła, 2FA)" },

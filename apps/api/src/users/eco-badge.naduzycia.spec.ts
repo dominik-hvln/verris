@@ -1,7 +1,7 @@
 import { EcoBadgeService, ECO_BADGE_MAX_PUNKTOW_DZIENNIE, kluczSieci } from './eco-badge.service.js';
 
 /** Audyt bezpieczeństwa 13.10: punkty EKO z piksela nie mogą rosnąć bez końca od liczby adresów IP. */
-describe('EcoBadge — nadużycia piksela', () => {
+describe('EcoBadge – nadużycia piksela', () => {
   it('deduplikacja po sieci: ten sam /24 i /64 to jeden klucz', () => {
     expect(kluczSieci('1.2.3.4')).toBe(kluczSieci('1.2.3.250'));
     expect(kluczSieci('::ffff:1.2.3.4')).toBe(kluczSieci('1.2.3.9'));

@@ -23,7 +23,7 @@ it("zmiana usługi: POST /tickets/admin/:id/usluga; null = odłączenie", async 
   expect(mockStaffApi).toHaveBeenLastCalledWith("/tickets/admin/t1/usluga", { method: "POST", body: { subscriptionId: null } });
 });
 
-it("zmiana usługi odrzucona przez API — komunikat API", async () => {
+it("zmiana usługi odrzucona przez API – komunikat API", async () => {
   mockStaffApi.mockRejectedValue(new StaffApiError("Wskazana usługa nie należy do tego konta.", 400));
   await expect(staffLinkTicketService("t1", "obca")).resolves.toEqual({ error: "Wskazana usługa nie należy do tego konta." });
 });

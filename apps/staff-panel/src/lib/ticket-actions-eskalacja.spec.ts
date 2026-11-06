@@ -15,7 +15,7 @@ import { staffListTags, staffRunbookSteps, staffSetRiskFlag, staffSetTags, staff
 
 beforeEach(() => mockStaffApi.mockReset().mockResolvedValue({ tags: ["vip"] }));
 
-it("cofnięcie eskalacji: POST …/escalate/cofnij z powodem; błąd API — jego komunikat", async () => {
+it("cofnięcie eskalacji: POST …/escalate/cofnij z powodem; błąd API – jego komunikat", async () => {
   await expect(staffUndoEscalation("t1", "Rozwiązane na L2")).resolves.toEqual({ ok: true });
   expect(mockStaffApi).toHaveBeenCalledWith("/tickets/admin/t1/escalate/cofnij", { method: "POST", body: { reason: "Rozwiązane na L2" } });
   mockStaffApi.mockRejectedValue(new StaffApiError("Zgłoszenie nie jest eskalowane.", 400));

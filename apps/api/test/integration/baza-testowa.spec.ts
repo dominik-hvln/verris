@@ -14,7 +14,7 @@ import { sprawdzBazeTestowa } from './baza-testowa.js';
  * Dlatego `baza-testowa.ts` nie importuje niczego. Zero zależności = ten test
  * biegnie wszędzie, zawsze, w milisekundach.
  */
-describe('X-44 — bezpiecznik nazwy bazy testowej', () => {
+describe('X-44 – bezpiecznik nazwy bazy testowej', () => {
   describe('odrzuca', () => {
     it('brak DATABASE_URL', () => {
       expect(() => sprawdzBazeTestowa(undefined)).toThrow(/BAZĘ TESTOWĄ/);
@@ -75,7 +75,7 @@ describe('X-44 — bezpiecznik nazwy bazy testowej', () => {
   describe('przepuszcza', () => {
     // Kontrola: gdyby bezpiecznik odrzucał wszystko, testy powyżej też by
     // przechodziły, a paczka integracyjna nie dałaby się uruchomić w ogóle.
-    it('verris_test — nazwa używana przez joba "API integration tests"', () => {
+    it('verris_test – nazwa używana przez joba "API integration tests"', () => {
       expect(() =>
         sprawdzBazeTestowa(
           'postgresql://verris:verris_password@localhost:5432/verris_test?schema=public',

@@ -36,7 +36,7 @@ export function TicketTagi({ ticketId, tagi }: { ticketId: string; tagi: string[
       <div className="flex flex-col gap-2 px-4 py-3.5" data-karta="tagi">
         <h2 className="font-display text-[15px] font-bold">Tagi</h2>
         <div className="flex flex-wrap gap-1.5">
-          {tagi.length === 0 ? <span className="text-[12.5px] text-muted-foreground">Bez tagów — klient ich nie widzi.</span> : null}
+          {tagi.length === 0 ? <span className="text-[12.5px] text-muted-foreground">Bez tagów – klient ich nie widzi.</span> : null}
           {tagi.map((t) => (
             <span key={t} className="inline-flex items-center gap-1 rounded-full bg-raised px-2.5 py-0.5 text-xs font-semibold">
               {t}

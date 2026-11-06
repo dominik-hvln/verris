@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Verris — Kalkulator kosztów</title>
+<title>Verris – Kalkulator kosztów</title>
 <style>
 :root{--bg:#050505;--card:#121214;--card2:#1a1a1e;--line:#2a2a30;--mint:#34e5a0;--mid:#1fa871;--tip:#5bffc0;--mut:#a6a6b0;--dim:#70707a;--ink:#04100b}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -49,7 +49,7 @@ input[type=range]{width:100%;accent-color:var(--mint)}
 <body>
 <div class="wrap">
   <div class="head"><span class="logo">V</span><h1>Kalkulator kosztów Verris</h1></div>
-  <p class="sub">Płać za to, co realnie zużywasz — z bezpiecznikiem kosztów. Bez skoku ceny przy odnowieniu.</p>
+  <p class="sub">Płać za to, co realnie zużywasz – z bezpiecznikiem kosztów. Bez skoku ceny przy odnowieniu.</p>
 
   <div class="grid">
     <div class="card">
@@ -64,7 +64,7 @@ input[type=range]{width:100%;accent-color:var(--mint)}
       <div class="addons" id="addons"></div>
 
       <div class="lbl" style="margin-top:18px">4. Bezpiecznik kosztów (maks./mies.)</div>
-      <div class="rangerow"><span>Nie zapłacisz więcej niż</span><b id="capLabel">—</b></div>
+      <div class="rangerow"><span>Nie zapłacisz więcej niż</span><b id="capLabel">–</b></div>
       <input type="range" id="cap" min="0" max="100" step="5" value="60"/>
     </div>
 
@@ -79,7 +79,7 @@ input[type=range]{width:100%;accent-color:var(--mint)}
       <div class="cap" id="capInfo"></div>
 
       <div class="cmp">
-        <h4>Koszt w 2. roku — Verris vs typowa konkurencja</h4>
+        <h4>Koszt w 2. roku – Verris vs typowa konkurencja</h4>
         <div class="bars">
           <div class="bar"><div class="v" id="vVal" style="color:var(--mint)">0 zł</div><div class="col" id="vBar" style="background:linear-gradient(180deg,var(--tip),var(--mid))"></div><div class="x">Verris<br>(płacisz za zużycie)</div></div>
           <div class="bar"><div class="v" id="cVal" style="color:#f5a3a3">0 zł</div><div class="col" id="cBar" style="background:linear-gradient(180deg,#7a2e2e,#5a2020)"></div><div class="x">Konkurencja<br>(odnowienie ~2×)</div></div>
@@ -149,7 +149,7 @@ function calc(){
   $('total').textContent=fmt(total);
   $('capInfo').textContent=capped
     ? `Bezpiecznik zadziałał: mimo wyższego ruchu nie zapłacisz więcej niż ${fmt(capTotal)} zł/mies.`
-    : `Masz ustawiony limit ${fmt(capTotal)} zł/mies. — autoskalowanie nigdy go nie przekroczy.`;
+    : `Masz ustawiony limit ${fmt(capTotal)} zł/mies. – autoskalowanie nigdy go nie przekroczy.`;
 
   // porównanie 2. rok (12 mies.)
   const verrisYear=total*12;
@@ -164,7 +164,7 @@ function calc(){
 }
 $('load').oninput=e=>{load=Number(e.target.value);calc();};
 $('cap').oninput=calc;
-$('note').textContent='Stawki przykładowe — podstaw realny cennik Verris (stałe PLANS/ADDONS w pliku). Model: koszt = plan bazowy + nadwyżki autoskalowania (godzinowo, z bezpiecznikiem) + dodatki. Porównanie z konkurencją zakłada typowy skok ceny ~2× przy odnowieniu i ma charakter poglądowy.';
+$('note').textContent='Stawki przykładowe – podstaw realny cennik Verris (stałe PLANS/ADDONS w pliku). Model: koszt = plan bazowy + nadwyżki autoskalowania (godzinowo, z bezpiecznikiem) + dodatki. Porównanie z konkurencją zakłada typowy skok ceny ~2× przy odnowieniu i ma charakter poglądowy.';
 renderPlans();renderAddons();calc();
 </script>
 </body>

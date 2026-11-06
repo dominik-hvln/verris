@@ -41,7 +41,7 @@ export function MigrationLeadForm() {
     });
     setBusy(false);
     if (!res.ok) {
-      setError('Coś poszło nie tak — spróbuj ponownie albo napisz na kontakt@verris.pl.');
+      setError('Coś poszło nie tak – spróbuj ponownie albo napisz na kontakt@verris.pl.');
       return;
     }
     events.generateLead('migration_plan');
@@ -53,7 +53,7 @@ export function MigrationLeadForm() {
       <div className="leadband">
         <div className="form-ok" role="status">
           {sent === 'zgoda'
-            ? 'Plan jest już w Twojej skrzynce. Kliknij w nim „Potwierdzam”, jeśli chcesz dostawać kolejne wiadomości — bez tego nie wyślemy nic więcej.'
+            ? 'Plan jest już w Twojej skrzynce. Kliknij w nim „Potwierdzam”, jeśli chcesz dostawać kolejne wiadomości – bez tego nie wyślemy nic więcej.'
             : 'Plan jest już w Twojej skrzynce. Nie wyślemy Ci nic więcej.'}{' '}
           Jeśli mail nie dotarł w ciągu kilku minut, zajrzyj do spamu.
         </div>
@@ -66,7 +66,7 @@ export function MigrationLeadForm() {
       <div className="leadband-copy">
         <h2>Zaplanuj migrację</h2>
         <p>
-          Zostaw adres, a wyślemy Ci plan przeniesienia strony w 3 krokach — bez przestoju i bez
+          Zostaw adres, a wyślemy Ci plan przeniesienia strony w 3 krokach – bez przestoju i bez
           zgadywania. Plus konkrety: ile realnie kosztuje hosting i co dzieje się z pocztą.
         </p>
       </div>

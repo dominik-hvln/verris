@@ -106,7 +106,7 @@ const KRYTYCZNE = [
   'VerrisSecurityWatchFindings',
 ] as const;
 
-describe('X-28 — reguły alertowe mają jeden dom i ten dom powiadamia', () => {
+describe('X-28 – reguły alertowe mają jeden dom i ten dom powiadamia', () => {
   it('strażnik czyta właściwy plik', () => {
     expect(existsSync(REGULY)).toBe(true);
     const tresc = kod(REGULY);
@@ -120,7 +120,7 @@ describe('X-28 — reguły alertowe mają jeden dom i ten dom powiadamia', () =>
     expect(kod(REGULY)).toContain(`title: ${nazwa}`);
   });
 
-  it('wszystkie trzynaście reguł, ani jednej mniej — i nic po cichu dołożonego', () => {
+  it('wszystkie trzynaście reguł, ani jednej mniej – i nic po cichu dołożonego', () => {
     const tytuly = [...kod(REGULY).matchAll(/^\s*title:\s*(\S+)/gm)].map((m) => m[1]);
     expect(tytuly.sort()).toEqual([...ALERTY, ...DOPISANE_POZNIEJ].sort());
   });
@@ -195,7 +195,7 @@ describe('X-28 — reguły alertowe mają jeden dom i ten dom powiadamia', () =>
   });
 });
 
-describe('X-31 — kanał alertów daje znak życia', () => {
+describe('X-31 – kanał alertów daje znak życia', () => {
   const reguly = kod(REGULY);
   const polityki = kod(POLITYKI);
 
@@ -241,7 +241,7 @@ describe('X-31 — kanał alertów daje znak życia', () => {
   });
 });
 
-describe('X-28 — droga od reguły do człowieka kończy się adresem', () => {
+describe('X-28 – droga od reguły do człowieka kończy się adresem', () => {
   it('strażnik czyta właściwe pliki', () => {
     expect(kod(POLITYKI)).toContain('policies:');
     expect(kod(KONTAKTY)).toContain('contactPoints:');
@@ -265,7 +265,7 @@ describe('X-28 — droga od reguły do człowieka kończy się adresem', () => {
   });
 });
 
-describe('X-28 — nie ma drugiego domu dla tych samych reguł', () => {
+describe('X-28 – nie ma drugiego domu dla tych samych reguł', () => {
   const prometheus = kod(join(OBS, 'prometheus.yml'));
 
   it('strażnik czyta właściwy plik', () => {

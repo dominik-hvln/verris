@@ -46,11 +46,11 @@ export function deletionRequestedTemplate(ctx: DeletionRequestedContext): MailMe
     bodyMarkdown: [
       greeting,
       ``,
-      `Potwierdzamy, że zarejestrowaliśmy Twój wniosek o usunięcie konta w Verris (RODO art. 17 — prawo do bycia zapomnianym).`,
+      `Potwierdzamy, że zarejestrowaliśmy Twój wniosek o usunięcie konta w Verris (RODO art. 17 – prawo do bycia zapomnianym).`,
       ``,
       `## Co się stanie i kiedy`,
       ``,
-      `- **${ctx.gracePeriodDays} dni** karencji — w tym czasie możesz cofnąć wniosek bez konsekwencji.`,
+      `- **${ctx.gracePeriodDays} dni** karencji – w tym czasie możesz cofnąć wniosek bez konsekwencji.`,
       `- W dniu **${escapeMarkdown(scheduledStr)}** zanonimizujemy Twoje konto: usuniemy dane osobowe (imię, adres, NIP, hasła), dezaktywujemy subskrypcje i zawiesimy konta hostingowe.`,
       `- Po **30 dniach od anonimizacji** trwale usuniemy konta hostingowe (usługi, e-maile, bazy danych) z naszych serwerów.`,
       `- Faktury, transakcje portfela i dane księgowe zostaną zachowane przez 5 lat (wymóg polskiej ustawy o rachunkowości), ale bez powiązania z Twoją tożsamością.`,
@@ -73,7 +73,7 @@ export function deletionRequestedTemplate(ctx: DeletionRequestedContext): MailMe
   return {
     to: ctx.to,
     tag: 'rodo.deletion-requested',
-    subject: `[Verris] Wniosek o usunięcie konta — anonimizacja ${dayStr}`,
+    subject: `[Verris] Wniosek o usunięcie konta – anonimizacja ${dayStr}`,
     text,
     html,
   };
@@ -110,7 +110,7 @@ export function accountAnonymizedTemplate(ctx: AccountAnonymizedContext): MailMe
       ``,
       `- Konta hostingowe na naszych serwerach zostały **zawieszone**. Trwale usuniemy je **${escapeMarkdown(purgeStr)}** (30 dni karencji na ewentualne odzyskanie danych przez nasz support, jeśli zgłosisz to przed tą datą).`,
       `- Faktury i historia transakcji są nadal przechowywane (wymóg art. 74 ustawy o rachunkowości), ale bez powiązania z Twoją tożsamością.`,
-      `- Nie możesz już zalogować się do panelu — adres e-mail został zastąpiony przez wartość techniczną.`,
+      `- Nie możesz już zalogować się do panelu – adres e-mail został zastąpiony przez wartość techniczną.`,
       ``,
       `## Chcesz jeszcze odzyskać dane?`,
       ``,
@@ -118,7 +118,7 @@ export function accountAnonymizedTemplate(ctx: AccountAnonymizedContext): MailMe
       ``,
       `Dziękujemy za korzystanie z Verris. Powodzenia!`,
       ``,
-      `— Zespół Verris`,
+      `– Zespół Verris`,
     ].join('\n'),
     footnote:
       'To ostatnia wiadomość, jaką wysyłamy na ten adres e-mail. Dalsza komunikacja jest możliwa wyłącznie przez rodo@verris.pl.',

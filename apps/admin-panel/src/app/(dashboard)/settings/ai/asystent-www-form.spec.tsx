@@ -46,7 +46,7 @@ const dane = (z: Partial<AsystentWww> = {}, konf: Partial<AsystentWww["konfigura
 
 const html = (d: AsystentWww) => renderToStaticMarkup(<AsystentWwwForm initial={{ ok: true, dane: d }} znaneModele={MODELE} />);
 
-describe("AsystentWwwForm — render", () => {
+describe("AsystentWwwForm – render", () => {
   it("przełącznik z opisem, modele tylko Anthropic, limity i koszt dziś / w miesiącu", () => {
     const h = html(dane());
     expect(h).toContain("Asystent na verris.pl włączony");
@@ -84,7 +84,7 @@ describe("AsystentWwwForm — render", () => {
   });
 });
 
-describe("AsystentWwwForm — zapis", () => {
+describe("AsystentWwwForm – zapis", () => {
   let root: Root;
   let k: HTMLElement;
   beforeEach(() => {
@@ -129,7 +129,7 @@ describe("AsystentWwwForm — zapis", () => {
       },
     });
     expect(revalidatePath).toHaveBeenCalledWith("/settings/ai");
-    expect(k.textContent).toContain("Zapisano — na verris.pl do ok. minuty.");
+    expect(k.textContent).toContain("Zapisano – na verris.pl do ok. minuty.");
   });
 
   it("błąd zapisu: komunikat z API, bez „Zapisano”", async () => {
@@ -170,7 +170,7 @@ describe("strona Ustawienia → Asystent AI", () => {
     expect(h.indexOf("Poziomy i modele")).toBeLessThan(h.indexOf('data-sekcja="asystent-www"'));
   });
 
-  it("błąd odczytu asystenta www nie wywraca strony — reszta ustawień zostaje", async () => {
+  it("błąd odczytu asystenta www nie wywraca strony – reszta ustawień zostaje", async () => {
     (adminApi as jest.Mock).mockReset().mockImplementation(async (s: string) => {
       if (s === "/admin/ai/ustawienia") return USTAWIENIA;
       if (s === "/admin/ai/asystent-www") throw new Error("API niedostępne.");

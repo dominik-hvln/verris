@@ -40,7 +40,7 @@ export function StaffAssistant({
       setMessages((p) => [...p, { role: "assistant", content: res.answer, sources: res.sources }]);
     } catch {
       // Sama akcja serwera nie doszła (sieć, nowe wdrożenie) — bez tego czat zostaje zablokowany na „pisze…”.
-      setMessages((p) => [...p, { role: "assistant", content: "Asystent nie odpowiedział — spróbuj ponownie." }]);
+      setMessages((p) => [...p, { role: "assistant", content: "Asystent nie odpowiedział – spróbuj ponownie." }]);
     } finally {
       setLoading(false);
     }
@@ -115,7 +115,7 @@ export function StaffAssistant({
           <Send className="h-4 w-4" />
         </button>
       </form>
-      <p className="m-0 text-[10.5px] leading-snug text-muted-foreground">Odpowiedzi tworzy AI na podstawie bazy wiedzy — mogą zawierać błędy.</p>
+      <p className="m-0 text-[10.5px] leading-snug text-muted-foreground">Odpowiedzi tworzy AI na podstawie bazy wiedzy – mogą zawierać błędy.</p>
     </div>
   );
 }

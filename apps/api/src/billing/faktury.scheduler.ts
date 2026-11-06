@@ -96,7 +96,7 @@ export class FakturyScheduler {
           data: { finalizeLastError: komunikat.slice(0, 4000) },
         });
         this.logger.warn(
-          `Faktura ${f.number} — próba ${f.finalizeAttempts + 1} nieudana: ${komunikat}`,
+          `Faktura ${f.number} – próba ${f.finalizeAttempts + 1} nieudana: ${komunikat}`,
         );
       }
     }

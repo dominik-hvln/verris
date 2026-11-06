@@ -63,7 +63,7 @@ it('ciała żądań i obiekty query mają DTO z regułami walidacji', async () =
           sprawdzone++;
           const nazwa = `${klasa.name}.${metoda}`;
           if (WYJATKI[nazwa]) continue;
-          if (!calyObiekt) naruszenia.push(`${relative(zrodla, plik)} ${nazwa}: @Body('${String(arg.data)}') — użyj DTO`);
+          if (!calyObiekt) naruszenia.push(`${relative(zrodla, plik)} ${nazwa}: @Body('${String(arg.data)}') – użyj DTO`);
           else if (!maReguly(typy[arg.index])) naruszenia.push(`${relative(zrodla, plik)} ${nazwa}: typ bez reguł walidacji`);
         }
       }

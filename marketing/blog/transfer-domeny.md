@@ -2,22 +2,22 @@
 title: "Transfer domeny do innego rejestratora krok po kroku"
 slug: "transfer-domeny"
 excerpt: "Transfer domeny brzmi groźnie, a sprowadza się do kodu authinfo i potwierdzenia. Wyjaśniamy przebieg, warunki i to, czy transfer jest w ogóle potrzebny."
-metaTitle: "Transfer domeny krok po kroku — jak przenieść domenę | Verris"
+metaTitle: "Transfer domeny krok po kroku – jak przenieść domenę | Verris"
 metaDescription: "Jak przenieść domenę do innego rejestratora: kod authinfo, warunki transferu, czas trwania i czy strona przestanie działać. Kiedy transfer nie jest potrzebny."
 keyword: "transfer domeny"
 cluster: "Domeny"
 type: "spoke"
 status: "draft"
-faq: [{"q": "Czy transfer przedłuża ważność domeny?", "a": "Przy wielu końcówkach transfer dodaje rok do okresu ważności. Szczegóły zależą od rejestru."}, {"q": "Ile kosztuje transfer?", "a": "Zależy od końcówki — aktualne stawki sprawdzisz w panelu."}]
+faq: [{"q": "Czy transfer przedłuża ważność domeny?", "a": "Przy wielu końcówkach transfer dodaje rok do okresu ważności. Szczegóły zależą od rejestru."}, {"q": "Ile kosztuje transfer?", "a": "Zależy od końcówki – aktualne stawki sprawdzisz w panelu."}]
 ---
 
 # Transfer domeny do innego rejestratora krok po kroku
 
-**W skrócie:** transfer domeny polega na pobraniu kodu **authinfo** od obecnego rejestratora, zleceniu transferu u nowego i potwierdzeniu operacji. Domena przez cały czas działa — transfer nie wyłącza strony ani poczty, bo te zależą od rekordów DNS, a nie od tego, kto prowadzi rejestrację.
+**W skrócie:** transfer domeny polega na pobraniu kodu **authinfo** od obecnego rejestratora, zleceniu transferu u nowego i potwierdzeniu operacji. Domena przez cały czas działa – transfer nie wyłącza strony ani poczty, bo te zależą od rekordów DNS, a nie od tego, kto prowadzi rejestrację.
 
 ## Czy transfer jest w ogóle potrzebny?
 
-Najczęściej **nie**. Żeby uruchomić stronę na nowym hostingu, wystarczy [zmienić rekordy DNS](/blog/zmiana-dns) — domena może zostać tam, gdzie jest. Transfer robisz wtedy, gdy chcesz mieć wszystko w jednym panelu i jednych fakturach.
+Najczęściej **nie**. Żeby uruchomić stronę na nowym hostingu, wystarczy [zmienić rekordy DNS](/blog/zmiana-dns) – domena może zostać tam, gdzie jest. Transfer robisz wtedy, gdy chcesz mieć wszystko w jednym panelu i jednych fakturach.
 
 ## Warunki, które trzeba spełnić
 
@@ -31,17 +31,17 @@ Najczęściej **nie**. Żeby uruchomić stronę na nowym hostingu, wystarczy [zm
 1. **Odblokuj domenę** w panelu obecnego rejestratora.
 2. **Pobierz kod authinfo** (nazywany też EPP/auth code).
 3. **Zleć transfer** u nowego rejestratora, podając kod.
-4. **Potwierdź** operację — zwykle mailem na adres kontaktowy domeny.
+4. **Potwierdź** operację – zwykle mailem na adres kontaktowy domeny.
 5. **Poczekaj** na zakończenie (od kilku godzin do kilku dni, zależnie od końcówki).
-6. **Sprawdź rekordy DNS** po transferze — czasem trzeba je uzupełnić ponownie.
+6. **Sprawdź rekordy DNS** po transferze – czasem trzeba je uzupełnić ponownie.
 
 ## Czy strona przestanie działać?
 
-Nie, o ile rekordy DNS pozostaną te same. Największe ryzyko to **utrata rekordów** przy zmianie serwerów nazw — dlatego zanotuj je przed transferem i porównaj po.
+Nie, o ile rekordy DNS pozostaną te same. Największe ryzyko to **utrata rekordów** przy zmianie serwerów nazw – dlatego zanotuj je przed transferem i porównaj po.
 
 ## Pułapka odnowień
 
-Zanim przeniesiesz domenę, sprawdź, czy u obecnego rejestratora nie odnowi się automatycznie w trakcie procesu. W Verris [domeny odnawiamy wyłącznie po opłaceniu](/domeny), z przypomnieniami 30, 14 i 7 dni przed wygaśnięciem — nigdy „z karty, bo tak".
+Zanim przeniesiesz domenę, sprawdź, czy u obecnego rejestratora nie odnowi się automatycznie w trakcie procesu. W Verris [domeny odnawiamy wyłącznie po opłaceniu](/domeny), z przypomnieniami 30, 14 i 7 dni przed wygaśnięciem – nigdy „z karty, bo tak".
 
 ## FAQ
 
@@ -49,7 +49,7 @@ Zanim przeniesiesz domenę, sprawdź, czy u obecnego rejestratora nie odnowi si�
 Przy wielu końcówkach transfer dodaje rok do okresu ważności. Szczegóły zależą od rejestru.
 
 **Ile kosztuje transfer?**
-Zależy od końcówki — aktualne stawki sprawdzisz w panelu.
+Zależy od końcówki – aktualne stawki sprawdzisz w panelu.
 
 ---
 

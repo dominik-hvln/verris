@@ -55,14 +55,14 @@ export class LiveReadinessService {
       'kms',
       'Klucz szyfrowania (APP_KMS_KEY)',
       kms.length >= 32 ? 'ok' : 'fail',
-      kms.length >= 32 ? 'Ustawiony (≥32 znaki).' : 'Brak lub za krótki — sekrety at-rest niezabezpieczone.',
+      kms.length >= 32 ? 'Ustawiony (≥32 znaki).' : 'Brak lub za krótki – sekrety at-rest niezabezpieczone.',
     );
     const jwt = this.config.get<string>('jwtSecret') ?? process.env.JWT_SECRET ?? '';
     add(
       'jwt',
       'Sekret JWT',
       jwt.length >= 16 ? 'ok' : 'fail',
-      jwt.length >= 16 ? 'Ustawiony.' : 'Brak — logowanie niebezpieczne.',
+      jwt.length >= 16 ? 'Ustawiony.' : 'Brak – logowanie niebezpieczne.',
     );
 
     // --- payments (blocking) ---
@@ -72,21 +72,21 @@ export class LiveReadinessService {
     const stripeLive = stripeKey.startsWith('sk_live_');
     add(
       'stripe_key',
-      'Stripe — klucz API',
+      'Stripe – klucz API',
       stripeKey ? (stripeLive ? 'ok' : 'warn') : 'fail',
       stripeKey
         ? stripeLive
           ? 'Klucz produkcyjny (sk_live_).'
-          : 'Ustawiony, ale to klucz testowy (sk_test_) — przełącz na produkcyjny przed LIVE.'
-        : 'Brak STRIPE_SECRET_KEY — płatności kartą nie działają.',
+          : 'Ustawiony, ale to klucz testowy (sk_test_) – przełącz na produkcyjny przed LIVE.'
+        : 'Brak STRIPE_SECRET_KEY – płatności kartą nie działają.',
     );
     add(
       'stripe_webhook',
-      'Stripe — sekret webhooka',
+      'Stripe – sekret webhooka',
       stripeHook ? 'ok' : 'fail',
       stripeHook
         ? 'Ustawiony (weryfikacja podpisu zdarzeń).'
-        : 'Brak STRIPE_WEBHOOK_SECRET — aktywacje/odnowienia ze Stripe nie będą potwierdzane.',
+        : 'Brak STRIPE_WEBHOOK_SECRET – aktywacje/odnowienia ze Stripe nie będą potwierdzane.',
     );
 
     // --- transactional mail (blocking: users can't verify e-mail otherwise) ---
@@ -97,7 +97,7 @@ export class LiveReadinessService {
       smtpHost ? 'ok' : 'fail',
       smtpHost
         ? `Skonfigurowana (${smtpHost}). Upewnij się, że SPF/DKIM/DMARC dla domeny nadawczej są ustawione.`
-        : 'Brak SMTP_HOST — maile weryfikacyjne/resetu nie wyjdą (blokuje onboarding).',
+        : 'Brak SMTP_HOST – maile weryfikacyjne/resetu nie wyjdą (blokuje onboarding).',
     );
 
     // --- N-16: regulamin §15 ust. 3 obiecuje rekompensaty automatyczne ---
@@ -107,7 +107,7 @@ export class LiveReadinessService {
       'Rekompensaty SLA (automatyczne)',
       sla.enabled ? 'ok' : 'fail',
       sla.enabled
-        ? 'Włączone — naliczane po zamknięciu miesiąca według progów z §15.'
+        ? 'Włączone – naliczane po zamknięciu miesiąca według progów z §15.'
         : 'Wyłączone, a regulamin §15 ust. 3 obiecuje rekompensatę bez wniosku. Sprawdź podgląd (Ustawienia platformy → Podgląd kredytów SLA) i włącz.',
     );
 
@@ -120,7 +120,7 @@ export class LiveReadinessService {
       companyOk ? 'ok' : 'fail',
       companyOk
         ? `${company.name}, NIP ${company.nip}.`
-        : 'Uzupełnij dane firmy (nazwa, NIP, adres) — wymagane na fakturach.',
+        : 'Uzupełnij dane firmy (nazwa, NIP, adres) – wymagane na fakturach.',
     );
 
     // --- fleet: at least one ACTIVE node (blocking) ---
@@ -131,7 +131,7 @@ export class LiveReadinessService {
       activeNodes > 0 ? 'ok' : 'fail',
       activeNodes > 0
         ? `${activeNodes} aktywny(ch) węzeł/ów.`
-        : 'Brak aktywnych węzłów — nie ma gdzie stawiać kont.',
+        : 'Brak aktywnych węzłów – nie ma gdzie stawiać kont.',
     );
 
     // --- legal: published TERMS + PRIVACY (blocking — registration needs them) ---
@@ -143,7 +143,7 @@ export class LiveReadinessService {
       legalOk ? 'ok' : 'fail',
       legalOk
         ? 'Opublikowane aktualne wersje TERMS i PRIVACY.'
-        : 'Brak opublikowanego Regulaminu lub Polityki prywatności — rejestracja będzie blokowana.',
+        : 'Brak opublikowanego Regulaminu lub Polityki prywatności – rejestracja będzie blokowana.',
     );
 
     // --- nameservers (blocking for hosting DNS) ---
@@ -161,7 +161,7 @@ export class LiveReadinessService {
       'ksef',
       'KSeF (e-faktury)',
       ksef.enabled ? 'ok' : 'warn',
-      ksef.enabled ? `Włączony (${ksef.env}).` : 'Wyłączony — włącz po smoke na środowisku testowym.',
+      ksef.enabled ? `Włączony (${ksef.env}).` : 'Wyłączony – włącz po smoke na środowisku testowym.',
       false,
     );
     const webmail = (await this.settings.getClientConfig()).webmailUrl;
@@ -169,7 +169,7 @@ export class LiveReadinessService {
       'webmail',
       'Webmail (Roundcube)',
       webmail ? 'ok' : 'warn',
-      webmail ? webmail : 'Brak WEBMAIL_URL — produkt e-mail bez dostępu do webmaila.',
+      webmail ? webmail : 'Brak WEBMAIL_URL – produkt e-mail bez dostępu do webmaila.',
       false,
     );
     const op = Boolean(process.env.OPENPROVIDER_USERNAME && process.env.OPENPROVIDER_PASSWORD);
@@ -177,7 +177,7 @@ export class LiveReadinessService {
       'registrar',
       'Rejestrator domen (OpenProvider)',
       op ? 'ok' : 'warn',
-      op ? 'Skonfigurowany.' : 'Brak danych OpenProvider — rejestracja domen w checkoucie nieczynna.',
+      op ? 'Skonfigurowany.' : 'Brak danych OpenProvider – rejestracja domen w checkoucie nieczynna.',
       false,
     );
     const backupNodes = await this.prisma.server.count({
@@ -230,7 +230,7 @@ export class LiveReadinessService {
       webauthnOk ? 'ok' : 'warn',
       webauthnOk
         ? 'Skonfigurowane (RP ID + origins).'
-        : 'Brak WEBAUTHN_RP_ID / WEBAUTHN_ORIGINS — logowanie passkey nie zadziała (przycisk ukryty).',
+        : 'Brak WEBAUTHN_RP_ID / WEBAUTHN_ORIGINS – logowanie passkey nie zadziała (przycisk ukryty).',
       false,
     );
 
@@ -239,7 +239,7 @@ export class LiveReadinessService {
       'vps',
       'VPS/Cloud (Hetzner)',
       hetzner ? 'ok' : 'warn',
-      hetzner ? 'Token Hetzner ustawiony — sprzedaż VPS aktywna.' : 'Brak HETZNER_API_TOKEN — sprzedaż VPS nieczynna.',
+      hetzner ? 'Token Hetzner ustawiony – sprzedaż VPS aktywna.' : 'Brak HETZNER_API_TOKEN – sprzedaż VPS nieczynna.',
       false,
     );
 

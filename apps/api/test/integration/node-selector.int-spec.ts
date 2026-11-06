@@ -25,7 +25,7 @@ import {
  * Każda z tych rzeczy w atrapie działa zawsze.
  */
 
-describe('X-04 — NodeSelectorService przeciwko prawdziwej bazie', () => {
+describe('X-04 – NodeSelectorService przeciwko prawdziwej bazie', () => {
   let selektor: NodeSelectorService;
 
   beforeAll(() => {
@@ -122,7 +122,7 @@ describe('X-04 — NodeSelectorService przeciwko prawdziwej bazie', () => {
     });
   });
 
-  describe('bramka fizyczna — telemetria z prawdziwej tabeli', () => {
+  describe('bramka fizyczna – telemetria z prawdziwej tabeli', () => {
     it('realne zużycie blokuje węzeł, mimo zapasu handlowego', async () => {
       const wezel = await utworzWezel({
         overcommitRam: 4,
@@ -251,7 +251,7 @@ describe('X-04 — NodeSelectorService przeciwko prawdziwej bazie', () => {
    * Poprawka fixture'u bez testu na samo zachowanie zostawiłaby regułę
    * niesprawdzoną w jedynym miejscu, gdzie da się ją sprawdzić naprawdę.
    */
-  describe('OPS-01 — węzeł bez sygnału życia', () => {
+  describe('OPS-01 – węzeł bez sygnału życia', () => {
     it('węzeł ACTIVE z przeterminowanym sygnałem nie jest wybierany', async () => {
       await utworzWezel({ lastHeartbeatAt: new Date(Date.now() - 60 * 60_000) });
       const plan = await utworzPlan();
@@ -278,7 +278,7 @@ describe('X-04 — NodeSelectorService przeciwko prawdziwej bazie', () => {
       expect(wybrany.id).not.toBe(martwy.id);
     });
 
-    it('data z Postgresa jest porównywalna — świeży węzeł przechodzi', async () => {
+    it('data z Postgresa jest porównywalna – świeży węzeł przechodzi', async () => {
       // Kontrola: gdyby `lastHeartbeatAt` wracało w postaci, której nie da się
       // porównać z `new Date()`, poprzednie trzy testy przechodziłyby
       // z powodu odrzucania wszystkiego.

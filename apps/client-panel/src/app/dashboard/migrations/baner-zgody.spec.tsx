@@ -25,7 +25,7 @@ it('czekająca prośba: baner z linkiem do zgody (bez tokenu), bez „Twoich mig
   const el = document.createElement('div');
   const root = createRoot(el);
   await act(async () => root.render(<MigrationsClient serviceId="s1" bundles={[zlecenie({})]} />));
-  expect(el.textContent).toContain('Obsługa przygotowała migrację — sprawdź i zatwierdź');
+  expect(el.textContent).toContain('Obsługa przygotowała migrację – sprawdź i zatwierdź');
   const link = [...el.querySelectorAll('a')].find((a) => a.textContent?.includes('Sprawdź i zatwierdź'))!;
   expect(link.getAttribute('href')).toBe('/dashboard/migrations/zgoda?serviceId=s1&id=m1000000-0000-4000-8000-000000000001');
   expect(el.textContent).not.toContain('Twoje migracje');

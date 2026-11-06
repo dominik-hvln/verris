@@ -55,7 +55,7 @@ const saldo = async (id: string) => (await prisma().user.findUniqueOrThrow({ whe
 const FIN = { userId: '00000000-0000-4000-8000-0000000000f1', role: 'STAFF' };
 const dzis = new Date();
 
-describe('F3.6 — wpłata przelewem na portfel', () => {
+describe('F3.6 – wpłata przelewem na portfel', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     maile.length = 0;
@@ -74,7 +74,7 @@ describe('F3.6 — wpłata przelewem na portfel', () => {
 
     const wpisy = await prisma().walletTransaction.findMany({ where: { userId: k.id, type: WalletTxType.TOPUP } });
     expect(wpisy).toHaveLength(1);
-    expect(wpisy[0]).toMatchObject({ idempotencyKey: 'przelew:AB-1234 XYZ', paymentProvider: 'PRZELEW', paymentRef: 'AB-1234 XYZ', description: 'Wpłata przelewem — Faktura VDR/1 doładowanie' });
+    expect(wpisy[0]).toMatchObject({ idempotencyKey: 'przelew:AB-1234 XYZ', paymentProvider: 'PRZELEW', paymentRef: 'AB-1234 XYZ', description: 'Wpłata przelewem – Faktura VDR/1 doładowanie' });
     expect(await saldo(k.id)).toBe('133.45');
     // Dokument istniejącą ścieżką „przy doładowaniu” (bez zmian w logice faktur).
     expect(await prisma().invoice.count({ where: { userId: k.id, provider: 'WALLET_TOPUP', providerRef: wpisy[0].id } })).toBe(1);
@@ -99,7 +99,7 @@ describe('F3.6 — wpłata przelewem na portfel', () => {
     expect(await saldo(b.id)).toBe('0.00');
   });
 
-  it('subkonto, konto zespołu (dla STAFF), data z przyszłości i cudze zgłoszenie — odmowa bez księgowania', async () => {
+  it('subkonto, konto zespołu (dla STAFF), data z przyszłości i cudze zgłoszenie – odmowa bez księgowania', async () => {
     const wlasciciel = await klient();
     const sub = await klient(0, { customerOwnerId: wlasciciel.id });
     const zespol = await klient(0, { role: 'ADMIN' });
@@ -115,7 +115,7 @@ describe('F3.6 — wpłata przelewem na portfel', () => {
   });
 });
 
-describe('F3.6 — korekta salda (±)', () => {
+describe('F3.6 – korekta salda (±)', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 
@@ -128,7 +128,7 @@ describe('F3.6 — korekta salda (±)', () => {
     expect(w.filter((x) => !x.duplikat)).toHaveLength(1);
     expect(await saldo(k.id)).toBe('27.50');
     const wpis = await prisma().walletTransaction.findFirstOrThrow({ where: { userId: k.id, type: WalletTxType.ADJUSTMENT } });
-    expect(wpis.description).toBe(`Korekta salda — obsługa Verris (zgłoszenie #${zgl.id.slice(0, 8)})`);
+    expect(wpis.description).toBe(`Korekta salda – obsługa Verris (zgłoszenie #${zgl.id.slice(0, 8)})`);
     expect(wpis.description).not.toContain('awarię');
     expect(await prisma().auditLog.count({ where: { userId: k.id, action: 'WALLET_OPERATOR_ADJUSTED' } })).toBe(1);
     const dziennik = await prisma().auditLog.findFirstOrThrow({ where: { userId: k.id, action: 'OPERATOR_ACCOUNT_CHANGED' } });
@@ -137,7 +137,7 @@ describe('F3.6 — korekta salda (±)', () => {
     await expect(s.korektaSalda({ ...z, kwota: 8 })).rejects.toThrow(/klucz operacji/);
   });
 
-  it('minus: nigdy poniżej zera — równoległe korekty o różnych kluczach przechodzą tylko do wysokości salda', async () => {
+  it('minus: nigdy poniżej zera – równoległe korekty o różnych kluczach przechodzą tylko do wysokości salda', async () => {
     const k = await klient(25);
     const s = serwis();
     const wyniki = await Promise.allSettled(
@@ -156,13 +156,13 @@ describe('F3.6 — korekta salda (±)', () => {
     expect(new Prisma.Decimal(ruchy.saldo).toFixed(2)).toBe('5.00');
   });
 
-  it('powód krótszy niż 10 znaków — odmowa', async () => {
+  it('powód krótszy niż 10 znaków – odmowa', async () => {
     const k = await klient(5);
     await expect(serwis().korektaSalda({ userId: k.id, operator: FIN, kierunek: 'plus', kwota: 1, powod: 'bo tak', klucz: 'krotki-powod-01' })).rejects.toThrow(/powód/);
   });
 });
 
-describe('F3.6 — nieudane płatności i ponowienie auto-doładowania', () => {
+describe('F3.6 – nieudane płatności i ponowienie auto-doładowania', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     obciazenia.length = 0;
@@ -199,7 +199,7 @@ describe('F3.6 — nieudane płatności i ponowienie auto-doładowania', () => {
     expect((await serwis().nieudanePlatnosci({ zrodlo: 'PAYNOW' }, FIN)).wiersze).toHaveLength(1);
   });
 
-  it('przegląd: personel nie widzi nieudanych płatności kont zespołu (administrator — tak)', async () => {
+  it('przegląd: personel nie widzi nieudanych płatności kont zespołu (administrator – tak)', async () => {
     const zespol = await klient(0, { role: 'STAFF' });
     const k = await klient(0);
     for (const u of [zespol, k]) {
@@ -220,7 +220,7 @@ describe('F3.6 — nieudane płatności i ponowienie auto-doładowania', () => {
     expect(admin.wiersze.filter((w) => w.klient.id === zespol.id).map((w) => w.zrodlo).sort()).toEqual(['AUTO_DOLADOWANIE', 'PAYNOW', 'STRIPE']);
   });
 
-  it('przegląd: „Ponów” bez zapisanej karty — odmowa dla operatora, bez maila do klienta i bez obciążenia', async () => {
+  it('przegląd: „Ponów” bez zapisanej karty – odmowa dla operatora, bez maila do klienta i bez obciążenia', async () => {
     const k = await zOdmowa();
     await prisma().user.update({ where: { id: k.id }, data: { defaultPaymentMethodId: null } });
     maile.length = 0;
@@ -232,7 +232,7 @@ describe('F3.6 — nieudane płatności i ponowienie auto-doładowania', () => {
     expect(obciazenia).toHaveLength(0);
   });
 
-  it('dwa równoległe „Ponów”: karta obciążona raz; drugie dostaje 409; po sukcesie kolejne ponowienie — 409', async () => {
+  it('dwa równoległe „Ponów”: karta obciążona raz; drugie dostaje 409; po sukcesie kolejne ponowienie – 409', async () => {
     const k = await zOdmowa();
     const s = serwis();
     const z = { userId: k.id, operator: FIN, powod: 'Klient doładował kartę, prosi o ponowienie' };
@@ -260,7 +260,7 @@ describe('F3.6 — nieudane płatności i ponowienie auto-doładowania', () => {
   });
 });
 
-describe('F3.6 — przypomnienia i zawieszenie (odczyt)', () => {
+describe('F3.6 – przypomnienia i zawieszenie (odczyt)', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 
@@ -279,7 +279,7 @@ describe('F3.6 — przypomnienia i zawieszenie (odczyt)', () => {
     expect(lista.wiersze.map((x) => x.id)).toEqual([s.id]);
   });
 
-  it('audyt Fali 3 — nadużycie dopisane do zawieszenia za brak płatności (zaleglosc): prognoza mówi o zaległości', async () => {
+  it('audyt Fali 3 – nadużycie dopisane do zawieszenia za brak płatności (zaleglosc): prognoza mówi o zaległości', async () => {
     const k = await klient(0);
     const plan = await utworzPlan();
     const s = await prisma().subscription.create({

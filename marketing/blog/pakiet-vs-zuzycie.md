@@ -1,5 +1,5 @@
 ---
-title: "Pakiet „na zapas" vs rozliczenie za zużycie — co wybrać"
+title: "Pakiet „na zapas" vs rozliczenie za zużycie – co wybrać"
 slug: "pakiet-vs-zuzycie"
 excerpt: "Sztywny pakiet każe zgadywać, ile mocy będziesz potrzebować za rok. Rozliczenie godzinowe płaci za to, co realnie zużywasz. Porównujemy oba modele."
 metaTitle: "Pakiet na zapas czy rozliczenie za zużycie? Porównanie | Verris"
@@ -13,7 +13,7 @@ faq: [{"q": "Czy rachunek może mnie zaskoczyć?", "a": "Maksymalny koszt policz
 
 # Pakiet „na zapas" vs rozliczenie za zużycie
 
-**W skrócie:** sztywny pakiet wymaga, byś z góry zgadł, ile mocy potrzebujesz — i płacił za nią 24 h na dobę, także wtedy, gdy strona się nudzi. Rozliczenie za zużycie daje bazę w cenie i nalicza nadwyżkę godzinowo, tylko gdy jest realnie używana. Przy nierównym ruchu ten drugi model jest po prostu tańszy.
+**W skrócie:** sztywny pakiet wymaga, byś z góry zgadł, ile mocy potrzebujesz – i płacił za nią 24 h na dobę, także wtedy, gdy strona się nudzi. Rozliczenie za zużycie daje bazę w cenie i nalicza nadwyżkę godzinowo, tylko gdy jest realnie używana. Przy nierównym ruchu ten drugi model jest po prostu tańszy.
 
 ## Dwa modele, dwie logiki
 
@@ -26,15 +26,15 @@ faq: [{"q": "Czy rachunek może mnie zaskoczyć?", "a": "Maksymalny koszt policz
 
 ## Gdzie znika Twoje pieniądze w modelu pakietowym
 
-Typowa strona firmowa przez większość roku zużywa ułamek zarezerwowanych zasobów. Kupujesz większy pakiet „na wszelki wypadek" — i przez 11 miesięcy finansujesz moc, której nie używasz. **Nadpłacony zapas nie wraca.** A gdy przychodzi prawdziwy pik, i tak bywa za mało.
+Typowa strona firmowa przez większość roku zużywa ułamek zarezerwowanych zasobów. Kupujesz większy pakiet „na wszelki wypadek" – i przez 11 miesięcy finansujesz moc, której nie używasz. **Nadpłacony zapas nie wraca.** A gdy przychodzi prawdziwy pik, i tak bywa za mało.
 
 ## Kiedy rozliczenie za zużycie wygrywa
 
-- **Ruch sezonowy** (Black Friday, święta, sezon turystyczny) — [przygotowanie na pik](/blog/hosting-black-friday).
-- **Kampanie reklamowe** — skok wejść na kilka dni.
-- **Nieprzewidywalny ruch** — publikacja, która chwyta.
+- **Ruch sezonowy** (Black Friday, święta, sezon turystyczny) – [przygotowanie na pik](/blog/hosting-black-friday).
+- **Kampanie reklamowe** – skok wejść na kilka dni.
+- **Nieprzewidywalny ruch** – publikacja, która chwyta.
 
-Jeśli Twój ruch jest stały i niski — korzystasz głównie z bazy, więc też nie przepłacasz. Model ma sens w obie strony.
+Jeśli Twój ruch jest stały i niski – korzystasz głównie z bazy, więc też nie przepłacasz. Model ma sens w obie strony.
 
 ## Co to jest tryb ECO
 
@@ -42,7 +42,7 @@ Gdy ruch opada, tryb ECO zwalnia nadwyżkę zasobów, a naliczanie się kończy.
 
 ## Jak to policzyć
 
-Weź swój największy pik z ostatniego roku i oszacuj, ile trwał. W modelu pakietowym płacisz za tę moc cały rok. W modelu godzinowym — za te kilka dni. Stawki są jawne: 0,001323 zł za 1% CPU/h, 0,0882 zł za 1 GB RAM/h, 0,0008 zł za 1 GB dysku/h (brutto).
+Weź swój największy pik z ostatniego roku i oszacuj, ile trwał. W modelu pakietowym płacisz za tę moc cały rok. W modelu godzinowym – za te kilka dni. Stawki są jawne: 0,001323 zł za 1% CPU/h, 0,0882 zł za 1 GB RAM/h, 0,0008 zł za 1 GB dysku/h (brutto).
 
 ## FAQ
 
@@ -54,4 +54,4 @@ Nie. Skalowanie działa automatycznie, a zużycie i koszty widzisz w panelu.
 
 ---
 
-*Przestań płacić za moc, której nie używasz — [zobacz hosting z autoskalowaniem](/hosting).*
+*Przestań płacić za moc, której nie używasz – [zobacz hosting z autoskalowaniem](/hosting).*

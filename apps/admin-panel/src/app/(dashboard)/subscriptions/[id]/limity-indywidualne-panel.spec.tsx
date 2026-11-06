@@ -43,13 +43,13 @@ const powod = () => k.querySelector<HTMLInputElement>('input[maxlength="500"]')!
 beforeEach(() => {
   zapis.mockReset();
   potwierdz.mockClear();
-  zapis.mockResolvedValue({ ok: true, komunikat: "Zapisano limity indywidualne — obowiązują na serwerze." });
+  zapis.mockResolvedValue({ ok: true, komunikat: "Zapisano limity indywidualne – obowiązują na serwerze." });
 });
 afterEach(() => act(() => root.unmount()));
 
 it("pokazuje plan i obecne nadpisanie; puste pole = jak w planie", async () => {
   await render();
-  expect(k.querySelector('[data-limit="diskLimitMb"]')!.textContent).toContain("Dysk (MB) — w planie: 50 GB");
+  expect(k.querySelector('[data-limit="diskLimitMb"]')!.textContent).toContain("Dysk (MB) – w planie: 50 GB");
   expect(k.querySelector('[data-limit="emailAccounts"]')!.textContent).toContain("w planie: bez limitu · teraz 100");
   expect(pole("emailAccounts").value).toBe("100");
   expect(pole("diskLimitMb").value).toBe("");
@@ -70,7 +70,7 @@ it("zapis wymaga powodu; potwierdzenie z listą limitów; wysyła wszystkie pola
   expect(k.textContent).toContain("Zapisano limity indywidualne");
 });
 
-it("błędna wartość (poza zakresem) — komunikat i zapis wyłączony", async () => {
+it("błędna wartość (poza zakresem) – komunikat i zapis wyłączony", async () => {
   await render();
   await wpisz(powod(), "Umowa z klientem z 12.10");
   await wpisz(pole("domains"), "0");

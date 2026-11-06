@@ -25,7 +25,7 @@ export default async function NewEmailPlanPage() {
       <header>
         <h1 className="text-[28px] lg:text-[34px]">Nowy plan poczty</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Uproszczony formularz dla produktu e-mail — bez limitów hostingowych (CPU/RAM/IO/EP).
+          Uproszczony formularz dla produktu e-mail – bez limitów hostingowych (CPU/RAM/IO/EP).
           Rozliczenie z portfela; Stripe (jeśli skonfigurowany) zsynchronizuje się automatycznie.
         </p>
       </header>

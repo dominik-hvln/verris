@@ -32,7 +32,7 @@ export const PAKIETY_NEWSLETTER = [
  */
 export const PHP_ZAKRES = '7.4–8.5';
 export const PHP_DOMYSLNA = '8.4';
-export const PHP_OPIS = `8.5 i 8.4 (domyślna ${PHP_DOMYSLNA}) oraz każda kolejna stabilna wersja; dla starszych stron także 8.3, 8.2, 8.1, 8.0 i 7.4 (7.4 i 8.0 bez poprawek bezpieczeństwa) — wersja osobno dla każdej domeny`;
+export const PHP_OPIS = `8.5 i 8.4 (domyślna ${PHP_DOMYSLNA}) oraz każda kolejna stabilna wersja; dla starszych stron także 8.3, 8.2, 8.1, 8.0 i 7.4 (7.4 i 8.0 bez poprawek bezpieczeństwa) – wersja osobno dla każdej domeny`;
 
 /** „hosting z autoskalowaniem, VPS i domeny” albo bez VPS — jedno miejsce na to wyliczenie. */
 export const OFERTA_KROTKO = VPS_W_SPRZEDAZY

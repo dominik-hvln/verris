@@ -59,7 +59,7 @@ const transakcje = (userId: string) => prisma().walletTransaction.findMany({ whe
 const aktywnosc = (userId: string) =>
   new UsersService(prisma() as never, {} as never, {} as never, {} as never, {} as never, {} as never).listMyActivity(userId);
 
-describe('F2.7 — operacje obsługi na domenach (pieniądze)', () => {
+describe('F2.7 – operacje obsługi na domenach (pieniądze)', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     rejestracjaPada = false;
@@ -68,7 +68,7 @@ describe('F2.7 — operacje obsługi na domenach (pieniądze)', () => {
   });
   afterAll(rozlacz);
 
-  it('odnowienie z portfela klienta przez obsługę: jedno obciążenie, klient widzi „obsługa Verris (zgłoszenie #…)”, zespół — powód', async () => {
+  it('odnowienie z portfela klienta przez obsługę: jedno obciążenie, klient widzi „obsługa Verris (zgłoszenie #…)”, zespół – powód', async () => {
     const { rejestr, domeny } = uslugi();
     const k = await uzytkownik(500);
     const op = await uzytkownik(0, 'STAFF');
@@ -111,7 +111,7 @@ describe('F2.7 — operacje obsługi na domenach (pieniądze)', () => {
     expect(zespol.details).toMatchObject({ wynik: 'blad' });
   });
 
-  it('D8 — na koszt Verris: portfel klienta nietknięty (nawet pusty), zamówienie bez transakcji, ważność przedłużona', async () => {
+  it('D8 – na koszt Verris: portfel klienta nietknięty (nawet pusty), zamówienie bez transakcji, ważność przedłużona', async () => {
     const { rejestr, domeny } = uslugi();
     const k = await uzytkownik(500);
     const op = await uzytkownik(0, 'STAFF');
@@ -133,7 +133,7 @@ describe('F2.7 — operacje obsługi na domenach (pieniądze)', () => {
     expect(events.find((e) => e.action === 'DOMAIN_REGISTRAR_RENEWED')?.actor).toBe('obsługa Verris');
   });
 
-  it('D8 — na koszt Verris i błąd rejestratora: zamówienie nieudane, bez zwrotu (nic nie pobrano), saldo bez zmian', async () => {
+  it('D8 – na koszt Verris i błąd rejestratora: zamówienie nieudane, bez zwrotu (nic nie pobrano), saldo bez zmian', async () => {
     const { rejestr, domeny } = uslugi();
     const k = await uzytkownik(500);
     const op = await uzytkownik(0, 'STAFF');
@@ -150,7 +150,7 @@ describe('F2.7 — operacje obsługi na domenach (pieniądze)', () => {
     expect(z).toMatchObject({ status: DomainRegistrarOrderStatus.FAILED, walletTxId: null });
   });
 
-  it('ponowienie nieudanej rejestracji: zwrot za pierwszą, jedno nowe obciążenie, domena u klienta; drugie ponowienie — 409', async () => {
+  it('ponowienie nieudanej rejestracji: zwrot za pierwszą, jedno nowe obciążenie, domena u klienta; drugie ponowienie – 409', async () => {
     const { rejestr, domeny } = uslugi();
     const k = await uzytkownik(500);
     const op = await uzytkownik(0, 'STAFF');
@@ -196,7 +196,7 @@ describe('F2.7 — operacje obsługi na domenach (pieniądze)', () => {
     expect(wywolania).toEqual([]);
   });
 
-  it('audyt Fal 2 — zamówienie bez zapisanej ceny: ponowienie odmówione bez obciążenia (nie ma kwoty, którą klient przyjął)', async () => {
+  it('audyt Fal 2 – zamówienie bez zapisanej ceny: ponowienie odmówione bez obciążenia (nie ma kwoty, którą klient przyjął)', async () => {
     const { domeny } = uslugi();
     const k = await uzytkownik(500);
     const op = await uzytkownik(0, 'STAFF');
@@ -212,7 +212,7 @@ describe('F2.7 — operacje obsługi na domenach (pieniądze)', () => {
     expect(wywolania).toEqual([]);
   });
 
-  it('przegląd: opłacone pierwsze zamówienie bez zaksięgowanego zwrotu — ponowienie odmówione, bez drugiego obciążenia', async () => {
+  it('przegląd: opłacone pierwsze zamówienie bez zaksięgowanego zwrotu – ponowienie odmówione, bez drugiego obciążenia', async () => {
     const { domeny } = uslugi();
     const k = await uzytkownik(500);
     const op = await uzytkownik(0, 'STAFF');
@@ -233,7 +233,7 @@ describe('F2.7 — operacje obsługi na domenach (pieniądze)', () => {
     expect(await prisma().domainRegistrarOrder.count({ where: { userId: k.id } })).toBe(1);
   });
 
-  it('przegląd: nieudane ponowienie zastępuje pierwotne zamówienie — na liście jedno „Ponów” na domenę', async () => {
+  it('przegląd: nieudane ponowienie zastępuje pierwotne zamówienie – na liście jedno „Ponów” na domenę', async () => {
     const { domeny } = uslugi();
     const k = await uzytkownik(500);
     const dane = { domainName: 'dwa-razy.pl', type: 'REGISTER' as const, status: 'FAILED' as const, userId: k.id, years: 1, priceAmount: '40.00', ownerHandle: 'H-ABONENT' };
@@ -243,7 +243,7 @@ describe('F2.7 — operacje obsługi na domenach (pieniądze)', () => {
     expect((await domeny.zamowienia()).nieudane.map((z) => z.id)).toEqual([ponowione.id]);
   });
 
-  it('przegląd: „Ponów” na dwóch nieudanych zamówieniach tej samej domeny naraz — drugie czeka i dostaje 409, jedno obciążenie', async () => {
+  it('przegląd: „Ponów” na dwóch nieudanych zamówieniach tej samej domeny naraz – drugie czeka i dostaje 409, jedno obciążenie', async () => {
     const { domeny } = uslugi();
     const k = await uzytkownik(500);
     const op = await uzytkownik(0, 'STAFF');

@@ -20,8 +20,8 @@ export function InviteForm() {
       setWynik({
         ok: true,
         text: r.mailWyslany
-          ? `Zaproszenie wysłane — kod ${r.code}.`
-          : `Kod ${r.code} utworzony, ale mail nie wyszedł — przekaż kod osobiście.`,
+          ? `Zaproszenie wysłane – kod ${r.code}.`
+          : `Kod ${r.code} utworzony, ale mail nie wyszedł – przekaż kod osobiście.`,
       });
       setEmail("");
       setName("");

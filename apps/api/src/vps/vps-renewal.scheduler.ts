@@ -64,7 +64,7 @@ export class VpsRenewalScheduler {
       try {
         snap = await oplataZaSnapshoty(this.prisma, this.hetzner, v.id, v.currentPeriodEnd ?? new Date(now), cenaZaGb);
       } catch (err) {
-        this.logger.error(`VPS ${v.id}: nie udało się policzyć snapshotów — odnowienie ponowimy: ${(err as Error).message}`);
+        this.logger.error(`VPS ${v.id}: nie udało się policzyć snapshotów – odnowienie ponowimy: ${(err as Error).message}`);
         continue;
       }
       try {
@@ -73,8 +73,8 @@ export class VpsRenewalScheduler {
           type: WalletTxType.CHARGE_USAGE,
           amount: new Prisma.Decimal(v.priceMonthly).add(snap.kwota),
           description: snap.kwota.gt(0)
-            ? `VPS ${v.name} — odnowienie miesięczne + snapshoty (${snap.gb.toString()} GB)`
-            : `VPS ${v.name} — odnowienie miesięczne`,
+            ? `VPS ${v.name} – odnowienie miesięczne + snapshoty (${snap.gb.toString()} GB)`
+            : `VPS ${v.name} – odnowienie miesięczne`,
           idempotencyKey: kluczOdnowienia,
         });
       } catch (err) {
@@ -141,7 +141,7 @@ export class VpsRenewalScheduler {
                 // 404 = serwera już nie ma. Inny błąd: serwer może dalej działać — nie oznaczamy go jako usuniętego,
                 // ponowimy jutro (wcześniej błąd był połykany, a VPS znikał z ewidencji, dalej kosztując).
                 if (!(err instanceof NotFoundException)) {
-                  this.logger.error(`VPS ${v.id}: usunięcie po karencji nie powiodło się — ponowimy: ${(err as Error).message}`);
+                  this.logger.error(`VPS ${v.id}: usunięcie po karencji nie powiodło się – ponowimy: ${(err as Error).message}`);
                   continue;
                 }
               }
@@ -256,11 +256,11 @@ export class VpsRenewalScheduler {
         });
         await this.prisma.vpsInstance.updateMany({
           where: { id: v.id, status: VpsStatus.PROVISIONING },
-          data: { status: VpsStatus.ERROR, lastError: 'Serwer nie powstał u dostawcy — środki zwrócone do portfela.' },
+          data: { status: VpsStatus.ERROR, lastError: 'Serwer nie powstał u dostawcy – środki zwrócone do portfela.' },
         });
         await this.audit.record({ action: 'VPS_PROVISION_REFUNDED', userId: v.userId, details: { instanceId: v.id } });
       } catch (err) {
-        this.logger.error(`VPS ${v.id}: uzgodnienie zakładania nie powiodło się — ponowimy: ${(err as Error).message}`);
+        this.logger.error(`VPS ${v.id}: uzgodnienie zakładania nie powiodło się – ponowimy: ${(err as Error).message}`);
       }
     }
   }

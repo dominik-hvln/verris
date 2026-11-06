@@ -46,7 +46,7 @@ function InvoiceDownload({ invoice }: { invoice: InvoiceDto }) {
         <a
           href={`/api/billing/invoices/${invoice.id}/pdf?duplikat=1`}
           className={PRZYCISK}
-          title="Kopia z nadrukiem „DUPLIKAT z dnia …” — gdy potrzebujesz duplikatu zamiast oryginału"
+          title="Kopia z nadrukiem „DUPLIKAT z dnia …” – gdy potrzebujesz duplikatu zamiast oryginału"
         >
           Duplikat
         </a>
@@ -89,7 +89,7 @@ function InvoiceDownload({ invoice }: { invoice: InvoiceDto }) {
       </a>
     );
   }
-  return <span className="text-xs text-neutral-500">—</span>;
+  return <span className="text-xs text-neutral-500">–</span>;
 }
 
 /**

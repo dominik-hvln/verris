@@ -57,7 +57,7 @@ function krokiRozliczen(snapshot: OnboardingSnapshot): KrokOnboardingu[] {
     {
       klucz: 'platnosc',
       tytul: 'Zabezpiecz odnowienie',
-      opis: 'Włącz auto-doładowanie portfela albo doładuj go na kolejny okres — usługa odnowi się sama.',
+      opis: 'Włącz auto-doładowanie portfela albo doładuj go na kolejny okres – usługa odnowi się sama.',
       stan: zeSprawdzenia(snapshot.platnoscOk),
       href: '/dashboard/billing',
       cta: 'Płatności',
@@ -65,7 +65,7 @@ function krokiRozliczen(snapshot: OnboardingSnapshot): KrokOnboardingu[] {
     {
       klucz: 'faktura',
       tytul: 'Uzupełnij dane do faktury',
-      opis: 'Nazwa lub imię i nazwisko oraz adres — trafią na każdą fakturę.',
+      opis: 'Nazwa lub imię i nazwisko oraz adres – trafią na każdą fakturę.',
       stan: zeSprawdzenia(snapshot.fakturaOk),
       href: '/dashboard/settings?tab=billing',
       cta: 'Dane do faktury',
@@ -84,7 +84,7 @@ export function zbudujKroki(snapshot: OnboardingSnapshot): KrokOnboardingu[] {
       {
         klucz: 'provisioning',
         tytul: 'Trwa zakładanie konta',
-        opis: 'Konfigurujemy Twoje konto na serwerze — to zwykle minuta. Odśwież stronę usługi.',
+        opis: 'Konfigurujemy Twoje konto na serwerze – to zwykle minuta. Odśwież stronę usługi.',
         // Krok informacyjny, nie zadanie dla klienta: nie ma czego odhaczyć.
         stan: 'nieznane',
         href: sid ? `/dashboard/services/${sid}` : '/dashboard/services',
@@ -175,7 +175,7 @@ export function podsumujKroki(kroki: KrokOnboardingu[]): PodsumowanieKrokow {
  */
 export function podtytulKrokow(p: PodsumowanieKrokow): string {
   if (p.sprawdzane === 0) return 'Skonfiguruj usługę w kilka chwil.';
-  return `Skonfiguruj usługę w kilka chwil — zrobione ${p.zrobione} z ${p.sprawdzane}.`;
+  return `Skonfiguruj usługę w kilka chwil – zrobione ${p.zrobione} z ${p.sprawdzane}.`;
 }
 
 /** Procent z kroków, które umiemy sprawdzić; `null` = nie ma czego liczyć. */

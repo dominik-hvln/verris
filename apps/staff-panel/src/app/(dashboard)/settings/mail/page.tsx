@@ -32,7 +32,7 @@ export default async function StaffMailSettingsPage() {
     // Błąd API to komunikat na stronie, nie „This page couldn’t load”.
     const hint =
       e instanceof StaffApiError && e.status === 403
-        ? "Twoje konto nie ma dostępu do ustawień poczty — poproś administratora."
+        ? "Twoje konto nie ma dostępu do ustawień poczty – poproś administratora."
         : "Nie udało się pobrać ustawień poczty. Odśwież stronę za chwilę.";
     info = { hasMailbox: false, mailHost: "", sogoUrl: "", hint };
   }
@@ -44,7 +44,7 @@ export default async function StaffMailSettingsPage() {
         <div>
           <h1 className="text-2xl font-bold text-white">Poczta @verris.pl</h1>
           <p className="text-sm text-muted-foreground">
-            Webmail i kalendarz w SOGo; na komputerze — Outlook, Thunderbird lub Apple Mail.
+            Webmail i kalendarz w SOGo; na komputerze – Outlook, Thunderbird lub Apple Mail.
           </p>
         </div>
       </div>
@@ -75,13 +75,13 @@ export default async function StaffMailSettingsPage() {
             <div className="grid grid-cols-3 gap-2 px-4 py-3">
               <dt className="text-neutral-500">IMAP</dt>
               <dd className="col-span-2 font-mono text-white">
-                {info.imap.host}:{info.imap.port} ({info.imap.security}) — login: {info.imap.username}
+                {info.imap.host}:{info.imap.port} ({info.imap.security}) – login: {info.imap.username}
               </dd>
             </div>
             <div className="grid grid-cols-3 gap-2 px-4 py-3">
               <dt className="text-neutral-500">SMTP</dt>
               <dd className="col-span-2 font-mono text-white">
-                {info.smtp.host}:{info.smtp.port} ({info.smtp.security}) — login: {info.smtp.username}
+                {info.smtp.host}:{info.smtp.port} ({info.smtp.security}) – login: {info.smtp.username}
               </dd>
             </div>
             <div className="grid grid-cols-3 gap-2 px-4 py-3">

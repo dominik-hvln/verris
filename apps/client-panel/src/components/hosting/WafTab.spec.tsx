@@ -47,7 +47,7 @@ afterEach(async () => {
 });
 
 it('błąd odczytu przy wejściu: komunikat i „Spróbuj ponownie”, nie „dostępny po aktywacji”; ponowienie wczytuje stan', async () => {
-  mockGet.mockResolvedValueOnce({ ok: false, brakKonta: false, error: 'Nie udało się wczytać stanu zapory — spróbuj ponownie.' });
+  mockGet.mockResolvedValueOnce({ ok: false, brakKonta: false, error: 'Nie udało się wczytać stanu zapory – spróbuj ponownie.' });
   await zamontuj();
   expect(el.textContent).toContain('Nie udało się wczytać stanu zapory');
   expect(el.textContent).not.toContain('po aktywacji konta');
@@ -65,7 +65,7 @@ it('akcja serwera odrzucona (stara karta po wdrożeniu): komunikat zamiast wiecz
   expect(el.textContent).not.toContain('Server Action');
 });
 
-it('brak konta hostingowego (400 z API) — dalej „WAF będzie dostępny po aktywacji”', async () => {
+it('brak konta hostingowego (400 z API) – dalej „WAF będzie dostępny po aktywacji”', async () => {
   mockGet.mockResolvedValueOnce({ ok: false, brakKonta: true, error: 'Usługa nie ma jeszcze konta hostingowego.' });
   await zamontuj();
   expect(el.textContent).toContain('WAF będzie dostępny po aktywacji konta hostingowego.');
@@ -76,7 +76,7 @@ it('błąd w trakcie odpytywania (zmiana trybu w toku): stan zostaje, komunikat 
   mockGet.mockResolvedValueOnce({ ok: true, status: STAN });
   await zamontuj();
   expect(el.textContent).toContain('Stosowanie zmian na serwerze');
-  mockGet.mockResolvedValueOnce({ ok: false, brakKonta: false, error: 'Nie udało się wczytać stanu zapory — spróbuj ponownie.' });
+  mockGet.mockResolvedValueOnce({ ok: false, brakKonta: false, error: 'Nie udało się wczytać stanu zapory – spróbuj ponownie.' });
   await act(async () => jest.advanceTimersByTime(5000));
   expect(el.textContent).toContain('Zapora aplikacji (WAF)');
   expect(el.textContent).toContain('pokazany stan może być nieaktualny');

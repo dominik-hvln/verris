@@ -85,7 +85,7 @@ export class ConsentsService {
     ]);
     if (!terms || !privacy) {
       throw new ForbiddenException(
-        'Verris nie publikuje obecnie panelu klienta — brak zatwierdzonych dokumentów prawnych. Skontaktuj się z administratorem.',
+        'Verris nie publikuje obecnie panelu klienta – brak zatwierdzonych dokumentów prawnych. Skontaktuj się z administratorem.',
       );
     }
 
@@ -220,7 +220,7 @@ export class ConsentsService {
     const dpa = await this.legal.getCurrentRow('DPA', 'pl');
     if (!dpa) {
       throw new BadRequestException(
-        'Aktualnie nie publikujemy DPA — skontaktuj się z biurem obsługi klienta.',
+        'Aktualnie nie publikujemy DPA – skontaktuj się z biurem obsługi klienta.',
       );
     }
 

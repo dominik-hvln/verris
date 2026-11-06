@@ -104,7 +104,7 @@ function powiadomienie(s: ReturnType<typeof serwisy>, rekId: string, pid: string
 }
 
 // Decyzja 6.11.2026 — rabat na start zastąpiony kredytami na autoskalowanie: te same wyścigi o „pierwszy zakup”.
-describe('przegląd 15.10 — zakup Paynow i promocja na start (kredyty na autoskalowanie)', () => {
+describe('przegląd 15.10 – zakup Paynow i promocja na start (kredyty na autoskalowanie)', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     kolejka.length = 0;
@@ -118,7 +118,7 @@ describe('przegląd 15.10 — zakup Paynow i promocja na start (kredyty na autos
   afterEach(() => vi.unstubAllGlobals());
   afterAll(rozlacz);
 
-  it('[1] promocja na start: dwa zamówienia Paynow złożone przed zapłatą pierwszego — kredyty tylko raz', async () => {
+  it('[1] promocja na start: dwa zamówienia Paynow złożone przed zapłatą pierwszego – kredyty tylko raz', async () => {
     oferta = { cardEnabled: true, monthlyAutoscalingCredit: 10, annualAutoscalingCredit: 60 };
     const s = serwisy();
     const u = await prisma().user.create({ data: { email: `przg-1-${Date.now()}@test.verris.pl`, passwordHash: 'x' } });
@@ -137,7 +137,7 @@ describe('przegląd 15.10 — zakup Paynow i promocja na start (kredyty na autos
   });
 
   // Decyzja 15.10 (#6): dwa zamówienia złożone NARAZ (dwie karty przeglądarki) — oba widziały „brak zakupów”.
-  it('[1c] promocja na start: dwa równoległe zamówienia — kredyty dostaje tylko jedno (blokada na klienta)', async () => {
+  it('[1c] promocja na start: dwa równoległe zamówienia – kredyty dostaje tylko jedno (blokada na klienta)', async () => {
     oferta = { cardEnabled: true, monthlyAutoscalingCredit: 10, annualAutoscalingCredit: 60 };
     const s = serwisy();
     const u = await prisma().user.create({ data: { email: `przg-1c-${Date.now()}@test.verris.pl`, passwordHash: 'x' } });
@@ -153,7 +153,7 @@ describe('przegląd 15.10 — zakup Paynow i promocja na start (kredyty na autos
     expect(subs.map((x) => Number(x.kredytAutoskalowaniaKwota ?? 0)).sort()).toEqual([0, 10]);
   });
 
-  it('[2] promocja na start: nieudane zakładanie (zwrot) jej nie zużywa — klient zamawia ponownie z kredytami', async () => {
+  it('[2] promocja na start: nieudane zakładanie (zwrot) jej nie zużywa – klient zamawia ponownie z kredytami', async () => {
     oferta = { cardEnabled: true, monthlyAutoscalingCredit: 10, annualAutoscalingCredit: 60 };
     const s = serwisy();
     const u = await prisma().user.create({ data: { email: `przg-2-${Date.now()}@test.verris.pl`, passwordHash: 'x', walletBalance: 100 } });
@@ -172,7 +172,7 @@ describe('przegląd 15.10 — zakup Paynow i promocja na start (kredyty na autos
     expect(await s.subscriptions.kredytyStartowe(u.id)).toEqual({ przysluguje: true });
   });
 
-  it('[3] dwie potwierdzone wpłaty Paynow za to samo zamówienie naraz — usługa nie może wyjść za darmo', async () => {
+  it('[3] dwie potwierdzone wpłaty Paynow za to samo zamówienie naraz – usługa nie może wyjść za darmo', async () => {
     const s = serwisy();
     const u = await prisma().user.create({ data: { email: `przg-3-${Date.now()}@test.verris.pl`, passwordHash: 'x' } });
     const plan = await utworzPlan({ priceMonthly: 45 });

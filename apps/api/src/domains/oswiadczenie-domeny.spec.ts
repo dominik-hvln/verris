@@ -32,8 +32,8 @@ function serwis() {
   return { s, provider, create };
 }
 
-describe('decyzja 21 — oświadczenie domenowe przy każdym zamówieniu', () => {
-  it.each([undefined, false, 'true', 1])('rejestracja bez oświadczenia w żądaniu (%o) — odrzucona, zanim cokolwiek się stanie', async (zgoda) => {
+describe('decyzja 21 – oświadczenie domenowe przy każdym zamówieniu', () => {
+  it.each([undefined, false, 'true', 1])('rejestracja bez oświadczenia w żądaniu (%o) – odrzucona, zanim cokolwiek się stanie', async (zgoda) => {
     const { s, provider, create } = serwis();
     await expect(
       s.register('u1', 'u1', { name: 'nowa.pl', registrant: ABONENT, withdrawalWaiverConsent: zgoda as never }),
@@ -43,7 +43,7 @@ describe('decyzja 21 — oświadczenie domenowe przy każdym zamówieniu', () =>
     expect(create).not.toHaveBeenCalled();
   });
 
-  it('transfer bez oświadczenia — odrzucony przed utworzeniem abonenta i zamówienia', async () => {
+  it('transfer bez oświadczenia – odrzucony przed utworzeniem abonenta i zamówienia', async () => {
     const { s, provider, create } = serwis();
     await expect(
       s.transfer('u1', 'u1', { name: 'stara.pl', authCode: 'KOD', registrant: ABONENT, withdrawalWaiverConsent: false }),

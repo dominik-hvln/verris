@@ -28,7 +28,7 @@ let niepewny: { wykonaj: boolean } | null = null;
 const uRejestratora = new Map<string, { externalId: string; state: 'active' | 'pending'; expiresAt: string | null }>();
 let wygasaURejestratora = '2027-11-01T00:00:00.000Z';
 let whoisURejestratora: boolean | null = null;
-const brakOdpowiedzi = () => new RejestrWynikNiepewny('Rejestr domen nie odpowiada — spróbuj za chwilę.');
+const brakOdpowiedzi = () => new RejestrWynikNiepewny('Rejestr domen nie odpowiada – spróbuj za chwilę.');
 const rejestrator = {
   id: 'atrapa',
   availability: async (domain: string) => ({ domain, available: true, priceAmount: cenaRejestracji, currency: 'PLN' }),
@@ -134,7 +134,7 @@ describe('X-04 domeny u rejestratora', () => {
     expect(await prisma().domain.findUnique({ where: { name: 'odrzucona.pl' } })).toBeNull();
   });
 
-  it('audyt Fal 2 — ponowienie przez obsługę obciąża kwotą z zamówienia klienta, nie bieżącą ceną rejestratora', async () => {
+  it('audyt Fal 2 – ponowienie przez obsługę obciąża kwotą z zamówienia klienta, nie bieżącą ceną rejestratora', async () => {
     const { rejestr } = uslugi();
     const u = await klient(500);
     rejestracjaPada = true;
@@ -155,7 +155,7 @@ describe('X-04 domeny u rejestratora', () => {
     expect(await saldo(u.id)).toBeCloseTo(500 - Number(stare.priceAmount), 2);
   });
 
-  it('decyzja 21 — oświadczenie przy każdym zamówieniu: bez niego odmowa, z nim treść i czas zapisane przy zamówieniu', async () => {
+  it('decyzja 21 – oświadczenie przy każdym zamówieniu: bez niego odmowa, z nim treść i czas zapisane przy zamówieniu', async () => {
     const { rejestr } = uslugi();
     const u = await klient(500);
     await rejestr.register(u.id, u.id, { name: 'pierwsza.pl', registrant: abonent, withdrawalWaiverConsent: true });
@@ -188,7 +188,7 @@ describe('X-04 domeny u rejestratora', () => {
     expect(wpis.details).toMatchObject({ consentStatement: OSWIADCZENIE_TRANSFERU, consentAt: zamowienia[2].withdrawalWaiverAt!.toISOString() });
   });
 
-  it('decyzja 21 — ponowienie przez obsługę niesie oświadczenie z pierwotnego zamówienia klienta', async () => {
+  it('decyzja 21 – ponowienie przez obsługę niesie oświadczenie z pierwotnego zamówienia klienta', async () => {
     const { rejestr } = uslugi();
     const u = await klient(500);
     rejestracjaPada = true;
@@ -316,7 +316,7 @@ describe('X-04 domeny u rejestratora', () => {
     expect(z).toMatchObject({ status: DomainRegistrarOrderStatus.COMPLETED, domainId: d.id });
   });
 
-  it('przegląd 15.10: transfer odrzucony, a zlecenie bez zapisanego walletTxId — zwrot po kluczu obciążenia', async () => {
+  it('przegląd 15.10: transfer odrzucony, a zlecenie bez zapisanego walletTxId – zwrot po kluczu obciążenia', async () => {
     const { rejestr } = uslugi();
     const u = await klient(500);
     await rejestr.transfer(u.id, u.id, { name: 'bez-txid.pl', authCode: 'ZLY', registrant: abonent, withdrawalWaiverConsent: true });
@@ -344,7 +344,7 @@ describe('X-04 domeny u rejestratora', () => {
     expect(await prisma().domain.findUnique({ where: { name: 'nieprzeniesiona.pl' } })).toBeNull();
   });
 
-  describe('decyzja 15.10 (#1) — rejestr nie odpowiada: wynik niepewny zamiast zwrotu', () => {
+  describe('decyzja 15.10 (#1) – rejestr nie odpowiada: wynik niepewny zamiast zwrotu', () => {
     const cofnij = (orderId: string, minut: number) =>
       prisma().domainRegistrarOrder.update({ where: { id: orderId }, data: { submittedAt: new Date(Date.now() - minut * 60_000) } });
     const zamowienie = (userId: string, type: string) =>
@@ -389,7 +389,7 @@ describe('X-04 domeny u rejestratora', () => {
       expect((await zamowienie(u.id, 'REGISTER')).status).toBe(DomainRegistrarOrderStatus.FAILED);
     });
 
-    it('odnowienie: niepewne blokuje kolejne „Odnów”; wykonane — nowa data ważności, bez zwrotu', async () => {
+    it('odnowienie: niepewne blokuje kolejne „Odnów”; wykonane – nowa data ważności, bez zwrotu', async () => {
       const { rejestr } = uslugi();
       const u = await klient(500);
       await rejestr.register(u.id, u.id, { name: 'odnowa.pl', registrant: abonent, withdrawalWaiverConsent: true });

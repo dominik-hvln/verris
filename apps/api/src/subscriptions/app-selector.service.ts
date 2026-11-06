@@ -64,7 +64,7 @@ export function sprawdzDane(d: DaneAplikacji): Required<DaneAplikacji> {
   // Selektor sam zapisuje passenger_wsgi.py, który ładuje plik startowy. Plik startowy o tej nazwie ładował
   // samego siebie — rekurencja i 500 na każdym żądaniu (t1 01.10).
   if (d.interpreter === 'python' && startup.split('/').pop() === 'passenger_wsgi.py') {
-    throw new BadRequestException('Podaj plik z aplikacją, np. app.py — passenger_wsgi.py serwer tworzy sam i ładuje z niego Twój plik.');
+    throw new BadRequestException('Podaj plik z aplikacją, np. app.py – passenger_wsgi.py serwer tworzy sam i ładuje z niego Twój plik.');
   }
   const entry = (d.entry ?? '').trim();
   if (entry && !ENTRY_RE.test(entry)) throw new BadRequestException('Obiekt aplikacji to nazwa w Pythonie, np. application.');
@@ -132,7 +132,7 @@ export class AppSelectorService {
     const wToku = await this.prisma.nodeTask.findFirst({
       where: { accountId: account.id, kind: NodeTaskKind.APP_SELECTOR, status: { in: [NodeTaskStatus.QUEUED, NodeTaskStatus.RUNNING] } },
     });
-    if (wToku) throw new ConflictException('Poprzednia operacja na aplikacjach jest jeszcze w toku — poczekaj na wynik.');
+    if (wToku) throw new ConflictException('Poprzednia operacja na aplikacjach jest jeszcze w toku – poczekaj na wynik.');
     const task = await this.prisma.nodeTask.create({
       data: {
         serverId: account.serverId,
@@ -215,5 +215,5 @@ export function aplikacjeZLogu(log: string | null): { apps: AplikacjaKonta[]; ve
 
 function bladZLogu(log: string | null): string {
   const l = (log ?? '').split('\n').reverse().find((x) => x.startsWith('[app-selector] BŁĄD: '));
-  return l ? l.slice('[app-selector] BŁĄD: '.length).slice(0, 300) : 'Operacja nie powiodła się. Napisz do nas — sprawdzimy to.';
+  return l ? l.slice('[app-selector] BŁĄD: '.length).slice(0, 300) : 'Operacja nie powiodła się. Napisz do nas – sprawdzimy to.';
 }

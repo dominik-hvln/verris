@@ -164,7 +164,7 @@ export class DeliverabilityService {
         detail: listedZones.length
           ? `IP serwera (${sendingIp}) jest na: ${listedZones.join(', ')}.`
           : unknown.length
-            ? `IP serwera (${sendingIp}) nie figuruje na: ${checked.join(', ') || '—'}. Nie udało się sprawdzić: ${unknown.join(', ')} — spróbuj ponownie za chwilę.`
+            ? `IP serwera (${sendingIp}) nie figuruje na: ${checked.join(', ') || '–'}. Nie udało się sprawdzić: ${unknown.join(', ')} – spróbuj ponownie za chwilę.`
             : `IP serwera (${sendingIp}) nie figuruje na żadnej ze sprawdzanych list: ${RBL_ZONES.join(', ')}.`,
       });
     }

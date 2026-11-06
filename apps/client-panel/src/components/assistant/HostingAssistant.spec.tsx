@@ -68,7 +68,7 @@ async function zapytaj(el: HTMLElement, tekst: string) {
 }
 
 describe('Asystent w panelu klienta', () => {
-  it('configured:false — nic się nie renderuje', async () => {
+  it('configured:false – nic się nie renderuje', async () => {
     mockStatus.mockResolvedValue({ configured: false });
     const el = await renderuj();
     expect(el.innerHTML).toBe('');

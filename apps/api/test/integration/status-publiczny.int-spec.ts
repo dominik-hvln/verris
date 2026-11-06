@@ -15,7 +15,7 @@ const DZIEN = 86_400_000;
  */
 const poludnie = (n: number) => new Date(`${dniWstecz(dzienWarszawski(new Date()), n + 1)[0]}T10:00:00Z`);
 
-describe('GET /status — agregacja historii z próbek sond', () => {
+describe('GET /status – agregacja historii z próbek sond', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 
@@ -80,7 +80,7 @@ describe('GET /status — agregacja historii z próbek sond', () => {
     expect(r.availability.d90).not.toBeNull();
 
     expect(r.recentIncidents).toHaveLength(1);
-    expect(r.recentIncidents[0]).toMatchObject({ service: 'Strony klientów', title: 'Usługa jest niedostępna lub działa z przerwami — pracujemy nad tym.', durationMinutes: 17 });
+    expect(r.recentIncidents[0]).toMatchObject({ service: 'Strony klientów', title: 'Usługa jest niedostępna lub działa z przerwami – pracujemy nad tym.', durationMinutes: 17 });
     expect(r.maintenance).toHaveLength(1);
 
     const json = JSON.stringify(r);

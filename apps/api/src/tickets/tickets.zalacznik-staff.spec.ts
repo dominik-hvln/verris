@@ -12,7 +12,7 @@ function zbuduj(perms: string[] | null) {
   return { s, prisma };
 }
 
-describe('getAttachmentForDownload — pracownik', () => {
+describe('getAttachmentForDownload – pracownik', () => {
   it('z TICKETS_VIEW pobiera', async () => {
     await expect(zbuduj(['TICKETS_VIEW']).s.getAttachmentForDownload('t1', 'a1', 'p1', 'STAFF')).resolves.toMatchObject({ id: 'a1' });
   });

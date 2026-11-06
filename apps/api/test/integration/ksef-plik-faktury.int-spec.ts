@@ -91,7 +91,7 @@ async function tresc(stream: NodeJS.ReadableStream): Promise<Buffer> {
   return Buffer.concat(kawalki);
 }
 
-describe('KSeF 12.10 — plik faktury, kod QR, PDF/XML dla klienta', () => {
+describe('KSeF 12.10 – plik faktury, kod QR, PDF/XML dla klienta', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     wyslane.length = 0;
@@ -125,7 +125,7 @@ describe('KSeF 12.10 — plik faktury, kod QR, PDF/XML dla klienta', () => {
     expect((await stan(f.id)).ksefStatus).toBe(KsefStatus.SUBMITTED);
   });
 
-  it('przegląd 15.10: faktura sprzed okna automatu (8 dni) — cykl jej nie łapie, podgląd zaległych ją pokazuje, operator kolejkuje', async () => {
+  it('przegląd 15.10: faktura sprzed okna automatu (8 dni) – cykl jej nie łapie, podgląd zaległych ją pokazuje, operator kolejkuje', async () => {
     const u = await uzytkownik();
     const stara = await fakturaPanelu(u.id, { issuedAt: new Date(Date.now() - 8 * 24 * 3600_000) });
     const swieza = await fakturaPanelu(u.id);

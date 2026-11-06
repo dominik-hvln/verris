@@ -81,7 +81,7 @@ describe('PB-17 reguły dymków asystenta', () => {
     expect(buildHints({ ...base, usluga: { ...u, usedScaling: true } })[0].action).toEqual({ kind: 'href', label: 'Ustaw autoskalowanie', href: '/dashboard/services/s1/autoscaling' });
   });
 
-  it('F2.6: odbicia od limitów w dobie — przyjazny komunikat bez nazw technologii; brak danych = brak dymka', () => {
+  it('F2.6: odbicia od limitów w dobie – przyjazny komunikat bez nazw technologii; brak danych = brak dymka', () => {
     const u = { id: 's1', provisioningFailed: false, autoscalingEnabled: false, usedScaling: false, active: true };
     expect(keys({ usluga: u, odbiciaOdLimitowDoba: null })).toEqual([]);
     expect(keys({ usluga: u, odbiciaOdLimitowDoba: 0 })).toEqual([]);

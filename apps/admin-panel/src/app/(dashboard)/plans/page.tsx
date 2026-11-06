@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 function formatPrice(value: string, currency: string) {
   const n = Number.parseFloat(value);
-  if (!Number.isFinite(n)) return `— ${currency}`;
+  if (!Number.isFinite(n)) return `– ${currency}`;
   return new Intl.NumberFormat("pl-PL", {
     style: "currency",
     currency,

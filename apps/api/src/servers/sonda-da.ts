@@ -81,5 +81,5 @@ export function opiszOdpowiedz(body: string): { format: string; ksztalt: string 
 function komunikatBledu(error: unknown, text: unknown, details: unknown): string {
   if (error == null || String(error) === '0' || String(error) === 'false') return '';
   const t = [text, details].filter((x) => x != null && String(x).trim()).map((x) => String(x).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
-  return t.length ? ` · błąd DA: ${t.join(' — ').slice(0, 200)}` : '';
+  return t.length ? ` · błąd DA: ${t.join(' – ').slice(0, 200)}` : '';
 }

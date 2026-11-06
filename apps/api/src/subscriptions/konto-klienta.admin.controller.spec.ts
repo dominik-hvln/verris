@@ -103,7 +103,7 @@ async function wpuszcza(metoda: keyof KontoKlientaAdminController, user: { userI
   }
 }
 
-describe('PB-42 KontoKlientaAdminController — uprawnienia', () => {
+describe('PB-42 KontoKlientaAdminController – uprawnienia', () => {
   it('uprawnienie jest w katalogu', () => {
     expect(STAFF_PERMISSION_KEYS).toContain('ACCOUNT_DIAGNOSTICS_VIEW');
   });
@@ -120,7 +120,7 @@ describe('PB-42 KontoKlientaAdminController — uprawnienia', () => {
   );
 });
 
-describe('F3.2 — trafienia WAF na karcie usługi', () => {
+describe('F3.2 – trafienia WAF na karcie usługi', () => {
   it('odczyt i „wczytaj z serwera”: dla właściciela usługi (domeny konta), zlecający = operator, wpis w dzienniku z sekcją „waf”', async () => {
     const { ctrl, waf, audit } = zbuduj();
     await ctrl.trafieniaWaf('s1', OPERATOR);
@@ -131,7 +131,7 @@ describe('F3.2 — trafienia WAF na karcie usługi', () => {
     expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ details: { subscriptionId: 's1', sekcja: 'waf', zlecenie: 'wczytanie z serwera' } }));
   });
 
-  it('odpytywanie w trakcie wczytywania (co 5 s) nie dopisuje wpisów; wynik — jeden wpis', async () => {
+  it('odpytywanie w trakcie wczytywania (co 5 s) nie dopisuje wpisów; wynik – jeden wpis', async () => {
     const { ctrl, waf, audit } = zbuduj();
     waf.widok.mockResolvedValueOnce({ tryb: 'ON', wToku: true, trafienia: [] } as never);
     await ctrl.trafieniaWaf('s1', OPERATOR);
@@ -141,7 +141,7 @@ describe('F3.2 — trafienia WAF na karcie usługi', () => {
   });
 });
 
-describe('audyt Fali 3 (D3) — usługa konta zespołu: STAFF nie czyta ani nie zleca odczytów, ADMIN tak', () => {
+describe('audyt Fali 3 (D3) – usługa konta zespołu: STAFF nie czyta ani nie zleca odczytów, ADMIN tak', () => {
   const ZESPOL = { userId: 'u-pracownik', user: { role: 'STAFF' }, account: { id: 'acc1' } };
 
   it('każda sekcja karty (także WAF w trakcie wczytywania): 403 bez wpisu, bez węzła i bez zadania', async () => {
@@ -183,7 +183,7 @@ describe('audyt Fali 3 (D3) — usługa konta zespołu: STAFF nie czyta ani nie 
   });
 });
 
-describe('F2.6 — zasoby i diagnoza 508 na karcie usługi', () => {
+describe('F2.6 – zasoby i diagnoza 508 na karcie usługi', () => {
   it('odczyt: dla właściciela usługi, wpis w dzienniku z sekcją „zasoby”', async () => {
     const { ctrl, zasobyKonta, audit } = zbuduj();
     await ctrl.zasoby('s1', OPERATOR);
@@ -206,7 +206,7 @@ describe('F2.6 — zasoby i diagnoza 508 na karcie usługi', () => {
   });
 });
 
-describe('PB-42 KontoKlientaAdminController — odczyty', () => {
+describe('PB-42 KontoKlientaAdminController – odczyty', () => {
   it('nieistniejąca usługa → 404, bez wołania węzła i bez wpisu w dzienniku', async () => {
     const { ctrl, directAdmin, audit } = zbuduj(null);
     await expect(ctrl.dns('brak', undefined, OPERATOR)).rejects.toBeInstanceOf(NotFoundException);
@@ -276,7 +276,7 @@ describe('PB-42 KontoKlientaAdminController — odczyty', () => {
     expect(args[args.length - 1]).toBe(domeny);
   });
 
-  it('logi poczty: obsługa zleca świeży odczyt bez klienta — w imieniu właściciela, zlecający i wpis w dzienniku to operator', async () => {
+  it('logi poczty: obsługa zleca świeży odczyt bez klienta – w imieniu właściciela, zlecający i wpis w dzienniku to operator', async () => {
     const { ctrl, mailLog, audit } = zbuduj();
     const wynik = await ctrl.zlecLogiPoczty('s1', { address: 'jan@klient.pl' }, OPERATOR);
     expect(mailLog.zlec).toHaveBeenCalledWith('s1', WLASCICIEL, 'jan@klient.pl', 's-operator');
@@ -296,7 +296,7 @@ describe('PB-42 KontoKlientaAdminController — odczyty', () => {
     expect(audit.record).not.toHaveBeenCalled();
   });
 
-  describe('weryfikacja 12.10 — adresy w dzienniku poczty konta: STAFF zamaskowane, ADMIN pełne', () => {
+  describe('weryfikacja 12.10 – adresy w dzienniku poczty konta: STAFF zamaskowane, ADMIN pełne', () => {
     const DZIENNIK = {
       wToku: false,
       wczytano: '2026-10-12T08:00:00.000Z',
@@ -317,7 +317,7 @@ describe('PB-42 KontoKlientaAdminController — odczyty', () => {
     it.each([
       ['GET', (c: KontoKlientaAdminController, o: typeof OPERATOR) => c.logiPoczty('s1', o)],
       ['POST', (c: KontoKlientaAdminController, o: typeof OPERATOR) => c.zlecLogiPoczty('s1', { address: 'test@d3.hvln.pl' }, o)],
-    ])('%s: STAFF — adres, szczegóły, filtr i błąd bez części lokalnej adresu', async (_m, wolaj) => {
+    ])('%s: STAFF – adres, szczegóły, filtr i błąd bez części lokalnej adresu', async (_m, wolaj) => {
       const { ctrl, mailLog } = zbuduj();
       mailLog.status.mockResolvedValueOnce(DZIENNIK as never);
       mailLog.zlec.mockResolvedValueOnce(DZIENNIK as never);
@@ -335,7 +335,7 @@ describe('PB-42 KontoKlientaAdminController — odczyty', () => {
     it.each([
       ['GET', (c: KontoKlientaAdminController, o: typeof ADMIN) => c.logiPoczty('s1', o)],
       ['POST', (c: KontoKlientaAdminController, o: typeof ADMIN) => c.zlecLogiPoczty('s1', { address: 'test@d3.hvln.pl' }, o)],
-    ])('%s: ADMIN — pełne adresy', async (_m, wolaj) => {
+    ])('%s: ADMIN – pełne adresy', async (_m, wolaj) => {
       const { ctrl, mailLog } = zbuduj();
       mailLog.status.mockResolvedValueOnce(DZIENNIK as never);
       mailLog.zlec.mockResolvedValueOnce(DZIENNIK as never);
@@ -343,7 +343,7 @@ describe('PB-42 KontoKlientaAdminController — odczyty', () => {
     });
   });
 
-  it('poczta: tylko adres, rozmiar i cele przekierowań — nic poza tym z odpowiedzi węzła', async () => {
+  it('poczta: tylko adres, rozmiar i cele przekierowań – nic poza tym z odpowiedzi węzła', async () => {
     const { ctrl } = zbuduj();
     const wynik = await ctrl.poczta('s1', OPERATOR);
     expect(wynik).toEqual({

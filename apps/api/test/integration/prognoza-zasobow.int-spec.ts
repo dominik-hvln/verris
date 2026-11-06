@@ -5,7 +5,7 @@ import { prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } fr
  * t1 05.10: telemetria co 60 s, a prognoza brała 96 ostatnich próbek (~1,5 h) — „pewność niska”
  * zawsze i trend z półtorej godziny rzutowany na 7 dni. Teraz średnie godzinowe z 7 dni (SQL).
  */
-describe('Prognoza zasobów — godzinowe średnie z 7 dni', () => {
+describe('Prognoza zasobów – godzinowe średnie z 7 dni', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 

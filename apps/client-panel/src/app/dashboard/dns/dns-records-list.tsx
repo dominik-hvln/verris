@@ -27,7 +27,7 @@ export function DnsRecordsList({ records }: { records: HostingDnsRecordDto[] }) 
           key: 'ttl',
           header: 'TTL',
           cellClassName: 'pr-0',
-          cell: (r) => <span className="text-neutral-300">{r.ttl ?? '—'}</span>,
+          cell: (r) => <span className="text-neutral-300">{r.ttl ?? '–'}</span>,
         },
       ]}
       renderMobileCard={(record) => (
@@ -37,7 +37,7 @@ export function DnsRecordsList({ records }: { records: HostingDnsRecordDto[] }) 
             <dt className="text-neutral-500">Typ</dt>
             <dd className="text-neutral-200">{record.type}</dd>
             <dt className="text-neutral-500">TTL</dt>
-            <dd className="text-neutral-200">{record.ttl ?? '—'}</dd>
+            <dd className="text-neutral-200">{record.ttl ?? '–'}</dd>
           </dl>
           <p className="mt-3 text-sm text-neutral-300 break-all">{record.value}</p>
         </article>

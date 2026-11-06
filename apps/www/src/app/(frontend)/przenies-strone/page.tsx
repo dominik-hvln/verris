@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     locale: 'pl_PL',
     type: 'website',
     siteName: 'Verris',
-    images: [{ url: '/og-default.png', width: 1200, height: 630, alt: 'Verris — darmowe przeniesienie strony' }],
+    images: [{ url: '/og-default.png', width: 1200, height: 630, alt: 'Verris – darmowe przeniesienie strony' }],
   },
 };
 
@@ -42,7 +42,7 @@ const PODZIAL: [string, string, string][] = [
   ['Pliki strony', 'login do panelu albo dane FTP / SFTP', 'wyszukanie katalogu strony, kopia i porównanie liczby plików ze źródłem'],
   [
     'Baza danych',
-    'zwykle nic — dane bazy odczytamy z plików strony; przy samym FTP podajesz nazwę bazy',
+    'zwykle nic – dane bazy odczytamy z plików strony; przy samym FTP podajesz nazwę bazy',
     'nowa baza u nas, import, nowe dane bazy w konfiguracji strony i sprawdzenie połączenia',
   ],
   ['Poczta', 'hasło każdej skrzynki', 'założenie skrzynek u nas, kopia wiadomości i folderów'],
@@ -54,7 +54,7 @@ const BEZPIECZENSTWO: [string, string][] = [
     'Hasła zaszyfrowane i kasowane',
     `Dostęp do starego hostingu trzymamy zaszyfrowany tylko na czas przeniesienia i kasujemy automatycznie ${HASLA_KASOWANE_PO_DNIACH} dni po zakończeniu.`,
   ],
-  ['Stara strona zostaje', 'Dane kopiujemy obok — u starego dostawcy niczego nie kasujemy, więc strona działa tam dalej.'],
+  ['Stara strona zostaje', 'Dane kopiujemy obok – u starego dostawcy niczego nie kasujemy, więc strona działa tam dalej.'],
   [
     'Zgoda i dziennik',
     'Gdy przeprowadzkę robi za Ciebie nasz zespół, rusza ona po Twojej zgodzie w panelu, a każdy wgląd w hasła trafia do dziennika.',
@@ -65,7 +65,7 @@ const BEZPIECZENSTWO: [string, string][] = [
 const faq = (ceny: Ceny): [string, string][] => [
   [
     'Czy strona przestanie działać w trakcie przenoszenia na inny hosting?',
-    'Nie powinna. Migracja odbywa się „obok” działającej strony — kopiujemy dane na nowy serwer, a Twoja obecna strona działa u dotychczasowego dostawcy do momentu przełączenia domeny. Samo przełączenie DNS wiąże się z propagacją, która zwykle trwa od kilkunastu minut do kilku godzin; w tym czasie część odwiedzających może jeszcze trafiać na starą wersję strony.',
+    'Nie powinna. Migracja odbywa się „obok” działającej strony – kopiujemy dane na nowy serwer, a Twoja obecna strona działa u dotychczasowego dostawcy do momentu przełączenia domeny. Samo przełączenie DNS wiąże się z propagacją, która zwykle trwa od kilkunastu minut do kilku godzin; w tym czasie część odwiedzających może jeszcze trafiać na starą wersję strony.',
   ],
   [
     'Czy przeniesienie strony wpłynie na pozycje w Google?',
@@ -81,15 +81,15 @@ const faq = (ceny: Ceny): [string, string][] => [
   ],
   [
     'Co z moimi hasłami do starego hostingu?',
-    `Trzymamy je zaszyfrowane tylko na czas przeniesienia i kasujemy automatycznie ${HASLA_KASOWANE_PO_DNIACH} dni po zakończeniu, a po błędzie albo anulowaniu — po 3 dniach.`,
+    `Trzymamy je zaszyfrowane tylko na czas przeniesienia i kasujemy automatycznie ${HASLA_KASOWANE_PO_DNIACH} dni po zakończeniu, a po błędzie albo anulowaniu – po 3 dniach.`,
   ],
   [
     'Czy muszę przenosić domenę razem z hostingiem?',
-    'Nie. Domena może zostać u obecnego rejestratora — wystarczy zmienić rekordy DNS tak, aby wskazywały na serwery Verris. Transfer domeny do Verris jest opcjonalny i możesz go wykonać w dowolnym momencie później. U nas domeny odnawiają się wyłącznie po opłaceniu — nigdy automatycznie.',
+    'Nie. Domena może zostać u obecnego rejestratora – wystarczy zmienić rekordy DNS tak, aby wskazywały na serwery Verris. Transfer domeny do Verris jest opcjonalny i możesz go wykonać w dowolnym momencie później. U nas domeny odnawiają się wyłącznie po opłaceniu – nigdy automatycznie.',
   ],
   [
     'Co z pocztą e-mail przy zmianie hostingu?',
-    'Hosting Verris obejmuje pocztę. W ramach przeprowadzki zakładamy skrzynki u nas i kopiujemy wiadomości z folderami — do każdej skrzynki podajesz jej hasło. Do czasu przełączenia DNS poczta działa u obecnego dostawcy, więc żadna wiadomość nie ginie.',
+    'Hosting Verris obejmuje pocztę. W ramach przeprowadzki zakładamy skrzynki u nas i kopiujemy wiadomości z folderami – do każdej skrzynki podajesz jej hasło. Do czasu przełączenia DNS poczta działa u obecnego dostawcy, więc żadna wiadomość nie ginie.',
   ],
   [
     'Czy migracja jest naprawdę bezpłatna?',
@@ -101,7 +101,7 @@ const faq = (ceny: Ceny): [string, string][] => [
   ],
   [
     'Czy mogę zrezygnować po zakupie?',
-    'Jako konsument masz prawo odstąpienia od umowy. Zasady odstąpienia i zwrotu opisuje regulamin, który zobaczysz przed zakupem — zwrot realizuje nasze wsparcie.',
+    'Jako konsument masz prawo odstąpienia od umowy. Zasady odstąpienia i zwrotu opisuje regulamin, który zobaczysz przed zakupem – zwrot realizuje nasze wsparcie.',
   ],
 ];
 
@@ -109,7 +109,7 @@ const jsonLd = (FAQ: [string, string][]) =>
   graph(
   howToSchema({
     name: 'Jak przenieść stronę na nowy hosting bez przerwy w działaniu',
-    description: 'Przeniesienie strony, bazy i poczty do Verris w 6 krokach — stara strona działa do przełączenia domeny.',
+    description: 'Przeniesienie strony, bazy i poczty do Verris w 6 krokach – stara strona działa do przełączenia domeny.',
     path: '/przenies-strone',
     steps: KROKI_PRZEPROWADZKI.map((k) => ({ name: k.tytul, text: `${k.tekst} Co robimy za Ciebie: ${k.zaCiebie}` })),
   }),
@@ -133,14 +133,14 @@ const CZASY: { kicker: string; czas: string; opis: string; ty?: boolean }[] = [
 const PILNE: [string, string][] = [
   ['Stary hosting jeszcze działa', 'Przenosimy jak zwykle. Domenę przełączasz po sprawdzeniu nowej strony.'],
   ['Zostało kilka dni', 'Najpierw kopiujemy pliki i bazy, pocztę na końcu. Strona nie zniknie, kiedy stary hosting wygaśnie.'],
-  ['Hosting już wygasł', 'Poproś starego dostawcę o kopię strony i napisz do nas — pomożemy ją odtworzyć.'],
+  ['Hosting już wygasł', 'Poproś starego dostawcę o kopię strony i napisz do nas – pomożemy ją odtworzyć.'],
 ];
 
 const zyski = (ceny: Ceny): [string, string][] => [
   ['Szybsze ładowanie', 'LiteSpeed z cache dla WordPressa, dyski NVMe i Redis. Strony z cache serwer oddaje bez uruchamiania PHP.'],
   ['Spokój przy ruchu', 'Przy promocji albo kampanii moc rośnie sama. Ty ustawiasz, ile najwyżej możesz za to zapłacić.'],
   ['Kopie, które przywrócisz sam', 'Codziennie, z każdego z ostatnich 30 dni. Pliki, bazy i poczta, bez zgłoszenia do pomocy.'],
-  ['Cena odnowienia z góry', `${zl(ceny.hosting.rocznie)} brutto (${zl(netto(ceny.hosting.rocznie))} netto) rocznie według cennika — tyle kosztuje odnowienie.`],
+  ['Cena odnowienia z góry', `${zl(ceny.hosting.rocznie)} brutto (${zl(netto(ceny.hosting.rocznie))} netto) rocznie według cennika – tyle kosztuje odnowienie.`],
   ['Statystyki bez cookies', 'Widzisz odwiedziny i źródła ruchu bez banera zgody i bez narzędzi zewnętrznych.'],
   ['Dostępność w umowie', '99,5% w miesiącu. Poniżej tego oddajemy część opłaty, a każdą awarię widać na stronie statusu.'],
 ];
@@ -157,12 +157,12 @@ export default async function Page() {
         <div className="wrap">
           <div className="b-hero">
             <Breadcrumbs items={[{ label: 'Przeniesienie strony' }]} />
-            <span className="eyebrow">Przeniesienie strony, bazy i poczty — w cenie hostingu</span>
+            <span className="eyebrow">Przeniesienie strony, bazy i poczty – w cenie hostingu</span>
             <h1>
               Przeniesiemy Twoją stronę na nowy hosting. <span className="mint">Ty w tym czasie spokojnie pracujesz</span>
             </h1>
             <p className="lead">
-              Podajesz dostęp do starego hostingu — login do panelu albo FTP — i hasła skrzynek pocztowych. Strony, bazy i
+              Podajesz dostęp do starego hostingu – login do panelu albo FTP – i hasła skrzynek pocztowych. Strony, bazy i
               skrzynki wyszukamy sami, a każdy etap zobaczysz na żywo. Strona działa przez cały czas przeprowadzki.
             </p>
             <div className="hero2-cta">
@@ -196,7 +196,7 @@ export default async function Page() {
           <SectionHead
             id="b-jak"
             eyebrow="Jak to działa"
-            title="Tak wygląda przeprowadzka w panelu — 6 kroków"
+            title="Tak wygląda przeprowadzka w panelu – 6 kroków"
             lead="Kreator prowadzi Cię od wyboru domeny do przełączenia. Kliknij kroki pokazu, żeby zobaczyć, co widzisz na ekranie."
           />
           <div className="b-split">
@@ -294,7 +294,7 @@ export default async function Page() {
               <h2 id="pp-tytul">Kończy Ci się hosting? Zacznij przeniesienie dziś</h2>
               <p>
                 Załóż konto i uruchom przeniesienie od razu, bez czekania na odpowiedź z pomocy. Jeśli zostało niewiele
-                czasu, zostaw numer — oddzwonimy i ustalimy kolejność.
+                czasu, zostaw numer – oddzwonimy i ustalimy kolejność.
               </p>
               <div className="pp-pilne-cta">
                 <Button href={ZAMOW} cta="pilne" conv="checkout_intent" plan="hosting">

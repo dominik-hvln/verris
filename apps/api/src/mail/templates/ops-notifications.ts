@@ -30,19 +30,19 @@ export function nodeOfflineAlertTemplate(ctx: NodeOfflineContext): MailMessage {
   const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: `Węzeł ${ctx.nodeName} nie odpowiada`,
-    preheader: 'Brak heartbeatu z węzła — możliwa awaria/utrata łączności.',
+    preheader: 'Brak heartbeatu z węzła – możliwa awaria/utrata łączności.',
     bodyMarkdown: [
       greeting,
       ``,
       `**Węzeł \`${escapeMarkdown(ctx.nodeName)}\` przestał wysyłać heartbeat** do control-plane. Konta na tym węźle mogą być niedostępne.`,
       ``,
       `- **Węzeł:** ${escapeMarkdown(ctx.nodeName)} (\`${escapeMarkdown(ctx.nodeId)}\`)`,
-      `- **Ostatnio widziany:** ${ctx.lastSeenAt ? escapeMarkdown(fmt(ctx.lastSeenAt)) : '—'}`,
+      `- **Ostatnio widziany:** ${ctx.lastSeenAt ? escapeMarkdown(fmt(ctx.lastSeenAt)) : '–'}`,
       ``,
       `## Co zrobić`,
       ``,
       `1. Sprawdź dostępność węzła (ping/SSH/panel dostawcy).`,
-      `2. Jeśli to awaria — rozważ przełączenie ruchu / przywrócenie kont z backupu off-node.`,
+      `2. Jeśli to awaria – rozważ przełączenie ruchu / przywrócenie kont z backupu off-node.`,
       `3. Status floty i kont znajdziesz w panelu admina.`,
     ].join('\n'),
     cta: { label: 'Otwórz panel floty', url: `${ctx.panelUrl}/nodes` },
@@ -58,7 +58,7 @@ export function nodeRecoveredTemplate(ctx: NodeOfflineContext): MailMessage {
   const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: `Węzeł ${ctx.nodeName} znów online`,
-    preheader: 'Heartbeat wrócił — węzeł odpowiada.',
+    preheader: 'Heartbeat wrócił – węzeł odpowiada.',
     bodyMarkdown: [
       greeting,
       ``,
@@ -101,7 +101,7 @@ export function nodeCapacityAlertTemplate(ctx: NodeCapacityContext): MailMessage
   const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: `Węzeł ${ctx.nodeName} blisko zapełnienia`,
-    preheader: `Obłożenie ${ctx.topUtilizationPct}% — rozważ dodanie węzła.`,
+    preheader: `Obłożenie ${ctx.topUtilizationPct}% – rozważ dodanie węzła.`,
     bodyMarkdown: [
       greeting,
       ``,
@@ -114,7 +114,7 @@ export function nodeCapacityAlertTemplate(ctx: NodeCapacityContext): MailMessage
         : `- **Realne zużycie:** brak świeżej telemetrii z węzła`,
       `- **Konta:** ${ctx.accounts}${ctx.maxAccounts != null ? ` / ${ctx.maxAccounts}` : ''}`,
       ...(ctx.autoCordoned
-        ? ['', `> ⚠️ Watchdog **automatycznie ustawił cordon** na tym węźle — nie przyjmuje nowych kont, istniejące działają.`]
+        ? ['', `> ⚠️ Watchdog **automatycznie ustawił cordon** na tym węźle – nie przyjmuje nowych kont, istniejące działają.`]
         : []),
       ``,
       `## Co zrobić`,
@@ -158,8 +158,8 @@ export interface OpsDigestContext {
 export function opsDailyDigestTemplate(ctx: OpsDigestContext): MailMessage {
   const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const verdict = ctx.go
-    ? '🟢 **GO** — brak blokerów startu.'
-    : '🔴 **NO-GO** — są blokery do usunięcia.';
+    ? '🟢 **GO** – brak blokerów startu.'
+    : '🔴 **NO-GO** – są blokery do usunięcia.';
   const failLines = ctx.readinessFails.length
     ? ctx.readinessFails.map((f) => `- ❌ ${escapeMarkdown(f)}`)
     : ['- _(brak)_'];
@@ -169,7 +169,7 @@ export function opsDailyDigestTemplate(ctx: OpsDigestContext): MailMessage {
 
   const { html, text } = renderEmailShell({
     title: 'Dzienny raport floty Verris',
-    preheader: ctx.go ? 'GO — brak blokerów.' : 'NO-GO — wymaga uwagi.',
+    preheader: ctx.go ? 'GO – brak blokerów.' : 'NO-GO – wymaga uwagi.',
     bodyMarkdown: [
       greeting,
       ``,
@@ -198,7 +198,7 @@ export function opsDailyDigestTemplate(ctx: OpsDigestContext): MailMessage {
   return {
     to: ctx.to,
     tag: 'ops.daily-digest',
-    subject: `[Verris] Raport floty — ${ctx.go ? 'GO' : 'NO-GO'} · ${ctx.nodesOffline} offline`,
+    subject: `[Verris] Raport floty – ${ctx.go ? 'GO' : 'NO-GO'} · ${ctx.nodesOffline} offline`,
     text,
     html,
   };
@@ -220,7 +220,7 @@ export function nodeRblAlertTemplate(ctx: NodeRblContext): MailMessage {
   const zonesList = ctx.zones.map((z) => `- \`${escapeMarkdown(z)}\``).join('\n');
   const { html, text } = renderEmailShell({
     title: `IP węzła ${ctx.nodeName} trafiło na blacklistę`,
-    preheader: 'Reputacja IP zagrożona — może to wpłynąć na dostarczalność poczty.',
+    preheader: 'Reputacja IP zagrożona – może to wpłynąć na dostarczalność poczty.',
     bodyMarkdown: [
       greeting,
       ``,
@@ -250,7 +250,7 @@ export function nodeRblClearedTemplate(ctx: NodeRblContext): MailMessage {
   const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: `IP węzła ${ctx.nodeName} czyste`,
-    preheader: 'IP zniknęło z blacklist — reputacja przywrócona.',
+    preheader: 'IP zniknęło z blacklist – reputacja przywrócona.',
     bodyMarkdown: [
       greeting,
       ``,
@@ -276,7 +276,7 @@ export function nodeRblNieznanyTemplate(ctx: NodeRblContext): MailMessage {
   const zonesList = ctx.zones.map((z) => `- \`${escapeMarkdown(z)}\``).join('\n');
   const { html, text } = renderEmailShell({
     title: `Nie udało się sprawdzić reputacji IP węzła ${ctx.nodeName}`,
-    preheader: 'Część blacklist nie odpowiedziała — stan reputacji IP nieznany.',
+    preheader: 'Część blacklist nie odpowiedziała – stan reputacji IP nieznany.',
     bodyMarkdown: [
       greeting,
       ``,
@@ -287,7 +287,7 @@ export function nodeRblNieznanyTemplate(ctx: NodeRblContext): MailMessage {
       `## Co zrobić`,
       ``,
       `1. Sprawdź IP ręcznie na stronie danej listy.`,
-      `2. Jeśli problem wraca: Spamhaus odmawia zapytań z publicznych resolverów (np. 1.1.1.1, 8.8.8.8), a Barracuda odpowiada tylko zarejestrowanym — API potrzebuje własnego resolvera albo rejestracji.`,
+      `2. Jeśli problem wraca: Spamhaus odmawia zapytań z publicznych resolverów (np. 1.1.1.1, 8.8.8.8), a Barracuda odpowiada tylko zarejestrowanym – API potrzebuje własnego resolvera albo rejestracji.`,
     ].join('\n'),
     cta: { label: 'Otwórz panel floty', url: `${ctx.panelUrl}/nodes` },
     footnote: 'Alert wysyłany najwyżej raz na dobę na węzeł. Otrzymują go wszyscy administratorzy.',
@@ -315,7 +315,7 @@ export function mailDeliveryFailureAlertTemplate(ctx: MailDeliveryFailureContext
   const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: `Rośnie odsetek nieudanych maili (${ctx.ratePct}%)`,
-    preheader: 'Wysyłka poczty systemowej zawodzi — sprawdź konfigurację SMTP.',
+    preheader: 'Wysyłka poczty systemowej zawodzi – sprawdź konfigurację SMTP.',
     bodyMarkdown: [
       greeting,
       ``,
@@ -326,7 +326,7 @@ export function mailDeliveryFailureAlertTemplate(ctx: MailDeliveryFailureContext
       `## Co sprawdzić`,
       ``,
       `1. Ustawienia poczty (SMTP host/login/hasło, tryb transportu).`,
-      `2. Dziennik EmailLog — kolumna błędu przy statusie FAILED.`,
+      `2. Dziennik EmailLog – kolumna błędu przy statusie FAILED.`,
       `3. Stan relaya (SES/Postfix) i limity/reputację nadawcy.`,
     ].join('\n'),
     cta: { label: 'Otwórz dziennik poczty', url: `${ctx.panelUrl}/settings/mail/log` },
@@ -370,7 +370,7 @@ export function webhookZacietyTemplate(ctx: WebhookZacietyContext): MailMessage 
   const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: 'Zdarzenie płatności nie zostało obsłużone',
-    preheader: `Stripe ${escapeMarkdown(ctx.typ)} — ${ctx.proby} nieudane próby.`,
+    preheader: `Stripe ${escapeMarkdown(ctx.typ)} – ${ctx.proby} nieudane próby.`,
     bodyMarkdown: [
       greeting,
       ``,
@@ -392,7 +392,7 @@ export function webhookZacietyTemplate(ctx: WebhookZacietyContext): MailMessage 
       `## Co zrobić`,
       ``,
       `1. Otwórz listę zaciętych zdarzeń w panelu admina.`,
-      `2. Przeczytaj błąd — jeśli przyczyna minęła (np. baza była chwilowo niedostępna),`,
+      `2. Przeczytaj błąd – jeśli przyczyna minęła (np. baza była chwilowo niedostępna),`,
       `   wystarczy „Ponów przetwarzanie".`,
       `3. Jeśli błąd wraca, sprawdź w Stripe, czy płatność faktycznie doszła,`,
       `   zanim zaczniesz cokolwiek księgować ręcznie.`,
@@ -448,7 +448,7 @@ export function fakturaNiedokonczonaTemplate(ctx: FakturaNiedokonczonaContext): 
       `**Faktura \`${escapeMarkdown(ctx.numer)}\` istnieje w bazie, ale nie udało się wygenerować`,
       `jej pliku PDF** mimo ${ctx.proby} prób. Klient jej nie dostał i nie pobierze jej z panelu.`,
       ``,
-      `Pieniądze zostały pobrane poprawnie — brakuje wyłącznie dokumentu.`,
+      `Pieniądze zostały pobrane poprawnie – brakuje wyłącznie dokumentu.`,
       ``,
       `- **Numer:** ${escapeMarkdown(ctx.numer)}`,
       `- **Kwota:** ${escapeMarkdown(ctx.kwota)}`,
@@ -464,7 +464,7 @@ export function fakturaNiedokonczonaTemplate(ctx: FakturaNiedokonczonaContext): 
       `## Co zrobić`,
       ``,
       `1. Najczęstsza przyczyna to niedostępny MinIO albo brak danych sprzedawcy`,
-      `   w ustawieniach platformy — sprawdź jedno i drugie.`,
+      `   w ustawieniach platformy – sprawdź jedno i drugie.`,
       `2. Po usunięciu przyczyny job spróbuje ponownie sam; można też wymusić`,
       `   z listy faktur w panelu.`,
       ``,
@@ -522,7 +522,7 @@ export function probaOdtworzeniaTemplate(ctx: ProbaOdtworzeniaContext): MailMess
       greeting,
       ``,
       ctx.blokuje
-        ? `**${escapeMarkdown(tytul)}** — i to jest twarda bramka startu sprzedaży, nie ostrzeżenie.`
+        ? `**${escapeMarkdown(tytul)}** – i to jest twarda bramka startu sprzedaży, nie ostrzeżenie.`
         : `**${escapeMarkdown(tytul)}.**`,
       ``,
       escapeMarkdown(ctx.komunikat),
@@ -535,11 +535,11 @@ export function probaOdtworzeniaTemplate(ctx: ProbaOdtworzeniaContext): MailMess
       'cd /opt/verris && ./ops/scripts/restore-drill-isolated.sh --owner "Imię Nazwisko"',
       '```',
       ``,
-      `Skrypt odtwarza kopię do OSOBNEJ bazy — produkcyjna nie jest dotykana. Sprawdza`,
+      `Skrypt odtwarza kopię do OSOBNEJ bazy – produkcyjna nie jest dotykana. Sprawdza`,
       `liczby wierszy w tabelach kontrolnych i zapisuje wynik razem z czasem trwania.`,
       `Ten czas to Twoje realne RTO; warto go znać przed awarią, a nie w jej trakcie.`,
       ``,
-      `Wynik — udany albo nie — pojawi się w panelu admina w gotowości do startu.`,
+      `Wynik – udany albo nie – pojawi się w panelu admina w gotowości do startu.`,
     ].join('\n'),
     cta: { label: 'Otwórz gotowość do startu', url: `${ctx.panelUrl}/settings/live-readiness` },
     footnote:
@@ -552,7 +552,7 @@ export function probaOdtworzeniaTemplate(ctx: ProbaOdtworzeniaContext): MailMess
     to: ctx.to,
     tag: 'ops.proba-odtworzenia',
     subject: ctx.blokuje
-      ? '[Verris] 🔴 Warstwa DR niepotwierdzona — próba odtworzenia'
+      ? '[Verris] 🔴 Warstwa DR niepotwierdzona – próba odtworzenia'
       : '[Verris] 🗄️ Zaplanuj próbę odtworzenia z kopii',
     text,
     html,
@@ -577,10 +577,10 @@ export function progOssTemplate(ctx: ProgOssContext): MailMessage {
     bodyMarkdown: [
       greeting,
       ``,
-      `Sprzedaż usług Verris konsumentom z innych krajów UE (rok bieżący albo poprzedni) wynosi **${escapeMarkdown(ctx.sprzedazPln)} zł** — **${ctx.procent}%** progu 42 000 zł (art. 28k ustawy o VAT).`,
+      `Sprzedaż usług Verris konsumentom z innych krajów UE (rok bieżący albo poprzedni) wynosi **${escapeMarkdown(ctx.sprzedazPln)} zł** – **${ctx.procent}%** progu 42 000 zł (art. 28k ustawy o VAT).`,
       ``,
       ctx.przekroczony
-        ? `Od przekroczenia progu takie usługi opodatkowuje się w kraju klienta. Panel nadal wystawia dokumenty z 23%, bo OSS nie jest włączony — **zarejestruj się w VAT OSS i włącz ustawienie \`vat.ossWlaczone\`**, a panel zacznie stosować stawki krajów klientów.`
+        ? `Od przekroczenia progu takie usługi opodatkowuje się w kraju klienta. Panel nadal wystawia dokumenty z 23%, bo OSS nie jest włączony – **zarejestruj się w VAT OSS i włącz ustawienie \`vat.ossWlaczone\`**, a panel zacznie stosować stawki krajów klientów.`
         : `Po przekroczeniu progu trzeba będzie stosować stawki krajów klientów przez VAT OSS. Warto złożyć zgłoszenie z wyprzedzeniem.`,
       ``,
       `Skonsultuj termin rejestracji z księgową.`,
@@ -618,7 +618,7 @@ export function zadaniaZalegleTemplate(ctx: ZadaniaZalegleContext): MailMessage 
       ``,
       ...ctx.zadania.map(
         (z) =>
-          `- **${escapeMarkdown(z.nazwa)}** (\`${escapeMarkdown(z.harmonogram)}\`) — ostatnio: ${z.ostatnio ? fmt(z.ostatnio) : 'brak przebiegu w ostatnich 30 dniach'}`,
+          `- **${escapeMarkdown(z.nazwa)}** (\`${escapeMarkdown(z.harmonogram)}\`) – ostatnio: ${z.ostatnio ? fmt(z.ostatnio) : 'brak przebiegu w ostatnich 30 dniach'}`,
       ),
       ``,
       `## Co sprawdzić`,
@@ -661,7 +661,7 @@ export function alarmOpsTemplate(ctx: AlarmOpsContext): MailMessage {
     preheader: ctx.tresc.split('\n')[0].slice(0, 140),
     bodyMarkdown: [greeting, '', ...ctx.tresc.split('\n').map((l) => escapeMarkdown(l)), '', `_Czas: ${escapeMarkdown(fmt(new Date()))}_`].join('\n'),
     cta: { label: 'Otwórz w panelu', url: ctx.url },
-    footnote: 'Alarm operacyjny — otrzymują go wszyscy administratorzy. Ten sam alarm nie powtarza się w oknie deduplikacji.',
+    footnote: 'Alarm operacyjny – otrzymują go wszyscy administratorzy. Ten sam alarm nie powtarza się w oknie deduplikacji.',
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,
     category: 'TRANSACTIONAL',

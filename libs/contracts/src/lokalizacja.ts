@@ -15,4 +15,4 @@ export const REGIONY_DANYCH = {
 
 export type RegionDanych = keyof typeof REGIONY_DANYCH;
 
-export const LOKALIZACJA_OGOLNA = 'Europejski Obszar Gospodarczy — centra danych w Niemczech lub Finlandii';
+export const LOKALIZACJA_OGOLNA = 'Europejski Obszar Gospodarczy – centra danych w Niemczech lub Finlandii';

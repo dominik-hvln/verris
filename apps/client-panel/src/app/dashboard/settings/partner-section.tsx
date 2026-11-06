@@ -27,7 +27,7 @@ export function PartnerSection({
 
   const odepnij = async () => {
     const ok = await potwierdz(
-      `Odpiąć konto od ${partner.nazwa}? Zostaniesz bezpośrednim klientem Verris — konto, usługi, dane i płatności zostają bez zmian. Partner przestanie widzieć Twoje usługi i dostanie o tym informację.`,
+      `Odpiąć konto od ${partner.nazwa}? Zostaniesz bezpośrednim klientem Verris – konto, usługi, dane i płatności zostają bez zmian. Partner przestanie widzieć Twoje usługi i dostanie o tym informację.`,
       { akcja: "Odepnij", niebezpieczne: true, tytul: "Odpięcie od partnera" },
     );
     if (!ok) return;

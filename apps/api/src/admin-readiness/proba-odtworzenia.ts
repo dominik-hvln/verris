@@ -124,7 +124,7 @@ export function ocenProby(
       dniDoTerminu: doTerminu,
       blokuje: true,
       komunikat:
-        `Ostatnia udana próba odtworzenia ma ${wiek} dni — termin ważności to ` +
+        `Ostatnia udana próba odtworzenia ma ${wiek} dni – termin ważności to ` +
         `${MAKS_WIEK_PROBY_DNI} dni. Odtworzenie sprzed schematu, którego już nie ma, ` +
         'nie dowodzi niczego o dzisiejszej kopii.',
     };
@@ -138,7 +138,7 @@ export function ocenProby(
       blokuje: false,
       komunikat:
         `Udana próba sprzed ${wiek} dni. Termin ważności upływa za ${doTerminu} ` +
-        `${doTerminu === 1 ? 'dzień' : 'dni'} — zaplanuj kolejną.`,
+        `${doTerminu === 1 ? 'dzień' : 'dni'} – zaplanuj kolejną.`,
     };
   }
 

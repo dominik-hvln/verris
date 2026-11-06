@@ -25,7 +25,7 @@ function ctx(user: unknown, method: string, path: string) {
 const subkonto = { userId: 'owner', principalUserId: 'sub', customerOwnerId: 'owner', customerPermissions: ['SERVICES_READ'], serviceScope: [] };
 const guard = () => new JwtAuthGuard({ getAllAndOverride: () => undefined } as unknown as Reflector);
 
-describe('JwtAuthGuard — uprawnienia subkonta po zalogowaniu', () => {
+describe('JwtAuthGuard – uprawnienia subkonta po zalogowaniu', () => {
   afterEach(() => vi.restoreAllMocks());
 
   it('subkonto z samym podglądem usług nie kupi usługi', async () => {
@@ -48,7 +48,7 @@ describe('JwtAuthGuard — uprawnienia subkonta po zalogowaniu', () => {
 });
 
 describe('kontrolery logują tylko przez JwtAuthGuard', () => {
-  it("nikt nie używa gołego AuthGuard('jwt') — ominąłby uprawnienia subkonta", async () => {
+  it("nikt nie używa gołego AuthGuard('jwt') – ominąłby uprawnienia subkonta", async () => {
     const { readdirSync, readFileSync } = await import('node:fs');
     const pliki = readdirSync(new URL('../../', import.meta.url), { recursive: true, encoding: 'utf8' })
       .filter((p) => p.endsWith('.ts') && !p.endsWith('.spec.ts') && !p.endsWith('jwt-auth.guard.ts'));

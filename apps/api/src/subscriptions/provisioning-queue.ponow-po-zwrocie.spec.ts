@@ -6,7 +6,7 @@ import { ProvisioningQueueService } from './provisioning-queue.service.js';
  * przyjmuje PENDING_PAYMENT i ustawia ACTIVE (provisioning.service.ts:316) — usługa aktywna, opłata zwrócona, a bez
  * currentPeriodEnd odnowienie (renewal.scheduler.ts:112, currentPeriodEnd lte) nigdy jej nie obejmie.
  */
-describe('Kolejka zakładania — „Ponów” po zwrocie opłaty', () => {
+describe('Kolejka zakładania – „Ponów” po zwrocie opłaty', () => {
   it('job „wallet” zamówienia ze zwrotem (sub-<id>-initial-refund) nie zakłada konta', async () => {
     const sub: Record<string, unknown> = { id: 's1', status: 'PENDING_PAYMENT', currentPeriodStart: null, currentPeriodEnd: null };
     const prisma = {

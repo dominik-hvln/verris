@@ -2,7 +2,7 @@ import { BadRequestException } from '@nestjs/common';
 import { normalizujKatalogDocroot, odczytajDocroot, zapiszDocroot } from './docroot.js';
 import { DirectAdminService } from './directadmin.service.js';
 
-describe('A-06 — katalog główny domeny (Custom HTTPD)', () => {
+describe('A-06 – katalog główny domeny (Custom HTTPD)', () => {
   it.each([
     ['', ''],
     ['/public/', 'public'],
@@ -38,7 +38,7 @@ describe('A-06 — katalog główny domeny (Custom HTTPD)', () => {
   });
 });
 
-describe('DirectAdminService — A-06 docroot', () => {
+describe('DirectAdminService – A-06 docroot', () => {
   function stanowisko(o: { config?: string | null; wpisy?: unknown[] } = {}) {
     const svc = new DirectAdminService({} as never, {} as never, {} as never, { record: vi.fn() } as never);
     const post = vi.fn(async () => ({ data: 'error=0&text=ok' }));

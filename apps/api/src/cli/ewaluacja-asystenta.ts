@@ -45,7 +45,7 @@ async function main() {
       if (!bledy.length) zaliczone++;
       console.log(`\n${bledy.length ? '✗' : '✓'} ${p.id} [${p.kategoria}] ${p.pytanie}`);
       console.log(`  → ${w.odpowiedz}`);
-      console.log(`  źródła: ${w.zrodla.map((z) => z.id).join(', ') || '—'} · nieWiem: ${w.nieWiem} · koszt: $${w.kosztUsd.toFixed(5)}`);
+      console.log(`  źródła: ${w.zrodla.map((z) => z.id).join(', ') || '–'} · nieWiem: ${w.nieWiem} · koszt: $${w.kosztUsd.toFixed(5)}`);
       for (const b of bledy) console.log(`  ! ${b}`);
       if (p.uwaga) console.log(`  (uwaga: ${p.uwaga})`);
     } catch (e) {

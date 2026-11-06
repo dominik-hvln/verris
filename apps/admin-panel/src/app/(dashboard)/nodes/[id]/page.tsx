@@ -69,7 +69,7 @@ const STATUS: Record<string, string> = {
 
 /** MB → „41 GB” / „1,2 TB” (jak w makiecie). */
 function rozmiar(mb: number | null | undefined, jednostka?: "GB" | "TB"): string {
-  if (mb == null) return "—";
+  if (mb == null) return "–";
   const tb = (jednostka ?? (mb >= 1024 * 1024 ? "TB" : "GB")) === "TB";
   const v = mb / 1024 / (tb ? 1024 : 1);
   return v.toLocaleString("pl-PL", { maximumFractionDigits: v < 10 ? 1 : 0 });
@@ -157,9 +157,9 @@ export default async function ServerDetailPage({
             {p ? (
               <span className="text-muted-foreground">
                 {[
-                  p.wersje.cloudlinux ? `CloudLinux ${p.wersje.cloudlinux}` : "CloudLinux — brak raportu",
+                  p.wersje.cloudlinux ? `CloudLinux ${p.wersje.cloudlinux}` : "CloudLinux – brak raportu",
                   p.wersje.directadmin ? `DirectAdmin ${p.wersje.directadmin}` : null,
-                  `manifest ${p.wersje.manifest ?? "—"}${p.wersje.manifest && p.wersje.manifest !== p.manifestFloty ? ` (flota: ${p.manifestFloty})` : ""}`,
+                  `manifest ${p.wersje.manifest ?? "–"}${p.wersje.manifest && p.wersje.manifest !== p.manifestFloty ? ` (flota: ${p.manifestFloty})` : ""}`,
                   `sygnał ${p.sygnal}`,
                 ]
                   .filter(Boolean)
@@ -191,9 +191,9 @@ export default async function ServerDetailPage({
         <RzadKpi etykieta="Zasoby węzła">
           <Kpi
             etykieta="CPU realne"
-            wartosc={z.cpu.proc ?? "—"}
-            jednostka={z.cpu.rdzenie ? `% z ${z.cpu.rdzenie} ${plForm(z.cpu.rdzenie, "rdzenia", "rdzeni", "rdzeni")}` : "% — brak liczby rdzeni"}
-            opis={z.cpu.proc == null ? (z.konta.razem === 0 ? "brak kont — zużycie (LVE) pojawi się po pierwszym koncie" : "brak próbek z ostatnich 10 min") : `sprzedane ${z.cpu.sprzedane?.toLocaleString("pl-PL") ?? "—"}× · limit ${z.cpu.limit.toLocaleString("pl-PL")}×`}
+            wartosc={z.cpu.proc ?? "–"}
+            jednostka={z.cpu.rdzenie ? `% z ${z.cpu.rdzenie} ${plForm(z.cpu.rdzenie, "rdzenia", "rdzeni", "rdzeni")}` : "% – brak liczby rdzeni"}
+            opis={z.cpu.proc == null ? (z.konta.razem === 0 ? "brak kont – zużycie (LVE) pojawi się po pierwszym koncie" : "brak próbek z ostatnich 10 min") : `sprzedane ${z.cpu.sprzedane?.toLocaleString("pl-PL") ?? "–"}× · limit ${z.cpu.limit.toLocaleString("pl-PL")}×`}
           >
             <Pasek proc={z.cpu.proc ?? 0} ton={(z.cpu.proc ?? 0) >= 60 ? "warn" : "ok"} />
           </Kpi>
@@ -253,7 +253,7 @@ export default async function ServerDetailPage({
                 <Link href={`/nodes/wizard?server=${server.id}&step=bootstrap`} className="underline">
                   kreatorze węzła
                 </Link>{" "}
-                — kreator prowadzi dalej przez akceptację, backup offsite, Onboard LIVE i profil hostingowy.
+                – kreator prowadzi dalej przez akceptację, backup offsite, Onboard LIVE i profil hostingowy.
               </p>
               <NodeBootstrapProgress serverId={server.id} />
             </section>
@@ -312,7 +312,7 @@ export default async function ServerDetailPage({
             <StraznikPanel serverId={server.id} isAdmin={dostep.isAdmin} />
             {wymaga("uslugi-wezla") ? (
               <p className="text-sm text-muted-foreground" data-zablokowane={wymaga("uslugi-wezla") ?? ""}>
-                {wymaga("uslugi-wezla")} — usługi i logi węzła są dla zespołu NOC.
+                {wymaga("uslugi-wezla")} – usługi i logi węzła są dla zespołu NOC.
               </p>
             ) : (
               <UslugiWezlaPanel serverId={server.id} nazwaWezla={server.name ?? server.hostname ?? server.ipAddress ?? server.id} isAdmin={dostep.isAdmin} />
@@ -329,7 +329,7 @@ export default async function ServerDetailPage({
           wymaga("kolejka-poczty") ? (
             // Bez uprawnienia panel się nie ładuje — sam odczyt to nagłówki poczty wszystkich klientów węzła.
             <p className="text-sm text-muted-foreground" data-zablokowane={wymaga("kolejka-poczty") ?? ""}>
-              {wymaga("kolejka-poczty")} — kolejka poczty węzła jest dla zespołu NOC.
+              {wymaga("kolejka-poczty")} – kolejka poczty węzła jest dla zespołu NOC.
             </p>
           ) : (
             <>
@@ -355,7 +355,7 @@ export default async function ServerDetailPage({
               {wymaga("blokady-ip") ? (
                 // Bez uprawnienia panel się nie ładuje — lista to adresy wszystkich klientów węzła.
                 <p className="text-sm text-muted-foreground" data-zablokowane={wymaga("blokady-ip") ?? ""}>
-                  {wymaga("blokady-ip")} — blokady IP węzła są dla zespołu NOC; „Zablokowało mi IP” klienta jest na karcie usługi.
+                  {wymaga("blokady-ip")} – blokady IP węzła są dla zespołu NOC; „Zablokowało mi IP” klienta jest na karcie usługi.
                 </p>
               ) : (
                 <BlokadyIpWezlaPanel serverId={server.id} />
@@ -433,8 +433,8 @@ export default async function ServerDetailPage({
           <section className={`${KARTA} flex flex-col gap-2 p-5`} aria-label="Tożsamość węzła">
             <h2 className="font-display text-[17px] font-bold">Tożsamość węzła</h2>
             <DefRow label="ID" value={<code className="font-mono text-xs">{server.id}</code>} />
-            <DefRow label="Hostname" value={server.hostname ?? "—"} />
-            <DefRow label="Agent" value={server.agentVersion ?? "—"} />
+            <DefRow label="Hostname" value={server.hostname ?? "–"} />
+            <DefRow label="Agent" value={server.agentVersion ?? "–"} />
             <DefRow label="Ostatni handshake" value={server.lastHandshakeAt ? new Date(server.lastHandshakeAt).toLocaleString("pl-PL") : "brak"} />
             {server.notes && <DefRow label="Notatki" value={server.notes} />}
           </section>

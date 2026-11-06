@@ -38,6 +38,6 @@ export function wstawMarke(html: string | undefined, text: string | undefined, m
   const doI = html?.indexOf(ZNACZNIK_PARTNERA_DO) ?? -1;
   const nowyHtml =
     html && od >= 0 && doI > od ? html.slice(0, od + ZNACZNIK_PARTNERA_OD.length) + blokPartnera(m) + html.slice(doI) : html;
-  const nowyText = text && nowyHtml !== html ? `${text}\n\n— ${m.nazwa}, na infrastrukturze Verris` : text;
+  const nowyText = text && nowyHtml !== html ? `${text}\n\n– ${m.nazwa}, na infrastrukturze Verris` : text;
   return { html: nowyHtml, text: nowyText };
 }

@@ -36,7 +36,7 @@ export function adminCreditNotificationTemplate(ctx: AdminCreditContext): MailMe
       ``,
       `${escapeMarkdown(ctx.newBalance)} K`,
       ``,
-      `Środki są dostępne natychmiast — możesz wykorzystać je na opłacenie subskrypcji, autoskalowanie lub inne usługi w panelu.`,
+      `Środki są dostępne natychmiast – możesz wykorzystać je na opłacenie subskrypcji, autoskalowanie lub inne usługi w panelu.`,
     ].join('\n'),
     cta: {
       label: 'Otwórz portfel',

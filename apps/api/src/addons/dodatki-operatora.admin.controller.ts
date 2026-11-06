@@ -44,7 +44,7 @@ export class DodatkiOperatoraAdminController {
     const s = await this.prisma.subscription.findUnique({ where: { id }, select: { userId: true, user: { select: { role: true } } } });
     if (!s) throw new NotFoundException('Usługa nie istnieje.');
     if (actor.role !== 'ADMIN' && s.user?.role !== 'USER') {
-      throw new ForbiddenException('Personel widzi dodatki wyłącznie usług klientów — usługę konta zespołu sprawdza administrator.');
+      throw new ForbiddenException('Personel widzi dodatki wyłącznie usług klientów – usługę konta zespołu sprawdza administrator.');
     }
     return this.addons.overview(s.userId);
   }

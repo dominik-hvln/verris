@@ -20,7 +20,7 @@ export async function zgloszenieKlienta(prisma: PrismaService, klientId: string,
     take: 2,
   });
   if (trafienia.length === 0) throw new BadRequestException('Nie ma takiego zgłoszenia u tego klienta.');
-  if (trafienia.length > 1) throw new BadRequestException('Numer pasuje do kilku zgłoszeń — wklej pełny identyfikator.');
+  if (trafienia.length > 1) throw new BadRequestException('Numer pasuje do kilku zgłoszeń – wklej pełny identyfikator.');
   return trafienia[0]!.id;
 }
 
@@ -77,21 +77,21 @@ export async function wymagajProsbyKlienta(
   const ostatnia = t ? [...(trescOdKlienta(t) ? [t.createdAt] : []), ...t.replies.map((r) => r.createdAt)].sort((a, b) => b.getTime() - a.getTime())[0] : undefined;
   if (!t || !ostatnia) {
     throw new ForbiddenException(
-      `${operacja} tylko na prośbę klienta z panelu — zgłoszenie ${nr} nie ma wiadomości klienta zalogowanego w panelu (założyła je obsługa, przyszło e-mailem albo powstało w podglądzie konta). Poproś klienta o odpowiedź w tym zgłoszeniu z panelu.`,
+      `${operacja} tylko na prośbę klienta z panelu – zgłoszenie ${nr} nie ma wiadomości klienta zalogowanego w panelu (założyła je obsługa, przyszło e-mailem albo powstało w podglądzie konta). Poproś klienta o odpowiedź w tym zgłoszeniu z panelu.`,
     );
   }
   if (t.subscriptionId && t.subscriptionId !== sprawa.subscriptionId) {
-    throw new ForbiddenException(`${operacja} tylko na prośbę klienta w sprawie tej usługi — zgłoszenie ${nr} dotyczy innej usługi. Poproś klienta o zgłoszenie z panelu w sprawie tej usługi.`);
+    throw new ForbiddenException(`${operacja} tylko na prośbę klienta w sprawie tej usługi – zgłoszenie ${nr} dotyczy innej usługi. Poproś klienta o zgłoszenie z panelu w sprawie tej usługi.`);
   }
   if (t.status === 'CLOSED') {
-    throw new ForbiddenException(`${operacja} tylko na aktualną prośbę klienta — zgłoszenie ${nr} jest zamknięte. Poproś klienta o nowe zgłoszenie albo odpowiedź z panelu.`);
+    throw new ForbiddenException(`${operacja} tylko na aktualną prośbę klienta – zgłoszenie ${nr} jest zamknięte. Poproś klienta o nowe zgłoszenie albo odpowiedź z panelu.`);
   }
   const od = Math.max(teraz.getTime() - PROSBA_KLIENTA_WAZNA_DNI * 86_400_000, sprawa.nowszaNiz?.getTime() ?? 0);
   if (ostatnia.getTime() < od) {
     throw new ForbiddenException(
       sprawa.nowszaNiz && sprawa.nowszaNiz.getTime() >= teraz.getTime() - PROSBA_KLIENTA_WAZNA_DNI * 86_400_000
-        ? `${operacja} tylko na prośbę klienta złożoną po jego rezygnacji — ostatnia wiadomość klienta z panelu w zgłoszeniu ${nr} jest starsza. Poproś klienta o odpowiedź w zgłoszeniu z panelu.`
-        : `${operacja} tylko na aktualną prośbę klienta — ostatnia wiadomość klienta z panelu w zgłoszeniu ${nr} ma ponad ${PROSBA_KLIENTA_WAZNA_DNI} dni. Poproś klienta o odpowiedź w zgłoszeniu z panelu.`,
+        ? `${operacja} tylko na prośbę klienta złożoną po jego rezygnacji – ostatnia wiadomość klienta z panelu w zgłoszeniu ${nr} jest starsza. Poproś klienta o odpowiedź w zgłoszeniu z panelu.`
+        : `${operacja} tylko na aktualną prośbę klienta – ostatnia wiadomość klienta z panelu w zgłoszeniu ${nr} ma ponad ${PROSBA_KLIENTA_WAZNA_DNI} dni. Poproś klienta o odpowiedź w zgłoszeniu z panelu.`,
     );
   }
 }

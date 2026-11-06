@@ -19,7 +19,7 @@ const lista: ListaNieudanych = {
   ucieto: false,
   wiersze: [
     { id: "auto:1", zrodlo: "AUTO_DOLADOWANIE", kiedy: "2026-10-10T08:00:00Z", klient: { id: UID, email: "anna@test.pl" }, kwota: "100.00", waluta: "PLN", status: "ODRZUCONA", powod: "Bank odrzucił płatność kartą.", referencja: null, ponowienie: { mozliwe: true, uwaga: "Obciąży zapisaną kartę klienta kwotą z jego reguły." } },
-    { id: "paynow:2", zrodlo: "PAYNOW", kiedy: "2026-10-09T08:00:00Z", klient: { id: UID, email: "anna@test.pl" }, kwota: "25.00", waluta: "PLN", status: "REJECTED", powod: "Płatność odrzucona.", referencja: "PN-1", ponowienie: { mozliwe: false, uwaga: "Płatność online ponawia klient — w panelu zleca nowe doładowanie." } },
+    { id: "paynow:2", zrodlo: "PAYNOW", kiedy: "2026-10-09T08:00:00Z", klient: { id: UID, email: "anna@test.pl" }, kwota: "25.00", waluta: "PLN", status: "REJECTED", powod: "Płatność odrzucona.", referencja: "PN-1", ponowienie: { mozliwe: false, uwaga: "Płatność online ponawia klient – w panelu zleca nowe doładowanie." } },
   ],
 };
 function odpowiedzi(permissions: string[]) {
@@ -38,7 +38,7 @@ const windykacja: WindykacjaFloty = {
       id: "s1", userId: UID, email: "anna@test.pl", saldo: "5.00", usluga: "Hosting · sklep.pl", status: "ACTIVE", zrodlo: "WALLET",
       koniecOkresu: "2030-01-03T08:00:00Z", obietnicaDo: null, ostatniaNieudana: null, kwotaOdnowienia: "45.00", brakuje: "40.00",
       etap: "odnowienie", probaOdnowienia: "2030-01-02T08:00:00Z", zawieszenie: "2030-01-03T08:00:00Z", wygasniecie: null,
-      uwaga: "Odnowienie z portfela — przy braku środków zawieszenie z końcem opłaconego okresu.",
+      uwaga: "Odnowienie z portfela – przy braku środków zawieszenie z końcem opłaconego okresu.",
     },
     {
       id: "s2", userId: UID, email: "anna@test.pl", saldo: "5.00", usluga: "Hosting · blog.pl", status: "SUSPENDED", zrodlo: "WALLET",
@@ -57,7 +57,7 @@ it("Finanse (BILLING_MANAGE): lista z przejściem do klienta i „Ponów” tylk
   expect(html).toContain("2 płatności");
 });
 
-it("L1 (BILLING_VIEW): widzi listę, bez „Ponów” — mówi, czego brakuje", async () => {
+it("L1 (BILLING_VIEW): widzi listę, bez „Ponów” – mówi, czego brakuje", async () => {
   odpowiedzi(["BILLING_VIEW"]);
   const html = renderToStaticMarkup(await Nieudane({ searchParams: Promise.resolve({}) }));
   expect(html).not.toContain('data-akcja="ponow"');

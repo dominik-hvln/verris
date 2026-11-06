@@ -43,7 +43,7 @@ async function dane() {
   return { op, inny, anna, jan, ids, teraz };
 }
 
-describe('F2.5 — skrzynka zgłoszeń (PostgreSQL)', () => {
+describe('F2.5 – skrzynka zgłoszeń (PostgreSQL)', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 

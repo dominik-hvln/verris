@@ -111,7 +111,7 @@ export async function sprawdzAdresy(adresy: string[], opcje: OpcjeLookup = {}): 
   if (!adresy.length || adresy.some((a) => isPrivateOrReservedIp(a))) {
     return blad('Webhook URL resolves to a private or reserved address.', 'EPRIVATE');
   }
-  const serwerVerris = blad('Adres wskazuje na serwer Verris — odrzucono.', 'EVERRIS');
+  const serwerVerris = blad('Adres wskazuje na serwer Verris – odrzucono.', 'EVERRIS');
   try {
     if (adresy.some((a) => isControlPlaneIp(a))) return serwerVerris;
     if (opcje.wezly === 'dozwolone') return null;
@@ -176,7 +176,7 @@ function plikZakresow(): string {
     join(import.meta.dirname, '../../../..', wzgledna),
   ];
   for (const p of kandydaci) if (existsSync(p)) return readFileSync(p, 'utf8');
-  throw new Error(`Brak ${wzgledna} — lista adresów zastrzeżonych (SSRF) jest wymagana.`);
+  throw new Error(`Brak ${wzgledna} – lista adresów zastrzeżonych (SSRF) jest wymagana.`);
 }
 
 // Bez ::ffff:0:0/96 — BlockList sprawdza IPv4 także względem reguł IPv6 (jako ::ffff:a.b.c.d),

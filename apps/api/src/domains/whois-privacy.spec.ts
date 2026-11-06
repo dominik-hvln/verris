@@ -39,8 +39,8 @@ function zbuduj(opcje: { cena: string | null; domena?: Record<string, unknown>; 
   return { service, prisma, db, wallet, audit, provider };
 }
 
-describe('A-14 — włączenie ukrycia danych w WHOIS', () => {
-  it('bez ceny w ustawieniach usługa niedostępna — bez opłaty i bez rejestratora', async () => {
+describe('A-14 – włączenie ukrycia danych w WHOIS', () => {
+  it('bez ceny w ustawieniach usługa niedostępna – bez opłaty i bez rejestratora', async () => {
     const { service, wallet, provider } = zbuduj({ cena: null });
     await expect(service.setWhoisPrivacy('u1', 'u1', 'd1', true)).rejects.toThrow('nie jest jeszcze dostępne');
     expect(wallet.debit).not.toHaveBeenCalled();
@@ -56,7 +56,7 @@ describe('A-14 — włączenie ukrycia danych w WHOIS', () => {
     await expect(service.setWhoisPrivacy('u1', 'u1', 'd1', true)).resolves.toEqual({ whoisPrivacy: true });
     expect(kolejnosc).toEqual(['portfel', 'rejestrator']);
     expect(wallet.debit).toHaveBeenCalledWith(expect.objectContaining({
-      amount: '39.98', description: 'Ukrycie danych w WHOIS — jan.com (2 lata)', idempotencyKey: 'domain-whois_privacy:o1',
+      amount: '39.98', description: 'Ukrycie danych w WHOIS – jan.com (2 lata)', idempotencyKey: 'domain-whois_privacy:o1',
     }));
     expect(db.domainRegistrarOrder.create).toHaveBeenCalledWith({ data: expect.objectContaining({ type: 'WHOIS_PRIVACY', years: 2 }) });
     expect(provider.setWhoisPrivacy).toHaveBeenCalledWith('777', true);
@@ -118,14 +118,14 @@ describe('A-14 — włączenie ukrycia danych w WHOIS', () => {
   it('awaria rejestratora innego rodzaju → zwrot, błąd bez przekłamania', async () => {
     const { service, wallet } = zbuduj({
       cena: '19.99',
-      provider: { setWhoisPrivacy: vi.fn().mockRejectedValue(new Error('Rejestr domen nie odpowiada — spróbuj za chwilę.')) },
+      provider: { setWhoisPrivacy: vi.fn().mockRejectedValue(new Error('Rejestr domen nie odpowiada – spróbuj za chwilę.')) },
     });
     await expect(service.setWhoisPrivacy('u1', 'u1', 'd1', true)).rejects.toThrow('nie odpowiada');
     expect(wallet.credit).toHaveBeenCalled();
   });
 });
 
-describe('A-14 — wyłączenie i odnowienie', () => {
+describe('A-14 – wyłączenie i odnowienie', () => {
   it('wyłączenie: rejestrator + stan + audyt, bez opłaty i bez zwrotu', async () => {
     const { service, wallet, provider, prisma, audit } = zbuduj({ cena: '19.99', domena: { whoisPrivacy: true } });
     await expect(service.setWhoisPrivacy('u1', 'u1', 'd1', false)).resolves.toEqual({ whoisPrivacy: false });
@@ -136,7 +136,7 @@ describe('A-14 — wyłączenie i odnowienie', () => {
     expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'DOMAIN_WHOIS_PRIVACY_DISABLED' }));
   });
 
-  it('odnowienie domeny z ukryciem danych dolicza cenę × lata — w wycenie osobno, w portfelu jedno obciążenie', async () => {
+  it('odnowienie domeny z ukryciem danych dolicza cenę × lata – w wycenie osobno, w portfelu jedno obciążenie', async () => {
     const bez = zbuduj({ cena: '19.99' });
     const z = zbuduj({ cena: '19.99', domena: { whoisPrivacy: true } });
     const qBez = await bez.service.renewQuote('u1', 'd1', 2);
@@ -180,7 +180,7 @@ describe('A-14 — wyłączenie i odnowienie', () => {
   });
 });
 
-describe('A-14 — OpenProvider: is_private_whois_enabled', () => {
+describe('A-14 – OpenProvider: is_private_whois_enabled', () => {
   const cfg: Record<string, string> = {
     REGISTRAR_PROVIDER: 'openprovider', OPENPROVIDER_USERNAME: 'u', OPENPROVIDER_PASSWORD: 'p', OPENPROVIDER_OWNER_HANDLE: 'H',
   };
@@ -208,7 +208,7 @@ describe('A-14 — OpenProvider: is_private_whois_enabled', () => {
   });
 });
 
-describe('A-14 — przegląd 15.10: drugie kliknięcie po zakończeniu pierwszego', () => {
+describe('A-14 – przegląd 15.10: drugie kliknięcie po zakończeniu pierwszego', () => {
   it('stan czytany pod blokadą: ukrycie już włączone (pierwsze żądanie skończyło) → bez zamówienia i bez drugiej opłaty', async () => {
     const { service, wallet, provider, db } = zbuduj({ cena: '19.99' });
     // Żądanie B przeczytało domenę z whoisPrivacy=false, ale pod blokadą widzi już stan po żądaniu A.

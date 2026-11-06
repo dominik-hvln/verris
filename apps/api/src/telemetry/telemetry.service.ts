@@ -67,7 +67,7 @@ export class TelemetryService {
       ? await this.prisma.server.findUnique({ where: { id: data.serverId }, select: { aktualizacje: true, name: true, hostname: true } })
       : null;
     if (data.aktualizacje !== undefined && !aktualizacje) {
-      this.logger.warn(`Nieczytelny raport aktualizacji z server=${data.serverId} — pominięty`);
+      this.logger.warn(`Nieczytelny raport aktualizacji z server=${data.serverId} – pominięty`);
     }
 
     await this.prisma.server.update({

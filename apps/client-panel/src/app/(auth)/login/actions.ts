@@ -57,7 +57,7 @@ export async function submitLogin(
       body: JSON.stringify({ email, password, captchaToken }),
     });
     if (data.twoFactorRequired) {
-      if (!data.challengeToken) return { error: "Brak tokenu 2FA — spróbuj ponownie." };
+      if (!data.challengeToken) return { error: "Brak tokenu 2FA – spróbuj ponownie." };
       return { twoFactorRequired: true, challengeToken: data.challengeToken, email, next };
     }
     if (data.access_token) {
@@ -78,14 +78,14 @@ export async function submitLogin(
       // pokazywał „Nieprawidłowe dane logowania” i współpracownik próbował resetu hasła.
       if (msg.includes("subkonto zostało wyłączone")) {
         return {
-          error: "Właściciel konta wyłączył Twój dostęp. Skontaktuj się z osobą, która Cię zaprosiła — może go przywrócić.",
+          error: "Właściciel konta wyłączył Twój dostęp. Skontaktuj się z osobą, która Cię zaprosiła – może go przywrócić.",
           email,
         };
       }
       if (msg.includes("potwierdź adres e-mail")) {
         return {
           error:
-            "Zanim się zalogujesz, potwierdź adres e-mail — sprawdź skrzynkę (także folder spam) lub wyślij link ponownie.",
+            "Zanim się zalogujesz, potwierdź adres e-mail – sprawdź skrzynkę (także folder spam) lub wyślij link ponownie.",
           emailUnverified: true,
           email,
         };

@@ -1,8 +1,8 @@
 ---
-title: "Bezpieczeństwo WordPressa — 10 rzeczy, które musisz ustawić"
+title: "Bezpieczeństwo WordPressa – 10 rzeczy, które musisz ustawić"
 slug: "bezpieczenstwo-wordpressa"
 excerpt: "Większość włamań na WordPressa to nie wyrafinowany atak, tylko nieaktualna wtyczka i słabe hasło. Dziesięć ustawień, które zamykają najczęstsze furtki."
-metaTitle: "Bezpieczeństwo WordPressa — 10 rzeczy do ustawienia | Verris"
+metaTitle: "Bezpieczeństwo WordPressa – 10 rzeczy do ustawienia | Verris"
 metaDescription: "Jak zabezpieczyć WordPressa: aktualizacje, hasła i 2FA, ograniczenie logowania, kopie zapasowe, SSL, uprawnienia plików. Praktyczna lista bez ściemy."
 keyword: "bezpieczeństwo wordpress"
 cluster: "WordPress"
@@ -11,11 +11,11 @@ status: "draft"
 faq: [{"q": "Czy hosting zabezpieczy mnie sam?", "a": "Hosting odpowiada za izolację kont, szyfrowanie i kopie. Za wtyczki, hasła i uprawnienia odpowiadasz Ty."}, {"q": "Co zrobić po włamaniu?", "a": "Przywróć czystą kopię zapasową, zmień wszystkie hasła, zaktualizuj wszystko i dopiero potem szukaj przyczyny."}]
 ---
 
-# Bezpieczeństwo WordPressa — 10 rzeczy, które musisz ustawić
+# Bezpieczeństwo WordPressa – 10 rzeczy, które musisz ustawić
 
-**W skrócie:** zdecydowana większość przejęć stron na WordPressie wynika z nieaktualnych wtyczek, słabych haseł i braku kopii zapasowej. Nie potrzebujesz eksperta od bezpieczeństwa — potrzebujesz dyscypliny w dziesięciu prostych punktach.
+**W skrócie:** zdecydowana większość przejęć stron na WordPressie wynika z nieaktualnych wtyczek, słabych haseł i braku kopii zapasowej. Nie potrzebujesz eksperta od bezpieczeństwa – potrzebujesz dyscypliny w dziesięciu prostych punktach.
 
-## 1. Aktualizuj — WordPressa, motyw i wtyczki
+## 1. Aktualizuj – WordPressa, motyw i wtyczki
 
 To jedno działanie eliminuje większość ryzyka. Aktualizuj regularnie, ale **zawsze po kopii zapasowej**.
 
@@ -41,7 +41,7 @@ Redaktor nie potrzebuje roli administratora. Im mniej kont z pełnymi prawami, t
 
 ## 7. HTTPS wszędzie
 
-[Certyfikat SSL](/funkcje/ssl) szyfruje logowanie i formularze. W Verris jest w cenie — nie ma powodu, by go nie mieć.
+[Certyfikat SSL](/funkcje/ssl) szyfruje logowanie i formularze. W Verris jest w cenie – nie ma powodu, by go nie mieć.
 
 ## 8. Kopie zapasowe, które umiesz przywrócić
 
@@ -57,7 +57,7 @@ Stare wersje nie dostają poprawek bezpieczeństwa. Jeśli wtyczka wymaga starsz
 
 ## Czego nie robić
 
-Nie instaluj pięciu wtyczek „security" naraz — spowolnią stronę i będą się gryźć. Nie ukrywaj wersji WordPressa zamiast aktualizować; to teatr bezpieczeństwa.
+Nie instaluj pięciu wtyczek „security" naraz – spowolnią stronę i będą się gryźć. Nie ukrywaj wersji WordPressa zamiast aktualizować; to teatr bezpieczeństwa.
 
 ## FAQ
 
@@ -69,4 +69,4 @@ Przywróć czystą kopię zapasową, zmień wszystkie hasła, zaktualizuj wszyst
 
 ---
 
-*Kopie, SSL i izolacja kont są w cenie — [zobacz hosting WordPress](/hosting/wordpress).*
+*Kopie, SSL i izolacja kont są w cenie – [zobacz hosting WordPress](/hosting/wordpress).*

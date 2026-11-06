@@ -23,7 +23,7 @@ const wejscie = (z: Partial<Parameters<typeof zbudujZlecenie>[0]> = {}): Paramet
 });
 
 describe("zbudujZlecenie", () => {
-  it("bez hosta FTP i bez wierszy — tylko usługa i powód (API odpowie „wskaż źródło”)", () => {
+  it("bez hosta FTP i bez wierszy – tylko usługa i powód (API odpowie „wskaż źródło”)", () => {
     expect(zbudujZlecenie(wejscie())).toEqual({
       subscriptionId: "sub-1",
       powod: "Zgłoszenie #1234",

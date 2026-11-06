@@ -74,7 +74,7 @@ export function BreakGlassSection() {
       {codes && (
         <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 space-y-2">
           <p className="text-sm font-medium text-amber-100 flex items-center gap-2">
-            <AlertCircle className="h-4 w-4" /> Zapisz te kody teraz — pokazujemy je tylko raz.
+            <AlertCircle className="h-4 w-4" /> Zapisz te kody teraz – pokazujemy je tylko raz.
           </p>
           <div className="grid grid-cols-2 gap-1 font-mono text-sm text-white">
             {codes.map((c) => (

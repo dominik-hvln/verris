@@ -7,7 +7,7 @@ import { bladNipuPl, poprawnyNip } from './nip.js';
  * tylko dla kolejnych dokumentów, z wpisem w dzienniku. Na starym kodzie `1234567890` i `0000000000` zapisywały się,
  * a po płatności zmiana NIP kończyła się 403 „zgłoś obsłudze”.
  */
-describe('NIP — suma kontrolna', () => {
+describe('NIP – suma kontrolna', () => {
   it('poprawne NIP-y (także z PL, spacjami i myślnikami)', () => {
     for (const n of ['1234563218', '123-456-32-18', 'PL 525 224 84 81', '9292069367']) expect(poprawnyNip(n)).toBe(true);
   });
@@ -19,7 +19,7 @@ describe('NIP — suma kontrolna', () => {
   });
 });
 
-describe('UsersService.updateProfile — NIP (P2-05)', () => {
+describe('UsersService.updateProfile – NIP (P2-05)', () => {
   function stanowisko(opts: { kraj?: string; platnosc?: boolean } = {}) {
     const klient = { id: 'u1', customerOwnerId: null, companyName: 'ACME', nip: '1234563218', address: null, city: null, postalCode: null, country: opts.kraj ?? 'PL' };
     const prisma = {
@@ -51,7 +51,7 @@ describe('UsersService.updateProfile — NIP (P2-05)', () => {
     );
   });
 
-  it('ten sam NIP w innym zapisie — bez wpisu w dzienniku; kraj spoza PL — bez sumy kontrolnej PL', async () => {
+  it('ten sam NIP w innym zapisie – bez wpisu w dzienniku; kraj spoza PL – bez sumy kontrolnej PL', async () => {
     const s = stanowisko();
     await s.svc.updateProfile('u1', { nip: '123-456-32-18' });
     expect(s.audit.record).not.toHaveBeenCalled();

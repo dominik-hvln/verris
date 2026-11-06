@@ -35,7 +35,7 @@ export class SiteStatsService {
     const wToku = await this.prisma.nodeTask.findFirst({
       where: { accountId: account.id, kind: NodeTaskKind.SITE_STATS, status: { in: [NodeTaskStatus.QUEUED, NodeTaskStatus.RUNNING] }, payload: { path: ['domain'], equals: domena } },
     });
-    if (wToku) throw new ConflictException('Odczyt jest już w toku — wynik za chwilę.');
+    if (wToku) throw new ConflictException('Odczyt jest już w toku – wynik za chwilę.');
     await this.prisma.nodeTask.create({
       data: {
         serverId: account.serverId,

@@ -144,7 +144,7 @@ function doWydruku(w: WizualizacjaFa3, meta: MetaKsef): string[] {
   for (const a of w.adnotacje) if (a.tekst) out.push(a.tekst);
   if (w.korekta) {
     out.push(w.korekta.przyczyna && `Przyczyna korekty: ${w.korekta.przyczyna}`);
-    out.push(w.korekta.typ && `Typ korekty: ${w.korekta.typ} — ${w.korekta.typOpis}`);
+    out.push(w.korekta.typ && `Typ korekty: ${w.korekta.typ} – ${w.korekta.typOpis}`);
     for (const k of w.korekta.faktury) {
       const ksef = k.numerKsef ? ` (numer KSeF: ${k.numerKsef})` : k.pozaKsef ? ' (wystawiona poza KSeF)' : '';
       out.push(`Koryguje fakturę nr ${k.numer} z dnia ${k.data}${ksef}`);
@@ -171,7 +171,7 @@ function meta(xml: string, numerKsef: string | null): MetaKsef {
   };
 }
 
-describe('KSeF 12.10 — XML FA(3) → model wizualizacji: każde pole z tą samą wartością', () => {
+describe('KSeF 12.10 – XML FA(3) → model wizualizacji: każde pole z tą samą wartością', () => {
   it.each(FAKTURY_TESTOWE)('%s', (_nazwa, faktura) => {
     const xml = xmlFaktury(faktura());
     const wiz = wizualizacjaFa3(xml);
@@ -186,7 +186,7 @@ describe('KSeF 12.10 — XML FA(3) → model wizualizacji: każde pole z tą sam
   });
 });
 
-describe('KSeF 12.10 — model wizualizacji → PDF: każda wartość jest wydrukowana', () => {
+describe('KSeF 12.10 – model wizualizacji → PDF: każda wartość jest wydrukowana', () => {
   it.each(FAKTURY_TESTOWE)('%s (z numerem KSeF i jako OFFLINE)', async (_nazwa, faktura) => {
     const xml = xmlFaktury(faktura());
     const wiz = wizualizacjaFa3(xml);
@@ -221,7 +221,7 @@ describe('KSeF 12.10 — model wizualizacji → PDF: każda wartość jest wydru
   });
 });
 
-describe('KSeF 12.10 — model wizualizacji: konkretne wartości', () => {
+describe('KSeF 12.10 – model wizualizacji: konkretne wartości', () => {
   it('B2B: NIP nabywcy, kwoty 1:1 z XML-a, forma płatności „karta”', () => {
     const wiz = wizualizacjaFa3(xmlFaktury(fakturaB2B()));
     expect(wiz.nabywca).toMatchObject({ nip: NIP_NABYWCY, brakId: false, jst: '2', gv: '2' });

@@ -66,7 +66,7 @@ export function AutoscalingCalculator({
               Skonfiguruj scenariusz autoskalowania
             </h2>
             <p className="text-neutral-400 font-medium">
-              Suwaki to delta ponad plan bazowy. CPU w %, RAM i dysk w GB — naliczanie
+              Suwaki to delta ponad plan bazowy. CPU w %, RAM i dysk w GB – naliczanie
               godzinowe; gdy skalowanie spadnie, koszt też znika.
             </p>
           </div>
@@ -87,7 +87,7 @@ export function AutoscalingCalculator({
             <Slider
               icon={<MemoryStick className="w-5 h-5 text-emerald-400" />}
               label="Dodatkowy RAM (GB)"
-              hint="Limit pamięci ponad plan — krok 0,5 GB"
+              hint="Limit pamięci ponad plan – krok 0,5 GB"
               min={0}
               max={32}
               step={0.5}
@@ -99,7 +99,7 @@ export function AutoscalingCalculator({
             <Slider
               icon={<HardDrive className="w-5 h-5 text-emerald-400" />}
               label="Dodatkowa przestrzeń dyskowa (GB)"
-              hint="Powiększenie limitu dysku konta hostingowego — krok 1 GB"
+              hint="Powiększenie limitu dysku konta hostingowego – krok 1 GB"
               min={0}
               max={500}
               step={1}
@@ -117,7 +117,7 @@ export function AutoscalingCalculator({
                 <p className="font-semibold">Brak aktywnych reguł cennika</p>
                 <p className="mt-0.5 text-xs text-amber-200/80">
                   Administrator nie skonfigurował jeszcze cennika autoskalowania.
-                  Wszystkie kwoty pokazują 0,00 — gdy cennik zostanie dodany,
+                  Wszystkie kwoty pokazują 0,00 – gdy cennik zostanie dodany,
                   wartości pojawią się tutaj automatycznie.
                 </p>
               </div>

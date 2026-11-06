@@ -98,6 +98,16 @@ describe('AsystentWwwService', () => {
     expect(JSON.stringify(s.prisma.asystentRozmowa.create.mock.calls)).not.toContain('1.2.3.4');
   });
 
+  it('pauza „\u2014” z odpowiedzi modelu → półpauza „–” u klienta i w zapisie rozmowy (decyzja 6.11)', async () => {
+    const s = stanowisko({
+      odpowiedziAi: [STRAZNIK_OK, odp({ odpowiedz: 'Hosting kosztuje 45,00 zł brutto \u2014 bez opłat za start.', zrodla: ['cennik'], nieWiem: false })],
+    });
+    const r = await s.svc.zapytaj({ pytanie: 'Ile kosztuje hosting?' }, { ip: '1.2.3.4' });
+    expect(r.odpowiedz).toBe('Hosting kosztuje 45,00 zł brutto \u2013 bez opłat za start.');
+    expect(s.zapisy.find((z) => z.data.rola === 'ASSISTANT')?.data.tresc).toBe(r.odpowiedz);
+    expect(s.provider.wywolajModelem.mock.calls[1][0].system).toContain('półpauzy');
+  });
+
   it('wyłącznik (kill switch) → 503 NIEDOSTEPNY bez wywołania AI', async () => {
     const s = stanowisko({ konf: { wlaczony: false } });
     expect(await kodBledu(s.svc.zapytaj({ pytanie: 'Cześć' }, {}))).toEqual({ status: 503, kod: 'NIEDOSTEPNY' });
@@ -234,7 +244,7 @@ describe('AsystentWwwService', () => {
   });
 });
 
-describe('AsystentWwwService.dostepny — czy pokazać widget na verris.pl (6.11)', () => {
+describe('AsystentWwwService.dostepny – czy pokazać widget na verris.pl (6.11)', () => {
   it('włączony w adminie, jest klucz, limity kosztu niewyczerpane → true, bez wywołania AI', async () => {
     const s = stanowisko();
     expect(await s.svc.dostepny()).toBe(true);

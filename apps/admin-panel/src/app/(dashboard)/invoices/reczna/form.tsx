@@ -67,7 +67,7 @@ export function FakturaRecznaForm() {
         <p className="text-lg font-semibold text-emerald-200">Faktura {numer} wystawiona</p>
         <p className="mt-2 text-sm text-emerald-100/80">
           PDF powstaje w tle i trafia do klienta mailem. Jeżeli po kilku minutach nadal go nie ma,
-          zobacz listę faktur — dokument bez pliku jest tam oznaczony, a job ponawia próbę sam.
+          zobacz listę faktur – dokument bez pliku jest tam oznaczony, a job ponawia próbę sam.
         </p>
         <div className="mt-4 flex gap-3">
           <Link
@@ -150,7 +150,7 @@ export function FakturaRecznaForm() {
                   <tr key={i} className="border-t border-white/5">
                     <td className="px-3 py-2">
                       <input
-                        aria-label={`Nazwa — pozycja ${i + 1}`}
+                        aria-label={`Nazwa – pozycja ${i + 1}`}
                         value={w.nazwa}
                         onChange={(e) => ustaw(i, "nazwa", e.target.value)}
                         placeholder="np. Rekompensata za przerwę w dostępności"
@@ -159,7 +159,7 @@ export function FakturaRecznaForm() {
                     </td>
                     <td className="px-3 py-2">
                       <input
-                        aria-label={`Ilość — pozycja ${i + 1}`}
+                        aria-label={`Ilość – pozycja ${i + 1}`}
                         value={w.ilosc}
                         onChange={(e) => ustaw(i, "ilosc", e.target.value)}
                         inputMode="numeric"
@@ -168,7 +168,7 @@ export function FakturaRecznaForm() {
                     </td>
                     <td className="px-3 py-2">
                       <input
-                        aria-label={`Cena brutto — pozycja ${i + 1}`}
+                        aria-label={`Cena brutto – pozycja ${i + 1}`}
                         value={w.cenaBrutto}
                         onChange={(e) => ustaw(i, "cenaBrutto", e.target.value)}
                         inputMode="decimal"
@@ -177,7 +177,7 @@ export function FakturaRecznaForm() {
                       />
                     </td>
                     <td className="px-3 py-2 text-right tabular-nums text-neutral-300">
-                      {wartosc === null ? "—" : PLN.format(wartosc)}
+                      {wartosc === null ? "–" : PLN.format(wartosc)}
                     </td>
                     <td className="px-3 py-2 text-right">
                       {wiersze.length > 1 && (

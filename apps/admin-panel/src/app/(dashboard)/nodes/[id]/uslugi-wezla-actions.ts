@@ -43,7 +43,7 @@ export async function uslugiWezlaAction(
     return { ok: false, error: "Nieznana akcja." };
   } catch (err) {
     if (err instanceof AdminApiError && err.status === 403 && (err.body as { code?: string } | undefined)?.code === "WYMAGA_WNIOSKU") {
-      return { ok: false, error: "Restart działającej usługi wspólnej robi administrator — wyślij wniosek.", wniosek: true };
+      return { ok: false, error: "Restart działającej usługi wspólnej robi administrator – wyślij wniosek.", wniosek: true };
     }
     if (err instanceof AdminApiError && err.status === 403 && /uprawnie|^forbidden$/i.test(err.message)) {
       return { ok: false, error: "Twoja rola nie ma uprawnienia „Usługi i logi węzła (NODE_SERVICES)”." };

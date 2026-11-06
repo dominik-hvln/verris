@@ -320,7 +320,7 @@ export class SubscriptionsService {
       // PB-28 — klient rozliczany przez właściciela zamawia nowe usługi u opiekuna.
       const u = await this.prisma.user.findUnique({ where: { id: userId }, select: { billingOutside: true } });
       if (u?.billingOutside) {
-        throw new ForbiddenException('Twoje usługi rozliczasz bezpośrednio ze swoim opiekunem — nową usługę zamówisz u niego.');
+        throw new ForbiddenException('Twoje usługi rozliczasz bezpośrednio ze swoim opiekunem – nową usługę zamówisz u niego.');
       }
     }
     const plan = await this.prisma.plan.findUnique({ where: { id: dto.planId } });
@@ -334,7 +334,7 @@ export class SubscriptionsService {
       const { traktowanie } = await this.vatNabywcy.ustal(userId);
       if (traktowanie.cenaNetto) {
         throw new BadRequestException(
-          'Twoje konto jest rozliczane bez polskiego VAT (cena netto). Wybierz płatność z portfela — ' +
+          'Twoje konto jest rozliczane bez polskiego VAT (cena netto). Wybierz płatność z portfela – ' +
             'doładowanie daje 1,23 K za każdą złotówkę, więc usługa kosztuje Cię cenę netto.',
         );
       }
@@ -612,7 +612,7 @@ export class SubscriptionsService {
     });
     if (!user?.email) return;
     const panelUrl = this.config.get<string>('CLIENT_PANEL_URL') ?? 'https://panel.verris.pl';
-    const amountLabel = opts.amount ? `${opts.amount.toFixed(2)} ${opts.currency}` : '—';
+    const amountLabel = opts.amount ? `${opts.amount.toFixed(2)} ${opts.currency}` : '–';
     const paymentLabel =
       opts.paymentSource === SubscriptionPaymentSource.WALLET
         ? 'Portfel Verris'
@@ -701,7 +701,7 @@ export class SubscriptionsService {
           `Stripe cancel failed for sub=${subscriptionId} (atPeriodEnd=${deferToPeriodEnd}): ${msg}`,
         );
         throw new ConflictException(
-          'Nie udało się anulować subskrypcji w systemie płatności. Spróbuj ponownie za chwilę lub skontaktuj się z pomocą — Twoja karta nie została obciążona dodatkowo.',
+          'Nie udało się anulować subskrypcji w systemie płatności. Spróbuj ponownie za chwilę lub skontaktuj się z pomocą – Twoja karta nie została obciążona dodatkowo.',
         );
       }
     }
@@ -716,11 +716,11 @@ export class SubscriptionsService {
     ) {
       const { zamkniete, oplacona } = await this.zamknijSesjeCheckoutUslugi(subscription.id);
       if (oplacona) {
-        throw new ConflictException('Płatność za to zamówienie została już przyjęta — usługa uruchomi się za chwilę.');
+        throw new ConflictException('Płatność za to zamówienie została już przyjęta – usługa uruchomi się za chwilę.');
       }
       if (!zamkniete) {
         throw new ConflictException(
-          'Nie udało się zamknąć płatności w systemie płatności. Spróbuj ponownie za chwilę — karta nie została obciążona.',
+          'Nie udało się zamknąć płatności w systemie płatności. Spróbuj ponownie za chwilę – karta nie została obciążona.',
         );
       }
     }
@@ -735,7 +735,7 @@ export class SubscriptionsService {
         data: { cancelAt: periodEnd! },
       });
       if (count === 0) {
-        throw new ConflictException('Usługa właśnie się odnowiła — odśwież stronę i złóż rezygnację ponownie.');
+        throw new ConflictException('Usługa właśnie się odnowiła – odśwież stronę i złóż rezygnację ponownie.');
       }
       const updated = await this.prisma.subscription.findUniqueOrThrow({ where: { id: subscription.id } });
       await this.prisma.subscriptionEvent.create({
@@ -844,7 +844,7 @@ export class SubscriptionsService {
         where: { id: subscription.id, cancelAt: subscription.cancelAt },
         data: { cancelAt: oplaconyDo },
       });
-      this.logger.warn(`sub=${subscription.id}: anulacja przed końcem opłaconego okresu — przesunięta na ${oplaconyDo.toISOString()}`);
+      this.logger.warn(`sub=${subscription.id}: anulacja przed końcem opłaconego okresu – przesunięta na ${oplaconyDo.toISOString()}`);
       return this.prisma.subscription.findUnique({ where: { id: subscription.id } });
     }
     return this.tearDownCanceledSubscription(subscription, {
@@ -878,7 +878,7 @@ export class SubscriptionsService {
         await this.stripe.cancelSubscription(subscription.stripeSubscriptionId, { atPeriodEnd: false });
       } catch (err) {
         throw new ConflictException(
-          `Nie udało się anulować subskrypcji w Stripe — nic nie zmieniono: ${(err as Error).message}`,
+          `Nie udało się anulować subskrypcji w Stripe – nic nie zmieniono: ${(err as Error).message}`,
         );
       }
     }
@@ -1097,7 +1097,7 @@ export class SubscriptionsService {
     const d = ostatnie?.details;
     const poprzedni = d && typeof d === 'object' && !Array.isArray(d) ? (d as Record<string, unknown>).reason : null;
     if (typeof poprzedni === 'string' && !zdejmowane.includes(poprzedni)) {
-      this.logger.debug(`Subscription ${subscription.id} already SUSPENDED (${poprzedni}) — skipping`);
+      this.logger.debug(`Subscription ${subscription.id} already SUSPENDED (${poprzedni}) – skipping`);
       return subscription;
     }
     const zaleglosc = zawieszenieObejmujeZaleglosc(d);
@@ -1673,10 +1673,10 @@ export class SubscriptionsService {
     // Zamówienie raz obciążone i zwrócone (nieudane zakładanie): klucz pierwszej opłaty jest zużyty, więc obciążenie
     // byłoby „idempotentnym trafieniem” bez pobrania — usługa za darmo, a wpłata zostałaby w portfelu.
     if (await this.walletLedger.findByIdempotencyKey(kluczPierwszejOplaty(sub.id))) {
-      throw new ConflictException('To zamówienie było już obciążane (nieudane zakładanie, środki zwrócone) — wymaga nowego zamówienia.');
+      throw new ConflictException('To zamówienie było już obciążane (nieudane zakładanie, środki zwrócone) – wymaga nowego zamówienia.');
     }
     const isAppLevel = (sub.plan.productKind as string) === 'EMAIL_MARKETING';
-    if (!isAppLevel && !z.domain) throw new BadRequestException('Zamówienie bez domeny — nie da się założyć konta.');
+    if (!isAppLevel && !z.domain) throw new BadRequestException('Zamówienie bez domeny – nie da się założyć konta.');
     const dto = {
       planId: sub.planId,
       interval: sub.interval,
@@ -1725,7 +1725,7 @@ export class SubscriptionsService {
     // (usługa znów PENDING_PAYMENT). Ten przebieg trafił w tamto obciążenie (nic nie pobrał) — przestawienie poniżej by
     // się udało i usługa ruszyłaby bez opłaty. Zwrócone obciążenie = zamówienie wymaga nowego.
     if (await this.walletLedger.findByIdempotencyKey(`sub-${subscriptionId}-initial-refund`)) {
-      throw new ConflictException('Opłata za to zamówienie została już zwrócona do portfela — złóż nowe zamówienie.');
+      throw new ConflictException('Opłata za to zamówienie została już zwrócona do portfela – złóż nowe zamówienie.');
     }
     // Warunkowo: zamówienie mogło zostać anulowane (klient, sprzątanie po 48 h) między sprawdzeniem a obciążeniem —
     // wtedy zwrot i odmowa zamiast przestawienia anulowanej usługi na zakładanie (przegląd 13.10, zakup przez Paynow).
@@ -1752,9 +1752,9 @@ export class SubscriptionsService {
           idempotencyKey: `sub-${subscriptionId}-initial-refund`,
           subscriptionId,
         });
-        throw new ConflictException('Zamówienie nie czeka już na płatność (anulowane) — środki wróciły do portfela.');
+        throw new ConflictException('Zamówienie nie czeka już na płatność (anulowane) – środki wróciły do portfela.');
       }
-      throw new ConflictException(`Zamówienie jest już opłacone (stan: ${teraz?.status ?? 'brak'}) — ta wpłata zostaje w portfelu.`);
+      throw new ConflictException(`Zamówienie jest już opłacone (stan: ${teraz?.status ?? 'brak'}) – ta wpłata zostaje w portfelu.`);
     }
     const subscription = await this.prisma.subscription.findUniqueOrThrow({ where: { id: subscriptionId } });
 
@@ -2089,7 +2089,7 @@ export class SubscriptionsService {
     }
     if (subscription.paymentSource !== SubscriptionPaymentSource.STRIPE_CARD) {
       throw new BadRequestException(
-        'Ta usługa nie oczekuje na płatność kartą — doładuj portfel i zamów ponownie lub anuluj zamówienie.',
+        'Ta usługa nie oczekuje na płatność kartą – doładuj portfel i zamów ponownie lub anuluj zamówienie.',
       );
     }
 
@@ -2101,7 +2101,7 @@ export class SubscriptionsService {
         const sesja = await this.stripe.retrieveCheckoutSession(ostatnia);
         if (sesja.status === 'open' && sesja.url) return { url: sesja.url };
         if (sesja.status === 'complete') {
-          throw new BadRequestException('Płatność za to zamówienie została już przyjęta — usługa uruchomi się za chwilę.');
+          throw new BadRequestException('Płatność za to zamówienie została już przyjęta – usługa uruchomi się za chwilę.');
         }
       }
       const plan = await this.prisma.plan.findUnique({ where: { id: subscription.planId } });
@@ -2112,7 +2112,7 @@ export class SubscriptionsService {
         select: { id: true, email: true, firstName: true, lastName: true, companyName: true, stripeCustomerId: true },
       });
       if (!plan || !priceId || !user) {
-        throw new BadRequestException('Nie można przygotować płatności — anuluj zamówienie i utwórz usługę ponownie.');
+        throw new BadRequestException('Nie można przygotować płatności – anuluj zamówienie i utwórz usługę ponownie.');
       }
       const intent = await this.prisma.subscriptionEvent.findFirst({
         where: { subscriptionId: subscription.id, type: 'PROVISIONING_INTENT' },
@@ -2139,7 +2139,7 @@ export class SubscriptionsService {
       latest && typeof latest !== 'string' ? (latest.hosted_invoice_url ?? null) : null;
     if (!url) {
       throw new BadRequestException(
-        'Brak aktywnej faktury Stripe — anuluj zamówienie i utwórz usługę ponownie.',
+        'Brak aktywnej faktury Stripe – anuluj zamówienie i utwórz usługę ponownie.',
       );
     }
     return { url };
@@ -2164,7 +2164,7 @@ export class SubscriptionsService {
         category: 'SYSTEM',
         severity: 'warning',
         title: 'Opłacone zamówienie czeka ponad 48 h',
-        body: 'Klient zapłacił za nową usługę przez Paynow, a usługa wciąż nie jest uruchomiona. Zamówienie NIE zostało anulowane automatycznie — środki są w portfelu klienta. Sprawdź usługę i skontaktuj się z klientem.',
+        body: 'Klient zapłacił za nową usługę przez Paynow, a usługa wciąż nie jest uruchomiona. Zamówienie NIE zostało anulowane automatycznie – środki są w portfelu klienta. Sprawdź usługę i skontaktuj się z klientem.',
         link: `/customers/${userId}`,
       })),
     });
@@ -2313,7 +2313,7 @@ export class SubscriptionsService {
     if (obca || zamknieta) {
       this.logger.error(
         `checkout ${opts.sessionId}: opłacona subskrypcja ${opts.stripeSubscriptionId} dla zamówienia ${sub.id} ` +
-          `(status=${sub.status}, zapisana=${sub.stripeSubscriptionId ?? '—'}) — anuluję w Stripe, zwrot przez obsługę`,
+          `(status=${sub.status}, zapisana=${sub.stripeSubscriptionId ?? '–'}) – anuluję w Stripe, zwrot przez obsługę`,
       );
       await this.stripe.cancelSubscription(opts.stripeSubscriptionId, { atPeriodEnd: false }).catch((err: Error) =>
         this.logger.error(`Nie anulowano subskrypcji Stripe ${opts.stripeSubscriptionId}: ${err.message}`),
@@ -2485,7 +2485,7 @@ export class SubscriptionsService {
       });
       const powod = (ostatnie?.details as { reason?: string } | null)?.reason;
       if (powod !== 'GRACE_EXPIRED') {
-        this.logger.warn(`activateAfterStripePayment: sub=${sub.id} SUSPENDED (${powod ?? '?'}) — płatność przyjęta, zawieszenie zostaje`);
+        this.logger.warn(`activateAfterStripePayment: sub=${sub.id} SUSPENDED (${powod ?? '?'}) – płatność przyjęta, zawieszenie zostaje`);
         return sub;
       }
       await this.unsuspend({ subscriptionId: sub.id, note: 'Płatność Stripe po zawieszeniu za brak płatności' });

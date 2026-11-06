@@ -60,10 +60,10 @@ export function orderReceivedTemplate(ctx: OrderReceivedContext): MailMessage {
     `## Twoja umowa`,
     ``,
     `- **Sprzedawca:** HVLN Dominik Kowalski, Zacisze 2A, 65-775 Zielona Góra, NIP 9292069367, REGON 521024260, e-mail kontakt@verris.pl.`,
-    `- **Odnowienie:** usługa odnawia się automatycznie ${coOkres} według cennika z dnia odnowienia. Przypomnimy o tym e-mailem przed odnowieniem. Odnawianie wyłączysz w panelu, w ustawieniach usługi, przed końcem okresu — bez opłat.`,
+    `- **Odnowienie:** usługa odnawia się automatycznie ${coOkres} według cennika z dnia odnowienia. Przypomnimy o tym e-mailem przed odnowieniem. Odnawianie wyłączysz w panelu, w ustawieniach usługi, przed końcem okresu – bez opłat.`,
     `- **Faktury:** fakturę wystawiamy przy każdej wpłacie pieniędzy (doładowanie portfela, płatność BLIK-iem lub przelewem, pobranie z karty) i znajdziesz ją w panelu w Płatnościach. Zakup z portfela nie tworzy nowej faktury, bo rozlicza go faktura za doładowanie. Kredyty z kodu promocyjnego to nie zakup, więc nie ma za nie faktury.`,
     `- **Reklamacje:** w panelu (Wsparcie → Nowe zgłoszenie), e-mailem na kontakt@verris.pl albo pisemnie na adres sprzedawcy. Odpowiadamy w ciągu 14 dni.`,
-    `- **Odstąpienie od umowy:** zamówienie zawiera Twoje żądanie rozpoczęcia świadczenia usługi przed upływem 14-dniowego terminu odstąpienia. Jeśli jesteś konsumentem albo przedsiębiorcą na prawach konsumenta, możesz odstąpić od umowy w ciągu 14 dni od jej zawarcia, bez podania przyczyny — zgłoszeniem w panelu (Wsparcie → Nowe zgłoszenie), e-mailem na kontakt@verris.pl albo pisemnie. Zapłacisz wtedy proporcjonalnie za czas, w którym usługa działała, a resztę zwrócimy w ciągu 14 dni. Przy rejestracji domeny prawo odstąpienia w tej części wygasa z chwilą jej zarejestrowania. Wzór formularza odstąpienia jest w Załączniku 1 do Regulaminu (nie musisz z niego korzystać).`,
+    `- **Odstąpienie od umowy:** zamówienie zawiera Twoje żądanie rozpoczęcia świadczenia usługi przed upływem 14-dniowego terminu odstąpienia. Jeśli jesteś konsumentem albo przedsiębiorcą na prawach konsumenta, możesz odstąpić od umowy w ciągu 14 dni od jej zawarcia, bez podania przyczyny – zgłoszeniem w panelu (Wsparcie → Nowe zgłoszenie), e-mailem na kontakt@verris.pl albo pisemnie. Zapłacisz wtedy proporcjonalnie za czas, w którym usługa działała, a resztę zwrócimy w ciągu 14 dni. Przy rejestracji domeny prawo odstąpienia w tej części wygasa z chwilą jej zarejestrowania. Wzór formularza odstąpienia jest w Załączniku 1 do Regulaminu (nie musisz z niego korzystać).`,
     ``,
     `Pełne warunki: [Regulamin świadczenia usług Verris](${ctx.panelUrl}/legal/terms) w wersji obowiązującej w dniu zakupu (archiwum wersji w panelu, Dokumenty prawne → Historia wersji) oraz [Polityka prywatności](${ctx.panelUrl}/legal/privacy).`,
   ].filter((l): l is string => l !== null);
@@ -78,5 +78,5 @@ export function orderReceivedTemplate(ctx: OrderReceivedContext): MailMessage {
     panelUrl: ctx.panelUrl,
     category: 'TRANSACTIONAL',
   });
-  return { to: ctx.to, tag: 'order.received', subject: `[Verris] Potwierdzenie zamówienia — ${ctx.planName}`, text, html };
+  return { to: ctx.to, tag: 'order.received', subject: `[Verris] Potwierdzenie zamówienia – ${ctx.planName}`, text, html };
 }

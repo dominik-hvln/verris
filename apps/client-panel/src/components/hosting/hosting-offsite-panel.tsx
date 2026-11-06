@@ -179,7 +179,7 @@ export function HostingOffsitePanel({
             <p className="text-sm font-semibold text-foreground">Kopia poza serwerem (off-site)</p>
             <p className="text-xs text-muted-foreground">
               {state.offsite.protected
-                ? `Dodatkowa kopia Twojego konta leży poza tym serwerem — przetrwa nawet jego awarię. Trzymamy wersje z ${zDni(dni)}.${
+                ? `Dodatkowa kopia Twojego konta leży poza tym serwerem – przetrwa nawet jego awarię. Trzymamy wersje z ${zDni(dni)}.${
                     state.offsite.lastRunAt
                       ? ' Ostatnia: ' +
                         new Date(state.offsite.lastRunAt).toLocaleString('pl-PL') +
@@ -187,8 +187,8 @@ export function HostingOffsitePanel({
                       : ''
                   }`
                 : state.offsite.pending
-                  ? 'Konto jest nowe — pierwsza kopia poza serwerem powstanie przy najbliższym nocnym przebiegu. Do tego czasu chronią je kopie na koncie.'
-                  : 'Kopia off-site dla tego konta nie została jeszcze potwierdzona — napisz do nas, zanim będzie potrzebna.'}
+                  ? 'Konto jest nowe – pierwsza kopia poza serwerem powstanie przy najbliższym nocnym przebiegu. Do tego czasu chronią je kopie na koncie.'
+                  : 'Kopia off-site dla tego konta nie została jeszcze potwierdzona – napisz do nas, zanim będzie potrzebna.'}
             </p>
           </div>
         </div>
@@ -250,7 +250,7 @@ export function HostingOffsitePanel({
               className="w-48 rounded-md border border-line bg-background px-3 py-1.5 font-mono text-xs text-foreground placeholder:text-muted-foreground focus:border-data focus:outline-none"
             />
             <span className="text-muted-foreground">
-              Masz kopię z każdego z ostatnich {zDni(dni)} — starszych już nie ma.
+              Masz kopię z każdego z ostatnich {zDni(dni)} – starszych już nie ma.
             </span>
           </div>
         ) : null}
@@ -338,18 +338,18 @@ export function HostingOffsitePanel({
           {pobranaKopia(state.fetchedArchive, kopieNaLiscie ?? []) === 'na-liscie' ? (
             <span>
               Archiwum <span className="font-mono">{state.fetchedArchive}</span> jest już na serwerze.
-              Wybierz je z listy kopii powyżej i kliknij „Przywróć z tej kopii” — poprosimy jeszcze o
+              Wybierz je z listy kopii powyżej i kliknij „Przywróć z tej kopii” – poprosimy jeszcze o
               potwierdzenie domeny.
             </span>
           ) : (
             <span>
               Archiwum <span className="font-mono">{state.fetchedArchive}</span> jest już na serwerze, w katalogu{' '}
-              <span className="font-mono">backups</span> konta — możesz je pobrać w Menedżerze plików. To pełna kopia
+              <span className="font-mono">backups</span> konta – możesz je pobrać w Menedżerze plików. To pełna kopia
               konta: przywraca ją nasz zespół.{' '}
               <Link href="/dashboard/support/new" className="font-semibold underline underline-offset-2">
                 Napisz zgłoszenie
               </Link>{' '}
-              i podaj nazwę archiwum — przed przywróceniem potwierdzimy z Tobą, co nadpisać.
+              i podaj nazwę archiwum – przed przywróceniem potwierdzimy z Tobą, co nadpisać.
             </span>
           )}
         </p>

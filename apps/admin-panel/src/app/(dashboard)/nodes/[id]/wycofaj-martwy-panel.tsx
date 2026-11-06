@@ -19,16 +19,16 @@ export function WycofajMartwyPanel({ serverId, nazwa, konta, martwy }: { serverI
 
   return (
     <section className="space-y-3 rounded-2xl border border-rose-500/30 bg-rose-500/[0.04] p-5">
-      <h2 className="flex items-center gap-2 text-sm font-semibold text-rose-200"><Skull className="h-4 w-4" /> Serwera już nie ma albo idzie do reinstalacji — wycofaj węzeł z panelu</h2>
+      <h2 className="flex items-center gap-2 text-sm font-semibold text-rose-200"><Skull className="h-4 w-4" /> Serwera już nie ma albo idzie do reinstalacji – wycofaj węzeł z panelu</h2>
       <p className="text-xs text-muted-foreground">
         Dla węzła skasowanego u dostawcy. Konta na nim ({konta}) zostaną oznaczone jako usunięte, ich subskrypcje anulowane,
-        węzeł zniknie z puli, a jego nazwy NS i hostname zostaną usunięte z DNS w OVH — IP może trafić do kogoś innego.
+        węzeł zniknie z puli, a jego nazwy NS i hostname zostaną usunięte z DNS w OVH – IP może trafić do kogoś innego.
         Danych kont nie da się już odzyskać z tego serwera. Aktywne płatności w Stripe trzeba najpierw anulować.
-        Węzeł bez kont można wycofać od razu — np. przed reinstalacją u dostawcy; nowy węzeł z kreatora przejmie jego IP.
+        Węzeł bez kont można wycofać od razu – np. przed reinstalacją u dostawcy; nowy węzeł z kreatora przejmie jego IP.
       </p>
       {!martwy && konta > 0 ? (
         <p className="text-sm text-amber-200">
-          Węzeł wysyłał sygnał w ostatnim tygodniu i ma konta ({konta}) — najpierw przenieś je na inne węzły (albo usuń), potem wycofaj.
+          Węzeł wysyłał sygnał w ostatnim tygodniu i ma konta ({konta}) – najpierw przenieś je na inne węzły (albo usuń), potem wycofaj.
         </p>
       ) : (
         <div className="flex flex-wrap items-center gap-2">
@@ -42,7 +42,7 @@ export function WycofajMartwyPanel({ serverId, nazwa, konta, martwy }: { serverI
                 const r = await wycofajMartwyWezelAction(serverId, tekst.trim());
                 if ("error" in r && r.error) return setBlad(r.error);
                 const d = r.data!;
-                setWynik(`Wycofano. Usunięte konta: ${d.usunieteKonta.join(", ") || "brak"}. DNS: ${d.dns.map((x) => `${x.step} — ${x.status}`).join("; ") || "bez zmian"}.`);
+                setWynik(`Wycofano. Usunięte konta: ${d.usunieteKonta.join(", ") || "brak"}. DNS: ${d.dns.map((x) => `${x.step} – ${x.status}`).join("; ") || "bez zmian"}.`);
               })
             }
             className="inline-flex items-center gap-2 rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white hover:bg-rose-500 disabled:opacity-40"

@@ -48,7 +48,7 @@ export function PlikiPoczty({ id, pliki }: { id: string; pliki: PlikPoczty[] }) 
           </li>
         ) : (
           <li key={p.nr} className="text-muted-foreground">
-            {p.nazwa} — pominięty: {p.pominiety}
+            {p.nazwa} – pominięty: {p.pominiety}
           </li>
         ),
       )}
@@ -71,7 +71,7 @@ export function DecyzjePoczty({ id, nadawca, sugerowane, abuse = false }: { id: 
     wykonaj(() => przypiszPocztaAction(id, { email: email.trim() }), (t) => `Założono zgłoszenie #${t?.slice(0, 8)}.`);
   };
   const doZgloszenia = async () => {
-    const nr = await zapytaj("Numer zgłoszenia (#xxxxxxxx) — mail trafi jako notatka wewnętrzna:", {
+    const nr = await zapytaj("Numer zgłoszenia (#xxxxxxxx) – mail trafi jako notatka wewnętrzna:", {
       akcja: "Dopisz",
       tytul: "Dopisz do zgłoszenia",
       domyslna: sugerowane?.slice(0, 8) ?? "",

@@ -20,7 +20,7 @@ describe('AuthService.revokeOtherSessions', () => {
     expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'SESSIONS_REVOKED_OTHERS', details: { wylogowane: 11 } }));
   });
 
-  it('bez bieżącej sesji (np. sesja wsparcia) — odmowa zamiast wylogowania wszystkich', async () => {
+  it('bez bieżącej sesji (np. sesja wsparcia) – odmowa zamiast wylogowania wszystkich', async () => {
     const { svc, prisma } = zbuduj(0);
     await expect(svc.revokeOtherSessions('u1', undefined)).rejects.toBeInstanceOf(BadRequestException);
     expect(prisma.userSession.updateMany).not.toHaveBeenCalled();

@@ -17,7 +17,7 @@ function pliki(dir: string): string[] {
   });
 }
 
-describe('provisioning Grafany — podstawienia zmiennych w cudzysłowie', () => {
+describe('provisioning Grafany – podstawienia zmiennych w cudzysłowie', () => {
   const yamle = pliki(PROV);
 
   it('test widzi pliki provisioningu (sam się nie oszukuje)', () => {

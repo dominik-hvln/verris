@@ -18,7 +18,7 @@ Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 const WYNIK = {
   wToku: { log: false },
   log: {
-    klucz: "www-domena", etykieta: "Strona — ruch (access log domeny)", filtr: null, domena: "firma.pl", uzytkownik: null, od: null, do: null,
+    klucz: "www-domena", etykieta: "Strona – ruch (access log domeny)", filtr: null, domena: "firma.pl", uzytkownik: null, od: null, do: null,
     wToku: false, kiedy: "2026-10-14T08:00:00Z", zrodlo: "/var/log/httpd/domains/firma.pl.log", dopasowanych: 1, pokazano: 1, maska: true,
     linie: ['203.0.113.••• - - [14/Oct/2026:10:00:00 +0200] "GET / HTTP/1.1" 200'],
     zakres: { od: "2026-10-14T06:00:00.000Z", do: "2026-10-14T08:00:00.000Z" }, zastosowane: ["domena"], blad: null,
@@ -46,7 +46,7 @@ afterEach(async () => {
   k = null;
 });
 
-it("zestawy: domena i użytkownik konta tylko poprawne; bez nich — brak zestawów", () => {
+it("zestawy: domena i użytkownik konta tylko poprawne; bez nich – brak zestawów", () => {
   expect(zestawyDlaKonta("Firma.pl", "firma1").map((z) => [z.log, z.domena ?? z.uzytkownik])).toEqual([
     ["www-domena", "firma.pl"],
     ["www-domena-bledy", "firma.pl"],
@@ -78,13 +78,13 @@ it("pierwszy zestaw (ruch strony) idzie do API z domeną konta; wynik z zakresem
   expect(k!.querySelector('[data-filtry="stary-agent"]')).toBeNull();
 });
 
-it("agent sprzed 14.10 (bez raportu filtrów) — ostrzeżenie, że filtry nie zadziałały", async () => {
+it("agent sprzed 14.10 (bez raportu filtrów) – ostrzeżenie, że filtry nie zadziałały", async () => {
   akcja.mockResolvedValue({ ok: true, wynik: { ...WYNIK, log: { ...WYNIK.log, zastosowane: null, zakres: null } } });
   await montuj();
   expect(k!.querySelector('[data-filtry="stary-agent"]')!.textContent).toContain("nie zadziałały");
 });
 
-it("konto bez poprawnej domeny i użytkownika — panelu nie ma", async () => {
+it("konto bez poprawnej domeny i użytkownika – panelu nie ma", async () => {
   await montuj(null, null);
   expect(k!.querySelector("[data-logi-strony]")).toBeNull();
 });

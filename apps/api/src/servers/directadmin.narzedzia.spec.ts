@@ -97,7 +97,7 @@ describe('ochrona katalogu hasłem', () => {
   });
 });
 
-describe('alias domeny — usunięcie', () => {
+describe('alias domeny – usunięcie', () => {
   it('wysyła do DA delete z domeną główną konta i aliasem małymi literami', async () => {
     const s = stanowisko();
     await s.svc.deleteHostingDomainPointer('s1', 'u1', '  Stara-Firma.PL ');
@@ -155,7 +155,7 @@ describe('lista skrzynek', () => {
  * błąd odczytu skrzynek domeny dodatkowej (test2 na d3) wyzerował całą listę i zniknęły skrzynki domeny głównej.
  * Mock na granicy HTTP (axios w prawdziwym DirectAdminClient), odpowiedź zależna od domeny i parametrów.
  */
-describe('lista skrzynek — wszystkie domeny konta (noc 12.10)', () => {
+describe('lista skrzynek – wszystkie domeny konta (noc 12.10)', () => {
   type Parametry = Record<string, string>;
   function konto(pop: (domena: string, p: Parametry) => unknown, inne: Record<string, unknown> = {}) {
     const s = stanowisko();
@@ -233,7 +233,7 @@ describe('lista skrzynek — wszystkie domeny konta (noc 12.10)', () => {
 });
 
 describe('operacje na skrzynce domeny dodatkowej trafiają do jej domeny (noc 12.10)', () => {
-  it('zakładanie, rozmiar, usuwanie i hasło — domain z adresu skrzynki, nie domena główna', async () => {
+  it('zakładanie, rozmiar, usuwanie i hasło – domain z adresu skrzynki, nie domena główna', async () => {
     const s = stanowisko({ get: { '/CMD_API_SHOW_DOMAINS': 'list0=firma.pl&list1=sklep-firmy.pl' } });
     await s.svc.createHostingEmailAccount('s1', 'u1', { email: 'jan@sklep-firmy.pl', password: 'tajne1234' });
     await s.svc.changeHostingEmailQuota('s1', 'u1', { email: 'jan@sklep-firmy.pl', quotaMb: 2048 });
@@ -251,7 +251,7 @@ describe('operacje na skrzynce domeny dodatkowej trafiają do jej domeny (noc 12
   });
 });
 
-describe('DKIM — włączenie (E-16)', () => {
+describe('DKIM – włączenie (E-16)', () => {
   it('CMD_API_EMAIL_POP set_dkim z domeną konta + wpis w dzienniku', async () => {
     const s = stanowisko();
     await s.svc.enableHostingDkim('s1', 'u1', 'Firma.pl');

@@ -55,7 +55,7 @@ export const ETYKIETA_STANU: Record<StanKopiiKonta, { tekst: string; ton: "ok" |
 
 /** Rozmiar w jednostkach dziesiętnych (jak w panelu klienta i w raporcie węzła). */
 export function rozmiar(b: number | null | undefined): string {
-  if (b === null || b === undefined) return "—";
+  if (b === null || b === undefined) return "–";
   if (b < 1000) return `${b} B`;
   const j = ["kB", "MB", "GB", "TB"];
   let v = b / 1000;
@@ -69,7 +69,7 @@ export function rozmiar(b: number | null | undefined): string {
 
 /** Wiek w czytelnej postaci: „5 h”, „2 dni”. */
 export function wiek(iso: string | null, teraz: number): string {
-  if (!iso) return "—";
+  if (!iso) return "–";
   const h = Math.max(0, Math.floor((teraz - new Date(iso).getTime()) / 3_600_000));
   if (h < 48) return `${h} h`;
   return `${Math.floor(h / 24)} dni`;

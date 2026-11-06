@@ -19,7 +19,7 @@ export function dpaAcceptedTemplate(ctx: DpaAcceptedContext): MailMessage {
 
   const { html, text } = renderEmailShell({
     title: 'Akceptacja Umowy Powierzenia Danych (DPA)',
-    preheader: `Wersja ${ctx.dpaVersion} — pobierz spersonalizowany PDF.`,
+    preheader: `Wersja ${ctx.dpaVersion} – pobierz spersonalizowany PDF.`,
     bodyMarkdown: [
       greeting,
       ``,

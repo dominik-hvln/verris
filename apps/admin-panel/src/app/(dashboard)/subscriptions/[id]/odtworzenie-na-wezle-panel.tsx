@@ -83,7 +83,7 @@ export function OdtworzenieNaWezlePanel({
     setKomunikat(null);
     const r = await odtworzNaWezleAction(subscriptionId, cel, archiwum, wersja.trim());
     przyjmij(r);
-    if (r.ok) setKomunikat({ ok: true, tekst: 'Zlecone. DirectAdmin zakłada konto — do 30 minut.' });
+    if (r.ok) setKomunikat({ ok: true, tekst: 'Zlecone. DirectAdmin zakłada konto – do 30 minut.' });
     setZajety(false);
   };
 
@@ -96,13 +96,13 @@ export function OdtworzenieNaWezlePanel({
       </p>
     ) : null;
 
-  if (!cele.length) return <p className="text-sm text-muted-foreground">Brak innego aktywnego węzła — odtworzenie na inny węzeł wymaga co najmniej dwóch.</p>;
+  if (!cele.length) return <p className="text-sm text-muted-foreground">Brak innego aktywnego węzła – odtworzenie na inny węzeł wymaga co najmniej dwóch.</p>;
 
   return (
     <div className="space-y-3">
       <p className="text-xs text-neutral-400">
         Na wypadek awarii węzła: konto odtwarza się z kopii poza serwerem (prefiks{' '}
-        <span className="font-mono">{stan?.wezelZrodlowy.prefiks ?? '—'}</span>) na innym węźle floty. Wymaga tych samych haseł rclone crypt na
+        <span className="font-mono">{stan?.wezelZrodlowy.prefiks ?? '–'}</span>) na innym węźle floty. Wymaga tych samych haseł rclone crypt na
         węzłach. DNS: przy zewnętrznym DNS przełącza się z kontem; przy DNS na węźle zmień serwery nazw domen klienta.
         Po przepięciu panel sam: przepina delegację NS poddomen w strefie domeny-rodzica (gdy jest w Verris), robi
         archiwum konta na starym węźle, zawiesza je i usuwa po dobie (od razu, gdy strefa rodzica jest na starym węźle).
@@ -124,7 +124,7 @@ export function OdtworzenieNaWezlePanel({
       {/* 13.10 (t2): pusta lista wyglądała jak „gotowe” bez treści — teraz mówi wprost, czego nie ma i gdzie szukano. */}
       {stan?.lista?.status === 'COMPLETED' && !stan.archiwa.length ? (
         <p role="status" className="text-xs text-amber-200">
-          Brak kopii tego konta na zdalnym dysku pod prefiksem <span className="font-mono">{stan.wezelZrodlowy.prefiks ?? '—'}</span>
+          Brak kopii tego konta na zdalnym dysku pod prefiksem <span className="font-mono">{stan.wezelZrodlowy.prefiks ?? '–'}</span>
           {wersja.trim() ? ` (wersja ${wersja.trim()})` : ''}.
         </p>
       ) : null}

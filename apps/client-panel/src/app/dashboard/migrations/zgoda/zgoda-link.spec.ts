@@ -15,7 +15,7 @@ const S = '0b6f2c1e-4d5a-4b8e-9c7d-1a2b3c4d5e6f';
 const M = '9f8e7d6c-5b4a-4c3d-8e2f-1a0b9c8d7e6f';
 const ZLE = ['.\t./.\t./users/me?', '../admin', 'abc#', 'abc?x=1', `${S}/../x`, ''];
 
-describe('zgoda na migrację — identyfikatory z linku', () => {
+describe('zgoda na migrację – identyfikatory z linku', () => {
   beforeEach(() => apiFetch.mockReset().mockResolvedValue({}));
 
   it.each(ZLE)('odczyt: serviceId %j → odmowa bez żądania do API', async (zly) => {

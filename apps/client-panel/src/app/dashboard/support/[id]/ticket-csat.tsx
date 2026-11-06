@@ -65,7 +65,7 @@ export function TicketCsat({
       const res = await reopenTicketAction(ticketId);
       if ("error" in res && res.error) toast.error(res.error);
       else {
-        toast.success("Zgłoszenie jest znów otwarte — opiekun już o tym wie.");
+        toast.success("Zgłoszenie jest znów otwarte – opiekun już o tym wie.");
         router.refresh();
       }
     });
@@ -86,7 +86,7 @@ export function TicketCsat({
       <section id="ocena" className="flex flex-col gap-3 rounded-[10px] border border-line bg-card p-[18px]">
         <h2 className="font-display text-lg font-bold">Dziękujemy za ocenę</h2>
         <div className="grid gap-4 sm:grid-cols-2">
-          {existingAgentRating ? <Gwiazdki etykieta={opiekun ? `${opiekun} — opiekun` : "Opiekun zgłoszenia"} wartosc={existingAgentRating} /> : null}
+          {existingAgentRating ? <Gwiazdki etykieta={opiekun ? `${opiekun} – opiekun` : "Opiekun zgłoszenia"} wartosc={existingAgentRating} /> : null}
           <Gwiazdki etykieta="Obsługa Verris ogólnie" wartosc={existingRating} />
         </div>
         {existingResolved != null ? <p className="text-sm text-muted-foreground">Problem rozwiązany: {existingResolved ? "tak" : "nie"}</p> : null}
@@ -125,7 +125,7 @@ export function TicketCsat({
         Jak nam poszło?
       </h2>
       <div className="grid gap-4 sm:grid-cols-2">
-        {opiekun ? <Gwiazdki etykieta={`${opiekun} — opiekun zgłoszenia`} wartosc={agent} onZmiana={setAgent} /> : null}
+        {opiekun ? <Gwiazdki etykieta={`${opiekun} – opiekun zgłoszenia`} wartosc={agent} onZmiana={setAgent} /> : null}
         <Gwiazdki etykieta="Obsługa Verris ogólnie" wartosc={support} onZmiana={setSupport} />
       </div>
       <div className="flex flex-wrap items-center gap-3">

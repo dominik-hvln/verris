@@ -44,7 +44,7 @@ describe('walidacjaPoPolsku', () => {
   });
 });
 
-describe('AllExceptionsFilter — P5-13 / P5-03', () => {
+describe('AllExceptionsFilter – P5-13 / P5-03', () => {
   function obsluz(e: unknown, url = '/api/v1/x', method = 'POST') {
     const json = vi.fn();
     const setHeader = vi.fn();

@@ -1,5 +1,5 @@
 ---
-title: "Pułapka taniego pierwszego roku — dlaczego odnowienia są tak drogie"
+title: "Pułapka taniego pierwszego roku – dlaczego odnowienia są tak drogie"
 slug: "drogie-odnowienie-hostingu"
 excerpt: "Zapłaciłeś 60 zł za pierwszy rok, a odnowienie kosztuje 300? To nie pomyłka, tylko model biznesowy. Wyjaśniamy, jak działa i jak z niego wyjść."
 metaTitle: "Dlaczego odnowienie hostingu jest tak drogie? | Verris"
@@ -13,7 +13,7 @@ faq: [{"q": "Czy to jest niezgodne z prawem?", "a": "Nie, o ile cena odnowienia 
 
 # Pułapka taniego pierwszego roku
 
-**W skrócie:** niska cena pierwszego okresu to koszt pozyskania klienta, a wysoka cena odnowienia — moment, w którym dostawca zarabia. Model działa, bo po roku przenosiny wydają się trudniejsze i bardziej ryzykowne niż dopłata. Wyjście: liczyć koszt w perspektywie 2–3 lat i wybierać dostawcę z jedną ceną od pierwszego dnia.
+**W skrócie:** niska cena pierwszego okresu to koszt pozyskania klienta, a wysoka cena odnowienia – moment, w którym dostawca zarabia. Model działa, bo po roku przenosiny wydają się trudniejsze i bardziej ryzykowne niż dopłata. Wyjście: liczyć koszt w perspektywie 2–3 lat i wybierać dostawcę z jedną ceną od pierwszego dnia.
 
 ## Jak to działa krok po kroku
 
@@ -31,14 +31,14 @@ Policz w perspektywie 3 lat: cena pierwszego roku + 2× cena odnowienia + SSL + 
 ## Dlaczego trudno się uwolnić
 
 - Nie wiesz, kiedy dokładnie rośnie cena (bywa w drobnym druku).
-- Odnowienie jest automatyczne — obciążenie karty zanim zdążysz zareagować.
+- Odnowienie jest automatyczne – obciążenie karty zanim zdążysz zareagować.
 - Wydaje Ci się, że migracja to godziny pracy i ryzyko przestoju.
 
-Dwa pierwsze punkty to kwestia zasad dostawcy. Trzeci to mit — [migracja odbywa się obok działającej strony](/blog/jak-przeniesc-strone-na-inny-hosting).
+Dwa pierwsze punkty to kwestia zasad dostawcy. Trzeci to mit – [migracja odbywa się obok działającej strony](/blog/jak-przeniesc-strone-na-inny-hosting).
 
 ## Jak to wygląda w Verris
 
-Cena z cennika obowiązuje **od pierwszego dnia**: 45 zł/mies lub 449 zł/rok brutto. Nie ma promocji-przynęty, więc nie ma z czego robić skoku. Odnowienie następuje według cennika z dnia odnowienia, przypomnimy e-mailem, a odnawianie wyłączysz w panelu jednym przełącznikiem — bez opłat i bez konsultanta „zatrzymującego".
+Cena z cennika obowiązuje **od pierwszego dnia**: 45 zł/mies lub 449 zł/rok brutto. Nie ma promocji-przynęty, więc nie ma z czego robić skoku. Odnowienie następuje według cennika z dnia odnowienia, przypomnimy e-mailem, a odnawianie wyłączysz w panelu jednym przełącznikiem – bez opłat i bez konsultanta „zatrzymującego".
 
 ## FAQ
 

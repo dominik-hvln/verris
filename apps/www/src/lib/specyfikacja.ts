@@ -30,7 +30,7 @@ export function sekcjeSpecyfikacji(stawki: StawkiAutoskalowania, nettoWidok = fa
       [`Stawki autoskalowania (${nettoWidok ? 'netto' : 'brutto'})`, `${stawka(st.cpu)} zł za 1% CPU/h · ${stawka(st.ram)} zł za 1 GB RAM/h · ${stawka(st.dysk)} zł za 1 GB dysku/h, naliczane w blokach 15 minut`],
       ['Limit kosztu autoskalowania', 'opcjonalny: limit kosztu na 30 dni (suma dopłat z ostatnich 30 dni), ustawiasz przy zamówieniu albo w panelu; bez limitu płacisz za faktyczne użycie'],
       ['Transfer', 'bez limitu'],
-      ['Strony, domeny, skrzynki, bazy, konta FTP', 'bez limitu liczbowego — ograniczają je tylko zasoby konta'],
+      ['Strony, domeny, skrzynki, bazy, konta FTP', 'bez limitu liczbowego – ograniczają je tylko zasoby konta'],
     ],
   },
   {
@@ -66,7 +66,7 @@ export function sekcjeSpecyfikacji(stawki: StawkiAutoskalowania, nettoWidok = fa
     id: 'bezpieczenstwo',
     wiersze: [
       ['Zapora aplikacji (WAF)', 'ModSecurity z regułami OWASP CRS', true],
-      ['Skaner złośliwego oprogramowania', 'ImunifyAV — skan w tle i na żądanie', true],
+      ['Skaner złośliwego oprogramowania', 'ImunifyAV – skan w tle i na żądanie', true],
       ['Ochrona DDoS', 'filtrowanie L3/L4 w sieci centrum danych i limity połączeń na serwerze WWW', true],
       ['Bezpieczeństwo konta', 'logowanie dwuskładnikowe, klucze dostępu (passkeys), subkonta z uprawnieniami, tokeny API'],
     ],
@@ -91,7 +91,7 @@ export function sekcjeSpecyfikacji(stawki: StawkiAutoskalowania, nettoWidok = fa
     id: 'kopie-gwarancje',
     wiersze: [
       ['Kopia na serwerze', 'codziennie, 7 ostatnich kopii'],
-      ['Samodzielne przywracanie', 'pliki, bazy danych i poczta — z panelu, bez zgłoszenia'],
+      ['Samodzielne przywracanie', 'pliki, bazy danych i poczta – z panelu, bez zgłoszenia'],
       ['Kopia poza serwerem', 'szyfrowana, z każdego z ostatnich 30 dni', true],
       ['Kopia bezpieczeństwa przed przywróceniem', 'domyślnie włączona', true],
       ['Dane', 'w Unii Europejskiej (EOG)'],

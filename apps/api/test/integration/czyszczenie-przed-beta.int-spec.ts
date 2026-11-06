@@ -48,7 +48,7 @@ describe('Czyszczenie panelu przed betą', () => {
     expect(await prisma().invoice.count({ where: { userId: test1.id } })).toBe(1);
   });
 
-  it('blokady: konto na węźle i faktura w KSeF produkcyjnym — usunięcie odmawia, baza bez zmian', async () => {
+  it('blokady: konto na węźle i faktura w KSeF produkcyjnym – usunięcie odmawia, baza bez zmian', async () => {
     const { test1, test2, plan } = await dane();
     const w = await utworzWezel();
     const sub = await prisma().subscription.create({ data: { userId: test1.id, planId: plan.id, interval: 'MONTH', priceAmount: 45, status: 'ACTIVE' } });
@@ -90,13 +90,13 @@ describe('Czyszczenie panelu przed betą', () => {
  * Przegląd 15.10 — przypadki brzegowe czyszczenia (skrypt uruchamiany na produkcji przed przełączeniem KSeF na PROD).
  * B, C, C2, D, G, H byli czerwoni na kodzie sprzed poprawki.
  */
-describe('Czyszczenie przed betą — przegląd 15.10', () => {
+describe('Czyszczenie przed betą – przegląd 15.10', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
   const klient = (email: string, extra: Record<string, unknown> = {}) => prisma().user.create({ data: { email, passwordHash: 'x', ...extra } });
   const db = () => prisma() as unknown as PrismaClient;
 
-  it('A1: klient testowy z usuniętą usługą (Account DELETED + Subscription) — czyszczenie przechodzi', async () => {
+  it('A1: klient testowy z usuniętą usługą (Account DELETED + Subscription) – czyszczenie przechodzi', async () => {
     const plan = await utworzPlan();
     const w = await utworzWezel();
     const t = await klient('t-konto@test.pl');
@@ -109,7 +109,7 @@ describe('Czyszczenie przed betą — przegląd 15.10', () => {
     await expect(wykonajCzyszczenie(db(), [], { potwierdzenie: 1 })).resolves.toMatchObject({ usunieto: 1 });
   });
 
-  it('A2: klient testowy z fakturą i jej korektą — czyszczenie przechodzi', async () => {
+  it('A2: klient testowy z fakturą i jej korektą – czyszczenie przechodzi', async () => {
     const t = await klient('t-korekta@test.pl');
     const f = await prisma().invoice.create({
       data: { userId: t.id, number: 'VFV/2026/10/0001', amount: 1.23, ksefStatus: 'ACCEPTED', ksefSrodowisko: 'test' } as never,
@@ -120,7 +120,7 @@ describe('Czyszczenie przed betą — przegląd 15.10', () => {
     await expect(wykonajCzyszczenie(db(), [], { potwierdzenie: 1 })).resolves.toMatchObject({ usunieto: 1 });
   });
 
-  it('B: subkonto z listy „zachowaj” pod właścicielem spoza listy — blokada, subkonto zostaje', async () => {
+  it('B: subkonto z listy „zachowaj” pod właścicielem spoza listy – blokada, subkonto zostaje', async () => {
     const owner = await klient('wlasciciel-testowy@test.pl');
     const sub = await klient('pracownik@firma.pl', { customerOwnerId: owner.id });
     const p = await planCzyszczenia(db(), ['pracownik@firma.pl']);
@@ -130,14 +130,14 @@ describe('Czyszczenie przed betą — przegląd 15.10', () => {
     expect(await prisma().user.findUnique({ where: { id: sub.id } })).not.toBeNull();
   });
 
-  it('B2: właściciel i jego subkonto spoza listy — oba usunięte jednym poleceniem (liczba się zgadza)', async () => {
+  it('B2: właściciel i jego subkonto spoza listy – oba usunięte jednym poleceniem (liczba się zgadza)', async () => {
     const owner = await klient('wl2@test.pl');
     await klient('sub2@test.pl', { customerOwnerId: owner.id });
     await expect(wykonajCzyszczenie(db(), [], { potwierdzenie: 2 })).resolves.toMatchObject({ usunieto: 2 });
     expect(await prisma().user.count({ where: { role: 'USER' } })).toBe(0);
   });
 
-  it('C: --zeruj-numeracje przy zachowanym kliencie z fakturą z bieżącego miesiąca — kolejny numer nie dubluje', async () => {
+  it('C: --zeruj-numeracje przy zachowanym kliencie z fakturą z bieżącego miesiąca – kolejny numer nie dubluje', async () => {
     const teraz = new Date();
     const { rok, miesiac } = okresNumeracji(teraz);
     const mm = String(miesiac).padStart(2, '0');
@@ -159,7 +159,7 @@ describe('Czyszczenie przed betą — przegląd 15.10', () => {
     expect(p.blokady.length).toBeGreaterThan(0);
   });
 
-  it('E: dokument z numerem z programu księgowego i wpłata Paynow — widoczne w podglądzie (do sprawdzenia, nie blokują: bywają sandbox)', async () => {
+  it('E: dokument z numerem z programu księgowego i wpłata Paynow – widoczne w podglądzie (do sprawdzenia, nie blokują: bywają sandbox)', async () => {
     const t = await klient('t-wplata@test.pl');
     await prisma().paynowPlatnosc.create({ data: { userId: t.id, kwotaMinor: 4500, status: 'CONFIRMED', paymentId: 'NOLV-1', meta: {} } });
     await prisma().invoice.create({
@@ -170,7 +170,7 @@ describe('Czyszczenie przed betą — przegląd 15.10', () => {
     expect(opisPlanu(p)).toContain('z numerem z programu księgowego: 1');
   });
 
-  it('F: domena u rejestratora (ACTIVE) — w podglądzie „do sprawdzenia” (sandbox OpenProvider bywa testowy)', async () => {
+  it('F: domena u rejestratora (ACTIVE) – w podglądzie „do sprawdzenia” (sandbox OpenProvider bywa testowy)', async () => {
     const t = await klient('t-domena@test.pl');
     await prisma().domain.create({
       data: { userId: t.id, name: 'test-dominika-xyz.pl', status: 'ACTIVE', registrarProvider: 'x', registrarExternalId: 'ext-1', autoRenew: true } as never,
@@ -187,7 +187,7 @@ describe('Czyszczenie przed betą — przegląd 15.10', () => {
     expect(p.pieniadze.wplatyPaynowZl).toBe('0.00');
   });
 
-  it('H: konto na węźle powstałe między planem a transakcją (równoległy zakup) — blokada sprawdzana w transakcji', async () => {
+  it('H: konto na węźle powstałe między planem a transakcją (równoległy zakup) – blokada sprawdzana w transakcji', async () => {
     const plan = await utworzPlan();
     const w = await utworzWezel();
     const t = await klient('t-wyscig@test.pl');

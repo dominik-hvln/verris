@@ -96,7 +96,7 @@ export function opisFiltrow(l: NonNullable<StanUslugWezla["log"]>): { tekst: str
   const nowe = !!(l.domena || l.uzytkownik || l.od || l.do);
   const ostrzezenie =
     nowe && !l.wToku && !l.blad && l.zrodlo && l.zastosowane === null
-      ? "Agent na tym węźle jest starszy niż filtry domeny, użytkownika i czasu — linie poniżej NIE są nimi przefiltrowane. Zaktualizuj węzeł (Operacje floty)."
+      ? "Agent na tym węźle jest starszy niż filtry domeny, użytkownika i czasu – linie poniżej NIE są nimi przefiltrowane. Zaktualizuj węzeł (Operacje floty)."
       : null;
   return { tekst: czesci.join(" · "), ostrzezenie };
 }
@@ -186,7 +186,7 @@ export function UslugiWezlaPanel({ serverId, nazwaWezla, isAdmin }: { serverId: 
         setMsg(null);
         if (await wywolaj("restart-wspolnej", { usluga: u.klucz, powod, potwierdzenie: nazwa })) {
           setPowod("");
-          setMsg({ ok: true, tekst: "Zlecone — serwer wykona restart w ciągu minuty." });
+          setMsg({ ok: true, tekst: "Zlecone – serwer wykona restart w ciągu minuty." });
         }
       });
       return;
@@ -199,7 +199,7 @@ export function UslugiWezlaPanel({ serverId, nazwaWezla, isAdmin }: { serverId: 
       setMsg(null);
       if (await wywolaj("restart", { usluga: u.klucz, powod })) {
         setPowod("");
-        setMsg({ ok: true, tekst: "Zlecone — serwer wykona to w ciągu minuty." });
+        setMsg({ ok: true, tekst: "Zlecone – serwer wykona to w ciągu minuty." });
       }
     });
   };
@@ -239,9 +239,9 @@ export function UslugiWezlaPanel({ serverId, nazwaWezla, isAdmin }: { serverId: 
 
         <p className="text-xs" data-watchdog={wd?.nieDzialaja.length ? "alarm" : wd?.swiezy ? "ok" : "brak"}>
           {!wd?.kiedy ? (
-            <span className="text-muted-foreground">Watchdog: brak raportu agenta — zaktualizuj węzeł, żeby włączyć stały nadzór.</span>
+            <span className="text-muted-foreground">Watchdog: brak raportu agenta – zaktualizuj węzeł, żeby włączyć stały nadzór.</span>
           ) : !wd.swiezy ? (
-            <span className="text-amber-200">Watchdog: ostatni raport {kiedy(wd.kiedy)} — agent milczy.</span>
+            <span className="text-amber-200">Watchdog: ostatni raport {kiedy(wd.kiedy)} – agent milczy.</span>
           ) : wd.nieDzialaja.length ? (
             <span className="text-rose-200">
               Watchdog ({kiedy(wd.kiedy)}): nie {plForm(wd.nieDzialaja.length, "działa", "działają", "działa")} {wd.nieDzialaja.map(etykieta).join(", ")}.
@@ -271,7 +271,7 @@ export function UslugiWezlaPanel({ serverId, nazwaWezla, isAdmin }: { serverId: 
 
         {lista.length && migawkaStarsza ? (
           <p className="text-xs text-amber-200" data-migawka="starsza">
-            Szczegóły z {godzinaIDzien(migawkaKiedy!)} (działa od, restarty) — starsze niż watchdog; odśwież „Sprawdź na serwerze”.
+            Szczegóły z {godzinaIDzien(migawkaKiedy!)} (działa od, restarty) – starsze niż watchdog; odśwież „Sprawdź na serwerze”.
           </p>
         ) : null}
 
@@ -298,11 +298,11 @@ export function UslugiWezlaPanel({ serverId, nazwaWezla, isAdmin }: { serverId: 
                       </td>
                       <td className="px-2 py-1" title={zWatchdoga ? `Migawka z ${godzinaIDzien(migawkaKiedy!)}: ${STAN[migawka].tekst}` : undefined}>
                         <Pigulka ton={STAN[u.stan].ton}>
-                          {zWatchdoga ? `${zWatchdoga.stan === "dziala" ? "działa" : "nie działa"} — wg watchdoga ${godzina(zWatchdoga.kiedy)}` : STAN[u.stan].tekst}
+                          {zWatchdoga ? `${zWatchdoga.stan === "dziala" ? "działa" : "nie działa"} – wg watchdoga ${godzina(zWatchdoga.kiedy)}` : STAN[u.stan].tekst}
                         </Pigulka>
                       </td>
                       <td className="px-2 py-1">{kiedy(u.od)}</td>
-                      <td className="px-2 py-1">{u.restarty ?? "—"}</td>
+                      <td className="px-2 py-1">{u.restarty ?? "–"}</td>
                       <td className="px-2 py-1 text-right">
                         {tekst ? (
                           <button
@@ -330,7 +330,7 @@ export function UslugiWezlaPanel({ serverId, nazwaWezla, isAdmin }: { serverId: 
             <WyslijWniosek
               typ="NODE_SERVICE_RESTART"
               payload={{ serverId, usluga: wniosekDla }}
-              podpowiedz={`„${etykieta(wniosekDla)}” działa — restart przerwie pracę wszystkich kont węzła, więc robi go administrator.`}
+              podpowiedz={`„${etykieta(wniosekDla)}” działa – restart przerwie pracę wszystkich kont węzła, więc robi go administrator.`}
             />
           </div>
         ) : null}
@@ -338,7 +338,7 @@ export function UslugiWezlaPanel({ serverId, nazwaWezla, isAdmin }: { serverId: 
         {r ? (
           <p className="text-xs text-muted-foreground" data-restart="wynik">
             Ostatni {r.tylkoGdyStoi ? "start" : "restart"} „{r.etykieta}” ({kiedy(r.kiedy)}):{" "}
-            {r.wToku ? "w toku…" : r.blad ? `nie powiódł się — ${r.blad}` : r.stanPo === "dziala" ? "usługa działa." : "gotowe."}
+            {r.wToku ? "w toku…" : r.blad ? `nie powiódł się – ${r.blad}` : r.stanPo === "dziala" ? "usługa działa." : "gotowe."}
           </p>
         ) : null}
       </div>
@@ -366,7 +366,7 @@ export function UslugiWezlaPanel({ serverId, nazwaWezla, isAdmin }: { serverId: 
             data-akcja="log"
             className={przycisk}
             disabled={pending || !!stan?.wToku.log || (wymagaDomeny && !domena.trim())}
-            title={wymagaDomeny && !domena.trim() ? "Ten log dotyczy jednej strony — podaj domenę" : undefined}
+            title={wymagaDomeny && !domena.trim() ? "Ten log dotyczy jednej strony – podaj domenę" : undefined}
             onClick={pokazLog}
           >
             {stan?.wToku.log ? "Czytam…" : "Pokaż"}
@@ -389,8 +389,8 @@ export function UslugiWezlaPanel({ serverId, nazwaWezla, isAdmin }: { serverId: 
             aria-label="Użytkownik"
             className={POLE}
           />
-          <PoleDaty zGodzina value={od} onChange={setOd} aria-label="Od (data i godzina)" placeholder="Od — data i godzina" className={POLE} />
-          <PoleDaty zGodzina value={doCzasu} onChange={setDoCzasu} aria-label="Do (data i godzina)" placeholder="Do — data i godzina" className={POLE} />
+          <PoleDaty zGodzina value={od} onChange={setOd} aria-label="Od (data i godzina)" placeholder="Od – data i godzina" className={POLE} />
+          <PoleDaty zGodzina value={doCzasu} onChange={setDoCzasu} aria-label="Do (data i godzina)" placeholder="Do – data i godzina" className={POLE} />
         </div>
         {l ? (
           <div className="space-y-1.5" data-log={l.klucz}>

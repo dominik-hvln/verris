@@ -47,7 +47,7 @@ export function ResellerClient() {
       return;
     }
     toast.success(
-      r.data.mailWyslany ? `Konto założone — ${r.data.email} dostał link do ustawienia hasła.` : 'Konto założone, ale mail nie wyszedł — napisz do nas.',
+      r.data.mailWyslany ? `Konto założone – ${r.data.email} dostał link do ustawienia hasła.` : 'Konto założone, ale mail nie wyszedł – napisz do nas.',
       { description: `Dziś możesz założyć jeszcze ${r.data.pozostaloDzis}.` },
     );
     setNowy({ email: '', firstName: '', lastName: '' });
@@ -108,8 +108,8 @@ export function ResellerClient() {
         <p className="mx-auto max-w-md text-sm text-neutral-400">
           {narzutWlaczony
             ? 'Program white-label pozwala odsprzedawać hosting pod własną marką z własnym narzutem.'
-            : 'Program white-label pozwala obsługiwać klientów pod własną marką — wszystkich z jednego panelu.'}
-          {' '}Złóż wniosek — sprawdzimy konto i włączymy program, zwykle w ciągu jednego dnia roboczego.
+            : 'Program white-label pozwala obsługiwać klientów pod własną marką – wszystkich z jednego panelu.'}
+          {' '}Złóż wniosek – sprawdzimy konto i włączymy program, zwykle w ciągu jednego dnia roboczego.
           {narzutWlaczony ? ' Startowy narzut to 20%.' : null}
         </p>
         <label className="mx-auto block max-w-sm text-left text-sm font-medium text-white">
@@ -133,7 +133,7 @@ export function ResellerClient() {
     <div className="space-y-6">
       {pending ? (
         <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm text-amber-200">
-          Wniosek przyjęty — sprawdzamy konto. Link zaproszenia zacznie przypisywać klientów dopiero po włączeniu programu — status zmieni się tutaj.
+          Wniosek przyjęty – sprawdzamy konto. Link zaproszenia zacznie przypisywać klientów dopiero po włączeniu programu – status zmieni się tutaj.
         </p>
       ) : null}
       {suspended ? (
@@ -183,7 +183,7 @@ export function ResellerClient() {
           <button type="submit" disabled={narzut === null || narzut === String(ov.markupPct)} className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50">
             Zapisz narzut
           </button>
-          <p className="w-full text-xs text-neutral-500">Cena dla Twoich klientów = cena hurtowa × (1 + narzut). Nowy narzut obowiązuje przy kolejnych zamówieniach i zmianach planu — opłacone usługi odnawiają się dotychczasową ceną.</p>
+          <p className="w-full text-xs text-neutral-500">Cena dla Twoich klientów = cena hurtowa × (1 + narzut). Nowy narzut obowiązuje przy kolejnych zamówieniach i zmianach planu – opłacone usługi odnawiają się dotychczasową ceną.</p>
         </form>
       ) : null}
 
@@ -229,8 +229,8 @@ export function ResellerClient() {
 
       <p className="text-[11px] text-neutral-500">
         {narzutWlaczony
-          ? 'Klienci płacą w swoim panelu cenę z Twoim narzutem (z portfela). Część opłaty odpowiadającą narzutowi naliczamy Ci jako prowizję. Klient odpięty od Ciebie wraca do cen z cennika. Twoja marka na fakturach — w kolejnym etapie.'
-          : 'Klienci płacą za usługi bezpośrednio w swoim panelu, po cenach z cennika Verris. Własny narzut, rozliczenia między Tobą a klientami i Twoja marka na fakturach — w kolejnym etapie.'}
+          ? 'Klienci płacą w swoim panelu cenę z Twoim narzutem (z portfela). Część opłaty odpowiadającą narzutowi naliczamy Ci jako prowizję. Klient odpięty od Ciebie wraca do cen z cennika. Twoja marka na fakturach – w kolejnym etapie.'
+          : 'Klienci płacą za usługi bezpośrednio w swoim panelu, po cenach z cennika Verris. Własny narzut, rozliczenia między Tobą a klientami i Twoja marka na fakturach – w kolejnym etapie.'}
       </p>
     </div>
   );

@@ -2,7 +2,7 @@ import { CustomerPermission } from '@verris/database';
 import { UsersService } from './users.service.js';
 
 /** P3-08 — profil subkonta niesie, czyje konto obsługuje (panel pokazuje to w pasku nad treścią). */
-describe('UsersService.getProfile — kontoSubkonta (P3-08)', () => {
+describe('UsersService.getProfile – kontoSubkonta (P3-08)', () => {
   const uzytkownik = (customerOwnerId: string | null) => ({
     id: customerOwnerId ? 'sub-1' : 'owner-1', email: customerOwnerId ? 'piotr@firma.pl' : 'kasia@firma.pl', role: 'USER',
     firstName: 'X', lastName: 'Y', companyName: null, nip: null, address: null, city: null, postalCode: null, country: null,

@@ -32,7 +32,7 @@ describe('Wnioski o migrację', () => {
   });
   afterAll(rozlacz);
 
-  it('nowy wniosek po 20 obsłużonych jest przetworzony; dwa przebiegi naraz — jedna kopia i jedno zgłoszenie', async () => {
+  it('nowy wniosek po 20 obsłużonych jest przetworzony; dwa przebiegi naraz – jedna kopia i jedno zgłoszenie', async () => {
     const wezel = await utworzWezel();
     const plan = await utworzPlan({ productKind: 'HOSTING' });
     const k = await utworzKonto({ serverId: wezel.id, planId: plan.id });
@@ -62,7 +62,7 @@ describe('Migracja wewnętrzna zlecana przez operatora (PB-44)', () => {
     const p = prisma() as never;
     return new MigrationOrchestratorService(p, null as never, new AuditService(p), null as never, null as never, null as never, null as never);
   };
-  const POWOD = 'Węzeł n1 przeciążony — zgłoszenie #12';
+  const POWOD = 'Węzeł n1 przeciążony – zgłoszenie #12';
 
   beforeEach(async () => {
     await wyczyscBaze();
@@ -79,7 +79,7 @@ describe('Migracja wewnętrzna zlecana przez operatora (PB-44)', () => {
     return { cel, k, operator };
   }
 
-  it('klient nie widzi powodu operatora, węzła ani operatora — w zgłoszeniu i w historii migracji', async () => {
+  it('klient nie widzi powodu operatora, węzła ani operatora – w zgłoszeniu i w historii migracji', async () => {
     const { cel, k, operator } = await przygotuj();
     const o = orkiestrator();
     await o.requestInternalMigrationByAdmin(k.subscription.id, operator.id, { targetServerId: cel.id, notes: POWOD });

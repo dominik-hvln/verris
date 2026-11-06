@@ -39,7 +39,7 @@ export function FormularzKomunikatu({
   const cele = zakres === "WEZEL" ? wezly : plany;
   const ostrzezenie = (() => {
     const promo = trescPromocyjna(`${temat}\n${tresc}`);
-    if (promo) return `Usuń treść promocyjną („${promo}”) — komunikat serwisowy wychodzi bez zgody marketingowej.`;
+    if (promo) return `Usuń treść promocyjną („${promo}”) – komunikat serwisowy wychodzi bez zgody marketingowej.`;
     const infra = nazwaInfrastruktury(`${temat}\n${tresc}`);
     return infra ? `Klient nie widzi nazw infrastruktury („${infra}”).` : null;
   })();
@@ -68,7 +68,7 @@ export function FormularzKomunikatu({
       setMsg(null);
       const r = await zlecKomunikatAction({ zakres, celId, temat, tresc, powod });
       if (!r.ok) return setMsg({ ok: false, tekst: r.error });
-      setMsg({ ok: true, tekst: "Zlecone — kolejka wysyła maile w tle." });
+      setMsg({ ok: true, tekst: "Zlecone – kolejka wysyła maile w tle." });
       setPodglad(null);
       setTemat("");
       setTresc(TRESC_STARTOWA);
@@ -96,7 +96,7 @@ export function FormularzKomunikatu({
         />
         <Select value={celId} onChange={zmiana(setCelId)} aria-label={zakres === "WEZEL" ? "Węzeł" : "Plan"} placeholder={zakres === "WEZEL" ? "Wybierz węzeł" : "Wybierz plan"} options={cele.map((c) => ({ value: c.id, label: c.nazwa }))} />
       </div>
-      <input value={temat} onChange={(e) => zmiana(setTemat)(e.target.value)} maxLength={200} placeholder="Temat, np. Przerwa w działaniu poczty — pracujemy nad tym" aria-label="Temat" className={POLE} />
+      <input value={temat} onChange={(e) => zmiana(setTemat)(e.target.value)} maxLength={200} placeholder="Temat, np. Przerwa w działaniu poczty – pracujemy nad tym" aria-label="Temat" className={POLE} />
       <textarea value={tresc} onChange={(e) => zmiana(setTresc)(e.target.value)} maxLength={5000} rows={8} aria-label="Treść" className={`${POLE} resize-y`} />
       <input value={powod} onChange={(e) => setPowod(e.target.value)} maxLength={500} placeholder="Powód do dziennika (min. 10 znaków), np. numer incydentu" aria-label="Powód" className={POLE} />
       {ostrzezenie ? (
@@ -135,12 +135,12 @@ export function FormularzKomunikatu({
             <span className="text-muted-foreground">
               Wysyłka ok. {podglad.minutWysylki} min ({KOMUNIKAT_LIMIT_NA_MINUTE} maili na minutę). Właściciele usług, bez kont zespołu.
             </span>
-            {podglad.przekroczono ? <span className="text-rose-300">Za dużo odbiorców w jednym komunikacie — podziel zakres.</span> : null}
+            {podglad.przekroczono ? <span className="text-rose-300">Za dużo odbiorców w jednym komunikacie – podziel zakres.</span> : null}
             <ul className="mt-1 flex flex-col gap-0.5 font-mono text-xs">
               {podglad.przyklad.map((p) => (
                 <li key={p.id}>
                   {p.email}
-                  {p.nazwa ? ` — ${p.nazwa}` : ""}
+                  {p.nazwa ? ` – ${p.nazwa}` : ""}
                 </li>
               ))}
               {podglad.odbiorcow > podglad.przyklad.length ? <li className="text-muted-foreground">… i {podglad.odbiorcow - podglad.przyklad.length} więcej</li> : null}

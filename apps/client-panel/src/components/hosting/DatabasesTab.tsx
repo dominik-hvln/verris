@@ -141,7 +141,7 @@ export default function DatabasesTab({ serviceId }: Props) {
   return (
     <HostingTabShell
       title="Bazy MySQL"
-      description="Twórz, przeglądaj i usuwaj bazy danych — bez wychodzenia z panelu."
+      description="Twórz, przeglądaj i usuwaj bazy danych – bez wychodzenia z panelu."
       icon={<Database className="h-4 w-4" />}
       help={{
         blurb:
@@ -264,7 +264,7 @@ export default function DatabasesTab({ serviceId }: Props) {
 
       {databases.length === 0 && !fetchError ? (
         <p className="rounded-[10px] border border-line bg-card px-3 py-8 text-center text-xs text-muted-foreground">
-          Brak baz — utwórz pierwszą w formularzu „Nowa baza danych”.
+          Brak baz – utwórz pierwszą w formularzu „Nowa baza danych”.
         </p>
       ) : (
         <div className="overflow-hidden rounded-[10px] border border-line bg-card">

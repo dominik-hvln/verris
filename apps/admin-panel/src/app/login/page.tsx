@@ -110,7 +110,7 @@ export default function AdminLoginPage() {
         {breakGlass && (
           <div className="space-y-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
             <p className="text-[11px] text-amber-200/90 leading-relaxed">
-              Logowanie awaryjne — gdy nie masz dostępu do passkey. Wymaga kodu 2FA oraz
+              Logowanie awaryjne – gdy nie masz dostępu do passkey. Wymaga kodu 2FA oraz
               jednorazowego kodu break-glass. Każde użycie powiadamia wszystkich adminów.
             </p>
             <div className="space-y-1">

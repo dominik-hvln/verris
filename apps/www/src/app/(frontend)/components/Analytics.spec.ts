@@ -45,7 +45,7 @@ function updateZApplyConsent(c: CookieConsent): Record<string, unknown> {
 
 const ciasteczko = (c: CookieConsent) => `x=1; ${CONSENT_COOKIE}=${encodeURIComponent(JSON.stringify(c))}`;
 
-describe('CL-05 Consent Mode v2 — default przed GTM (verris.pl)', () => {
+describe('CL-05 Consent Mode v2 – default przed GTM (verris.pl)', () => {
   it('pierwsze polecenie to consent default; wszystko „denied” poza security_storage', () => {
     const dl = uruchomInline('');
     expect(polecenia(dl)).toHaveLength(1);

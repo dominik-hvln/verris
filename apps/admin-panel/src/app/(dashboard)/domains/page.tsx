@@ -24,7 +24,7 @@ function adres(f: Parametry): string {
   return qs ? `/domains?${qs}` : "/domains";
 }
 
-const data = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleDateString("pl-PL", { timeZone: "Europe/Warsaw" }) : "—");
+const data = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleDateString("pl-PL", { timeZone: "Europe/Warsaw" }) : "–");
 const kto = (u: { email: string; firstName: string | null; lastName: string | null }) => [u.firstName, u.lastName].filter(Boolean).join(" ") || u.email;
 
 /**
@@ -144,8 +144,8 @@ export default async function DomenyPage({ searchParams }: { searchParams: Promi
                       <span className="font-semibold">{r.name}</span>
                       <span className="text-[12.5px] text-muted-foreground">{kto(r.user)}</span>
                     </span>
-                    <span className="hidden w-[110px] font-mono text-[13px] md:block">{r.uNas ? data(r.expiresAt) : "—"}</span>
-                    <span className="hidden w-[90px] text-[13px] text-muted-foreground lg:block">{r.uNas ? (r.transferLock ? "tak" : "nie") : "—"}</span>
+                    <span className="hidden w-[110px] font-mono text-[13px] md:block">{r.uNas ? data(r.expiresAt) : "–"}</span>
+                    <span className="hidden w-[90px] text-[13px] text-muted-foreground lg:block">{r.uNas ? (r.transferLock ? "tak" : "nie") : "–"}</span>
                     <span className="w-[170px]">
                       <Pigulka ton={s.ton} className="!text-xs">
                         {s.t}
@@ -191,7 +191,7 @@ export default async function DomenyPage({ searchParams }: { searchParams: Promi
                     <Link href={`/customers/${o.userId}`} className="hover:underline">
                       {kto(o.user)}
                     </Link>{" "}
-                    · {data(o.createdAt)} · {o.priceAmount ? `${o.priceAmount} ${o.currency}` : "—"}
+                    · {data(o.createdAt)} · {o.priceAmount ? `${o.priceAmount} ${o.currency}` : "–"}
                   </span>
                   {o.lastError ? <span className="break-all text-[12px] text-crit">{o.lastError}</span> : null}
                 </span>

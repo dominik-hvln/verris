@@ -184,7 +184,7 @@ export default function DomainPointingPanel({
         <div className="rounded-[7px] border border-line bg-background px-3 py-2">
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Wykryte NS ({data.domain})</p>
           <p className="font-mono text-foreground mt-1 break-all">
-            {data.nameservers.length ? data.nameservers.join(', ') : '— brak —'}
+            {data.nameservers.length ? data.nameservers.join(', ') : '– brak –'}
           </p>
           {data.expectedNameservers.length ? (
             <p className="text-[10px] text-muted-foreground mt-1">
@@ -199,7 +199,7 @@ export default function DomainPointingPanel({
         <div className="rounded-[7px] border border-line bg-background px-3 py-2">
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Wykryte A ({data.domain})</p>
           <p className="font-mono text-foreground mt-1 break-all">
-            {data.observedA.length ? data.observedA.join(', ') : '— brak —'}
+            {data.observedA.length ? data.observedA.join(', ') : '– brak –'}
           </p>
         </div>
         <div className="rounded-[7px] border border-line bg-background px-3 py-2">

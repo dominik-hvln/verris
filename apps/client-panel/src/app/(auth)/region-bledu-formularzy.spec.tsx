@@ -25,12 +25,12 @@ import ResendVerificationPage from './resend-verification/page';
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
-const BLAD = 'Coś poszło nie tak — spróbuj ponownie.';
+const BLAD = 'Coś poszło nie tak – spróbuj ponownie.';
 
 describe.each([
   ['rejestracja', RegisterPage],
-  ['reset hasła — prośba', ForgotPasswordPage],
-  ['reset hasła — nowe hasło', ResetPasswordPage],
+  ['reset hasła – prośba', ForgotPasswordPage],
+  ['reset hasła – nowe hasło', ResetPasswordPage],
   ['ponowny link potwierdzający', ResendVerificationPage],
 ])('%s', (_n, Strona) => {
   it('pusty region role=alert w formularzu przed błędem, po błędzie komunikat w tym samym regionie', async () => {

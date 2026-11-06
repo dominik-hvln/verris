@@ -83,13 +83,13 @@ export function sprawdzKonfiguracjeWezlow(isProd: boolean): void {
   // panelu :2222. W produkcji to błąd konfiguracji, nie tryb pracy.
   if (!adresyControlPlane()) {
     throw new Error(
-      'Brak VERRIS_CONTROL_PLANE_IPS — w produkcji API nie wystartuje bez adresów control-plane ' +
+      'Brak VERRIS_CONTROL_PLANE_IPS – w produkcji API nie wystartuje bez adresów control-plane ' +
         '(adresy wyjściowe serwera API, IPv4 i IPv6, po przecinku, np. VERRIS_CONTROL_PLANE_IPS=203.0.113.10,2001:db8::/64).',
     );
   }
   const deploy = (process.env.VERRIS_NODE_DEPLOY_SSH_PUBKEY ?? '').trim();
   if (deploy && !linijkaAuthorizedKeys(deploy)) {
-    throw new Error('VERRIS_NODE_DEPLOY_SSH_PUBKEY wymaga VERRIS_CONTROL_PLANE_IPS (i poprawnego klucza SSH) — klucz deploy tylko z adresów control-plane.');
+    throw new Error('VERRIS_NODE_DEPLOY_SSH_PUBKEY wymaga VERRIS_CONTROL_PLANE_IPS (i poprawnego klucza SSH) – klucz deploy tylko z adresów control-plane.');
   }
 }
 

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { VerrisLockup } from "@/components/logo";
 
-export const metadata: Metadata = { title: "Nie ma takiej strony — Verris" };
+export const metadata: Metadata = { title: "Nie ma takiej strony – Verris" };
 
 /**
  * Weryfikacja 11.10 — nieistniejący adres (np. stary link do zakładki usługi) pokazywał domyślną czarną stronę

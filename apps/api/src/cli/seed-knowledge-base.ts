@@ -3,7 +3,7 @@
  * Zasila podpowiedzi KB dla klienta i sugestie AI dla supportu. Bez embeddingów
  * (retrieve ma keyword-fallback), więc działa od razu nawet bez dostawcy AI.
  *
- * Idempotentny: pomija artykuły o istniejącym tytule.
+ * Idempotentny: pomija artykuły o istniejącym tytule (pauza „—” i półpauza „–” traktowane jak ten sam znak).
  *
  * USAGE:  pnpm --filter api cli:seed-kb
  */
@@ -64,11 +64,11 @@ Ustawienia w programie pocztowym (Outlook, Thunderbird, telefon):
 Jeśli poczta nie wysyła/odbiera, sprawdź czy domena ma poprawne rekordy MX oraz SPF/DKIM/DMARC (zakładka Deliverability).`,
   },
   {
-    title: 'Certyfikat SSL (Let’s Encrypt) — wystawianie i wymagania',
+    title: 'Certyfikat SSL (Let’s Encrypt) – wystawianie i wymagania',
     audience: AiKnowledgeAudience.ALL,
     content: `Darmowy certyfikat Let’s Encrypt wystawisz w panelu: Usługa → SSL → „Wystaw certyfikat LE".
 
-WAŻNE: certyfikat jest wydawany w tle (walidacja HTTP-01), więc domena musi już wskazywać na nasz serwer (poprawny rekord A). Jeśli DNS nie jest jeszcze skierowany, walidacja się nie powiedzie i certyfikat nie powstanie. Po poprawnym skierowaniu DNS ponów wystawienie — status zaktualizuje się zwykle w kilka minut.
+WAŻNE: certyfikat jest wydawany w tle (walidacja HTTP-01), więc domena musi już wskazywać na nasz serwer (poprawny rekord A). Jeśli DNS nie jest jeszcze skierowany, walidacja się nie powiedzie i certyfikat nie powstanie. Po poprawnym skierowaniu DNS ponów wystawienie – status zaktualizuje się zwykle w kilka minut.
 
 Możesz też wgrać własny certyfikat (PEM): certyfikat, klucz prywatny i opcjonalny łańcuch CA.`,
   },
@@ -77,7 +77,7 @@ Możesz też wgrać własny certyfikat (PEM): certyfikat, klucz prywatny i opcjo
     audience: AiKnowledgeAudience.ALL,
     content: `WordPressa zainstalujesz w panelu: Usługa → Aplikacje → „Zainstaluj WordPress". Tworzymy bazę danych, konfigurujemy stronę i wtyczkę LiteSpeed Cache. Instalacja trwa około minuty.
 
-Po instalacji link do panelu administracyjnego (wp-admin) pojawi się w tej samej zakładce. Ponowna instalacja nadpisuje konfigurację tylko jeśli WordPress nie jest jeszcze skonfigurowany — istniejąca instalacja nie jest ruszana (bez utraty danych).
+Po instalacji link do panelu administracyjnego (wp-admin) pojawi się w tej samej zakładce. Ponowna instalacja nadpisuje konfigurację tylko jeśli WordPress nie jest jeszcze skonfigurowany – istniejąca instalacja nie jest ruszana (bez utraty danych).
 
 W zakładce „Aplikacje" dostępne są też inne aplikacje 1-click (np. Nextcloud, PrestaShop) instalowane na pustym katalogu domeny.`,
   },
@@ -93,7 +93,7 @@ Do połączenia z aplikacji użyj:
 Zaawansowane zarządzanie (tabele, importy SQL) dostępne jest przez phpMyAdmin (link w tej samej zakładce). Bazę możesz usunąć przyciskiem kosza.`,
   },
   {
-    title: 'Konta FTP — tworzenie i połączenie',
+    title: 'Konta FTP – tworzenie i połączenie',
     audience: AiKnowledgeAudience.ALL,
     content: `Dodatkowe konto FTP utworzysz w panelu: Usługa → Konta FTP (użytkownik, hasło, opcjonalny katalog).
 
@@ -112,7 +112,7 @@ Dla bezpieczeństwa używaj połączenia szyfrowanego (FTPS). Konto FTP możesz 
 Jeśli aplikacja przestała działać po zmianie, sprawdź wymagania wersji PHP danej aplikacji i w razie potrzeby wróć do poprzedniej wersji.`,
   },
   {
-    title: 'Zadania cron — jak dodać',
+    title: 'Zadania cron – jak dodać',
     audience: AiKnowledgeAudience.ALL,
     content: `Zadania cykliczne dodasz w panelu: Usługa → Cron. Ustaw harmonogram (minuta, godzina, dzień miesiąca, miesiąc, dzień tygodnia) lub użyj gotowych presetów (np. „Codziennie 3:00") i wpisz komendę.
 
@@ -121,21 +121,21 @@ Przykład komendy uruchamiającej skrypt PHP w wersji 8.4:
 
 Inna wersja PHP = inna liczba (php83 to PHP 8.3, php85 to PHP 8.5). Gotowe polecenie dla wybranej wersji, domeny i pliku wstawi pomocnik „Skrypt PHP w wybranej wersji” w zakładce Cron.
 
-Zadanie możesz usunąć przyciskiem kosza. Zbyt częste, ciężkie zadania mogą obciążać konto — ustawiaj rozsądne interwały.`,
+Zadanie możesz usunąć przyciskiem kosza. Zbyt częste, ciężkie zadania mogą obciążać konto – ustawiaj rozsądne interwały.`,
   },
   {
     title: 'Kopie zapasowe i przywracanie',
     audience: AiKnowledgeAudience.ALL,
-    content: `Kopię zapasową konta utworzysz w panelu: Usługa → Kopie zapasowe → „Utwórz kopię teraz". Lista dostępnych kopii pojawia się poniżej. Dodatkowo wykonujemy kopie off-site (poza serwerem, na niezależnym magazynie) — dzięki temu awaria samego serwera nie oznacza utraty Twoich danych.
+    content: `Kopię zapasową konta utworzysz w panelu: Usługa → Kopie zapasowe → „Utwórz kopię teraz". Lista dostępnych kopii pojawia się poniżej. Dodatkowo wykonujemy kopie off-site (poza serwerem, na niezależnym magazynie) – dzięki temu awaria samego serwera nie oznacza utraty Twoich danych.
 
 Przywracanie z kopii na serwerze: wybierz kopię z listy, zaznacz zakres (pliki, bazy, poczta), zostaw włączoną kopię zabezpieczającą i potwierdź operację wpisując nazwę swojej domeny.
 
-Przywracanie z kopii off-site (dwa kroki): w sekcji „Kopia poza serwerem (off-site)" kliknij „Pokaż kopie poza serwerem" — serwer odczyta listę archiwów (chwilę to trwa). Następnie przy wybranym archiwum kliknij „Pobierz na serwer". Po pobraniu archiwum pojawi się na zwykłej liście kopii powyżej i przywracasz je standardowym przyciskiem „Przywróć z tej kopii" (również z potwierdzeniem domeny). Jeśli szukasz wersji z konkretnego dnia, rozwiń „Szukam kopii z konkretnego dnia" i podaj datę w formacie RRRRMMDD.
+Przywracanie z kopii off-site (dwa kroki): w sekcji „Kopia poza serwerem (off-site)" kliknij „Pokaż kopie poza serwerem" – serwer odczyta listę archiwów (chwilę to trwa). Następnie przy wybranym archiwum kliknij „Pobierz na serwer". Po pobraniu archiwum pojawi się na zwykłej liście kopii powyżej i przywracasz je standardowym przyciskiem „Przywróć z tej kopii" (również z potwierdzeniem domeny). Jeśli szukasz wersji z konkretnego dnia, rozwiń „Szukam kopii z konkretnego dnia" i podaj datę w formacie RRRRMMDD.
 
 Przy przywracaniu zwróć uwagę, że operacja nadpisuje bieżące dane przywracanymi. W razie wątpliwości skontaktuj się z pomocą techniczną przed przywróceniem produkcyjnej strony.`,
   },
   {
-    title: 'Poddomeny — jak dodać',
+    title: 'Poddomeny – jak dodać',
     audience: AiKnowledgeAudience.ALL,
     content: `Poddomenę (np. sklep.twojadomena.pl) dodasz w panelu: Usługa → Domeny & DNS → sekcja „Poddomeny" (nazwa + wybór domeny → „Dodaj"). Poddomena otrzymuje własny katalog na pliki.
 
@@ -171,9 +171,9 @@ W razie podejrzenia naruszenia zmień hasło i skontaktuj się z pomocą technic
   {
     title: 'Dostęp do węzłów floty przez SSH (admin/staff)',
     audience: AiKnowledgeAudience.STAFF,
-    content: `Jak szybko połączyć się z węzłem hostingowym (dla zespołu — nie udostępniaj tego klientom).
+    content: `Jak szybko połączyć się z węzłem hostingowym (dla zespołu – nie udostępniaj tego klientom).
 
-Najprościej — narzędzie z control-plane (CP):
+Najprościej – narzędzie z control-plane (CP):
 - Zaloguj się na control-plane, przejdź do katalogu repo (np. /opt/verris).
 - Lista węzłów:            ./ops/scripts/verris-node.sh list
 - Szczegóły + komenda SSH: ./ops/scripts/verris-node.sh info <nazwa|id|ip>
@@ -184,9 +184,9 @@ Dla wygody można podpiąć alias: ln -s /opt/verris/ops/scripts/verris-node.sh 
 
 Ręcznie (bez skryptu): ssh -i /root/.ssh/verris_node_deploy root@<IP_węzła>. IP i nazwę węzła znajdziesz w panelu admina (Węzły) lub przez „verris-node list".
 
-Panel DirectAdmin węzła jako admin (bez hasła): w panelu admina otwórz węzeł (Węzły → wybrany) i użyj przycisku „DirectAdmin (SSO)" — otworzy panel DA węzła przez jednorazowy link (ważny 2 minuty). Obok jest przycisk „SSH", który kopiuje gotową komendę ssh root@<host>.
+Panel DirectAdmin węzła jako admin (bez hasła): w panelu admina otwórz węzeł (Węzły → wybrany) i użyj przycisku „DirectAdmin (SSO)" – otworzy panel DA węzła przez jednorazowy link (ważny 2 minuty). Obok jest przycisk „SSH", który kopiuje gotową komendę ssh root@<host>.
 
-Bezpieczeństwo: panele admin/staff są za VPN WireGuard; klucza deploy ani linków SSO nie przekazuj klientom; utworzenie linku SSO i logowanie są zapisywane w dzienniku audytu. Węzły nie są w sieci WireGuard — łączymy się z nich z control-plane, nie bezpośrednio z laptopa przez VPN.`,
+Bezpieczeństwo: panele admin/staff są za VPN WireGuard; klucza deploy ani linków SSO nie przekazuj klientom; utworzenie linku SSO i logowanie są zapisywane w dzienniku audytu. Węzły nie są w sieci WireGuard – łączymy się z nich z control-plane, nie bezpośrednio z laptopa przez VPN.`,
   },
   {
     title: 'Migracja strony z innego hostingu do Verris',
@@ -194,9 +194,9 @@ Bezpieczeństwo: panele admin/staff są za VPN WireGuard; klucza deploy ani link
     content: `Stronę z innego hostingu przeniesiesz w panelu: Usługa → Migracja. Dostępne są dwa tryby:
 
 1. Self-service: podajesz dane dostępowe (FTP/SFTP, baza danych, opcjonalnie poczta) źródłowego hostingu, a my pobieramy pliki, bazę i skrzynki i odtwarzamy je na koncie Verris. Dane dostępowe są szyfrowane i używane jednorazowo do migracji.
-2. Zlecenie migracji: jeśli wolisz, zlecasz przeniesienie naszemu zespołowi — zajmiemy się całością.
+2. Zlecenie migracji: jeśli wolisz, zlecasz przeniesienie naszemu zespołowi – zajmiemy się całością.
 
-Najpierw przenieś dane, przetestuj stronę pod adresem tymczasowym/na poddomenie, a dopiero na końcu przełącz DNS (NS lub rekord A) na Verris — wtedy ruch przejdzie bez przerwy. Migracja nie usuwa danych po stronie starego hostingu.`,
+Najpierw przenieś dane, przetestuj stronę pod adresem tymczasowym/na poddomenie, a dopiero na końcu przełącz DNS (NS lub rekord A) na Verris – wtedy ruch przejdzie bez przerwy. Migracja nie usuwa danych po stronie starego hostingu.`,
   },
   {
     title: 'Środowisko testowe (staging) i publikacja na produkcję',
@@ -208,15 +208,15 @@ W panelu: Usługa → Staging → „Utwórz staging" tworzy klon LIVE → stagi
 Uwaga: publikacja nadpisuje stronę produkcyjną wersją ze stagingu. Jeśli na produkcji są świeże dane (np. nowe zamówienia w sklepie), zrób kopię zapasową przed publikacją.`,
   },
   {
-    title: 'Zapora aplikacyjna (WAF / ModSecurity) — ochrona strony',
+    title: 'Zapora aplikacyjna (WAF / ModSecurity) – ochrona strony',
     audience: AiKnowledgeAudience.ALL,
     content: `Twoje strony chroni zapora aplikacyjna WAF (ModSecurity z regułami OWASP CRS), która blokuje typowe ataki (SQL injection, XSS, skanery).
 
 Tryby (Usługa → Bezpieczeństwo/WAF):
-- Wykrywanie (DetectionOnly): tylko loguje, nie blokuje — przydatne do testów.
+- Wykrywanie (DetectionOnly): tylko loguje, nie blokuje – przydatne do testów.
 - Włączony (On): aktywnie blokuje podejrzane żądania.
 
-Jeśli WAF blokuje legalną akcję (np. zapis długiego artykułu w CMS), zgłoś to wsparciu — dostroimy reguły dla Twojej domeny. Domyślnie zalecamy tryb włączony.`,
+Jeśli WAF blokuje legalną akcję (np. zapis długiego artykułu w CMS), zgłoś to wsparciu – dostroimy reguły dla Twojej domeny. Domyślnie zalecamy tryb włączony.`,
   },
   {
     title: 'Monitoring dostępności strony (uptime) i alerty',
@@ -226,30 +226,30 @@ Jeśli WAF blokuje legalną akcję (np. zapis długiego artykułu w CMS), zgło�
 Sprawdzamy stronę cyklicznie z naszej infrastruktury; przy wykryciu awarii (oraz po przywróceniu) wysyłamy powiadomienie na adres konta. To pozwala reagować szybciej niż zgłoszenia od użytkowników.`,
   },
   {
-    title: 'Tryb EKO i raport CO₂ — jak działa',
+    title: 'Tryb EKO i raport CO₂ – jak działa',
     audience: AiKnowledgeAudience.ALL,
     content: `Tryb EKO optymalizuje zużycie energii Twojej usługi w okresach niższego ruchu, a panel pokazuje realny raport zużycia energii (kWh) i emisji CO₂ liczony z metryk Twojego konta.
 
 Włączysz EKO przy usłudze; raport znajdziesz w sekcji EKO panelu. Uczestnictwo w programie EKO nagradzane jest punktami, a oszczędności środowiskowe możesz pokazać odznaką. To realna przewaga: płacisz mniej za prąd i komunikujesz odpowiedzialność środowiskową.`,
   },
   {
-    title: 'Autoskalowanie — jak działa i jak kontrolować koszty',
+    title: 'Autoskalowanie – jak działa i jak kontrolować koszty',
     audience: AiKnowledgeAudience.ALL,
     content: `Autoskalowanie automatycznie dokłada dodatkową moc (CPU/RAM), gdy Twoja usługa potrzebuje więcej zasobów (np. skok ruchu), i zwalnia ją, gdy ruch spada. Opłata za czas użycia, w blokach po 15 minut, schodzi z portfela.
 
 Kontrola kosztów (Usługa → Autoskalowanie):
 - Włącz/wyłącz autoskalowanie.
-- Domyślnie nie ma limitu kosztu — płacisz za faktyczne użycie. Możesz ustawić „bezpiecznik kosztów” — własny limit kosztu na 30 dni (suma dopłat z ostatnich 30 dni) — przy zamówieniu albo tutaj.
+- Domyślnie nie ma limitu kosztu – płacisz za faktyczne użycie. Możesz ustawić „bezpiecznik kosztów” – własny limit kosztu na 30 dni (suma dopłat z ostatnich 30 dni) – przy zamówieniu albo tutaj.
 - Podgląd bieżącego zużycia i kosztu.
 
 Dzięki temu strona wytrzymuje skoki ruchu, a w spokojnych okresach płacisz tylko za pakiet.`,
   },
   {
-    title: 'VPS / serwer Cloud — pierwsze kroki i klucze SSH',
+    title: 'VPS / serwer Cloud – pierwsze kroki i klucze SSH',
     audience: AiKnowledgeAudience.ALL,
     content: `VPS zamówisz w panelu (sekcja VPS / Cloud). Po uruchomieniu otrzymujesz własny serwer z dostępem root.
 
-Bezpieczny dostęp: zamiast hasła root używaj klucza SSH. W panelu dodaj swój klucz publiczny SSH (sekcja Klucze SSH) przed utworzeniem VPS — zostanie wgrany na serwer i zalogujesz się bez hasła: ssh root@adres-ip.
+Bezpieczny dostęp: zamiast hasła root używaj klucza SSH. W panelu dodaj swój klucz publiczny SSH (sekcja Klucze SSH) przed utworzeniem VPS – zostanie wgrany na serwer i zalogujesz się bez hasła: ssh root@adres-ip.
 
 VPS rozliczany jest miesięcznie. Cyklem życia (start, stop, restart, reinstalacja) zarządzasz z panelu.`,
   },
@@ -265,30 +265,30 @@ VPS rozliczany jest miesięcznie. Cyklem życia (start, stop, restart, reinstala
 Panel podpowiada brakujące rekordy do dodania w DNS. Po ich ustawieniu odczekaj na propagację i sprawdź ponownie.`,
   },
   {
-    title: 'Plan testowy (free trial) — co obejmuje',
+    title: 'Plan testowy (free trial) – co obejmuje',
     audience: AiKnowledgeAudience.ALL,
     content: `Plan testowy pozwala wypróbować hosting Verris bez opłat przez ograniczony czas. Obejmuje podstawowe zasoby wystarczające do postawienia i przetestowania strony.
 
-Ograniczenia trialu chronią przed nadużyciami (limity zasobów/funkcji). Po zakończeniu okresu próbnego przejdziesz na wybrany plan płatny — dane pozostają, wystarczy zasilić portfel i aktywować usługę. Status i czas pozostały do końca trialu widzisz na pulpicie.`,
+Ograniczenia trialu chronią przed nadużyciami (limity zasobów/funkcji). Po zakończeniu okresu próbnego przejdziesz na wybrany plan płatny – dane pozostają, wystarczy zasilić portfel i aktywować usługę. Status i czas pozostały do końca trialu widzisz na pulpicie.`,
   },
   {
-    title: 'Menedżer plików — zarządzanie plikami strony w panelu',
+    title: 'Menedżer plików – zarządzanie plikami strony w panelu',
     audience: AiKnowledgeAudience.ALL,
     content: `Pliki strony przejrzysz i edytujesz w panelu: Usługa → Menedżer plików, bez potrzeby klienta FTP. Możesz przeglądać katalogi, podglądać i edytować pliki tekstowe, zmieniać nazwy, usuwać oraz wgrywać nowe pliki.
 
 Pliki strony znajdują się zwykle w katalogu domeny (np. domains/twojadomena.pl/public_html). Operacje są ograniczone do Twojego konta (bezpieczna izolacja ścieżek). Do dużych transferów nadal wygodniejszy bywa klient FTP/FTPS.`,
   },
   {
-    title: 'Identyfikator usługi (ID) — co to jest i do czego służy',
+    title: 'Identyfikator usługi (ID) – co to jest i do czego służy',
     audience: AiKnowledgeAudience.ALL,
     content: `Każda usługa Verris ma swój unikalny identyfikator (ID), widoczny obok nazwy pakietu na liście usług i w nagłówku usługi (np. „domi3a8k"). To krótki, niepowtarzalny znacznik ułatwiający odnalezienie konkretnej usługi.
 
 Do czego służy:
 - Szybkie odszukanie usługi, gdy masz ich kilka.
-- Podanie go w zgłoszeniu do wsparcia — dzięki niemu od razu wiemy, której usługi dotyczy sprawa.
+- Podanie go w zgłoszeniu do wsparcia – dzięki niemu od razu wiemy, której usługi dotyczy sprawa.
 - Dla hostingu jest to jednocześnie nazwa konta hostingowego oraz prefiks nazw baz danych i kont (np. baza „domi3a8k_sklep").
 
-Identyfikatora nie trzeba nigdzie wpisywać samodzielnie — nadajemy go automatycznie przy zakupie usługi.`,
+Identyfikatora nie trzeba nigdzie wpisywać samodzielnie – nadajemy go automatycznie przy zakupie usługi.`,
   },
   {
     title: 'Usługa e-mail (poczta bez hostingu strony)',
@@ -296,9 +296,9 @@ Identyfikatora nie trzeba nigdzie wpisywać samodzielnie — nadajemy go automat
     content: `Usługa e-mail to samodzielny produkt pocztowy: profesjonalna poczta w Twojej domenie bez hostingu strony WWW. W panelu takiej usługi dostępne są wyłącznie funkcje pocztowe (skrzynki, konfiguracja DNS poczty), bez narzędzi hostingu stron.
 
 Aby poczta działała, skonfiguruj w DNS domeny rekordy:
-- MX — kierujący pocztę na serwer poczty Verris (adres w zakładce „Dane dostępowe"),
-- SPF i DKIM — dla poprawnej dostarczalności (mniej spamu),
-- opcjonalnie DMARC — polityka uwierzytelniania.
+- MX – kierujący pocztę na serwer poczty Verris (adres w zakładce „Dane dostępowe"),
+- SPF i DKIM – dla poprawnej dostarczalności (mniej spamu),
+- opcjonalnie DMARC – polityka uwierzytelniania.
 
 Skrzynki zakładasz w zakładce Poczta. Konfigurację programu pocztowego (IMAP 993, SMTP 465) znajdziesz w osobnym artykule. Jeśli potrzebujesz też strony WWW, wybierz plan hostingowy zamiast samej poczty.`,
   },
@@ -307,30 +307,30 @@ Skrzynki zakładasz w zakładce Poczta. Konfigurację programu pocztowego (IMAP 
     audience: AiKnowledgeAudience.ALL,
     content: `Faktury za usługi znajdziesz w panelu w sekcji Płatności → Faktury. Możesz je pobrać w dowolnym momencie.
 
-Dane nabywcy (Twojej firmy) do faktur ustawisz w ustawieniach konta — uzupełnij nazwę, NIP i adres przed zakupem, aby faktury były wystawiane poprawnie. Faktury wystawiamy automatycznie po zaksięgowaniu płatności.
+Dane nabywcy (Twojej firmy) do faktur ustawisz w ustawieniach konta – uzupełnij nazwę, NIP i adres przed zakupem, aby faktury były wystawiane poprawnie. Faktury wystawiamy automatycznie po zaksięgowaniu płatności.
 
 Obsługujemy KSeF (Krajowy System e-Faktur): faktury są wysyłane do KSeF zgodnie z przepisami, a w panelu widzisz status wysyłki. Jeśli zmienisz dane firmy, dotyczą one faktur wystawianych po zmianie.`,
   },
   {
-    title: 'Zmiana planu — jeden pakiet i autoskalowanie',
+    title: 'Zmiana planu – jeden pakiet i autoskalowanie',
     audience: AiKnowledgeAudience.ALL,
-    content: `Verris ma jeden pakiet hostingu — nie ma wyższych ani niższych planów, na które trzeba przechodzić. Gdy strona potrzebuje więcej mocy, robi to autoskalowanie: przy większym ruchu dokładamy procesor i pamięć, a po szczycie wracamy do zasobów pakietu. Za dodatkową moc płacisz z portfela, tylko za czas, w którym była potrzebna.
+    content: `Verris ma jeden pakiet hostingu – nie ma wyższych ani niższych planów, na które trzeba przechodzić. Gdy strona potrzebuje więcej mocy, robi to autoskalowanie: przy większym ruchu dokładamy procesor i pamięć, a po szczycie wracamy do zasobów pakietu. Za dodatkową moc płacisz z portfela, tylko za czas, w którym była potrzebna.
 
-Wydatki kontrolujesz bezpiecznikiem kosztów — miesięcznym limitem w złotych (liczonym z ostatnich 30 dni). Po jego osiągnięciu nie dokładamy już mocy, a strona działa dalej na zasobach pakietu. Autoskalowanie i bezpiecznik ustawisz w panelu: Usługa → Autoskalowanie.
+Wydatki kontrolujesz bezpiecznikiem kosztów – miesięcznym limitem w złotych (liczonym z ostatnich 30 dni). Po jego osiągnięciu nie dokładamy już mocy, a strona działa dalej na zasobach pakietu. Autoskalowanie i bezpiecznik ustawisz w panelu: Usługa → Autoskalowanie.
 
 Jeśli duży ruch jest stały, a nie tylko chwilowy:
-- włącz cache strony — zwykle najbardziej odciąża serwer,
+- włącz cache strony – zwykle najbardziej odciąża serwer,
 - sprawdź, co obciąża stronę: ciężkie wtyczki, częste zadania cron, wolne zapytania do bazy, ruch botów,
-- napisz do nas — przejrzymy zużycie i podpowiemy, co poprawić.`,
+- napisz do nas – przejrzymy zużycie i podpowiemy, co poprawić.`,
   },
   {
     title: 'Zgłoszenia do wsparcia (tickety) i gwarancja SLA',
     audience: AiKnowledgeAudience.ALL,
-    content: `Pomoc techniczną poprosisz w panelu: Wsparcie → „Nowe zgłoszenie". Wybierz temat, opisz problem i (jeśli to możliwe) podaj identyfikator usługi oraz domenę, której dotyczy — przyspieszy to diagnozę. Do zgłoszenia możesz dołączyć pliki/zrzuty ekranu.
+    content: `Pomoc techniczną poprosisz w panelu: Wsparcie → „Nowe zgłoszenie". Wybierz temat, opisz problem i (jeśli to możliwe) podaj identyfikator usługi oraz domenę, której dotyczy – przyspieszy to diagnozę. Do zgłoszenia możesz dołączyć pliki/zrzuty ekranu.
 
 Podczas pisania panel podpowiada artykuły Bazy Wiedzy, które mogą od razu rozwiązać sprawę.
 
-Czas reakcji zależy od Twojego planu (gwarancja SLA widoczna przy zgłoszeniu). Po zamknięciu zgłoszenia możesz ocenić jakość obsługi (CSAT) — Twoja opinia pomaga nam się poprawiać.`,
+Czas reakcji zależy od Twojego planu (gwarancja SLA widoczna przy zgłoszeniu). Po zamknięciu zgłoszenia możesz ocenić jakość obsługi (CSAT) – Twoja opinia pomaga nam się poprawiać.`,
   },
   {
     title: 'Twoje dane: eksport i usunięcie konta (RODO)',
@@ -339,19 +339,19 @@ Czas reakcji zależy od Twojego planu (gwarancja SLA widoczna przy zgłoszeniu).
 - pobrać eksport swoich danych (kopia informacji z konta),
 - zażądać usunięcia konta i powiązanych danych.
 
-Usunięcie konta jest operacją nieodwracalną — kasuje usługi i dane. Niektóre dane (np. wystawione faktury) możemy przechowywać przez okres wymagany przepisami prawa. Szczegóły znajdziesz w Polityce prywatności i dokumencie DPA. W razie pytań o przetwarzanie danych napisz na rodo@verris.pl.`,
+Usunięcie konta jest operacją nieodwracalną – kasuje usługi i dane. Niektóre dane (np. wystawione faktury) możemy przechowywać przez okres wymagany przepisami prawa. Szczegóły znajdziesz w Polityce prywatności i dokumencie DPA. W razie pytań o przetwarzanie danych napisz na rodo@verris.pl.`,
   },
   {
-    title: 'Centrum powiadomień — kategorie i ustawienia',
+    title: 'Centrum powiadomień – kategorie i ustawienia',
     audience: AiKnowledgeAudience.ALL,
     content: `Centrum powiadomień (ustawienia konta → Powiadomienia) pozwala zdecydować, o czym chcesz być informowany e-mailem.
 
-Powiadomienia krytyczne (np. awaria usługi, problem z płatnością, sprawy bezpieczeństwa) są zawsze włączone — dotyczą działania i bezpieczeństwa Twoich usług. Powiadomienia opcjonalne (np. nowości, porady, podsumowania) możesz włączać i wyłączać według uznania.
+Powiadomienia krytyczne (np. awaria usługi, problem z płatnością, sprawy bezpieczeństwa) są zawsze włączone – dotyczą działania i bezpieczeństwa Twoich usług. Powiadomienia opcjonalne (np. nowości, porady, podsumowania) możesz włączać i wyłączać według uznania.
 
 Alertami konkretnej usługi (np. monitoring dostępności) sterujesz dodatkowo przy danej usłudze, bez wyłączania monitoringu.`,
   },
   {
-    title: 'Logowanie bez hasła (passkey) — konfiguracja',
+    title: 'Logowanie bez hasła (passkey) – konfiguracja',
     audience: AiKnowledgeAudience.ALL,
     content: `Passkey to bezpieczne logowanie bez hasła, oparte o Twoje urządzenie (odcisk palca, Face ID, PIN lub klucz sprzętowy). Jest odporne na phishing i wygodniejsze niż hasło.
 
@@ -370,14 +370,16 @@ async function main() {
     });
     const createdById = admin?.id ?? null;
 
+    // 6.11.2026: pauza w tytułach zamieniona na półpauzę — artykuł zapisany wcześniej z pauzą to ten sam artykuł.
+    const bezPauzy = (t: string) => t.replaceAll('\u2014', '\u2013');
+    const istniejace = new Set(
+      (await prisma.aiKnowledgeDoc.findMany({ select: { title: true } })).map((d) => bezPauzy(d.title)),
+    );
+
     let created = 0;
     let skipped = 0;
     for (const art of ARTICLES) {
-      const exists = await prisma.aiKnowledgeDoc.findFirst({
-        where: { title: art.title },
-        select: { id: true },
-      });
-      if (exists) {
+      if (istniejace.has(bezPauzy(art.title))) {
         skipped++;
         continue;
       }

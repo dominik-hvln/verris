@@ -1,6 +1,6 @@
 import { formatPrice } from "./format-price";
 
-describe("formatPrice — stawka autoskalowania w tabeli admina", () => {
+describe("formatPrice – stawka autoskalowania w tabeli admina", () => {
   it("wszystkie cyfry z API (do 6 miejsc), bez zer na końcu", () => {
     expect(formatPrice("0.123456")).toBe("0.123456");
     expect(formatPrice("0.001283")).toBe("0.001283");

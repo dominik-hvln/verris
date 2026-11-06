@@ -13,13 +13,13 @@ HTMLCanvasElement.prototype.getContext = (() => null) as typeof HTMLCanvasElemen
 
 const TRESC = `# Regulamin świadczenia usług Verris
 
-## Rozdział I — Postanowienia ogólne
+## Rozdział I – Postanowienia ogólne
 
 ## §1. Definicje
 
 1. Umowa zostaje zawarta:
-   1) w zakresie Konta — z chwilą rejestracji;
-   2) w zakresie Usługi — z chwilą opłacenia.
+   1) w zakresie Konta – z chwilą rejestracji;
+   2) w zakresie Usługi – z chwilą opłacenia.
 2. Niezwłocznie po zawarciu Umowy Verris przekazuje potwierdzenie.
 
 ### 1.1 Uwagi
@@ -64,10 +64,10 @@ afterEach(() => {
   document.body.innerHTML = '';
 });
 
-describe('legalToc — spis treści z nagłówków', () => {
+describe('legalToc – spis treści z nagłówków', () => {
   it('bierze ## i ### (bez tytułu #), kotwice bez polskich znaków i unikalne', () => {
     expect(legalToc(TRESC)).toEqual([
-      { level: 2, text: 'Rozdział I — Postanowienia ogólne', id: 'rozdzial-i-postanowienia-ogolne' },
+      { level: 2, text: 'Rozdział I – Postanowienia ogólne', id: 'rozdzial-i-postanowienia-ogolne' },
       { level: 2, text: '§1. Definicje', id: '1-definicje' },
       { level: 3, text: '1.1 Uwagi', id: '1-1-uwagi' },
       { level: 2, text: '§2. Dostępność', id: '2-dostepnosc' },
@@ -124,13 +124,13 @@ describe('LegalDocumentView', () => {
     expect(link.textContent).toContain('1.1.0');
   });
 
-  it('podpunkty „1)” zostają w swoim punkcie — numeracja listy się nie zeruje; tabela ma nagłówki', () => {
+  it('podpunkty „1)” zostają w swoim punkcie – numeracja listy się nie zeruje; tabela ma nagłówki', () => {
     const el = pokaz(<LegalDocumentView kind="TERMS" doc={doc()} versions={WERSJE} />);
     const ol = el.querySelector('article ol')!;
     expect(ol.children.length).toBe(2);
     expect([...ol.children[0].querySelectorAll('ul > li')].map((li) => li.textContent)).toEqual([
-      '1) w zakresie Konta — z chwilą rejestracji;',
-      '2) w zakresie Usługi — z chwilą opłacenia.',
+      '1) w zakresie Konta – z chwilą rejestracji;',
+      '2) w zakresie Usługi – z chwilą opłacenia.',
     ]);
     expect(el.querySelector('article th[scope="col"]')?.textContent).toBe('Dostępność w miesiącu');
     expect(el.querySelector('article td')?.getAttribute('data-label')).toBe('Dostępność w miesiącu');

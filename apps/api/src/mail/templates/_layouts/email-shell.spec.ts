@@ -3,7 +3,7 @@ import { uzasadnienieDlaKlienta } from '../../../abuse/abuse.templates.js';
 
 const baza = { recipientEmail: 'jan@example.pl', panelUrl: 'https://panel.verris.pl' };
 
-describe('renderEmailShell — dane od użytkownika', () => {
+describe('renderEmailShell – dane od użytkownika', () => {
   it('escapeMarkdown: znaki HTML escapowane raz, cudzysłów czytelny w obu wersjach', () => {
     const { html, text } = renderEmailShell({ ...baza, title: `Temat "${escapeMarkdown('A & <b>')}"`, bodyMarkdown: `Zgłoszenie **"${escapeMarkdown('O\'Brien & <script>')}"**` });
     expect(html).toContain('O&#39;Brien &amp; &lt;script&gt;');
@@ -46,7 +46,7 @@ describe('renderEmailShell — dane od użytkownika', () => {
   });
 });
 
-describe('renderEmailShell — wypis z listy klienta', () => {
+describe('renderEmailShell – wypis z listy klienta', () => {
   it('unsubscribeUrl zastępuje link do preferencji w panelu', () => {
     const { html, text } = renderEmailShell({ ...baza, title: 't', bodyMarkdown: 'x', category: 'MARKETING', recipientHasAccount: false, unsubscribeUrl: 'https://api.verris.pl/u/abc' });
     expect(html).toContain('href="https://api.verris.pl/u/abc"');
@@ -55,7 +55,7 @@ describe('renderEmailShell — wypis z listy klienta', () => {
   });
 });
 
-describe('abuse — mail do klienta', () => {
+describe('abuse – mail do klienta', () => {
   it('adres ze zgłoszenia nie wstrzyknie linku do brandowanego maila', () => {
     const m = uzasadnienieDlaKlienta({
       to: 'klient@example.pl', url: 'https://sklep.pl/[Zaloguj się](https://zly.example)', kategoria: 'PHISHING',

@@ -45,7 +45,7 @@ export default async function Page() {
       <SubHero
         eyebrow="Specyfikacja"
         title="Wszystkie parametry. Bez gwiazdek i drobnego druku"
-        lead="Jeden pakiet, jedna specyfikacja. Jeśli czegoś tu nie ma, napisz — odpowiemy wprost, czy to mamy."
+        lead="Jeden pakiet, jedna specyfikacja. Jeśli czegoś tu nie ma, napisz – odpowiemy wprost, czy to mamy."
         crumbs={[{ label: 'Specyfikacja' }]}
         primary={{ label: 'Zamów hosting', href: ZAMOW }}
         secondary={{ label: 'Porównaj z cennikiem', href: '/cennik' }}

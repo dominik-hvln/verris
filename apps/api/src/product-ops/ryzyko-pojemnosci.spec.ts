@@ -9,7 +9,7 @@ describe('ryzykoPojemnosci (planer pojemności)', () => {
     expect(ryzykoPojemnosci(100, 98304, 8, 65536)).toBe('high'); // RAM 1,5×
     expect(ryzykoPojemnosci(250, 2355, 2, 2048)).toBe('medium'); // mały węzeł: RAM ponad całość
   });
-  it('bez pojemności od agenta — dawne progi bezwzględne', () => {
+  it('bez pojemności od agenta – dawne progi bezwzględne', () => {
     expect(ryzykoPojemnosci(250, 2355, null, null)).toBe('low');
     expect(ryzykoPojemnosci(500, 0, null, null)).toBe('medium');
     expect(ryzykoPojemnosci(0, 64 * 1024, null, null)).toBe('high');

@@ -19,7 +19,7 @@ export default async function KopieOffsitePage() {
         <h1 className="flex items-center gap-2 text-[28px] lg:text-[34px]">
           Kopie offsite <Pomoc id="kopie-offsite" />
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">Jedna konfiguracja dla całej floty — każdy węzeł pobiera ją w Onboard LIVE.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Jedna konfiguracja dla całej floty – każdy węzeł pobiera ją w Onboard LIVE.</p>
       </header>
       {dostep.isAdmin ? <KopieOffsiteFormularz /> : <p className="text-sm text-muted-foreground">Tylko administrator może zmieniać kopie offsite.</p>}
     </div>

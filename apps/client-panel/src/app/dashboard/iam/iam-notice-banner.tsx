@@ -6,11 +6,11 @@ import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
 const NOTICES: Record<string, string> = {
   'permissions-saved': 'Uprawnienia subkonta zostały zapisane.',
-  'member-disabled': 'Subkonto wyłączone — ta osoba nie zaloguje się, dopóki go nie włączysz. Wysłaliśmy jej o tym maila.',
-  'member-enabled': 'Subkonto włączone — ta osoba znów może się zalogować z dotychczasowymi uprawnieniami.',
-  'member-removed': 'Subkonto usunięte. Adres e-mail jest wolny — możesz go zaprosić ponownie, a ta osoba może założyć własne konto Verris.',
+  'member-disabled': 'Subkonto wyłączone – ta osoba nie zaloguje się, dopóki go nie włączysz. Wysłaliśmy jej o tym maila.',
+  'member-enabled': 'Subkonto włączone – ta osoba znów może się zalogować z dotychczasowymi uprawnieniami.',
+  'member-removed': 'Subkonto usunięte. Adres e-mail jest wolny – możesz go zaprosić ponownie, a ta osoba może założyć własne konto Verris.',
   // Dostęp z własnego konta: osoba zachowuje swoje konto Verris, traci tylko wejście na to.
-  'membership-disabled': 'Dostęp odebrany. Ta osoba nie wejdzie już na Twoje konto — jej własne konto Verris działa dalej. Wysłaliśmy jej o tym maila.',
+  'membership-disabled': 'Dostęp odebrany. Ta osoba nie wejdzie już na Twoje konto – jej własne konto Verris działa dalej. Wysłaliśmy jej o tym maila.',
   'invite-sent': 'Zaproszenie zostało wysłane.',
   'invite-revoked': 'Zaproszenie zostało odwołane.',
 };

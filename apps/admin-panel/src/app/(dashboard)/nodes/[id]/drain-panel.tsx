@@ -21,7 +21,7 @@ export function DrainPanel({ serverId, acceptsNewAccounts }: Props) {
   // Okno potwierdzenia PRZED transition (React 19: okno otwarte w środku async transition się nie pokazuje).
   const doDrain = async () => {
     setError(null);
-    const ok = await potwierdz("Węzeł przestanie przyjmować nowe konta — istniejące działają, dane zostają na miejscu.", {
+    const ok = await potwierdz("Węzeł przestanie przyjmować nowe konta – istniejące działają, dane zostają na miejscu.", {
       tytul: "Rozpocząć wycofanie węzła?",
       akcja: "Rozpocznij wycofanie",
       niebezpieczne: true,
@@ -50,7 +50,7 @@ export function DrainPanel({ serverId, acceptsNewAccounts }: Props) {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Zamyka węzeł dla nowych kont, istniejące działają. <strong className="text-white">Nie przenosi danych</strong> — plan
+        Zamyka węzeł dla nowych kont, istniejące działają. <strong className="text-white">Nie przenosi danych</strong> – plan
         poniżej pokazuje, dokąd przenieść konta.
       </p>
 

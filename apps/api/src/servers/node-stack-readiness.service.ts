@@ -134,7 +134,7 @@ export class NodeStackReadinessService {
       ok: probe.ok,
       summary: probe.ok
         ? `IMAPS nasłuchuje na ${host}:993.`
-        : `Brak IMAPS na ${host}:993 — uruchom profil (Exim + Dovecot).`,
+        : `Brak IMAPS na ${host}:993 – uruchom profil (Exim + Dovecot).`,
       records: [
         { label: 'Host', actual: host },
         { label: 'Port', expected: '993 (TLS)', actual: '993', ok: probe.ok },
@@ -167,7 +167,7 @@ export class NodeStackReadinessService {
       ok: probe.ok,
       summary: probe.ok
         ? `SMTP dostępny na ${host}:${port}.`
-        : `Brak SMTP na ${host}:587/:25 — uruchom profil (Exim).`,
+        : `Brak SMTP na ${host}:587/:25 – uruchom profil (Exim).`,
       records: [
         { label: 'Host', actual: host },
         {
@@ -196,7 +196,7 @@ export class NodeStackReadinessService {
       ok: probe.ok,
       summary: probe.ok
         ? `FTP nasłuchuje na ${host}:21.`
-        : `Brak FTP na ${host}:21 — profil zbuduje pure-ftpd/proftpd (CustomBuild).`,
+        : `Brak FTP na ${host}:21 – profil zbuduje pure-ftpd/proftpd (CustomBuild).`,
       records: [
         { label: 'Host', actual: host },
         { label: 'Port', expected: '21', actual: '21', ok: probe.ok },
@@ -228,8 +228,8 @@ export class NodeStackReadinessService {
       summary: ok
         ? `MySQL/MariaDB nasłuchuje na ${host}:3306.`
         : blockedExternally
-          ? `Port 3306 niedostępny z panelu (często firewall) — zweryfikuj na węźle: mysql -e "SELECT 1".`
-          : `MariaDB nie odpowiada na ${host}:3306 — profil uruchomi Governor i usługę DB.`,
+          ? `Port 3306 niedostępny z panelu (często firewall) – zweryfikuj na węźle: mysql -e "SELECT 1".`
+          : `MariaDB nie odpowiada na ${host}:3306 – profil uruchomi Governor i usługę DB.`,
       records: [
         { label: 'Host', actual: host },
         { label: 'Port', expected: '3306', actual: '3306', ok },
@@ -256,12 +256,12 @@ export class NodeStackReadinessService {
       ok: probe.ok,
       summary: probe.ok
         ? `HTTPS na ${host}:443.`
-        : `Brak HTTPS na ${host}:443 — sprawdź LiteSpeed i vhosty.`,
+        : `Brak HTTPS na ${host}:443 – sprawdź LiteSpeed i vhosty.`,
       records: [
         { label: 'Port', expected: '443', actual: '443', ok: probe.ok },
         {
           label: 'Certyfikat',
-          actual: probe.authorized === false ? 'TLS (self-signed / niezweryfikowany)' : probe.ok ? 'TLS OK' : '—',
+          actual: probe.authorized === false ? 'TLS (self-signed / niezweryfikowany)' : probe.ok ? 'TLS OK' : '–',
           ok: probe.ok,
         },
       ],
@@ -303,7 +303,7 @@ export class NodeStackReadinessService {
       ok,
       summary: ok
         ? 'Serwer WWW odpowiada na :80 lub :443.'
-        : 'LiteSpeed nie nasłuchuje na :80/:443 — bootstrap lub profil hostingowy.',
+        : 'LiteSpeed nie nasłuchuje na :80/:443 – bootstrap lub profil hostingowy.',
       records: [
         { label: ':80', actual: probe.ok ? 'nasłuch' : 'brak', ok: probe.ok },
         { label: ':443', actual: https.ok ? 'nasłuch TLS' : 'brak', ok: https.ok },
@@ -326,7 +326,7 @@ export class NodeStackReadinessService {
         title: 'Panel DirectAdmin',
         required: true,
         status: 'FAIL',
-        summary: 'Brak daHost — ustaw hostname i konfigurację DA.',
+        summary: 'Brak daHost – ustaw hostname i konfigurację DA.',
         records: [{ label: 'daHost', actual: 'brak', ok: false }],
         docAttestation: [
           {
@@ -351,7 +351,7 @@ export class NodeStackReadinessService {
         apiDetail = err instanceof Error ? err.message : String(err);
       }
     } else {
-      apiDetail = 'brak login key w panelu — uzupełnij konfigurację DA';
+      apiDetail = 'brak login key w panelu – uzupełnij konfigurację DA';
     }
 
     const ok = tlsProbe.ok && apiOk;
@@ -366,7 +366,7 @@ export class NodeStackReadinessService {
       required: true,
       status,
       summary: ok
-        ? `DA ${host}:${port} — TLS i API OK.`
+        ? `DA ${host}:${port} – TLS i API OK.`
         : !tlsProbe.ok
           ? `Panel DA niedostępny na ${host}:${port} (TLS).`
           : `TLS OK, API: ${apiDetail}`,
@@ -380,7 +380,7 @@ export class NodeStackReadinessService {
         {
           vendor: 'DirectAdmin',
           statement:
-            'Provisioning i limity planów używają CMD_API_* — wymagany login key ze scope packages + accounts.',
+            'Provisioning i limity planów używają CMD_API_* – wymagany login key ze scope packages + accounts.',
           reference: 'https://docs.directadmin.com/developer/api/',
           verifiedAt: '2026-06-01',
         },
@@ -416,7 +416,7 @@ export class NodeStackReadinessService {
         status === 'OK'
           ? 'CageFS aktywny (raport agenta).'
           : status === 'FAIL'
-            ? 'CageFS wyłączony — profil hostingowy włączy izolację kont.'
+            ? 'CageFS wyłączony – profil hostingowy włączy izolację kont.'
             : 'Brak świeżego raportu CageFS z agenta.',
       records: [
         {
@@ -476,19 +476,19 @@ export class NodeStackReadinessService {
 
     let status: AuditCheckStatus = 'UNKNOWN';
     let summaryText =
-      'Governor weryfikowany na węźle (dbctl list) podczas profilu — uruchom „Zainstaluj usługi hostingowe”.';
+      'Governor weryfikowany na węźle (dbctl list) podczas profilu – uruchom „Zainstaluj usługi hostingowe”.';
     if (latest && active) {
       status = 'OK';
-      summaryText = 'MySQL Governor aktywny (dbctl) — potwierdzone na węźle.';
+      summaryText = 'MySQL Governor aktywny (dbctl) – potwierdzone na węźle.';
     } else if (latest && failed) {
       status = 'FAIL';
-      summaryText = 'Governor nieaktywny — sprawdź log profilu lub uruchom profil ponownie.';
+      summaryText = 'Governor nieaktywny – sprawdź log profilu lub uruchom profil ponownie.';
     } else if (latest?.status === 'RUNNING' || latest?.status === 'QUEUED') {
       status = 'UNKNOWN';
-      summaryText = 'Profil hostingowy w toku — Governor zostanie zweryfikowany po zakończeniu.';
+      summaryText = 'Profil hostingowy w toku – Governor zostanie zweryfikowany po zakończeniu.';
     } else if (latest?.status === 'COMPLETED' && !summary) {
       summaryText =
-        'Profil zakończony, ale brak linii [VERRIS_PROFILE] w logu (stary skrypt?) — odśwież agent/skrypt i uruchom profil ponownie.';
+        'Profil zakończony, ale brak linii [VERRIS_PROFILE] w logu (stary skrypt?) – odśwież agent/skrypt i uruchom profil ponownie.';
     }
 
     return {

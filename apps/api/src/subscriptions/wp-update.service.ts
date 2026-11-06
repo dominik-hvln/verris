@@ -187,7 +187,7 @@ export class WpUpdateService {
     const wToku = await this.prisma.nodeTask.findFirst({
       where: { accountId: account.id, kind: NodeTaskKind.WP_UPDATE, status: { in: [NodeTaskStatus.QUEUED, NodeTaskStatus.RUNNING] } },
     });
-    if (wToku) throw new ConflictException('Operacja na WordPressie jest już w toku — poczekaj na wynik.');
+    if (wToku) throw new ConflictException('Operacja na WordPressie jest już w toku – poczekaj na wynik.');
     return this.prisma.nodeTask.create({
       data: {
         serverId: account.serverId,
@@ -336,7 +336,7 @@ export class WpUpdateService {
     // Domeny i poddomeny — WordPress na poddomenie (sklep.firma.pl) też ma być w przeglądzie.
     const lista = await this.directAdmin.witrynyKonta(subscriptionId, userId);
     if (!lista.witryny.length && lista.fetchError) {
-      throw new BadRequestException('Serwer hostingowy jest chwilowo niedostępny — nie możemy pobrać listy stron. Spróbuj ponownie za chwilę.');
+      throw new BadRequestException('Serwer hostingowy jest chwilowo niedostępny – nie możemy pobrać listy stron. Spróbuj ponownie za chwilę.');
     }
     return { account: sub.account, domeny: lista.witryny.map((w) => w.nazwa).slice(0, 100) };
   }
@@ -445,5 +445,5 @@ function kopiaZLogu(log: string | null): string | null {
 
 function bladZLogu(log: string | null): string {
   const l = (log ?? '').split('\n').reverse().find((x) => x.startsWith('[wp-update] BŁĄD: '));
-  return l ? l.slice('[wp-update] BŁĄD: '.length).slice(0, 500) : 'Operacja nie powiodła się. Napisz do nas — sprawdzimy to.';
+  return l ? l.slice('[wp-update] BŁĄD: '.length).slice(0, 500) : 'Operacja nie powiodła się. Napisz do nas – sprawdzimy to.';
 }

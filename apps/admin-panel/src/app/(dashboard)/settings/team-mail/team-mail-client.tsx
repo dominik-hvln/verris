@@ -246,7 +246,7 @@ export function TeamMailClient({
       <section className="rounded-2xl border border-white/10 bg-black/30 p-6 space-y-4">
         <h2 className="text-sm font-bold uppercase tracking-wide text-amber-200">Nowa skrzynka STAFF</h2>
         <p className="text-xs text-muted-foreground">
-          Pracownik loguje się do SOGo i klienta pocztowego tym hasłem. Powiązanie z kontem User — w kolejnym kroku z listy CRM.
+          Pracownik loguje się do SOGo i klienta pocztowego tym hasłem. Powiązanie z kontem User – w kolejnym kroku z listy CRM.
         </p>
         <div className="grid gap-3 sm:grid-cols-2 max-w-xl">
           <label className="block text-xs text-neutral-400">
@@ -271,7 +271,7 @@ export function TeamMailClient({
         {createdPassword ? (
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm space-y-2" role="status">
             <p className="font-semibold text-amber-100">
-              Nowe hasło IMAP — skopiuj teraz (nie pokażemy ponownie)
+              Nowe hasło IMAP – skopiuj teraz (nie pokażemy ponownie)
             </p>
             <p>
               <span className="text-neutral-400">E-mail:</span>{" "}
@@ -300,7 +300,7 @@ export function TeamMailClient({
           <strong className="text-neutral-300">aliasy</strong> tylko{" "}
           <code className="text-neutral-400">*@verris.pl</code>,{" "}
           <strong className="text-neutral-300">forwardy</strong> na Gmail/inne (link potwierdzający). Sync zapisuje
-          pliki — na hoście potrzebny jeszcze <code className="text-neutral-400">postmap</code>.
+          pliki – na hoście potrzebny jeszcze <code className="text-neutral-400">postmap</code>.
         </p>
         {aliasErr ? (
           <p className="border-b border-white/5 px-4 py-2 text-sm text-rose-300">{aliasErr}</p>
@@ -343,7 +343,7 @@ export function TeamMailClient({
                     <td className="px-4 py-3">{row.status}</td>
                     <td className="px-4 py-3 text-muted-foreground">{row._count.aliases}</td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">
-                      {row.user?.email ?? "—"}
+                      {row.user?.email ?? "–"}
                     </td>
                     <td className="px-4 py-3">
                       {row.kind === "STAFF" && row.status === "ACTIVE" ? (
@@ -383,7 +383,7 @@ export function TeamMailClient({
                           Wznów
                         </button>
                       ) : null}
-                      {row.kind !== "STAFF" || (row.status !== "ACTIVE" && row.status !== "SUSPENDED") ? "—" : null}
+                      {row.kind !== "STAFF" || (row.status !== "ACTIVE" && row.status !== "SUSPENDED") ? "–" : null}
                     </td>
                   </tr>
                   {open ? (
@@ -499,7 +499,7 @@ export function TeamMailClient({
             {initial.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
-                  Brak skrzynek — utwórz pierwszą powyżej.
+                  Brak skrzynek – utwórz pierwszą powyżej.
                 </td>
               </tr>
             ) : null}
@@ -513,7 +513,7 @@ export function TeamMailClient({
         </h2>
         <p className="text-xs text-muted-foreground">
           Format: <code className="text-neutral-400">email@verris.pl</code> lub{" "}
-          <code className="text-neutral-400">email@verris.pl;forward@gmail.com</code> — najpierw podgląd.
+          <code className="text-neutral-400">email@verris.pl;forward@gmail.com</code> – najpierw podgląd.
         </p>
         <textarea
           value={importCsv}

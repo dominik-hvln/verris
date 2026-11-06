@@ -63,7 +63,7 @@ export function PhpInfoPanel({ serviceId, domain }: { serviceId: string; domain:
       const r = await setPhpExtensions(serviceId, { enable: doWlaczenia, disable: doWylaczenia, version: sel.wersja });
       if (r.ok) {
         setZmiany({});
-        toast.success('Zmiana zlecona — za chwilę kliknij „Odczytaj ponownie”, żeby zobaczyć wynik.');
+        toast.success('Zmiana zlecona – za chwilę kliknij „Odczytaj ponownie”, żeby zobaczyć wynik.');
       } else toast.error(r.error);
     });
 
@@ -104,7 +104,7 @@ export function PhpInfoPanel({ serviceId, domain }: { serviceId: string; domain:
                   </li>
                 ))}
               </ul>
-              {sel ? null : <p className="m-0 mt-2 text-[12px] text-muted-foreground">Brakuje rozszerzenia? Napisz do nas — włączymy je dla Twojego konta.</p>}
+              {sel ? null : <p className="m-0 mt-2 text-[12px] text-muted-foreground">Brakuje rozszerzenia? Napisz do nas – włączymy je dla Twojego konta.</p>}
             </div>
             {sel ? (
               <div className="border-t border-line px-4 py-3">
@@ -143,7 +143,7 @@ export function PhpInfoPanel({ serviceId, domain }: { serviceId: string; domain:
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                   <span className="text-[12px] text-muted-foreground">
                     {doWlaczenia.length || doWylaczenia.length
-                      ? `Do włączenia: ${doWlaczenia.join(', ') || '—'} · do wyłączenia: ${doWylaczenia.join(', ') || '—'}`
+                      ? `Do włączenia: ${doWlaczenia.join(', ') || '–'} · do wyłączenia: ${doWylaczenia.join(', ') || '–'}`
                       : 'Wbudowanych rozszerzeń nie da się wyłączyć. Zmiana obejmuje całe konto.'}
                   </span>
                   <button type="button" onClick={zastosuj} disabled={pending || (!doWlaczenia.length && !doWylaczenia.length)} className={BTN}>

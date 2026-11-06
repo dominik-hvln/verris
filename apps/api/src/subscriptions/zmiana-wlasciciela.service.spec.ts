@@ -53,14 +53,14 @@ function stan(o: { usluga?: Partial<StanZmianyWlasciciela['usluga']>; nowy?: Par
 
 const odmowy = (o: Parameters<typeof stan>[0]) => odmowyZmianyWlasciciela(stan(o), TERAZ);
 
-describe('K2 — odmowy zmiany właściciela usługi', () => {
+describe('K2 – odmowy zmiany właściciela usługi', () => {
   it('aktywna usługa portfelowa, aktywny klient docelowy → można', () => {
     expect(odmowy({})).toEqual([]);
   });
 
-  it('brak klienta o tym adresie i ten sam klient — jedyna odmowa', () => {
+  it('brak klienta o tym adresie i ten sam klient – jedyna odmowa', () => {
     expect(odmowy({ nowy: null })).toEqual(['Nie ma klienta z tym adresem e-mail.']);
-    expect(odmowy({ nowy: { id: 'stary' } })).toEqual(['To ten sam klient — usługa już należy do tego konta.']);
+    expect(odmowy({ nowy: { id: 'stary' } })).toEqual(['To ten sam klient – usługa już należy do tego konta.']);
   });
 
   it.each([
@@ -90,12 +90,12 @@ describe('K2 — odmowy zmiany właściciela usługi', () => {
     expect(odmowy({ usluga: { account: null } })).toEqual([expect.stringMatching(/Konto hostingowe/)]);
   });
 
-  it('karta cykliczna (Stripe) → odmowa; karta bez subskrypcji Stripe — można', () => {
+  it('karta cykliczna (Stripe) → odmowa; karta bez subskrypcji Stripe – można', () => {
     expect(odmowy({ usluga: { paymentSource: 'STRIPE_CARD', stripeSubscriptionId: 'sub_1' } })).toEqual([expect.stringMatching(/kartą obecnego właściciela/)]);
     expect(odmowy({ usluga: { paymentSource: 'STRIPE_CARD', stripeSubscriptionId: null } })).toEqual([]);
   });
 
-  it('PB-28: rozliczenie poza Verris tylko po jednej stronie → odmowa; po obu — można (także w oknie odnowienia, bo nic nie pobieramy)', () => {
+  it('PB-28: rozliczenie poza Verris tylko po jednej stronie → odmowa; po obu – można (także w oknie odnowienia, bo nic nie pobieramy)', () => {
     expect(odmowy({ nowy: { billingOutside: true } })).toEqual([expect.stringMatching(/poza Verris/)]);
     const obaPoza = { usluga: { paymentSource: 'MANUAL', user: klient({ id: 'stary', billingOutside: true }), currentPeriodEnd: new Date(TERAZ + GODZINA) }, nowy: { billingOutside: true } };
     expect(odmowy(obaPoza)).toEqual([]);
@@ -124,7 +124,7 @@ describe('K2 — odmowy zmiany właściciela usługi', () => {
   });
 });
 
-describe('K2 — przenies(): walidacje przed transakcją', () => {
+describe('K2 – przenies(): walidacje przed transakcją', () => {
   // przenies() liczy okno odnowienia od zegara (Date.now()), a dane testu są ustawione względem TERAZ (12.10) —
   // bez stałego zegara test zaczął padać 21.10 wieczorem, gdy do „odnowienia” z danych została mniej niż doba.
   beforeEach(() => vi.useFakeTimers({ now: TERAZ, toFake: ['Date'] }));
@@ -134,9 +134,9 @@ describe('K2 — przenies(): walidacje przed transakcją', () => {
     const prisma = { $transaction: vi.fn() };
     return { s: new ZmianaWlascicielaService(prisma as never, { send: vi.fn() } as never, { get: () => undefined } as never), prisma };
   }
-  const z = { subscriptionId: 's1', operator: { userId: 'adm', role: 'ADMIN' }, email: 'Nowy@Test.pl', powod: 'Sprzedaż firmy — zgłoszenie #ab12', potwierdzenie: ' nowy@test.pl ' };
+  const z = { subscriptionId: 's1', operator: { userId: 'adm', role: 'ADMIN' }, email: 'Nowy@Test.pl', powod: 'Sprzedaż firmy – zgłoszenie #ab12', potwierdzenie: ' nowy@test.pl ' };
 
-  it('tylko ADMIN — STAFF dostaje 403 bez dotykania bazy', async () => {
+  it('tylko ADMIN – STAFF dostaje 403 bez dotykania bazy', async () => {
     const { s, prisma } = serwis();
     await expect(s.przenies({ ...z, operator: { userId: 'op', role: 'STAFF' } })).rejects.toMatchObject({ status: 403 });
     expect(prisma.$transaction).not.toHaveBeenCalled();
@@ -158,7 +158,7 @@ describe('K2 — przenies(): walidacje przed transakcją', () => {
   });
 });
 
-describe('K2 — kontroler: tylko ADMIN, bez wniosku', () => {
+describe('K2 – kontroler: tylko ADMIN, bez wniosku', () => {
   it('klasa @Roles(ADMIN), metody bez nadpisania ról, bez @StaffPerm i bez wniosku', () => {
     expect(Reflect.getMetadata(ROLES_KEY, ZmianaWlascicielaAdminController)).toEqual([Role.ADMIN]);
     for (const m of [ZmianaWlascicielaAdminController.prototype.podglad, ZmianaWlascicielaAdminController.prototype.przenies]) {

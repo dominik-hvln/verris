@@ -107,7 +107,7 @@ export default function MailExtras({ serviceId }: { serviceId: string }) {
           <Forward className="h-4 w-4 text-data-hi" /> Aliasy / przekierowania poczty
         </h3>
         <p className="mt-1 text-xs text-muted-foreground">
-          Adres typu alias (np. <span className="font-mono">biuro@</span>) przekazujący pocztę na jedną lub kilka skrzynek — bez zakładania osobnego konta.
+          Adres typu alias (np. <span className="font-mono">biuro@</span>) przekazujący pocztę na jedną lub kilka skrzynek – bez zakładania osobnego konta.
         </p>
         <form onSubmit={addForward} className="mt-3 grid gap-2 sm:grid-cols-[1fr_1.4fr_auto]">
           <input value={fwName} onChange={(e) => setFwName(e.target.value)} aria-label="Alias (część adresu przed @)" placeholder="alias (lewa część przed @)" className={fieldCls} />
@@ -121,7 +121,7 @@ export default function MailExtras({ serviceId }: { serviceId: string }) {
         ) : fwErr ? (
           <p className="mt-3 text-xs text-warn">{hostingFetchErrorMessage(fwErr)}</p>
         ) : fwRows.length === 0 ? (
-          <p className="mt-3 text-xs text-muted-foreground">Brak aliasów — dodaj pierwszy powyżej.</p>
+          <p className="mt-3 text-xs text-muted-foreground">Brak aliasów – dodaj pierwszy powyżej.</p>
         ) : (
           <div className="mt-3 space-y-1.5">
             {fwRows.map((r) => (
@@ -146,7 +146,7 @@ export default function MailExtras({ serviceId }: { serviceId: string }) {
           <MailCheck className="h-4 w-4 text-data-hi" /> Autorespondery (wiadomości automatyczne)
         </h3>
         <p className="mt-1 text-xs text-muted-foreground">
-          Automatyczna odpowiedź wysyłana z wybranej skrzynki — np. komunikat urlopowy „Wrócę 15 lipca”.
+          Automatyczna odpowiedź wysyłana z wybranej skrzynki – np. komunikat urlopowy „Wrócę 15 lipca”.
         </p>
         <form onSubmit={saveAr} className="mt-3 space-y-2">
           <input value={arName} onChange={(e) => setArName(e.target.value)} aria-label="Skrzynka z autoresponderem (część adresu przed @)" placeholder="skrzynka (lewa część przed @, np. kontakt)" className={fieldCls} />
@@ -239,7 +239,7 @@ export function MailOchrona({ serviceId }: { serviceId: string }) {
           )}
           <Button onClick={saveCatchAll} disabled={caBusy} className="h-9 gap-1.5 bg-primary text-primary-foreground font-semibold hover:bg-data-hi text-xs">{caBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null} Zapisz</Button>
         </div>
-        <p className="mt-2 text-[11px] text-muted-foreground">„Odrzucaj” ogranicza spam (nadawca dostaje błąd). „Przyjmij i wyrzuć” cicho kasuje — bez powiadomienia nadawcy.</p>
+        <p className="mt-2 text-[11px] text-muted-foreground">„Odrzucaj” ogranicza spam (nadawca dostaje błąd). „Przyjmij i wyrzuć” cicho kasuje – bez powiadomienia nadawcy.</p>
       </section>
 
       {/* Filtr antyspam */}

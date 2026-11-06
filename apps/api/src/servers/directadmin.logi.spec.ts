@@ -32,7 +32,7 @@ function stanowisko(log: unknown = '1.2.3.4 - - [24/Sep/2026] "GET / HTTP/1.1" 2
   return { svc, get, zapytanieLogu };
 }
 
-describe('Logi WWW — readHostingLog', () => {
+describe('Logi WWW – readHostingLog', () => {
   it('domena spoza konta → 400, DA nie jest pytany o log', async () => {
     const s = stanowisko();
     await expect(s.svc.readHostingLog('s1', 'u1', { type: 'access', domain: 'obca.pl' })).rejects.toBeInstanceOf(BadRequestException);
@@ -62,7 +62,7 @@ describe('Logi WWW — readHostingLog', () => {
   });
 });
 
-describe('Logi WWW — interpretujLogDa', () => {
+describe('Logi WWW – interpretujLogDa', () => {
   it('zwraca ostatnie N linii bez pustych i zaznacza ucięcie', () => {
     expect(interpretujLogDa('a\nb\n\nc\n', 2)).toEqual({ lines: ['b', 'c'], truncated: true, fetchError: null });
     expect(interpretujLogDa('a\r\nb\r\n', 10)).toEqual({ lines: ['a', 'b'], truncated: false, fetchError: null });
@@ -88,12 +88,12 @@ describe('Logi WWW — interpretujLogDa', () => {
   });
 });
 
-describe('PB-42 — lista domen przekazana przez wołającego nie jest czytana z węzła drugi raz', () => {
+describe('PB-42 – lista domen przekazana przez wołającego nie jest czytana z węzła drugi raz', () => {
   const wczytane = { domains: [{ name: 'firma.pl' }, { name: 'sklep.pl' }], daUsername: 'klient1', primaryDomain: 'firma.pl', fetchError: null };
   const pytaniaODomeny = (get: ReturnType<typeof stanowisko>['get']) =>
     get.mock.calls.filter((c) => c[0] === '/CMD_API_SHOW_DOMAINS' || c[0] === '/CMD_API_SHOW_USER_CONFIG').length;
 
-  it('readHostingLog: bez listy czyta domeny z węzła, z listą — tylko log', async () => {
+  it('readHostingLog: bez listy czyta domeny z węzła, z listą – tylko log', async () => {
     const bez = stanowisko();
     await bez.svc.readHostingLog('s1', 'u1', { type: 'error' });
     expect(pytaniaODomeny(bez.get)).toBeGreaterThan(0);
@@ -124,7 +124,7 @@ describe('PB-42 — lista domen przekazana przez wołającego nie jest czytana z
     expect(spy).not.toHaveBeenCalled();
   });
 
-  it('assertDomainOwnedBySubscription: przekazana lista — bez odczytu węzła; awaria węzła w liście nadal zgłaszana', async () => {
+  it('assertDomainOwnedBySubscription: przekazana lista – bez odczytu węzła; awaria węzła w liście nadal zgłaszana', async () => {
     const s = stanowisko();
     const spy = vi.spyOn(s.svc, 'listHostingDomainsForSubscription');
     await expect(s.svc.assertDomainOwnedBySubscription('s1', 'u1', 'Sklep.pl', wczytane)).resolves.toBe('sklep.pl');

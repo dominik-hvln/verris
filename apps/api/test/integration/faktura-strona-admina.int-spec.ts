@@ -12,7 +12,7 @@ function serwis(): InvoicesService {
   return new InvoicesService(prisma() as never, nic, nic, nic, nic, nic, nic, nic, nic);
 }
 
-describe('Strona faktury (admin) — getForAdmin', () => {
+describe('Strona faktury (admin) – getForAdmin', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 
@@ -61,7 +61,7 @@ describe('Strona faktury (admin) — getForAdmin', () => {
     expect(rk).toMatchObject({ kind: 'KOREKTA', korygowana: { id: f.id, number: 'VFV/2026/10/0001' }, platnosci: [] });
   });
 
-  it('F3.6 — lista faktur: kolumna KSeF (stan i numer) i filtr po stanie KSeF', async () => {
+  it('F3.6 – lista faktur: kolumna KSeF (stan i numer) i filtr po stanie KSeF', async () => {
     const u = await prisma().user.create({ data: { email: `f36-ksef-${Date.now()}@test.verris.pl`, passwordHash: 'x' } });
     const baza = { userId: u.id, status: 'PAID' as const, amount: new Prisma.Decimal('10.00'), currency: 'PLN' };
     await prisma().invoice.create({ data: { ...baza, number: 'VFV/2026/10/0101', ksefStatus: 'ACCEPTED', ksefNumber: '1234567890-20261011-ABCDEF-01' } });

@@ -72,11 +72,11 @@ export function KsefForm() {
     <section className="rounded-2xl border border-white/10 bg-black/40 p-5 space-y-4">
       <div>
         <h2 className="text-lg font-semibold flex items-center gap-2">
-          <FileText className="h-4 w-4 text-indigo-300" /> KSeF 2.0 — Krajowy System e-Faktur
+          <FileText className="h-4 w-4 text-indigo-300" /> KSeF 2.0 – Krajowy System e-Faktur
         </h2>
         <p className="text-xs text-muted-foreground mt-1">
           Faktury FA(3) przez API KSeF 2.0. Token jest szyfrowany kluczem KMS i nigdy nie jest
-          zwracany przez API — zostaw pole puste, aby zachować obecny. Klucze publiczne MF klient
+          zwracany przez API – zostaw pole puste, aby zachować obecny. Klucze publiczne MF klient
           pobiera automatycznie z API. Włącz dopiero po pomyślnym smoke na środowisku testowym.
         </p>
       </div>
@@ -120,7 +120,7 @@ export function KsefForm() {
 
           <label className="block space-y-1 md:col-span-2">
             <span className="text-xs font-medium text-muted-foreground">
-              Token autoryzacyjny KSeF {cfg?.tokenSet && "(ustawiony — zostaw puste, by zachować)"}
+              Token autoryzacyjny KSeF {cfg?.tokenSet && "(ustawiony – zostaw puste, by zachować)"}
             </span>
             <input
               type="password"
@@ -171,11 +171,11 @@ export function KsefForm() {
           </div>
           {(overview.czekajaZBledem?.length ?? 0) > 0 && (
             <div className="mt-2 space-y-1">
-              <p className="text-xs font-medium text-amber-300">Czekają na wysyłkę — powód:</p>
+              <p className="text-xs font-medium text-amber-300">Czekają na wysyłkę – powód:</p>
               {overview.czekajaZBledem!.map((r) => (
                 <div key={r.id} className="flex items-center justify-between gap-2 text-xs text-neutral-300">
                   <span className="truncate">
-                    <code>{r.number}</code> — {r.error}
+                    <code>{r.number}</code> – {r.error}
                   </span>
                   <Link href={`/invoices/${r.id}#ksef`} className="shrink-0 px-2 py-0.5 rounded border border-white/15 hover:bg-white/5">
                     Otwórz fakturę
@@ -191,7 +191,7 @@ export function KsefForm() {
               {overview.recentRejected.map((r) => (
                 <div key={r.id} className="flex items-center justify-between gap-2 text-xs text-neutral-300">
                   <span className="truncate">
-                    <code>{r.number}</code> — {r.error ?? "błąd"}
+                    <code>{r.number}</code> – {r.error ?? "błąd"}
                   </span>
                   {/* Ponowienie jest na stronie faktury (plan E, patch 10) — tam też stan KSeF i dane nabywcy. */}
                   <Link

@@ -60,7 +60,7 @@ describe('GitDeployService', () => {
   });
 });
 
-describe('GitDeployService — webhook (C-27)', () => {
+describe('GitDeployService – webhook (C-27)', () => {
   it('adres z tokenem pokazany raz, w bazie tylko skrót; wywołanie kolejkuje pull bez osoby zlecającej', async () => {
     const s = stanowisko();
     const r = await s.svc.utworzWebhook('s1', 'u1', { domain: 'a.pl', dir: 'app' });
@@ -86,7 +86,7 @@ describe('GitDeployService — webhook (C-27)', () => {
   });
 });
 
-describe('GitDeployService — budowanie i zmienne środowiskowe (21.10)', () => {
+describe('GitDeployService – budowanie i zmienne środowiskowe (21.10)', () => {
   const zaszyfrowane = (z: Record<string, string>) => `enc:${Buffer.from(JSON.stringify(z)).toString('base64')}`;
 
   it('zapis: budowanie i zmienne zaszyfrowane; do dziennika i do panelu tylko nazwy, nigdy wartości', async () => {
@@ -117,7 +117,7 @@ describe('GitDeployService — budowanie i zmienne środowiskowe (21.10)', () =>
     expect(s.prisma.gitKonfiguracja.upsert).not.toHaveBeenCalled();
   });
 
-  it('clone, pull i webhook niosą sposób budowania i .env (base64); zadanie key — nic', async () => {
+  it('clone, pull i webhook niosą sposób budowania i .env (base64); zadanie key – nic', async () => {
     const konf = { dir: '', budowanie: 'composer', zmienneEnc: zaszyfrowane({ APP_KEY: 'base64:abc=', NAZWA: 'Moja firma' }), updatedAt: new Date() };
     const s = stanowisko([], konf);
     await s.svc.zlec('s1', 'u1', 'pull', { domain: 'a.pl' });
@@ -149,7 +149,7 @@ describe('GitDeployService — budowanie i zmienne środowiskowe (21.10)', () =>
     expect(stary.uwaga).toMatch(/nie obsługuje jeszcze budowania/);
   });
 
-  it('po porażce zadania znika tylko envSecret — reszta payloadu zostaje do „Ponów”', () => {
+  it('po porażce zadania znika tylko envSecret – reszta payloadu zostaje do „Ponów”', () => {
     expect(zmienneWdrozeniaUsuniete({ mode: 'pull', envSecret: 'QT0x', build: 'npm-ci' })).toEqual({ payload: { mode: 'pull', build: 'npm-ci' } });
     expect(zmienneWdrozeniaUsuniete({ dbPass: 'x' })).toEqual({});
     expect(zmienneWdrozeniaUsuniete(null)).toEqual({});

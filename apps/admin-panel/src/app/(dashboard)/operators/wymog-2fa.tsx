@@ -42,7 +42,7 @@ export function Wymog2fa({ start, bez2fa }: { start: StanWymogu2fa; bez2fa: numb
           </h2>
           <p className="mt-1 text-xs text-muted-foreground">
             {stan.wymuszonyEnv
-              ? "Włączone w konfiguracji serwera (REQUIRE_2FA_FOR_STAFF) — panel go nie wyłączy."
+              ? "Włączone w konfiguracji serwera (REQUIRE_2FA_FOR_STAFF) – panel go nie wyłączy."
               : stan.wlaczony
                 ? "Włączone: logowanie hasłem wymaga TOTP."
                 : "Wyłączone: operator bez 2FA loguje się samym hasłem."}

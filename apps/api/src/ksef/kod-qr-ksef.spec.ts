@@ -11,7 +11,7 @@ import {
 /** Przykład z https://github.com/CIRFMF/ksef-docs/blob/main/kody-qr.md („Generowanie linku”). */
 const PRZYKLAD_MF = 'https://qr-test.ksef.mf.gov.pl/invoice/1111111111/01-02-2026/UtQp9Gpc51y-u3xApZjIjgkpZ01js-J8KflSPW8WzIE';
 
-describe('KSeF 12.10 — KOD I (link weryfikacyjny)', () => {
+describe('KSeF 12.10 – KOD I (link weryfikacyjny)', () => {
   it('daje dokładnie link z przykładu w dokumentacji MF (TE)', () => {
     expect(linkWeryfikacjiKsef('test', '1111111111', '01-02-2026', 'UtQp9Gpc51y-u3xApZjIjgkpZ01js-J8KflSPW8WzIE')).toBe(PRZYKLAD_MF);
   });
@@ -51,7 +51,7 @@ describe('KSeF 12.10 — KOD I (link weryfikacyjny)', () => {
   });
 });
 
-describe('KSeF 12.10 — macierz kodu QR', () => {
+describe('KSeF 12.10 – macierz kodu QR', () => {
   it('kod dla linku KOD I: kwadratowa macierz z wzorcami pozycyjnymi w trzech rogach (ISO/IEC 18004)', () => {
     const m = macierzQr(PRZYKLAD_MF);
     expect(m.rozmiar).toBeGreaterThanOrEqual(21);

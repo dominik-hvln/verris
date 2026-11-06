@@ -48,7 +48,7 @@ export function SiteClonePanel({ serviceId, domain, domains }: { serviceId: stri
       const r = await runSiteClone(serviceId, domain, c);
       if (r.ok) {
         setStan(r.status);
-        toast.success('Kopiowanie zlecone — potrwa kilka minut.');
+        toast.success('Kopiowanie zlecone – potrwa kilka minut.');
       } else toast.error(r.error);
     });
   };
@@ -57,7 +57,7 @@ export function SiteClonePanel({ serviceId, domain, domains }: { serviceId: stri
 
   return (
     <section className="mt-8">
-      <SectionHead title="Kopia strony na inną domenę" desc="Pliki i — dla WordPressa — baza z adresami zmienionymi na nową domenę." />
+      <SectionHead title="Kopia strony na inną domenę" desc="Pliki i – dla WordPressa – baza z adresami zmienionymi na nową domenę." />
       {bladWczytania && !stan ? <p role="alert" className="m-0 my-2 rounded-[8px] border border-line px-3 py-2 text-[13px] text-crit">Nie udało się wczytać: {bladWczytania}</p> : null}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <Select aria-label="Domena docelowa" value={c} onChange={setCel} options={cele.map((d) => ({ value: d, label: d }))} className="w-full sm:w-72" />

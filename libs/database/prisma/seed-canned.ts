@@ -27,7 +27,7 @@ const SIGN = '\n\nPozdrawiamy,\nZespół Verris';
 
 const TEMPLATES: Seed[] = [
   {
-    title: 'Powitanie — ogólne',
+    title: 'Powitanie – ogólne',
     category: 'POWITANIE',
     topic: null,
     shortcut: 'powitanie',
@@ -45,15 +45,15 @@ const TEMPLATES: Seed[] = [
       SIGN,
   },
   {
-    title: 'DNS — propagacja zmian',
+    title: 'DNS – propagacja zmian',
     topic: 'DNS',
     shortcut: 'dns-propagacja',
     content:
-      'Cześć {{imie}},\n\nSprawa dotyczy propagacji DNS. Zmiana serwerów nazw (NS) lub rekordów A/MX rozchodzi się w globalnej sieci do 24 godzin. Po naszej stronie konfiguracja jest poprawna.\n\nDaj proszę znać, jeśli po tym czasie coś nadal nie działa — sprawdzimy dalej.' +
+      'Cześć {{imie}},\n\nSprawa dotyczy propagacji DNS. Zmiana serwerów nazw (NS) lub rekordów A/MX rozchodzi się w globalnej sieci do 24 godzin. Po naszej stronie konfiguracja jest poprawna.\n\nDaj proszę znać, jeśli po tym czasie coś nadal nie działa – sprawdzimy dalej.' +
       SIGN,
   },
   {
-    title: 'Domena — zmiana NS na Verris',
+    title: 'Domena – zmiana NS na Verris',
     topic: 'DOMAIN',
     shortcut: 'ns-verris',
     content:
@@ -61,7 +61,7 @@ const TEMPLATES: Seed[] = [
       SIGN,
   },
   {
-    title: 'Poczta — konfiguracja programu pocztowego',
+    title: 'Poczta – konfiguracja programu pocztowego',
     topic: 'EMAIL',
     shortcut: 'poczta-config',
     content:
@@ -69,7 +69,7 @@ const TEMPLATES: Seed[] = [
       SIGN,
   },
   {
-    title: 'Poczta — wiadomości trafiają do spamu',
+    title: 'Poczta – wiadomości trafiają do spamu',
     topic: 'EMAIL',
     shortcut: 'spam',
     content:
@@ -77,23 +77,23 @@ const TEMPLATES: Seed[] = [
       SIGN,
   },
   {
-    title: 'SSL — certyfikat Let’s Encrypt',
+    title: 'SSL – certyfikat Let’s Encrypt',
     topic: 'SSL',
     shortcut: 'ssl',
     content:
-      'Cześć {{imie}},\n\nCertyfikat SSL (Let’s Encrypt) wystawiamy i odnawiamy automatycznie, gdy domena wskazuje na nasz serwer. Sprawdziliśmy sprawę #{{nr}} — certyfikat jest już aktywny/odnowiony.\n\nJeśli w przeglądarce nadal widzisz ostrzeżenie, odśwież stronę z pominięciem pamięci podręcznej (Ctrl+F5).' +
+      'Cześć {{imie}},\n\nCertyfikat SSL (Let’s Encrypt) wystawiamy i odnawiamy automatycznie, gdy domena wskazuje na nasz serwer. Sprawdziliśmy sprawę #{{nr}} – certyfikat jest już aktywny/odnowiony.\n\nJeśli w przeglądarce nadal widzisz ostrzeżenie, odśwież stronę z pominięciem pamięci podręcznej (Ctrl+F5).' +
       SIGN,
   },
   {
-    title: 'Hosting — wysokie zużycie zasobów',
+    title: 'Hosting – wysokie zużycie zasobów',
     topic: 'HOSTING',
     shortcut: 'zasoby',
     content:
-      'Cześć {{imie}},\n\nZauważyliśmy podwyższone zużycie zasobów na Twojej usłudze. Najczęstsze przyczyny to wtyczki/skrypty w pętli, brak cache lub wzmożony ruch/boty.\n\nPomożemy zdiagnozować źródło i zaproponujemy optymalizację lub — jeśli to zasadne — wyższy pakiet. Damy znać z rekomendacją.' +
+      'Cześć {{imie}},\n\nZauważyliśmy podwyższone zużycie zasobów na Twojej usłudze. Najczęstsze przyczyny to wtyczki/skrypty w pętli, brak cache lub wzmożony ruch/boty.\n\nPomożemy zdiagnozować źródło i zaproponujemy optymalizację lub – jeśli to zasadne – wyższy pakiet. Damy znać z rekomendacją.' +
       SIGN,
   },
   {
-    title: 'Migracja — status przeniesienia',
+    title: 'Migracja – status przeniesienia',
     topic: 'HOSTING',
     shortcut: 'migracja',
     content:
@@ -101,7 +101,7 @@ const TEMPLATES: Seed[] = [
       SIGN,
   },
   {
-    title: 'Rozliczenia — faktura i płatność',
+    title: 'Rozliczenia – faktura i płatność',
     topic: 'BILLING',
     shortcut: 'faktura',
     content:
@@ -109,12 +109,12 @@ const TEMPLATES: Seed[] = [
       SIGN,
   },
   {
-    title: 'Aktualizacja — pracujemy nad sprawą',
+    title: 'Aktualizacja – pracujemy nad sprawą',
     category: 'OPOZNIENIE',
     topic: null,
     shortcut: 'w-toku',
     content:
-      'Cześć {{imie}},\n\nChcemy tylko dać znać, że sprawa #{{nr}} jest w toku — pracujemy nad nią i wrócimy z konkretną aktualizacją. Dziękujemy za cierpliwość.' +
+      'Cześć {{imie}},\n\nChcemy tylko dać znać, że sprawa #{{nr}} jest w toku – pracujemy nad nią i wrócimy z konkretną aktualizacją. Dziękujemy za cierpliwość.' +
       SIGN,
   },
   {
@@ -123,11 +123,11 @@ const TEMPLATES: Seed[] = [
     topic: null,
     shortcut: 'zamkniecie',
     content:
-      'Cześć {{imie}},\n\nUznajemy sprawę #{{nr}} za rozwiązaną i zamykamy zgłoszenie. Jeśli coś jeszcze się pojawi, po prostu odpowiedz w tym wątku — zgłoszenie otworzy się ponownie.' +
+      'Cześć {{imie}},\n\nUznajemy sprawę #{{nr}} za rozwiązaną i zamykamy zgłoszenie. Jeśli coś jeszcze się pojawi, po prostu odpowiedz w tym wątku – zgłoszenie otworzy się ponownie.' +
       SIGN,
   },
   {
-    title: 'Diagnoza — przyczyna znaleziona',
+    title: 'Diagnoza – przyczyna znaleziona',
     topic: null,
     shortcut: 'diag',
     category: 'DIAGNOZA',
@@ -136,12 +136,12 @@ const TEMPLATES: Seed[] = [
       SIGN,
   },
   {
-    title: 'Dłużej niż zwykle — informacja o terminie',
+    title: 'Dłużej niż zwykle – informacja o terminie',
     topic: null,
     shortcut: 'dluzej',
     category: 'OPOZNIENIE',
     content:
-      'Cześć {{imie}},\n\nnaprawa w zgłoszeniu #{{nr}} potrwa dłużej niż zwykle, bo [POWÓD]. Pracujemy nad tym i kolejną informację wyślemy najpóźniej [TERMIN] — nawet jeśli jeszcze nie skończymy. Nie musisz nic robić.' +
+      'Cześć {{imie}},\n\nnaprawa w zgłoszeniu #{{nr}} potrwa dłużej niż zwykle, bo [POWÓD]. Pracujemy nad tym i kolejną informację wyślemy najpóźniej [TERMIN] – nawet jeśli jeszcze nie skończymy. Nie musisz nic robić.' +
       SIGN,
   },
   {
@@ -150,20 +150,22 @@ const TEMPLATES: Seed[] = [
     shortcut: 'zalec',
     category: 'ZALECENIA',
     content:
-      'Żeby sytuacja się nie powtórzyła, zalecamy:\n• [ZALECENIE 1],\n• [ZALECENIE 2].\n\nChętnie pomożemy w każdym z tych kroków — wystarczy odpisać na tę wiadomość.',
+      'Żeby sytuacja się nie powtórzyła, zalecamy:\n• [ZALECENIE 1],\n• [ZALECENIE 2].\n\nChętnie pomożemy w każdym z tych kroków – wystarczy odpisać na tę wiadomość.',
   },
 ];
 
 async function main() {
   const existing = await prisma.cannedResponse.findMany({ select: { title: true } });
-  const have = new Set(existing.map((r) => r.title));
-  const toCreate = TEMPLATES.filter((t) => !have.has(t.title));
+  // 6.11.2026: pauza w tytułach zamieniona na półpauzę — szablon zapisany wcześniej z pauzą to ten sam szablon.
+  const bezPauzy = (t: string) => t.replaceAll('\u2014', '\u2013');
+  const have = new Map(existing.map((r) => [bezPauzy(r.title), r.title]));
+  const toCreate = TEMPLATES.filter((t) => !have.has(bezPauzy(t.title)));
   // PB-37 — kategorie dla szablonów dodanych wcześniej (bez nadpisywania zmian admina)
-  for (const t of TEMPLATES.filter((x) => x.category && have.has(x.title))) {
-    await prisma.cannedResponse.updateMany({ where: { title: t.title, category: null }, data: { category: t.category } });
+  for (const t of TEMPLATES.filter((x) => x.category && have.has(bezPauzy(x.title)))) {
+    await prisma.cannedResponse.updateMany({ where: { title: have.get(bezPauzy(t.title)), category: null }, data: { category: t.category } });
   }
   if (toCreate.length === 0) {
-    console.log('Szablony już istnieją — nic do dodania.');
+    console.log('Szablony już istnieją – nic do dodania.');
     return;
   }
   await prisma.cannedResponse.createMany({

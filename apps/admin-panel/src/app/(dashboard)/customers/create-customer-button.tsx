@@ -72,7 +72,7 @@ export function CreateCustomerButton() {
                 </h3>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Klient dostanie mail z linkiem do ustawienia hasła (ważny 72 h). Regulamin zaakceptuje sam przy
-                  pierwszym logowaniu — nie składamy zgód w jego imieniu.
+                  pierwszym logowaniu – nie składamy zgód w jego imieniu.
                 </p>
               </div>
 

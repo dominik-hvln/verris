@@ -93,12 +93,12 @@ export class KomunikatySerwisoweService {
 
   async zlec(z: ZlecenieKomunikatu, operatorUserId: string) {
     const powod = (z.powod ?? '').trim();
-    if (powod.length < POWOD_MIN) throw new BadRequestException(`Podaj powód (min. ${POWOD_MIN} znaków) — zapisze się w dzienniku.`);
+    if (powod.length < POWOD_MIN) throw new BadRequestException(`Podaj powód (min. ${POWOD_MIN} znaków) – zapisze się w dzienniku.`);
     const cel = await this.cel(z.zakres, z.celId);
     const { temat, tresc } = trescKomunikatu(z.temat, z.tresc, await wezlyDoSprawdzenia(this.prisma));
     const odbiorcy = await this.prisma.user.findMany({ where: this.warunekOdbiorcow(z.zakres, z.celId), select: { id: true }, take: KOMUNIKAT_ODBIORCY_MAX + 1 });
-    if (!odbiorcy.length) throw new BadRequestException('Brak odbiorców — nikt nie ma aktywnej usługi w tym zakresie.');
-    if (odbiorcy.length > KOMUNIKAT_ODBIORCY_MAX) throw new BadRequestException(`Za dużo odbiorców (ponad ${KOMUNIKAT_ODBIORCY_MAX}) — podziel zakres.`);
+    if (!odbiorcy.length) throw new BadRequestException('Brak odbiorców – nikt nie ma aktywnej usługi w tym zakresie.');
+    if (odbiorcy.length > KOMUNIKAT_ODBIORCY_MAX) throw new BadRequestException(`Za dużo odbiorców (ponad ${KOMUNIKAT_ODBIORCY_MAX}) – podziel zakres.`);
     const k = await this.prisma.$transaction(async (tx) => {
       // Przegląd F3.8 — podwójne kliknięcie, ponowienie po przekroczeniu czasu albo dwie karty nie mogą wysłać tego samego
       // komunikatu dwa razy do tysięcy klientów: blokada na zakres i cel, potem sprawdzenie świeżego duplikatu.
@@ -115,7 +115,7 @@ export class KomunikatySerwisoweService {
         select: { id: true },
       });
       if (duplikat) {
-        throw new ConflictException('Ten sam komunikat do tego zakresu został już zlecony przed chwilą — sprawdź listę komunikatów.');
+        throw new ConflictException('Ten sam komunikat do tego zakresu został już zlecony przed chwilą – sprawdź listę komunikatów.');
       }
       const k = await tx.komunikatSerwisowy.create({
         data: {

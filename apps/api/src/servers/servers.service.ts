@@ -162,7 +162,7 @@ export class ServersService {
       });
       if (zajety) {
         throw new ConflictException(
-          `Nazwa hosta ${host} jest już przypisana do węzła ${zajety.id} (${zajety.status}) — dokończ go w kreatorze (/nodes/wizard?server=${zajety.id}) albo najpierw wycofaj.`,
+          `Nazwa hosta ${host} jest już przypisana do węzła ${zajety.id} (${zajety.status}) – dokończ go w kreatorze (/nodes/wizard?server=${zajety.id}) albo najpierw wycofaj.`,
         );
       }
     }
@@ -274,7 +274,7 @@ export class ServersService {
     // OFFLINE/DEPROVISIONING to stary, niezużyty one-liner — przyjęcie go przepinało węzeł na nowy adres.
     if (server.status !== ServerStatus.INIT && server.status !== ServerStatus.PENDING_APPROVAL) {
       throw new ConflictException(
-        `Węzeł w stanie ${server.status} nie przyjmuje ponownej rejestracji — wydaj nowy skrypt po przywróceniu stanu.`,
+        `Węzeł w stanie ${server.status} nie przyjmuje ponownej rejestracji – wydaj nowy skrypt po przywróceniu stanu.`,
       );
     }
 
@@ -378,7 +378,7 @@ export class ServersService {
     // Onboard LIVE / profil równolegle z bootstrapem. Węzeł bez bootstrapu v2 (ścieżka „tylko agent”) ma fazę null.
     if (server.bootstrapPhase && server.bootstrapPhase !== 'DONE') {
       throw new BadRequestException(
-        `Bootstrap węzła jeszcze trwa albo się zatrzymał (faza ${server.bootstrapPhase}) — akceptacja dopiero po fazie „Gotowe”.`,
+        `Bootstrap węzła jeszcze trwa albo się zatrzymał (faza ${server.bootstrapPhase}) – akceptacja dopiero po fazie „Gotowe”.`,
       );
     }
     // Bootstrap v2 DoD: an ACTIVE node must always have an FQDN so the wildcard
@@ -386,7 +386,7 @@ export class ServersService {
     const hostname = server.hostname?.trim() ?? '';
     if (!hostname || !hostname.includes('.')) {
       throw new BadRequestException(
-        'Węzeł nie ma hostname (FQDN). Ustaw hostname przed akceptacją — wymagany dla wildcard TLS i linków panelu.',
+        'Węzeł nie ma hostname (FQDN). Ustaw hostname przed akceptacją – wymagany dla wildcard TLS i linków panelu.',
       );
     }
 
@@ -979,7 +979,7 @@ export class ServersService {
         daUsername: acc.daUsername,
         domain: acc.domain,
         status: acc.status,
-        planName: p?.name ?? '—',
+        planName: p?.name ?? '–',
         footprint: need,
         suggestedTarget: best ? { id: best.id, name: best.name } : null,
       };
@@ -1065,7 +1065,7 @@ export class ServersService {
     const TYDZIEN = 7 * 24 * 3600_000;
     if (konta.length > 0 && server.lastHeartbeatAt && Date.now() - server.lastHeartbeatAt.getTime() < TYDZIEN) {
       throw new ConflictException(
-        'Węzeł wysyłał sygnał w ostatnim tygodniu i ma konta — najpierw przenieś je na inne węzły (albo usuń), potem wycofaj.',
+        'Węzeł wysyłał sygnał w ostatnim tygodniu i ma konta – najpierw przenieś je na inne węzły (albo usuń), potem wycofaj.',
       );
     }
     const zStripe = konta.filter(
@@ -1074,7 +1074,7 @@ export class ServersService {
     );
     if (zStripe.length > 0) {
       throw new ConflictException(
-        `Najpierw anuluj płatności w Stripe dla: ${zStripe.map((k) => k.domain).join(', ')} — inaczej karta klienta byłaby dalej obciążana.`,
+        `Najpierw anuluj płatności w Stripe dla: ${zStripe.map((k) => k.domain).join(', ')} – inaczej karta klienta byłaby dalej obciążana.`,
       );
     }
     const teraz = new Date();

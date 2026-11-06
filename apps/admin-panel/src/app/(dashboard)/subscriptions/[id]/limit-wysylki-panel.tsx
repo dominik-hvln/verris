@@ -55,14 +55,14 @@ export function LimitWysylkiPanel({ subscriptionId, dostep }: { subscriptionId: 
     return () => clearInterval(t);
   }, [trwa, odczyt]);
 
-  if (brakOdczytu) return <p className="text-xs text-muted-foreground">{brakOdczytu} — limit wysyłki niedostępny.</p>;
+  if (brakOdczytu) return <p className="text-xs text-muted-foreground">{brakOdczytu} – limit wysyłki niedostępny.</p>;
 
   const liczba = Number(wartosc);
   const liczbaOk = /^\d+$/.test(wartosc) && liczba >= 1 && liczba <= (stan?.max ?? 100000);
   const powodOk = powod.trim().length >= MIN_POWOD;
 
   const zapisz = async (limit: number | null) => {
-    const tresc = limit === null ? `Przywrócić domyślny limit serwera (${stan?.domyslny ?? "—"} wiadomości na dobę)?` : `Ustawić dobowy limit wysyłki konta na ${limit} wiadomości?`;
+    const tresc = limit === null ? `Przywrócić domyślny limit serwera (${stan?.domyslny ?? "–"} wiadomości na dobę)?` : `Ustawić dobowy limit wysyłki konta na ${limit} wiadomości?`;
     if (!(await potwierdz(`${tresc} Klient zobaczy nowy limit w panelu i wpis „obsługa Verris” w aktywności.`, { akcja: limit === null ? "Przywróć" : "Ustaw" }))) return;
     start(async () => {
       setMsg(null);
@@ -71,7 +71,7 @@ export function LimitWysylkiPanel({ subscriptionId, dostep }: { subscriptionId: 
       setPowod("");
       setZgloszenie("");
       setWartosc("");
-      setMsg({ ok: true, tekst: "Zlecone — serwer zmieni limit w ciągu minuty." });
+      setMsg({ ok: true, tekst: "Zlecone – serwer zmieni limit w ciągu minuty." });
       await odczyt();
     });
   };
@@ -103,7 +103,7 @@ export function LimitWysylkiPanel({ subscriptionId, dostep }: { subscriptionId: 
       {naSerwerze ? (
         <p className="text-xs text-muted-foreground">
           Serwer ({kiedy(stan?.kiedy ?? null)}): {naSerwerze.nieczytelny ? "plik limitu nieczytelny" : naSerwerze.limit === null ? "domyślny" : naSerwerze.limit}
-          {rozjazd ? " — inaczej niż w panelu" : ""}
+          {rozjazd ? " – inaczej niż w panelu" : ""}
         </p>
       ) : null}
       {stan?.blad ? <p className="text-xs text-rose-200">Ostatnia operacja nie powiodła się: {stan.blad}</p> : null}

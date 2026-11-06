@@ -24,7 +24,7 @@ SET timestamp=1790330200;
 SELECT haslo FROM users WHERE email = 'ktos@example.com';
 `;
 
-describe('K-14 — wolne zapytania SQL', () => {
+describe('K-14 – wolne zapytania SQL', () => {
   it('skrypt: grupuje zapytania konta, bez cudzych baz i bez wartości', () => {
     const dir = mkdtempSync(join(tmpdir(), 'sq-'));
     writeFileSync(join(dir, 'slow.log'), LOG);

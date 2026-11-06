@@ -26,7 +26,7 @@ export function KsefZalegleSekcja({ zalegle, env, enabled, onDone }: { zalegle: 
       const r = await zakolejkujKsefZalegle(zalegle.liczba);
       if ("error" in r && r.error) setBlad(r.error);
       else if ("data" in r && r.data) {
-        setWynik(`Zakolejkowano ${r.data.zakolejkowane} — pójdą w najbliższym cyklu (co 10 min).`);
+        setWynik(`Zakolejkowano ${r.data.zakolejkowane} – pójdą w najbliższym cyklu (co 10 min).`);
         onDone();
       }
       setPotwierdzenie(false);
@@ -39,7 +39,7 @@ export function KsefZalegleSekcja({ zalegle, env, enabled, onDone }: { zalegle: 
       </p>
       <p className="text-amber-100/80">
         Wystawione w panelu ponad 7 dni temu i nigdy niezakolejkowane do KSeF (np. wysyłka była wyłączona). Automat ich nie
-        dośle — sprawdź listę i zakolejkuj albo wyjaśnij z księgową.
+        dośle – sprawdź listę i zakolejkuj albo wyjaśnij z księgową.
       </p>
       <ul className="space-y-0.5">
         {zalegle.przyklady.map((f) => (
@@ -47,7 +47,7 @@ export function KsefZalegleSekcja({ zalegle, env, enabled, onDone }: { zalegle: 
             <Link href={`/invoices/${f.id}#ksef`} className="underline decoration-dotted">
               {f.number}
             </Link>
-            {f.issuedAt ? ` — ${new Date(f.issuedAt).toLocaleDateString("pl-PL")}` : ""}
+            {f.issuedAt ? ` – ${new Date(f.issuedAt).toLocaleDateString("pl-PL")}` : ""}
           </li>
         ))}
         {zalegle.liczba > zalegle.przyklady.length && <li>…i {zalegle.liczba - zalegle.przyklady.length} więcej</li>}

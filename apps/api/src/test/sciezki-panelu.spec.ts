@@ -247,6 +247,6 @@ function bezPokrycia(wywolania: Wywolanie[], trasy: Trasa[]): string {
     .join('\n');
   return brak.length === 0
     ? ''
-    : `Panel woła ścieżki, których API nie wystawia — kod się kompiluje, ` +
+    : `Panel woła ścieżki, których API nie wystawia – kod się kompiluje, ` +
         `panel się buduje, a 404 wychodzi dopiero pod palcem operatora:\n${opis}`;
 }

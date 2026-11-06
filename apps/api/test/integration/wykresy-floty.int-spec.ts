@@ -7,7 +7,7 @@ import { prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } fr
  */
 const GODZ = 3_600_000;
 
-describe('Flota — wykresy (SQL)', () => {
+describe('Flota – wykresy (SQL)', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 

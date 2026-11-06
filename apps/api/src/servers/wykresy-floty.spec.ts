@@ -12,7 +12,7 @@ const wezel = (z: Partial<Parameters<typeof stanWezlaWykresy>[0]> = {}) => ({
   ...z,
 });
 
-describe('Flota — wykresy: stan węzła', () => {
+describe('Flota – wykresy: stan węzła', () => {
   it.each<[string, Partial<Parameters<typeof stanWezlaWykresy>[0]>, StanWykresu]>([
     ['w normie', {}, 'norma'],
     ['brak telemetrii 16 min', { lastSignalAt: new Date(TERAZ - 16 * MIN) }, 'krytyczny'],
@@ -33,7 +33,7 @@ describe('Flota — wykresy: stan węzła', () => {
   });
 });
 
-describe('Flota — wykresy: sortowanie', () => {
+describe('Flota – wykresy: sortowanie', () => {
   const w = [
     { name: 'a', stan: 'norma' as const, cpuNow: 50, ramNow: 10 },
     { name: 'b', stan: 'krytyczny' as const, cpuNow: 5, ramNow: 20 },
@@ -43,7 +43,7 @@ describe('Flota — wykresy: sortowanie', () => {
   ];
   const nazwy = (s: Parameters<typeof sortujWezly>[1]) => sortujWezly(w, s).map((x) => x.name);
 
-  it('stan: krytyczne, ostrzeżenia, w normie — w grupie CPU malejąco', () => {
+  it('stan: krytyczne, ostrzeżenia, w normie – w grupie CPU malejąco', () => {
     expect(nazwy('stan')).toEqual(['d', 'b', 'c', 'a', 'e']);
   });
   it('CPU, pamięć malejąco (brak próbek na końcu), nazwa rosnąco', () => {
@@ -57,7 +57,7 @@ describe('Flota — wykresy: sortowanie', () => {
   });
 });
 
-describe('Flota — wykresy: serie', () => {
+describe('Flota – wykresy: serie', () => {
   const t1 = new Date('2026-10-05T10:00:00Z');
   const t2 = new Date('2026-10-05T11:00:00Z');
 
@@ -155,7 +155,7 @@ describe('Flota — wykresy: serie', () => {
       ['spokojny', 'norma', 25],
     ]);
     expect(r.wezly[0]).toMatchObject({ accounts: 2, pozaPula: null, ramNow: 13, diskPct: 10, cpu: [{ t: '2026-10-05T11:00:00.000Z', v: 90 }], ram: [{ t: '2026-10-05T11:00:00.000Z', v: 50 }] });
-    expect(r.wezly[1]).toMatchObject({ pozaPula: 'poza pulą — wstrzymany', cpu: [], ram: [] });
+    expect(r.wezly[1]).toMatchObject({ pozaPula: 'poza pulą – wstrzymany', cpu: [], ram: [] });
     expect(r.kpi).toMatchObject({
       wszystkie: 3,
       aktywne: 3,

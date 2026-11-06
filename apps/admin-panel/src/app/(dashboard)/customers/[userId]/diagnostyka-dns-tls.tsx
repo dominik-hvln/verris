@@ -56,7 +56,7 @@ export function DiagnostykaDnsTls({ userId, subscriptions }: { userId: string; s
               options={
                 zKontem.length === 0
                   ? [{ value: "", label: "Brak konta z domeną" }]
-                  : zKontem.map((s) => ({ value: s.id, label: `${s.plan.name} — ${domenaDoWyswietlenia(s.account?.domain)}` }))
+                  : zKontem.map((s) => ({ value: s.id, label: `${s.plan.name} – ${domenaDoWyswietlenia(s.account?.domain)}` }))
               }
             />
           </div>

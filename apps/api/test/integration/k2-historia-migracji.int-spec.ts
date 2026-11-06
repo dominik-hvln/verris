@@ -18,7 +18,7 @@ import { prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } fr
 
 const DNI = 86_400_000;
 
-describe('K2 — dane starego hostingu poprzedniego właściciela po przeniesieniu (przegląd 12.10)', () => {
+describe('K2 – dane starego hostingu poprzedniego właściciela po przeniesieniu (przegląd 12.10)', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 
@@ -43,7 +43,7 @@ describe('K2 — dane starego hostingu poprzedniego właściciela po przeniesien
     const B = await p.user.create({ data: { email: `k2r-b-${Date.now()}@test.verris.pl`, passwordHash: 'x', emailVerifiedAt: new Date() } });
     const admin = await p.user.create({ data: { email: `k2r-admin-${Date.now()}@test.verris.pl`, passwordHash: 'x', role: 'ADMIN' } });
     const zmiana = new ZmianaWlascicielaService(p as never, { send: vi.fn().mockResolvedValue({}) } as never, { get: () => 'https://panel.test' } as never);
-    await zmiana.przenies({ subscriptionId: sub.id, operator: { userId: admin.id, role: 'ADMIN' }, email: B.email, powod: 'Sprzedaż sklepu — zgłoszenie obu stron', potwierdzenie: B.email });
+    await zmiana.przenies({ subscriptionId: sub.id, operator: { userId: admin.id, role: 'ADMIN' }, email: B.email, powod: 'Sprzedaż sklepu – zgłoszenie obu stron', potwierdzenie: B.email });
 
     // Panel nowego właściciela: oś migracji usługi (ten sam serwis co kontroler GET services/:id/migrations/timeline).
     const orkiestrator = Object.assign(Object.create(MigrationOrchestratorService.prototype), { prisma: p }) as MigrationOrchestratorService;

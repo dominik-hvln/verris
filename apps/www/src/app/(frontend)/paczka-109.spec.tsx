@@ -45,7 +45,7 @@ function pliki(dir: string, rozszerzenia: RegExp): string[] {
   });
 }
 
-describe('A2-03 — fonty z własnego serwera, bez Google', () => {
+describe('A2-03 – fonty z własnego serwera, bez Google', () => {
   const kod = [...pliki(join(SRC, 'app'), /\.(tsx?|css)$/), ...pliki(join(SRC, 'lib'), /\.tsx?$/)];
 
   it('żaden plik strony nie łączy się z fonts.googleapis.com ani fonts.gstatic.com', () => {
@@ -62,7 +62,7 @@ describe('A2-03 — fonty z własnego serwera, bez Google', () => {
   });
 });
 
-describe('P4-4 / P4-3 — /poczta prowadzi do zamówienia poczty', () => {
+describe('P4-4 / P4-3 – /poczta prowadzi do zamówienia poczty', () => {
   let html = '';
   beforeAll(async () => {
     html = renderToStaticMarkup(await Poczta.default());
@@ -97,7 +97,7 @@ describe('P4-4 / P4-3 — /poczta prowadzi do zamówienia poczty', () => {
   });
 });
 
-describe('P4-11 + A2-09 — /kontakt: prośba o telefon, temat poczty, pełne dane sprzedawcy', () => {
+describe('P4-11 + A2-09 – /kontakt: prośba o telefon, temat poczty, pełne dane sprzedawcy', () => {
   let html = '';
   beforeAll(async () => {
     html = renderToStaticMarkup(await Kontakt.default());
@@ -114,7 +114,7 @@ describe('P4-11 + A2-09 — /kontakt: prośba o telefon, temat poczty, pełne da
     expect(TEMATY_KONTAKTU.map((t) => t.nazwa)).toContain('Poczta w domenie');
   });
 
-  it('dane sprzedawcy: nazwa, adres, NIP, REGON, e-mail — na /kontakt i w stopce', () => {
+  it('dane sprzedawcy: nazwa, adres, NIP, REGON, e-mail – na /kontakt i w stopce', () => {
     for (const s of [tekst(html), LINIA_PRAWNA]) {
       for (const pole of [SPRZEDAWCA.nazwa, 'Zacisze 2A', '65-775 Zielona Góra', SPRZEDAWCA.nip, SPRZEDAWCA.regon, 'kontakt@verris.pl']) {
         expect(s).toContain(pole);
@@ -123,7 +123,7 @@ describe('P4-11 + A2-09 — /kontakt: prośba o telefon, temat poczty, pełne da
   });
 });
 
-describe('decyzje 1, 3 (6.11: kredyty), 6, 13 — obietnice na www zgodne z regulaminem 1.1.0 i kodem', () => {
+describe('decyzje 1, 3 (6.11: kredyty), 6, 13 – obietnice na www zgodne z regulaminem 1.1.0 i kodem', () => {
   // Wszystko, co trafia na verris.pl jako tekst (strony, komponenty, lib, llms.txt, pricing.md).
   const zakres = [
     ...pliki(join(SRC, 'app/(frontend)'), /\.tsx?$/),
@@ -161,7 +161,7 @@ describe('decyzje 1, 3 (6.11: kredyty), 6, 13 — obietnice na www zgodne z regu
   });
 });
 
-describe('P2-09 — Black Friday wszędzie na tych samych założeniach', () => {
+describe('P2-09 – Black Friday wszędzie na tych samych założeniach', () => {
   const bf = kosztPiku(PRZYKLAD_BLACK_FRIDAY.vcpu, PRZYKLAD_BLACK_FRIDAY.ramGb, PRZYKLAD_BLACK_FRIDAY.godziny, CENY_ZAPASOWE.stawki);
 
   it('/hosting/sklep liczy procesor i pamięć jak /hosting (+4 vCPU, +8 GB, 36 h)', async () => {
@@ -179,7 +179,7 @@ describe('P2-09 — Black Friday wszędzie na tych samych założeniach', () => 
   });
 });
 
-describe('P5-10 — specyfikacja odpowiada na pytania programisty', () => {
+describe('P5-10 – specyfikacja odpowiada na pytania programisty', () => {
   const wiersze = Object.fromEntries(sekcjeSpecyfikacji(CENY_ZAPASOWE.stawki).flatMap((s) => s.wiersze).map(([k, v]) => [k, v]));
 
   it('PHP 8.4 i 8.5 (decyzja 14), starsze z dopiskiem o braku poprawek bezpieczeństwa', () => {
@@ -198,7 +198,7 @@ describe('P5-10 — specyfikacja odpowiada na pytania programisty', () => {
   });
 });
 
-describe('P3-11 / P3-06 — dla agencji', () => {
+describe('P3-11 / P3-06 – dla agencji', () => {
   it('/dla-agencji przekierowuje na /reseller', () => {
     expect(PRZEKIEROWANIA).toContainEqual({ source: '/dla-agencji', destination: '/reseller', permanent: true });
   });
@@ -222,7 +222,7 @@ describe('P3-11 / P3-06 — dla agencji', () => {
   });
 });
 
-describe('A2-04 / A2-05 — cookies zgodne z faktycznymi plikami (Consent Mode podstawowy — decyzja 22)', () => {
+describe('A2-04 / A2-05 – cookies zgodne z faktycznymi plikami (Consent Mode podstawowy – decyzja 22)', () => {
   it('opis mówi, że przed decyzją nic nie idzie do Google ani Meta', () => {
     expect(OPIS_KATEGORII.przedDecyzja).toContain('nie ładujemy narzędzi Google ani Meta');
     expect(OPIS_KATEGORII.przedDecyzja).not.toMatch(/sygnał|tryb(ie)? ograniczon/);
@@ -245,7 +245,7 @@ describe('A2-04 / A2-05 — cookies zgodne z faktycznymi plikami (Consent Mode p
   });
 });
 
-describe('P4-6 — pływające elementy ustępują formularzom', () => {
+describe('P4-6 – pływające elementy ustępują formularzom', () => {
   it('atrybut tylko wtedy, gdy któryś formularz jest na ekranie', () => {
     const a = {} as Element;
     const b = {} as Element;

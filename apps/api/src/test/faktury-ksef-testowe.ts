@@ -25,7 +25,7 @@ const sprzedawca = {
 };
 
 const pozycja = {
-  name: 'Hosting Standard — subskrypcja roczna (przyklad.pl)',
+  name: 'Hosting Standard – subskrypcja roczna (przyklad.pl)',
   quantity: 1,
   unitNet: '365.04',
   vatRate: 23,
@@ -90,7 +90,7 @@ export function korekta(numerKsefPierwotnej: string | null = NUMER_KSEF_PIERWOTN
       correctedNumber: 'VFV/2026/10/0001',
       correctedIssuedAt: new Date('2026-10-01T10:00:00Z'),
       correctedKsefNumber: numerKsefPierwotnej,
-      correctionReason: 'Rezygnacja w połowie okresu — zwrot za niewykorzystane 6 miesięcy',
+      correctionReason: 'Rezygnacja w połowie okresu – zwrot za niewykorzystane 6 miesięcy',
       correctedLineItems: [pozycja],
       lineItems: [{ ...pozycja, unitNet: '182.52', totalNet: '182.52', totalVat: '41.98', totalGross: '224.50' }],
     }),

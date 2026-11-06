@@ -562,7 +562,7 @@ export function NewSubscriptionForm({
         </div>
         {bezKarty ? (
           <p className="mt-2 max-w-2xl text-xs text-neutral-400">
-            Twoje konto prowadzi partner — za usługę płacisz z portfela. Portfel doładujesz kartą albo BLIK-iem.
+            Twoje konto prowadzi partner – za usługę płacisz z portfela. Portfel doładujesz kartą albo BLIK-iem.
           </p>
         ) : null}
       </section>
@@ -608,7 +608,7 @@ export function NewSubscriptionForm({
           {promoError ? <p className="mt-2 text-sm text-rose-300" role="alert">{promoError}</p> : null}
           {promoPreview ? (
             <div className="mt-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-4 text-sm text-emerald-100">
-              Kod <strong className="font-mono">{promoPreview.code}</strong> — rabat{' '}
+              Kod <strong className="font-mono">{promoPreview.code}</strong> – rabat{' '}
               <strong>{promoPreview.percent}%</strong>
               {promoPreview.appliesToRenewals
                 ? ' (również na kolejne odnowienia z portfela).'
@@ -775,7 +775,7 @@ export function NewSubscriptionForm({
                 {formatPln(chargePrice)} <span className="text-base font-normal text-neutral-400">brutto</span>
               </>
             ) : (
-              '—'
+              '–'
             )}
           </p>
           {chargePrice ? <p className="text-xs text-neutral-500 mt-1">{dodatekNettoIK(chargePrice)}</p> : null}
@@ -933,7 +933,7 @@ function LimitAutoskalowania({
         </label>
       ) : (
         <p className="mt-3 text-xs text-neutral-400">
-          Bez limitu nie ograniczamy kosztu dodatkowej mocy — płacisz za to, czego strona faktycznie użyje. Limit możesz
+          Bez limitu nie ograniczamy kosztu dodatkowej mocy – płacisz za to, czego strona faktycznie użyje. Limit możesz
           ustawić tu albo później w panelu usługi.
         </p>
       )}
@@ -1103,7 +1103,7 @@ function ProvisioningQueuedBanner({ subscriptionId }: { subscriptionId: string }
       </h2>
       <p className="text-neutral-300">
         Trwa konfiguracja konta hostingowego. Status zmieni się na{' '}
-        <span className="text-white font-semibold">Aktywna</span>, gdy wszystko będzie gotowe — możesz
+        <span className="text-white font-semibold">Aktywna</span>, gdy wszystko będzie gotowe – możesz
         odświeżać stronę usługi.
       </p>
       <Link
@@ -1157,8 +1157,8 @@ function ProvisioningSuccess({
       <div>
         <h2 className="text-2xl font-bold text-white">Usługa uruchomiona</h2>
         <p className="text-neutral-300 mt-1">
-          Twoje konto hostingowe dla domeny <strong>{domain}</strong> jest gotowe. Wszystkim — plikami,
-          bazami, pocztą, SSL i kopiami — zarządzasz w tym panelu. Konta FTP i klucze SSH dodasz w zakładkach usługi.
+          Twoje konto hostingowe dla domeny <strong>{domain}</strong> jest gotowe. Wszystkim – plikami,
+          bazami, pocztą, SSL i kopiami – zarządzasz w tym panelu. Konta FTP i klucze SSH dodasz w zakładkach usługi.
         </p>
       </div>
       <dl className="grid grid-cols-1 gap-4 text-sm">

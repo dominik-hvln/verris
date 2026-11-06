@@ -115,7 +115,7 @@ export class KontoKlientaAdminController {
     if (!sub) throw new NotFoundException('Usługa nie istnieje.');
     if (!sub.account) throw new NotFoundException('Usługa nie ma konta hostingowego.');
     if (actor.role !== 'ADMIN' && sub.user?.role !== 'USER') {
-      throw new ForbiddenException('Personel widzi konto hostingowe wyłącznie usług klientów — usługę konta zespołu sprawdza administrator.');
+      throw new ForbiddenException('Personel widzi konto hostingowe wyłącznie usług klientów – usługę konta zespołu sprawdza administrator.');
     }
     return sub.userId;
   }

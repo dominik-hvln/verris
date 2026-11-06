@@ -24,7 +24,7 @@ function usluga() {
   return new GitDeployService(p, new AuditService(p), da as never, { get: () => undefined } as never, new CryptoService({ get: () => 'klucz-testowy-git' } as never));
 }
 
-describe('Wdrożenia z Gita — budowanie i zmienne (baza)', () => {
+describe('Wdrożenia z Gita – budowanie i zmienne (baza)', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 

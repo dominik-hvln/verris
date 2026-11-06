@@ -27,7 +27,7 @@ async function wykonaj(serverId: string, ok: boolean, wynik = 'ok') {
 const kolejka = async () =>
   (await prisma().nodeTask.findMany({ where: { kind: 'FLEET_UPDATE', status: 'QUEUED' }, select: { serverId: true } })).map((t) => t.serverId);
 
-describe('PB-32 — aktualizacja floty falą', () => {
+describe('PB-32 – aktualizacja floty falą', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 
@@ -50,7 +50,7 @@ describe('PB-32 — aktualizacja floty falą', () => {
     expect(await prisma().auditLog.count({ where: { action: 'FLEET_UPDATE_FINISHED' } })).toBe(1);
   });
 
-  it('błąd na kanarku zatrzymuje falę — reszta nie dostaje zadania', async () => {
+  it('błąd na kanarku zatrzymuje falę – reszta nie dostaje zadania', async () => {
     const kanarek = await wezel('k2');
     const plan = await utworzPlan();
     const inny = await wezel('inny');
@@ -72,7 +72,7 @@ describe('PB-32 — aktualizacja floty falą', () => {
   });
 
   // PB-32 „status w panelu zgodny z logiem”: przebieg fali po węzłach z wynikiem z logu zadania.
-  it('stan fali dla panelu: trwa → zakończona (z „wymaga restartu”), a po błędzie — zatrzymana z pozostałymi', async () => {
+  it('stan fali dla panelu: trwa → zakończona (z „wymaga restartu”), a po błędzie – zatrzymana z pozostałymi', async () => {
     expect(await serwis().stanFali()).toBeNull();
     const plan = await utworzPlan();
     const a = await wezel('alfa');

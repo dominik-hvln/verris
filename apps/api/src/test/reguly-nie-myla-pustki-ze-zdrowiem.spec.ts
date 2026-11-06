@@ -117,7 +117,7 @@ export function znajdzReguleKtoraAlarmujeNaZdrowiu(reguly: Regula[]): Zarzut[] {
       uid: r.uid,
       powod:
         'wyrazenie filtruje (porownanie bez `bool`), wiec zdrowy stan zwraca ' +
-        'pusty wektor — a `noDataState: Alerting` zamienia pustke w alarm',
+        'pusty wektor – a `noDataState: Alerting` zamienia pustke w alarm',
     }));
 }
 
@@ -139,19 +139,19 @@ const GRANICE_EMISJI: Array<{
     straz: 'this.runtimeErrors',
     sentinel: null,
     powod:
-      'licznik — brak metryki znaczy „nic jej nie zwiekszylo", nie slepote. ' +
+      'licznik – brak metryki znaczy „nic jej nie zwiekszylo", nie slepote. ' +
       'Pilnuje go obecnosc calego eksportera.',
   },
   {
     straz: 'this.httpMetrics',
     sentinel: null,
-    powod: 'j.w. — histogramy HTTP pojawiaja sie dopiero po pierwszym ruchu.',
+    powod: 'j.w. – histogramy HTTP pojawiaja sie dopiero po pierwszym ruchu.',
   },
 ];
 
 const SENTINEL_CALEGO_EKSPORTERA = 'verris_process_uptime_seconds';
 
-describe('X-35 — reguły alertowe nie mylą pustki ze zdrowiem', () => {
+describe('X-35 – reguły alertowe nie mylą pustki ze zdrowiem', () => {
   const tresc = readFileSync(REGULY_YAML, 'utf8');
   const reguly = wczytajReguly(tresc);
   const serwis = readFileSync(METRICS_SERVICE, 'utf8');

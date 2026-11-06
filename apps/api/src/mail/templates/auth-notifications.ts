@@ -12,7 +12,7 @@ export function welcomeTemplate(ctx: WelcomeContext): MailMessage {
   const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: 'Witaj w Verris',
-    preheader: 'Twoje konto jest gotowe — zaloguj się do panelu.',
+    preheader: 'Twoje konto jest gotowe – zaloguj się do panelu.',
     bodyMarkdown: [
       greeting,
       ``,
@@ -33,7 +33,7 @@ export function welcomeTemplate(ctx: WelcomeContext): MailMessage {
   return {
     to: ctx.to,
     tag: 'auth.welcome',
-    subject: 'Witaj w Verris — konto gotowe',
+    subject: 'Witaj w Verris – konto gotowe',
     text,
     html,
   };
@@ -55,11 +55,11 @@ export function passwordResetRequestTemplate(ctx: PasswordResetRequestContext): 
     bodyMarkdown: [
       greeting,
       ``,
-      `Otrzymaliśmy prośbę o **reset hasła** do konta Verris. Jeśli to Ty — użyj przycisku poniżej.`,
+      `Otrzymaliśmy prośbę o **reset hasła** do konta Verris. Jeśli to Ty – użyj przycisku poniżej.`,
       ``,
       `Link jest ważny **${minut(ctx.expiresMinutes)}**. Po upływie czasu wygeneruj nowy z formularza „Nie pamiętasz hasła?”.`,
       ``,
-      `Jeśli to nie Ty — zignoruj ten mail. Hasło pozostanie bez zmian.`,
+      `Jeśli to nie Ty – zignoruj ten mail. Hasło pozostanie bez zmian.`,
     ].join('\n'),
     cta: { label: 'Ustaw nowe hasło', url: ctx.resetUrl },
     footnote: 'Ze względów bezpieczeństwa nigdy nie podawaj hasła mailem ani w zgłoszeniu do obsługi.',
@@ -71,7 +71,7 @@ export function passwordResetRequestTemplate(ctx: PasswordResetRequestContext): 
   return {
     to: ctx.to,
     tag: 'auth.password-reset-request',
-    subject: 'Reset hasła — Verris',
+    subject: 'Reset hasła – Verris',
     text,
     html,
   };
@@ -98,14 +98,14 @@ export function passwordResetHeldTemplate(ctx: PasswordResetHeldContext): MailMe
       ``,
       `Otrzymaliśmy prośbę o **reset hasła** do konta Verris. Adres e-mail tego konta zmieniła niedawno obsługa Verris, dlatego przez ${ctx.hours} h od tej zmiany link do ustawienia hasła wysyła tylko obsługa.`,
       ``,
-      `Jeśli to Ty — napisz do nas: ${escapeMarkdown('kontakt@verris.pl')}. Jeśli nikt z Twojej strony nie prosił o reset — zignoruj ten mail, hasło pozostanie bez zmian.`,
+      `Jeśli to Ty – napisz do nas: ${escapeMarkdown('kontakt@verris.pl')}. Jeśli nikt z Twojej strony nie prosił o reset – zignoruj ten mail, hasło pozostanie bez zmian.`,
     ].join('\n'),
     footnote: 'Ze względów bezpieczeństwa nigdy nie podawaj hasła mailem ani w zgłoszeniu do obsługi.',
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,
     category: 'TRANSACTIONAL',
   });
-  return { to: ctx.to, tag: 'auth.password-reset-held', subject: 'Reset hasła — Verris', text, html };
+  return { to: ctx.to, tag: 'auth.password-reset-held', subject: 'Reset hasła – Verris', text, html };
 }
 
 export interface AccountCreatedByOperatorContext {
@@ -125,11 +125,11 @@ export function accountCreatedByOperatorTemplate(ctx: AccountCreatedByOperatorCo
     bodyMarkdown: [
       greeting,
       ``,
-      `na Twoją prośbę założyliśmy konto w **Verris** na ten adres e-mail. Ustaw hasło przyciskiem poniżej — przy pierwszym logowaniu poprosimy o akceptację regulaminu.`,
+      `na Twoją prośbę założyliśmy konto w **Verris** na ten adres e-mail. Ustaw hasło przyciskiem poniżej – przy pierwszym logowaniu poprosimy o akceptację regulaminu.`,
       ``,
       `Link jest ważny **${godzin(ctx.expiresHours)}**. Później poproś o nowy w formularzu „Nie pamiętasz hasła?”.`,
       ``,
-      `Jeśli nikt z Twojej strony nie prosił o konto — zignoruj ten mail. Bez ustawienia hasła nikt się na nie nie zaloguje.`,
+      `Jeśli nikt z Twojej strony nie prosił o konto – zignoruj ten mail. Bez ustawienia hasła nikt się na nie nie zaloguje.`,
     ].join('\n'),
     cta: { label: 'Ustaw hasło', url: ctx.setPasswordUrl },
     footnote: 'Nigdy nie prosimy o hasło mailem ani telefonicznie.',
@@ -140,7 +140,7 @@ export function accountCreatedByOperatorTemplate(ctx: AccountCreatedByOperatorCo
   return {
     to: ctx.to,
     tag: 'auth.account-created-by-operator',
-    subject: 'Konto w Verris — ustaw hasło',
+    subject: 'Konto w Verris – ustaw hasło',
     text,
     html,
   };
@@ -165,14 +165,14 @@ export function passwordResetByOperatorTemplate(ctx: PasswordResetByOperatorCont
     bodyMarkdown: [
       greeting,
       ``,
-      `Obsługa Verris zresetowała hasło do Twojego konta. Dotychczasowe hasło już nie działa — ustaw nowe przyciskiem poniżej.`,
+      `Obsługa Verris zresetowała hasło do Twojego konta. Dotychczasowe hasło już nie działa – ustaw nowe przyciskiem poniżej.`,
       ``,
       `Link jest ważny **${godzin(ctx.expiresHours)}**. Później poproś o nowy w formularzu „Nie pamiętasz hasła?”.`,
       ...(ctx.twoFactorCleared
         ? [``, `Weryfikacja dwuetapowa została wyłączona. Po zalogowaniu włącz ją ponownie w ustawieniach konta.`]
         : []),
       ``,
-      `Jeśli nikt z Twojej strony nie kontaktował się z nami w tej sprawie — od razu napisz na ${escapeMarkdown('kontakt@verris.pl')}.`,
+      `Jeśli nikt z Twojej strony nie kontaktował się z nami w tej sprawie – od razu napisz na ${escapeMarkdown('kontakt@verris.pl')}.`,
     ].join('\n'),
     cta: { label: 'Ustaw nowe hasło', url: ctx.resetUrl },
     footnote: 'Nigdy nie prosimy o hasło mailem ani telefonicznie.',
@@ -183,7 +183,7 @@ export function passwordResetByOperatorTemplate(ctx: PasswordResetByOperatorCont
   return {
     to: ctx.to,
     tag: 'auth.password-reset-by-operator',
-    subject: 'Ustaw nowe hasło — Verris',
+    subject: 'Ustaw nowe hasło – Verris',
     text,
     html,
   };
@@ -201,7 +201,7 @@ export function emailVerifyTemplate(ctx: EmailVerifyContext): MailMessage {
   const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: 'Potwierdź adres e-mail',
-    preheader: 'Aktywuj konto Verris — jeden klik.',
+    preheader: 'Aktywuj konto Verris – jeden klik.',
     bodyMarkdown: [
       greeting,
       ``,
@@ -209,7 +209,7 @@ export function emailVerifyTemplate(ctx: EmailVerifyContext): MailMessage {
       ``,
       `Link jest ważny **${godzin(ctx.expiresHours)}**. Po potwierdzeniu możesz się zalogować hasłem ustawionym przy rejestracji.`,
       ``,
-      `Jeśli to nie Ty — zignoruj ten mail.`,
+      `Jeśli to nie Ty – zignoruj ten mail.`,
     ].join('\n'),
     cta: { label: 'Potwierdź e-mail', url: ctx.verifyUrl },
     recipientEmail: ctx.to,
@@ -220,7 +220,7 @@ export function emailVerifyTemplate(ctx: EmailVerifyContext): MailMessage {
   return {
     to: ctx.to,
     tag: 'auth.email-verify',
-    subject: 'Potwierdź adres e-mail — Verris',
+    subject: 'Potwierdź adres e-mail – Verris',
     text,
     html,
   };
@@ -236,11 +236,11 @@ export function emailVerifiedOkTemplate(ctx: EmailVerifiedOkContext): MailMessag
   const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: 'E-mail potwierdzony',
-    preheader: 'Konto aktywne — możesz się zalogować.',
+    preheader: 'Konto aktywne – możesz się zalogować.',
     bodyMarkdown: [
       greeting,
       ``,
-      `Twój adres e-mail został **potwierdzony**. Konto jest aktywne — zaloguj się do panelu i rozpocznij konfigurację usług.`,
+      `Twój adres e-mail został **potwierdzony**. Konto jest aktywne – zaloguj się do panelu i rozpocznij konfigurację usług.`,
     ].join('\n'),
     cta: { label: 'Zaloguj się do panelu', url: `${ctx.panelUrl}/login` },
     recipientEmail: ctx.to,
@@ -251,7 +251,7 @@ export function emailVerifiedOkTemplate(ctx: EmailVerifiedOkContext): MailMessag
   return {
     to: ctx.to,
     tag: 'auth.email-verified',
-    subject: 'E-mail potwierdzony — Verris',
+    subject: 'E-mail potwierdzony – Verris',
     text,
     html,
   };

@@ -78,7 +78,7 @@ export default async function MigrationsCockpitPage({
       <div>
         <h1 className="text-3xl font-bold text-white">Migracje</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Flota zleceń migracji. Migracje są automatyczne — te oznaczone „Pilne” zatrzymał
+          Flota zleceń migracji. Migracje są automatyczne – te oznaczone „Pilne” zatrzymał
           automat i czekają na dokończenie przez zespół (wznów, ponów krok lub oznacz jako ukończone).
         </p>
       </div>
@@ -95,7 +95,7 @@ export default async function MigrationsCockpitPage({
           href="/migrations?status=ATTENTION"
           className="block rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100 hover:bg-amber-500/15"
         >
-          🔴 {attentionCount} {plForm(attentionCount, "migracja wymaga", "migracje wymagają", "migracji wymaga")} uwagi zespołu — kliknij, aby zobaczyć.
+          🔴 {attentionCount} {plForm(attentionCount, "migracja wymaga", "migracje wymagają", "migracji wymaga")} uwagi zespołu – kliknij, aby zobaczyć.
         </Link>
       ) : null}
 
@@ -140,7 +140,7 @@ export default async function MigrationsCockpitPage({
                     >
                       {statusPl(r.status)}
                     </span>
-                    <p className="truncate text-white">{r.targetDomain ?? "—"}</p>
+                    <p className="truncate text-white">{r.targetDomain ?? "–"}</p>
                     {r.sourcePanelType && r.sourcePanelType !== "manual" ? (
                       <span className="rounded border border-white/10 px-1.5 py-0.5 text-[10px] text-muted-foreground">
                         {r.sourcePanelType}
@@ -148,7 +148,7 @@ export default async function MigrationsCockpitPage({
                     ) : null}
                   </div>
                   <p className="mt-1 truncate text-xs text-muted-foreground">
-                    {r.userEmail ?? "—"} · {r.serviceTag ?? r.subscriptionId.slice(0, 8)} · {r.planName ?? ""}
+                    {r.userEmail ?? "–"} · {r.serviceTag ?? r.subscriptionId.slice(0, 8)} · {r.planName ?? ""}
                   </p>
                   {r.needsAttention && r.attentionReason ? (
                     <p className="mt-1 max-w-2xl text-xs text-amber-200/90">{r.attentionReason}</p>
@@ -158,7 +158,7 @@ export default async function MigrationsCockpitPage({
                     </p>
                   ) : null}
                   <p className="mt-1 text-[11px] text-muted-foreground">
-                    Krok: {r.currentStep ?? "—"} · aktualizacja {new Date(r.updatedAt).toLocaleString("pl-PL")}
+                    Krok: {r.currentStep ?? "–"} · aktualizacja {new Date(r.updatedAt).toLocaleString("pl-PL")}
                   </p>
                 </div>
                 <MigrationRowActions

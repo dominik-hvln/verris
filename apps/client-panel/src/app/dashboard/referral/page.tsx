@@ -21,7 +21,7 @@ export default async function ReferralProgramPage() {
     <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6">
       <PanelPageHeader
         title="Program poleceń"
-        description="Poleć Verris — po akceptacji zgłoszenia dostaniesz link, a od każdej płatności poleconego klienta prowizję na portfel."
+        description="Poleć Verris – po akceptacji zgłoszenia dostaniesz link, a od każdej płatności poleconego klienta prowizję na portfel."
       />
       <ReferralProgramClient />
     </div>

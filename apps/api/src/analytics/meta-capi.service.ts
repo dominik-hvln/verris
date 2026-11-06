@@ -67,7 +67,7 @@ export class MetaCapiService {
   private async post(event: Record<string, unknown>): Promise<boolean> {
     const { datasetId, token, version, testCode } = this.cfg();
     if (!datasetId || !token) {
-      this.logger.debug('Meta CAPI pominięte — brak META_DATASET_ID lub META_CAPI_TOKEN.');
+      this.logger.debug('Meta CAPI pominięte – brak META_DATASET_ID lub META_CAPI_TOKEN.');
       return false;
     }
     try {

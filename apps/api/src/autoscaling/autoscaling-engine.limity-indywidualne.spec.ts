@@ -6,7 +6,7 @@ import { AutoscalingEngineService } from './autoscaling-engine.service.js';
  * na serwerze quota = 50 GB + nadwyżka, czyli zdejmował limit ustawiony przez administratora. applyChange liczy
  * quota i księgę z `plan` przekazanego do evaluate — wystarczy, że silnik dostaje plan z nadpisaniami.
  */
-describe('AutoscalingEngineService — limity indywidualne', () => {
+describe('AutoscalingEngineService – limity indywidualne', () => {
   const PLAN = {
     cpuLimit: 200,
     ramLimitMb: 8192,
@@ -46,7 +46,7 @@ describe('AutoscalingEngineService — limity indywidualne', () => {
     expect(evaluate).toHaveBeenCalledWith(expect.objectContaining({ plan: expect.objectContaining({ diskLimitMb: 102400, cpuLimit: 200 }) }), []);
   });
 
-  it('bez limitów indywidualnych — plan bez zmian', async () => {
+  it('bez limitów indywidualnych – plan bez zmian', async () => {
     const { service, evaluate } = silnik(null);
     await service.tick();
     expect(evaluate).toHaveBeenCalledWith(expect.objectContaining({ plan: PLAN }), []);

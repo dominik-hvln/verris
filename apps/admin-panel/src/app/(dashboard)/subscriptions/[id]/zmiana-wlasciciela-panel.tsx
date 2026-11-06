@@ -44,7 +44,7 @@ export function ZmianaWlascicielaPanel({ subscriptionId, obecnyEmail }: { subscr
     );
     if (wpisane === null) return;
     if (wpisane.trim().toLowerCase() !== cel.toLowerCase()) {
-      setMsg({ ok: false, tekst: "Wpisany adres nie zgadza się z adresem nowego właściciela — nic nie zmieniono." });
+      setMsg({ ok: false, tekst: "Wpisany adres nie zgadza się z adresem nowego właściciela – nic nie zmieniono." });
       return;
     }
     start(async () => {
@@ -98,7 +98,7 @@ export function ZmianaWlascicielaPanel({ subscriptionId, obecnyEmail }: { subscr
         <div className="space-y-2">
           <label className="block space-y-1">
             <span className="text-xs text-neutral-400">Powód do dziennika (min. {MIN_POWOD} znaków)</span>
-            <input value={powod} onChange={(e) => setPowod(e.target.value)} maxLength={500} disabled={pending} placeholder="np. sprzedaż firmy — prośba obu stron w zgłoszeniu" className={POLE} data-pole="powod" />
+            <input value={powod} onChange={(e) => setPowod(e.target.value)} maxLength={500} disabled={pending} placeholder="np. sprzedaż firmy – prośba obu stron w zgłoszeniu" className={POLE} data-pole="powod" />
           </label>
           <button
             type="button"

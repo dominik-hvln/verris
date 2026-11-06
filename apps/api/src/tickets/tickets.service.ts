@@ -288,7 +288,7 @@ export class TicketsService {
     if (row.assignedToId) {
       await this.notifyStaff(row.assignedToId, {
         title: opcje.zMaila ? 'Nowe zgłoszenie (e-mail)' : 'Nowe zgłoszenie',
-        body: `#${row.id.slice(0, 8)} — ${row.subject}`,
+        body: `#${row.id.slice(0, 8)} – ${row.subject}`,
         link: `/tickets/${row.id}`,
       });
     }
@@ -400,7 +400,7 @@ export class TicketsService {
       if (full.assignedToId) {
         await this.notifyStaff(full.assignedToId, {
           title: 'Nowa wiadomość od klienta',
-          body: `#${ticketId.slice(0, 8)} — ${full.subject}`,
+          body: `#${ticketId.slice(0, 8)} – ${full.subject}`,
           link: `/tickets/${ticketId}`,
         });
       }
@@ -611,7 +611,7 @@ export class TicketsService {
     if (ticket.userId !== userId) throw new ForbiddenException('Brak dostępu');
     // Przegląd F3.7 — scalone nie jest „rozwiązane”: ocenia się zgłoszenie docelowe (inaczej duplikat psuje CSAT).
     if (ticket.scalonoDoId) {
-      throw new BadRequestException(`To zgłoszenie połączyliśmy z #${ticket.scalonoDoId.slice(0, 8)} — ocenisz tamto po zamknięciu.`);
+      throw new BadRequestException(`To zgłoszenie połączyliśmy z #${ticket.scalonoDoId.slice(0, 8)} – ocenisz tamto po zamknięciu.`);
     }
     if (ticket.status !== 'CLOSED') {
       throw new BadRequestException('Ocenić można tylko zamknięte zgłoszenie.');
@@ -684,7 +684,7 @@ export class TicketsService {
       if (full.assignedToId) {
         await this.notifyStaff(full.assignedToId, {
           title: 'Nowa wiadomość od klienta',
-          body: `#${ticketId.slice(0, 8)} — ${full.subject}`,
+          body: `#${ticketId.slice(0, 8)} – ${full.subject}`,
           link: `/tickets/${ticketId}`,
         });
       }
@@ -820,7 +820,7 @@ export class TicketsService {
     if (dto.assignedToId && dto.assignedToId !== existing.assignedToId) await this.sprawdzOpiekuna(dto.assignedToId);
     // Przegląd F3.7 — scalone zostaje zamknięte: otwarte trafiłoby do kolejki (SLA, przypomnienia), a odpisać się nie da.
     if (existing.scalonoDoId && dto.status && dto.status !== existing.status) {
-      throw new BadRequestException(`Zgłoszenie połączone z #${existing.scalonoDoId.slice(0, 8)} — stan zmienia się w zgłoszeniu docelowym.`);
+      throw new BadRequestException(`Zgłoszenie połączone z #${existing.scalonoDoId.slice(0, 8)} – stan zmienia się w zgłoszeniu docelowym.`);
     }
 
     const dataToUpdate: Prisma.TicketUncheckedUpdateInput = { ...dto };
@@ -875,7 +875,7 @@ export class TicketsService {
       if (dto.assignedToId) {
         await this.notifyStaff(dto.assignedToId, {
           title: 'Przypisano Ci zgłoszenie',
-          body: `#${ticketId.slice(0, 8)} — ${updated.subject}`,
+          body: `#${ticketId.slice(0, 8)} – ${updated.subject}`,
           link: `/tickets/${ticketId}`,
         });
         const assignee = await this.prisma.user.findUnique({
@@ -1000,7 +1000,7 @@ export class TicketsService {
         const t = await this.prisma.ticket.findUnique({ where: { id }, select: { status: true, scalonoDoId: true } });
         if (!t) throw new NotFoundException('Nie znaleziono zgłoszenia.');
         if (t.status === status) return false;
-        if (t.scalonoDoId) throw new BadRequestException('Zgłoszenie scalone — stan zmienia się w zgłoszeniu docelowym.');
+        if (t.scalonoDoId) throw new BadRequestException('Zgłoszenie scalone – stan zmienia się w zgłoszeniu docelowym.');
         await this.adminUpdateTicket(id, { status }, actorUserId);
         return true;
       };
@@ -1049,9 +1049,9 @@ export class TicketsService {
       if (!zr || !cel) throw new NotFoundException('Nie znaleziono zgłoszenia.');
       if (zr.userId !== cel.userId) throw new BadRequestException('Scalić można tylko zgłoszenia tego samego klienta.');
       if (zr.scalonoDoId) throw new ConflictException(`To zgłoszenie jest już scalone z #${zr.scalonoDoId.slice(0, 8)}.`);
-      if (cel.scalonoDoId) throw new BadRequestException(`Zgłoszenie docelowe jest scalone z #${cel.scalonoDoId.slice(0, 8)} — wybierz tamto.`);
+      if (cel.scalonoDoId) throw new BadRequestException(`Zgłoszenie docelowe jest scalone z #${cel.scalonoDoId.slice(0, 8)} – wybierz tamto.`);
       // Jak w Zendesku: do zamkniętego nie scalamy — rozmowa trafiłaby do sprawy, której nikt już nie prowadzi.
-      if (cel.status === 'CLOSED') throw new BadRequestException('Zgłoszenie docelowe jest zamknięte — scal w odwrotną stronę albo otwórz je ponownie.');
+      if (cel.status === 'CLOSED') throw new BadRequestException('Zgłoszenie docelowe jest zamknięte – scal w odwrotną stronę albo otwórz je ponownie.');
       const teraz = new Date();
       // Pierwsza wiadomość źródła — od klienta albo (założone w imieniu klienta) od obsługi; nigdy notatka.
       const pierwsza = await tx.ticketReply.create({
@@ -1093,7 +1093,7 @@ export class TicketsService {
           authorId: actorUserId,
           isStaff: true,
           automatic: 'SCALONE',
-          message: `Połączyliśmy to zgłoszenie z #${cel.id.slice(0, 8)} — dalsza rozmowa toczy się tam.`,
+          message: `Połączyliśmy to zgłoszenie z #${cel.id.slice(0, 8)} – dalsza rozmowa toczy się tam.`,
         },
       });
       await tx.ticketEvent.createMany({
@@ -1194,7 +1194,7 @@ export class TicketsService {
         ...(priorytet !== t.priority ? terminyPoZmianiePriorytetu(t, priorytet, await wczytajProgiSla(this.prisma)) : {}),
       },
     });
-    if (count !== 1) throw new ConflictException('Eskalację tego zgłoszenia ktoś właśnie zmienił — odśwież i spróbuj ponownie.');
+    if (count !== 1) throw new ConflictException('Eskalację tego zgłoszenia ktoś właśnie zmienił – odśwież i spróbuj ponownie.');
     await this.audit.record({
       action: TicketOpsActions.TICKET_ESCALATION_UNDONE,
       userId: t.userId,
@@ -1241,7 +1241,7 @@ export class TicketsService {
     if (numery.some((n) => !Number.isInteger(n) || n < 0 || n >= rb.kroki.length)) {
       throw new BadRequestException('Nieznany krok runbooka.');
     }
-    const tresc = [`Runbook „${rb.nazwa}” — wykonane ${numery.length} z ${rb.kroki.length}:`, ...numery.map((n) => `✓ ${rb.kroki[n]}`)].join('\n');
+    const tresc = [`Runbook „${rb.nazwa}” – wykonane ${numery.length} z ${rb.kroki.length}:`, ...numery.map((n) => `✓ ${rb.kroki[n]}`)].join('\n');
     return this.adminAddNote(ticketId, actorUserId, tresc, { zrodlo: `runbook:${rb.klucz}` });
   }
 
@@ -1311,7 +1311,7 @@ export class TicketsService {
         data: { subscriptionId: nowa },
       });
       if (count !== 1) {
-        throw new ConflictException('Usługę tego zgłoszenia ktoś właśnie zmienił — odśwież zgłoszenie i spróbuj ponownie.');
+        throw new ConflictException('Usługę tego zgłoszenia ktoś właśnie zmienił – odśwież zgłoszenie i spróbuj ponownie.');
       }
       await this.logEvent(ticketId, 'SERVICE_LINK_CHANGED', actorUserId, { from: ticket.subscriptionId, to: nowa });
       await this.audit.record({
@@ -1588,7 +1588,7 @@ export class TicketsService {
       if (full.assignedToId) {
         await this.notifyStaff(full.assignedToId, {
           title: 'Nowa wiadomość od klienta',
-          body: `#${ticketId.slice(0, 8)} — ${full.subject}`,
+          body: `#${ticketId.slice(0, 8)} – ${full.subject}`,
           link: `/tickets/${ticketId}`,
         });
       }
@@ -1788,7 +1788,7 @@ export const TAG_EMAIL_NIEZWERYFIKOWANY = 'e-mail-niezweryfikowany';
  */
 export function odmowaScalonego(t: { scalonoDoId: string | null }): void {
   if (t.scalonoDoId) {
-    throw new BadRequestException(`To zgłoszenie połączyliśmy z #${t.scalonoDoId.slice(0, 8)} — napisz tam.`);
+    throw new BadRequestException(`To zgłoszenie połączyliśmy z #${t.scalonoDoId.slice(0, 8)} – napisz tam.`);
   }
 }
 

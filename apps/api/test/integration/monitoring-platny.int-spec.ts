@@ -29,7 +29,7 @@ async function monitorPlatny(status: 'ACTIVE' | 'CANCELED' | 'SUSPENDED', termin
 }
 const obciazenia = (userId: string) => prisma().walletTransaction.count({ where: { userId, type: WalletTxType.CHARGE_USAGE } });
 
-describe('X-04 płatny monitoring — rozliczanie', () => {
+describe('X-04 płatny monitoring – rozliczanie', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 
@@ -65,7 +65,7 @@ describe('X-04 płatny monitoring — rozliczanie', () => {
     expect((await prisma().siteMonitor.findUniqueOrThrow({ where: { id: m.id } })).paidNextChargeAt!.getTime()).toBeGreaterThan(Date.now() + 27 * DZIEN);
   });
 
-  it('włączenie płatnego monitoringu dla usługi wstrzymanej — odmowa bez opłaty', async () => {
+  it('włączenie płatnego monitoringu dla usługi wstrzymanej – odmowa bez opłaty', async () => {
     const { user, subscription, m } = await monitorPlatny('SUSPENDED', new Date(Date.now() + DZIEN));
     await prisma().siteMonitor.update({ where: { id: m.id }, data: { paidTier: false, paidNextChargeAt: null } });
     await expect(serwis().setPaidMonitoring(subscription.id, user.id, true)).rejects.toThrow('działającej usługi');

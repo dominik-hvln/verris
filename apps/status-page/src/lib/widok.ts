@@ -70,9 +70,9 @@ export function trescDymka(d: DayDto, przed: boolean): TrescDymka {
   const klasa = przed ? 'przed' : klasaDnia(d);
   const szczegoly =
     klasa === 'przed'
-      ? ['Sondy jeszcze wtedy nie działały — dzień nie wchodzi do dostępności.']
+      ? ['Sondy jeszcze wtedy nie działały – dzień nie wchodzi do dostępności.']
       : klasa === 'brak'
-        ? ['Brak próbek z tego dnia — dzień nie wchodzi do dostępności.']
+        ? ['Brak próbek z tego dnia – dzień nie wchodzi do dostępności.']
         : [
             ...(d.uptimePct !== null ? [`Dostępność ${pct(d.uptimePct)}`] : []),
             ...(d.avgLatencyMs !== null ? [`Śr. czas odpowiedzi ${d.avgLatencyMs} ms`] : []),

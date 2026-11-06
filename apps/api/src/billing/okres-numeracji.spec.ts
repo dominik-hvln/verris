@@ -13,7 +13,7 @@ import { okresNumeracji, STREFA_NUMERACJI } from './faktura-za-portfel.js';
  * jest dokładnie tą własnością, którą naprawiamy. Test, którego wynik zależy
  * od maszyny, jest bezwartościowy — tak samo jak numeracja, która od niej zależy.
  */
-describe('M-02 — okres numeracji faktur', () => {
+describe('M-02 – okres numeracji faktur', () => {
   it('używa strefy polskiej, nie strefy procesu', () => {
     expect(STREFA_NUMERACJI).toBe('Europe/Warsaw');
   });
@@ -56,14 +56,14 @@ describe('M-02 — okres numeracji faktur', () => {
   // Przesunięcie Polski nie jest stałe. Gdyby ktoś „uprościł" to na +1 albo +2,
   // kod byłby poprawny przez pół roku — a druga połowa objawiałaby się jako
   // pojedyncze faktury z numerem z sąsiedniego miesiąca.
-  it('uwzględnia zmianę czasu — to samo UTC daje różne przesunięcie latem i zimą', () => {
+  it('uwzględnia zmianę czasu – to samo UTC daje różne przesunięcie latem i zimą', () => {
     const lato = okresNumeracji(new Date('2026-06-30T22:30:00.000Z')); // +2 → 1 lipca
     const zima = okresNumeracji(new Date('2026-11-30T22:30:00.000Z')); // +1 → 30 listopada
     expect(lato).toEqual({ rok: 2026, miesiac: 7 });
     expect(zima).toEqual({ rok: 2026, miesiac: 11 });
   });
 
-  describe('kontrola — środek miesiąca jest jednoznaczny', () => {
+  describe('kontrola – środek miesiąca jest jednoznaczny', () => {
     it('południe UTC w środku miesiąca daje ten sam miesiąc', () => {
       expect(okresNumeracji(new Date('2026-08-15T12:00:00.000Z'))).toEqual({
         rok: 2026,

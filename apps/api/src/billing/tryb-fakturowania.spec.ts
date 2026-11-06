@@ -39,7 +39,7 @@ function seriaZNumeratora(d: ReturnType<typeof db>): string {
 
 const SIERPIEN = new Date('2026-08-15T10:00:00.000Z');
 
-describe('FAK-01 — normalizacja trybu (fail-safe)', () => {
+describe('FAK-01 – normalizacja trybu (fail-safe)', () => {
   it.each([
     [null, 'zewnetrzny'],
     [undefined, 'zewnetrzny'],
@@ -55,7 +55,7 @@ describe('FAK-01 — normalizacja trybu (fail-safe)', () => {
   });
 });
 
-describe('FAK-01 — numer i rodzaj dokumentu', () => {
+describe('FAK-01 – numer i rodzaj dokumentu', () => {
   it('bez ustawienia w bazie: dokument rozliczeniowy z serii VDR', async () => {
     const d = db(null);
     const r = await nadajNumerDokumentu(d as never, SIERPIEN);
@@ -90,7 +90,7 @@ describe('FAK-01 — numer i rodzaj dokumentu', () => {
   });
 });
 
-describe('FAK-01 — KSeF', () => {
+describe('FAK-01 – KSeF', () => {
   it('KSeF z panelu tylko w trybie panel', () => {
     expect(ksefDozwolony('panel', true)).toBe(true);
     expect(ksefDozwolony('panel', false)).toBe(false);
@@ -104,7 +104,7 @@ describe('FAK-01 — KSeF', () => {
   });
 });
 
-describe('FAK-01 — rozpoznanie numeru już nadanego', () => {
+describe('FAK-01 – rozpoznanie numeru już nadanego', () => {
   it('ponowna finalizacja nie nadaje drugiego numeru dokumentowi rozliczeniowemu', () => {
     expect(toNumerPanelu('VDR/2026/08/0001', SERIE_PANELU)).toBe(true);
     expect(toNumerPanelu('VDK/2026/08/0001', SERIE_PANELU)).toBe(true);
@@ -114,7 +114,7 @@ describe('FAK-01 — rozpoznanie numeru już nadanego', () => {
   });
 });
 
-describe('FAK-01 — dokument mówi, czym nie jest', () => {
+describe('FAK-01 – dokument mówi, czym nie jest', () => {
   it('adnotacja wprost zaprzecza, że to faktura VAT', () => {
     expect(ADNOTACJA_DOKUMENTU_ROZLICZENIOWEGO.join(' ')).toMatch(/nie jest fakturą VAT/);
   });

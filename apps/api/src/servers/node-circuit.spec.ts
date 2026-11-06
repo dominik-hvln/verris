@@ -15,7 +15,7 @@ describe('bezpiecznik węzła DirectAdmin', () => {
     expect(nodeDownFor(key, 1_000 + NODE_DOWN_MS)).toBe(0);
   });
 
-  it('pojedynczy timeout nie odcina węzła, drugi w oknie — tak', () => {
+  it('pojedynczy timeout nie odcina węzła, drugi w oknie – tak', () => {
     expect(recordNodeFailure(key, { code: 'ECONNABORTED' }, 0)).toBe(false);
     expect(nodeDownFor(key, 0)).toBe(0);
     expect(recordNodeFailure(key, { code: 'ECONNABORTED' }, 5_000)).toBe(true);

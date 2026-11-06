@@ -131,5 +131,5 @@ export function wpisDoLogu(args: {
   kod: string;
   baza: string;
 }): string {
-  return `[apiFetch] ${args.metoda} ${args.sciezka} — brak odpowiedzi po ${args.czasMs} ms (${args.kod}); baza=${args.baza}`;
+  return `[apiFetch] ${args.metoda} ${args.sciezka} – brak odpowiedzi po ${args.czasMs} ms (${args.kod}); baza=${args.baza}`;
 }

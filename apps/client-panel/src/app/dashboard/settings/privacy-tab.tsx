@@ -60,7 +60,7 @@ const STATUS_TONE: Record<DataExportSummary["status"], string> = {
 };
 
 function formatBytes(bytes: number | null): string {
-  if (!bytes || bytes <= 0) return "—";
+  if (!bytes || bytes <= 0) return "–";
   const units = ["B", "KB", "MB", "GB"];
   let i = 0;
   let n = bytes;
@@ -72,7 +72,7 @@ function formatBytes(bytes: number | null): string {
 }
 
 function formatDate(iso: string | null | undefined): string {
-  if (!iso) return "—";
+  if (!iso) return "–";
   return new Date(iso).toLocaleString("pl-PL", {
     year: "numeric",
     month: "short",
@@ -208,7 +208,7 @@ function DataExportSection({
       if (result.ok) {
         await onRefresh();
         showToast(
-          "Eksport został zakolejkowany — wyślemy e-mail z linkiem gdy będzie gotowy.",
+          "Eksport został zakolejkowany – wyślemy e-mail z linkiem gdy będzie gotowy.",
           "success",
         );
       } else {
@@ -372,7 +372,7 @@ function AccountDeletionSection({
           Usunięcie konta
         </h3>
         <p className="text-xs text-neutral-500 mt-1">
-          Realizacja prawa do bycia zapomnianym (RODO art. 17). Po wniosku konto wchodzi w okres karencji —
+          Realizacja prawa do bycia zapomnianym (RODO art. 17). Po wniosku konto wchodzi w okres karencji –
           14 dni albo do końca najdłuższego opłaconego okresu usługi, jeśli kończy się później. Do tego dnia
           możesz cofnąć decyzję. Potem dane osobowe są anonimizowane (faktury i dokumenty rozliczeniowe
           przechowujemy 5 lat, jak wymaga prawo).
@@ -451,11 +451,11 @@ function AccountDeletionSection({
                 <div>
                   <p className="text-neutral-200">
                     Saldo portfela: {liczba(Number(summary.saldo), 2)} K
-                    {doZwrotu > 0 && <> — zwrócimy {liczba(doZwrotu, 2)} zł przelewem w ciągu {summary.terminZwrotuDni} dni.</>}
+                    {doZwrotu > 0 && <> – zwrócimy {liczba(doZwrotu, 2)} zł przelewem w ciągu {summary.terminZwrotuDni} dni.</>}
                   </p>
                   {Number(summary.nieZwracane) > 0 && (
                     <p className="text-neutral-500 mt-1">
-                      {liczba(Number(summary.nieZwracane), 2)} K pochodzi z kodów promocyjnych, programu poleceń albo rekompensat — tej części nie zwracamy.
+                      {liczba(Number(summary.nieZwracane), 2)} K pochodzi z kodów promocyjnych, programu poleceń albo rekompensat – tej części nie zwracamy.
                     </p>
                   )}
                 </div>
@@ -468,7 +468,7 @@ function AccountDeletionSection({
                       {summary.domeny.map((d) => (
                         <li key={d.nazwa}>
                           {d.nazwa}
-                          {d.wygasa ? ` — opłacona do ${formatDate(d.wygasa)}` : ""}
+                          {d.wygasa ? ` – opłacona do ${formatDate(d.wygasa)}` : ""}
                         </li>
                       ))}
                     </ul>
@@ -511,7 +511,7 @@ function AccountDeletionSection({
                     className="w-full rounded-xl border border-white/10 bg-[#0a0a0a]/50 px-4 py-2.5 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rose-500/30"
                   />
                   <p className="text-[11px] text-neutral-500">
-                    Bez numeru rachunku nie zwrócimy salda — możesz też napisać do nas później na kontakt@verris.pl.
+                    Bez numeru rachunku nie zwrócimy salda – możesz też napisać do nas później na kontakt@verris.pl.
                   </p>
                 </fieldset>
               )}
@@ -524,7 +524,7 @@ function AccountDeletionSection({
                 className="w-full rounded-xl border border-white/10 bg-[#0a0a0a]/50 px-4 py-2.5 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rose-500/30"
               />
               <textarea
-                placeholder="Powód (opcjonalnie — pomaga nam się rozwijać)"
+                placeholder="Powód (opcjonalnie – pomaga nam się rozwijać)"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 rows={3}

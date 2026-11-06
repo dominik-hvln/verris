@@ -40,11 +40,11 @@ async function wpuszcza(metoda: Metoda, user: U, uprawnienia: string[] = []): Pr
 
 // uslugaZaKlienta — nagłówek formularza; za tym samym uprawnieniem co założenie (wcześniej formularz wymagał
 // dodatkowo SUBSCRIPTIONS_MANAGE przez GET admin/subscriptions/:id).
-describe.each(['utworzZaKlienta', 'testDostepowZaKlienta', 'uslugaZaKlienta'] as const)('PB-45 — %s', (metoda) => {
+describe.each(['utworzZaKlienta', 'testDostepowZaKlienta', 'uslugaZaKlienta'] as const)('PB-45 – %s', (metoda) => {
   it('klient (USER) nie wchodzi nawet z kompletem uprawnień', async () => {
     expect(await wpuszcza(metoda, { userId: 'c', role: 'USER' }, ['*'])).toBe(false);
   });
-  it('operator bez MIGRATIONS_MANAGE nie wchodzi, z nim — tak', async () => {
+  it('operator bez MIGRATIONS_MANAGE nie wchodzi, z nim – tak', async () => {
     expect(await wpuszcza(metoda, { userId: 's', role: 'STAFF' }, ['TICKETS_MANAGE', 'CUSTOMERS_VIEW'])).toBe(false);
     expect(await wpuszcza(metoda, { userId: 's', role: 'STAFF' }, ['MIGRATIONS_MANAGE'])).toBe(true);
   });

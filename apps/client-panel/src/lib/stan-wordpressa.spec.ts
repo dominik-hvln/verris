@@ -12,7 +12,7 @@ describe('stan aktualności WordPressa na liście stron (weryfikacja 11.10)', ()
   });
 
   it('sprawdzenie sprzed 5 dni (d3: 6.10) → „dane sprzed 5 dni”, nie „aktualny”', () => {
-    expect(stanAktualnosciWp({ sprawdzono: '2026-10-06T10:35:00Z', podatnosci: 7 }, TERAZ)).toEqual({ tekst: 'dane sprzed 5 dni — sprawdź ponownie', ton: 'muted' });
+    expect(stanAktualnosciWp({ sprawdzono: '2026-10-06T10:35:00Z', podatnosci: 7 }, TERAZ)).toEqual({ tekst: 'dane sprzed 5 dni – sprawdź ponownie', ton: 'muted' });
   });
 
   it('czekająca aktualizacja → osobne pigułki, bez stanu', () => {

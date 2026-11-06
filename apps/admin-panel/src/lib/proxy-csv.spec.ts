@@ -18,7 +18,7 @@ it("przekazuje tylko dozwolone filtry z tokenem; plik z datą", async () => {
   expect(r.headers.get("Content-Disposition")).toMatch(/^attachment; filename="verris-klienci-\d{4}-\d{2}-\d{2}\.csv"$/);
 });
 
-it("403 z API (bez EXPORT_DATA) — ten sam kod i komunikat; bez sesji — 401 bez wołania API", async () => {
+it("403 z API (bez EXPORT_DATA) – ten sam kod i komunikat; bez sesji – 401 bez wołania API", async () => {
   fetchMock.mockResolvedValue(new Response(JSON.stringify({ message: "Twoja rola nie ma uprawnień do tej operacji." }), { status: 403 }));
   const r = await proxyCsv(new URLSearchParams(), "/admin/users/export.csv", FILTRY_KLIENTOW, "verris-klienci");
   expect(r.status).toBe(403);

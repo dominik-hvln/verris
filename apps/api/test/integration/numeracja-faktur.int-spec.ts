@@ -41,7 +41,7 @@ import {
  * zamienił to zdanie na `SELECT max(seq)+1`, które pod obciążeniem wydaje
  * duplikaty. Test jednostkowy dowodziłby tu wyłącznie, że test istnieje.
  */
-describe('M-02 — numeracja faktur', () => {
+describe('M-02 – numeracja faktur', () => {
   const teraz = new Date('2026-08-15T10:00:00.000Z');
 
   beforeEach(async () => {
@@ -121,7 +121,7 @@ describe('M-02 — numeracja faktur', () => {
     });
   });
 
-  describe('równoległość — sedno M-02', () => {
+  describe('równoległość – sedno M-02', () => {
     /**
      * To jest jedyny test w tym pliku, którego nie da się napisać jednostkowo,
      * i jedyny powód, dla którego numerator jest napisany surowym SQL-em
@@ -172,7 +172,7 @@ describe('M-02 — numeracja faktur', () => {
     });
   });
 
-  describe('zachowanie na krawędziach — spisane, nie założone', () => {
+  describe('zachowanie na krawędziach – spisane, nie założone', () => {
     /**
      * Powyżej 9999 `padStart(4, '0')` nie obcina — numer po prostu rośnie do
      * pięciu cyfr. To NIE jest usterka: numeracja pozostaje ciągła i

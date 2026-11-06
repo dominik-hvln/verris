@@ -47,7 +47,7 @@ function wartosciInsertu(): string[] {
     .map((s) => s.trim().replace(/,$/, ''));
 }
 
-describe('Z-13 — pakiet ze strony istnieje w bazie i zgadza się z ofertą', () => {
+describe('Z-13 – pakiet ze strony istnieje w bazie i zgadza się z ofertą', () => {
   describe('definicja planu odpowiada temu, co obiecuje strona', () => {
     it('baza CPU w SPEED% odpowiada reklamowanym vCPU', () => {
       expect(PLAN_PRODUKCYJNY.cpuLimit).toBe(BAZA_Z_OFERTY.cpuVCpu * 100);
@@ -106,7 +106,7 @@ describe('Z-13 — pakiet ze strony istnieje w bazie i zgadza się z ofertą', (
       expect(sql().length).toBeGreaterThan(500);
     });
 
-    it('opis planu w bazie poprawia migracja 20261019210000 — dokładnie na tekst z definicji (limity, nie rezerwacja)', () => {
+    it('opis planu w bazie poprawia migracja 20261019210000 – dokładnie na tekst z definicji (limity, nie rezerwacja)', () => {
       const poprawka = readFileSync(
         resolve(KORZEN, 'libs/database/prisma/migrations/20261019210000_opis_planu_limity/migration.sql'),
         'utf-8',
@@ -172,7 +172,7 @@ describe('Z-13 — pakiet ze strony istnieje w bazie i zgadza się z ofertą', (
       expect(wartosciInsertu()).toContain('NULL');
     });
 
-    it('migracja jest idempotentna — ON CONFLICT DO UPDATE, nie DO NOTHING', () => {
+    it('migracja jest idempotentna – ON CONFLICT DO UPDATE, nie DO NOTHING', () => {
       // DO NOTHING oznaczałoby, że poprawka ceny wymaga ręcznego UPDATE
       // na produkcji. DO UPDATE sprawia, że migracja jest źródłem prawdy.
       expect(sql()).toContain('ON CONFLICT ("id") DO UPDATE SET');
@@ -187,14 +187,14 @@ describe('Z-13 — pakiet ze strony istnieje w bazie i zgadza się z ofertą', (
       expect(t).toContain('"isPublic"  = false');
     });
 
-    it('NIE dezaktywuje planów prototypowych — to zabiłoby odnowienia', () => {
+    it('NIE dezaktywuje planów prototypowych – to zabiłoby odnowienia', () => {
       // Subskrypcja na nieaktywnym planie nie odnowi się. isPublic=false
       // wystarcza, żeby plan zniknął z katalogu.
       expect(sql()).not.toMatch(/SET\s+"isActive"\s*=\s*false/);
     });
   });
 
-  describe('Z-16 — sufit oferty jest dowożony przez silnik', () => {
+  describe('Z-16 – sufit oferty jest dowożony przez silnik', () => {
     /**
      * Ten blok jest zapisem tego, że mechanizm zadziałał zgodnie z zamysłem.
      *
@@ -231,7 +231,7 @@ describe('Z-13 — pakiet ze strony istnieje w bazie i zgadza się z ofertą', (
       expect(dyskOsiagalny).toBe(SUFITY_Z_OFERTY.diskGb);
     });
 
-    it('w silniku nie ma już zaszytego sufitu — krotność bierze się z planu', () => {
+    it('w silniku nie ma już zaszytego sufitu – krotność bierze się z planu', () => {
       const src = readFileSync(
         resolve(KORZEN, 'apps/api/src/autoscaling/autoscaling-engine.service.ts'),
         'utf-8',
@@ -264,7 +264,7 @@ describe('Z-13 — pakiet ze strony istnieje w bazie i zgadza się z ofertą', (
   });
 });
 
-describe('Z-13 — limity liczbowe pakietu DA zgodne z ofertą', () => {
+describe('Z-13 – limity liczbowe pakietu DA zgodne z ofertą', () => {
   it('sprzedawany plan ma własną politykę: bez limitu domen, skrzynek, baz i FTP (nie domyślną 1 domenę / 25 skrzynek)', () => {
     const p = packagePolicyForSlug(PLAN_PRODUKCYJNY.slug);
     expect(p).toMatchObject({ domains: 'unlimited', emailAccounts: 'unlimited', databases: 'unlimited', ftpAccounts: 'unlimited', subdomains: 'unlimited' });
@@ -272,7 +272,7 @@ describe('Z-13 — limity liczbowe pakietu DA zgodne z ofertą', () => {
   });
 });
 
-describe('H-02 — kopie w ramach usługi od pierwszego dnia', () => {
+describe('H-02 – kopie w ramach usługi od pierwszego dnia', () => {
   it('provisioning zakłada codzienny harmonogram kopii (7 ostatnich) w tej samej transakcji co konto', () => {
     const src = readFileSync(resolve(import.meta.dirname, '../subscriptions/provisioning.service.ts'), 'utf8');
     expect(src).toMatch(/tx\.backupSchedule\.upsert\(\{[\s\S]*?frequency: 'DAILY', enabled: true, retainCount: 7[\s\S]*?update: \{\}/);

@@ -54,7 +54,7 @@ export function DocumentsTable({
               <td className="px-6 py-4 text-muted-foreground text-xs">
                 {doc?.publishedAt
                   ? new Date(doc.publishedAt).toLocaleString("pl-PL")
-                  : "—"}
+                  : "–"}
               </td>
               <td className="px-6 py-4">
                 {doc ? (
@@ -65,7 +65,7 @@ export function DocumentsTable({
                 ) : (
                   <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-300 border border-rose-500/30">
                     <AlertCircle className="h-3 w-3" />
-                    NIE opublikowany — blokuje rejestrację
+                    NIE opublikowany – blokuje rejestrację
                   </span>
                 )}
               </td>

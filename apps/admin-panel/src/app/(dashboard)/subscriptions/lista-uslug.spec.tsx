@@ -41,7 +41,7 @@ it("filtry z adresu idą do API, liczba usług z total, zakładki z licznikami, 
   expect(html).not.toContain('data-eksport="uslugi"');
 });
 
-it("eksport CSV tylko z EXPORT_DATA — link z tymi samymi filtrami", async () => {
+it("eksport CSV tylko z EXPORT_DATA – link z tymi samymi filtrami", async () => {
   odpowiedzi({ role: "STAFF", isAdmin: false, permissions: ["SUBSCRIPTIONS_MANAGE", "EXPORT_DATA"] });
   const html = await render({ stan: "PAST_DUE", q: "sklep" });
   expect(html).toContain('href="/api/uslugi-csv?status=PAST_DUE&amp;search=sklep"');

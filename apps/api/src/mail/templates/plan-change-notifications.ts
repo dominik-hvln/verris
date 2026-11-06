@@ -20,14 +20,14 @@ export function planChangedTemplate(ctx: PlanChangedContext): MailMessage {
   const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**!` : 'Cześć!';
   const amountLine =
     ctx.direction === 'upgrade' && Number(ctx.amountDue) > 0
-      ? `**Dopłata proporcjonalna:** ${escapeMarkdown(ctx.amountDue)} ${escapeMarkdown(ctx.currency)} (z portfela lub karty — zgodnie z metodą płatności usługi).`
+      ? `**Dopłata proporcjonalna:** ${escapeMarkdown(ctx.amountDue)} ${escapeMarkdown(ctx.currency)} (z portfela lub karty – zgodnie z metodą płatności usługi).`
       : ctx.direction === 'downgrade' && Number(ctx.amountCredit) > 0
         ? `**Uznanie na portfel:** ${escapeMarkdown(ctx.amountCredit)} ${escapeMarkdown(ctx.currency)} za niewykorzystany okres.`
         : 'Bez dodatkowej opłaty za pozostały okres.';
 
   const { html, text } = renderEmailShell({
     title: 'Plan hostingowy został zmieniony',
-    preheader: `${escapeMarkdown(ctx.domain)} — ${escapeMarkdown(ctx.fromPlanName)} → ${escapeMarkdown(ctx.toPlanName)}.`,
+    preheader: `${escapeMarkdown(ctx.domain)} – ${escapeMarkdown(ctx.fromPlanName)} → ${escapeMarkdown(ctx.toPlanName)}.`,
     bodyMarkdown: [
       greeting,
       ``,
@@ -37,7 +37,7 @@ export function planChangedTemplate(ctx: PlanChangedContext): MailMessage {
       `- **Jest:** ${escapeMarkdown(ctx.toPlanName)}`,
       `- ${amountLine}`,
       ``,
-      `Limity zasobów (CPU, RAM, dysk) zostały ustawione według nowego planu. Delty autoskalowania (jeśli były) zostały zresetowane — możesz je ponownie skonfigurować w panelu.`,
+      `Limity zasobów (CPU, RAM, dysk) zostały ustawione według nowego planu. Delty autoskalowania (jeśli były) zostały zresetowane – możesz je ponownie skonfigurować w panelu.`,
     ].join('\n'),
     cta: {
       label: 'Otwórz usługę',

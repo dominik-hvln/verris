@@ -13,7 +13,7 @@ import { prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } fr
  * z powodem, wyścig dwóch przejść, log kontaktów ze zgłoszeniem klienta i alert terminu w dzwonku zespołu.
  * Sprawdzenie DNS (MigrationCutoverService.verify) zastąpione atrapą zapisującą dziennik jak prawdziwa metoda.
  */
-describe('D11 — tablica migracji obsługi', () => {
+describe('D11 – tablica migracji obsługi', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 
@@ -122,7 +122,7 @@ describe('D11 — tablica migracji obsługi', () => {
     expect(akcje).toEqual(expect.arrayContaining(['MIGRATION_CUTOVER_DNS_APPLIED', 'MIGRATION_REPORT_SENT']));
   });
 
-  it('cofnięcie tylko z powodem (w dzienniku); dwa równoczesne przejścia — jedno 409', async () => {
+  it('cofnięcie tylko z powodem (w dzienniku); dwa równoczesne przejścia – jedno 409', async () => {
     const { p, k, l2, l2b, mig, svc } = await przygotuj();
     await svc.zmienEtap(mig.id, { etap: 'TESTY' }, { userId: l2.id, role: 'STAFF' });
     await expect(svc.zmienEtap(mig.id, { etap: 'NOWA' }, { userId: l2.id, role: 'STAFF' })).rejects.toThrow(/powód cofnięcia/);
@@ -172,7 +172,7 @@ describe('D11 — tablica migracji obsługi', () => {
     expect((await p.migrationRequest.findUniqueOrThrow({ where: { id: mig.id } })).ticketId).toBe(zgl.id);
   });
 
-  it('alert terminu: raz na stan; bez przypisania — wszyscy z uprawnieniem do migracji, z przypisaniem — prowadzący', async () => {
+  it('alert terminu: raz na stan; bez przypisania – wszyscy z uprawnieniem do migracji, z przypisaniem – prowadzący', async () => {
     const { p, l1, l2, l2b, mig, svc } = await przygotuj({ createdAt: new Date(Date.now() - 50 * 3600_000) });
     // 50 h od utworzenia: do terminu 3 dni zostały 22 h — „termin się zbliża”.
     expect(await svc.alertTerminow()).toBe(1);
@@ -189,7 +189,7 @@ describe('D11 — tablica migracji obsługi', () => {
     expect((await tytuly(l2b.id)).filter(([t]) => String(t).includes('po terminie'))).toEqual([]);
   });
 
-  it('audyt Fal 2 — historia sprzed tablicy: po migracji danych bez alertów „po terminie”; nieudana bez terminu i znika z tablicy', async () => {
+  it('audyt Fal 2 – historia sprzed tablicy: po migracji danych bez alertów „po terminie”; nieudana bez terminu i znika z tablicy', async () => {
     const dawno = new Date(Date.now() - 40 * 86400_000);
     const { p, k, l2, mig, svc } = await przygotuj({ status: MigrationStatus.ATTENTION, createdAt: dawno });
     const nieudana = await p.migrationRequest.create({
@@ -212,7 +212,7 @@ describe('D11 — tablica migracji obsługi', () => {
     expect(t.alerty).toEqual({ poTerminie: 0, blisko: 0 });
   });
 
-  it('przegląd D11 — ponowne otwarcie zamkniętej migracji daje nowe okno poprawek; zmiana etapu nie powtarza alertu', async () => {
+  it('przegląd D11 – ponowne otwarcie zamkniętej migracji daje nowe okno poprawek; zmiana etapu nie powtarza alertu', async () => {
     const { p, l2, mig, svc } = await przygotuj({ createdAt: new Date(Date.now() - 50 * 3600_000) });
     const op = { userId: l2.id, role: 'STAFF' };
     // Termin się zbliża — jeden alert; przejście do „Testy u nas” przy tym samym terminie nie wysyła go drugi raz.
@@ -232,7 +232,7 @@ describe('D11 — tablica migracji obsługi', () => {
     expect(await svc.alertTerminow()).toBe(0);
   });
 
-  it('przegląd D11 — wynik testu na tymczasowym adresie też trafia do klienta (eksport RODO): bez adresu węzła', async () => {
+  it('przegląd D11 – wynik testu na tymczasowym adresie też trafia do klienta (eksport RODO): bez adresu węzła', async () => {
     const { l2, mig, svc } = await przygotuj();
     const op = { userId: l2.id, role: 'STAFF' };
     await expect(svc.checklista(mig.id, { pole: 'testTymczasowy', wartosc: 'Podgląd na 203.0.113.7 działa, PageSpeed 92' }, op)).rejects.toThrow(/trafi do klienta/);
@@ -240,7 +240,7 @@ describe('D11 — tablica migracji obsługi', () => {
     await svc.checklista(mig.id, { pole: 'testTymczasowy', wartosc: 'Podgląd na adresie tymczasowym działa, PageSpeed 92' }, op);
   });
 
-  it('audyt Fal 2 — filtr raportu: fail2ban, lvectl, IPv6 i nazwa hosta węzła z bazy nie przechodzą', async () => {
+  it('audyt Fal 2 – filtr raportu: fail2ban, lvectl, IPv6 i nazwa hosta węzła z bazy nie przechodzą', async () => {
     const { p, l2, mig, svc } = await przygotuj();
     const op = { userId: l2.id, role: 'STAFF' };
     await p.server.updateMany({ data: { hostname: 'n7.verris-wezly.example' } });
@@ -266,7 +266,7 @@ describe('D11 — tablica migracji obsługi', () => {
     await expect(svc.wyslijRaport(mig.id, op)).rejects.toThrow(/trafi do klienta/);
   });
 
-  it('nieudana wysyłka raportu — raport nie jest oznaczony jako wysłany, zamknięcie dalej zablokowane', async () => {
+  it('nieudana wysyłka raportu – raport nie jest oznaczony jako wysłany, zamknięcie dalej zablokowane', async () => {
     const { p, l2, mig, svc, wylaczMail } = await przygotuj();
     await p.migrationRequest.update({
       where: { id: mig.id },

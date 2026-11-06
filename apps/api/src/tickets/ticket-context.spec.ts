@@ -57,7 +57,7 @@ describe('PB-18 szkice odpowiedzi', () => {
     }
     expect(drafts[1]).toContain('ważny do 1 grudnia 2026');
     expect(drafts[3]).toContain('12,50 kredytów');
-    expect(drafts[3]).toContain('VR/2026/09/7 — oczekuje na płatność');
+    expect(drafts[3]).toContain('VR/2026/09/7 – oczekuje na płatność');
     expect(drafts[5]).toContain('najpóźniej do 24 września');
   });
 

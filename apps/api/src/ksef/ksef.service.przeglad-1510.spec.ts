@@ -111,7 +111,7 @@ beforeEach(() => {
   vi.useRealTimers();
 });
 
-describe('KSeF — przegląd 15.10', () => {
+describe('KSeF – przegląd 15.10', () => {
   it('[1] nieudane otwarcie sesji w cyklu B nie cofa faktury, którą równoległy cykl A właśnie wysłał (SUBMITTED → OFFLINE → druga wysyłka)', async () => {
     const db = baza([faktura({ id: 'x' })]);
     const s = serwis(db);
@@ -163,7 +163,7 @@ describe('KSeF — przegląd 15.10', () => {
     // Pierwotna po poprawie danych wraca i dostaje numer — korekta w KSeF mówi „poza KSeF”.
     expect(zbudowane.find((b) => b.number === 'VFK/2026/10/2')).toBeUndefined();
   });
-  it('[3b] PENDING z plikiem zamrożonym w TEST (bez korekty) po przełączeniu na PROD — plik budowany od nowa dla PROD', async () => {
+  it('[3b] PENDING z plikiem zamrożonym w TEST (bez korekty) po przełączeniu na PROD – plik budowany od nowa dla PROD', async () => {
     ustawienia.env = 'prod';
     const db = baza([faktura({ id: 'p', ksefXml: '<Faktura stara="test"/>', ksefXmlSha256: 'h', ksefSrodowisko: 'test' })]);
     await serwis(db).tick();
@@ -207,8 +207,8 @@ describe('KSeF — przegląd 15.10', () => {
   });
 });
 
-describe('KSeF — przegląd poprawek 15.10', () => {
-  it('[R1] korekta faktury zaległej (VAT panelu sprzed okna, poza kolejką) czeka z powodem — nie idzie z NrKSeFN', async () => {
+describe('KSeF – przegląd poprawek 15.10', () => {
+  it('[R1] korekta faktury zaległej (VAT panelu sprzed okna, poza kolejką) czeka z powodem – nie idzie z NrKSeFN', async () => {
     const dziesiecDni = new Date(Date.now() - 10 * 24 * 3600_000);
     const db = baza([
       faktura({ id: 'o', ksefStatus: KsefStatus.NOT_APPLICABLE, issuedAt: dziesiecDni, createdAt: dziesiecDni }),
@@ -250,7 +250,7 @@ describe('KSeF — przegląd poprawek 15.10', () => {
   });
 });
 
-describe('KSeF — decyzja 15.10 (#3): wysyłka bez odpowiedzi → „do wyjaśnienia”, bez drugiej wysyłki', () => {
+describe('KSeF – decyzja 15.10 (#3): wysyłka bez odpowiedzi → „do wyjaśnienia”, bez drugiej wysyłki', () => {
   const bezOdpowiedzi = () => Object.assign(new Error('KSeF 2.0 niedostępny (/sessions/online/s/invoices): timeout'), { niepewny: true });
 
   it('faktura UNCERTAIN, kolejne cykle jej nie wysyłają; plik i środowisko zostają', async () => {

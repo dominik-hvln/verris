@@ -113,7 +113,7 @@ export default function MailTab({ serviceId }: Props) {
     if (!res.ok || !win) {
       if (win) win.close();
       toast.error('Nie udało się otworzyć webmaila', {
-        description: res.ok ? 'Przeglądarka zablokowała nowe okno — zezwól na wyskakujące okna dla panelu.' : daErrorMessage(res.error),
+        description: res.ok ? 'Przeglądarka zablokowała nowe okno – zezwól na wyskakujące okna dla panelu.' : daErrorMessage(res.error),
       });
       return;
     }
@@ -176,7 +176,7 @@ export default function MailTab({ serviceId }: Props) {
       setWysylkaWstrzymana(!!conn?.wysylkaWstrzymana);
       if (conn?.emails) {
         const used =
-          conn.emails.used == null ? '—' : String(Math.round(conn.emails.used));
+          conn.emails.used == null ? '–' : String(Math.round(conn.emails.used));
         const limit =
           conn.emails.limit == null ? '∞' : String(Math.round(conn.emails.limit));
         setEmailQuota({ used, limit });
@@ -261,7 +261,7 @@ export default function MailTab({ serviceId }: Props) {
     );
   }
 
-  const imapHost = mailHost ?? '—';
+  const imapHost = mailHost ?? '–';
 
   return (
     <HostingTabShell
@@ -270,7 +270,7 @@ export default function MailTab({ serviceId }: Props) {
       icon={<Mail className="h-4 w-4" />}
       help={{
         blurb:
-          'Spokojnie — tworzenie skrzynki niczego nie psuje. Podajesz adres i hasło, a my zajmujemy się resztą. Dane do Outlooka/telefonu masz poniżej.',
+          'Spokojnie – tworzenie skrzynki niczego nie psuje. Podajesz adres i hasło, a my zajmujemy się resztą. Dane do Outlooka/telefonu masz poniżej.',
         kbQuery: 'poczta',
       }}
       actions={
@@ -397,7 +397,7 @@ export default function MailTab({ serviceId }: Props) {
                 disabled={domains.length === 0}
                 aria-label="Domena"
                 className="min-w-[10rem]"
-                placeholder="—"
+                placeholder="–"
                 options={domains.map((d) => ({ value: d, label: d }))}
               />
             </div>
@@ -432,7 +432,7 @@ export default function MailTab({ serviceId }: Props) {
 
       {rows.length === 0 && !fetchError && domenyZBledem.length === 0 ? (
         <p className="rounded-[10px] border border-line bg-card px-3 py-8 text-center text-xs text-muted-foreground">
-          Brak skrzynek — utwórz pierwszą powyżej.
+          Brak skrzynek – utwórz pierwszą powyżej.
         </p>
       ) : (
         <div className="overflow-hidden rounded-[10px] border border-line bg-card">
@@ -578,8 +578,8 @@ export default function MailTab({ serviceId }: Props) {
           ]}
         />
         <p className="m-0 px-4 pb-3.5 pt-2 text-[12px] leading-relaxed text-muted-foreground">
-          SSL/TLS: SMTP na porcie 465. Gdy sieć blokuje 465 — port 587 ze STARTTLS. Login to pełny adres skrzynki
-          (np. kontakt@twojadomena.pl), hasło — to ustawione przy skrzynce.
+          SSL/TLS: SMTP na porcie 465. Gdy sieć blokuje 465 – port 587 ze STARTTLS. Login to pełny adres skrzynki
+          (np. kontakt@twojadomena.pl), hasło – to ustawione przy skrzynce.
         </p>
       </div>
           <MailOchrona serviceId={serviceId} />

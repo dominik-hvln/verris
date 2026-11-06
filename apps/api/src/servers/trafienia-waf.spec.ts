@@ -11,7 +11,7 @@ const LOG = [
   'VERRIS_WAF_RAZEM 3 3 1024',
 ].join('\n');
 
-describe('F3.2 — trafienia WAF: odczyt', () => {
+describe('F3.2 – trafienia WAF: odczyt', () => {
   it('wiersze z wyniku węzła (śmieci pominięte) i najczęstsze reguły z liczbą zablokowanych', () => {
     const t = trafieniaZLogu(LOG);
     expect(t).toHaveLength(3);
@@ -33,7 +33,7 @@ describe('F3.2 — trafienia WAF: odczyt', () => {
   });
 });
 
-describe('noc 11→12.10 — odczyt WAF wiszący na węźle (d3: „Wczytaj z serwera” 21:47, o 23:0x dalej „stan z 16:58”)', () => {
+describe('noc 11→12.10 – odczyt WAF wiszący na węźle (d3: „Wczytaj z serwera” 21:47, o 23:0x dalej „stan z 16:58”)', () => {
   const TERAZ = Date.parse('2026-10-11T21:05:00Z');
   const min = (n: number) => new Date(TERAZ - n * 60_000);
   const z = (status: NodeTaskStatus, createdAt: Date, o: { updatedAt?: Date; outputLog?: string | null } = {}) => ({
@@ -61,13 +61,13 @@ describe('noc 11→12.10 — odczyt WAF wiszący na węźle (d3: „Wczytaj z se
     expect(s).toMatchObject({ wToku: false, zlecono: null, blad: BLAD_NIE_PODJETO, wczytano: min(240).toISOString(), razem: 3 });
   });
 
-  it('podjęte, ale bez sygnału z węzła ponad 15 min: błąd; z heartbeatem (długi odczyt) — dalej w toku', () => {
+  it('podjęte, ale bez sygnału z węzła ponad 15 min: błąd; z heartbeatem (długi odczyt) – dalej w toku', () => {
     expect(stanTrafien([z(NodeTaskStatus.RUNNING, min(40), { updatedAt: min(16) })], TERAZ)).toMatchObject({ wToku: false, blad: BLAD_BEZ_SYGNALU });
     expect(stanTrafien([z(NodeTaskStatus.RUNNING, min(40), { updatedAt: min(1) })], TERAZ)).toMatchObject({ wToku: true, blad: null });
   });
 });
 
-describe('F3.2 — TrafieniaWafKontaService', () => {
+describe('F3.2 – TrafieniaWafKontaService', () => {
   function zbuduj(o: { zadania?: unknown[]; status?: string; rolaWlasciciela?: string; bladDomen?: string } = {}) {
     const utworzone: Array<Record<string, unknown>> = [];
     const prisma = {
@@ -102,7 +102,7 @@ describe('F3.2 — TrafieniaWafKontaService', () => {
     expect([...trwa.utworzone, ...usuniete.utworzone]).toEqual([]);
   });
 
-  it('noc 11→12.10: wiszące zlecenie nie blokuje nowego (było 409 bez końca) — zamknięte jako błąd tylko, jeśli nadal wisi', async () => {
+  it('noc 11→12.10: wiszące zlecenie nie blokuje nowego (było 409 bez końca) – zamknięte jako błąd tylko, jeśli nadal wisi', async () => {
     const stare = new Date(Date.now() - 80 * 60_000);
     const { svc, utworzone, prisma } = zbuduj({
       zadania: [
@@ -128,7 +128,7 @@ describe('F3.2 — TrafieniaWafKontaService', () => {
     expect(utworzone).toEqual([]);
   });
 
-  it('audyt Fali 3 (D3): usługa konta zespołu — STAFF 403 (odczyt i wczytanie, bez zadania); ADMIN może', async () => {
+  it('audyt Fali 3 (D3): usługa konta zespołu – STAFF 403 (odczyt i wczytanie, bez zadania); ADMIN może', async () => {
     for (const rola of ['STAFF', 'ADMIN']) {
       const z = zbuduj({ rolaWlasciciela: rola });
       await expect(z.svc.widok('s1', 'STAFF')).rejects.toMatchObject({ status: 403 });

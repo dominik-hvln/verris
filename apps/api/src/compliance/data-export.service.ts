@@ -127,7 +127,7 @@ export class DataExportService implements OnApplicationBootstrap {
       where: { id: { in: stale.map((r) => r.id) } },
       data: {
         status: DataExportStatus.FAILED,
-        errorMessage: 'Aborted by application restart — please request a new export.',
+        errorMessage: 'Aborted by application restart – please request a new export.',
       },
     });
   }
@@ -664,7 +664,7 @@ export class DataExportService implements OnApplicationBootstrap {
         // Object missing in MinIO — log and skip; archiver's `warning`
         // handler will treat ENOENT-equivalent as warning and continue.
         this.logger.warn(
-          `Skipping ticket attachment ${row.id} — could not open from MinIO: ${
+          `Skipping ticket attachment ${row.id} – could not open from MinIO: ${
             (err as Error).message
           }`,
         );
@@ -827,33 +827,33 @@ function jsonReplacer(_key: string, value: unknown): unknown {
 
 function buildReadme(userId: string): string {
   return [
-    'Verris — eksport danych osobowych (RODO art. 20)',
+    'Verris – eksport danych osobowych (RODO art. 20)',
     '================================================',
     '',
     `Zawartość tego archiwum dotyczy konta o identyfikatorze: ${userId}`,
     `Wygenerowano: ${new Date().toISOString()}`,
     '',
     'Pliki w archiwum:',
-    '  README.txt                       — ten plik.',
-    '  profile.json                     — dane konta: e-mail, imię i nazwisko, dane do faktury, saldo, ustawienia logowania,',
-    '                                     zgody i daty; notatkaObslugi — notatka obsługi o koncie (jeśli jest).',
-    '  consents.json                    — historia akceptacji regulaminu, polityki, DPA.',
-    '  marketing-preferences.json       — preferencje komunikacji (newsletter, kampanie).',
-    '  accounts.json                    — konta hostingowe: domena, login, wersja PHP, limity, kopie; bez haseł.',
-    '  subscriptions.json               — subskrypcje (plan, status, okresy).',
-    '  invoices.json                    — faktury VAT (zachowane 5 lat — wymóg PL).',
-    '  wallet-transactions.json         — historia portfela (kredyty, doładowania).',
-    '  tickets.json                     — zgłoszenia do supportu (treść początkowa); obsługa bez id pracowników.',
-    '  ticket-replies.json              — odpowiedzi w wątkach i notatki obsługi (internal: true), autor obsługi jako „Obsługa Verris”.',
-    '  ticket-attachments.json          — metadane załączników (lista plików).',
-    '  audit-log.json                   — log audytowy operacji na koncie; działania obsługi jako „Obsługa Verris”, bez id pracowników',
+    '  README.txt                       – ten plik.',
+    '  profile.json                     – dane konta: e-mail, imię i nazwisko, dane do faktury, saldo, ustawienia logowania,',
+    '                                     zgody i daty; notatkaObslugi – notatka obsługi o koncie (jeśli jest).',
+    '  consents.json                    – historia akceptacji regulaminu, polityki, DPA.',
+    '  marketing-preferences.json       – preferencje komunikacji (newsletter, kampanie).',
+    '  accounts.json                    – konta hostingowe: domena, login, wersja PHP, limity, kopie; bez haseł.',
+    '  subscriptions.json               – subskrypcje (plan, status, okresy).',
+    '  invoices.json                    – faktury VAT (zachowane 5 lat – wymóg PL).',
+    '  wallet-transactions.json         – historia portfela (kredyty, doładowania).',
+    '  tickets.json                     – zgłoszenia do supportu (treść początkowa); obsługa bez id pracowników.',
+    '  ticket-replies.json              – odpowiedzi w wątkach i notatki obsługi (internal: true), autor obsługi jako „Obsługa Verris”.',
+    '  ticket-attachments.json          – metadane załączników (lista plików).',
+    '  audit-log.json                   – log audytowy operacji na koncie; działania obsługi jako „Obsługa Verris”, bez id pracowników',
     '                                     i bez treści notatek zespołu o blokadzie wysyłki.',
-    '  customer-notes.json              — notatki obsługi o koncie (treść i daty, autor jako „Obsługa Verris”).',
-    '  incoming-mail.json               — maile do obsługi, które nie trafiły od razu do zgłoszenia (nadawca, temat, treść, nazwy plików).',
-    '  migrations.json                  — migracje: etap obsługi, terminy, checklista i log kontaktów (autor jako „Obsługa Verris”), bez haseł.',
-    '  data-export-requests.json        — historia żądań eksportu danych.',
-    '  account-deletion-requests.json   — historia żądań usunięcia konta.',
-    '  attachments/<plik>               — fizyczne kopie załączników z ticketów.',
+    '  customer-notes.json              – notatki obsługi o koncie (treść i daty, autor jako „Obsługa Verris”).',
+    '  incoming-mail.json               – maile do obsługi, które nie trafiły od razu do zgłoszenia (nadawca, temat, treść, nazwy plików).',
+    '  migrations.json                  – migracje: etap obsługi, terminy, checklista i log kontaktów (autor jako „Obsługa Verris”), bez haseł.',
+    '  data-export-requests.json        – historia żądań eksportu danych.',
+    '  account-deletion-requests.json   – historia żądań usunięcia konta.',
+    '  attachments/<plik>               – fizyczne kopie załączników z ticketów.',
     '',
     'Format: UTF-8, JSON. Zewnętrzny plik archiwum: ZIP (deflate).',
     '',

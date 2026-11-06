@@ -1,4 +1,4 @@
-# Google Ads — kit gotowy do uruchomienia (500 zł/mies)
+# Google Ads – kit gotowy do uruchomienia (500 zł/mies)
 
 Wykonawcza wersja `gads-search-hosting-202607.md`. Wszystko poniżej jest do **wklejenia**
 w Google Ads (konto 957-943-2103). Budżet startowy: **500 zł/mies ≈ 16,4 zł/dzień**.
@@ -7,11 +7,11 @@ Podział: kampania główna **450 zł/mies (~14,8 zł/dzień)** + kampania brand
 
 ---
 
-## 1. Kampania główna — „gads-search-hosting-202607"
+## 1. Kampania główna – „gads-search-hosting-202607"
 
 **Ustawienia (Nowa kampania → Cel: Potencjalni klienci → Typ: Sieć wyszukiwania):**
 
-- Sieci: **tylko wyszukiwarka** — ODZNACZ „Uwzględnij partnerów w sieci wyszukiwania" i „Sieć reklamowa".
+- Sieci: **tylko wyszukiwarka** – ODZNACZ „Uwzględnij partnerów w sieci wyszukiwania" i „Sieć reklamowa".
 - Lokalizacje: **Polska**. Opcje lokalizacji → **Obecność: osoby w Twoich lokalizacjach docelowych** (nie „zainteresowanie").
 - Język: **polski**.
 - Budżet dzienny: **14,80 zł**.
@@ -19,7 +19,7 @@ Podział: kampania główna **450 zł/mies (~14,8 zł/dzień)** + kampania brand
   (Po ~20 konwersjach przełącz na Docelowy CPA ≤ 150 zł.)
 - Rozszerzenia dynamiczne: **wyłącz** „Automatycznie utworzone zasoby" na start (kontrola przekazu).
 
-### Grupa reklam A — Migracja (stawka domyślna 6 zł)
+### Grupa reklam A – Migracja (stawka domyślna 6 zł)
 
 Wklej słowa kluczowe (format Google: `[exact]`, `"phrase"`):
 
@@ -36,7 +36,7 @@ Wklej słowa kluczowe (format Google: `[exact]`, `"phrase"`):
 "pomoc w migracji hostingu"
 ```
 
-### Grupa reklam B — Hosting (stawka domyślna 5 zł)
+### Grupa reklam B – Hosting (stawka domyślna 5 zł)
 
 ```
 [polski hosting]
@@ -48,12 +48,12 @@ Wklej słowa kluczowe (format Google: `[exact]`, `"phrase"`):
 "hosting z autoskalowaniem"
 ```
 
-> Świadomie POMIJAMY `[hosting]` i `[tani hosting]` — CPC zawyżone, intencja cenowa
+> Świadomie POMIJAMY `[hosting]` i `[tani hosting]` – CPC zawyżone, intencja cenowa
 > niezgodna z pozycjonowaniem. Wrócimy po walidacji tCPA.
 
 ---
 
-## 2. Reklama responsywna (RSA) — grupa A
+## 2. Reklama responsywna (RSA) – grupa A
 
 **Nagłówki** (15, każdy ≤30 znaków):
 
@@ -69,7 +69,7 @@ Polski hosting i support
 Migrator w panelu klienta
 Autoskalowanie w cenie
 Dane zostają w Europie
-Verris — skaluj świadomie
+Verris – skaluj świadomie
 Pomoc w migracji za darmo
 Płacisz za realne użycie
 Jasne ceny, zero gwiazdek
@@ -89,13 +89,13 @@ Odnowienia bez pułapek, wyłączysz je w panelu. Awaria? Rekompensata na zgłos
 
 **Wyświetlany URL:** `verris.pl/hosting/migracja` · **Docelowy URL:** `https://verris.pl/przenies-strone`
 
-**Grupa B — RSA:** te same zasoby, ale usuń nagłówki „Przeniesiemy…" / „Darmowa migracja…" /
-„Pomoc w migracji…", a przypnij na poz. 1 „Polski hosting i support" / „Verris — skaluj świadomie" /
+**Grupa B – RSA:** te same zasoby, ale usuń nagłówki „Przeniesiemy…" / „Darmowa migracja…" /
+„Pomoc w migracji…", a przypnij na poz. 1 „Polski hosting i support" / „Verris – skaluj świadomie" /
 „Jasne ceny, zero gwiazdek".
 
 ---
 
-## 3. Wykluczające słowa kluczowe (poziom kampanii — wklej listę)
+## 3. Wykluczające słowa kluczowe (poziom kampanii – wklej listę)
 
 ```
 darmowy hosting
@@ -123,7 +123,7 @@ domena
 rejestracja domeny
 ```
 
-> VPS/domeny wykluczamy tu, bo mają osobną intencję — dodamy je jako oddzielne kampanie później.
+> VPS/domeny wykluczamy tu, bo mają osobną intencję – dodamy je jako oddzielne kampanie później.
 
 ---
 
@@ -151,7 +151,7 @@ Kopie z odtwarzaniem
 Odpowiadamy tego dnia
 ```
 
-**Fragmenty rozszerzone** (structured snippets) — nagłówek **„Usługi"**:
+**Fragmenty rozszerzone** (structured snippets) – nagłówek **„Usługi"**:
 
 ```
 Hosting
@@ -162,7 +162,7 @@ E-mail marketing
 
 ---
 
-## 5. Kampania brandowa — „gads-search-brand-202607"
+## 5. Kampania brandowa – „gads-search-brand-202607"
 
 - Budżet: **1,60 zł/dzień**. Strategia: Maksymalizacja kliknięć, maks. CPC 2 zł.
 - Grupa „Brand", słowa:
@@ -174,7 +174,7 @@ E-mail marketing
 "hosting verris"
 ```
 
-- RSA: nagłówki „Verris — polski hosting", „Hosting z autoskalowaniem", „SLA 99,5% z rekompensatami",
+- RSA: nagłówki „Verris – polski hosting", „Hosting z autoskalowaniem", „SLA 99,5% z rekompensatami",
   „Zaloguj się do panelu", „Cennik: 45 zł/mies". Docelowy URL: `https://verris.pl`.
 - Wyklucz: `praca`, `logo`, `api`, `status` (żeby nie płacić za nawigacyjny ruch istniejących klientów).
 
@@ -184,7 +184,7 @@ Ochrona marki + najtańszy, najlepiej konwertujący ruch.
 
 ## 6. Jak to utworzyć (ścieżka w Google Ads)
 
-Najszybciej przez **Google Ads Editor** (desktop) — wklejasz słowa i zasoby hurtem, potem „Prześlij".
+Najszybciej przez **Google Ads Editor** (desktop) – wklejasz słowa i zasoby hurtem, potem „Prześlij".
 Alternatywnie w panelu web: Nowa kampania → Potencjalni klienci → Sieć wyszukiwania → ustawienia z §1 →
 grupy reklam i słowa z §1 → RSA z §2 → wykluczenia z §3 → zasoby z §4 → Opublikuj **jako wstrzymaną**.
 
@@ -197,12 +197,12 @@ grupy reklam i słowa z §1 → RSA z §2 → wykluczenia z §3 → zasoby z §4
 - [x] Ceny brutto PLN w każdej kreacji · brak Omnibus (45/449 to ceny standardowe)
 - [x] „Za darmo" tylko przy realnie bezpłatnej migracji/migratorze
 - [x] SLA 99,5%, zero „100% uptime" · zero green claims · brak nazw konkurentów
-- [x] Konwersje w Google Ads: `purchase` (Primary) + `generate_lead` (Secondary) — zaimportowane
+- [x] Konwersje w Google Ads: `purchase` (Primary) + `generate_lead` (Secondary) – zaimportowane
 - [x] Landing `/przenies-strone` zbudowany · pomiar + leady + CAPI na produkcji
 - [x] `fbc` przechwytywany dla ruchu z reklam (kod wdrożony)
-- [ ] **Google Ads Data Processing Terms zaakceptowane** (Ustawienia → Konto → Preferencje) — Dominik
+- [ ] **Google Ads Data Processing Terms zaakceptowane** (Ustawienia → Konto → Preferencje) – Dominik
 - [ ] **Auto-tagowanie włączone** (już potwierdzone wcześniej)
-- [ ] Potwierdzić, że pomoc/migrator obejmuje POCZTĘ (jeśli nie — usuń „i pocztę" z opisu 1)
+- [ ] Potwierdzić, że pomoc/migrator obejmuje POCZTĘ (jeśli nie – usuń „i pocztę" z opisu 1)
 - [ ] Enhanced Conversions dla `purchase` (opcjonalne, po starcie)
 
 ---
@@ -220,6 +220,6 @@ grupy reklam i słowa z §1 → RSA z §2 → wykluczenia z §3 → zasoby z §4
 
 ## 9. Co jeszcze warto (nie blokuje startu)
 
-- **Token CAPI** (`META_CAPI_TOKEN`) — dołóż przed startem Meta (Google Ads go nie potrzebuje).
-- **adspirer OAuth** — po autoryzacji zweryfikuję realne CPC/wolumeny i pomogę wystawić kampanię wprost.
+- **Token CAPI** (`META_CAPI_TOKEN`) – dołóż przed startem Meta (Google Ads go nie potrzebuje).
+- **adspirer OAuth** – po autoryzacji zweryfikuję realne CPC/wolumeny i pomogę wystawić kampanię wprost.
 - Do dodania później: osobne kampanie VPS i Domeny, test `[hosting]`/`[tani hosting]` po walidacji tCPA.

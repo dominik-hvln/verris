@@ -77,10 +77,10 @@ export function DataExportsTable({ rows }: { rows: AdminDataExportRow[] }) {
                   {new Date(r.requestedAt).toLocaleString("pl-PL")}
                 </td>
                 <td className="px-4 py-3 text-xs text-muted-foreground">
-                  {r.expiresAt ? new Date(r.expiresAt).toLocaleString("pl-PL") : "—"}
+                  {r.expiresAt ? new Date(r.expiresAt).toLocaleString("pl-PL") : "–"}
                 </td>
                 <td className="px-4 py-3 text-xs text-muted-foreground font-mono">
-                  {r.sizeBytes ? `${(r.sizeBytes / 1024).toFixed(1)} KB` : "—"}
+                  {r.sizeBytes ? `${(r.sizeBytes / 1024).toFixed(1)} KB` : "–"}
                 </td>
                 <td className="px-4 py-3 text-right">
                   {(r.status === "FAILED" || r.status === "PENDING") && (

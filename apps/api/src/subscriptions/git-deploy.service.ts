@@ -280,7 +280,7 @@ export function wynikWdrozenia(status: NodeTaskStatus, build: string, log: strin
   const zmienne = env && env !== 'brak' ? Number(env) : null;
   // Zlecone budowanie, a skrypt sprzed 21.10 go nie zna: zadanie „udane”, ale nic się nie zbudowało — mówimy to wprost.
   if (build && status === NodeTaskStatus.COMPLETED && !znacznik) {
-    return { budowanie: 'blad' as const, zmienne, uwaga: 'Serwer nie obsługuje jeszcze budowania ani zmiennych — napisz do nas, zaktualizujemy go.' };
+    return { budowanie: 'blad' as const, zmienne, uwaga: 'Serwer nie obsługuje jeszcze budowania ani zmiennych – napisz do nas, zaktualizujemy go.' };
   }
   return { budowanie: znacznik ?? (status === NodeTaskStatus.COMPLETED ? ('brak' as const) : null), zmienne, uwaga: null };
 }

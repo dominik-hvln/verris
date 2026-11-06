@@ -26,7 +26,7 @@ describe('X-05 canAccess', () => {
   });
 });
 
-describe('fetchStaffAccess — API uprawnień nie odpowiada', () => {
+describe('fetchStaffAccess – API uprawnień nie odpowiada', () => {
   it('fail-closed: brak uprawnień i flaga niedostępności zamiast dostępu ADMIN-a', async () => {
     (adminApi as jest.Mock).mockRejectedValueOnce(new Error('ECONNREFUSED'));
     const dostep = await fetchStaffAccess();

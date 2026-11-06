@@ -45,7 +45,7 @@ describe("zgłoszenia do bety w panelu admina", () => {
   it("opisy: zakres po polsku, źródło z UTM, link tylko http(s)", () => {
     expect(opisZakresu(["WORDPRESS", "STRONY_DLA_KLIENTOW"])).toBe("WordPress, Strony dla klientów");
     expect(zrodloZgloszenia({ zrodlo: { source: "facebook", campaign: "meta-leadgen-hosting-202611" } })).toBe("facebook / meta-leadgen-hosting-202611");
-    expect(zrodloZgloszenia({ zrodlo: null })).toBe("—");
+    expect(zrodloZgloszenia({ zrodlo: null })).toBe("–");
     // utm_content rozróżnia kreację i zestaw reklamy — bez niego nie porównamy kosztu zgłoszenia.
     expect(zrodloZgloszenia({ zrodlo: { source: "meta", campaign: "meta-leadgen-hosting-202611", content: "b-firmy" } })).toBe(
       "meta / meta-leadgen-hosting-202611 / b-firmy",
@@ -73,7 +73,7 @@ describe("zgłoszenia do bety w panelu admina", () => {
     expect(mockZapros).not.toHaveBeenCalled();
   });
 
-  it("niepotwierdzony adres: „Zaproś” nieaktywne, bez pola wiadomości; zaproszone i odrzucone — bez przycisków", async () => {
+  it("niepotwierdzony adres: „Zaproś” nieaktywne, bez pola wiadomości; zaproszone i odrzucone – bez przycisków", async () => {
     await act(async () => root.render(<DecyzjaZgloszenia z={z({ status: "NIEPOTWIERDZONE", potwierdzone: null })} />));
     expect(przycisk("Zaproś").disabled).toBe(true);
     expect(el.querySelector("input[type=checkbox]")).toBeNull();

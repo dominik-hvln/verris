@@ -81,7 +81,7 @@ export class MigrationPreflightService {
               status: dto.ftp ? 'reachable' : 'auth_failed',
               message: dto.ftp
                 ? 'Login i hasło bazy odczytamy z pliku wp-config.php po skopiowaniu plików strony.'
-                : 'Podaj użytkownika i hasło bazy — bez plików strony nie mamy skąd ich odczytać.',
+                : 'Podaj użytkownika i hasło bazy – bez plików strony nie mamy skąd ich odczytać.',
               latencyMs: null,
             }),
       );
@@ -126,7 +126,7 @@ export class MigrationPreflightService {
     if (!domena || (await this.adresStronyIstnieje(domena))) return;
     const uwaga =
       ` Uwaga: adres strony „${domena}” nie ma wpisu w DNS. Jeśli baza nie jest dostępna z zewnątrz ani przez SSH, ` +
-      'pobieramy ją przez stronę na starym serwerze — podaj w polu „Domena źródłowa” adres, pod którym strona działa dziś.';
+      'pobieramy ją przez stronę na starym serwerze – podaj w polu „Domena źródłowa” adres, pod którym strona działa dziś.';
     for (const r of bazyBezLogowania) r.message += uwaga;
   }
 
@@ -194,7 +194,7 @@ export class MigrationPreflightService {
             ? 'Zalogowano do FTP poprawnie.'
             : status === 'auth_failed'
               ? 'Serwer FTP odrzucił login lub hasło.'
-              : 'Serwer FTP odpowiada, ale nie udało się dokończyć logowania — zweryfikujemy przy transferze.',
+              : 'Serwer FTP odpowiada, ale nie udało się dokończyć logowania – zweryfikujemy przy transferze.',
         latencyMs: Date.now() - started,
       };
     } catch (err) {
@@ -262,7 +262,7 @@ export class MigrationPreflightService {
           target,
           status: 'unreachable',
           message:
-            'Zdalny MySQL nie odpowiada — większość hostingów blokuje zdalne połączenia do baz. ' +
+            'Zdalny MySQL nie odpowiada – większość hostingów blokuje zdalne połączenia do baz. ' +
             'Spróbujemy przez SSH przy transferze, a w razie potrzeby dokończy to nasz zespół.',
           latencyMs: Date.now() - started,
         };
@@ -521,7 +521,7 @@ function mysqlLogin(
           if (!authResponse) {
             return finish(
               'reachable',
-              `Serwer MySQL używa uwierzytelniania ${greeting.authPlugin} — pełna weryfikacja przy transferze.`,
+              `Serwer MySQL używa uwierzytelniania ${greeting.authPlugin} – pełna weryfikacja przy transferze.`,
             );
           }
           socket.write(
@@ -547,7 +547,7 @@ function mysqlLogin(
         if (code === 1130) {
           return finish(
             'unreachable',
-            'MySQL nie pozwala na zdalne połączenia z naszego adresu (1130) — spróbujemy przez SSH przy transferze.',
+            'MySQL nie pozwala na zdalne połączenia z naszego adresu (1130) – spróbujemy przez SSH przy transferze.',
           );
         }
         return finish('reachable', `MySQL odpowiedział błędem ${code}: ${msg}`);
@@ -558,16 +558,16 @@ function mysqlLogin(
         if (flag === 0x03) return; // czekamy na pakiet OK
         return finish(
           'reachable',
-          'MySQL wymaga pełnego uwierzytelnienia caching_sha2 (TLS) — pełna weryfikacja przy transferze.',
+          'MySQL wymaga pełnego uwierzytelnienia caching_sha2 (TLS) – pełna weryfikacja przy transferze.',
         );
       }
       if (head === 0xfe) {
         return finish(
           'reachable',
-          'MySQL poprosił o zmianę wtyczki uwierzytelniania — pełna weryfikacja przy transferze.',
+          'MySQL poprosił o zmianę wtyczki uwierzytelniania – pełna weryfikacja przy transferze.',
         );
       }
-      return finish('reachable', 'Nieoczekiwana odpowiedź MySQL — pełna weryfikacja przy transferze.');
+      return finish('reachable', 'Nieoczekiwana odpowiedź MySQL – pełna weryfikacja przy transferze.');
     });
   });
 }
@@ -586,7 +586,7 @@ function readMysqlPacket(buf: Buffer): { payload: Buffer; sequence: number; rest
 function parseMysqlGreeting(payload: Buffer): { scramble: Buffer; authPlugin: string } {
   if (payload[0] === 0xff) {
     const code = payload.readUInt16LE(1);
-    throw new Error(`MySQL odrzucił połączenie (błąd ${code}) — prawdopodobnie blokada zdalnych hostów.`);
+    throw new Error(`MySQL odrzucił połączenie (błąd ${code}) – prawdopodobnie blokada zdalnych hostów.`);
   }
   if (payload[0] !== 10) throw new Error(`MySQL: nieobsługiwana wersja protokołu (${payload[0]})`);
   let off = 1;

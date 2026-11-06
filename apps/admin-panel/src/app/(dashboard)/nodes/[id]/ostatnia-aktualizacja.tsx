@@ -6,7 +6,7 @@ type Aktualizacja = NonNullable<PrzegladWezla["aktualizacja"]>;
 const STATUS: Record<string, string> = { QUEUED: "w kolejce", RUNNING: "w toku", COMPLETED: "zakończona", FAILED: "nieudana", CANCELLED: "anulowana" };
 const WYNIK: Record<NonNullable<Aktualizacja["wynik"]>, { tekst: string; ton: string }> = {
   ok: { tekst: "wszystko zaktualizowane", ton: "text-data-hi" },
-  "needs-reboot": { tekst: "zaktualizowane — węzeł wymaga restartu (nowe jądro)", ton: "text-warn" },
+  "needs-reboot": { tekst: "zaktualizowane – węzeł wymaga restartu (nowe jądro)", ton: "text-warn" },
   failed: { tekst: "aktualizacja z błędami", ton: "text-crit" },
 };
 
@@ -22,7 +22,7 @@ export function OstatniaAktualizacja({ a, zadaniaHref }: { a: Aktualizacja | nul
   const ostrz = a.ostrzezenia ?? 0;
   // Weryfikacja 11.10 — build przeszedł, ale wypisał „Error:” (t1: CageFS /run/mysql): nie „wszystko zaktualizowane”.
   const wynik = a.wynik === "ok" && ostrz > 0
-    ? { tekst: `zaktualizowane z ostrzeżeniami (${ostrz}) — linie „OSTRZEŻENIE” na końcu wyjścia`, ton: "text-warn" }
+    ? { tekst: `zaktualizowane z ostrzeżeniami (${ostrz}) – linie „OSTRZEŻENIE” na końcu wyjścia`, ton: "text-warn" }
     : a.wynik ? WYNIK[a.wynik] : null;
   const trwa = a.status === "QUEUED" || a.status === "RUNNING";
   return (

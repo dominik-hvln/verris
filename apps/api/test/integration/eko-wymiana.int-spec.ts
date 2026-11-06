@@ -59,7 +59,7 @@ describe('wymiana punktów EKO na środki w portfelu', () => {
     expect(await prisma().ecoPointsLedgerEntry.count({ where: { userId: u.id } })).toBe(1);
   });
 
-  it('nie nadpisuje równoległego wpisu księgi — saldo równa się sumie wpisów', async () => {
+  it('nie nadpisuje równoległego wpisu księgi – saldo równa się sumie wpisów', async () => {
     const { users, ledger } = uslugi();
     const u = await klient({ ecoPoints: 500 });
 
@@ -94,7 +94,7 @@ describe('wymiana punktów EKO na środki w portfelu', () => {
     expect(tx.balanceAfter.toFixed(2)).toBe('25.00');
   });
 
-  it('subkonto nie wymienia punktów — portfel należy do właściciela, punkty zostają', async () => {
+  it('subkonto nie wymienia punktów – portfel należy do właściciela, punkty zostają', async () => {
     const { users } = uslugi();
     const wlasciciel = await klient();
     const sub = await klient({ ecoPoints: 100, customerOwnerId: wlasciciel.id });
@@ -107,7 +107,7 @@ describe('wymiana punktów EKO na środki w portfelu', () => {
     expect(await prisma().ecoPointsLedgerEntry.count({ where: { userId: sub.id } })).toBe(0);
   });
 
-  it('za mało punktów — odmowa bez zmian', async () => {
+  it('za mało punktów – odmowa bez zmian', async () => {
     const { users } = uslugi();
     const u = await klient({ ecoPoints: 50 });
     await expect(users.redeemEcoPoints(u.id, { points: 100 })).rejects.toThrow(/Za mało punktów/);

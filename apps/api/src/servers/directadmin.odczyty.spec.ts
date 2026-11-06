@@ -34,7 +34,7 @@ function stanowisko(o: { konto?: boolean; bezHasla?: boolean; ns?: [string | nul
     syncPrimaryDomainForSubscription: vi.fn(async () => 'firma.pl'),
     probeDbEngineVersion: vi.fn(async () => null),
     assertDomainOwnedBySubscription: vi.fn(async (_s: string, _u: string, d: string) => d),
-    readAccountTextFile: vi.fn(async () => '; BEGIN VERRIS PHP (zarządzane przez panel — nie edytuj ręcznie)\nmemory_limit = 512M\n; END VERRIS PHP\n'),
+    readAccountTextFile: vi.fn(async () => '; BEGIN VERRIS PHP (zarządzane przez panel – nie edytuj ręcznie)\nmemory_limit = 512M\n; END VERRIS PHP\n'),
   });
   vi.spyOn(svc, 'listHostingDomainsForSubscription').mockResolvedValue({ domains: [{ name: 'firma.pl' }, { name: 'sklep.pl' }], primaryDomain: 'firma.pl', fetchError: null } as never);
   return { svc, findFirst, klient, daGet, get };

@@ -12,7 +12,7 @@ import { PANEL } from '@/lib/site';
  * klucze SSH). Plany i ceny z makiety to placeholdery — wycena zostaje w panelu. Bez lokalizacji serwerów (brief).
  */
 export const metadata: Metadata = {
-  title: 'VPS — serwery z pełnym dostępem root | Verris',
+  title: 'VPS – serwery z pełnym dostępem root | Verris',
   description:
     'Niezarządzane serwery VPS z pełnym dostępem root: dedykowane vCPU i RAM, snapshoty, reinstalacja i konsola w panelu. Dane w UE, wycena w panelu.',
   alternates: { canonical: '/vps' },
@@ -22,7 +22,7 @@ const KONKRETY: [string, string][] = [
   ['Pełny root', 'Własny system, własne pakiety, własna zapora. Klucze SSH dodajesz w panelu.'],
   ['Snapshoty', 'Zrób snapshot przed aktualizacją systemu i przywróć go z panelu, gdy coś pójdzie nie tak.'],
   ['Reinstalacja i konsola', 'Restart, przeinstalowanie systemu i konsola awaryjna w panelu, bez zgłoszeń.'],
-  ['Przewidywalne zasoby', 'Dedykowane vCPU i RAM — zasoby, za które płacisz, są tylko Twoje. Cenę widzisz w panelu przed zamówieniem.'],
+  ['Przewidywalne zasoby', 'Dedykowane vCPU i RAM – zasoby, za które płacisz, są tylko Twoje. Cenę widzisz w panelu przed zamówieniem.'],
 ];
 
 const POROWNANIE: [string, string, string][] = [
@@ -40,13 +40,13 @@ const FAQ: [string, string][] = [
   ],
   [
     'VPS czy hosting współdzielony?',
-    'Jeśli prowadzisz stronę, bloga albo sklep i chcesz, żeby „po prostu działało” — wybierz hosting z autoskalowaniem. VPS ma sens, gdy potrzebujesz własnego środowiska, niestandardowego stacku albo pełnej kontroli nad serwerem.',
+    'Jeśli prowadzisz stronę, bloga albo sklep i chcesz, żeby „po prostu działało” – wybierz hosting z autoskalowaniem. VPS ma sens, gdy potrzebujesz własnego środowiska, niestandardowego stacku albo pełnej kontroli nad serwerem.',
   ],
   [
     'Czy robicie kopie VPS?',
     'Snapshoty tworzysz sam w panelu, kiedy chcesz, i z panelu je przywracasz. Kopie danych wewnątrz serwera planujesz według własnych potrzeb.',
   ],
-  ['Jakie jest SLA?', 'SLA 99,5% z rekompensatami przyznawanymi automatycznie, według regulaminu — dotyczy także usług VPS.'],
+  ['Jakie jest SLA?', 'SLA 99,5% z rekompensatami przyznawanymi automatycznie, według regulaminu – dotyczy także usług VPS.'],
 ];
 
 export default function VpsPage() {
@@ -55,7 +55,7 @@ export default function VpsPage() {
 
   const jsonLd = graph(
     serviceSchema({
-      name: 'VPS — serwery wirtualne',
+      name: 'VPS – serwery wirtualne',
       description:
         'Niezarządzane serwery VPS z pełnym dostępem root: dedykowane vCPU i RAM, snapshoty, reinstalacja i konsola w panelu. Dane w UE. SLA 99,5% z rekompensatami.',
       path: '/vps',
@@ -173,7 +173,7 @@ export default function VpsPage() {
 
       <CTABand
         title="Gotowy na własny serwer?"
-        text="Skonfiguruj VPS w panelu — zasoby i cenę zobaczysz przed zamówieniem."
+        text="Skonfiguruj VPS w panelu – zasoby i cenę zobaczysz przed zamówieniem."
         primaryLabel="Przejdź do panelu"
         primaryHref={PANEL}
         secondary={{ label: 'Zobacz hosting', href: '/hosting' }}

@@ -3,7 +3,7 @@ import { AppSelectorService, aplikacjeZLogu, sprawdzDane, sprawdzKatalog } from 
 
 const dane = { interpreter: 'nodejs' as const, root: 'apps/api', domain: 'a.pl', uri: '/api/', version: '22', startup: 'app.js' };
 
-describe('B-08/B-09 — AppSelectorService', () => {
+describe('B-08/B-09 – AppSelectorService', () => {
   it('katalog aplikacji tylko poza public_html/domains i bez wyjścia z konta', () => {
     expect(sprawdzKatalog('/apps/api/')).toBe('apps/api');
     for (const zly of ['public_html/x', 'domains/a.pl/app', '../etc', '.ssh', 'a b', 'mail']) {

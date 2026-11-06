@@ -35,7 +35,7 @@ export default async function WindykacjaPage() {
           Przypomnienia i zawieszenia <Pomoc id="windykacja" />
         </h1>
         <p className="max-w-3xl text-sm text-muted-foreground" data-progi>
-          {opisProgow(dane.progi)} Progi są w kodzie — tu tylko podgląd.
+          {opisProgow(dane.progi)} Progi są w kodzie – tu tylko podgląd.
         </p>
       </header>
 
@@ -68,7 +68,7 @@ export default async function WindykacjaPage() {
                   {etap.t}
                 </Pigulka>
               </span>
-              <span className="w-[120px] text-right font-mono text-[13px]">{w.brakuje && Number(w.brakuje) > 0 ? `${w.brakuje} K` : "—"}</span>
+              <span className="w-[120px] text-right font-mono text-[13px]">{w.brakuje && Number(w.brakuje) > 0 ? `${w.brakuje} K` : "–"}</span>
               <span className="flex w-[200px] flex-col text-[12.5px]">
                 <span>{zdarzenie}</span>
                 <span className="text-muted-foreground">{w.uwaga}</span>

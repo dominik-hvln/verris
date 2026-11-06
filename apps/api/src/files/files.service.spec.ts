@@ -29,7 +29,7 @@ function stanowisko(o: { konto?: Record<string, unknown> | null; brakUslugi?: bo
   return { svc, klient, prisma };
 }
 
-describe('FilesService — piaskownica', () => {
+describe('FilesService – piaskownica', () => {
   it.each([
     ['/', '/'],
     ['public_html/./a//b/', '/public_html/a/b'],
@@ -86,7 +86,7 @@ describe('FilesService.downloadStream (H-13)', () => {
   });
 });
 
-describe('FilesService — wpisy systemowe katalogu domowego (biała etykieta, prod d3 12.10)', () => {
+describe('FilesService – wpisy systemowe katalogu domowego (biała etykieta, prod d3 12.10)', () => {
   const SYSTEMOWE = ['.cagefs', '.imunify_patch_id', '.myimunify_id'];
 
   it('katalog domowy: lista bez wpisów systemowych; public_html: plik o tej nazwie widoczny', async () => {
@@ -119,7 +119,7 @@ describe('FilesService — wpisy systemowe katalogu domowego (biała etykieta, p
     const s = stanowisko();
     const blad = await op(s.svc).catch((e: unknown) => e);
     expect(blad).toBeInstanceOf(ForbiddenException);
-    expect((blad as Error).message).toBe('Ten element jest zarządzany przez serwer — nie można go otwierać ani zmieniać.');
+    expect((blad as Error).message).toBe('Ten element jest zarządzany przez serwer – nie można go otwierać ani zmieniać.');
     for (const f of Object.values(s.klient)) if (typeof f === 'function') expect(f).not.toHaveBeenCalled();
     expect(s.klient.client.get).not.toHaveBeenCalled();
   });

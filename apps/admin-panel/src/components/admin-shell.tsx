@@ -623,7 +623,7 @@ export function AdminShell({
           <main id="main" tabIndex={-1} className="flex-1 px-4 py-[26px] outline-none lg:px-8">
             {uprawnieniaNiedostepne ? (
               <p role="alert" className="mb-4 rounded-[10px] border border-warn/40 bg-warn-soft px-4 py-3 text-sm text-warn">
-                Nie udało się pobrać Twoich uprawnień, więc widać tylko podstawowe strony — odśwież za chwilę.
+                Nie udało się pobrać Twoich uprawnień, więc widać tylko podstawowe strony – odśwież za chwilę.
               </p>
             ) : null}
             <OkruszekKontekst.Provider value={setSzczegol}>{children}</OkruszekKontekst.Provider>

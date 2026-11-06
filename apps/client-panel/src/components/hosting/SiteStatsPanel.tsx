@@ -49,7 +49,7 @@ export function SiteStatsPanel({ serviceId, domain }: { serviceId: string; domai
   return (
     <section className="mt-6">
       <SectionHead
-        title="Ruch i wydajność — 7 dni"
+        title="Ruch i wydajność – 7 dni"
         desc={
           stan?.odczytano
             ? `Z logu serwera WWW i pomiaru na serwerze · odczyt ${new Date(stan.odczytano).toLocaleString('pl-PL')}`
@@ -73,20 +73,20 @@ export function SiteStatsPanel({ serviceId, domain }: { serviceId: string; domai
       />
       {blad || stan?.blad ? <p role="alert" className="m-0 mb-2 text-[13px] text-crit">{blad ?? stan?.blad}</p> : null}
       <KpiStrip>
-        <Kpi label="Odwiedzający" value={zLogu ? suma('odwiedzajacy').toLocaleString('pl-PL') : '—'} foot={<span>unikalne adresy IP, 7 dni</span>}>
+        <Kpi label="Odwiedzający" value={zLogu ? suma('odwiedzajacy').toLocaleString('pl-PL') : '–'} foot={<span>unikalne adresy IP, 7 dni</span>}>
           {zLogu && ruch.length ? <MiniBars values={ruch.map((d) => d.odwiedzajacy)} labels={ruch.map((d) => dzien(d.dzien))} unit={(v) => plForm(v, 'odwiedzający', 'odwiedzających', 'odwiedzających')} /> : null}
         </Kpi>
-        <Kpi label="Żądania" value={zLogu ? suma('zadania').toLocaleString('pl-PL') : '—'} foot={<span>wszystkie odpowiedzi serwera</span>}>
+        <Kpi label="Żądania" value={zLogu ? suma('zadania').toLocaleString('pl-PL') : '–'} foot={<span>wszystkie odpowiedzi serwera</span>}>
           {zLogu && ruch.length ? <MiniBars values={ruch.map((d) => d.zadania)} labels={ruch.map((d) => dzien(d.dzien))} unit={(v) => plForm(v, 'żądanie', 'żądania', 'żądań')} /> : null}
         </Kpi>
-        <Kpi label="Błędy 5xx" value={zLogu ? suma('bledy5xx').toLocaleString('pl-PL') : '—'} foot={<span>{zLogu ? (suma('bledy5xx') ? 'szczegóły niżej i w zakładce Logi' : 'bez błędów serwera') : 'brak logu domeny'}</span>}>
+        <Kpi label="Błędy 5xx" value={zLogu ? suma('bledy5xx').toLocaleString('pl-PL') : '–'} foot={<span>{zLogu ? (suma('bledy5xx') ? 'szczegóły niżej i w zakładce Logi' : 'bez błędów serwera') : 'brak logu domeny'}</span>}>
           {zLogu && ruch.length ? <MiniBars values={ruch.map((d) => d.bledy5xx)} labels={ruch.map((d) => dzien(d.dzien))} unit={(v) => plForm(v, 'błąd', 'błędy', 'błędów')} lastTone="warn" /> : null}
         </Kpi>
         <Kpi
           label="TTFB (serwer)"
-          value={s?.ttfbMs ? s.ttfbMs.mediana : '—'}
+          value={s?.ttfbMs ? s.ttfbMs.mediana : '–'}
           unit={s?.ttfbMs ? 'ms' : undefined}
-          foot={<span>{s ? `${s.technologia.nazwa}${s.technologia.wersja ? ` ${s.technologia.wersja}` : ''}` : 'technologia: —'}</span>}
+          foot={<span>{s ? `${s.technologia.nazwa}${s.technologia.wersja ? ` ${s.technologia.wersja}` : ''}` : 'technologia: –'}</span>}
         />
       </KpiStrip>
       {s?.top5xx.length ? (
@@ -103,7 +103,7 @@ export function SiteStatsPanel({ serviceId, domain }: { serviceId: string; domai
         </div>
       ) : null}
       <p className="m-0 mt-2 text-[12px] text-muted-foreground">
-        TTFB to czas pierwszego bajtu zmierzony na samym serwerze (bez Twojego łącza) — pokazuje, jak szybko strona generuje odpowiedź.
+        TTFB to czas pierwszego bajtu zmierzony na samym serwerze (bez Twojego łącza) – pokazuje, jak szybko strona generuje odpowiedź.
       </p>
     </section>
   );

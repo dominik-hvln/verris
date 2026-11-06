@@ -40,14 +40,14 @@ export type Poradnik = {
 const ZAMOW_KROK: KrokPoradnika = {
   tytul: 'Zamów hosting Verris',
   tekst:
-    'Wybierz rozliczenie — {cena}, odnowienie po cenie z cennika. Przeniesienie strony jest w cenie hostingu. Twoja obecna strona dalej działa.',
+    'Wybierz rozliczenie – {cena}, odnowienie po cenie z cennika. Przeniesienie strony jest w cenie hostingu. Twoja obecna strona dalej działa.',
 };
 
 const KONIEC_KROKI: KrokPoradnika[] = [
   {
     tytul: 'Śledź postęp i sprawdź stronę',
     tekst:
-      'Pliki, baza, konfiguracja strony i poczta — postęp każdego etapu widzisz w panelu. Porównujemy liczbę plików i wierszy w bazie ze źródłem, a po zakończeniu dostajesz raport mailem.',
+      'Pliki, baza, konfiguracja strony i poczta – postęp każdego etapu widzisz w panelu. Porównujemy liczbę plików i wierszy w bazie ze źródłem, a po zakończeniu dostajesz raport mailem.',
   },
   {
     tytul: 'Przełącz domenę, kiedy jesteś gotowy',
@@ -63,7 +63,7 @@ const FAQ_WSPOLNE: [string, string][] = [
   ],
   [
     'Co z moimi hasłami do starego hostingu?',
-    `Trzymamy je zaszyfrowane tylko na czas przeniesienia i kasujemy automatycznie ${HASLA_KASOWANE_PO_DNIACH} dni po zakończeniu (po błędzie albo anulowaniu — po 3 dniach).`,
+    `Trzymamy je zaszyfrowane tylko na czas przeniesienia i kasujemy automatycznie ${HASLA_KASOWANE_PO_DNIACH} dni po zakończeniu (po błędzie albo anulowaniu – po 3 dniach).`,
   ],
   [
     'Ile kosztuje przeniesienie strony?',
@@ -81,13 +81,13 @@ export const PORADNIKI: Poradnik[] = [
     zrodlo: 'z panelu cPanel',
     krotko: 'cPanel',
     kafelek: { tytul: 'Z panelu cPanel', tekst: 'Strony, bazy i skrzynki wyszukamy sami po zalogowaniu.' },
-    title: 'Jak przenieść stronę z cPanel — krok po kroku | Verris',
+    title: 'Jak przenieść stronę z cPanel – krok po kroku | Verris',
     description:
       'Przeniesienie strony, bazy i poczty z hostingu z panelem cPanel do Verris bez przerwy w działaniu. Co przygotować i jak przełączyć domenę. 0 zł.',
     h1: 'Jak przenieść stronę z cPanel do Verris',
     lead: 'Spokojnie, to prostsze, niż brzmi. Podajesz login do starego panelu cPanel, a my przenosimy stronę, bazy i pocztę. Stara strona działa do chwili, gdy sam przełączysz domenę.',
     przygotuj: [
-      'Adres panelu cPanel, login i hasło — zwykle są w mailu powitalnym od dostawcy albo w jego panelu klienta.',
+      'Adres panelu cPanel, login i hasło – zwykle są w mailu powitalnym od dostawcy albo w jego panelu klienta.',
       'Hasła skrzynek pocztowych, które chcesz przenieść.',
       'Dostęp do miejsca, w którym zarządzasz DNS domeny (u rejestratora albo u obecnego dostawcy).',
     ],
@@ -113,7 +113,7 @@ export const PORADNIKI: Poradnik[] = [
       ...KONIEC_KROKI,
     ],
     wlasnaKopia:
-      'Chcesz mieć dodatkowo własną kopię? W cPanel zwykle służy do tego sekcja „Kopia zapasowa” (Backup) — pobierzesz tam kopię katalogu domowego i baz danych. Nazwy sekcji zależą od wersji i języka panelu. Do przeprowadzki ta kopia nie jest potrzebna.',
+      'Chcesz mieć dodatkowo własną kopię? W cPanel zwykle służy do tego sekcja „Kopia zapasowa” (Backup) – pobierzesz tam kopię katalogu domowego i baz danych. Nazwy sekcji zależą od wersji i języka panelu. Do przeprowadzki ta kopia nie jest potrzebna.',
     faq: [
       [
         'Czy muszę znać dane bazy danych?',
@@ -127,18 +127,18 @@ export const PORADNIKI: Poradnik[] = [
     zrodlo: 'z panelu Plesk',
     krotko: 'Plesk',
     kafelek: { tytul: 'Z panelu Plesk', tekst: 'Strony i bazy wyszukamy sami, listę skrzynek podasz w kreatorze.' },
-    title: 'Jak przenieść stronę z Plesk — krok po kroku | Verris',
+    title: 'Jak przenieść stronę z Plesk – krok po kroku | Verris',
     description:
       'Przeniesienie strony, bazy i poczty z hostingu z panelem Plesk do Verris bez przerwy w działaniu. Co przygotować i jak przełączyć domenę. 0 zł.',
     h1: 'Jak przenieść stronę z Plesk do Verris',
     lead: 'Podajesz login do starego panelu Plesk, a my przenosimy stronę, bazy i pocztę. Stara strona działa do chwili, gdy sam przełączysz domenę.',
     przygotuj: [
-      'Adres panelu Plesk, login i hasło — zwykle są w mailu powitalnym od dostawcy albo w jego panelu klienta.',
-      'Listę skrzynek pocztowych do przeniesienia i ich hasła — w Plesku skrzynki dopisujesz w kreatorze sam.',
+      'Adres panelu Plesk, login i hasło – zwykle są w mailu powitalnym od dostawcy albo w jego panelu klienta.',
+      'Listę skrzynek pocztowych do przeniesienia i ich hasła – w Plesku skrzynki dopisujesz w kreatorze sam.',
       'Dostęp do miejsca, w którym zarządzasz DNS domeny (u rejestratora albo u obecnego dostawcy).',
     ],
     wykrywamy:
-      'Po zalogowaniu do Pleska sami wyszukamy strony i bazy danych. Skrzynki pocztowe dopisujesz w kreatorze — adres i hasło każdej z nich.',
+      'Po zalogowaniu do Pleska sami wyszukamy strony i bazy danych. Skrzynki pocztowe dopisujesz w kreatorze – adres i hasło każdej z nich.',
     kroki: [
       ZAMOW_KROK,
       {
@@ -163,7 +163,7 @@ export const PORADNIKI: Poradnik[] = [
     faq: [
       [
         'Dlaczego skrzynki z Pleska wpisuję sam?',
-        'Strony i bazy odczytujemy z Pleska automatycznie, a listy skrzynek jeszcze nie. Wystarczy, że dopiszesz adresy i hasła skrzynek w kreatorze — resztę robimy my.',
+        'Strony i bazy odczytujemy z Pleska automatycznie, a listy skrzynek jeszcze nie. Wystarczy, że dopiszesz adresy i hasła skrzynek w kreatorze – resztę robimy my.',
       ],
       ...FAQ_WSPOLNE,
     ],
@@ -173,14 +173,14 @@ export const PORADNIKI: Poradnik[] = [
     zrodlo: 'przez FTP',
     krotko: 'tylko FTP',
     kafelek: { tytul: 'Przez FTP', tekst: `Dane bazy odczytamy z plików ${CMS_Z_ODCZYTEM_BAZY}.` },
-    title: 'Jak przenieść stronę przez FTP — krok po kroku | Verris',
+    title: 'Jak przenieść stronę przez FTP – krok po kroku | Verris',
     description:
       'Przeniesienie strony przez FTP lub SFTP, gdy stary hosting ma własny panel. Dane bazy odczytamy z plików strony. Bez przerwy w działaniu, za 0 zł.',
     h1: 'Jak przenieść stronę przez FTP do Verris',
     lead: 'Twój obecny hosting ma własny panel, a nie cPanel czy Plesk? Przeniesiemy stronę przez FTP albo SFTP. Stara strona działa do chwili, gdy sam przełączysz domenę.',
     przygotuj: [
-      'Dane FTP lub SFTP: adres serwera, login i hasło — zwykle w panelu klienta starego dostawcy.',
-      'Nazwę bazy danych strony — przy samym FTP podajesz ją w kreatorze.',
+      'Dane FTP lub SFTP: adres serwera, login i hasło – zwykle w panelu klienta starego dostawcy.',
+      'Nazwę bazy danych strony – przy samym FTP podajesz ją w kreatorze.',
       'Adresy i hasła skrzynek pocztowych, które chcesz przenieść.',
       'Dostęp do miejsca, w którym zarządzasz DNS domeny.',
     ],
@@ -199,7 +199,7 @@ export const PORADNIKI: Poradnik[] = [
       },
       {
         tytul: 'Wskaż katalog strony i dopisz skrzynki',
-        tekst: `Wybierz katalog strony i podaj nazwę bazy — login i hasło bazy odczytamy z plików ${CMS_Z_ODCZYTEM_BAZY}. Skrzynki pocztowe dopisz razem z hasłami.`,
+        tekst: `Wybierz katalog strony i podaj nazwę bazy – login i hasło bazy odczytamy z plików ${CMS_Z_ODCZYTEM_BAZY}. Skrzynki pocztowe dopisz razem z hasłami.`,
       },
       ...KONIEC_KROKI,
     ],

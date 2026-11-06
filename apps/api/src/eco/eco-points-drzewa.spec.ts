@@ -17,7 +17,7 @@ function baza(wpisy: Array<Record<string, unknown>> = []) {
   };
 }
 
-describe('Eko-punkty — wkład w drzewo z opłaconej usługi', () => {
+describe('Eko-punkty – wkład w drzewo z opłaconej usługi', () => {
   it('pierwsza płatność: wkład z kluczem „pierwsza” i punkty', async () => {
     const drzewa = { wkladZUslugi: vi.fn(async () => 700) };
     const db = baza();

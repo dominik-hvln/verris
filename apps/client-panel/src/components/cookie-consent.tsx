@@ -140,9 +140,9 @@ export function CookieConsentManager() {
               Używamy cookies niezbędnych do działania panelu (logowanie, bezpieczeństwo).
               Za Twoją zgodą użyjemy także cookies opcjonalnych
               {cats.analytics || cats.marketing
-                ? " — funkcjonalnych, analitycznych i marketingowych"
-                : " — funkcjonalnych (zapamiętywanie udogodnień)"}
-              . Zgodę możesz w każdej chwili zmienić lub wycofać — przycisk „Preferencje
+                ? " – funkcjonalnych, analitycznych i marketingowych"
+                : " – funkcjonalnych (zapamiętywanie udogodnień)"}
+              . Zgodę możesz w każdej chwili zmienić lub wycofać – przycisk „Preferencje
               cookies” jest stale dostępny w rogu ekranu i w stopce. Szczegóły:{" "}
               <Link href="/legal/cookies" className="underline hover:text-neutral-200">
                 Polityka cookies
@@ -193,7 +193,7 @@ export function CookieConsentManager() {
             <div className="mt-4 space-y-3">
               <ConsentRow
                 label="Niezbędne"
-                description="Sesja logowania, ochrona CSRF, zapis Twojej decyzji. Zawsze aktywne — bez nich panel nie działa."
+                description="Sesja logowania, ochrona CSRF, zapis Twojej decyzji. Zawsze aktywne – bez nich panel nie działa."
                 checked
                 disabled
               />

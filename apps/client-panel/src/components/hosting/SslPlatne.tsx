@@ -61,7 +61,7 @@ export function SslPlatne({ serviceId, domains }: { serviceId: string; domains: 
     const ok = await potwierdz(
       `Z portfela pobierzemy ${K(produkt.priceGross)} za certyfikat ${produkt.name} dla ${host} na 1 rok. ` +
         (walidacja === 'DNS'
-          ? 'Weryfikacja domeny przez rekord DNS — gdy DNS domeny jest u nas, dodamy go sami.'
+          ? 'Weryfikacja domeny przez rekord DNS – gdy DNS domeny jest u nas, dodamy go sami.'
           : `Wiadomość z linkiem do weryfikacji przyjdzie na ${adres}@${domain}.`) +
         ' Po wydaniu zainstalujemy certyfikat na koncie automatycznie. Jeśli wystawca odrzuci zamówienie, opłata wróci do portfela.',
       { tytul: 'Zamówić certyfikat SSL?', akcja: 'Zamów i zapłać' },
@@ -76,7 +76,7 @@ export function SslPlatne({ serviceId, domains }: { serviceId: string; domains: 
     });
     setBusy(null);
     if (!w.ok) return setMsg({ type: 'err', text: w.blad });
-    setMsg({ type: 'ok', text: 'Certyfikat zamówiony — czeka na weryfikację domeny.' });
+    setMsg({ type: 'ok', text: 'Certyfikat zamówiony – czeka na weryfikację domeny.' });
     await wczytaj();
   };
 
@@ -92,7 +92,7 @@ export function SslPlatne({ serviceId, domains }: { serviceId: string; domains: 
     <section>
       <SectionHead
         title="Certyfikat płatny"
-        desc="Certyfikat DV od komercyjnego wystawcy z gwarancją — kupujesz z portfela, a my generujemy klucz, przeprowadzamy weryfikację i instalujemy certyfikat na koncie."
+        desc="Certyfikat DV od komercyjnego wystawcy z gwarancją – kupujesz z portfela, a my generujemy klucz, przeprowadzamy weryfikację i instalujemy certyfikat na koncie."
       />
       {dane.oferta.length > 0 ? (
         <div className="space-y-4 rounded-[10px] border border-line bg-card p-4">
@@ -114,7 +114,7 @@ export function SslPlatne({ serviceId, domains }: { serviceId: string; domains: 
                 id="ssl-certyfikat"
                 options={dane.oferta.map((p) => ({
                   value: String(p.productId),
-                  label: `${p.name}${p.wildcard ? ' — wildcard (wszystkie subdomeny)' : ' — jedna domena'} · ${K(p.priceGross)} / rok`,
+                  label: `${p.name}${p.wildcard ? ' – wildcard (wszystkie subdomeny)' : ' – jedna domena'} · ${K(p.priceGross)} / rok`,
                 }))}
               />
             </div>
@@ -146,7 +146,7 @@ export function SslPlatne({ serviceId, domains }: { serviceId: string; domains: 
             <p className="m-0 text-sm text-[color:var(--verris-body)]">
               {produkt ? (
                 <>
-                  Cena: <b className="text-foreground">{K(produkt.priceGross)}</b> brutto za 1 rok · certyfikat dla <span className="font-mono">{host || '—'}</span>
+                  Cena: <b className="text-foreground">{K(produkt.priceGross)}</b> brutto za 1 rok · certyfikat dla <span className="font-mono">{host || '–'}</span>
                 </>
               ) : null}
             </p>
@@ -157,7 +157,7 @@ export function SslPlatne({ serviceId, domains }: { serviceId: string; domains: 
           </div>
           {msg ? <p className={msg.type === 'ok' ? 'm-0 text-sm text-data-hi' : 'm-0 text-sm text-crit'}>{msg.text}</p> : null}
           <p className="m-0 text-xs text-muted-foreground">
-            Certyfikaty OV i EV (z weryfikacją firmy) — na zapytanie:{' '}
+            Certyfikaty OV i EV (z weryfikacją firmy) – na zapytanie:{' '}
             <Link href="/dashboard/support/new" className="underline">
               napisz zgłoszenie
             </Link>
@@ -206,7 +206,7 @@ export function SslPlatne({ serviceId, domains }: { serviceId: string; domains: 
                       . Jeśli DNS domeny jest u innego dostawcy, dodaj ten rekord tam.
                     </p>
                   ) : (
-                    <p className="m-0 text-muted-foreground">Czekamy na rekord weryfikacyjny od wystawcy — sprawdzimy to automatycznie.</p>
+                    <p className="m-0 text-muted-foreground">Czekamy na rekord weryfikacyjny od wystawcy – sprawdzimy to automatycznie.</p>
                   )
                 ) : null}
                 {z.problem ? <p className="m-0 text-warn">{z.problem}</p> : null}

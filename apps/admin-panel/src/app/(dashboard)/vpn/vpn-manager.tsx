@@ -100,7 +100,7 @@ export function VpnManager({ initial }: { initial: VpnOverviewDto }) {
         <div className="grid md:grid-cols-2 gap-2 text-sm text-zinc-300">
           <div>
             <span className="text-muted-foreground">Endpoint: </span>
-            <code>{initial.endpoint ?? "—"}</code>
+            <code>{initial.endpoint ?? "–"}</code>
           </div>
           <div>
             <span className="text-muted-foreground">Subnet: </span>
@@ -108,7 +108,7 @@ export function VpnManager({ initial }: { initial: VpnOverviewDto }) {
           </div>
           <div className="md:col-span-2">
             <span className="text-muted-foreground">Klucz publiczny serwera: </span>
-            <code className="break-all">{initial.serverPublicKey ?? "—"}</code>
+            <code className="break-all">{initial.serverPublicKey ?? "–"}</code>
           </div>
           <div className="md:col-span-2">
             <span className="text-muted-foreground">AllowedIPs klienta: </span>
@@ -127,7 +127,7 @@ export function VpnManager({ initial }: { initial: VpnOverviewDto }) {
             minLength={3}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            aria-label="Nazwa urządzenia VPN" placeholder='Nazwa, np. "Anna — laptop"'
+            aria-label="Nazwa urządzenia VPN" placeholder='Nazwa, np. "Anna – laptop"'
             className="vpn-input"
           />
           <input
@@ -156,7 +156,7 @@ export function VpnManager({ initial }: { initial: VpnOverviewDto }) {
           <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 overflow-hidden">
             <div className="flex items-center justify-between flex-wrap gap-2 border-b border-emerald-500/20 px-4 py-2.5">
               <span className="text-sm text-emerald-200 font-medium">
-                Konfiguracja „{oneTimeConfig.name}” — widoczna TYLKO TERAZ (klucz prywatny nie jest
+                Konfiguracja „{oneTimeConfig.name}” – widoczna TYLKO TERAZ (klucz prywatny nie jest
                 zapisywany)
               </span>
               <span className="flex gap-2">
@@ -207,7 +207,7 @@ export function VpnManager({ initial }: { initial: VpnOverviewDto }) {
               {peers.map((p) => (
                 <tr key={p.id} className="border-b border-white/5 text-zinc-300">
                   <td className="py-2 pr-4 font-medium text-white">{p.name}</td>
-                  <td className="py-2 pr-4">{p.ownerEmail ?? "—"}</td>
+                  <td className="py-2 pr-4">{p.ownerEmail ?? "–"}</td>
                   <td className="py-2 pr-4">
                     <code>{p.assignedIp}</code>
                   </td>
@@ -248,7 +248,7 @@ export function VpnManager({ initial }: { initial: VpnOverviewDto }) {
               {peers.length === 0 && (
                 <tr>
                   <td colSpan={7} className="py-6 text-center text-muted-foreground text-sm">
-                    Brak skonfigurowanych urządzeń — wygeneruj pierwszą konfigurację powyżej.
+                    Brak skonfigurowanych urządzeń – wygeneruj pierwszą konfigurację powyżej.
                   </td>
                 </tr>
               )}

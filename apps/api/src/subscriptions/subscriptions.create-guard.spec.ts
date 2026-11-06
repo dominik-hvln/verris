@@ -17,7 +17,7 @@ import { SubscriptionsService } from './subscriptions.service.js';
  * Testy pilnują obu warstw: walidacji DTO na wejściu kontrolera i twardego
  * warunku w serwisie (na wypadek gdyby serwis zawołał kto inny).
  */
-describe('Z-02 — MANUAL niedostępne ze ścieżki klienta', () => {
+describe('Z-02 – MANUAL niedostępne ze ścieżki klienta', () => {
   const bazoweZamowienie = {
     planId: '11111111-1111-4111-8111-111111111111',
     immediatePerformanceConsent: true,
@@ -60,7 +60,7 @@ describe('Z-02 — MANUAL niedostępne ze ścieżki klienta', () => {
     });
   });
 
-  describe('druga warstwa — warunek w serwisie', () => {
+  describe('druga warstwa – warunek w serwisie', () => {
     /**
      * Serwis ma dwanaście zależności, ale warunek MANUAL wykonuje się przed
      * pierwszym ich użyciem. Podstawiamy atrapy, które celowo rzucają — gdyby
@@ -98,7 +98,7 @@ describe('Z-02 — MANUAL niedostępne ze ścieżki klienta', () => {
       ).rejects.toBeInstanceOf(ForbiddenException);
     });
 
-    it('przy allowManual: true przechodzi dalej — czyli warunek nie blokuje operatora', async () => {
+    it('przy allowManual: true przechodzi dalej – czyli warunek nie blokuje operatora', async () => {
       const dto = { ...bazoweZamowienie, paymentSource: SubscriptionPaymentSource.MANUAL } as
         CreateSubscriptionDto;
       // Ścieżka operatorska ma iść dalej i dopiero tam sięgnąć po Prismę,

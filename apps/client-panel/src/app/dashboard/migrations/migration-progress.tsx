@@ -101,7 +101,7 @@ export function MigrationProgress({ serviceId, initial }: Props) {
       !(await potwierdz(
         'Skopiujemy jeszcze raz pliki i bazę. Na czas kopiowania bazy stara strona (WordPress, WooCommerce) pokaże ' +
           'komunikat o krótkiej przerwie technicznej, żeby nie przyjęła zamówienia, którego już nie przeniesiemy. ' +
-          'Zaraz po kopiowaniu przełącz DNS — wtedy przerwa potrwa kilka minut. Stara strona otworzy się sama najpóźniej ' +
+          'Zaraz po kopiowaniu przełącz DNS – wtedy przerwa potrwa kilka minut. Stara strona otworzy się sama najpóźniej ' +
           'po 2 godzinach. Sklep na innym systemie niż WordPress: wstrzymaj sprzedaż w jego panelu, zanim klikniesz.',
         { akcja: 'Dograj różnice teraz' },
       ))
@@ -252,16 +252,16 @@ export function JobRow({ job }: { job: MigrationJobView }) {
         {job.status === 'RUNNING' && job.progress?.note ? (
           <span className="ml-2 text-xs text-neutral-500">
             {job.progress.note}
-            {Number(job.progress.bytes) > 0 ? ` — ${formatBytes(job.progress.bytes)}` : ''}
+            {Number(job.progress.bytes) > 0 ? ` – ${formatBytes(job.progress.bytes)}` : ''}
           </span>
         ) : null}
         {job.status === 'RETRYING' ? <span className="ml-2 text-xs text-amber-400/80">ponawiam ({job.attempts}/{job.maxAttempts})</span> : null}
         {/* Surowy błąd workera (po angielsku, techniczny) widzi zespół w panelu obsługi. */}
-        {job.status === 'FAILED' ? <span className="ml-2 text-xs text-rose-400/80">nie udało się — przejmuje to nasz zespół</span> : null}
+        {job.status === 'FAILED' ? <span className="ml-2 text-xs text-rose-400/80">nie udało się – przejmuje to nasz zespół</span> : null}
         {job.status === 'COMPLETED' && job.integrity ? <IntegrityLine integrity={job.integrity} /> : null}
         {job.status === 'COMPLETED' && job.uwaga === 'strona-bez-bazy' ? (
           <span className="mt-0.5 block text-xs text-amber-300/90">
-            Strona odpowiada błędem — najczęściej dlatego, że jej baza danych została u poprzedniego dostawcy. Przenieś ją
+            Strona odpowiada błędem – najczęściej dlatego, że jej baza danych została u poprzedniego dostawcy. Przenieś ją
             w Migracje → Baza danych.
           </span>
         ) : null}
@@ -322,7 +322,7 @@ export function CutoverPanel({
 
       {plan.konserwacjaZrodlaDo && plan.status !== 'done' ? (
         <p className="rounded-lg border border-cyan-500/25 bg-cyan-500/[0.06] px-3 py-2 text-xs text-cyan-100/90">
-          Stara strona jest w trybie konserwacji do {dataGodzinaPl(plan.konserwacjaZrodlaDo)}. Przełącz DNS teraz — potem
+          Stara strona jest w trybie konserwacji do {dataGodzinaPl(plan.konserwacjaZrodlaDo)}. Przełącz DNS teraz – potem
           stara strona sama wróci do działania i znowu będzie mogła przyjmować zamówienia.
         </p>
       ) : null}
@@ -336,7 +336,7 @@ export function CutoverPanel({
         <div className="rounded-lg border border-amber-500/25 bg-amber-500/[0.06] px-3 py-2 text-xs text-amber-100/90">
           {plan.dosyncBazy
             ? 'Tuż przed przełączeniem DNS dograj różnice: pliki, bazę (zamówienia, klienci, stany) i pocztę. Kopiowanie bazy to przerwa na kilka minut na starej stronie.'
-            : `Od transferu minęło trochę czasu — zalecamy dograć różnice (${poczta ? 'nowe wiadomości' : 'pliki i nową pocztę'}) tuż przed przełączeniem.`}
+            : `Od transferu minęło trochę czasu – zalecamy dograć różnice (${poczta ? 'nowe wiadomości' : 'pliki i nową pocztę'}) tuż przed przełączeniem.`}
           <div className="mt-2">
             <Button type="button" disabled={busy === 'delta'} onClick={onDelta} className="bg-amber-600 hover:bg-amber-500 text-white text-xs">
               {busy === 'delta' ? 'Dosynchronizowuję…' : 'Dograj różnice (delta-sync)'}
@@ -375,7 +375,7 @@ export function CutoverPanel({
                     <td data-label="Typ" className="py-1 pr-3">{r.type}</td>
                     <td data-label="Nazwa" className="py-1 pr-3">{r.name}</td>
                     <td data-label="Wartość" className="py-1 pr-3">{r.value}</td>
-                    <td data-label="Priorytet" className="py-1">{r.priority ?? '—'}</td>
+                    <td data-label="Priorytet" className="py-1">{r.priority ?? '–'}</td>
                   </tr>
                 ))}
               </tbody>

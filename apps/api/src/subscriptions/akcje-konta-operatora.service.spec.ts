@@ -85,7 +85,7 @@ function zbuduj(opcje: { sub?: unknown; bladWezla?: Error; uzytkownicyBazy?: str
 const z = (powod = 'Klient zgłosił wyciek hasła skrzynki', zgloszenie?: string, operatorRole = 'STAFF') => ({ subscriptionId: 's1', operatorUserId: OPERATOR, operatorRole, powod, zgloszenie });
 const dziennikZespolu = (w: Wiersz[]) => w.filter((r) => r.action === 'OPERATOR_ACCOUNT_CHANGED');
 
-describe('F2.2 AkcjeKontaOperatoraService — reset hasła skrzynki', () => {
+describe('F2.2 AkcjeKontaOperatoraService – reset hasła skrzynki', () => {
   it('woła metodę klienta z id właściciela, hasło losowe nie wraca w odpowiedzi, mailu ani dzienniku', async () => {
     const { svc, directAdmin, mailer, wiersze, hasla } = zbuduj();
     const wynik = await svc.resetHaslaSkrzynki(z(undefined, '#ab12cd34'), 'Jan@Klient.pl');
@@ -156,7 +156,7 @@ describe('F2.2 AkcjeKontaOperatoraService — reset hasła skrzynki', () => {
     }
   });
 
-  it('przegląd: STAFF nie zmienia usługi konta zespołu (ADMIN/STAFF) — 403 bez węzła i wpisów; ADMIN może', async () => {
+  it('przegląd: STAFF nie zmienia usługi konta zespołu (ADMIN/STAFF) – 403 bez węzła i wpisów; ADMIN może', async () => {
     for (const rola of ['ADMIN', 'STAFF']) {
       const sub = { userId: WLASCICIEL, user: { email: 'szef@verris.pl', firstName: null, role: rola }, account: { id: 'acc1', domain: 'verris.pl' } };
       const { svc, directAdmin, mailer, wiersze } = zbuduj({ sub });
@@ -182,7 +182,7 @@ describe('F2.2 AkcjeKontaOperatoraService — reset hasła skrzynki', () => {
   });
 });
 
-describe('F2.2 AkcjeKontaOperatoraService — pozostałe akcje', () => {
+describe('F2.2 AkcjeKontaOperatoraService – pozostałe akcje', () => {
   it('FTP: losowe hasło przez metodę klienta, mail z linkiem do zakładki FTP', async () => {
     const { svc, directAdmin, mailer } = zbuduj();
     await svc.resetHaslaFtp(z(), 'ftp@klient.pl');

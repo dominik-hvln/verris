@@ -17,7 +17,7 @@ it("odrzuca typy bez trasy w panelu obsługi (węzeł, migracja)", async () => {
   expect((await staffGlobalSearchAction("t1")).map((r) => r.type)).toEqual(["user", "ticket"]);
 });
 
-it("bez CUSTOMERS_VIEW (API pomija klientów) — bez faktur i domen, które prowadzą na kartę klienta", async () => {
+it("bez CUSTOMERS_VIEW (API pomija klientów) – bez faktur i domen, które prowadzą na kartę klienta", async () => {
   mockStaffApi.mockResolvedValue({
     results: [
       { type: "invoice", id: "f1", title: "FV/1", subtitle: "", userId: "u1" },

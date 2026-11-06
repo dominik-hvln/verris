@@ -147,18 +147,18 @@ export class EmailMarketingService {
    */
   private async wymagajTransportu(userId: string, subscriptionId: string, operacja: string): Promise<void> {
     if (this.mailer.emmTransportConfigured()) return;
-    this.logger.error(`EMM: ${operacja} odrzucona — brak EMM_SMTP_URL (sub=${subscriptionId}).`);
+    this.logger.error(`EMM: ${operacja} odrzucona – brak EMM_SMTP_URL (sub=${subscriptionId}).`);
     await this.audit.record({
       action: 'EMM_TRANSPORT_UNAVAILABLE',
       userId,
       details: {
         subscriptionId,
         operacja,
-        powod: 'EMM_SMTP_URL nie jest ustawiony — kampanie i potwierdzenia zapisu wstrzymane (bez przejścia na SMTP platformy)',
+        powod: 'EMM_SMTP_URL nie jest ustawiony – kampanie i potwierdzenia zapisu wstrzymane (bez przejścia na SMTP platformy)',
       },
     });
     throw new ServiceUnavailableException(
-      'Wysyłka kampanii jest chwilowo niedostępna — dotyczy to też e-maili potwierdzających zapis na listę. ' +
+      'Wysyłka kampanii jest chwilowo niedostępna – dotyczy to też e-maili potwierdzających zapis na listę. ' +
         'Twoje listy i kampanie są bezpieczne; spróbuj ponownie później.',
     );
   }
@@ -231,7 +231,7 @@ export class EmailMarketingService {
     const used = await this.sentThisMonth(ws.subscriptionId);
     if (used + n > ws.monthlySends) {
       throw new ForbiddenException(
-        `Miesięczny limit wysyłek planu (${ws.monthlySends}) zostałby przekroczony — każdy nowy kontakt z potwierdzeniem zapisu to jeden mail. Wysłano w tym miesiącu: ${used}, potwierdzenia: ${n}.`,
+        `Miesięczny limit wysyłek planu (${ws.monthlySends}) zostałby przekroczony – każdy nowy kontakt z potwierdzeniem zapisu to jeden mail. Wysłano w tym miesiącu: ${used}, potwierdzenia: ${n}.`,
       );
     }
   }
@@ -682,7 +682,7 @@ export class EmailMarketingService {
     // Kampania zostaje SENDING; wznowi się automatycznie po zwolnieniu cordonu.
     if (await this.outbound.isCordoned(campaign.userId)) {
       this.logger.warn(
-        `EMM campaign ${campaignId} wstrzymana — konto ${campaign.userId} w cordonie (outbound).`,
+        `EMM campaign ${campaignId} wstrzymana – konto ${campaign.userId} w cordonie (outbound).`,
       );
       return { done: true, processed: 0 };
     }
@@ -690,7 +690,7 @@ export class EmailMarketingService {
     // Q-05 — transport kampanii zniknął w trakcie wysyłki (np. zdjęty EMM_SMTP_URL): wstrzymaj, zanim
     // powstaną rekordy wysyłki. Kampania zostaje SENDING i rusza sama po przywróceniu transportu.
     if (!this.mailer.emmTransportConfigured()) {
-      this.logger.warn(`EMM campaign ${campaignId} wstrzymana — brak EMM_SMTP_URL.`);
+      this.logger.warn(`EMM campaign ${campaignId} wstrzymana – brak EMM_SMTP_URL.`);
       return { done: true, processed: 0 };
     }
 
@@ -879,7 +879,7 @@ export class EmailMarketingService {
       title: 'Potwierdź zapis na listę',
       bodyMarkdown:
         `Aby zakończyć zapis na listę **${list.name}**, potwierdź swój adres e-mail klikając przycisk poniżej.\n\n` +
-        'Jeśli to nie Ty zapisywałeś/aś się na tę listę, zignoruj tę wiadomość — bez potwierdzenia nie wyślemy Ci żadnych innych e-maili.',
+        'Jeśli to nie Ty zapisywałeś/aś się na tę listę, zignoruj tę wiadomość – bez potwierdzenia nie wyślemy Ci żadnych innych e-maili.',
       cta: { label: 'Potwierdzam zapis', url: this.confirmUrl(contact.confirmToken) },
       footnote: 'Link potwierdzający jest jednorazowy.',
       recipientEmail: contact.email,

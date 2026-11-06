@@ -109,7 +109,7 @@ export const AKCJE_WEZLA: AkcjaWezla[] = [
     slowa: "profil hostingu poczta ftp cagefs php",
     grupa: "Aktualizacje",
     nazwa: "Profil hostingu",
-    opis: "Poczta, FTP, bazy, CageFS i PHP — ponowne zastosowanie ustawień.",
+    opis: "Poczta, FTP, bazy, CageFS i PHP – ponowne zastosowanie ustawień.",
     perm: "ADMIN",
     kiedy: dziala,
     href: (w) => karta(w, "?sekcja=aktualizacje#profil"),
@@ -345,7 +345,7 @@ export const AKCJE_WEZLA: AkcjaWezla[] = [
     slowa: "sso ssh zaloguj directadmin",
     grupa: "Dostęp i historia",
     nazwa: "Zaloguj do DA węzła (SSO)",
-    opis: "Jednorazowy link logowania do panelu DA (2 minuty); SSH — w nagłówku karty.",
+    opis: "Jednorazowy link logowania do panelu DA (2 minuty); SSH – w nagłówku karty.",
     // POST admin/servers/:id/sso-url — tylko ADMIN, tworzenie linku trafia do dziennika (NODE_ADMIN_SSO_URL_CREATED).
     perm: "ADMIN",
     kiedy: zawsze,

@@ -17,7 +17,7 @@ function Wyszarzone({ nazwa, powod }: { nazwa: string; powod: string }) {
   return (
     <span aria-disabled="true" title={powod} className="cursor-not-allowed text-sm font-semibold text-muted-foreground opacity-60">
       {nazwa}
-      <span className="sr-only"> — {powod}</span>
+      <span className="sr-only"> – {powod}</span>
     </span>
   );
 }
@@ -74,7 +74,7 @@ export default async function OperacjeFlotyPage() {
         </Sekcja>
       )}
 
-      <Sekcja id="pakiety" tytul="Pakiety DirectAdmina" opis="Po zmianie limitów planu wyślij pakiety — konta dostaną nowe limity od razu.">
+      <Sekcja id="pakiety" tytul="Pakiety DirectAdmina" opis="Po zmianie limitów planu wyślij pakiety – konta dostaną nowe limity od razu.">
         {tylkoAdmin ? <Wyszarzone nazwa="Wyślij pakiety" powod={tylkoAdmin} /> : <PakietyFlotyPanel />}
       </Sekcja>
     </div>

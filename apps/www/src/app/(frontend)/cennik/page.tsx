@@ -14,7 +14,7 @@ import { faqSchema, ofertyHostingu, productSchema } from '@/lib/schema';
 
 // Makieta 14.10, plansza Cennik. Ceny i stawki z API (lib/ceny-api); w metadanych bez kwot, bo te są statyczne.
 export const metadata: Metadata = {
-  title: 'Cennik hostingu — cena odnowienia znana z góry | Verris',
+  title: 'Cennik hostingu – cena odnowienia znana z góry | Verris',
   description:
     'Ile kosztuje hosting? Jedna cena brutto, odnowienie po cenie z cennika. Policz w kalkulatorze dopłatę za dodatkową moc w szczycie.',
   alternates: { canonical: '/cennik' },
@@ -82,7 +82,7 @@ export default async function Page() {
           {VPS_W_SPRZEDAZY && (
             <Card>
               <h2 className="a-h3">Serwery VPS</h2>
-              <p>Zasoby i wycenę VPS sprawdzisz w panelu — konfigurujesz go pod własne potrzeby.</p>
+              <p>Zasoby i wycenę VPS sprawdzisz w panelu – konfigurujesz go pod własne potrzeby.</p>
               <Link href="/vps">Plany VPS →</Link>
             </Card>
           )}

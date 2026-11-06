@@ -357,7 +357,7 @@ ${preheaderTrick}
             <table role="presentation" border="0" cellspacing="0" cellpadding="0" width="100%">
               <tr>
                 <td>
-                  <p style="margin:0 0 6px;color:${PALETTE.textSecondary};font-size:12px;line-height:1.5;font-weight:600;">Verris — skaluj świadomie</p>
+                  <p style="margin:0 0 6px;color:${PALETTE.textSecondary};font-size:12px;line-height:1.5;font-weight:600;">Verris – skaluj świadomie</p>
                   <p style="margin:0 0 6px;color:${PALETTE.textMuted};font-size:11px;line-height:1.5;">
                     Kontakt: <a href="mailto:kontakt@verris.pl" style="color:${PALETTE.accent};text-decoration:none;">kontakt@verris.pl</a>
                     &middot; RODO: <a href="mailto:rodo@verris.pl" style="color:${PALETTE.accent};text-decoration:none;">rodo@verris.pl</a>
@@ -386,13 +386,13 @@ ${preheaderTrick}
 </html>`;
 
   const text = [
-    `Verris — ${title}`,
+    `Verris – ${title}`,
     preheader ? '' : null,
     preheader ?? null,
     '',
     toPlaintext(bodyMarkdown, { cta, footnote }),
     '',
-    '— Zespół Verris',
+    '– Zespół Verris',
     '',
     `Kontakt: kontakt@verris.pl · RODO: rodo@verris.pl`,
     `Polityka prywatności: ${panelUrl}/legal/privacy`,

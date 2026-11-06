@@ -36,7 +36,7 @@ it("trasy: odczyty, sprawdź i odblokuj IP, kwarantanna, przywrócenie, wczytani
   ]);
 });
 
-it("nieznana akcja albo sekcja — bez API; 403 strażnika — nazwa uprawnienia; odmowa serwisu — jej treść", async () => {
+it("nieznana akcja albo sekcja – bez API; 403 strażnika – nazwa uprawnienia; odmowa serwisu – jej treść", async () => {
   expect(await zapisBezpieczenstwaAction("s1", "constructor" as never, {})).toEqual({ ok: false, error: "Nieznana akcja." });
   expect(await odczytBezpieczenstwaAction("s1", "../../users" as never)).toEqual({ ok: false, error: "Nieznana sekcja." });
   expect(api).not.toHaveBeenCalled();
@@ -45,9 +45,9 @@ it("nieznana akcja albo sekcja — bez API; 403 strażnika — nazwa uprawnienia
     ok: false,
     error: "Twoja rola nie ma uprawnienia „Odblokowanie IP klienta (IP_UNBLOCK)”.",
   });
-  api.mockRejectedValueOnce(new AdminApiError("Adres nie pochodzi z logowań klienta ani z tego zgłoszenia — odblokuje go NOC.", 403));
+  api.mockRejectedValueOnce(new AdminApiError("Adres nie pochodzi z logowań klienta ani z tego zgłoszenia – odblokuje go NOC.", 403));
   expect(await zapisBezpieczenstwaAction("s1", "odblokuj-ip", { ip: "1.2.3.4", powod: "x".repeat(12) })).toEqual({
     ok: false,
-    error: "Adres nie pochodzi z logowań klienta ani z tego zgłoszenia — odblokuje go NOC.",
+    error: "Adres nie pochodzi z logowań klienta ani z tego zgłoszenia – odblokuje go NOC.",
   });
 });

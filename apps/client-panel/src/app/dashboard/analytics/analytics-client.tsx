@@ -100,7 +100,7 @@ export function AnalyticsClient({
               void load(v);
             }}
             className="w-full max-w-md"
-            options={services.map((s) => ({ value: s.id, label: `${s.name}${s.domain ? ` — ${s.domain}` : ''}` }))}
+            options={services.map((s) => ({ value: s.id, label: `${s.name}${s.domain ? ` – ${s.domain}` : ''}` }))}
           />
         </div>
       )}
@@ -283,7 +283,7 @@ function SiteCard({
       {open && (
         <div className="space-y-5 border-t border-white/10 p-4">
           <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-            <p className="mb-2 text-xs font-medium text-neutral-300">Kod śledzący — wklej tuż przed &lt;/head&gt; na swojej stronie:</p>
+            <p className="mb-2 text-xs font-medium text-neutral-300">Kod śledzący – wklej tuż przed &lt;/head&gt; na swojej stronie:</p>
             <div className="flex items-center gap-2">
               <code className="min-w-0 flex-1 break-all rounded-lg bg-black/50 px-3 py-2 text-[11px] text-cyan-200">{snippet}</code>
               <button onClick={copy} className="shrink-0 rounded-lg border border-white/10 px-2.5 py-2 text-neutral-300 hover:bg-white/5">
@@ -392,7 +392,7 @@ function RankList({ title, rows, empty, stopka }: { title: string; rows: Array<{
             <div key={i} className="relative overflow-hidden rounded-md">
               <div className="absolute inset-y-0 left-0 rounded-md bg-cyan-500/15" style={{ width: `${(r.count / max) * 100}%` }} />
               <div className="relative flex items-center justify-between px-2 py-1 text-xs">
-                <span className="break-words text-neutral-200">{r.label || '—'}</span>
+                <span className="break-words text-neutral-200">{r.label || '–'}</span>
                 <span className="ml-2 shrink-0 font-medium text-neutral-400">{r.count}</span>
               </div>
             </div>

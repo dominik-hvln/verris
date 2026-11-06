@@ -76,7 +76,7 @@ export default async function ReferralEnrollmentsPage({
           Program partnerski
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Zgłoszenia klientów do programu poleceń — akceptacja lub odrzucenie z notatką.
+          Zgłoszenia klientów do programu poleceń – akceptacja lub odrzucenie z notatką.
         </p>
       </header>
 
@@ -152,7 +152,7 @@ export default async function ReferralEnrollmentsPage({
                     {row.user.referralCode ? (
                       <span className="text-emerald-300">{row.user.referralCode}</span>
                     ) : (
-                      <span className="text-neutral-500">—</span>
+                      <span className="text-neutral-500">–</span>
                     )}
                     <p className="mt-1 font-sans text-neutral-500">{row.user.ecoPoints} pkt EKO</p>
                   </td>

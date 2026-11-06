@@ -72,7 +72,7 @@ async function wykryj(zakres: 'strona' | 'wszystko') {
 }
 afterEach(() => act(() => root.unmount()));
 
-it('lista stron: na start strona główna z jej katalogiem i bazą, po wyborze innej — jej katalog, login FTP i baza', async () => {
+it('lista stron: na start strona główna z jej katalogiem i bazą, po wyborze innej – jej katalog, login FTP i baza', async () => {
   await wykryj('strona');
   expect(el.textContent).toContain('Którą stronę przenosimy?');
   expect(pole('Ścieżka na serwerze').value).toBe('/httpdocs');

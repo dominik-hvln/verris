@@ -221,7 +221,7 @@ export class StagingService {
       },
     });
     if (inflight) {
-      throw new ConflictException('Operacja na stagingu jest już w toku — poczekaj na jej zakończenie.');
+      throw new ConflictException('Operacja na stagingu jest już w toku – poczekaj na jej zakończenie.');
     }
   }
 

@@ -86,7 +86,7 @@ async function konta() {
 
 const dwaFa = (id: string) => prisma().user.findUniqueOrThrow({ where: { id }, select: { isTwoFactorEnabled: true, twoFactorSecret: true } });
 
-describe('Przegląd 28.09 — subkonto nie działa na danych osobistych właściciela', () => {
+describe('Przegląd 28.09 – subkonto nie działa na danych osobistych właściciela', () => {
   beforeAll(async () => {
     app = await NestFactory.create(Aplikacja, { logger: false });
     await app.listen(0);
@@ -143,7 +143,7 @@ describe('Przegląd 28.09 — subkonto nie działa na danych osobistych właści
     expect((await zadanie('PATCH', '/me/marketing-preferences', k.wlasciciel, { loginAlertsEmail: false })).status).toBe(200);
   });
 
-  it('wyszukiwarka: klienci tylko z CUSTOMERS_VIEW, węzły z NODES_VIEW, bez żadnego uprawnienia typu — 403', async () => {
+  it('wyszukiwarka: klienci tylko z CUSTOMERS_VIEW, węzły z NODES_VIEW, bez żadnego uprawnienia typu – 403', async () => {
     const t = Math.random().toString(36).slice(2, 8);
     const pulpit = await prisma().staffRole.create({ data: { name: `pulpit-${t}`, permissions: ['DASHBOARD_VIEW'] } });
     const flota = await prisma().staffRole.create({ data: { name: `kb-${t}`, permissions: ['NODES_VIEW'] } });

@@ -133,7 +133,7 @@ export class TicketSlaScheduler {
           category: 'SUPPORT',
           severity: 'critical',
           title: 'SLA pierwszej odpowiedzi przekroczone',
-          body: `#${t.id.slice(0, 8)} — ${t.subject}`,
+          body: `#${t.id.slice(0, 8)} – ${t.subject}`,
           link: `/tickets/${t.id}`,
         });
         if (r.email && t.slaResponseDueAt) {
@@ -197,7 +197,7 @@ export class TicketSlaScheduler {
         category: 'SUPPORT',
         severity: 'info',
         title: 'Czekamy na Twoją odpowiedź',
-        body: `#${t.id.slice(0, 8)} — ${t.subject}`,
+        body: `#${t.id.slice(0, 8)} – ${t.subject}`,
         link: `/dashboard/support/${t.id}`,
       });
       if (t.user?.email) {
@@ -254,7 +254,7 @@ export class TicketSlaScheduler {
           category: 'SUPPORT',
           severity: 'info',
           title: 'Zgłoszenie zamknięte automatycznie',
-          body: `#${t.id.slice(0, 8)} — ${t.subject} (brak odpowiedzi klienta)`,
+          body: `#${t.id.slice(0, 8)} – ${t.subject} (brak odpowiedzi klienta)`,
           link: `/tickets/${t.id}`,
         });
       }

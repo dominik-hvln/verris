@@ -66,7 +66,7 @@ afterEach(() => {
   k.remove();
 });
 
-describe("PB-42 KontoKlientaPanel — interakcja", () => {
+describe("PB-42 KontoKlientaPanel – interakcja", () => {
   it("klik „DNS” woła akcję raz z ('s1','dns',{}), pokazuje rekordy; ponowne otwarcie bez drugiego odczytu", async () => {
     wczytaj.mockResolvedValueOnce(DNS);
     await klik("DNS");

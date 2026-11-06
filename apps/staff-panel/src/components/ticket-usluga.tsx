@@ -75,7 +75,7 @@ export function TicketUsluga({
           <div className="flex flex-col">
             <span className="text-sm font-semibold">{nazwaUslugiZgloszenia(usluga)}</span>
             <span className="text-[12.5px] text-muted-foreground">
-              {usluga.plan?.name ?? "—"} · {etykieta(SUBSCRIPTION_STATUS_PL, usluga.status).toLowerCase()}
+              {usluga.plan?.name ?? "–"} · {etykieta(SUBSCRIPTION_STATUS_PL, usluga.status).toLowerCase()}
             </span>
           </div>
         ) : (
@@ -116,7 +116,7 @@ export function TicketUsluga({
             />
           </div>
         ) : (
-          <span className="text-[12.5px] text-muted-foreground">Lista usług klienta niedostępna — powiązanie zmienisz po odświeżeniu.</span>
+          <span className="text-[12.5px] text-muted-foreground">Lista usług klienta niedostępna – powiązanie zmienisz po odświeżeniu.</span>
         )}
         {blad ? (
           <p role="alert" className="text-[13px] text-crit">

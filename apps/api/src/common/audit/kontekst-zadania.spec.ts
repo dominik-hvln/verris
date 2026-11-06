@@ -28,7 +28,7 @@ describe('KontekstZadaniaInterceptor + AuditService', () => {
     await lastValueFrom(new KontekstZadaniaInterceptor().intercept(ctx(undefined), { handle: () => of(1) }));
   });
 
-  it('O-03 — żądanie subkonta: wpis na koncie właściciela dostaje jako autora osobę z subkonta', async () => {
+  it('O-03 – żądanie subkonta: wpis na koncie właściciela dostaje jako autora osobę z subkonta', async () => {
     const { svc, create } = audyt();
     const u = { userId: 'wlasciciel', principalUserId: 'sub-1', customerOwnerId: 'wlasciciel' };
     const handler = { handle: () => defer(async () => {
@@ -43,7 +43,7 @@ describe('KontekstZadaniaInterceptor + AuditService', () => {
     ]);
   });
 
-  it('F2.2 — akcja operatora z karty usługi: wpis „właściciel sam” dostaje autora = operator i numer zgłoszenia', async () => {
+  it('F2.2 – akcja operatora z karty usługi: wpis „właściciel sam” dostaje autora = operator i numer zgłoszenia', async () => {
     const { svc, create } = audyt();
     const magazyn = { operator: { wlasciciel: 'wlasciciel', operatorUserId: 'operator-1', zgloszenieId: 'z-1' } };
     await kontekstZadania.run(magazyn, async () => {

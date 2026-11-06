@@ -44,7 +44,7 @@ describe("TicketUsluga", () => {
   });
 });
 
-describe("weryfikacja 12.10 — usługa usuniętego konta bez technicznego przyrostka domeny", () => {
+describe("weryfikacja 12.10 – usługa usuniętego konta bez technicznego przyrostka domeny", () => {
   const SUROWA = "z18b.d3.hvln.pl~usuniete-97c925b0-a215-40bc-9c78-28752e3cc91b";
 
   it("domenaDoWyswietlenia: „<domena>~usuniete-<uuid>” → „<domena> (usunięta)”, inne wartości bez zmian", () => {

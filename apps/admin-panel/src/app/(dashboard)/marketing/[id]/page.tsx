@@ -21,7 +21,7 @@ const SEGMENT: Record<string, string> = {
   PRODUCT_UPDATES_OPT_IN: "Zgoda na nowości produktowe",
   ALL_ACTIVE_USERS: "Wszyscy aktywni (tylko legal/ważne)",
 };
-const kiedy = (iso: string | null) => (iso ? new Date(iso).toLocaleString("pl-PL", { timeZone: "Europe/Warsaw", dateStyle: "short", timeStyle: "short" }) : "—");
+const kiedy = (iso: string | null) => (iso ? new Date(iso).toLocaleString("pl-PL", { timeZone: "Europe/Warsaw", dateStyle: "short", timeStyle: "short" }) : "–");
 
 /**
  * Fala 1B — szczegół kampanii (GET /admin/marketing/campaigns/:id, PROMO_MANAGE): treść, segment, terminy i liczniki
@@ -55,7 +55,7 @@ export default async function KampaniaPage({ params }: { params: Promise<{ id: s
       </div>
 
       <RzadKpi etykieta="Wysyłka kampanii">
-        <Kpi etykieta="Odbiorcy" wartosc={k.recipientCount || "—"} />
+        <Kpi etykieta="Odbiorcy" wartosc={k.recipientCount || "–"} />
         <Kpi etykieta="Wysłane" wartosc={k.sentCount} />
         <Kpi etykieta="Wypisani" wartosc={k.suppressedCount} opis="pominięci po wypisie" />
         <Kpi etykieta="Błędy" wartosc={k.failedCount} />

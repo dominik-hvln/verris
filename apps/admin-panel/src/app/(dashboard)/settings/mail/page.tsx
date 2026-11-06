@@ -4,7 +4,7 @@ import { fetchMailSettings } from './actions';
 import { MailSettingsForm } from './mail-settings-form';
 import { BladStrony, wynik } from "@/components/blad-strony";
 
-export const metadata = { title: 'Poczta — admin Verris' };
+export const metadata = { title: 'Poczta – admin Verris' };
 
 export default async function MailSettingsPage() {
   const bramka = await bramkaStrony("/settings/mail");

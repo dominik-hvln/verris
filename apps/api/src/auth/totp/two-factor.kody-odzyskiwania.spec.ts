@@ -9,7 +9,7 @@ import { AuthController } from '../auth.controller.js';
  * (to ona służy też do resetu hasła), miał i hasło, i drugi składnik. Kody są teraz tylko w odpowiedzi
  * (panel pokazuje je raz), a nową partię wydaje osobna trasa za hasłem + bieżącym kodem z aplikacji.
  */
-describe('2FA — kody odzyskiwania tylko w panelu, nie w mailu', () => {
+describe('2FA – kody odzyskiwania tylko w panelu, nie w mailu', () => {
   const SEKRET = 'JBSWY3DPEHPK3PXP';
   const totp = new TotpService();
 

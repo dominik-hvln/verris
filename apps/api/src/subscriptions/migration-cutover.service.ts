@@ -171,31 +171,31 @@ export class MigrationCutoverService {
       status = 'done';
       message = poczta
         ? dns.delegatedToExpectedNs
-          ? 'Domena korzysta z naszych serwerów nazw — nowa poczta trafia już do skrzynek na tym koncie.'
-          : 'Rekord MX wskazuje na nasz serwer — nowa poczta trafia już do skrzynek na tym koncie.'
+          ? 'Domena korzysta z naszych serwerów nazw – nowa poczta trafia już do skrzynek na tym koncie.'
+          : 'Rekord MX wskazuje na nasz serwer – nowa poczta trafia już do skrzynek na tym koncie.'
         : dns.delegatedToExpectedNs
-          ? 'Domena jest delegowana na nasze serwery nazw — ruch trafia już na nowy hosting.'
-          : 'Rekordy DNS wskazują na nasz serwer — ruch trafia już na nowy hosting.';
+          ? 'Domena jest delegowana na nasze serwery nazw – ruch trafia już na nowy hosting.'
+          : 'Rekordy DNS wskazują na nasz serwer – ruch trafia już na nowy hosting.';
     } else if (request.status === MigrationStatus.COMPLETED) {
       status = 'waiting-dns';
       message = poczta
         ? 'Wiadomości są już w skrzynce na tym koncie. Żeby nowa poczta też trafiała tutaj, ustaw u obecnego dostawcy DNS ' +
-          'poniższe rekordy poczty, a potem kliknij „Sprawdź DNS”. Strona zostaje tam, gdzie jest — jej rekordów nie zmieniasz.'
+          'poniższe rekordy poczty, a potem kliknij „Sprawdź DNS”. Strona zostaje tam, gdzie jest – jej rekordów nie zmieniasz.'
         : konserwacjaZrodlaDo
           ? 'Baza jest skopiowana jeszcze raz, a stara strona jest w trybie konserwacji, żeby nie przyjęła zamówienia, ' +
             'którego już nie przeniesiemy. Teraz ustaw poniższe rekordy DNS (albo przełącz NS na nasze) i kliknij „Sprawdź DNS”.'
           : dosyncBazy
-            ? 'Dane są przeniesione, a stara strona działa dalej. Tuż przed zmianą DNS kliknij „Dograj różnice” — skopiujemy ' +
+            ? 'Dane są przeniesione, a stara strona działa dalej. Tuż przed zmianą DNS kliknij „Dograj różnice” – skopiujemy ' +
               'jeszcze raz pliki i bazę (zamówienia, klientów, stany magazynowe). Na czas kopiowania bazy stara strona ' +
               'zrobi kilkuminutową przerwę, żeby nic nie zginęło. Potem ustaw poniższe rekordy DNS i kliknij „Sprawdź DNS”.'
             : 'Dane są przeniesione. Ustaw poniższe rekordy DNS u obecnego dostawcy (albo przełącz NS na nasze), ' +
               'a potem kliknij „Sprawdź DNS”. Do czasu przełączenia stara strona działa bez przerwy.';
     } else if (request.status === MigrationStatus.RUNNING) {
       status = 'ready';
-      message = 'Transfer danych jeszcze trwa — cutover DNS będzie możliwy po jego zakończeniu.';
+      message = 'Transfer danych jeszcze trwa – cutover DNS będzie możliwy po jego zakończeniu.';
     } else {
       status = 'blocked';
-      message = 'Zlecenie wymaga uwagi naszego zespołu — cutover wstrzymany do wyjaśnienia.';
+      message = 'Zlecenie wymaga uwagi naszego zespołu – cutover wstrzymany do wyjaśnienia.';
     }
 
     const records: CutoverRecordInstruction[] = [];
@@ -205,7 +205,7 @@ export class MigrationCutoverService {
           type: 'A',
           name: domain,
           value: ip,
-          note: 'Główny rekord strony — kieruje domenę na nowy serwer.',
+          note: 'Główny rekord strony – kieruje domenę na nowy serwer.',
         },
         {
           type: 'A',
@@ -224,7 +224,7 @@ export class MigrationCutoverService {
           name: domain,
           value: `mail.${domain}`,
           priority: 10,
-          note: 'Dostarczanie poczty na nowy serwer — zmień dopiero po delta-syncu skrzynek.',
+          note: 'Dostarczanie poczty na nowy serwer – zmień dopiero po delta-syncu skrzynek.',
         },
       );
     }
@@ -236,7 +236,7 @@ export class MigrationCutoverService {
           name: domain,
           value: `mail.${domain}`,
           priority: 10,
-          note: 'Dostarczanie nowej poczty tutaj — tuż przed zmianą dograj różnice (delta-sync).',
+          note: 'Dostarczanie nowej poczty tutaj – tuż przed zmianą dograj różnice (delta-sync).',
         },
       );
     }
@@ -247,7 +247,7 @@ export class MigrationCutoverService {
         ? {
             nameservers: dns.expectedNameservers,
             note:
-              'Najprostsza opcja: u rejestratora domeny zmień serwery nazw (NS) na powyższe — ' +
+              'Najprostsza opcja: u rejestratora domeny zmień serwery nazw (NS) na powyższe – ' +
               'całą strefą DNS zarządzamy wtedy my i nic więcej nie musisz ustawiać.',
           }
         : null;

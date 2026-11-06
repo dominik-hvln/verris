@@ -8,7 +8,7 @@ const D = (v: string) => new Prisma.Decimal(v);
  * P2-10 (beta 3.11): „Pobierz całą historię (CSV)” dawał klientowi zrzut techniczny (userId, idempotencyKey,
  * PROMO_CREDIT, czas UTC, bez numeru dokumentu i VAT). Księgowa ma dostać polskie kolumny i dokument za wpłatę.
  */
-describe('P2-10 — historia portfela dla klienta', () => {
+describe('P2-10 – historia portfela dla klienta', () => {
   const wiersze = [
     {
       createdAt: new Date('2026-11-02T23:08:12Z'),

@@ -71,7 +71,7 @@ const render = async (sekcja: string) =>
 /** Fragment karty od kotwicy do następnej kotwicy `id="…"` z listy. */
 const blok = (html: string, id: string) => html.slice(html.indexOf(`id="${id}"`), html.indexOf(`id="${id}"`) + 400);
 
-it("operator z NODES_MANAGE: serwis i pojemność dostępne, DirectAdmin, NS, region, WAF i status — „Wymaga roli administratora”", async () => {
+it("operator z NODES_MANAGE: serwis i pojemność dostępne, DirectAdmin, NS, region, WAF i status – „Wymaga roli administratora”", async () => {
   zDostepem({ role: "STAFF", isAdmin: false, permissions: ["NODES_VIEW", "NODES_MANAGE"] });
   const html = await render("konfiguracja");
   for (const id of ["directadmin", "nameservers", "region", "waf", "status"]) {
@@ -81,7 +81,7 @@ it("operator z NODES_MANAGE: serwis i pojemność dostępne, DirectAdmin, NS, re
   expect(html).toContain("<fieldset disabled");
 });
 
-it("operator z samym NODES_VIEW: Onboard LIVE i stos — „Wymaga NODES_MANAGE”, wycofanie też", async () => {
+it("operator z samym NODES_VIEW: Onboard LIVE i stos – „Wymaga NODES_MANAGE”, wycofanie też", async () => {
   zDostepem({ role: "STAFF", isAdmin: false, permissions: ["NODES_VIEW"] });
   const akt = await render("aktualizacje");
   expect(akt).toContain('data-zablokowane="Wymaga NODES_MANAGE"');
@@ -95,7 +95,7 @@ it("administrator: nic nie jest wyszarzone", async () => {
   for (const s of ["aktualizacje", "konfiguracja", "wycofanie", "audyt"]) expect(await render(s)).not.toContain("data-zablokowane");
 });
 
-it("F3.1: zakładka „Poczta” — bez MAIL_QUEUE_NODE panel kolejki się nie renderuje (nagłówki wszystkich klientów); NOC i admin — tak", async () => {
+it("F3.1: zakładka „Poczta” – bez MAIL_QUEUE_NODE panel kolejki się nie renderuje (nagłówki wszystkich klientów); NOC i admin – tak", async () => {
   zDostepem({ role: "STAFF", isAdmin: false, permissions: ["NODES_VIEW", "NODES_MANAGE", "MAIL_QUEUE_VIEW"] });
   const bez = await render("poczta");
   expect(bez).toContain('data-zablokowane="Wymaga MAIL_QUEUE_NODE"');
@@ -108,7 +108,7 @@ it("F3.1: zakładka „Poczta” — bez MAIL_QUEUE_NODE panel kolejki się nie 
   expect(adm).toContain("Poczta");
 });
 
-it("F3.2: zakładka „Bezpieczeństwo” — bez IP_BLOCKS_NODE panel blokad się nie renderuje, bez ACCOUNT_DIAGNOSTICS_VIEW lista malware się nie wczytuje", async () => {
+it("F3.2: zakładka „Bezpieczeństwo” – bez IP_BLOCKS_NODE panel blokad się nie renderuje, bez ACCOUNT_DIAGNOSTICS_VIEW lista malware się nie wczytuje", async () => {
   zDostepem({ role: "STAFF", isAdmin: false, permissions: ["NODES_VIEW", "NODES_MANAGE"] });
   const bez = await render("bezpieczenstwo");
   expect(bez).toContain('data-zablokowane="Wymaga IP_BLOCKS_NODE"');
@@ -122,7 +122,7 @@ it("F3.2: zakładka „Bezpieczeństwo” — bez IP_BLOCKS_NODE panel blokad si
   expect(noc).toContain("Bezpieczeństwo");
 });
 
-it("F3.4: zakładka „Usługi i logi” — bez NODE_SERVICES panel się nie renderuje (logi wszystkich klientów węzła); NOC i admin — tak", async () => {
+it("F3.4: zakładka „Usługi i logi” – bez NODE_SERVICES panel się nie renderuje (logi wszystkich klientów węzła); NOC i admin – tak", async () => {
   zDostepem({ role: "STAFF", isAdmin: false, permissions: ["NODES_VIEW", "NODES_MANAGE", "IP_BLOCKS_NODE"] });
   const bez = await render("uslugi");
   expect(bez).toContain('data-zablokowane="Wymaga NODE_SERVICES"');
@@ -135,7 +135,7 @@ it("F3.4: zakładka „Usługi i logi” — bez NODE_SERVICES panel się nie re
   expect(await render("uslugi")).toContain('id="logi-wezla-naglowek"');
 });
 
-it("17.10 (PB-31): niedokończony węzeł (czeka na akceptację) da się wycofać — bez przenoszenia kont", async () => {
+it("17.10 (PB-31): niedokończony węzeł (czeka na akceptację) da się wycofać – bez przenoszenia kont", async () => {
   zDostepem({ role: "ADMIN", isAdmin: true, permissions: [] }, { status: "PENDING_APPROVAL", _count: { accounts: 0 }, lastHeartbeatAt: null });
   const html = await render("wycofanie");
   expect(html).toContain("Wycofaj węzeł na stałe");

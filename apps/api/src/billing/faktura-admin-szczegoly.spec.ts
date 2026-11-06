@@ -6,7 +6,7 @@ import { InvoicesService } from './invoices.service.js';
  * nabywcy, a „Wystaw korektę” był nieaktywny — szczegóły faktury dla admina nie zwracały
  * `lineItems` ani `buyerSnapshot`, z których formularz korekty buduje wiersze.
  */
-describe('InvoicesService.getForAdmin — treść dla formularza korekty', () => {
+describe('InvoicesService.getForAdmin – treść dla formularza korekty', () => {
   it('zwraca pozycje, dane nabywcy oraz netto i VAT', async () => {
     const pozycje = [{ name: 'Test integracji KSeF', quantity: 1, unitNet: '1.00', vatRate: 23, totalNet: '1.00', totalVat: '0.23', totalGross: '1.23' }];
     const nabywca = { name: 'Dominik Kowalski', email: 'k@x.pl' };

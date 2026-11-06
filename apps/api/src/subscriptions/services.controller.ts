@@ -1809,7 +1809,7 @@ export class UserServicesController {
   async katalogiZrodlaPlikow(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: KatalogiZrodlaDto) {
     const sub = await this.prisma.subscription.findFirst({ where: { id, userId: user.userId }, select: { id: true } });
     if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
-    if (!body.protocol) throw new BadRequestException('Najpierw sprawdź połączenie — podgląd katalogów używa wykrytego protokołu.');
+    if (!body.protocol) throw new BadRequestException('Najpierw sprawdź połączenie – podgląd katalogów używa wykrytego protokołu.');
     // Klient widzi hasło bazy z własnego pliku konfiguracyjnego.
     return this.zrodloPlikow.katalogi({ ...body, protocol: body.protocol }, { zHaslemBazy: true });
   }
@@ -2011,10 +2011,10 @@ function humanizeProvisioningError(raw: string): string {
     return 'Brak wolnych węzłów. Operacja zostanie wznowiona automatycznie.';
   }
   if (lower.includes('cloudlinux lve limits could not be applied')) {
-    return 'Konto utworzone — finalizacja limitów jest powtarzana.';
+    return 'Konto utworzone – finalizacja limitów jest powtarzana.';
   }
   if (lower.includes('domain already exists') || lower.includes('already exists')) {
-    return 'Domena jest już używana — skontaktuj się ze wsparciem.';
+    return 'Domena jest już używana – skontaktuj się ze wsparciem.';
   }
   if (lower.includes('invalid credentials') || lower.includes('unauthorized')) {
     return 'Tymczasowy problem konfiguracyjny węzła. Wsparcie zostało powiadomione.';
@@ -2144,7 +2144,7 @@ function buildServiceRecommendations(s: {
             type: 'domain',
             severity: 'critical',
             title: 'Skonfiguruj DNS poczty',
-            body: 'Ustaw rekordy MX, SPF i DKIM, aby poczta działała i nie trafiała do spamu — Asystent domeny wskaże brakujące rekordy.',
+            body: 'Ustaw rekordy MX, SPF i DKIM, aby poczta działała i nie trafiała do spamu – Asystent domeny wskaże brakujące rekordy.',
           }
         : {
             type: 'domain',

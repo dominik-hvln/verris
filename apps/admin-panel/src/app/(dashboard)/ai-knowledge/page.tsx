@@ -34,7 +34,7 @@ export default async function AiKnowledgePage() {
           <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
             Dodawaj dokumenty, FAQ, polityki i instrukcje do „pamięci” asystenta. Chatbot w panelu
             klienta oraz asystent zespołu odpowiadają na podstawie tej wiedzy (RAG). Treści są dzielone
-            na fragmenty i indeksowane — im więcej rzetelnych materiałów, tym lepsze odpowiedzi.
+            na fragmenty i indeksowane – im więcej rzetelnych materiałów, tym lepsze odpowiedzi.
           </p>
         </div>
       </header>

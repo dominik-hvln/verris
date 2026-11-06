@@ -67,7 +67,7 @@ function render(sekcja: string | undefined, odpowiedzi: Record<string, unknown>,
 beforeEach(() => api.mockReset());
 
 describe("karta usługi", () => {
-  it("D1/F2.3 — operacje: zawieszenie dla STAFF (formularz sam sprawdza uprawnienia), zakończenie i usunięcie tylko dla administratora", async () => {
+  it("D1/F2.3 – operacje: zawieszenie dla STAFF (formularz sam sprawdza uprawnienia), zakończenie i usunięcie tylko dla administratora", async () => {
     const staff = await render("operacje", { [`/admin/subscriptions/${SUB}`]: usluga() }, { role: "STAFF", isAdmin: false, permissions: ["SUBSCRIPTIONS_MANAGE", "SUBSCRIPTIONS_SUSPEND"] });
     expect(staff).toContain('data-test="zawieszenie"');
     expect(staff).not.toContain('id="zakonczenie"');
@@ -85,7 +85,7 @@ describe("karta usługi", () => {
     expect(html).not.toContain('id="zakladanie"');
   });
 
-  it("weryfikacja 12.10 — usunięte konto: nagłówek i „Konto hostingowe” z „(usunięta)”, bez technicznego przyrostka", async () => {
+  it("weryfikacja 12.10 – usunięte konto: nagłówek i „Konto hostingowe” z „(usunięta)”, bez technicznego przyrostka", async () => {
     const domain = "z18b.d3.hvln.pl~usuniete-97c925b0-a215-40bc-9c78-28752e3cc91b";
     const html = await render(undefined, {
       [`/admin/subscriptions/${SUB}`]: usluga({ status: "CANCELED", account: { id: "a1", domain, daUsername: "z18b", status: "DELETED", server: null } }),

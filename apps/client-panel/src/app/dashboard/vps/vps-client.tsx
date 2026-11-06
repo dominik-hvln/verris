@@ -181,7 +181,7 @@ export function VpsClient({
       {rootPw ? (
         <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 space-y-2">
           <p className="text-sm font-semibold text-amber-100">
-            Hasło root dla <span className="font-mono">{rootPw.name}</span> — zapisz teraz, pokazujemy je tylko raz:
+            Hasło root dla <span className="font-mono">{rootPw.name}</span> – zapisz teraz, pokazujemy je tylko raz:
           </p>
           <div className="flex items-center gap-2">
             <code data-prywatne className="rounded bg-black/40 px-3 py-1.5 font-mono text-white">{rootPw.pw}</code>
@@ -247,7 +247,7 @@ export function VpsClient({
             <p className="text-xs font-medium text-neutral-300">Dostęp do serwera</p>
             {sshKeys.length === 0 ? (
               <p className="text-xs text-neutral-500">
-                Brak kluczy SSH — serwer dostanie jednorazowe hasło root. Dodaj klucz poniżej, aby
+                Brak kluczy SSH – serwer dostanie jednorazowe hasło root. Dodaj klucz poniżej, aby
                 logować się bez hasła (bezpieczniej).
               </p>
             ) : (
@@ -271,7 +271,7 @@ export function VpsClient({
             )}
             <p className="text-[11px] text-neutral-500">
               {selectedKeys.length > 0
-                ? 'Logowanie kluczem SSH — bez hasła root.'
+                ? 'Logowanie kluczem SSH – bez hasła root.'
                 : 'Bez wybranego klucza pokażemy jednorazowe hasło root.'}
             </p>
           </div>
@@ -322,7 +322,7 @@ export function VpsClient({
               </a>
               , a także <strong className="text-white">żądam rozpoczęcia świadczenia usługi
               przed upływem 14-dniowego terminu odstąpienia</strong> (w razie odstąpienia
-              zapłacę za świadczenia spełnione do tej chwili — Regulamin §4 ust. 4 i §21).
+              zapłacę za świadczenia spełnione do tej chwili – Regulamin §4 ust. 4 i §21).
             </span>
           </label>
           <p className="text-[11px] text-neutral-500">
@@ -372,7 +372,7 @@ export function VpsClient({
               </div>
             </div>
             {v.status === 'ERROR' ? (
-              <p className="mt-2 text-xs text-rose-300">Provisioning nie powiódł się — środki zwrócono do portfela.</p>
+              <p className="mt-2 text-xs text-rose-300">Provisioning nie powiódł się – środki zwrócono do portfela.</p>
             ) : null}
             {panel?.id === v.id ? (
               <div className="mt-4 border-t border-white/10 pt-4">

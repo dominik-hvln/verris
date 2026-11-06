@@ -45,7 +45,7 @@ export function FirstStepsAssistant({
     {
       icon: Globe,
       title: 'Skonfiguruj DNS poczty (MX, SPF, DKIM)',
-      desc: 'Wskaż domenę na nasze serwery poczty — pokażemy dokładne rekordy do wpisania.',
+      desc: 'Wskaż domenę na nasze serwery poczty – pokażemy dokładne rekordy do wpisania.',
       done: dnsOk,
       cta: dnsOk ? 'Gotowe' : 'Przejdź do Domen & DNS',
       tab: 'domains',
@@ -72,7 +72,7 @@ export function FirstStepsAssistant({
     {
       icon: Globe,
       title: 'Skieruj domenę na hosting',
-      desc: 'Ustaw nameservery lub rekord A — pokażemy dokładnie co i gdzie wpisać.',
+      desc: 'Ustaw nameservery lub rekord A – pokażemy dokładnie co i gdzie wpisać.',
       done: dnsOk,
       cta: dnsOk ? 'Gotowe' : 'Przejdź do Domen',
       tab: 'domains',
@@ -80,7 +80,7 @@ export function FirstStepsAssistant({
     {
       icon: ShieldCheck,
       title: 'Włącz certyfikat SSL (kłódka, HTTPS)',
-      desc: 'Darmowy certyfikat Let’s Encrypt jednym kliknięciem — gdy domena już wskazuje na nas.',
+      desc: 'Darmowy certyfikat Let’s Encrypt jednym kliknięciem – gdy domena już wskazuje na nas.',
       done: tlsOk,
       cta: tlsOk ? 'Gotowe' : 'Przejdź do SSL',
       tab: 'ssl',
@@ -88,7 +88,7 @@ export function FirstStepsAssistant({
     {
       icon: LayoutTemplate,
       title: 'Postaw swoją stronę',
-      desc: 'Zainstaluj WordPressa lub inną aplikację jednym kliknięciem — bez konfiguracji.',
+      desc: 'Zainstaluj WordPressa lub inną aplikację jednym kliknięciem – bez konfiguracji.',
       done: false,
       cta: 'Zainstaluj aplikację',
       tab: 'apps',
@@ -113,10 +113,10 @@ export function FirstStepsAssistant({
         </div>
         <div className="min-w-0 flex-1">
           <h3 className="text-sm font-bold text-foreground sm:text-base">
-            {isEmail ? 'Uruchom pocztę — przeprowadzimy Cię za rękę' : 'Uruchom stronę — przeprowadzimy Cię za rękę'}
+            {isEmail ? 'Uruchom pocztę – przeprowadzimy Cię za rękę' : 'Uruchom stronę – przeprowadzimy Cię za rękę'}
           </h3>
           <p className="text-xs text-muted-foreground">
-            Podstawy: <span className="text-foreground">{baseDone}/2</span> gotowe. Spokojnie — nic nie zepsujesz,
+            Podstawy: <span className="text-foreground">{baseDone}/2</span> gotowe. Spokojnie – nic nie zepsujesz,
             a my podpowiadamy na każdym kroku.
           </p>
         </div>

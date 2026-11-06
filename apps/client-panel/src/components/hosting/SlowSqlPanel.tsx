@@ -48,7 +48,7 @@ export function SlowSqlPanel({ serviceId }: { serviceId: string }) {
     <section className="mt-8">
       <SectionHead
         title="Wolne zapytania SQL"
-        desc={`Zapytania Twoich baz, które trwały dłużej niż ${stan?.progSekund ?? 2} s. Wartości są ukryte — widać tylko kształt zapytania.`}
+        desc={`Zapytania Twoich baz, które trwały dłużej niż ${stan?.progSekund ?? 2} s. Wartości są ukryte – widać tylko kształt zapytania.`}
         action={
           <button type="button" className={BTN} disabled={pending || !stan || stan.wToku} onClick={odswiez}>
             {stan?.wToku ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <RefreshCw className="h-4 w-4" aria-hidden />}
@@ -60,16 +60,16 @@ export function SlowSqlPanel({ serviceId }: { serviceId: string }) {
       {stan?.blad ? <p role="alert" className="m-0 mb-2 text-[13px] text-crit">{stan.blad}</p> : null}
       {stan && !stan.odczytano && !stan.wToku ? (
         <p className="m-0 rounded-[10px] border border-line bg-card px-4 py-3 text-[13.5px] text-muted-foreground">
-          Kliknij „Odczytaj” — serwer przejrzy dziennik wolnych zapytań (kilka sekund).
+          Kliknij „Odczytaj” – serwer przejrzy dziennik wolnych zapytań (kilka sekund).
         </p>
       ) : null}
       {stan?.odczytano && stan.wlaczony === false ? (
         <p className="m-0 rounded-[10px] border border-line bg-card px-4 py-3 text-[13.5px] text-muted-foreground">
-          Dziennik wolnych zapytań jest na serwerze wyłączony — napisz do nas, włączymy go.
+          Dziennik wolnych zapytań jest na serwerze wyłączony – napisz do nas, włączymy go.
         </p>
       ) : null}
       {stan?.odczytano && stan.wlaczony !== false && stan.grupy.length === 0 ? (
-        <p className="m-0 rounded-[10px] border border-line bg-card px-4 py-3 text-[13.5px] text-muted-foreground">Brak wolnych zapytań — bazy odpowiadają szybko.</p>
+        <p className="m-0 rounded-[10px] border border-line bg-card px-4 py-3 text-[13.5px] text-muted-foreground">Brak wolnych zapytań – bazy odpowiadają szybko.</p>
       ) : null}
       {stan?.grupy.length ? (
         <>

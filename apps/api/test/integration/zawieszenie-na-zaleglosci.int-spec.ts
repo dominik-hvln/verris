@@ -55,7 +55,7 @@ async function zalegla(status: 'PAST_DUE' | 'ACTIVE' = 'PAST_DUE') {
 const stan = async (id: string) => (await prisma().subscription.findUniqueOrThrow({ where: { id } })).status;
 const POWOD = 'Phishing potwierdzony na podstronie /login.';
 
-describe('Audyt Fal 2 — zawieszenie przez obsługę a zaległość', () => {
+describe('Audyt Fal 2 – zawieszenie przez obsługę a zaległość', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     naWezle.length = 0;
@@ -91,7 +91,7 @@ describe('Audyt Fal 2 — zawieszenie przez obsługę a zaległość', () => {
     expect(await stan(k.subscription.id)).toBe('ACTIVE');
   });
 
-  it('ponowne zawieszenie tym samym albo innym powodem obsługi — bez nowego zdarzenia (no-op jak dotąd)', async () => {
+  it('ponowne zawieszenie tym samym albo innym powodem obsługi – bez nowego zdarzenia (no-op jak dotąd)', async () => {
     const { zawieszenie } = uslugi();
     const k = await zalegla('ACTIVE');
     const l3 = await pracownik(['SUBSCRIPTIONS_SUSPEND']);
@@ -100,7 +100,7 @@ describe('Audyt Fal 2 — zawieszenie przez obsługę a zaległość', () => {
     expect(await prisma().subscriptionEvent.count({ where: { subscriptionId: k.subscription.id, type: 'SUSPENDED' } })).toBe(1);
   });
 
-  it('usługa zaległa (PAST_DUE): „zawieś i odwieś” przez pracownika bez BILLING_MANAGE nie przywraca ACTIVE (403); usługa opłacona — bez zmian', async () => {
+  it('usługa zaległa (PAST_DUE): „zawieś i odwieś” przez pracownika bez BILLING_MANAGE nie przywraca ACTIVE (403); usługa opłacona – bez zmian', async () => {
     const { zawieszenie } = uslugi();
     const l3 = await pracownik(['SUBSCRIPTIONS_SUSPEND']);
     const k = await zalegla('PAST_DUE');

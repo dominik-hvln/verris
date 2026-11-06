@@ -24,7 +24,7 @@ Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
 const pusty: PostepBetaDto = { tester: true, kroki: {}, uwagi: {}, zaktualizowano: null };
 
-describe('postęp testera — logika', () => {
+describe('postęp testera – logika', () => {
   it('zastosujKrok dodaje i usuwa krok bez ruszania reszty; „Kontynuuj” wskazuje pierwszy niedokończony scenariusz', () => {
     const p = zastosujKrok(pusty, 's01.k1', true, new Date('2026-10-20T10:00:00Z'));
     expect(p.kroki).toEqual({ 's01.k1': '2026-10-20T10:00:00.000Z' });
@@ -110,7 +110,7 @@ describe('ListaTestowBeta', () => {
     expect(licznik()).toContain(`0 z ${LICZBA_KROKOW_BETA}`);
   });
 
-  it('P4-12: ścieżka „tylko poczta” — scenariusze poczty oznaczone, strona i WordPress bez oznaczenia', async () => {
+  it('P4-12: ścieżka „tylko poczta” – scenariusze poczty oznaczone, strona i WordPress bez oznaczenia', async () => {
     await act(async () => root.render(<ListaTestowBeta poczatkowy={pusty} />));
     expect(el.querySelector('[data-sciezka-poczta]')?.textContent).toContain('Testujesz tylko pocztę?');
     expect(el.querySelector('[data-poczta="s05"]')?.textContent).toContain('Też przy samej poczcie');

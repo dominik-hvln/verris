@@ -105,7 +105,7 @@ export type DaneSekcji =
   | { sekcja: "logi"; dane: DaneLogow }
   | { sekcja: "logi-poczty"; dane: DaneLogowPoczty };
 
-const data = (iso: string | null) => (iso ? new Date(iso).toLocaleString("pl-PL") : "—");
+const data = (iso: string | null) => (iso ? new Date(iso).toLocaleString("pl-PL") : "–");
 const ile = (n: number, one: string, few: string, many: string) => `${n} ${plForm(n, one, few, many)}`;
 
 /** Błąd całej sekcji (API/uprawnienia) — reszta karty działa dalej. */
@@ -135,7 +135,7 @@ function SkrzynkiZBledem({ domeny }: { domeny: string[] }) {
   if (!domeny.length) return null;
   return (
     <p role="status" className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
-      Nie udało się odczytać skrzynek {plForm(domeny.length, "domeny", "domen", "domen")} {domeny.join(", ")} — licznik i lista obejmują tylko odczytane domeny.
+      Nie udało się odczytać skrzynek {plForm(domeny.length, "domeny", "domen", "domen")} {domeny.join(", ")} – licznik i lista obejmują tylko odczytane domeny.
     </p>
   );
 }
@@ -231,12 +231,12 @@ export function WidokSekcjiKonta({ wynik }: { wynik: DaneSekcji }) {
         <div className="space-y-3">
           <BladWezla komunikat={d.fetchError} />
           <p className="text-xs text-muted-foreground">
-            Strefa {d.domain ?? "—"}: {ile(d.records.length, "rekord", "rekordy", "rekordów")}
+            Strefa {d.domain ?? "–"}: {ile(d.records.length, "rekord", "rekordy", "rekordów")}
           </p>
           {d.records.length ? (
             <Tabela
               naglowki={["Nazwa", "Typ", "Wartość", "TTL"]}
-              wiersze={d.records.map((r) => [r.name, r.type, r.value, r.ttl ?? "—"])}
+              wiersze={d.records.map((r) => [r.name, r.type, r.value, r.ttl ?? "–"])}
             />
           ) : d.fetchError ? null : (
             <Pusto>Strefa nie ma rekordów.</Pusto>
@@ -302,7 +302,7 @@ export function WidokSekcjiKonta({ wynik }: { wynik: DaneSekcji }) {
           {d.ostatnieZadanie ? (
             <p className="text-muted-foreground">
               Ostatnia zmiana: {STATUS_ZADANIA[d.ostatnieZadanie.status] ?? d.ostatnieZadanie.status} ({data(d.ostatnieZadanie.createdAt)})
-              {d.ostatnieZadanie.errorMessage ? <span className="text-rose-200"> — {d.ostatnieZadanie.errorMessage}</span> : null}
+              {d.ostatnieZadanie.errorMessage ? <span className="text-rose-200"> – {d.ostatnieZadanie.errorMessage}</span> : null}
             </p>
           ) : null}
           <p className="text-muted-foreground">Ustawienia PHP domeny {d.domena}:</p>
@@ -334,7 +334,7 @@ export function WidokSekcjiKonta({ wynik }: { wynik: DaneSekcji }) {
                 r.issuer,
                 r.expiresAt
                   ? `${new Date(r.expiresAt).toLocaleDateString("pl-PL")}${r.daysLeft !== null ? ` (${ile(r.daysLeft, "dzień", "dni", "dni")})` : ""}`
-                  : "—",
+                  : "–",
               ])}
             />
           ) : d.fetchError ? null : (
@@ -362,7 +362,7 @@ export function WidokSekcjiKonta({ wynik }: { wynik: DaneSekcji }) {
         <div className="space-y-3">
           <BladWezla komunikat={d.fetchError} />
           <p className="text-xs text-muted-foreground">
-            {d.type === "error" ? "Log błędów" : "Log dostępu"} {d.domain ?? "—"}: {ile(d.lines.length, "linia", "linie", "linii")}
+            {d.type === "error" ? "Log błędów" : "Log dostępu"} {d.domain ?? "–"}: {ile(d.lines.length, "linia", "linie", "linii")}
             {d.truncated ? " (obcięte do ostatnich)" : ""}
           </p>
           {d.lines.length ? (
@@ -384,7 +384,7 @@ export function WidokSekcjiKonta({ wynik }: { wynik: DaneSekcji }) {
             {d.wczytano
               ? `Ostatnio wczytany dziennik: ${data(d.wczytano)}${d.adres ? ` · adres ${d.adres}` : ""} · ${ile(d.wpisy.length, "wpis", "wpisy", "wpisów")}`
               : "Dziennik poczty nie był jeszcze wczytany. Wczytaj go z serwera przyciskiem „Wczytaj z serwera” (opcjonalnie zawężając do adresu)."}
-            {d.wToku ? " Wczytywanie z serwera w toku — kliknij „Odśwież” za chwilę." : ""}
+            {d.wToku ? " Wczytywanie z serwera w toku – kliknij „Odśwież” za chwilę." : ""}
           </p>
           {d.wpisy.length ? (
             <Tabela

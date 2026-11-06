@@ -39,7 +39,7 @@ export class FileSearchService {
     const wToku = await this.prisma.nodeTask.findFirst({
       where: { accountId: account.id, kind: NodeTaskKind.FILE_SEARCH, status: { in: [NodeTaskStatus.QUEUED, NodeTaskStatus.RUNNING] } },
     });
-    if (wToku) throw new ConflictException('Wyszukiwanie już trwa — poczekaj na wynik.');
+    if (wToku) throw new ConflictException('Wyszukiwanie już trwa – poczekaj na wynik.');
     await this.prisma.nodeTask.create({
       data: {
         serverId: account.serverId,
@@ -94,5 +94,5 @@ export function wynikZLogu(log: string | null): WynikWyszukiwania | null {
 
 function bladZLogu(log: string | null): string {
   const l = (log ?? '').split('\n').reverse().find((x) => x.startsWith('[file-search] BŁĄD: '));
-  return l ? l.slice('[file-search] BŁĄD: '.length).slice(0, 300) : 'Wyszukiwanie nie powiodło się. Napisz do nas — sprawdzimy to.';
+  return l ? l.slice('[file-search] BŁĄD: '.length).slice(0, 300) : 'Wyszukiwanie nie powiodło się. Napisz do nas – sprawdzimy to.';
 }

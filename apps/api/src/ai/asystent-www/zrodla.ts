@@ -55,7 +55,7 @@ export function zrodloCennika(d: DaneCennika): Zrodlo {
     const h = d.hosting;
     const rabat = Math.floor((1 - h.rocznie / (h.miesiecznie * 12)) * 100);
     linie.push(
-      `Hosting Verris z autoskalowaniem (jeden pakiet): miesięcznie ${zl(h.miesiecznie)} zł brutto (${zl(netto(h.miesiecznie))} zł netto); rocznie ${zl(h.rocznie)} zł brutto (${zl(netto(h.rocznie))} zł netto), czyli ok. ${zl(h.rocznie / 12)} zł brutto miesięcznie — ${rabat}% taniej niż 12 miesięcy. Ta sama cena przy odnowieniu.`,
+      `Hosting Verris z autoskalowaniem (jeden pakiet): miesięcznie ${zl(h.miesiecznie)} zł brutto (${zl(netto(h.miesiecznie))} zł netto); rocznie ${zl(h.rocznie)} zł brutto (${zl(netto(h.rocznie))} zł netto), czyli ok. ${zl(h.rocznie / 12)} zł brutto miesięcznie – ${rabat}% taniej niż 12 miesięcy. Ta sama cena przy odnowieniu.`,
     );
   }
   if (d.poczta) {
@@ -83,7 +83,7 @@ export function zrodloCennika(d: DaneCennika): Zrodlo {
     if (k.rocznie > 0) czesci.push(`${zl(k.rocznie)} zł przy planie rocznym`);
     if (k.miesiecznie > 0) czesci.push(`${zl(k.miesiecznie)} zł przy planie miesięcznym`);
     linie.push(
-      `Przy pierwszym zakupie hostingu darmowe kredyty na autoskalowanie: ${czesci.join(', ')} (kwoty brutto, nie podlegają VAT ani fakturze). Tylko na dopłaty za dodatkową moc, ważne ${k.waznoscMiesiecy} miesięcy od przyznania (po opłaceniu zamówienia); bez zwrotu przy usunięciu konta. Rabatu na start nie ma — pierwszy okres kosztuje tyle co odnowienie.`,
+      `Przy pierwszym zakupie hostingu darmowe kredyty na autoskalowanie: ${czesci.join(', ')} (kwoty brutto, nie podlegają VAT ani fakturze). Tylko na dopłaty za dodatkową moc, ważne ${k.waznoscMiesiecy} miesięcy od przyznania (po opłaceniu zamówienia); bez zwrotu przy usunięciu konta. Rabatu na start nie ma – pierwszy okres kosztuje tyle co odnowienie.`,
     );
   }
   linie.push('Domeny: cena rejestracji i odnowienia w cenniku domen w panelu (nie podawaj kwot domen).');

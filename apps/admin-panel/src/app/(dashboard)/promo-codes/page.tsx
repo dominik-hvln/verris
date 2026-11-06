@@ -46,7 +46,7 @@ export default async function PromoCodesPage() {
           <Tag className="h-10 w-10 mx-auto text-muted-foreground" />
           <h3 className="mt-4 text-base font-bold text-white">Brak kodów</h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Utwórz pierwszy kod powyżej — pojawi się tutaj wraz ze statystyką realizacji.
+            Utwórz pierwszy kod powyżej – pojawi się tutaj wraz ze statystyką realizacji.
           </p>
         </div>
       ) : (

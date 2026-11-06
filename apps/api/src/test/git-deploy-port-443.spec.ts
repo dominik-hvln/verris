@@ -16,7 +16,7 @@ const funkcja = (nazwa: string) => {
 const bash = (kod: string) =>
   spawnSync('bash', ['-c', `${funkcja('log')}${funkcja('fail')}${funkcja('adres_443')}${funkcja('blad_git')}\n${kod}`], { encoding: 'utf8' });
 
-describe('node-git-deploy.sh — SSH przez port 443', () => {
+describe('node-git-deploy.sh – SSH przez port 443', () => {
   it.each([
     ['git@github.com:firma/strona.git', 'ssh://git@ssh.github.com:443/firma/strona.git'],
     ['git@gitlab.com:grupa/pod/strona.git', 'ssh://git@altssh.gitlab.com:443/grupa/pod/strona.git'],

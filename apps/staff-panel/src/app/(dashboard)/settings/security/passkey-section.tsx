@@ -104,7 +104,7 @@ export function PasskeySection({ enrollHint }: { enrollHint?: boolean }) {
               <div>
                 <p className="text-white">{c.name || "Passkey"}</p>
                 <p className="text-xs text-muted-foreground">
-                  {c.deviceType ?? "—"} · dodano {new Date(c.createdAt).toLocaleDateString("pl-PL")}
+                  {c.deviceType ?? "–"} · dodano {new Date(c.createdAt).toLocaleDateString("pl-PL")}
                   {c.lastUsedAt
                     ? ` · ostatnio ${new Date(c.lastUsedAt).toLocaleDateString("pl-PL")}`
                     : ""}

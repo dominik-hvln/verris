@@ -72,7 +72,7 @@ describe('blokKontekstu / trescUwagi / tematUwagi', () => {
     expect(czasWarszawa(teraz)).toBe('12.10.2026, 14:03');
   });
 
-  it('blok: strona bez query, wersja, okno, przeglądarka, czas, rodzaj, usługa — bez tokenu', () => {
+  it('blok: strona bez query, wersja, okno, przeglądarka, czas, rodzaj, usługa – bez tokenu', () => {
     const blok = blokKontekstu(kontekst);
     expect(blok).toContain('• Strona: /dashboard/services/abc');
     expect(blok).not.toContain('SEKRET');
@@ -85,7 +85,7 @@ describe('blokKontekstu / trescUwagi / tematUwagi', () => {
     expect(blok).toContain('• Usługa: Hosting Start · sklep.pl');
   });
 
-  it('bez rodzaju i usługi — bez tych wierszy; brak wersji → „nieznana”', () => {
+  it('bez rodzaju i usługi – bez tych wierszy; brak wersji → „nieznana”', () => {
     const blok = blokKontekstu({ ...kontekst, rodzaj: null, usluga: null, wersjaPanelu: '' });
     expect(blok).not.toContain('Rodzaj');
     expect(blok).not.toContain('Usługa');

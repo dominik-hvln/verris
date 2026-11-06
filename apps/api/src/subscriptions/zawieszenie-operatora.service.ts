@@ -47,7 +47,7 @@ export class ZawieszenieOperatoraService {
     if (aktor?.role === 'ADMIN') return;
     if (aktor?.role === 'STAFF' && (await uprawnieniaOperatora(this.prisma, aktorUserId)).includes('BILLING_MANAGE')) return;
     throw new ForbiddenException(
-      'Usługa jest zawieszona za brak płatności albo miała zaległą płatność przed zawieszeniem — odwiesza administrator albo osoba z uprawnieniem do rozliczeń (BILLING_MANAGE). Klient może opłacić zaległość.',
+      'Usługa jest zawieszona za brak płatności albo miała zaległą płatność przed zawieszeniem – odwiesza administrator albo osoba z uprawnieniem do rozliczeń (BILLING_MANAGE). Klient może opłacić zaległość.',
     );
   }
 
@@ -64,7 +64,7 @@ export class ZawieszenieOperatoraService {
     });
     if (!s) throw new NotFoundException('Nie znaleziono usługi.');
     if (aktorRola !== 'ADMIN' && s.user.role !== 'USER') {
-      throw new ForbiddenException('Personel może zmieniać wyłącznie usługi klientów — usługę konta zespołu zmienia administrator.');
+      throw new ForbiddenException('Personel może zmieniać wyłącznie usługi klientów – usługę konta zespołu zmienia administrator.');
     }
     return s;
   }

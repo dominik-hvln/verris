@@ -8,8 +8,8 @@ const pole = (o: Partial<{ validTo: string; maxRedemptions: string; description:
   ...o,
 });
 
-describe("B1 — edycja kodu promocyjnego: ciało PATCH", () => {
-  it("bez zmian — odmowa, nic nie leci do API", () => {
+describe("B1 – edycja kodu promocyjnego: ciało PATCH", () => {
+  it("bez zmian – odmowa, nic nie leci do API", () => {
     expect(zbudujZmiane(przed, pole())).toEqual({ ok: false, blad: "Nic się nie zmieniło." });
   });
 
@@ -33,7 +33,7 @@ describe("B1 — edycja kodu promocyjnego: ciało PATCH", () => {
     expect(zbudujZmiane(zTerminem, pole({ validTo: "" }))).toEqual({ ok: true, zmiana: { validTo: null } });
   });
 
-  it("zły limit — błąd zamiast wysyłki", () => {
+  it("zły limit – błąd zamiast wysyłki", () => {
     expect(zbudujZmiane(przed, pole({ maxRedemptions: "-1" })).ok).toBe(false);
     expect(zbudujZmiane(przed, pole({ maxRedemptions: "2.5" })).ok).toBe(false);
   });

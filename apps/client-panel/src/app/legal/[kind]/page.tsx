@@ -16,7 +16,7 @@ export const revalidate = 300;
 
 export async function generateMetadata({ params }: Pick<PageProps, "params">): Promise<Metadata> {
   const meta = docByKind((await params).kind.toUpperCase());
-  return meta ? { title: `${meta.label} — Verris`, description: meta.description } : {};
+  return meta ? { title: `${meta.label} – Verris`, description: meta.description } : {};
 }
 
 export default async function LegalPage({ params, searchParams }: PageProps) {

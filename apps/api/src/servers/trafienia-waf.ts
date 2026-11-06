@@ -115,9 +115,9 @@ export type ZadanieWaf = {
 export const ODCZYT_WISI_MS = 15 * 60 * 1000;
 
 export const BLAD_NIE_PODJETO =
-  'Serwer nie podjął odczytu w ciągu 15 min (agent zadań węzła nie odpowiada albo kolejka węzła stoi) — spróbuj ponownie; jeśli się powtarza, sprawdź kolejkę zadań węzła.';
+  'Serwer nie podjął odczytu w ciągu 15 min (agent zadań węzła nie odpowiada albo kolejka węzła stoi) – spróbuj ponownie; jeśli się powtarza, sprawdź kolejkę zadań węzła.';
 export const BLAD_BEZ_SYGNALU =
-  'Odczyt na serwerze nie dał znaku życia przez 15 min i nie zakończył się — spróbuj ponownie; jeśli się powtarza, sprawdź log zadania na węźle.';
+  'Odczyt na serwerze nie dał znaku życia przez 15 min i nie zakończył się – spróbuj ponownie; jeśli się powtarza, sprawdź log zadania na węźle.';
 
 export function zadanieWisi(z: ZadanieWaf, teraz: number = Date.now()): boolean {
   if (z.status === NodeTaskStatus.QUEUED) return teraz - z.createdAt.getTime() > ODCZYT_WISI_MS;

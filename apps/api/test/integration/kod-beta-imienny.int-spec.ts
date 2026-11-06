@@ -35,7 +35,7 @@ describe('P5-02 / P5-12 imienny kod BETA', () => {
     expect(await saldo(tomek2.id)).toBe(150);
   });
 
-  it('ten sam klient drugi raz (także małymi literami) — „już na Twoim portfelu”, saldo bez zmian', async () => {
+  it('ten sam klient drugi raz (także małymi literami) – „już na Twoim portfelu”, saldo bez zmian', async () => {
     const admin = await prisma().user.create({ data: { email: 'admin-beta@test.verris.pl', passwordHash: 'x', role: 'ADMIN' } });
     const k = await konto('anna.beta@test.verris.pl');
     const { code } = await beta().zapros({ email: 'anna.beta@test.verris.pl' }, admin.id);
@@ -44,7 +44,7 @@ describe('P5-02 / P5-12 imienny kod BETA', () => {
     expect(await saldo(k.id)).toBe(150);
   });
 
-  it('jedno konto — najwyżej jeden kod BETA, także przy dwóch zaproszeniach na ten sam adres naraz', async () => {
+  it('jedno konto – najwyżej jeden kod BETA, także przy dwóch zaproszeniach na ten sam adres naraz', async () => {
     const admin = await prisma().user.create({ data: { email: 'admin-beta@test.verris.pl', passwordHash: 'x', role: 'ADMIN' } });
     const k = await konto('dwa.kody@test.verris.pl');
     const pierwszy = await beta().zapros({ email: 'dwa.kody@test.verris.pl' }, admin.id);

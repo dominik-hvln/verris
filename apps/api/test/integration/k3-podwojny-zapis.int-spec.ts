@@ -23,7 +23,7 @@ const da = {
 };
 const svc = () => new LimityIndywidualneService(prisma() as never, new AuditService(prisma() as never), da as never, new SshAccessService(prisma() as never, new AuditService(prisma() as never)));
 
-describe('K3 — równoległe zapisy limitów (przegląd 12.10)', () => {
+describe('K3 – równoległe zapisy limitów (przegląd 12.10)', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 
@@ -33,7 +33,7 @@ describe('K3 — równoległe zapisy limitów (przegląd 12.10)', () => {
     const k = await utworzKonto({ serverId: wezel.id, planId: plan.id, scaledDiskMb: 0 });
     await prisma().subscription.update({ where: { id: k.subscription.id }, data: { status: SubscriptionStatus.ACTIVE } });
     const admin = await prisma().user.create({ data: { email: `admin-k3r-${Date.now()}@test.verris.pl`, passwordHash: 'x', role: 'ADMIN' } });
-    const zlecenie = { subscriptionId: k.subscription.id, operator: { userId: admin.id, role: 'ADMIN' }, powod: 'Umowa z klientem — większy dysk', limity: { diskLimitMb: 102400 } };
+    const zlecenie = { subscriptionId: k.subscription.id, operator: { userId: admin.id, role: 'ADMIN' }, powod: 'Umowa z klientem – większy dysk', limity: { diskLimitMb: 102400 } };
 
     const przed = await prisma().account.findUniqueOrThrow({ where: { id: k.account.id } });
     await Promise.allSettled([svc().ustaw(zlecenie), svc().ustaw(zlecenie)]);

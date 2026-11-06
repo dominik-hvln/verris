@@ -63,7 +63,7 @@ async function sprawdzenieDrilla() {
 
 const dniTemu = (n: number) => new Date(Date.now() - n * 86_400_000);
 
-describe('H-20 — próba odtworzenia jako bramka go-live', () => {
+describe('H-20 – próba odtworzenia jako bramka go-live', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     await prisma().restoreDrill.deleteMany({});
@@ -128,7 +128,7 @@ describe('H-20 — próba odtworzenia jako bramka go-live', () => {
     await expect(zapiszProbe({ durationSec: 0 })).rejects.toThrow();
   });
 
-  it('zapis niesie liczby wierszy — dowód, że baza nie była pusta', async () => {
+  it('zapis niesie liczby wierszy – dowód, że baza nie była pusta', async () => {
     const p = await zapiszProbe();
     const z = await prisma().restoreDrill.findUniqueOrThrow({ where: { id: p.id } });
     const liczby = z.rowCounts as Record<string, number>;

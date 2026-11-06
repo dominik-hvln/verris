@@ -199,7 +199,7 @@ export function ZglosUwage({
           onClose={zamknij}
           title="Zgłoś uwagę"
           className="max-h-[92dvh] overflow-y-auto"
-          description="Panel jest w fazie testów. Do zgłoszenia dołączymy adres tej strony (bez parametrów), wersję panelu, szerokość okna, przeglądarkę i godzinę. Możesz wskazać miejsce na stronie — zaznaczymy je na zrzucie ekranu."
+          description="Panel jest w fazie testów. Do zgłoszenia dołączymy adres tej strony (bez parametrów), wersję panelu, szerokość okna, przeglądarkę i godzinę. Możesz wskazać miejsce na stronie – zaznaczymy je na zrzucie ekranu."
         >
           <FormularzUwagi
             usluga={usluga ?? null}
@@ -265,7 +265,7 @@ function FormularzUwagi({
     return (
       <div className="space-y-4" role="status">
         <p className="text-sm text-foreground">
-          Dziękujemy — zgłoszenie{' '}
+          Dziękujemy – zgłoszenie{' '}
           <Link href={`/dashboard/support/${utworzone}`} onClick={onZamknij} className="font-mono font-semibold underline underline-offset-2">
             {numerZgloszenia(utworzone)}
           </Link>{' '}
@@ -403,7 +403,7 @@ function FormularzUwagi({
         {wrazliwa && !dolaczZrzut ? (
           <p data-zrzut-wylaczony className="m-0 text-xs text-muted-foreground">
             Na tej stronie mogą być dane poufne (hasła, tokeny, kody), więc zrzut jest domyślnie wyłączony. Jeśli go dołączysz,
-            pola z sekretami zamażemy — sprawdź podgląd przed wysłaniem.
+            pola z sekretami zamażemy – sprawdź podgląd przed wysłaniem.
           </p>
         ) : null}
         {dolaczZrzut ? (
@@ -414,7 +414,7 @@ function FormularzUwagi({
                 <img src={zrzut.url} alt="Podgląd zrzutu ekranu" className="h-20 w-auto max-w-[9rem] rounded border border-line object-cover object-top" />
               </a>
               <p className="m-0 text-xs text-muted-foreground">
-                Zrzut widocznej części strony{element ? ' z zaznaczonym miejscem' : ''}. Sprawdź podgląd, zanim wyślesz — jeśli widać na nim coś
+                Zrzut widocznej części strony{element ? ' z zaznaczonym miejscem' : ''}. Sprawdź podgląd, zanim wyślesz – jeśli widać na nim coś
                 prywatnego, odznacz zrzut.
               </p>
             </div>

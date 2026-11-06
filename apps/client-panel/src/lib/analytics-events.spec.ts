@@ -31,7 +31,7 @@ afterEach(() => {
   delete w.window;
 });
 
-describe("CL-05 trackPurchase — jeden event_id dla dataLayer, Pixela i CAPI", () => {
+describe("CL-05 trackPurchase – jeden event_id dla dataLayer, Pixela i CAPI", () => {
   it("ze zgodą marketingową: ten sam event_id w trzech miejscach", async () => {
     zgoda.mockReturnValue({ v: 1, ts: "t", functional: false, analytics: false, marketing: true });
     const eventId = trackPurchase(zakup);
@@ -64,7 +64,7 @@ describe("CL-05 trackPurchase — jeden event_id dla dataLayer, Pixela i CAPI", 
   });
 });
 
-describe("CL-05 trackBeginCheckout — dataLayer i Pixel z tym samym event_id", () => {
+describe("CL-05 trackBeginCheckout – dataLayer i Pixel z tym samym event_id", () => {
   it("InitiateCheckout ma eventID równe event_id w dataLayer", () => {
     trackBeginCheckout([{ item_name: "VPS 2", item_category: "vps" }], 30);
     const ev = w.window!.dataLayer.find((e) => e.event === "begin_checkout");

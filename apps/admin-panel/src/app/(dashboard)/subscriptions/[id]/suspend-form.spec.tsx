@@ -21,7 +21,7 @@ const op = (...permissions: string[]) => ({ isAdmin: false, permissions });
 const html = (status: string, dostep: { isAdmin: boolean; permissions: string[] }) =>
   renderToStaticMarkup(<SuspendForm subscriptionId="s1" userId="u1" status={status} domain="firma.pl" dostep={dostep} />);
 
-describe("F2.3 — zawieszenie na karcie usługi", () => {
+describe("F2.3 – zawieszenie na karcie usługi", () => {
   it("L3 (SUBSCRIPTIONS_SUSPEND): skutki, powód obowiązkowy, numer zgłoszenia, bez wniosku", () => {
     const h = html("ACTIVE", op("SUBSCRIPTIONS_SUSPEND"));
     expect(h).toContain('data-zawieszenie="skutki"');
@@ -32,7 +32,7 @@ describe("F2.3 — zawieszenie na karcie usługi", () => {
     expect(h).not.toContain("data-wniosek");
   });
 
-  it("L2 (SUBSCRIPTIONS_MANAGE): „Wyślij wniosek” zawieszenia, a przy zawieszonej — odwieszenia", () => {
+  it("L2 (SUBSCRIPTIONS_MANAGE): „Wyślij wniosek” zawieszenia, a przy zawieszonej – odwieszenia", () => {
     expect(html("ACTIVE", op("SUBSCRIPTIONS_MANAGE"))).toContain('data-wniosek="SUBSCRIPTION_SUSPEND"');
     expect(html("SUSPENDED", op("SUBSCRIPTIONS_MANAGE"))).toContain('data-wniosek="SUBSCRIPTION_UNSUSPEND"');
     expect(html("ACTIVE", op("SUBSCRIPTIONS_MANAGE"))).not.toContain(">Zawieś usługę<");
@@ -56,7 +56,7 @@ describe("F2.3 — zawieszenie na karcie usługi", () => {
     expect(powodyZawieszenia(true).map((r) => r.value)).toContain("PAYMENT_FAILED");
   });
 
-  it("akcje wysyłają numer zgłoszenia (puste — bez pola)", async () => {
+  it("akcje wysyłają numer zgłoszenia (puste – bez pola)", async () => {
     api.mockResolvedValue({});
     await suspendSubscriptionAction("s1", "ABUSE", " phishing potwierdzony ", " #ab12cd34 ");
     await unsuspendSubscriptionAction("s1", "klient usunął pliki", false);

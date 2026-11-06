@@ -207,15 +207,15 @@ export class RenewalScheduler {
       throw new BadRequestException('Usługa nie ma zaległej płatności.');
     }
     if (sub.paymentSource === 'STRIPE_CARD' && sub.stripeSubscriptionId) {
-      throw new BadRequestException('Ta usługa jest opłacana kartą — zaległą fakturę opłacisz w Rozliczeniach.');
+      throw new BadRequestException('Ta usługa jest opłacana kartą – zaległą fakturę opłacisz w Rozliczeniach.');
     }
     // Zawieszenie ręczne (także „brak płatności” wybrany przez obsługę) zdejmuje obsługa, nie wpłata.
     if (zawieszona && !zawieszonaPrzezKarencje(sub.events)) {
-      throw new BadRequestException('Usługę zawiesiła obsługa — napisz do pomocy, aby ją wznowić.');
+      throw new BadRequestException('Usługę zawiesiła obsługa – napisz do pomocy, aby ją wznowić.');
     }
     const ok = zawieszona ? await this.oplacIPrzywroc(sub) : await this.attemptRenewal(sub);
     if (!ok) {
-      throw new BadRequestException('Za mało środków w portfelu — doładuj portfel i spróbuj ponownie.');
+      throw new BadRequestException('Za mało środków w portfelu – doładuj portfel i spróbuj ponownie.');
     }
     return { status: SubscriptionStatus.ACTIVE };
   }
@@ -327,13 +327,13 @@ export class RenewalScheduler {
         userId: sub.userId,
         type: WalletTxType.REFUND,
         amount: new Prisma.Decimal(oplata.amount).abs(),
-        description: `Zwrot: odnowienie ${sub.plan.slug} — usługa anulowana na koniec okresu`,
+        description: `Zwrot: odnowienie ${sub.plan.slug} – usługa anulowana na koniec okresu`,
         idempotencyKey: `${idempotencyKey}:zwrot`,
         subscriptionId: sub.id,
       });
     }
-    this.logger.warn(`Odnowienie sub=${sub.id} zatrzymane przez anulację na koniec okresu${oplata ? ' — obciążenie zwrócone' : ''}`);
-    throw new ConflictException('Usługa została anulowana na koniec okresu w trakcie odnowienia — nie odnawiamy jej, opłatę zwróciliśmy do portfela.');
+    this.logger.warn(`Odnowienie sub=${sub.id} zatrzymane przez anulację na koniec okresu${oplata ? ' – obciążenie zwrócone' : ''}`);
+    throw new ConflictException('Usługa została anulowana na koniec okresu w trakcie odnowienia – nie odnawiamy jej, opłatę zwróciliśmy do portfela.');
   }
 
   /**
@@ -456,7 +456,7 @@ export class RenewalScheduler {
           subscriptionId: sub.id,
           tylkoGdyStatus: SubscriptionStatus.PAST_DUE,
           reason: 'GRACE_EXPIRED',
-          note: 'Nieudane odnowienie — zawieszenie do czasu zapłaty',
+          note: 'Nieudane odnowienie – zawieszenie do czasu zapłaty',
         });
       } catch (err) {
         this.logger.error(
@@ -508,7 +508,7 @@ export class RenewalScheduler {
       // Okres zostaje opłacony, więc następny przebieg spróbuje samego odwieszenia.
       this.logger.error(`Odwieszenie sub=${sub.id} po zapłacie: ${(err as Error).message}`);
       throw new ServiceUnavailableException(
-        'Opłata przyjęta, ale nie udało się jeszcze włączyć usługi — ponowimy automatycznie w ciągu godziny.',
+        'Opłata przyjęta, ale nie udało się jeszcze włączyć usługi – ponowimy automatycznie w ciągu godziny.',
       );
     }
     return true;

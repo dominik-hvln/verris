@@ -217,7 +217,7 @@ export class MigrationDiscoveryService {
           sizeMb: typeof r.disk_usage === 'number' ? Math.round(r.disk_usage / 1024 / 1024) : null,
         }));
     } catch {
-      warnings.push('Nie udało się pobrać listy baz MySQL z cPanel — dodaj bazy ręcznie.');
+      warnings.push('Nie udało się pobrać listy baz MySQL z cPanel – dodaj bazy ręcznie.');
     }
 
     let mailboxes: DiscoveredMailbox[] = [];
@@ -243,7 +243,7 @@ export class MigrationDiscoveryService {
           .filter((r) => !!r.email && r.email.includes('@'))
           .map((r) => ({ email: r.email!, sizeMb: null }));
       } catch {
-        warnings.push('Nie udało się pobrać listy skrzynek z cPanel — dodaj skrzynki ręcznie.');
+        warnings.push('Nie udało się pobrać listy skrzynek z cPanel – dodaj skrzynki ręcznie.');
       }
     }
 
@@ -308,7 +308,7 @@ export class MigrationDiscoveryService {
       const dbList = await call('/CMD_API_DATABASES');
       databases = dbList.list.map((name) => ({ name, sizeMb: null }));
     } catch {
-      warnings.push('Nie udało się pobrać listy baz z panelu źródłowego — dodaj bazy ręcznie.');
+      warnings.push('Nie udało się pobrać listy baz z panelu źródłowego – dodaj bazy ręcznie.');
     }
 
     const mailboxes: DiscoveredMailbox[] = [];
@@ -319,7 +319,7 @@ export class MigrationDiscoveryService {
           if (local) mailboxes.push({ email: `${local}@${domain}`, sizeMb: null });
         }
       } catch {
-        warnings.push(`Nie udało się pobrać skrzynek dla domeny ${domain} — dodaj je ręcznie.`);
+        warnings.push(`Nie udało się pobrać skrzynek dla domeny ${domain} – dodaj je ręcznie.`);
       }
     }
 
@@ -399,7 +399,7 @@ export class MigrationDiscoveryService {
         if (tekstXml(wynik, 'status') === 'ok') dodaj(wynik, null);
       }
     } catch {
-      warnings.push('Plesk: nie udało się pobrać dodatkowych stron i poddomen — wybierz stronę główną albo wpisz katalog ręcznie.');
+      warnings.push('Plesk: nie udało się pobrać dodatkowych stron i poddomen – wybierz stronę główną albo wpisz katalog ręcznie.');
     }
     // Kolejność: strona główna, potem jej dodatkowe strony i poddomeny.
     strony.sort((a, b) => (a.konto ?? '').localeCompare(b.konto ?? '') || Number(b.kind === 'main') - Number(a.kind === 'main'));
@@ -412,9 +412,9 @@ export class MigrationDiscoveryService {
         .map((r) => ({ name: tekstXml(r, 'name') ?? '', sizeMb: null, konto: kontoPoId.get(tekstXml(r, 'webspace-id') ?? '') }))
         .filter((d) => !!d.name);
     } catch {
-      warnings.push('Plesk: nie udało się pobrać listy baz — dodaj bazy ręcznie.');
+      warnings.push('Plesk: nie udało się pobrać listy baz – dodaj bazy ręcznie.');
     }
-    warnings.push('Plesk: listy skrzynek nie pobieramy — pocztę przenosisz w formularzu „Poczta” albo w trybie „Wszystko naraz”.');
+    warnings.push('Plesk: listy skrzynek nie pobieramy – pocztę przenosisz w formularzu „Poczta” albo w trybie „Wszystko naraz”.');
 
     const domains = strony.filter((x) => x.kind !== 'sub').map((x) => x.domain);
     return {
@@ -508,7 +508,7 @@ export class MigrationDiscoveryService {
 }
 
 const INSECURE_TLS_WARNING =
-  'Panel źródłowy ma niepoprawny certyfikat TLS — połączenie wykonano bez walidacji certyfikatu.';
+  'Panel źródłowy ma niepoprawny certyfikat TLS – połączenie wykonano bez walidacji certyfikatu.';
 
 function defaultPortFor(type: SourcePanelType): number {
   return PANEL_PORTS.find((c) => c.type === type)!.port;

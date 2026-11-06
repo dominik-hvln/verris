@@ -7,7 +7,7 @@ import { LEGAL } from '@/lib/site';
 import { SITE, webPageSchema } from '@/lib/schema';
 
 const OPIS =
-  'Regulamin, polityka prywatności, polityka cookies, umowa powierzenia danych (DPA) i lista podprocesorów Verris — aktualne wersje online.';
+  'Regulamin, polityka prywatności, polityka cookies, umowa powierzenia danych (DPA) i lista podprocesorów Verris – aktualne wersje online.';
 
 export const metadata: Metadata = {
   title: 'Regulamin, RODO i umowa powierzenia (DPA) | Verris',
@@ -54,7 +54,7 @@ const DOKUMENTY: Pozycja[] = [
   {
     ikona: <Users />,
     tytul: 'Lista podprocesorów',
-    opis: 'Firmy, które pomagają nam świadczyć usługę — w polityce prywatności i w załączniku do DPA.',
+    opis: 'Firmy, które pomagają nam świadczyć usługę – w polityce prywatności i w załączniku do DPA.',
     meta: 'część polityki prywatności',
     href: `${LEGAL}/privacy`,
   },
@@ -123,7 +123,7 @@ export default function Page() {
       <JsonLd
         data={webPageSchema({
           type: 'CollectionPage',
-          name: 'Dokumenty i RODO — Verris',
+          name: 'Dokumenty i RODO – Verris',
           description: OPIS,
           path: '/dokumenty',
           extra: {
@@ -139,7 +139,7 @@ export default function Page() {
       <SubHero
         eyebrow="Dokumenty i RODO"
         title="Wszystkie dokumenty w jednym miejscu. Napisane tak, żeby dało się je przeczytać"
-        lead="Regulamin, polityka prywatności i umowa powierzenia — dostępne online w aktualnej wersji, z historią poprzednich wersji. Bez proszenia i bez czekania na skan."
+        lead="Regulamin, polityka prywatności i umowa powierzenia – dostępne online w aktualnej wersji, z historią poprzednich wersji. Bez proszenia i bez czekania na skan."
         crumbs={[{ label: 'Dokumenty' }]}
       />
 
@@ -148,7 +148,7 @@ export default function Page() {
           <SectionHead
             eyebrow="Dokumenty prawne"
             title="Regulamin, prywatność i umowa powierzenia"
-            lead="Dokumenty publikujemy w panelu klienta. Każdy ma numer wersji, datę obowiązywania i historię zmian — bez logowania."
+            lead="Dokumenty publikujemy w panelu klienta. Każdy ma numer wersji, datę obowiązywania i historię zmian – bez logowania."
           />
           <Lista items={DOKUMENTY} />
           <p className="d-docs-note">

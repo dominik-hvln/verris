@@ -27,7 +27,7 @@ const ETYKIETA: Record<WebhookEventRow["status"], string> = {
 };
 
 function czas(v: string | null): string {
-  if (!v) return "—";
+  if (!v) return "–";
   return new Date(v).toLocaleString("pl-PL", {
     day: "2-digit",
     month: "2-digit",
@@ -62,7 +62,7 @@ export default async function WebhookiPage({
       <header>
         <h1 className="text-[28px] lg:text-[34px]">Zdarzenia webhooka Stripe</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Z-05 — zdarzenie, którego handler nie obsłużył, zostaje tutaj zamiast zniknąć.
+          Z-05 – zdarzenie, którego handler nie obsłużył, zostaje tutaj zamiast zniknąć.
           Ponowienie jest bezpieczne: księgowanie portfela jest idempotentne po kluczu sesji,
           więc powtórzenie nie doda pieniędzy drugi raz.
         </p>
@@ -128,7 +128,7 @@ export default async function WebhookiPage({
             {dane.zdarzenia.length === 0 && (
               <tr>
                 <td colSpan={8} className="px-3 py-8 text-center text-neutral-500">
-                  Nic tu nie ma — przy tym filtrze to dobra wiadomość.
+                  Nic tu nie ma – przy tym filtrze to dobra wiadomość.
                 </td>
               </tr>
             )}
@@ -157,7 +157,7 @@ export default async function WebhookiPage({
                       {z.lastError}
                     </span>
                   ) : (
-                    <span className="text-xs text-neutral-600">—</span>
+                    <span className="text-xs text-neutral-600">–</span>
                   )}
                 </td>
                 <td className="px-3 py-2 text-right">
@@ -176,7 +176,7 @@ export default async function WebhookiPage({
       <p className="text-xs text-neutral-500">
         Ponowienia idą też automatycznie, z narastającym odstępem (1, 5, 15, 60 min). Po
         {" "}{dane.progAlertu} {plForm(dane.progAlertu, "nieudanej próbie", "nieudanych próbach", "nieudanych próbach")} albo 15 minutach od pierwszej dostawy wszyscy
-        administratorzy dostają maila. Treść zdarzenia jest kasowana 90 dni po przetworzeniu —
+        administratorzy dostają maila. Treść zdarzenia jest kasowana 90 dni po przetworzeniu –
         wtedy ponowienie przestaje być możliwe, ale sam wiersz zostaje na zawsze, bo to on
         odrzuca powtórne dostawy.
       </p>

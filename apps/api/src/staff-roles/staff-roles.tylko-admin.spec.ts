@@ -5,7 +5,7 @@ import { ROLES_KEY } from '../common/decorators/roles.decorator.js';
 import { StaffRolesAdminController } from './staff-roles.admin.controller.js';
 
 /** Decyzja właściciela 08.10: zmiany ról i operatorów tylko ADMIN (STAFF nawet z STAFF_MANAGE — tylko podgląd). */
-describe('StaffRolesAdminController — zmiany tylko dla administratora', () => {
+describe('StaffRolesAdminController – zmiany tylko dla administratora', () => {
   const reflector = new Reflector();
   const proto = StaffRolesAdminController.prototype as unknown as Record<string, unknown>;
   const role = (m: string) =>

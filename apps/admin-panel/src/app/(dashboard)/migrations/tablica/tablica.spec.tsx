@@ -71,7 +71,7 @@ it("kolumny etapów z kartami: Przerywacz, termin po terminie, prowadzący i bra
   expect(h).toContain("1 po terminie");
 });
 
-it("„Tylko moje” — filtr w API; błąd API — komunikat zamiast pustej tablicy", async () => {
+it("„Tylko moje” – filtr w API; błąd API – komunikat zamiast pustej tablicy", async () => {
   api.mockResolvedValue(tablica({}));
   await html({ moje: "1" });
   expect(api).toHaveBeenCalledWith("/admin/migrations/tablica?moje=1");

@@ -13,7 +13,7 @@ function dom(html: string) {
   return document.body;
 }
 
-describe('A1-03 — filtr klonowania zrzutu', () => {
+describe('A1-03 – filtr klonowania zrzutu', () => {
   it('treść elementu prywatnego (tekst i dzieci) nie trafia do klonu; sam element zostaje jako puste pole', () => {
     const b = dom(`<section><p>Skopiuj token</p><code ${ATRYBUT_PRYWATNE}>vrs_live_SEKRET<b>x</b></code></section>`);
     const code = b.querySelector('code')!;
@@ -29,14 +29,14 @@ describe('A1-03 — filtr klonowania zrzutu', () => {
     expect(filtrZrzutu(b.querySelector('div img')!)).toBe(false);
   });
 
-  it('UI zgłoszenia nie trafia na zrzut, zwykłe elementy — tak', () => {
+  it('UI zgłoszenia nie trafia na zrzut, zwykłe elementy – tak', () => {
     const b = dom(`<div ${ATRYBUT_POMIN}>Zgłoś uwagę</div><main>treść</main>`);
     expect(filtrZrzutu(b.querySelector(`[${ATRYBUT_POMIN}]`)!)).toBe(false);
     expect(filtrZrzutu(b.querySelector('main')!)).toBe(true);
   });
 });
 
-describe('A1-03 — prostokąty do zamazania', () => {
+describe('A1-03 – prostokąty do zamazania', () => {
   it('tylko najbardziej zewnętrzne, widoczne w oknie', () => {
     const b = dom(`<div id="a" ${ATRYBUT_PRYWATNE}><span ${ATRYBUT_PRYWATNE}>x</span></div><div id="poza" ${ATRYBUT_PRYWATNE}></div>`);
     const prostokat = (x: number, y: number, w: number, h: number) => () => ({ left: x, top: y, width: w, height: h, right: x + w, bottom: y + h }) as DOMRect;
@@ -46,7 +46,7 @@ describe('A1-03 — prostokąty do zamazania', () => {
   });
 });
 
-describe('A1-03 — zrzut domyślnie odznaczony na stronach z sekretami', () => {
+describe('A1-03 – zrzut domyślnie odznaczony na stronach z sekretami', () => {
   it('strony bezpieczeństwa i konta', () => {
     const b = dom('<main>zwykła strona</main>');
     for (const s of ['/dashboard/api-tokens', '/dashboard/settings', '/dashboard/webhooks/x', '/dashboard/iam']) expect(stronaZSekretami(s, b)).toBe(true);

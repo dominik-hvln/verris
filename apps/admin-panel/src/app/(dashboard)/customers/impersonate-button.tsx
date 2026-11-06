@@ -22,7 +22,7 @@ export function ImpersonateButton({ userId, email, accountRole, className, etyki
   const start = () => {
     setError(null);
     if (reason.trim().length < 10) {
-      setError("Powód jest wymagany — min. 10 znaków (zostanie zarchiwizowany).");
+      setError("Powód jest wymagany – min. 10 znaków (zostanie zarchiwizowany).");
       return;
     }
     startTransition(async () => {
@@ -38,7 +38,7 @@ export function ImpersonateButton({ userId, email, accountRole, className, etyki
     return (
       <button type="button" disabled title={zablokowane} className={`${className ?? "inline-flex items-center gap-1.5 rounded-md border border-white/10 px-3 py-1.5 text-xs font-medium"} cursor-not-allowed opacity-50`}>
         {etykieta ?? "Wejdź na konto"}
-        <span className="sr-only"> — {zablokowane}</span>
+        <span className="sr-only"> – {zablokowane}</span>
       </button>
     );
   }
@@ -97,7 +97,7 @@ export function ImpersonateButton({ userId, email, accountRole, className, etyki
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 rows={3}
-                placeholder="np. Ticket #4321 — pomoc z konfiguracją DNS"
+                placeholder="np. Ticket #4321 – pomoc z konfiguracją DNS"
                 className="mt-1.5 w-full rounded-lg bg-black/60 border border-white/10 px-3 py-2 text-white text-sm focus:border-amber-400 focus:outline-none placeholder:text-neutral-600 resize-none"
                 aria-invalid={reason.length > 0 && reason.trim().length < 10}
               />

@@ -74,7 +74,7 @@ describe('X-05 daErrorMessage', () => {
   });
 });
 
-describe('X-05 hostingFetchErrorMessage — baner „nie udało się pobrać"', () => {
+describe('X-05 hostingFetchErrorMessage – baner „nie udało się pobrać"', () => {
   it('brak błędu → brak banera', () => {
     expect(hostingFetchErrorMessage(null)).toBeNull();
     expect(hostingFetchErrorMessage('')).toBeNull();
@@ -89,7 +89,7 @@ describe('X-05 hostingFetchErrorMessage — baner „nie udało się pobrać"', 
   });
 });
 
-describe('daErrorMessage — hasło', () => {
+describe('daErrorMessage – hasło', () => {
   it('odrzucone hasło → komunikat o wymaganiach; inna wzmianka o haśle → nie', () => {
     expect(daErrorMessage('Password is too short')).toMatch(/Hasło nie spełnia/);
     expect(daErrorMessage('Hasło musi mieć co najmniej 8 znaków')).toMatch(/Hasło nie spełnia/);
@@ -100,7 +100,7 @@ describe('daErrorMessage — hasło', () => {
   });
 });
 
-describe('daErrorMessage — white label (wspólne z API, libs/contracts)', () => {
+describe('daErrorMessage – white label (wspólne z API, libs/contracts)', () => {
   it('czytelna walidacja nie przechodzi w oryginale, gdy zdradza panel serwera, adres węzła albo URL', () => {
     expect(daErrorMessageSerwer('Invalid response from DirectAdmin')).toMatch(/nie powiodła się/);
     expect(daErrorMessageSerwer('Invalid PHP version (CloudLinux selector)')).toMatch(/nie powiodła się/);
@@ -116,12 +116,12 @@ describe('daErrorMessage — white label (wspólne z API, libs/contracts)', () =
     expect(daErrorMessage('Tego nie da się cofnąć')).toBe('Tego nie da się cofnąć');
   });
 
-  it('błąd sieci bez „hostingowy” — tę samą funkcję woła rejestrator domen', () => {
+  it('błąd sieci bez „hostingowy” – tę samą funkcję woła rejestrator domen', () => {
     expect(daErrorMessage('connect ETIMEDOUT')).toBe('Serwer jest chwilowo niedostępny. Spróbuj ponownie za chwilę.');
   });
 });
 
-it('komponenty panelu nie pokazują surowego fetchError — tylko przez hostingFetchErrorMessage', () => {
+it('komponenty panelu nie pokazują surowego fetchError – tylko przez hostingFetchErrorMessage', () => {
   const trafienia: string[] = [];
   const przejdz = (dir: string) => {
     for (const n of readdirSync(dir)) {

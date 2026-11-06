@@ -90,7 +90,7 @@ export function PasekCudzegoKonta({ actingFor, zakres, kontoSubkonta = null }: {
     return (
       <div data-konto-subkonta className="mb-4 rounded-[10px] border border-data/30 bg-data-soft px-4 py-2.5 text-sm text-foreground">
         Pracujesz na koncie <b>{kontoSubkonta.nazwa}</b> ({kontoSubkonta.email}){zakres ? ` · dostęp do wybranych usług (${zakres})` : ''}.
-        Część miejsc panelu widzi tylko właściciel konta — o dodatkowy dostęp poproś właściciela.
+        Część miejsc panelu widzi tylko właściciel konta – o dodatkowy dostęp poproś właściciela.
       </div>
     );
   }

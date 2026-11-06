@@ -206,7 +206,7 @@ function trasyKlienckie(): Trasa[] {
   return out;
 }
 
-describe('Z-04 — pokrycie tras klasyfikacją uprawnień subkont', () => {
+describe('Z-04 – pokrycie tras klasyfikacją uprawnień subkont', () => {
   const trasy = trasyKlienckie();
 
   it('znajduje sensowną liczbę tras (test sam się nie oszukuje)', () => {

@@ -42,7 +42,7 @@ function stanowisko(o: { kordon?: boolean; progPo?: number; limit?: number; kamp
 
 const wiersze = (n: number) => Array.from({ length: n }, (_, i) => ({ email: `osoba${i}@example.com` }));
 
-describe('E-mail marketing — potwierdzenia zapisu pod kordonem i licznikami CYBER-3', () => {
+describe('E-mail marketing – potwierdzenia zapisu pod kordonem i licznikami CYBER-3', () => {
   it('konto pod kordonem: import i dodanie kontaktu → 403, bez maili i bez kontaktów', async () => {
     const s = stanowisko({ kordon: true });
     await expect(s.svc.importContacts('u1', 's1', 'l1', { consentConfirmed: true, rows: wiersze(3) } as never)).rejects.toBeInstanceOf(ForbiddenException);

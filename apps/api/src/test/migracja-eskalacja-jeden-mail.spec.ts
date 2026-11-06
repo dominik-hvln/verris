@@ -35,7 +35,7 @@ function ticketsSvc() {
   return { svc, send, wyslij };
 }
 
-describe('eskalacja migracji — jeden mail do klienta', () => {
+describe('eskalacja migracji – jeden mail do klienta', () => {
   it('zwykłe zgłoszenie nadal wysyła potwierdzenie klientowi', async () => {
     const { svc, send, wyslij } = ticketsSvc();
     await svc.create('u1', { subject: 'S', message: 'M' } as never);

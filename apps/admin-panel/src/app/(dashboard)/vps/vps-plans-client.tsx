@@ -76,7 +76,7 @@ export function VpsPlansClient({
       {!available ? (
         <div className="flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
           <AlertTriangle className="h-4 w-4" />
-          Brak <code className="font-mono">HETZNER_API_TOKEN</code> — plany można konfigurować, ale provisioning VPS jest nieczynny do czasu ustawienia tokena.
+          Brak <code className="font-mono">HETZNER_API_TOKEN</code> – plany można konfigurować, ale provisioning VPS jest nieczynny do czasu ustawienia tokena.
         </div>
       ) : null}
 
@@ -143,7 +143,7 @@ export function VpsPlansClient({
           ),
         )}
         {plans.length === 0 && !creating ? (
-          <p className="text-sm text-neutral-400">Brak planów — dodaj pierwszy, aby klienci mogli zamawiać VPS.</p>
+          <p className="text-sm text-neutral-400">Brak planów – dodaj pierwszy, aby klienci mogli zamawiać VPS.</p>
         ) : null}
       </div>
     </div>

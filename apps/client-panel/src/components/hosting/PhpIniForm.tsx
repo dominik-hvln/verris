@@ -16,12 +16,12 @@ const opcje = (wartosci: string[], jednostka = ''): SelectOption[] => [
 ];
 
 const POLA: Array<{ klucz: string; etykieta: string; opis: string; opcje: SelectOption[] }> = [
-  { klucz: 'memory_limit', etykieta: 'Limit pamięci skryptu', opis: 'memory_limit — i tak nie więcej niż RAM planu.', opcje: opcje(['128M', '256M', '512M', '768M', '1024M']) },
+  { klucz: 'memory_limit', etykieta: 'Limit pamięci skryptu', opis: 'memory_limit – i tak nie więcej niż RAM planu.', opcje: opcje(['128M', '256M', '512M', '768M', '1024M']) },
   { klucz: 'upload_max_filesize', etykieta: 'Maks. rozmiar wysyłanego pliku', opis: 'upload_max_filesize', opcje: opcje(['16M', '32M', '64M', '128M', '256M', '512M']) },
-  { klucz: 'post_max_size', etykieta: 'Maks. rozmiar formularza', opis: 'post_max_size — co najmniej tyle, co rozmiar pliku.', opcje: opcje(['16M', '32M', '64M', '128M', '256M', '512M']) },
+  { klucz: 'post_max_size', etykieta: 'Maks. rozmiar formularza', opis: 'post_max_size – co najmniej tyle, co rozmiar pliku.', opcje: opcje(['16M', '32M', '64M', '128M', '256M', '512M']) },
   { klucz: 'max_execution_time', etykieta: 'Czas wykonania skryptu', opis: 'max_execution_time', opcje: opcje(['30', '60', '120', '300', '600'], ' s') },
-  { klucz: 'max_input_vars', etykieta: 'Liczba pól formularza', opis: 'max_input_vars — przydatne przy dużych menu WordPressa.', opcje: opcje(['1000', '3000', '5000', '10000']) },
-  { klucz: 'display_errors', etykieta: 'Pokazywanie błędów', opis: 'display_errors — na produkcji zostaw wyłączone.', opcje: [{ value: DOMYSLNA, label: 'Domyślna serwera' }, { value: 'Off', label: 'Wyłączone' }, { value: 'On', label: 'Włączone' }] },
+  { klucz: 'max_input_vars', etykieta: 'Liczba pól formularza', opis: 'max_input_vars – przydatne przy dużych menu WordPressa.', opcje: opcje(['1000', '3000', '5000', '10000']) },
+  { klucz: 'display_errors', etykieta: 'Pokazywanie błędów', opis: 'display_errors – na produkcji zostaw wyłączone.', opcje: [{ value: DOMYSLNA, label: 'Domyślna serwera' }, { value: 'Off', label: 'Wyłączone' }, { value: 'On', label: 'Włączone' }] },
   { klucz: 'date.timezone', etykieta: 'Strefa czasowa', opis: 'date.timezone', opcje: opcje(['Europe/Warsaw', 'UTC', 'Europe/London', 'Europe/Berlin']) },
 ];
 
@@ -81,7 +81,7 @@ export function PhpIniForm({ serviceId, domain }: { serviceId: string; domain: s
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-3">
         <p className="m-0 text-[12.5px] text-muted-foreground">
           Zapis w plikach <span className="font-mono">.user.ini</span> i <span className="font-mono">.htaccess</span> tej domeny
-          {stan.wlasneDyrektywy > 0 ? ` — Twoich własnych wpisów (${stan.wlasneDyrektywy}) nie zmieniamy` : ''}.
+          {stan.wlasneDyrektywy > 0 ? ` – Twoich własnych wpisów (${stan.wlasneDyrektywy}) nie zmieniamy` : ''}.
         </p>
         <button
           type="button"

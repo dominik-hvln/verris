@@ -84,7 +84,7 @@ describe('poczatekPomiarow', () => {
 });
 
 describe('pierwszyPomiar', () => {
-  it('liczy się osobno dla usługi — sonda dodana później ma własny początek', () => {
+  it('liczy się osobno dla usługi – sonda dodana później ma własny początek', () => {
     expect(pierwszyPomiar(usluga('a', ['NO_DATA', 'OK', 'NO_DATA', 'OK']).days)).toBe(1);
     expect(pierwszyPomiar(usluga('a', ['NO_DATA', 'NO_DATA']).days)).toBe(2);
   });

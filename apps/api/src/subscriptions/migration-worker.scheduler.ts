@@ -147,8 +147,8 @@ export class MigrationWorkerScheduler {
         await this.mailer.send({
           to: row.subscription.user.email,
           subject: ok
-            ? `Migracja zakończona sukcesem — ${row.subscription.account?.domain ?? row.targetDomain ?? '—'}`
-            : `Migracja zatrzymana — ${row.targetDomain ?? row.subscription.account?.domain ?? '—'}`,
+            ? `Migracja zakończona sukcesem – ${row.subscription.account?.domain ?? row.targetDomain ?? '–'}`
+            : `Migracja zatrzymana – ${row.targetDomain ?? row.subscription.account?.domain ?? '–'}`,
           ...(ok
             ? this.buildSuccessMail(row.subscription.user.email, row, row.subscription.user.firstName, stronaBezBazy)
             : this.buildFailureMail(row.subscription.user.email, row, row.subscription.user.firstName)),
@@ -201,7 +201,7 @@ export class MigrationWorkerScheduler {
         const zgloszenie = tik ? { id: tik.id, opiekun: opiekunSlownie(tik.assignedTo), termin: terminSlownie(tik.slaResponseDueAt) } : null;
         await this.mailer.send({
           to: row.subscription.user.email,
-          subject: `Migracja ${row.targetDomain ?? row.subscription.account?.domain ?? ''} — przejął ją nasz zespół`,
+          subject: `Migracja ${row.targetDomain ?? row.subscription.account?.domain ?? ''} – przejął ją nasz zespół`,
           ...this.buildAttentionMail(row.subscription.user.email, row, row.subscription.user.firstName, zgloszenie),
           tag: 'migration.attention',
           category: 'TRANSACTIONAL',
@@ -268,12 +268,12 @@ export class MigrationWorkerScheduler {
     const panelUrl = (process.env.CLIENT_PANEL_URL || 'https://panel.verris.pl').replace(/\/$/, '');
     return this.mailMigracji(to, firstName, {
       title: 'Migrację przejął nasz zespół',
-      preheader: 'Nie musisz nic robić — dokończymy przenosiny i damy znać.',
+      preheader: 'Nie musisz nic robić – dokończymy przenosiny i damy znać.',
       akapity: [
-        `Automatyczna migracja **${domena}** napotkała przeszkodę, więc przejął ją nasz zespół techniczny. Nie musisz nic robić — dokończymy przenosiny i poinformujemy Cię o zakończeniu. Twoja obecna strona cały czas działa u starego dostawcy.`,
+        `Automatyczna migracja **${domena}** napotkała przeszkodę, więc przejął ją nasz zespół techniczny. Nie musisz nic robić – dokończymy przenosiny i poinformujemy Cię o zakończeniu. Twoja obecna strona cały czas działa u starego dostawcy.`,
         ...(zgloszenie
           ? [
-              `Prowadzimy to w zgłoszeniu **#${zgloszenie.id.slice(0, 8)}** — zajmuje się nim **${escapeMarkdown(zgloszenie.opiekun)}**, odezwiemy się ${zgloszenie.termin}. W zgłoszeniu możesz też dopisać pytania.`,
+              `Prowadzimy to w zgłoszeniu **#${zgloszenie.id.slice(0, 8)}** – zajmuje się nim **${escapeMarkdown(zgloszenie.opiekun)}**, odezwiemy się ${zgloszenie.termin}. W zgłoszeniu możesz też dopisać pytania.`,
             ]
           : []),
         `Numer zlecenia: **${req.id.slice(0, 8)}**`,
@@ -299,7 +299,7 @@ export class MigrationWorkerScheduler {
         `Migracja Twojej strony **${domena}** została zakończona pomyślnie.`,
         ...(stronaBezBazy
           ? [
-              'Przenieśliśmy same pliki, a strona na nowym serwerze odpowiada błędem — najczęściej dlatego, że korzysta z bazy danych, która została u poprzedniego dostawcy. Przenieś ją w zakładce Migracje → **Baza danych** (albo uruchom migrację **Cała strona**).',
+              'Przenieśliśmy same pliki, a strona na nowym serwerze odpowiada błędem – najczęściej dlatego, że korzysta z bazy danych, która została u poprzedniego dostawcy. Przenieś ją w zakładce Migracje → **Baza danych** (albo uruchom migrację **Cała strona**).',
             ]
           : []),
         [
@@ -308,7 +308,7 @@ export class MigrationWorkerScheduler {
           `- **Skrzynki pocztowe:** ${req.mailboxesMigrated}`,
         ].join('\n'),
         '## Ostatni krok: przełączenie DNS',
-        'W zakładce Migracje znajdziesz gotowe wpisy DNS do ustawienia u dostawcy domeny (a jeśli domena korzysta już z naszego DNS — automatyczne potwierdzenie). Przed przełączeniem możesz jednym kliknięciem dograć pliki i wiadomości, które pojawiły się po skopiowaniu strony.',
+        'W zakładce Migracje znajdziesz gotowe wpisy DNS do ustawienia u dostawcy domeny (a jeśli domena korzysta już z naszego DNS – automatyczne potwierdzenie). Przed przełączeniem możesz jednym kliknięciem dograć pliki i wiadomości, które pojawiły się po skopiowaniu strony.',
         'Sprawdź proszę poprawność działania strony i zgłoś nam wszelkie nieprawidłowości w ciągu 7 dni.',
       ],
     });
@@ -457,13 +457,13 @@ export class MigrationWorkerScheduler {
   ): string {
     const details = rawDetails && typeof rawDetails === 'object' ? (rawDetails as Record<string, unknown>) : {};
     if (type === 'MIGRATION_EXTERNAL_REQUESTED') {
-      const notatki = details.notes ? String(details.notes) : '—';
+      const notatki = details.notes ? String(details.notes) : '–';
       return [
         'Zgłoszenie utworzone automatycznie z formularza przeniesienia strony.',
-        `Domena: ${domain ?? '—'}`,
-        `Źródło: ${String(details.sourceType ?? '—')} ${String(details.sourceHost ?? '—')}:${String(details.sourcePort ?? '—')}`,
-        `Użytkownik: ${String(details.sourceUsername ?? '—')}`,
-        `Ścieżka: ${String(details.sourcePath ?? '—')}`,
+        `Domena: ${domain ?? '–'}`,
+        `Źródło: ${String(details.sourceType ?? '–')} ${String(details.sourceHost ?? '–')}:${String(details.sourcePort ?? '–')}`,
+        `Użytkownik: ${String(details.sourceUsername ?? '–')}`,
+        `Ścieżka: ${String(details.sourcePath ?? '–')}`,
         `Twoje uwagi: ${notatki}`,
       ].join('\n');
     }
@@ -471,7 +471,7 @@ export class MigrationWorkerScheduler {
       // Migrację wewnętrzną zleca obsługa: `notes` to wewnętrzny powód operatora (np. „węzeł n1 przeciążony”) —
       // zostaje w dzienniku i w historii migracji dla obsługi, nie w wiadomości klienta (PB-44, white label).
       'Zgłoszenie utworzone automatycznie: przeniesienie konta na inny serwer.',
-      `Domena: ${domain ?? '—'}`,
+      `Domena: ${domain ?? '–'}`,
       '',
       // 13.10 (PB-44, D3) — CMD_API_SITE_BACKUP tylko zleca kopię w DirectAdminie; nie piszemy klientowi, że jest gotowa.
       'Przed przeniesieniem zleciliśmy kopię zapasową konta.',

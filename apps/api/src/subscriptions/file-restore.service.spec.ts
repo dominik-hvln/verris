@@ -38,7 +38,7 @@ describe('FileRestoreService', () => {
     },
   );
 
-  it('lista bez prefiksu jest dozwolona; odtworzenie bez ścieżki — nie', () => {
+  it('lista bez prefiksu jest dozwolona; odtworzenie bez ścieżki – nie', () => {
     expect(sprawdzSciezke('', false)).toBe('');
     expect(() => sprawdzSciezke(' ', true)).toThrow('Wskaż');
     expect(sprawdzSciezke('domains/a..b/plik', true)).toBe('domains/a..b/plik');

@@ -3,7 +3,7 @@ import { join } from 'path';
 import { captchaWww, cspWww } from './csp';
 
 /** Decyzja 14.10 — captcha w formularzach verris.pl, ten sam dostawca co rejestracja w panelu. */
-describe('verris.pl — captcha w CSP i formularzach', () => {
+describe('verris.pl – captcha w CSP i formularzach', () => {
   it('bez klucza strony: CSP bez źródeł dostawcy', () => {
     expect(captchaWww('', 'turnstile')).toBeNull();
     expect(cspWww('n', false, null)).not.toContain('challenges.cloudflare.com');

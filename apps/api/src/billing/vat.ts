@@ -41,7 +41,7 @@ export const ALARM_OSS_PROCENT = 80;
 
 export const ADNOTACJA_OO = 'odwrotne obciążenie';
 export const ADNOTACJA_POZA_UE =
-  'Miejsce świadczenia usługi poza terytorium kraju — usługa nie podlega opodatkowaniu VAT w Polsce.';
+  'Miejsce świadczenia usługi poza terytorium kraju – usługa nie podlega opodatkowaniu VAT w Polsce.';
 
 export type KodVat = 'PL' | 'UE_B2C' | 'OO' | 'OSS' | 'POZA_UE';
 

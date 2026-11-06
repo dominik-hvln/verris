@@ -6,7 +6,7 @@ import { resolvePublicHost, ustawZrodloAdresowWezlow } from './migration-net.uti
  * Z CONTROL-PLANE'U. Jego własny publiczny adres to połączenie lokalne, z pominięciem zapory —
  * tak samo zakazane jak 127.0.0.1. Adresy control-plane: VERRIS_CONTROL_PLANE_IPS (adresy i sieci).
  */
-describe('resolvePublicHost — adresy control-plane', () => {
+describe('resolvePublicHost – adresy control-plane', () => {
   const poprzednie = process.env.VERRIS_CONTROL_PLANE_IPS;
   afterEach(() => {
     if (poprzednie === undefined) delete process.env.VERRIS_CONTROL_PLANE_IPS;
@@ -34,7 +34,7 @@ describe('resolvePublicHost — adresy control-plane', () => {
  * migracji niezależnie od VERRIS_CONTROL_PLANE_IPS: zapora węzła wpuszcza control-plane na :2222,
  * SSH i MariaDB, więc „stary hosting” wskazujący na węzeł otwierałby klientowi te porty.
  */
-describe('resolvePublicHost — adresy węzłów z bazy', () => {
+describe('resolvePublicHost – adresy węzłów z bazy', () => {
   const env = { cp: process.env.VERRIS_CONTROL_PLANE_IPS, node: process.env.NODE_ENV };
   afterEach(() => {
     ustawZrodloAdresowWezlow(null);
@@ -60,13 +60,13 @@ describe('resolvePublicHost — adresy węzłów z bazy', () => {
     await expect(resolvePublicHost('1.1.1.1')).rejects.toThrow('serwer Verris');
   });
 
-  it("sonda strony klienta (wezly: 'dozwolone') łączy się z węzłem — strona hostowana u nas", async () => {
+  it("sonda strony klienta (wezly: 'dozwolone') łączy się z węzłem – strona hostowana u nas", async () => {
     ustawZrodloAdresowWezlow(async () => ['8.8.4.4']);
     await expect(resolvePublicHost('8.8.4.4', { wezly: 'dozwolone' })).resolves.toBe('8.8.4.4');
     await expect(resolvePublicHost('127.0.0.1', { wezly: 'dozwolone' })).rejects.toThrow('prywatną');
   });
 
-  it('produkcja bez źródła adresów węzłów — odmowa (fail-closed), dev/test — pusta lista', async () => {
+  it('produkcja bez źródła adresów węzłów – odmowa (fail-closed), dev/test – pusta lista', async () => {
     process.env.NODE_ENV = 'production';
     await expect(resolvePublicHost('8.8.8.8')).rejects.toThrow('spróbuj ponownie');
     process.env.NODE_ENV = 'test';

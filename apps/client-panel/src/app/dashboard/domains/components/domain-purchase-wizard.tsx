@@ -66,9 +66,9 @@ const STAN_ZLECENIA: Record<string, string> = {
 };
 
 function formatPln(amount: string | null | undefined) {
-  if (!amount) return '—';
+  if (!amount) return '–';
   const n = Number.parseFloat(amount);
-  if (!Number.isFinite(n)) return '—';
+  if (!Number.isFinite(n)) return '–';
   return new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(n);
 }
 
@@ -122,7 +122,7 @@ export function TldResultCard({
           </span>
         ) : (
           <span className="shrink-0 rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-neutral-500">
-            {result.unknown ? 'Nie sprawdzono — spróbuj później' : 'Zajęta'}
+            {result.unknown ? 'Nie sprawdzono – spróbuj później' : 'Zajęta'}
           </span>
         )}
       </div>
@@ -140,7 +140,7 @@ export function TldResultCard({
             <div className="flex-1 rounded-lg border border-white/10 bg-white/[0.02] px-2.5 py-2">
               <p className="text-[10px] uppercase tracking-wide text-neutral-500">Odnowienie / rok</p>
               <p className="text-lg font-bold text-emerald-300">
-                {result.renewal?.grossAmount ? formatPln(result.renewal.grossAmount) : '—'}
+                {result.renewal?.grossAmount ? formatPln(result.renewal.grossAmount) : '–'}
               </p>
               <p className="text-[10px] text-neutral-500">
                 {result.renewal?.grossAmount ? `brutto · VAT ${result.renewal.vatRate}%` : 'wg cennika'}
@@ -153,7 +153,7 @@ export function TldResultCard({
             ) : null}
           </div>
           <p className="text-[10px] text-emerald-300/80">
-            Cenę odnowienia pokazujemy od razu — bez niespodzianek przy przedłużeniu.
+            Cenę odnowienia pokazujemy od razu – bez niespodzianek przy przedłużeniu.
           </p>
         </div>
       ) : (
@@ -397,7 +397,7 @@ export function DomainPurchaseWizard({
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <PageHeaderRow
         title="Kup domenę"
-        description="Sprawdź dostępność, wybierz okres rejestracji i skonfiguruj nameserwery — opłata z portfela Verris."
+        description="Sprawdź dostępność, wybierz okres rejestracji i skonfiguruj nameserwery – opłata z portfela Verris."
         actions={
           <Button variant="outline" className="gap-2" onClick={() => router.push('/dashboard/domains')}>
             <ArrowLeft className="h-4 w-4" /> Moje domeny
@@ -419,7 +419,7 @@ export function DomainPurchaseWizard({
                 <div>
                   <h2 className="text-lg font-semibold text-white">Wybierz nazwę domeny</h2>
                   <p className="text-sm text-neutral-400">
-                    Wpisz samą nazwę — sprawdzimy dostępność we wszystkich popularnych końcówkach naraz.
+                    Wpisz samą nazwę – sprawdzimy dostępność we wszystkich popularnych końcówkach naraz.
                   </p>
                 </div>
               </div>
@@ -507,7 +507,7 @@ export function DomainPurchaseWizard({
 
                   {availableCount === 0 ? (
                     <p className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
-                      Wszystkie sprawdzone warianty są zajęte — spróbuj innej nazwy.
+                      Wszystkie sprawdzone warianty są zajęte – spróbuj innej nazwy.
                     </p>
                   ) : (
                     <p className="text-center text-xs text-neutral-500">
@@ -696,7 +696,7 @@ export function DomainPurchaseWizard({
                   <a href="/legal/terms" target="_blank" className="underline hover:text-white">
                     Regulamin świadczenia usług Verris
                   </a>{' '}
-                  (w tym warunki rejestracji domen — §12),{' '}
+                  (w tym warunki rejestracji domen – §12),{' '}
                   <a href="/legal/privacy" target="_blank" className="underline hover:text-white">
                     Politykę prywatności
                   </a>{' '}
@@ -779,7 +779,7 @@ export function DomainPurchaseWizard({
               {!trDomena
                 ? 'Wpisz domenę, a pokażemy koszt transferu.'
                 : trCenaAktualna?.amount
-                  ? <>Koszt transferu: <span className="font-semibold text-white">{formatPln(trCenaAktualna.amount)}</span> brutto (VAT {trCenaAktualna.vatRate}%) — opłata z portfela. {/\.pl$/.test(trDomena) ? 'Transfer domeny .pl nie przedłuża jej ważności — termin zostaje taki jak u obecnego rejestratora.' : 'Dla domen globalnych (.com, .net, .org…) rejestr przy transferze przedłuża ważność o rok.'}</>
+                  ? <>Koszt transferu: <span className="font-semibold text-white">{formatPln(trCenaAktualna.amount)}</span> brutto (VAT {trCenaAktualna.vatRate}%) – opłata z portfela. {/\.pl$/.test(trDomena) ? 'Transfer domeny .pl nie przedłuża jej ważności – termin zostaje taki jak u obecnego rejestratora.' : 'Dla domen globalnych (.com, .net, .org…) rejestr przy transferze przedłuża ważność o rok.'}</>
                   : trCenaAktualna?.error
                     ? <span className="text-rose-300">{trCenaAktualna.error}</span>
                     : 'Sprawdzamy koszt transferu…'}

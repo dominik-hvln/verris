@@ -80,7 +80,7 @@ async function operator(uprawnienia: string[], imie = 'Op') {
 const klient = (dane: Record<string, unknown> = {}) => prisma().user.create({ data: { email: `k-${t()}@test.verris.pl`, passwordHash: 'x', ...dane } });
 type Notatka = { id: string; tresc: string; przypieta: boolean; autor: { nazwa: string } | null };
 
-describe('F2.4 — notatki klienta (PostgreSQL)', () => {
+describe('F2.4 – notatki klienta (PostgreSQL)', () => {
   beforeAll(async () => {
     app = await NestFactory.create(Aplikacja, { logger: false });
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
@@ -95,7 +95,7 @@ describe('F2.4 — notatki klienta (PostgreSQL)', () => {
   beforeEach(wyczyscBaze);
 
   it('migracja: stara notatka → pierwsza, przypięta, bez autora; puste i zanonimizowane pominięte; drugi przebieg bez duplikatu', async () => {
-    const z = await klient({ adminInternalNote: 'VIP — dzwonić przed zmianami' });
+    const z = await klient({ adminInternalNote: 'VIP – dzwonić przed zmianami' });
     const pusta = await klient({ adminInternalNote: '   ' });
     const anon = await klient({ adminInternalNote: 'stara', anonymizedAt: new Date() });
     await prisma().customerNote.deleteMany({});
@@ -104,7 +104,7 @@ describe('F2.4 — notatki klienta (PostgreSQL)', () => {
     await prisma().$executeRawUnsafe(insert);
     await prisma().$executeRawUnsafe(insert);
     const n = await prisma().customerNote.findMany({ where: { userId: { in: [z.id, pusta.id, anon.id] } } });
-    expect(n.map((x) => [x.userId, x.body, x.pinned, x.authorId])).toEqual([[z.id, 'VIP — dzwonić przed zmianami', true, null]]);
+    expect(n.map((x) => [x.userId, x.body, x.pinned, x.authorId])).toEqual([[z.id, 'VIP – dzwonić przed zmianami', true, null]]);
   });
 
   it('HTTP: konsultant dopisuje i przypina, audytor tylko czyta; przypięte pierwsze; autor z imienia; dziennik bez treści', async () => {
@@ -138,7 +138,7 @@ describe('F2.4 — notatki klienta (PostgreSQL)', () => {
     expect((await zadanie('POST', `/admin/users/${pracownik.id}/notes`, l1, { tresc: 'x' })).status).toBe(403);
   });
 
-  it('stara karta (PATCH operational) dopisuje zmienioną notatkę do listy; ta sama treść — bez duplikatu', async () => {
+  it('stara karta (PATCH operational) dopisuje zmienioną notatkę do listy; ta sama treść – bez duplikatu', async () => {
     const l3 = await operator(['CUSTOMERS_VIEW', 'CUSTOMERS_MANAGE']);
     const k = await klient({ adminInternalNote: 'stara' });
     expect((await zadanie('PATCH', `/admin/users/${k.id}/operational`, l3, { adminInternalNote: 'nowa treść' })).status).toBe(200);

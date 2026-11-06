@@ -249,7 +249,7 @@ export function renderPublicPage(p: PublicPageInput): string {
 <meta property="og:title" content="${escapeHtml(p.title)}" />
 <meta property="og:description" content="${escapeHtml(p.description)}" />
 <meta property="og:url" content="${escapeHtml(p.canonical)}" />
-<meta property="og:site_name" content="Verris — Pomoc" />
+<meta property="og:site_name" content="Verris – Pomoc" />
 <meta name="twitter:card" content="summary" />
 <meta name="robots" content="index,follow" />
 <style>
@@ -309,7 +309,7 @@ ${jsonLdScript}
   ${renderCtaBanner(p.cta)}
 </div></main>
 <footer><div class="wrap">
-  © ${new Date().getFullYear()} Verris — skaluj świadomie ·
+  © ${new Date().getFullYear()} Verris – skaluj świadomie ·
   <a href="https://panel.verris.pl" style="color:${BRAND.green};">Panel klienta</a> ·
   <a href="${escapeHtml(p.baseUrl)}" style="color:${BRAND.green};">Baza wiedzy</a>
 </div></footer>

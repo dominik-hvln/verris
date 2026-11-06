@@ -148,7 +148,7 @@ export async function renderujFaktureKsefZTekstem(
   const korekta = wiz.rodzaj === 'KOR';
   pdf.setTitle(`${korekta ? 'Faktura korygująca' : 'Faktura'} ${wiz.numer}`);
   pdf.setAuthor(wiz.sprzedawca.nazwa ?? '');
-  pdf.setSubject(`e-Faktura FA(3) z KSeF — ${wiz.numer}`);
+  pdf.setSubject(`e-Faktura FA(3) z KSeF – ${wiz.numer}`);
   pdf.setCreator('Verris');
   pdf.setProducer('Verris Panel');
 
@@ -216,7 +216,7 @@ export async function renderujFaktureKsefZTekstem(
       }
     }
     if (wiz.korekta.typ) {
-      r.tekst(`Typ korekty: ${wiz.korekta.typ}${wiz.korekta.typOpis ? ` — ${wiz.korekta.typOpis}` : ''}`, MARGIN, r.y, T(9));
+      r.tekst(`Typ korekty: ${wiz.korekta.typ}${wiz.korekta.typOpis ? ` – ${wiz.korekta.typOpis}` : ''}`, MARGIN, r.y, T(9));
       r.y -= 12;
     }
     r.y -= 8;
@@ -414,7 +414,7 @@ export async function renderujFaktureKsefZTekstem(
   }
   if (meta.srodowisko !== 'prod') {
     yOpis -= 2;
-    r.tekst(`Środowisko KSeF: ${ETYKIETA_SRODOWISKA[meta.srodowisko]} — dokument bez skutków podatkowych.`, xOpis, yOpis, B(8, CZERWONY));
+    r.tekst(`Środowisko KSeF: ${ETYKIETA_SRODOWISKA[meta.srodowisko]} – dokument bez skutków podatkowych.`, xOpis, yOpis, B(8, CZERWONY));
   }
   r.y = gora - WYS_PANELU - 10;
 
@@ -431,7 +431,7 @@ export async function renderujFaktureKsefZTekstem(
   strony.forEach((s, i) => {
     r.page = s;
     r.page.drawLine({ start: { x: MARGIN, y: MARGIN + 22 }, end: { x: prawa, y: MARGIN + 22 }, thickness: 0.5, color: K.linia });
-    r.tekst('Wizualizacja e-faktury FA(3) przesłanej do KSeF — treść zgodna z plikiem XML.', MARGIN, MARGIN + 10, T(7.5, K.stoneDruk));
+    r.tekst('Wizualizacja e-faktury FA(3) przesłanej do KSeF – treść zgodna z plikiem XML.', MARGIN, MARGIN + 10, T(7.5, K.stoneDruk));
     r.tekst(techniczne, MARGIN, MARGIN - 1, T(6.5, K.stoneDruk));
     rysujLockup(r.page, prawa - szerokoscLockupu(9), MARGIN + 8, 9, { kolor: K.pine, tlo: K.bialy, akcent: K.green });
     r.wPrawo(`Strona ${i + 1} z ${strony.length}`, prawa, MARGIN - 1, T(6.5, K.stoneDruk));

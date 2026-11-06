@@ -37,7 +37,7 @@ describe('filtr white label asystenta www', () => {
     'IMAP port 993, SMTP 465 albo 587.',
     'Kopia z każdego z ostatnich 30 dni, 7 kopii na serwerze. Dodaj rekord TXT.',
     'Data rozpoczęcia: 01.11.2026, dostępność 99,5%.',
-    'Dziękuję, damy radę — to dalej działa.',
+    'Dziękuję, damy radę – to dalej działa.',
   ])('przepuszcza zwykłą odpowiedź: %s', (tekst) => {
     expect(sprawdzWhiteLabel(tekst)).toEqual({ ok: true, powody: [] });
   });

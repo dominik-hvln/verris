@@ -20,7 +20,7 @@ export interface PodgladKomunikatu {
 
 const blad = (err: unknown) =>
   err instanceof AdminApiError && err.status === 403 && /uprawnie|^forbidden$/i.test(err.message)
-    ? "Twoja rola nie wysyła komunikatów serwisowych (wymaga SERVICE_NOTICES_SEND — kierownik zmiany)."
+    ? "Twoja rola nie wysyła komunikatów serwisowych (wymaga SERVICE_NOTICES_SEND – kierownik zmiany)."
     : err instanceof Error
       ? err.message
       : "Nie udało się. Spróbuj ponownie.";

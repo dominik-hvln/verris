@@ -92,7 +92,7 @@ function readInt(name: string, fallback: number): number {
 export function readPlatnosciCykliczne(): 'stripe' {
   const v = readEnv('PLATNOSCI_CYKLICZNE', { default: 'stripe' });
   if (v !== 'stripe') {
-    throw new Error(`PLATNOSCI_CYKLICZNE=${v} — obsługiwana jest tylko wartość "stripe" (PayU nie jest jeszcze zaimplementowane).`);
+    throw new Error(`PLATNOSCI_CYKLICZNE=${v} – obsługiwana jest tylko wartość "stripe" (PayU nie jest jeszcze zaimplementowane).`);
   }
   return v;
 }

@@ -9,7 +9,7 @@ async function wywolaj(path: string, method: "POST" | "PATCH", body: object): Pr
     await staffApi(path, { method, body });
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof StaffApiError ? e.message : "Nie udało się zapisać — spróbuj ponownie." };
+    return { ok: false, error: e instanceof StaffApiError ? e.message : "Nie udało się zapisać – spróbuj ponownie." };
   }
 }
 

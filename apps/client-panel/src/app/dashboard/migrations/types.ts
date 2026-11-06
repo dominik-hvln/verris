@@ -177,12 +177,12 @@ export interface CutoverPlan {
 
 export const JOB_LABELS: Record<MigrationJobKind, string> = {
   FILES_SFTP_RSYNC: 'Pliki strony',
-  FILES_DELTA: 'Pliki — dosynchronizowanie',
+  FILES_DELTA: 'Pliki – dosynchronizowanie',
   MYSQL_IMPORT: 'Baza danych',
-  MYSQL_DELTA: 'Baza danych — ostatnie kopiowanie przed przełączeniem',
+  MYSQL_DELTA: 'Baza danych – ostatnie kopiowanie przed przełączeniem',
   WP_FIXUP: 'Konfiguracja strony (dane bazy)',
   IMAP_SYNC: 'Poczta (skrzynki)',
-  IMAP_DELTA: 'Poczta — dosynchronizowanie',
+  IMAP_DELTA: 'Poczta – dosynchronizowanie',
   HTTP_POST_CHECK: 'Test działania strony',
 };
 

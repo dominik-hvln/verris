@@ -44,7 +44,7 @@ function Bar({ label, pct }: { label: string; pct: number | null }) {
     <div>
       <div className="mb-1 flex justify-between text-xs">
         <span className="text-muted-foreground">{label}</span>
-        <span className="text-white">{pct == null ? "—" : `${pct}%`}</span>
+        <span className="text-white">{pct == null ? "–" : `${pct}%`}</span>
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-white/10">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${Math.min(100, v)}%` }} />
@@ -69,7 +69,7 @@ export default async function BusinessMetricsPage() {
       <div>
         <h1 className="text-[28px] lg:text-[34px]">Metryki biznesowe</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Przychód, klienci i wykorzystanie floty — liczone na żywo z danych platformy.
+          Przychód, klienci i wykorzystanie floty – liczone na żywo z danych platformy.
         </p>
       </div>
 
@@ -131,7 +131,7 @@ export default async function BusinessMetricsPage() {
                 <Bar label="Dysk" pct={m.fleet.diskUtilPct} />
               </div>
               <p className="mt-3 text-[10px] text-muted-foreground">
-                To alokacja (suma limitów planów) — realne planowanie miejsca i „ile kont jeszcze
+                To alokacja (suma limitów planów) – realne planowanie miejsca i „ile kont jeszcze
                 wejdzie” jest w widoku Pojemność floty.
               </p>
             </div>

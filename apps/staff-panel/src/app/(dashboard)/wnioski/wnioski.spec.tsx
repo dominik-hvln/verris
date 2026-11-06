@@ -54,7 +54,7 @@ function trasy(m: Record<string, unknown>) {
   });
 }
 
-describe("PB-48 — strona Wnioski", () => {
+describe("PB-48 – strona Wnioski", () => {
   beforeEach(() => api.mockReset());
 
   it("z REQUESTS_APPROVE: zakładka „Do decyzji” z akceptuj / odrzuć i liczbą z odmianą", async () => {
@@ -66,7 +66,7 @@ describe("PB-48 — strona Wnioski", () => {
     const html = renderToStaticMarkup(await WnioskiPage({ searchParams: Promise.resolve({}) }));
     const t = tekst(html);
     expect(t).toContain("Do decyzji (2)");
-    expect(t).toContain("Czeka na Twoją decyzję — 2 wnioski");
+    expect(t).toContain("Czeka na Twoją decyzję – 2 wnioski");
     expect(t).toContain("Akceptuj i wykonaj");
     expect(t).toContain("Odrzuć");
     expect(t).toContain("Uzasadnienie: Rekompensata za awarię poczty.");
@@ -86,7 +86,7 @@ describe("PB-48 — strona Wnioski", () => {
     const t = tekst(html);
     expect(t).not.toContain("Do decyzji");
     expect(api).not.toHaveBeenCalledWith("/admin/wnioski/do-decyzji");
-    expect(t).toContain("Twoje wnioski — 3 wnioski");
+    expect(t).toContain("Twoje wnioski – 3 wnioski");
     expect((t.match(/Wycofaj/g) ?? []).length).toBe(1);
     expect(t).toContain("powód: Klient płaci.");
     expect(t).toContain("Nie wykonano: Anulować można tylko dokument nieopłacony.");
@@ -104,7 +104,7 @@ describe("PB-48 — strona Wnioski", () => {
   });
 });
 
-describe("PB-48 — operacje na karcie klienta", () => {
+describe("PB-48 – operacje na karcie klienta", () => {
   beforeEach(() => api.mockReset());
 
   it("bez uprawnień: każda operacja w trybie wniosku („Wyślij wniosek”), bez przycisku wykonania", () => {
@@ -117,7 +117,7 @@ describe("PB-48 — operacje na karcie klienta", () => {
     expect((tekst(html).match(/Wyślij wniosek/g) ?? []).length).toBe(3);
   });
 
-  it("z uprawnieniami: wykonanie bezpośrednie; brak dokumentów do anulowania — bez tej operacji", () => {
+  it("z uprawnieniami: wykonanie bezpośrednie; brak dokumentów do anulowania – bez tej operacji", () => {
     const html = renderToStaticMarkup(<OperacjeKlienta userId="k1" isInternal mozeFlage mozeFinanse faktury={[]} />);
     expect(html).not.toContain('data-tryb="wniosek"');
     expect(tekst(html)).toContain("Zdejmij oznaczenie");
@@ -175,8 +175,8 @@ describe("PB-48 — operacje na karcie klienta", () => {
   });
 });
 
-describe("PB-48 — komunikat po decyzji", () => {
-  it("FAILED (operacja nie przeszła) — kolor błędu, nie sukcesu; zaakceptowany — zielony", () => {
+describe("PB-48 – komunikat po decyzji", () => {
+  it("FAILED (operacja nie przeszła) – kolor błędu, nie sukcesu; zaakceptowany – zielony", () => {
     const blad = renderToStaticMarkup(<WynikDecyzji wynik={wynikDecyzji({ status: "FAILED", wynik: { blad: "Dokument już opłacony." } })} />);
     expect(blad).toContain("text-rose-300");
     expect(blad).not.toContain("text-emerald-300");

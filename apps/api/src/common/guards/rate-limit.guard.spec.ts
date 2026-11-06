@@ -118,7 +118,7 @@ describe('G-20 RateLimitGuard', () => {
       expect(await status(g, ctx('7.7.7.7', {}, token('ta-sama')))).toBe(429);
     });
 
-    it('podrobiony token (zły podpis) liczy się per IP — nie omija limitu', async () => {
+    it('podrobiony token (zły podpis) liczy się per IP – nie omija limitu', async () => {
       const g = guardWith({});
       for (let i = 0; i < 300; i++) await status(g, ctx('8.8.8.8', {}, token(`losowy-${i}`, 'zly-sekret')));
       expect(await status(g, ctx('8.8.8.8', {}, token('kolejny', 'zly-sekret')))).toBe(429);

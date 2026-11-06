@@ -4,7 +4,7 @@ import type { EcoDrzewaDto } from './eco-data';
 import { CZESCI_DRZEWA, drzewaSlownie, liczbaDrzew, procentDrzewa, punktyZaProcent } from './drzewa-format';
 import { EcoDrzewaWymiana } from './eco-drzewa-wymiana';
 
-const data = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('pl-PL', { timeZone: 'Europe/Warsaw' }) : '—');
+const data = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('pl-PL', { timeZone: 'Europe/Warsaw' }) : '–');
 
 /**
  * Drzewa w programie EKO (W6, decyzja 12). Sadzi partner na zamówienie Verris; „posadzone” mówimy wyłącznie
@@ -21,14 +21,14 @@ export function EcoDrzewa({ d }: { d: EcoDrzewaDto }) {
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-neutral-400">
           Za każde 100 zł netto zapłacone za usługi dokładamy {procentDrzewa(d.wkladNa100ZlNetto)} drzewa do wspólnej puli
-          — automatycznie, bez dopłat z Twojej strony. Wkład liczymy tylko od tego, co zapłacisz pieniędzmi: kredyty
+          – automatycznie, bez dopłat z Twojej strony. Wkład liczymy tylko od tego, co zapłacisz pieniędzmi: kredyty
           z kodów (np. BETA), promocji, poleceń i rekompensat schodzą z portfela najpierw i nie dają wkładu. Punkty EKO
           możesz też wymienić na procent drzewa do puli albo na własne drzewo z certyfikatem. Gdy pula uzbiera całe
           drzewo, zamawiamy jego posadzenie u partnera. Drzewo liczymy jako posadzone dopiero wtedy, gdy partner wystawi
           certyfikat.
         </p>
         <p className="mt-2 text-sm leading-relaxed text-neutral-400">
-          Certyfikaty wystawiamy na Verris — z tekstem „Drzewo posadzone dzięki klientom Verris”, także przy Twoim własnym
+          Certyfikaty wystawiamy na Verris – z tekstem „Drzewo posadzone dzięki klientom Verris”, także przy Twoim własnym
           drzewie. Partner sadzenia nie dostaje Twoich danych; to, które drzewa są Twoje, widzisz tutaj, w panelu.
         </p>
       </div>
@@ -55,7 +55,7 @@ export function EcoDrzewa({ d }: { d: EcoDrzewaDto }) {
       <div className="rounded-xl border border-white/10 bg-black/30 p-5">
         <h3 className="text-sm font-semibold text-white">Wymień punkty na drzewa</h3>
         <p className="mb-4 mt-1 text-xs text-neutral-500">
-          Masz {d.punkty} pkt. Całe drzewo to {d.punktyNaDrzewo} pkt, 1% drzewa — {punktyZaProcent(1, d.punktyNaDrzewo)} pkt.
+          Masz {d.punkty} pkt. Całe drzewo to {d.punktyNaDrzewo} pkt, 1% drzewa – {punktyZaProcent(1, d.punktyNaDrzewo)} pkt.
         </p>
         <EcoDrzewaWymiana punkty={d.punkty} punktyNaDrzewo={d.punktyNaDrzewo} maksWlasnychNaRaz={d.maksWlasnychNaRaz} />
       </div>
@@ -75,14 +75,14 @@ export function EcoDrzewa({ d }: { d: EcoDrzewaDto }) {
                   <span className="text-neutral-200">
                     {c.rodzaj === 'WLASNE'
                       ? `Własne: ${drzewaSlownie(c.liczbaDrzew * CZESCI_DRZEWA)}`
-                      : `Drzewa zbiorcze (${c.liczbaDrzew}) — Twój udział ${procentDrzewa(c.mojeCzesci)} drzewa`}
+                      : `Drzewa zbiorcze (${c.liczbaDrzew}) – Twój udział ${procentDrzewa(c.mojeCzesci)} drzewa`}
                   </span>
                   <span className="shrink-0 text-xs text-neutral-500">
                     {c.status === 'POSADZONE' ? data(c.posadzoneAt) : 'w realizacji'}
                   </span>
                 </div>
                 {c.testowe ? (
-                  <p className="mt-1 text-xs text-amber-300/80">Zamówienie testowe — to drzewo nie zostało naprawdę posadzone.</p>
+                  <p className="mt-1 text-xs text-amber-300/80">Zamówienie testowe – to drzewo nie zostało naprawdę posadzone.</p>
                 ) : null}
                 {c.status === 'POSADZONE' && c.certificateUrl ? (
                   <a

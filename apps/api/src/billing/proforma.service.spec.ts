@@ -89,7 +89,7 @@ describe('ProformaService', () => {
 
 const D = (v: string) => new Prisma.Decimal(v);
 
-describe('K4 — policzProforme (kwoty jak w dokumencie za wpłatę)', () => {
+describe('K4 – policzProforme (kwoty jak w dokumencie za wpłatę)', () => {
   it('23%: rozbicie per pozycja tą samą funkcją co dokument, suma = suma pozycji', () => {
     const r = policzProforme([{ nazwa: 'A', brutto: D('12.30') }, { nazwa: 'B', brutto: D('0.99') }], { stawka: 23 });
     expect(r.lineItems.map((l) => [l.totalNet, l.totalVat, l.totalGross])).toEqual([['10.00', '2.30', '12.30'], ['0.80', '0.19', '0.99']]);
@@ -112,7 +112,7 @@ describe('K4 — policzProforme (kwoty jak w dokumencie za wpłatę)', () => {
   });
 });
 
-describe('K4 — wystawienie i anulowanie proformy', () => {
+describe('K4 – wystawienie i anulowanie proformy', () => {
   function zbudujK4(o: { user?: Record<string, unknown>; sub?: Record<string, unknown>; count?: number } = {}) {
     const user = { id: 'u1', role: 'USER', email: 'k@x.pl', firstName: 'Ala', anonymizedAt: null, customerOwnerId: null, ...o.user };
     const sub = {

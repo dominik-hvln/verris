@@ -76,7 +76,7 @@ export function parametryFiltrow(l: { plik?: string }, f: FiltryLogu = {}, zespo
   const out: Record<string, string> = {};
   const domena = (f.domena ?? '').trim().toLowerCase().replace(/\.$/, '');
   if (domena && !LOG_WEZLA_DOMENA.test(domena)) throw new BadRequestException('Domena: sama nazwa, np. firma.pl (bez http:// i ścieżki).');
-  if (logWymagaDomeny(l) && !domena) throw new BadRequestException('Ten log dotyczy jednej strony — podaj domenę.');
+  if (logWymagaDomeny(l) && !domena) throw new BadRequestException('Ten log dotyczy jednej strony – podaj domenę.');
   if (domena) out.domain = domena;
   const uz = (f.uzytkownik ?? '').trim();
   if (uz && !LOG_WEZLA_UZYTKOWNIK.test(uz)) throw new BadRequestException('Użytkownik: litery, cyfry, „_”, „.”, „-” (bez spacji).');
@@ -157,7 +157,7 @@ export class UslugiWezlaService {
     const wToku = (await this.zadania(serverId)).some((z) => trwa(z) && (parametryUslug(z).mode ?? 'status') === tryb);
     if (wToku) {
       throw new ConflictException(
-        tryb === 'restart' ? 'Na tym węźle trwa już restart usługi — poczekaj na wynik.' : 'Poprzednie zlecenie na tym węźle jeszcze trwa — chwila.',
+        tryb === 'restart' ? 'Na tym węźle trwa już restart usługi – poczekaj na wynik.' : 'Poprzednie zlecenie na tym węźle jeszcze trwa – chwila.',
       );
     }
     return this.prisma.nodeTask.create({
@@ -179,7 +179,7 @@ export class UslugiWezlaService {
 
   private powod(powod: string) {
     const p = (powod ?? '').trim();
-    if (p.length < MIN_POWOD_USLUGI) throw new BadRequestException(`Podaj powód (min. ${MIN_POWOD_USLUGI} znaków) — zapisze się w dzienniku.`);
+    if (p.length < MIN_POWOD_USLUGI) throw new BadRequestException(`Podaj powód (min. ${MIN_POWOD_USLUGI} znaków) – zapisze się w dzienniku.`);
     return p;
   }
 
@@ -204,7 +204,7 @@ export class UslugiWezlaService {
   /** Restart DZIAŁAJĄCEJ usługi wspólnej — przerwa dla wszystkich kont węzła. Wołane przez ADMIN-a i wykonawcę wniosku. */
   async restartWspolnej(serverId: string, op: Operator, usluga: string, powod: string, wniosekId?: string) {
     const u = uslugaWezla(usluga);
-    if (!u?.przerwa || !u.restart) throw new BadRequestException('To nie jest usługa wspólna węzła — zrestartuj ją zwykłym restartem.');
+    if (!u?.przerwa || !u.restart) throw new BadRequestException('To nie jest usługa wspólna węzła – zrestartuj ją zwykłym restartem.');
     const p = this.powod(powod);
     const t = await this.zlec(serverId, op, 'restart', { name: u.klucz });
     await this.audit.record({
@@ -218,7 +218,7 @@ export class UslugiWezlaService {
   async restartWspolnejZPotwierdzeniem(serverId: string, op: Operator, usluga: string, powod: string, potwierdzenie: string) {
     const s = await this.wezel(serverId);
     if ((potwierdzenie ?? '').trim() !== s.name) {
-      throw new ForbiddenException('Przepisz nazwę węzła, żeby potwierdzić restart — przerwie on pracę wszystkich kont na tym węźle.');
+      throw new ForbiddenException('Przepisz nazwę węzła, żeby potwierdzić restart – przerwie on pracę wszystkich kont na tym węźle.');
     }
     await this.restartWspolnej(serverId, op, usluga, powod);
     return this.stan(serverId, op);

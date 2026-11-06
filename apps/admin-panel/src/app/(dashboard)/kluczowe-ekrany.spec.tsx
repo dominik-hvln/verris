@@ -92,7 +92,7 @@ describe("X-05 pulpit „Stan platformy”", () => {
     expect(bez).not.toContain('href="/nodes/stack"');
   });
 
-  it("weryfikacja 11.10: bez METRICS_VIEW (klienci i wpływy null z API) — bez kafli Klienci i Wpływy, reszta pulpitu zostaje", () => {
+  it("weryfikacja 11.10: bez METRICS_VIEW (klienci i wpływy null z API) – bez kafli Klienci i Wpływy, reszta pulpitu zostaje", () => {
     const t = tekst(renderToStaticMarkup(<AdminDashboardReal o={pulpit({ klienci: null, wplywy: null, metryki: false })} />));
     expect(t).not.toContain("Wpływy");
     expect(t).not.toContain("1234");
@@ -249,7 +249,7 @@ describe("X-05 strona węzła", () => {
     const kontaPrzed = przeglad.zasoby.konta.razem;
     przeglad.zasoby.konta.razem = 0;
     const t = await render();
-    expect(t).toContain("brak kont — zużycie (LVE) pojawi się po pierwszym koncie");
+    expect(t).toContain("brak kont – zużycie (LVE) pojawi się po pierwszym koncie");
     przeglad.zasoby.konta.razem = kontaPrzed;
     przeglad.zasoby.cpu.proc = 37;
   });
@@ -322,7 +322,7 @@ describe("X-05 karta klienta", () => {
   const render = async () =>
     tekst(renderToStaticMarkup(await KlientStrona({ params: Promise.resolve({ userId: UID }), searchParams: Promise.resolve({}) })));
 
-  it("usługa na węźle z otwartym incydentem ma stan „awaria”, zdrowa — nie", async () => {
+  it("usługa na węźle z otwartym incydentem ma stan „awaria”, zdrowa – nie", async () => {
     const t = await render();
     expect(t).toContain("Biuro Anna");
     expect(t).toMatch(/sklep\.pl.*awaria/);

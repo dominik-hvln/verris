@@ -14,34 +14,34 @@
 
 ---
 
-## A. Co się zmienia — dla klientów (prostym językiem)
+## A. Co się zmienia – dla klientów (prostym językiem)
 
 ### A.1 Tekst maila do klientów (ponowna akceptacja)
 
-**Temat:** Nowe wersje regulaminu i polityki prywatności Verris (1.2.0)
+**Temat:** Nowe wersje regulaminu i polityki prywatności Verris (1.2.1)
 
 > Cześć,
 >
 > od [DATA PUBLIKACJI] obowiązują nowe wersje dokumentów Verris: Regulaminu, Polityki prywatności, Polityki
-> cookies i Umowy powierzenia danych (wersja 1.2.0). Przy najbliższym logowaniu poprosimy Cię o akceptację
+> cookies i Umowy powierzenia danych (wersja 1.2.1). Przy najbliższym logowaniu poprosimy Cię o akceptację
 > Regulaminu i potwierdzenie zapoznania się z Polityką prywatności. Najważniejsze zmiany:
 >
 > **Pieniądze i rozliczenia**
-> - **Rekompensata za niedotrzymanie dostępności (SLA) przychodzi sama** — bez wniosku, w kredytach na portfel,
+> - **Rekompensata za niedotrzymanie dostępności (SLA) przychodzi sama** – bez wniosku, w kredytach na portfel,
 >   do 7 dni po końcu miesiąca. Wniosek składasz tylko wtedy, gdy nie zgadzasz się z wyliczeniem.
-> - **Rabat na start** jest opisany w regulaminie: przy pierwszym zakupie −15% za pierwszy rok (plan roczny) albo
->   −10% za pierwszy miesiąc (plan miesięczny). Cenę kolejnych okresów i najniższą cenę z 30 dni pokazujemy przy
->   zamówieniu.
+> - **Kredyty na start:** przy pierwszym zakupie hostingu dostajesz darmowe kredyty na autoskalowanie – 60 zł
+>   przy planie rocznym albo 10 zł przy miesięcznym, ważne 12 miesięcy. Pierwszy okres kosztuje tyle samo co
+>   kolejne – bez „taniego pierwszego roku”.
 > - **Faktury:** wystawiamy je przy każdej wpłacie pieniędzy (doładowanie portfela, BLIK, przelew, karta). Zakup
 >   z portfela nie tworzy nowej faktury. Kredyty z kodu promocyjnego (także z kodu testera) to nie zakup, więc nie ma
 >   za nie faktury.
 > - **Metody płatności** są opisane tak, jak działają: BLIK, szybki przelew i karta przez Paynow (mBank), karta
 >   i Przelewy24 przez Stripe.
-> - **Autoskalowanie:** domyślnie bez limitu kosztu — płacisz za faktyczne użycie, w blokach po 15 minut. Własny limit
+> - **Autoskalowanie:** domyślnie bez limitu kosztu – płacisz za faktyczne użycie, w blokach po 15 minut. Własny limit
 >   kosztu (suma dopłat z ostatnich 30 dni) ustawisz przy zamówieniu albo w panelu.
-> - **Usunięcie konta i zwrot salda:** konto usuwamy po 14 dniach od żądania, a jeśli masz opłacone usługi — po końcu
+> - **Usunięcie konta i zwrot salda:** konto usuwamy po 14 dniach od żądania, a jeśli masz opłacone usługi – po końcu
 >   najdłuższego opłaconego okresu. Opłacone kredyty, których nie wydasz, zwracamy przelewem do 14 dni na rachunek
->   podany we wniosku. Nie zwracamy kredytów z kodów, poleceń i rekompensat — przy wyliczaniu zwrotu przyjmujemy, że
+>   podany we wniosku. Nie zwracamy kredytów z kodów, poleceń i rekompensat – przy wyliczaniu zwrotu przyjmujemy, że
 >   wydatki pokrywały je w pierwszej kolejności. Przed usunięciem pokażemy saldo, usługi, domeny i datę usunięcia.
 >
 > **Usługi**
@@ -66,9 +66,9 @@
 > **Dane osobowe i cookies**
 > - Polityka prywatności opisuje teraz formularze na verris.pl (kontakt, prośba o telefon, plan przeniesienia strony)
 >   z okresami przechowywania: kontakt 12 miesięcy, telefon 90 dni, plan bez zgody na wiadomości 30 dni. Plan
->   przeniesienia wysyłamy każdemu — zgoda na wiadomości o hostingu jest osobna i dobrowolna.
+>   przeniesienia wysyłamy każdemu – zgoda na wiadomości o hostingu jest osobna i dobrowolna.
 > - Dopisaliśmy: zgłoszenia do testów (verris.pl/beta), asystenta AI na verris.pl, program EKO (partner sadzący
->   drzewa nie dostaje Twoich danych — certyfikaty wystawiamy na Verris), zwrot salda (numer rachunku), ślad zgód na nowości
+>   drzewa nie dostaje Twoich danych – certyfikaty wystawiamy na Verris), zwrot salda (numer rachunku), ślad zgód na nowości
 >   i oferty partnerskie.
 > - **Cookies:** tabela pokazuje dokładnie to, co zapisujemy w przeglądarce. Google Consent Mode działa w trybie
 >   podstawowym: dopóki nie wyrazisz zgody, nie ładujemy narzędzi Google ani Meta i Twoja przeglądarka nie wysyła
@@ -77,10 +77,10 @@
 >   PDF w panelu: Ustawienia → Prywatność i dane.
 >
 > **Kontakt:** piszesz na kontakt@verris.pl albo w panelu (Wsparcie → Nowe zgłoszenie). Jeśli wolisz rozmowę,
-> zostaw numer na verris.pl/kontakt — oddzwonimy w dni robocze 9–17.
+> zostaw numer na verris.pl/kontakt – oddzwonimy w dni robocze 9–17.
 >
 > Pełne teksty i porównanie z poprzednimi wersjami znajdziesz w panelu: Dokumenty prawne → Historia wersji. Jeśli nie
-> akceptujesz zmian, możesz wypowiedzieć umowę bez kosztów — niewykorzystaną część opłat zwrócimy proporcjonalnie
+> akceptujesz zmian, możesz wypowiedzieć umowę bez kosztów – niewykorzystaną część opłat zwrócimy proporcjonalnie
 > (Regulamin §24 ust. 3).
 >
 > Zespół Verris
@@ -110,7 +110,7 @@
 **Polityka cookies (COOKIES) 1.2.0**
 ```
 - Tabela zgodna z tym, co faktycznie zapisujemy (panel i verris.pl), w tym pamięć przeglądarki.
-- Nowy punkt 4: Google Consent Mode v2 w trybie podstawowym — przed zgodą nie ładujemy narzędzi Google ani Meta.
+- Nowy punkt 4: Google Consent Mode v2 w trybie podstawowym – przed zgodą nie ładujemy narzędzi Google ani Meta.
 - Kategoria „Funkcjonalne” opisana zgodnie z działaniem (sygnały Google, bez własnych cookies Verris).
 ```
 
@@ -123,48 +123,48 @@
 
 ### A.3 Pełna lista zmian względem 1.0.1 (dla operatora i do Historii wersji)
 
-Pozycje oznaczone „wcześniej” są już w 1.1.0 z 6.10.2026 — w 1.2.0 nowe jest wszystko pozostałe.
+Pozycje oznaczone „wcześniej” są już w 1.1.0 z 6.10.2026 – w 1.2.0 nowe jest wszystko pozostałe.
 
-**Regulamin 1.2.0** (część zmian była już w 1.1.0 z 6.10 — oznaczone „wcześniej”):
-- §1 ust. 1, §2 ust. 3 — dane Verris z numerem telefonu +48 511 589 465 (decyzja 20; numer tylko w dokumentach —
+**Regulamin 1.2.0** (część zmian była już w 1.1.0 z 6.10 – oznaczone „wcześniej”):
+- §1 ust. 1, §2 ust. 3 – dane Verris z numerem telefonu +48 511 589 465 (decyzja 20; numer tylko w dokumentach –
   na verris.pl i w Panelu prośba o telefon przez verris.pl/kontakt, decyzja 10).
-- §1 ust. 6, 13; §6 — Subkonta bez słowa „IAM”; nowy §6 ust. 5: anulowanie i usunięcie usługi, wyłączenie odnowienia,
-  usunięcie konta i akceptacja dokumentów — tylko właściciel (decyzja 8). Dawne ust. 5–6 → ust. 6–7.
-- §1 ust. 14 — „Panel hostingowy” zamiast nazwy panelu serwera (wcześniej).
-- §2 ust. 2 — Polityka prywatności i cookies jako dokumenty informacyjne; integralną częścią Umowy jest DPA (A2-08).
-- §2 ust. 5, §11 ust. 1 — infrastruktura w Unii Europejskiej (decyzja 15).
-- §4 ust. 2 — treść potwierdzenia zamówienia zgodna z mailem (A2-08).
-- §5 ust. 3, §7 ust. 3 — bez 7-dniowej prolongaty po nieudanym odnowieniu; zawieszenie z końcem okresu (wcześniej, Z-02).
-- §5 ust. 4 — usunięcie konta: 14 dni albo koniec opłaconego okresu, informacja o saldzie, usługach i domenach (A2-07).
-- §5 ust. 5 — asystent AI (wcześniej); dostępny dla wszystkich klientów (decyzja 5).
-- §7 ust. 2 — odnowienie z karty albo portfela, cena odnowienia przy zamówieniu (zgodnie z zamówieniem W1).
-- §7 ust. 8 — okres próbny: jeden na konto i ograniczenia (z `DO_ZATWIERDZENIA_okres-probny-ograniczenia.md`).
-- §8 ust. 1 — metody płatności: Paynow (mBank) i Stripe (A2-15).
-- §8 ust. 2 — zakup z portfela bez nowej faktury; kredyty z kodu bez faktury (decyzja 4).
-- §8 ust. 4 — zwrot salda przy usunięciu konta na wniosek z numerem rachunku, 14 dni, tylko kredyty opłacone,
+- §1 ust. 6, 13; §6 – Subkonta bez słowa „IAM”; nowy §6 ust. 5: anulowanie i usunięcie usługi, wyłączenie odnowienia,
+  usunięcie konta i akceptacja dokumentów – tylko właściciel (decyzja 8). Dawne ust. 5–6 → ust. 6–7.
+- §1 ust. 14 – „Panel hostingowy” zamiast nazwy panelu serwera (wcześniej).
+- §2 ust. 2 – Polityka prywatności i cookies jako dokumenty informacyjne; integralną częścią Umowy jest DPA (A2-08).
+- §2 ust. 5, §11 ust. 1 – infrastruktura w Unii Europejskiej (decyzja 15).
+- §4 ust. 2 – treść potwierdzenia zamówienia zgodna z mailem (A2-08).
+- §5 ust. 3, §7 ust. 3 – bez 7-dniowej prolongaty po nieudanym odnowieniu; zawieszenie z końcem okresu (wcześniej, Z-02).
+- §5 ust. 4 – usunięcie konta: 14 dni albo koniec opłaconego okresu, informacja o saldzie, usługach i domenach (A2-07).
+- §5 ust. 5 – asystent AI (wcześniej); dostępny dla wszystkich klientów (decyzja 5).
+- §7 ust. 2 – odnowienie z karty albo portfela, cena odnowienia przy zamówieniu (zgodnie z zamówieniem W1).
+- §7 ust. 8 – okres próbny: jeden na konto i ograniczenia (z `DO_ZATWIERDZENIA_okres-probny-ograniczenia.md`).
+- §8 ust. 1 – metody płatności: Paynow (mBank) i Stripe (A2-15).
+- §8 ust. 2 – zakup z portfela bez nowej faktury; kredyty z kodu bez faktury (decyzja 4).
+- §8 ust. 4 – zwrot salda przy usunięciu konta na wniosek z numerem rachunku, 14 dni, tylko kredyty opłacone,
   kolejność wydatków (decyzja 9).
-- §8a (nowy) — program lojalnościowy EKO (decyzja 12, W6); ust. 2 — wkład tylko od części opłaty zapłaconej
-  pieniędzmi, kredyty nieodpłatne schodzą najpierw (decyzja 16); ust. 3 — 300 pkt = 1 drzewo, certyfikaty wyłącznie
+- §8a (nowy) – program lojalnościowy EKO (decyzja 12, W6); ust. 2 – wkład tylko od części opłaty zapłaconej
+  pieniędzmi, kredyty nieodpłatne schodzą najpierw (decyzja 16); ust. 3 – 300 pkt = 1 drzewo, certyfikaty wyłącznie
   na Verris, bez przekazywania danych Klienta partnerowi (decyzje 16–17).
-- §9 ust. 4 — faktura przy każdej wpłacie (wcześniej: KSeF, dokument rozliczeniowy; teraz `ZASADA_FAKTUR`).
-- §9 ust. 5, §10 ust. 6 — autoskalowanie: domyślnie bez limitu, limit kosztu na 30 dni, bloki 15 min (decyzja 6).
-- §9 ust. 6 (nowy) — rabat na start (decyzja 3).
-- §10 ust. 2 — bez nazwy technologii izolacji (A2-16).
-- §10 ust. 5 — kopie 7 dni na serwerze / 30 dni poza serwerem, samodzielne przywracanie, Tryb EKO domyślnie
+- §9 ust. 4 – faktura przy każdej wpłacie (wcześniej: KSeF, dokument rozliczeniowy; teraz `ZASADA_FAKTUR`).
+- §9 ust. 5, §10 ust. 6 – autoskalowanie: domyślnie bez limitu, limit kosztu na 30 dni, bloki 15 min (decyzja 6).
+- §9 ust. 6 (nowy) – rabat na start (decyzja 3).
+- §10 ust. 2 – bez nazwy technologii izolacji (A2-16).
+- §10 ust. 5 – kopie 7 dni na serwerze / 30 dni poza serwerem, samodzielne przywracanie, Tryb EKO domyślnie
   wyłączony (A2-11, decyzja 7).
-- §10 ust. 8 — 14 dni zawieszenia po wygaśnięciu zamiast 30 dni na odzyskanie (wcześniej, Z-05).
-- §10 ust. 9 (nowy) — przeniesienie strony w cenie hostingu, przerwa kilka minut przy sklepie (A2-11, decyzja 13).
-- §11 ust. 2, 6 — VPS bez rekompensat SLA, odnowienie z portfela/auto-doładowania (wcześniej, Z-09, Z-17).
-- §12 ust. 5 — domeny bez automatycznego odnowienia (wcześniej, Z-18).
-- §12 ust. 8 — oświadczenie o natychmiastowym wykonaniu i utracie prawa odstąpienia przy każdym zamówieniu
+- §10 ust. 8 – 14 dni zawieszenia po wygaśnięciu zamiast 30 dni na odzyskanie (wcześniej, Z-05).
+- §10 ust. 9 (nowy) – przeniesienie strony w cenie hostingu, przerwa kilka minut przy sklepie (A2-11, decyzja 13).
+- §11 ust. 2, 6 – VPS bez rekompensat SLA, odnowienie z portfela/auto-doładowania (wcześniej, Z-09, Z-17).
+- §12 ust. 5 – domeny bez automatycznego odnowienia (wcześniej, Z-18).
+- §12 ust. 8 – oświadczenie o natychmiastowym wykonaniu i utracie prawa odstąpienia przy każdym zamówieniu
   rejestracji albo transferu Domeny; bez oświadczenia „na stałe” dla kolejnych zamówień (decyzja 21).
-- §15 — SLA tylko dla Hostingu, rekompensata automatycznie, bez wniosku (wcześniej; decyzja 1 potwierdza).
-- §19 ust. 2 — DPA w Panelu: Ustawienia → Prywatność i dane (A2-06).
-- §21 ust. 2 — odstąpienie w Panelu przez Wsparcie → Nowe zgłoszenie (W1, P2-12).
+- §15 – SLA tylko dla Hostingu, rekompensata automatycznie, bez wniosku (wcześniej; decyzja 1 potwierdza).
+- §19 ust. 2 – DPA w Panelu: Ustawienia → Prywatność i dane (A2-06).
+- §21 ust. 2 – odstąpienie w Panelu przez Wsparcie → Nowe zgłoszenie (W1, P2-12).
 
 **Polityka prywatności 1.2.0:** §1 z numerem telefonu (decyzja 20); §2.2 numer rachunku do zwrotu; §2.5 uwagi z testów i zgody
 marketingowe z historią; §2.6 współpracownicy; §2.7 AI dla wszystkich (wcześniej: nowy punkt); §2.8 asystent AI na
-verris.pl; §2.9 formularze verris.pl; §2.10 zgłoszenie do testów; §2.11 program EKO (wkład tylko z pieniędzy, partner bez danych klientów — decyzje 16–17); §3 statystyki odwiedzin jako
+verris.pl; §2.9 formularze verris.pl; §2.10 zgłoszenie do testów; §2.11 program EKO (wkład tylko z pieniędzy, partner bez danych klientów – decyzje 16–17); §3 statystyki odwiedzin jako
 powierzenie; §4 nowe wiersze (zwrot salda, kontakt, telefon, plan przeniesienia, wiadomości po planie, beta, oferty
 partnerskie, EKO, Consent Mode, asystent www) i termin usunięcia konta; §5.1 Hetzner bez żargonu, Stripe/Paynow,
 Cloudflare także formularze www, Anthropic także www, Streamsoft, OpenAI (wcześniej); §5.2 Consent Mode
@@ -173,15 +173,15 @@ do przedawnienia, prawa osób bez konta; §9 bez nazw narzędzi.
 
 **Polityka cookies 1.2.0:** nowe tabele 2.1–2.2 (rzeczywiste klucze panelu i verris.pl; usunięte nieistniejące
 `refresh_token`, `csrf_token`, `panel-locale`, `panel-theme`, `dashboard-layout`, `support-draft`); 2.3 Turnstile także
-na verris.pl, Paynow; 3.1 „Funkcjonalne” zgodnie z działaniem; nowy punkt 4 — Consent Mode v2 w trybie podstawowym
+na verris.pl, Paynow; 3.1 „Funkcjonalne” zgodnie z działaniem; nowy punkt 4 – Consent Mode v2 w trybie podstawowym
 (decyzja 22 zamiast 11; A2-04, A2-05); 5.3 wspólna zgoda dla verris.pl i panelu.
 
-**DPA 1.2.0:** §1, §12 ust. 1 — akceptacja i egzemplarz w Panelu (A2-06); §2 ust. 3 i §4 — statystyki odwiedzin (A2-12);
-§8 ust. 1 i Zał. 1 — UE; Zał. 1 bez nazw narzędzi (A2-16); Zał. 2 — Hetzner, Cloudflare (zakres); §10 ust. 1 —
+**DPA 1.2.0:** §1, §12 ust. 1 – akceptacja i egzemplarz w Panelu (A2-06); §2 ust. 3 i §4 – statystyki odwiedzin (A2-12);
+§8 ust. 1 i Zał. 1 – UE; Zał. 1 bez nazw narzędzi (A2-16); Zał. 2 – Hetzner, Cloudflare (zakres); §10 ust. 1 –
 14 dni na wniosek o zwrot danych (wcześniej, Z-05).
 
 **Poza publikacją w panelu (pliki w repo):** `consumer-info.md` 1.2.0 (płatności, rabat, faktury, autoskalowanie,
-kontakt z numerem telefonu, domeny), `subprocessors.md` (Cloudflare www, Anthropic www, Google — tryb podstawowy, Meta CAPI; posadzimy.pl nie jest odbiorcą danych — decyzja 17),
+kontakt z numerem telefonu, domeny), `subprocessors.md` (Cloudflare www, Anthropic www, Google – tryb podstawowy, Meta CAPI; posadzimy.pl nie jest odbiorcą danych – decyzja 17),
 `../rcpd.md` 1.3 (A14–A17, B5).
 
 ---
@@ -345,4 +345,13 @@ Panel admina → **RODO** (`/compliance`) → „Opublikuj nową wersję dokumen
    (A.1) punkt „Rabat na start” zastąpić: „**Kredyty na start:** przy pierwszym zakupie hostingu dostajesz darmowe
    kredyty na autoskalowanie (60 zł przy planie rocznym, 10 zł przy miesięcznym), ważne 12 miesięcy”. Zamówienia
    złożone przed zmianą z rabatem na start rozliczają się jak dotąd (rabat zapisany na usłudze).
-
+2. **Typografia (decyzja Dominika z 6.11.2026).** We wszystkich dokumentach pauza „—” zamieniona na półpauzę „–”,
+   bez zmian treści.
+3. **Publikacja 1.2.1** – jak w B.1–B.4, z numerem 1.2.1 (wersję 1.2.0 z 6.11.2026 zaakceptowało wyłącznie konto
+   Dominika, więc publikacja od razu, decyzja 19). Przed uruchomieniem sprawdzić na serwerze, że `/opt/verris` ma
+   paczkę z dokumentami 1.2.1: `git log --oneline -1 && grep -m1 "Wersja" docs/legal/drafts/terms.md`
+   (musi pokazać `**Wersja 1.2.1 · …`). Polecenie w jednej linii:
+   ```bash
+   cd /opt/verris && LEGAL_LIVE_VERSION=1.2.1 LEGAL_CHANGELOG="Wersja 1.2.1 – kredyty na autoskalowanie przy pierwszym zakupie zamiast rabatu na start (§9 ust. 6), poprawki typograficzne." ./ops/scripts/prod-legal-publish-live.sh
+   ```
+   Mail z A.1 wysłać po publikacji 1.2.1 (A.1 jest już zaktualizowany: wersja 1.2.1 i „Kredyty na start”).

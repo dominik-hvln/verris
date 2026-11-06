@@ -140,7 +140,7 @@ export function WezelPrzeglad({ p, bazaHref }: { p: PrzegladWezla; bazaHref: str
                 <span className="flex min-w-0 flex-1 flex-col text-sm">
                   <span>
                     {t.tekst}
-                    {STAN_ZADANIA[t.status] ? <span className="text-muted-foreground"> — {STAN_ZADANIA[t.status]}</span> : null}
+                    {STAN_ZADANIA[t.status] ? <span className="text-muted-foreground"> – {STAN_ZADANIA[t.status]}</span> : null}
                   </span>
                   {t.blad ? <span className="text-[12.5px] text-crit">{t.blad}</span> : null}
                 </span>

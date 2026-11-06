@@ -134,7 +134,7 @@ afterEach(() => {
   document.body.innerHTML = '';
 });
 
-describe('ServiceOverviewV2 — zawieszona usługa', () => {
+describe('ServiceOverviewV2 – zawieszona usługa', () => {
   it('domeny, kopie i zasoby: stan „wstrzymana” zamiast błędu i „0 kopii”', async () => {
     mockSvc.mockReturnValue(zawieszonaPrzezObsluge());
     await zamontuj();
@@ -146,8 +146,8 @@ describe('ServiceOverviewV2 — zawieszona usługa', () => {
     // Domena główna jest w bazie — klient widzi, że domena nie zniknęła.
     expect(t).toContain('Domena główna: kowalski.pl');
 
-    expect(kafelKopii()).toBe('—');
-    expect(t).toContain('Dane będą dostępne po wznowieniu usługi — kopie są bezpieczne.');
+    expect(kafelKopii()).toBe('–');
+    expect(t).toContain('Dane będą dostępne po wznowieniu usługi – kopie są bezpieczne.');
     // Kwadraty dni nie mówią „Brak kopii”, kiedy listy po prostu nie da się odczytać.
     expect(el.querySelector('[aria-label^="Brak kopii"]')).toBeNull();
 
@@ -160,13 +160,13 @@ describe('ServiceOverviewV2 — zawieszona usługa', () => {
     mockSvc.mockReturnValue(usluga('ACTIVE'));
     await zamontuj();
     const t = el.textContent ?? '';
-    expect(t).toContain('Nie udało się pobrać listy domen — spróbuj odświeżyć.');
+    expect(t).toContain('Nie udało się pobrać listy domen – spróbuj odświeżyć.');
     expect(t).toContain('Część danych chwilowo niedostępna.');
     expect(t).not.toContain('po wznowieniu usługi');
-    expect(kafelKopii()).toBe('—');
+    expect(kafelKopii()).toBe('–');
   });
 
-  it('zawieszona, ale serwer oddał dane — pokazujemy dane (2 kopie, odmiana liczebnika)', async () => {
+  it('zawieszona, ale serwer oddał dane – pokazujemy dane (2 kopie, odmiana liczebnika)', async () => {
     mockSvc.mockReturnValue(zawieszonaPrzezObsluge());
     mockDomeny.mockReturnValue({ ...domenyZBledem, domains: [{ name: 'kowalski.pl' }], fetchError: null });
     mockKopie.mockReturnValue({ rows: [{ fileName: 'a.tar.zst' }, { fileName: 'b.tar.zst' }], fetchError: null, offsite: null });

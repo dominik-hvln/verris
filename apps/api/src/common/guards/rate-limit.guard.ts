@@ -110,7 +110,7 @@ export class RateLimitGuard implements CanActivate, OnModuleDestroy {
         });
         this.redis.on('error', (e) => {
           this.redisHealthy = false;
-          this.logger.warn(`Redis (rate-limit) error — fallback in-memory: ${e.message}`);
+          this.logger.warn(`Redis (rate-limit) error – fallback in-memory: ${e.message}`);
         });
         this.redis.on('end', () => {
           this.redisHealthy = false;
@@ -255,7 +255,7 @@ export class RateLimitGuard implements CanActivate, OnModuleDestroy {
       } catch (e) {
         if (e instanceof HttpException) throw e;
         this.redisHealthy = false;
-        this.logger.warn(`Redis rate-limit op failed — fallback in-memory: ${(e as Error).message}`);
+        this.logger.warn(`Redis rate-limit op failed – fallback in-memory: ${(e as Error).message}`);
         // fallthrough do in-memory
       }
     }
@@ -276,7 +276,7 @@ export class RateLimitGuard implements CanActivate, OnModuleDestroy {
         this.lastSweep = 0;
         this.sweep(now);
         if (this.buckets.size >= MAX_BUCKETS) {
-          this.logger.warn('Rate-limit bucket map full — rejecting new keys (possible abuse)');
+          this.logger.warn('Rate-limit bucket map full – rejecting new keys (possible abuse)');
           this.tooMany(Math.ceil(options.windowMs / 1000));
         }
       }

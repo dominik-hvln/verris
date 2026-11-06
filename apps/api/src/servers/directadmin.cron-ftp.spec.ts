@@ -84,7 +84,7 @@ describe('cron (CMD_API_CRON_JOBS)', () => {
   });
 });
 
-describe('FTP — zmiana hasła', () => {
+describe('FTP – zmiana hasła', () => {
   const lista = { '/CMD_API_FTP': 'error=0&user0=ftp1@firma.pl&path0=/domains/firma.pl/public_html/sklep' };
 
   it('konto spoza listy usługi → 404, bez modyfikacji', async () => {

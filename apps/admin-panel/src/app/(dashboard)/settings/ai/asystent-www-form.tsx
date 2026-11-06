@@ -70,7 +70,7 @@ export function AsystentWwwForm({
 
       {!dane.kluczAnthropic ? (
         <p role="alert" data-ostrzezenie="brak-klucza" className="rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs text-amber-200">
-          Brak klucza ANTHROPIC_API_KEY na serwerze — asystent nie pokaże się na verris.pl, nawet po włączeniu.
+          Brak klucza ANTHROPIC_API_KEY na serwerze – asystent nie pokaże się na verris.pl, nawet po włączeniu.
         </p>
       ) : null}
 
@@ -84,7 +84,7 @@ export function AsystentWwwForm({
         <span>
           Asystent na verris.pl włączony
           <span className="block text-[11px] text-neutral-400">
-            Po zapisie pojawia się (albo znika) na stronie do ok. minuty — bez wdrożenia. Wymaga klucza Anthropic.
+            Po zapisie pojawia się (albo znika) na stronie do ok. minuty – bez wdrożenia. Wymaga klucza Anthropic.
           </span>
         </span>
       </label>
@@ -104,7 +104,7 @@ export function AsystentWwwForm({
           />
         </div>
       </div>
-      <p className="text-[11px] text-neutral-400">Tylko modele Anthropic — asystent na verris.pl nie działa na innych dostawcach.</p>
+      <p className="text-[11px] text-neutral-400">Tylko modele Anthropic – asystent na verris.pl nie działa na innych dostawcach.</p>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label htmlFor={`${id}-dzien`} className="block space-y-1">
@@ -133,7 +133,7 @@ export function AsystentWwwForm({
       </p>
       {limitDniaWyczerpany || limitMiesiacaWyczerpany ? (
         <p className="text-[11px] text-amber-300">
-          {limitMiesiacaWyczerpany ? 'Limit miesięczny' : 'Limit dzienny'} wyczerpany — asystent jest teraz ukryty na verris.pl.
+          {limitMiesiacaWyczerpany ? 'Limit miesięczny' : 'Limit dzienny'} wyczerpany – asystent jest teraz ukryty na verris.pl.
         </p>
       ) : null}
 
@@ -148,7 +148,7 @@ export function AsystentWwwForm({
           Zapisz asystenta na verris.pl
         </button>
         <span role="status" className="text-xs">
-          {stan.ok ? <span className="text-emerald-300">Zapisano — na verris.pl do ok. minuty.</span> : null}
+          {stan.ok ? <span className="text-emerald-300">Zapisano – na verris.pl do ok. minuty.</span> : null}
           {stan.error ? <span className="text-rose-300">{stan.error}</span> : null}
         </span>
       </div>

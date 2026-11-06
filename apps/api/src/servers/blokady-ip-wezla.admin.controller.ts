@@ -65,7 +65,7 @@ export class BlokadyIpWezlaService {
     const s = await this.wezel(serverId);
     if (s.status !== 'ACTIVE' && s.status !== 'MAINTENANCE') throw new BadRequestException('Węzeł nie jest aktywny.');
     const zadania = await this.zadania(serverId);
-    if (stanBlokad(zadania).wToku) throw new ConflictException('Na tym węźle trwa już operacja na blokadach IP — chwila.');
+    if (stanBlokad(zadania).wToku) throw new ConflictException('Na tym węźle trwa już operacja na blokadach IP – chwila.');
     return this.prisma.nodeTask.create({
       data: {
         serverId,
@@ -88,7 +88,7 @@ export class BlokadyIpWezlaService {
     const adres = kanonicznyIp(ip);
     if (!adres) throw new BadRequestException('Podaj jeden adres IPv4 albo IPv6 (np. 203.0.113.7).');
     const p = (powod ?? '').trim();
-    if (p.length < MIN_POWOD_IP) throw new BadRequestException(`Podaj powód (min. ${MIN_POWOD_IP} znaków) — zapisze się w dzienniku.`);
+    if (p.length < MIN_POWOD_IP) throw new BadRequestException(`Podaj powód (min. ${MIN_POWOD_IP} znaków) – zapisze się w dzienniku.`);
     return { adres, p };
   }
 

@@ -127,7 +127,7 @@ export function PlanChangeForm({
             className="mt-0.5"
           />
           <span>
-            Pomiń rozliczenie (portfel / Stripe) — tylko sync DA i DB. Użyj przy korekcie support
+            Pomiń rozliczenie (portfel / Stripe) – tylko sync DA i DB. Użyj przy korekcie support
             lub rozliczeniu ręcznym.
           </span>
         </label>

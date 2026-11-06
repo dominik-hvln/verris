@@ -31,7 +31,7 @@ export function AnulujDokument({ invoiceId, number, userId, wniosek }: { invoice
         />
       </label>
       {wniosek ? (
-        <WyslijWniosek typ="INVOICE_VOID" userId={userId} payload={{ invoiceId, powod: powod.trim() }} gotowe={gotowy} podpowiedz="Anulowanie wymaga BILLING_MANAGE — wyślij wniosek." />
+        <WyslijWniosek typ="INVOICE_VOID" userId={userId} payload={{ invoiceId, powod: powod.trim() }} gotowe={gotowy} podpowiedz="Anulowanie wymaga BILLING_MANAGE – wyślij wniosek." />
       ) : (
         <button
           type="button"
@@ -114,18 +114,18 @@ export function WyjasnijKsef({ invoiceId, number }: { invoiceId: string; number:
       </label>
       <div className="flex flex-wrap gap-2">
         <button type="button" disabled={pending || numer.trim().length < 20} className={PRZYCISK} onClick={() => zapisz({ jestWKsef: true, numerKsef: numer.trim() })}>
-          Jest w KSeF — zapisz numer
+          Jest w KSeF – zapisz numer
         </button>
         <button
           type="button"
           disabled={pending}
           className={PRZYCISK}
           onClick={async () => {
-            if (!(await potwierdz(`Na pewno ${number} nie ma w KSeF? Faktura pójdzie ponownie — jeśli jednak tam jest, powstanie duplikat.`, { akcja: "Wyślij ponownie" }))) return;
+            if (!(await potwierdz(`Na pewno ${number} nie ma w KSeF? Faktura pójdzie ponownie – jeśli jednak tam jest, powstanie duplikat.`, { akcja: "Wyślij ponownie" }))) return;
             zapisz({ jestWKsef: false });
           }}
         >
-          Nie ma w KSeF — wyślij ponownie
+          Nie ma w KSeF – wyślij ponownie
         </button>
       </div>
       {blad ? <p className="text-xs text-crit">{blad}</p> : null}

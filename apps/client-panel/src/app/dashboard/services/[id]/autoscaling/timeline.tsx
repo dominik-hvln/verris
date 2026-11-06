@@ -87,7 +87,7 @@ function EventRow({ event }: { event: AutoscalingEventDto }) {
         <div className="min-w-0">
           <div className="text-sm font-semibold">Serwer dał mniej zasobów, niż potrzebowała strona</div>
           <div className="text-[11px] opacity-90">
-            Przyznano: {ograniczone}. To brak miejsca po naszej stronie, nie za mały pakiet — płacisz tylko za to, co
+            Przyznano: {ograniczone}. To brak miejsca po naszej stronie, nie za mały pakiet – płacisz tylko za to, co
             faktycznie przyznaliśmy.
           </div>
         </div>
@@ -160,7 +160,7 @@ function formatEventDetail(event: AutoscalingEventDto): string {
       `${formatScaledValue(event.resource, event.fromValue)} → ${formatScaledValue(event.resource, event.toValue)}`
     );
   }
-  return prefix + (event.reason ?? '—');
+  return prefix + (event.reason ?? '–');
 }
 
 function formatScaledValue(resource: string | null, value: number): string {

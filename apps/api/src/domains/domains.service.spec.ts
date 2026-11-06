@@ -57,7 +57,7 @@ describe('DomainsService', () => {
     });
   });
 
-  it('A-16: poprawny A/TLS nie wystarcza — bez rekordu TXT domena zostaje PENDING', async () => {
+  it('A-16: poprawny A/TLS nie wystarcza – bez rekordu TXT domena zostaje PENDING', async () => {
     prisma.domain.findFirst.mockResolvedValue({ id: 'dom_1', userId: 'user_1', name: 'example.test', status: DomainStatus.PENDING });
     vi.spyOn(dns.promises, 'resolveTxt').mockResolvedValue([['cos-innego']]);
     await expect(service().verifyDomain('dom_1', 'user_1')).rejects.toThrow('_verris-challenge.example.test');
@@ -170,7 +170,7 @@ function mockTls(opts: {
   });
 }
 
-describe('DomainsService.findAllByUser — usunięte konta', () => {
+describe('DomainsService.findAllByUser – usunięte konta', () => {
   it('pomija konta DELETED i domeny z przyrostkiem ~usuniete- (retest D3 29.09)', async () => {
     const prisma = {
       domain: { findMany: vi.fn(async () => []) },

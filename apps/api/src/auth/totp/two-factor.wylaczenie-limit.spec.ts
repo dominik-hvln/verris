@@ -6,7 +6,7 @@ import { TwoFactorService, WYLACZENIE_2FA_MAKS_PROB } from './two-factor.service
  * A1-02 — wyłączenie 2FA: porażki liczone na konto, po 5 w 15 minut blokada (429) — także dla poprawnego kodu.
  * Na starym kodzie: 40 błędnych kodów → 40 × 401, a potem poprawny kod wyłączał 2FA.
  */
-describe('TwoFactorService.disable — limit nieudanych prób (A1-02)', () => {
+describe('TwoFactorService.disable – limit nieudanych prób (A1-02)', () => {
   const SEKRET = 'JBSWY3DPEHPK3PXP';
   function stanowisko() {
     const proby: Array<{ email: string; reason: string; succeeded: boolean }> = [];
@@ -33,7 +33,7 @@ describe('TwoFactorService.disable — limit nieudanych prób (A1-02)', () => {
   }
   const zly = (dobry: string) => (dobry === '000000' ? '111111' : '000000');
 
-  it('po 5 błędnych kodach kolejna próba — nawet z poprawnym kodem — dostaje 429, 2FA zostaje włączone', async () => {
+  it('po 5 błędnych kodach kolejna próba – nawet z poprawnym kodem – dostaje 429, 2FA zostaje włączone', async () => {
     const s = stanowisko();
     const dobry = s.totp.current(SEKRET);
     for (let i = 0; i < WYLACZENIE_2FA_MAKS_PROB; i++) {

@@ -25,7 +25,7 @@ describe('kredyty na start (www)', () => {
 
   it('zdanie do FAQ: kwoty z ustawień, bez rabatu; wyłączone → tylko cena odnowienia', () => {
     expect(kredytyNaStart({ wlaczone: true, rocznie: 80, miesiecznie: 15, waznoscMiesiecy: 12 })).toBe(
-      'Przy pierwszym zakupie dostajesz darmowe kredyty na autoskalowanie: 80 zł przy planie rocznym albo 15 zł przy miesięcznym, ważne 12 miesięcy — opłacą dodatkową moc w szczycie. Pierwszy okres kosztuje tyle co odnowienie.',
+      'Przy pierwszym zakupie dostajesz darmowe kredyty na autoskalowanie: 80 zł przy planie rocznym albo 15 zł przy miesięcznym, ważne 12 miesięcy – opłacą dodatkową moc w szczycie. Pierwszy okres kosztuje tyle co odnowienie.',
     );
     expect(kredytyNaStart({ ...KREDYTY_STARTOWE_ZAPASOWE, wlaczone: false })).not.toMatch(/kredyt/);
   });

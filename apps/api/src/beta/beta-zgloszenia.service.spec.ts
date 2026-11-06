@@ -54,7 +54,7 @@ const dto = (nadpisz: Partial<ZgloszenieBetaDto> = {}): ZgloszenieBetaDto =>
 
 const teraz = new Date('2026-11-20T10:00:00Z');
 
-describe('BetaZgloszeniaService — formularz', () => {
+describe('BetaZgloszeniaService – formularz', () => {
   it('pułapka na boty: odpowiedź jak sukces, ale nic nie zapisuje i nic nie wysyła', async () => {
     const s = stanowisko();
     expect(await s.svc.zglos(dto({ pulapka: 'Spam sp. z o.o.' }), {}, teraz)).toEqual({ status: 'pending' });
@@ -84,7 +84,7 @@ describe('BetaZgloszeniaService — formularz', () => {
     expect(s.mailer.send).toHaveBeenCalledTimes(1);
   });
 
-  it('najwyżej jeden mail na adres na dobę — kolejne zgłoszenie zapisane, mail nie wychodzi', async () => {
+  it('najwyżej jeden mail na adres na dobę – kolejne zgłoszenie zapisane, mail nie wychodzi', async () => {
     const s = stanowisko({ mailDzis: true });
     await s.svc.zglos(dto(), {}, teraz);
     expect(s.prisma.betaZgloszenie.create).toHaveBeenCalled();
@@ -123,7 +123,7 @@ describe('BetaZgloszeniaService — formularz', () => {
   });
 });
 
-describe('BetaZgloszeniaService — potwierdzenie i decyzje', () => {
+describe('BetaZgloszeniaService – potwierdzenie i decyzje', () => {
   it('potwierdzenie: NIEPOTWIERDZONE → NOWE, token zostaje (drugie kliknięcie: „już potwierdzone”), mail do zespołu; brak/obcy token → nieaktualny', async () => {
     const s = stanowisko({ wiersz: { id: 'z1', status: 'NIEPOTWIERDZONE', email: 'ala@firma.pl', imie: 'Ala', zakres: ['SKLEP'], utm: { source: 'facebook' } } });
     expect(await s.svc.potwierdz('tok', teraz)).toEqual({ stan: 'POTWIERDZONE' });
@@ -164,7 +164,7 @@ describe('BetaZgloszeniaService — potwierdzenie i decyzje', () => {
     await expect(juz.svc.zapros('z1', 'admin')).rejects.toBeInstanceOf(ConflictException);
   });
 
-  it('odrzuć: z powiadomieniem — uprzejmy mail; bez — cisza; niepotwierdzony adres — bez maila; zaproszone → 409', async () => {
+  it('odrzuć: z powiadomieniem – uprzejmy mail; bez – cisza; niepotwierdzony adres – bez maila; zaproszone → 409', async () => {
     const potw = { id: 'z1', status: 'NOWE', email: 'a@b.pl', imie: 'Ala', potwierdzoneAt: new Date() };
     const z = stanowisko({ wiersz: potw });
     expect(await z.svc.odrzuc('z1', true, 'admin')).toEqual({ ok: true, mailWyslany: true });
@@ -196,7 +196,7 @@ describe('BetaZgloszeniaService — potwierdzenie i decyzje', () => {
   });
 });
 
-describe('ZgloszenieBetaDto — walidacja formularza', () => {
+describe('ZgloszenieBetaDto – walidacja formularza', () => {
   const bledy = async (p: Record<string, unknown>) =>
     (await validate(plainToInstance(ZgloszenieBetaDto, { ...dto({ email: 'ala@firma.pl' }), ...p }), { whitelist: true, forbidNonWhitelisted: true })).map((e) => e.property);
 

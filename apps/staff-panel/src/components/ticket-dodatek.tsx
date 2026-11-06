@@ -11,7 +11,7 @@ type Wynik = "ZREALIZOWANO" | "ODMOWA";
 const STAN: Record<string, string> = {
   QUEUED: "czeka na realizację",
   DONE: "zrealizowane",
-  REFUNDED: "odmowa — opłata zwrócona",
+  REFUNDED: "odmowa – opłata zwrócona",
 };
 const kwotaPl = (a: string) => `${Number(a).toFixed(2).replace(".", ",")} zł`;
 const kiedy = (d: string) =>
@@ -85,7 +85,7 @@ export function TicketDodatek({
                     className="resize-y rounded-lg border border-line-strong bg-card px-2.5 py-1.5 text-[13px] text-foreground outline-none focus:border-data"
                   />
                   <p className="text-[12px] text-muted-foreground">
-                    Adres IP przydzielony klientowi możesz podać. Nazwy ani adresu serwera — nie. Przy odmowie powód jest obowiązkowy (min. 10 znaków).
+                    Adres IP przydzielony klientowi możesz podać. Nazwy ani adresu serwera – nie. Przy odmowie powód jest obowiązkowy (min. 10 znaków).
                   </p>
                   {potwierdzam?.id === z.id ? (
                     <div className="flex flex-col gap-2 rounded-lg bg-raised px-2.5 py-2" role="group" aria-label="Potwierdzenie">
@@ -140,7 +140,7 @@ export function TicketDodatek({
                   )}
                 </>
               ) : czeka ? (
-                <p className="text-[12px] text-muted-foreground">Zlecenie zamyka specjalista (L2+) — Twoja rola tego nie robi.</p>
+                <p className="text-[12px] text-muted-foreground">Zlecenie zamyka specjalista (L2+) – Twoja rola tego nie robi.</p>
               ) : null}
             </div>
           );

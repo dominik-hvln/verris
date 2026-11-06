@@ -4,7 +4,7 @@ import { AiChatService, bezMarkdown, terminDlaAsystenta } from './ai-chat.servic
  * t1 05.10 — czat na pulpicie: asystent nie znał daty odnowienia ani SSL („nie mam dostępu”),
  * a odpowiedź pokazywała surowe **pogrubienia**. Kwot nadal nie wysyłamy do dostawcy (RCPD A13).
  */
-describe('AiChatService — kontekst pulpitu i zwykły tekst', () => {
+describe('AiChatService – kontekst pulpitu i zwykły tekst', () => {
   function serwis(answer: string) {
     const prisma = {
       subscription: {
@@ -37,6 +37,12 @@ describe('AiChatService — kontekst pulpitu i zwykły tekst', () => {
     expect(r.answer).toBe('Usługa d3.hvln.pl odnawia się 28.10.\nSSL\nWażny do 20.12.');
   });
 
+  it('bezMarkdown: pauza „\u2014” w odpowiedzi → półpauza „–” (decyzja 6.11), łącznik i półpauza bez zmian', () => {
+    expect(bezMarkdown('Kopie są codzienne \u2014 przywrócisz je w panelu. Godziny 9\u201317, e-mail.')).toBe(
+      'Kopie są codzienne \u2013 przywrócisz je w panelu. Godziny 9\u201317, e-mail.',
+    );
+  });
+
   it('bezMarkdown zostawia zwykły tekst bez zmian', () => {
     expect(bezMarkdown('Kroki:\n1. Wejdź w SSL\n2. Kliknij „Włącz”')).toBe('Kroki:\n1. Wejdź w SSL\n2. Kliknij „Włącz”');
   });
@@ -44,7 +50,7 @@ describe('AiChatService — kontekst pulpitu i zwykły tekst', () => {
 
 /** Weryfikacja 11.10 — usługa z rezygnacją na koniec okresu nie ma daty odnowienia w kontekście asystenta. */
 describe('terminDlaAsystenta', () => {
-  it('cancelAt: „dzialaDoBezOdnowienia”, odnowienie null; bez rezygnacji — data odnowienia', () => {
+  it('cancelAt: „dzialaDoBezOdnowienia”, odnowienie null; bez rezygnacji – data odnowienia', () => {
     const koniec = new Date('2026-11-08T10:00:00Z');
     expect(terminDlaAsystenta({ currentPeriodEnd: koniec, cancelAt: koniec })).toEqual({ odnowienie: null, dzialaDoBezOdnowienia: '2026-11-08' });
     expect(terminDlaAsystenta({ currentPeriodEnd: koniec, cancelAt: null })).toEqual({ odnowienie: '2026-11-08' });

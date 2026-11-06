@@ -73,7 +73,7 @@ function tokenZMaila(maile: Array<{ html: string; text: string }>): string {
   return m[1]!;
 }
 
-describe('PB-45 — migracja za klienta startuje dopiero po jego zgodzie', () => {
+describe('PB-45 – migracja za klienta startuje dopiero po jego zgodzie', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 
@@ -84,7 +84,7 @@ describe('PB-45 — migracja za klienta startuje dopiero po jego zgodzie', () =>
     const wynik = await zaKlienta.utworz({
       subscriptionId: k.subscription.id,
       actorUserId: operator.id,
-      powod: 'Zgłoszenie #1234 — przeniesienie sklepu',
+      powod: 'Zgłoszenie #1234 – przeniesienie sklepu',
       // D11 — data wygaśnięcia u starego dostawcy trafia do kolumny (twardy termin tablicy), nie do pakietu.
       zlecenie: { ...zlecenie(), consentAccepted: true, wygasaUStaregoAt: '2026-11-30T00:00:00.000Z' },
     });
@@ -303,7 +303,7 @@ describe('PB-45 — migracja za klienta startuje dopiero po jego zgodzie', () =>
       zaKlienta.przyjmij({ subscriptionId: k.subscription.id, userId: k.user.id, actorUserId: k.user.id, migrationId: migracja.id, token, ip: null }),
     ).rejects.toThrow(/anulowana/);
   });
-  it('operator w sesji „Zaloguj jako klient” nie zatwierdzi ani nie odrzuci zgody; subkonto też nie — tylko właściciel', async () => {
+  it('operator w sesji „Zaloguj jako klient” nie zatwierdzi ani nie odrzuci zgody; subkonto też nie – tylko właściciel', async () => {
     const { k, operator } = await przygotuj();
     const { zaKlienta, maile } = uslugi();
     const { migracja } = await zaKlienta.utworz({ subscriptionId: k.subscription.id, actorUserId: operator.id, powod: 'Zgłoszenie #10', zlecenie: zlecenie() });
@@ -364,7 +364,7 @@ describe('PB-45 — migracja za klienta startuje dopiero po jego zgodzie', () =>
     expect(await prisma().auditLog.count({ where: { action: 'MIGRATION_CONSENT_ACCEPTED' } })).toBe(1);
   });
 
-  it('zatwierdzana właśnie prośba (rezerwacja): obsługa jej nie anuluje, cron nie wygasza; porzucona rezerwacja po godzinie — tak', async () => {
+  it('zatwierdzana właśnie prośba (rezerwacja): obsługa jej nie anuluje, cron nie wygasza; porzucona rezerwacja po godzinie – tak', async () => {
     const { k, operator } = await przygotuj();
     const { orkiestrator, zaKlienta } = uslugi();
     const { migracja } = await zaKlienta.utworz({ subscriptionId: k.subscription.id, actorUserId: operator.id, powod: 'Zgłoszenie #12', zlecenie: zlecenie() });
@@ -401,7 +401,7 @@ describe('PB-45 — migracja za klienta startuje dopiero po jego zgodzie', () =>
     expect(maile).toHaveLength(1);
   });
 
-  it('przeterminowana prośba (przed przebiegiem crona) nie blokuje nowej — zostaje zamknięta i skasowana', async () => {
+  it('przeterminowana prośba (przed przebiegiem crona) nie blokuje nowej – zostaje zamknięta i skasowana', async () => {
     const { k, operator } = await przygotuj();
     const { zaKlienta } = uslugi();
     const stara = await zaKlienta.utworz({ subscriptionId: k.subscription.id, actorUserId: operator.id, powod: 'Zgłoszenie #13', zlecenie: zlecenie() });

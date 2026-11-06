@@ -24,7 +24,7 @@ export const SZABLONY_MAILI_OBSLUGI: readonly SzablonMailaObslugi[] = [
   {
     id: 'problem',
     nazwa: 'Wykryliśmy problem z usługą',
-    temat: 'Usługa {domena} — wykryliśmy problem i nad nim pracujemy',
+    temat: 'Usługa {domena} – wykryliśmy problem i nad nim pracujemy',
     tresc: 'Dzień dobry{imie},\n\nwykryliśmy problem, który dotyczy usługi {domena}. Pracujemy nad nim i napiszemy, gdy wszystko wróci do normy.\n\nNie musisz nic robić.\n\nPozdrawiamy,\nzespół obsługi Verris',
   },
   {
@@ -36,13 +36,13 @@ export const SZABLONY_MAILI_OBSLUGI: readonly SzablonMailaObslugi[] = [
   {
     id: 'dzialanie-klienta',
     nazwa: 'Potrzebne działanie klienta',
-    temat: 'Usługa {domena} — potrzebujemy Twojego działania',
+    temat: 'Usługa {domena} – potrzebujemy Twojego działania',
     tresc: 'Dzień dobry{imie},\n\nżeby usługa {domena} działała bezpiecznie, potrzebne jest działanie po Twojej stronie:\n\n(opisz, co klient ma zrobić)\n\nW razie pytań odpowiedz na tę wiadomość.\n\nPozdrawiamy,\nzespół obsługi Verris',
   },
   {
     id: 'prace',
     nazwa: 'Zaplanowane prace serwisowe',
-    temat: 'Prace serwisowe — usługa {domena}',
+    temat: 'Prace serwisowe – usługa {domena}',
     tresc: 'Dzień dobry{imie},\n\nplanujemy prace serwisowe, które mogą na chwilę wpłynąć na usługę {domena}:\n\n(termin i zakres prac)\n\nPozdrawiamy,\nzespół obsługi Verris',
   },
 ];

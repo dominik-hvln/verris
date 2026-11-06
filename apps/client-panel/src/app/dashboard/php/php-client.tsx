@@ -58,7 +58,7 @@ export function PhpClient({ serviceId, status }: { serviceId: string; status: Ph
 
       {inflight ? (
         <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
-          <Loader2 className="h-4 w-4 animate-spin" /> Zmiana wersji PHP jest w toku — odśwież za chwilę.
+          <Loader2 className="h-4 w-4 animate-spin" /> Zmiana wersji PHP jest w toku – odśwież za chwilę.
         </div>
       ) : null}
       {status.lastTask?.status === 'FAILED' ? (
@@ -212,7 +212,7 @@ function DomainPhpSection({ serviceId }: { serviceId: string }) {
         toast.error('Nie udało się zmienić PHP domeny', { description: res.error });
         return;
       }
-      toast.success(version ? `Zlecono PHP ${version} dla ${domain} — zwykle trwa do minuty.` : `Zlecono powrót ${domain} do wersji konta.`);
+      toast.success(version ? `Zlecono PHP ${version} dla ${domain} – zwykle trwa do minuty.` : `Zlecono powrót ${domain} do wersji konta.`);
       const fresh = await fetchDomainPhp(serviceId, domain);
       setStatus(fresh);
     });
@@ -226,7 +226,7 @@ function DomainPhpSection({ serviceId }: { serviceId: string }) {
       </p>
       <p className="text-[11px] text-neutral-500">
         Nadpisuje wersję PHP dla wybranej domeny (pozostałe strony konta zostają przy ustawieniu
-        powyżej). „Jak konto” usuwa wyjątek. Zmiana wykonuje się na serwerze — zwykle do minuty.
+        powyżej). „Jak konto” usuwa wyjątek. Zmiana wykonuje się na serwerze – zwykle do minuty.
       </p>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end max-w-xl">
         <div className="flex-1 space-y-1">

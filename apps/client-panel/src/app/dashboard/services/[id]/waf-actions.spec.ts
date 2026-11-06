@@ -30,7 +30,7 @@ it('400 „brak konta hostingowego” → brakKonta; 5xx i błąd sieci → bł�
   mockApiFetch.mockRejectedValueOnce(new ApiErrorAtrapa('Usługa nie ma jeszcze konta hostingowego.', 400));
   await expect(getWafStatus('s1')).resolves.toMatchObject({ ok: false, brakKonta: true });
   mockApiFetch.mockRejectedValueOnce(new ApiErrorAtrapa('Internal server error', 500));
-  await expect(getWafStatus('s1')).resolves.toEqual({ ok: false, brakKonta: false, error: 'Nie udało się wczytać stanu zapory — spróbuj ponownie.' });
+  await expect(getWafStatus('s1')).resolves.toEqual({ ok: false, brakKonta: false, error: 'Nie udało się wczytać stanu zapory – spróbuj ponownie.' });
   mockApiFetch.mockRejectedValueOnce(new TypeError('fetch failed'));
   await expect(getWafStatus('s1')).resolves.toMatchObject({ ok: false, brakKonta: false });
 });

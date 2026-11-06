@@ -49,7 +49,7 @@ describe('Weryfikacja VAT nabywcy spoza UE', () => {
   });
   afterAll(rozlacz);
 
-  it('kraj spoza UE bez weryfikacji: 23%, 100 K za 100 zł, dokument z VAT 18,70 — spójny z wpłatą', async () => {
+  it('kraj spoza UE bez weryfikacji: 23%, 100 K za 100 zł, dokument z VAT 18,70 – spójny z wpłatą', async () => {
     const { dol } = uslugi();
     const u = await klient('CH');
     const r = await wplata(dol, u.id, 'a1');
@@ -80,7 +80,7 @@ describe('Weryfikacja VAT nabywcy spoza UE', () => {
     expect(log.details).toMatchObject({ kraj: 'CH', podstawa: 'Rejestr handlowy CH, potwierdzone przez księgową' });
   });
 
-  it('klient po pierwszej płatności nie zmieni sam kraju — 403 „Zmianę kraju rozliczenia zgłoś obsłudze”', async () => {
+  it('klient po pierwszej płatności nie zmieni sam kraju – 403 „Zmianę kraju rozliczenia zgłoś obsłudze”', async () => {
     const { dol, users } = uslugi();
     const u = await klient('CH');
     await expect(users.updateProfile(u.id, { country: 'US' })).resolves.toBeDefined(); // przed płatnością wolno
@@ -104,11 +104,11 @@ describe('Weryfikacja VAT nabywcy spoza UE', () => {
     const u = await klient('CH');
     await wer.zweryfikuj(u.id, 'Rejestr handlowy CH, potwierdzone', { userId: op.id, role: Role.STAFF });
     await wplata(dol, u.id, 'd1');
-    const st = await wer.zmienDane(u.id, { country: 'US', powod: 'Zgłoszenie #123 — przeprowadzka' }, { userId: op.id, role: Role.STAFF });
+    const st = await wer.zmienDane(u.id, { country: 'US', powod: 'Zgłoszenie #123 – przeprowadzka' }, { userId: op.id, role: Role.STAFF });
     expect(st).toMatchObject({ kraj: 'US', wymagaWeryfikacji: true, weryfikacja: null });
     const log = await prisma().auditLog.findFirstOrThrow({ where: { userId: u.id, action: 'VAT_NABYWCA_DANE_ZMIENIONE' } });
     expect(log.actorUserId).toBe(op.id);
-    expect(log.details).toMatchObject({ kraj: { przed: 'CH', po: 'US' }, weryfikacjaWyzerowana: true, powod: 'Zgłoszenie #123 — przeprowadzka' });
+    expect(log.details).toMatchObject({ kraj: { przed: 'CH', po: 'US' }, weryfikacjaWyzerowana: true, powod: 'Zgłoszenie #123 – przeprowadzka' });
     const r = await wplata(dol, u.id, 'd2');
     expect(r.kredytK.toFixed(2)).toBe('100.00');
   });

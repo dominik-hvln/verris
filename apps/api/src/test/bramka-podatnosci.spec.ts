@@ -47,7 +47,7 @@ const ZNANA = {
   module_name: 'deepmerge-ts',
 };
 
-describe('X-23 — bramka podatności', () => {
+describe('X-23 – bramka podatności', () => {
   it('przepuszcza podatność objętą zgodą w terminie', () => {
     const w = ocen([ZNANA], [ZGODA], DZIS);
     expect(w.blokujace).toHaveLength(1);
@@ -65,7 +65,7 @@ describe('X-23 — bramka podatności', () => {
     expect(w.bezZgody).toHaveLength(1);
   });
 
-  it('zatrzymuje zgodę po terminie — milczące przedłużanie to nie decyzja', () => {
+  it('zatrzymuje zgodę po terminie – milczące przedłużanie to nie decyzja', () => {
     const w = ocen([ZNANA], [{ ...ZGODA, wazneDo: '2026-08-01' }], DZIS);
     expect(w.poTerminie).toHaveLength(1);
   });
@@ -88,7 +88,7 @@ describe('X-23 — bramka podatności', () => {
     expect(w.bezZgody).toEqual([]);
   });
 
-  it('zatrzymuje zgodę bez daty — pusty termin to nie jest termin', () => {
+  it('zatrzymuje zgodę bez daty – pusty termin to nie jest termin', () => {
     const w = ocen([ZNANA], [{ ...ZGODA, wazneDo: '' }], DZIS);
     expect(w.poTerminie).toHaveLength(1);
   });
@@ -99,7 +99,7 @@ describe('X-23 — bramka podatności', () => {
   });
 });
 
-describe('X-23 — lista zgód jest kompletna', () => {
+describe('X-23 – lista zgód jest kompletna', () => {
   const lista = JSON.parse(readFileSync(LISTA, 'utf8')) as {
     zgody: Array<Record<string, string>>;
   };
@@ -112,7 +112,7 @@ describe('X-23 — lista zgód jest kompletna', () => {
       }
       if (z.powod && z.powod.length < 80) {
         braki.push(
-          `${z.advisory}: powód ma ${z.powod.length} znaków — zgoda na podatność ` +
+          `${z.advisory}: powód ma ${z.powod.length} znaków – zgoda na podatność ` +
             `high/critical wymaga wyjaśnienia, nie hasła`,
         );
       }
@@ -128,7 +128,7 @@ describe('X-23 — lista zgód jest kompletna', () => {
   });
 });
 
-describe('X-23 — job security-scans faktycznie bramkuje', () => {
+describe('X-23 – job security-scans faktycznie bramkuje', () => {
   const ci = readFileSync(join(KORZEN, '.github', 'workflows', 'ci.yml'), 'utf8');
   /**
    * Komentarze wypadają przed dopasowaniem. Czwarty raz w tym projekcie
@@ -215,7 +215,7 @@ describe('X-23 — job security-scans faktycznie bramkuje', () => {
       krok: 'Gitleaks (secret scan)',
       powod:
         'gitleaks na pełnej historii daje fałszywe trafienia na przykładowych ' +
-        'konfiguracjach w ops/; wyciszenie ich wymaga .gitleaksignore — osobna robota',
+        'konfiguracjach w ops/; wyciszenie ich wymaga .gitleaksignore – osobna robota',
     },
   ];
 
@@ -228,7 +228,7 @@ describe('X-23 — job security-scans faktycznie bramkuje', () => {
     expect(
       miekkie.length === 0
         ? ''
-        : `Kroki CI z continue-on-error spoza białej listy — taki krok raportuje ` +
+        : `Kroki CI z continue-on-error spoza białej listy – taki krok raportuje ` +
           `porażkę do dziennika i przepuszcza wdrożenie (patrz X-23):\n  ${miekkie.join('\n  ')}\n` +
           `Napraw przyczynę albo dopisz krok do MIEKKIE_DOZWOLONE z powodem.`,
     ).toBe('');

@@ -14,7 +14,7 @@ const { wstrzymane } = JSON.parse(readFileSync(join(KORZEN, 'ops/ci/wersje-wstrz
   wstrzymane: Wstrzymanie[];
 };
 
-describe('PB-38 — wstrzymane podniesienia mają właściciela i termin', () => {
+describe('PB-38 – wstrzymane podniesienia mają właściciela i termin', () => {
   it('strażnik ma czego pilnować', () => {
     expect(wstrzymane.map((w) => w.pakiet)).toEqual(expect.arrayContaining(['prisma', 'typescript', 'graphql']));
   });
@@ -29,8 +29,8 @@ describe('PB-38 — wstrzymane podniesienia mają właściciela i termin', () =>
 
   it('żaden termin przeglądu nie minął', () => {
     const dzis = new Date();
-    const po = wstrzymane.filter((w) => new Date(w.przeglad) < dzis).map((w) => `${w.pakiet} (${w.pozycja}) — ${w.przeglad}`);
-    expect(po.length === 0 ? '' : `Termin przeglądu minął — przedłuż świadomie albo usuń:\n${po.join('\n')}`).toBe('');
+    const po = wstrzymane.filter((w) => new Date(w.przeglad) < dzis).map((w) => `${w.pakiet} (${w.pozycja}) – ${w.przeglad}`);
+    expect(po.length === 0 ? '' : `Termin przeglądu minął – przedłuż świadomie albo usuń:\n${po.join('\n')}`).toBe('');
   });
 
   it('każda pozycja istnieje w macierzy audytu albo w planie (zadania PB)', () => {
@@ -39,7 +39,7 @@ describe('PB-38 — wstrzymane podniesienia mają właściciela i termin', () =>
     for (const w of wstrzymane) expect(`${macierz}\n${pb}`).toContain(`\n${w.pozycja},`);
   });
 
-  it('Dependabot nie ma już ekosystemu npm (nie obsługuje pnpm 11+ — raport go zastępuje)', () => {
+  it('Dependabot nie ma już ekosystemu npm (nie obsługuje pnpm 11+ – raport go zastępuje)', () => {
     const dependabot = readFileSync(join(KORZEN, '.github', 'dependabot.yml'), 'utf8');
     expect(dependabot).not.toMatch(/package-ecosystem:\s*npm/);
     expect(dependabot).toMatch(/package-ecosystem:\s*docker-compose/);

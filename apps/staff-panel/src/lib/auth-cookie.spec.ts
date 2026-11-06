@@ -13,7 +13,7 @@ describe('X-05 ciasteczko sesji obsługi', () => {
     expect(panelAuthCookieOptions()).toMatchObject({ httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: 8 * 3600 });
   });
 
-  it('ciasteczko tylko dla hosta panelu — AUTH_COOKIE_DOMAIN nie rozszerza go na subdomeny', () => {
+  it('ciasteczko tylko dla hosta panelu – AUTH_COOKIE_DOMAIN nie rozszerza go na subdomeny', () => {
     env.AUTH_COOKIE_DOMAIN = '.verris.pl';
     expect(panelAuthCookieOptions()).not.toHaveProperty('domain');
     expect(staraDomenaCiasteczka()).toBe('.verris.pl');

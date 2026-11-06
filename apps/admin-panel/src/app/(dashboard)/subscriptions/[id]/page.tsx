@@ -84,7 +84,7 @@ type ZlecenieMigracji = {
   jobs: Array<{ id: string; kind: string; status: string; attempts: number; maxAttempts: number; sequence: number; lastError: string | null }>;
 };
 
-const data = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("pl-PL") : "—");
+const data = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("pl-PL") : "–");
 const kiedy = (iso: string) => new Date(iso).toLocaleString("pl-PL");
 
 /**
@@ -207,7 +207,7 @@ export default async function AdminSubscriptionDetailPage({
               {d.plan.name} ({d.plan.slug})
             </Para>
             <Para k="Usługa (ID)">
-              <span className="font-mono">{d.serviceTag ?? d.account?.daUsername ?? "—"}</span>
+              <span className="font-mono">{d.serviceTag ?? d.account?.daUsername ?? "–"}</span>
             </Para>
             <Para k="Cena">
               {d.priceAmount} {d.currency} / {d.interval}
@@ -215,7 +215,7 @@ export default async function AdminSubscriptionDetailPage({
             <Para k="Okres">
               {data(d.currentPeriodStart)} – {data(d.currentPeriodEnd)}
               {/* F3.5 — anulacja na koniec okresu i obietnica zapłaty widoczne od razu w przeglądzie. */}
-              {d.cancelAt && d.status === "ACTIVE" ? <span className="block text-xs text-amber-200">anulowana — nie odnowi się</span> : null}
+              {d.cancelAt && d.status === "ACTIVE" ? <span className="block text-xs text-amber-200">anulowana – nie odnowi się</span> : null}
               {d.status === "PAST_DUE" && d.paymentPromiseUntil ? (
                 <span className="block text-xs text-amber-200" data-obietnica={d.paymentPromiseUntil}>
                   obietnica zapłaty do {kiedy(d.paymentPromiseUntil)}
@@ -230,7 +230,7 @@ export default async function AdminSubscriptionDetailPage({
                   {wezel.region ? ` · ${wezel.region}` : ""}
                 </LinkJesli>
               ) : (
-                "—"
+                "–"
               )}
             </Para>
           </section>
@@ -321,7 +321,7 @@ export default async function AdminSubscriptionDetailPage({
             <Sekcja id="zakonczenie" tytul={kontoZostalo ? "Zakończenie usługi i usunięcie konta" : "Zakończenie usługi"}>
               <p className="text-xs text-muted-foreground">
                 {zakonczona
-                  ? "Usługa jest zakończona — konto zniknie samo po 14 dniach. Tu usuniesz je od razu."
+                  ? "Usługa jest zakończona – konto zniknie samo po 14 dniach. Tu usuniesz je od razu."
                   : "Bez czekania na koniec okresu i bez 14 dni retencji. Płatność cykliczna kartą jest anulowana."}
               </p>
               <ZakonczIUsunForm subscriptionId={d.id} confirmText={d.account?.domain ?? d.serviceTag ?? d.id} hasAccount={kontoZostalo} />
@@ -415,7 +415,7 @@ export default async function AdminSubscriptionDetailPage({
             </Sekcja>
           </>
         ) : (
-          <p className="text-sm text-muted-foreground">Usługa nie ma konta hostingowego — nie ma czego odtwarzać.</p>
+          <p className="text-sm text-muted-foreground">Usługa nie ma konta hostingowego – nie ma czego odtwarzać.</p>
         )
       ) : null}
 
@@ -454,7 +454,7 @@ function ZakladaniePanel({ joby }: { joby: ProvisioningJobRow[] | null | "blad" 
       ) : joby === null ? (
         <div className={`${WIERSZ} text-sm text-muted-foreground`}>Ponowienie wymaga PROVISIONING_MANAGE.</div>
       ) : nieudane.length === 0 ? (
-        <div className={`${WIERSZ} text-sm text-muted-foreground`}>Brak nieudanego zadania w kolejce — mogło zostać już odrzucone.</div>
+        <div className={`${WIERSZ} text-sm text-muted-foreground`}>Brak nieudanego zadania w kolejce – mogło zostać już odrzucone.</div>
       ) : (
         nieudane.map((j) => (
           <div key={j.id} className={`${WIERSZ} flex-wrap items-start`} data-job={j.id}>

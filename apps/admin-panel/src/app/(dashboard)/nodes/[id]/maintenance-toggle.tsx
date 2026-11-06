@@ -29,7 +29,7 @@ export function MaintenanceToggle({
   const enable = () => {
     setError(null);
     if (!reason.trim()) {
-      setError("Podaj powód — zobaczy go klient i dziennik.");
+      setError("Podaj powód – zobaczy go klient i dziennik.");
       return;
     }
     startTransition(async () => {
@@ -92,7 +92,7 @@ export function MaintenanceToggle({
             aria-label="Powód konserwacji widoczny dla klienta"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="np. wymiana dysków NVMe — okno 02:00–04:00"
+            placeholder="np. wymiana dysków NVMe – okno 02:00–04:00"
             rows={3}
             className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
           />

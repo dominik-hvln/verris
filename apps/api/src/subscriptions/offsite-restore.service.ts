@@ -113,7 +113,7 @@ export class OffsiteRestoreService {
       throw new BadRequestException('Konto hostingowe nie jest aktywne.');
     }
     if (!account.daUsername) {
-      throw new BadRequestException('Konto hostingowe nie ma jeszcze loginu na serwerze — konfiguracja jeszcze trwa.');
+      throw new BadRequestException('Konto hostingowe nie ma jeszcze loginu na serwerze – konfiguracja jeszcze trwa.');
     }
     const inflight = await this.prisma.nodeTask.findFirst({
       where: {
@@ -123,7 +123,7 @@ export class OffsiteRestoreService {
       },
     });
     if (inflight) {
-      throw new ConflictException('Operacja na kopii off-site jest już w toku — poczekaj na wynik.');
+      throw new ConflictException('Operacja na kopii off-site jest już w toku – poczekaj na wynik.');
     }
 
     // `daUser` bierzemy z rekordu konta, nigdy z wejścia klienta.
@@ -215,12 +215,12 @@ export class OffsiteRestoreService {
    */
   private friendlyError(raw: string | null): string {
     const text = (raw ?? '').toLowerCase();
-    if (!text) return 'Operacja nie powiodła się. Napisz do nas — sprawdzimy to.';
+    if (!text) return 'Operacja nie powiodła się. Napisz do nas – sprawdzimy to.';
     if (text.includes('verris-backup.conf') || text.includes('rclone_remote') || text.includes('rclone nie zainstalowany')) {
       return 'Kopia off-site nie jest jeszcze skonfigurowana dla tego serwera. Napisz do nas.';
     }
     if (text.includes('brak katalogu')) {
-      return 'Nie znaleźliśmy katalogu kopii na koncie. Napisz do nas — pomożemy.';
+      return 'Nie znaleźliśmy katalogu kopii na koncie. Napisz do nas – pomożemy.';
     }
     if (text.includes('rclone copy')) {
       return 'Nie udało się pobrać archiwum z magazynu off-site. Spróbuj ponownie za chwilę.';
@@ -228,7 +228,7 @@ export class OffsiteRestoreService {
     if (text.includes('nieprawidlow')) {
       return 'Nieprawidłowe dane operacji. Odśwież listę kopii i spróbuj ponownie.';
     }
-    return 'Operacja nie powiodła się. Napisz do nas — sprawdzimy to.';
+    return 'Operacja nie powiodła się. Napisz do nas – sprawdzimy to.';
   }
 
   private normalizeSnapshot(snapshot?: string): string | undefined {

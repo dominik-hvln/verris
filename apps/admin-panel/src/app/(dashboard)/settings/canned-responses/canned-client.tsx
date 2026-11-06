@@ -17,7 +17,7 @@ import { plForm } from "@/lib/pl";
 const TOPICS = ["", "HOSTING", "DOMAIN", "EMAIL", "DNS", "SSL", "BILLING", "OTHER"];
 /** PB-37 — kategorie w bloku „Podpowiedzi” panelu obsługi. */
 const KATEGORIE: [string, string][] = [
-  ["", "— bez kategorii —"],
+  ["", "– bez kategorii –"],
   ["POWITANIE", "Powitanie"],
   ["DIAGNOZA", "Diagnoza"],
   ["OPOZNIENIE", "Dłużej niż zwykle"],
@@ -129,7 +129,7 @@ export function CannedClient({ rows }: { rows: CannedResponseRow[] }) {
             </div>
           ),
         )}
-        {rows.length === 0 && !creating ? <p className="text-sm text-neutral-400">Brak szablonów — dodaj pierwszy.</p> : null}
+        {rows.length === 0 && !creating ? <p className="text-sm text-neutral-400">Brak szablonów – dodaj pierwszy.</p> : null}
       </div>
     </div>
   );
@@ -165,7 +165,7 @@ function Form({
           value={topic}
           onChange={setTopic}
           className="ip w-full"
-          options={TOPICS.map((t) => ({ value: t, label: t || "— globalny —" }))}
+          options={TOPICS.map((t) => ({ value: t, label: t || "– globalny –" }))}
         />
         <Select
           aria-label="Kategoria (Podpowiedzi w obsłudze)"
@@ -184,7 +184,7 @@ function Form({
       </div>
       <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={4} placeholder="Treść odpowiedzi…" className="ip w-full" />
       <fieldset className="grid grid-cols-1 gap-3 sm:grid-cols-3" aria-label="Akcje makra">
-        <legend className="mb-1 text-xs text-neutral-400">Makro (opcjonalnie) — po wysłaniu odpowiedzi w zgłoszeniu:</legend>
+        <legend className="mb-1 text-xs text-neutral-400">Makro (opcjonalnie) – po wysłaniu odpowiedzi w zgłoszeniu:</legend>
         <Select aria-label="Stan po odpowiedzi" value={makroStan} onChange={setMakroStan} className="ip w-full" options={STANY_MAKRA.map(([v, l]) => ({ value: v, label: l }))} />
         <input value={makroTagi} onChange={(e) => setMakroTagi(e.target.value)} aria-label="Tagi makra (po przecinku)" placeholder="tagi, po przecinku" className="ip" />
         <Select aria-label="Przypisanie" value={makroPrzypisz} onChange={setMakroPrzypisz} className="ip w-full" options={PRZYPISANIA.map(([v, l]) => ({ value: v, label: l }))} />

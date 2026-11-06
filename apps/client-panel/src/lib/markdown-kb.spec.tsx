@@ -10,7 +10,7 @@ import { MarkdownKb } from '@verris/ui/markdown-kb';
  */
 const html = (md: string) => renderToStaticMarkup(<MarkdownKb tekst={md} />);
 
-describe('MarkdownKb — renderer artykułów bazy wiedzy', () => {
+describe('MarkdownKb – renderer artykułów bazy wiedzy', () => {
   it('bloki: # → h2, ## → h3, blok kodu, cytat, linia, listy, akapit sklejony z linii', () => {
     expect(html('# Tytuł\n## Pod\n#### Mały')).toBe('<div><h2>Tytuł</h2><h3>Pod</h3><h4>Mały</h4></div>');
     expect(html('```bash\nls -la\n  cd /home\n```')).toBe('<div><pre><code>ls -la\n  cd /home</code></pre></div>');

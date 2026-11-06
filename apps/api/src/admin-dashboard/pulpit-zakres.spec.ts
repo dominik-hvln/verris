@@ -49,7 +49,7 @@ async function pulpit(zakres: { metryki: boolean; klienci: boolean; zgloszenia: 
   return JSON.stringify(await svc.overview(zakres));
 }
 
-describe('Pulpit operatora — zakres danych wg uprawnień', () => {
+describe('Pulpit operatora – zakres danych wg uprawnień', () => {
   it('bez CUSTOMERS_VIEW i TICKETS_VIEW: brak e-maili, imion, firm, domen, tematów i ID zgłoszeń', async () => {
     const out = await pulpit({ metryki: false, klienci: false, zgloszenia: false });
     for (const tajne of ['jan@klient.pl', 'Kowalski', 'Firma Jana', 'jan-klient.pl', TEMAT, 'tk-12345', '/customers/k1']) {

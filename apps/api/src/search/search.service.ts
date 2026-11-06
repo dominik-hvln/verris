@@ -180,7 +180,7 @@ export class SearchService {
     const seenSub = new Set<string>();
 
     for (const u of users) {
-      const name = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.companyName || '—';
+      const name = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.companyName || '–';
       results.push({
         type: 'user',
         id: u.id,

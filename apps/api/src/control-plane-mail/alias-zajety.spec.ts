@@ -24,7 +24,7 @@ function zbuduj(o: { alias?: { targetId: string; target: { email: string } } | n
   return { svc, create };
 }
 
-describe('Poczta zespołu — alias zajęty przez inną skrzynkę (12.10)', () => {
+describe('Poczta zespołu – alias zajęty przez inną skrzynkę (12.10)', () => {
   it('abuse@ przypisany do kontakt@ → 409 z nazwą skrzynki, bez próby zapisu', async () => {
     const { svc, create } = zbuduj({ alias: { targetId: 'mb-kontakt', target: { email: 'kontakt@verris.pl' } } });
     const p = svc.addAlias('mb-zgl', { aliasEmail: 'abuse@verris.pl' } as never, 'admin');

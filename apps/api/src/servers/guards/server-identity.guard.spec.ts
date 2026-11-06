@@ -23,7 +23,7 @@ function stanowisko(identityToken: string) {
   return { guard, update, ctx };
 }
 
-describe('ServerIdentityGuard — token węzła', () => {
+describe('ServerIdentityGuard – token węzła', () => {
   const token = 'TOKEN-FIKCYJNY-WEZLA';
   const skrot = crypto.sha256Hex(token);
 

@@ -45,7 +45,7 @@ const saldo = async (id: string) => Number((await prisma().user.findUniqueOrThro
 const req = (userId: string) => ({ apiAuth: { userId, tokenId: 'tok-1', scopes: ['orders:write'] } }) as never;
 const body = (planId: string, domain = 'api-sklep.pl') => ({ planId, interval: 'MONTH', domain, immediatePerformanceConsent: true }) as never;
 
-describe('L-08 — zamówienie przez API (portfel)', () => {
+describe('L-08 – zamówienie przez API (portfel)', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     kolejka.length = 0;

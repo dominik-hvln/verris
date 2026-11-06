@@ -8,7 +8,7 @@ const ids = (u: UslugaDlaAkcji, d = ADMIN) => dzialaniaObiektu(AKCJE_USLUGI, u, 
 
 /** Plan E, patch 9 — Ponów/Odrzuć zakładanie i zlecenia migracji były tylko w kolejkach, nie na karcie usługi. */
 describe("Działania usługi", () => {
-  it("nieudane zakładanie: „Ponów albo odrzuć” na Przeglądzie karty; działająca usługa — bez", () => {
+  it("nieudane zakładanie: „Ponów albo odrzuć” na Przeglądzie karty; działająca usługa – bez", () => {
     const nieudana = dzialaniaObiektu(AKCJE_USLUGI, { ...aktywna, status: "PROVISIONING", zakladanieNieudane: true }, ADMIN);
     expect(nieudana[0]).toMatchObject({ id: "zakladanie", href: "/subscriptions/s1#zakladanie", zablokowane: null });
     expect(ids(aktywna)).not.toContain("zakladanie");
@@ -32,7 +32,7 @@ describe("Działania usługi", () => {
     expect(bez).toContain("klient");
   });
 
-  it("uprawnienia jak w API: STAFF bez PROVISIONING_MANAGE — wyszarzone; diagnostyka — którekolwiek z trzech", () => {
+  it("uprawnienia jak w API: STAFF bez PROVISIONING_MANAGE – wyszarzone; diagnostyka – którekolwiek z trzech", () => {
     const op = operator("SUBSCRIPTIONS_MANAGE");
     const lista = dzialaniaObiektu(AKCJE_USLUGI, { ...aktywna, status: "PROVISIONING", zakladanieNieudane: true }, op);
     const po = (id: string) => lista.find((x) => x.id === id)!;
@@ -48,7 +48,7 @@ describe("Działania usługi", () => {
     );
   });
 
-  it("F2.2: akcje na koncie od ACCOUNT_ACTIONS (L2), edycja DNS od DNS_MANAGE (L3); bez konta albo po usunięciu — brak", () => {
+  it("F2.2: akcje na koncie od ACCOUNT_ACTIONS (L2), edycja DNS od DNS_MANAGE (L3); bez konta albo po usunięciu – brak", () => {
     const l2 = dzialaniaObiektu(AKCJE_USLUGI, aktywna, operator("ACCOUNT_DIAGNOSTICS_VIEW", "ACCOUNT_ACTIONS"));
     const po = (id: string) => l2.find((x) => x.id === id)!;
     expect(po("akcje-konta")).toMatchObject({ zablokowane: null, href: "/subscriptions/s1?sekcja=konto#akcje-konta" });
@@ -69,7 +69,7 @@ describe("Działania usługi", () => {
     expect(ids({ ...aktywna, kontoUsuniete: true })).not.toContain("blokada-wysylki");
   });
 
-  it("F2.6: „Zasoby i diagnoza 508” (ACCOUNT_DIAGNOSTICS_VIEW) prowadzi do #zasoby-konta; L1 — wyszarzone; bez konta — brak", () => {
+  it("F2.6: „Zasoby i diagnoza 508” (ACCOUNT_DIAGNOSTICS_VIEW) prowadzi do #zasoby-konta; L1 – wyszarzone; bez konta – brak", () => {
     const l2 = dzialaniaObiektu(AKCJE_USLUGI, aktywna, operator("ACCOUNT_DIAGNOSTICS_VIEW"));
     expect(l2.find((x) => x.id === "zasoby-508")).toMatchObject({ zablokowane: null, href: "/subscriptions/s1?sekcja=konto#zasoby-konta" });
     const l1 = dzialaniaObiektu(AKCJE_USLUGI, aktywna, operator("TICKETS_MANAGE", "CUSTOMERS_VIEW"));
@@ -98,7 +98,7 @@ describe("Działania usługi", () => {
   });
 
   // K2 (PB-53.5) — zmiana właściciela tylko dla administratora (API: @Roles(ADMIN)), na zakończonej usłudze — brak.
-  it("zmiana właściciela: ADMIN → #zmiana-wlasciciela; STAFF — wyszarzone bez wniosku; zakończona — brak", () => {
+  it("zmiana właściciela: ADMIN → #zmiana-wlasciciela; STAFF – wyszarzone bez wniosku; zakończona – brak", () => {
     expect(dzialaniaObiektu(AKCJE_USLUGI, aktywna, ADMIN).find((x) => x.id === "zmiana-wlasciciela")).toMatchObject({
       zablokowane: null,
       href: "/subscriptions/s1?sekcja=operacje#zmiana-wlasciciela",
@@ -110,7 +110,7 @@ describe("Działania usługi", () => {
   });
 
   // Przegląd 10.10: na karcie sekcji #zakonczenie nie ma, gdy usługa jest zakończona, a konto już usunięte.
-  it("zakończona usługa z usuniętym kontem — bez „Zakończ i usuń konto” (kotwicy nie ma na karcie)", () => {
+  it("zakończona usługa z usuniętym kontem – bez „Zakończ i usuń konto” (kotwicy nie ma na karcie)", () => {
     expect(ids({ ...aktywna, status: "CANCELED", kontoUsuniete: true })).not.toContain("zakonczenie");
     expect(ids({ ...aktywna, status: "CANCELED", kontoUsuniete: false })).toContain("zakonczenie");
   });

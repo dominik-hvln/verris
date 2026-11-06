@@ -67,7 +67,7 @@ export function CreditWalletButton({ userId, email, currentBalance, className, e
     return (
       <button type="button" disabled title={zablokowane} className={`${className ?? "inline-flex items-center gap-1.5 rounded-md border border-white/10 px-3 py-1.5 text-xs font-medium"} cursor-not-allowed opacity-50`}>
         {etykieta ?? "Dodaj K"}
-        <span className="sr-only"> — {zablokowane}</span>
+        <span className="sr-only"> – {zablokowane}</span>
       </button>
     );
   }
@@ -128,7 +128,7 @@ export function CreditWalletButton({ userId, email, currentBalance, className, e
 
               <label className="block mb-3">
                 <span className="text-xs font-bold uppercase tracking-widest text-neutral-500">
-                  Kwota (K) — 1 zł = 1 kredyt
+                  Kwota (K) – 1 zł = 1 kredyt
                 </span>
                 <div className="grid grid-cols-4 gap-2 mt-2 mb-2">
                   {PRESETS.map((preset) => (

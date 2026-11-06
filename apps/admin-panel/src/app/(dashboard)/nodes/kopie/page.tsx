@@ -72,7 +72,7 @@ export default async function KopieFlotyPage({ searchParams }: { searchParams?: 
       </RzadKpi>
 
       <section className={KARTA} aria-labelledby="wezly" data-karta="wezly">
-        <NaglowekKarty id="wezly" tytul="Węzły — ostatni przebieg" />
+        <NaglowekKarty id="wezly" tytul="Węzły – ostatni przebieg" />
         {dane.wezly.length === 0 ? <div className={`${WIERSZ} text-sm text-muted-foreground`}>Brak aktywnych węzłów.</div> : null}
         {dane.wezly.map((w) => {
           const b = w.przebieg;
@@ -138,7 +138,7 @@ export default async function KopieFlotyPage({ searchParams }: { searchParams?: 
         })}
         {dane.kontUcietych ? (
           <div className={`${WIERSZ} text-sm text-muted-foreground`}>
-            I {accounts(dane.kontUcietych)} więcej — zawęź do węzła.
+            I {accounts(dane.kontUcietych)} więcej – zawęź do węzła.
           </div>
         ) : null}
       </section>
@@ -180,7 +180,7 @@ export default async function KopieFlotyPage({ searchParams }: { searchParams?: 
       </section>
 
       <section className={KARTA} aria-labelledby="proby" data-karta="ostatnie">
-        <NaglowekKarty id="proby" tytul="Próby odtworzenia — ostatnia per źródło">
+        <NaglowekKarty id="proby" tytul="Próby odtworzenia – ostatnia per źródło">
           <Pomoc id="proby-odtworzenia" />
         </NaglowekKarty>
         {dane.proby.length === 0 ? <div className={`${WIERSZ} text-sm text-warn`}>Nie było jeszcze żadnej próby odtworzenia.</div> : null}

@@ -21,7 +21,7 @@ export interface MailObslugiContext {
 }
 
 const STOPKA_SERWISOWA =
-  'To wiadomość serwisowa dotycząca Twojej usługi w Verris — wysyłamy ją niezależnie od zgód marketingowych. Odpowiedz na nią, jeśli masz pytania.';
+  'To wiadomość serwisowa dotycząca Twojej usługi w Verris – wysyłamy ją niezależnie od zgód marketingowych. Odpowiedz na nią, jeśli masz pytania.';
 
 export function trescDoMarkdown(tresc: string): string {
   return tresc

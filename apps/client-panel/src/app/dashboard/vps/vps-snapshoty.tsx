@@ -77,8 +77,8 @@ export function VpsSnapshoty({
         setOperacja((o) => (o ? { ...o, progress: r.data!.progress } : o));
         return;
       }
-      if (r.data.status === 'success') toast.success(`${operacja.etykieta} — zakończono`);
-      else toast.error(`${operacja.etykieta} — nie powiodło się`, { description: 'Spróbuj ponownie albo napisz do nas.' });
+      if (r.data.status === 'success') toast.success(`${operacja.etykieta} – zakończono`);
+      else toast.error(`${operacja.etykieta} – nie powiodło się`, { description: 'Spróbuj ponownie albo napisz do nas.' });
       setOperacja(null);
       router.refresh();
     }, OPROS_MS);
@@ -93,14 +93,14 @@ export function VpsSnapshoty({
       toast.error('Nie udało się utworzyć snapshotu', { description: r.error });
       return;
     }
-    toast.success('Tworzymy snapshot — to może potrwać kilka minut');
+    toast.success('Tworzymy snapshot – to może potrwać kilka minut');
     setOpis('');
     await wczytaj();
   };
 
   const przywroc = async (s: VpsSnapshotsDto['snapshots'][number]) => {
     const ok = await potwierdz(
-      `Przywrócić serwer „${vpsName}” ze snapshotu „${s.description}” (${data(s.createdAt)})? Obecna zawartość dysku zostanie nadpisana — wszystkie dane zapisane po utworzeniu snapshotu zostaną bezpowrotnie utracone. Serwer zostanie na czas operacji wyłączony.`,
+      `Przywrócić serwer „${vpsName}” ze snapshotu „${s.description}” (${data(s.createdAt)})? Obecna zawartość dysku zostanie nadpisana – wszystkie dane zapisane po utworzeniu snapshotu zostaną bezpowrotnie utracone. Serwer zostanie na czas operacji wyłączony.`,
       { akcja: 'Przywróć i nadpisz dysk', niebezpieczne: true, tytul: 'Przywrócenie ze snapshotu' },
     );
     if (!ok) return;
@@ -116,7 +116,7 @@ export function VpsSnapshoty({
 
   const usun = async (s: VpsSnapshotsDto['snapshots'][number]) => {
     const ok = await potwierdz(
-      `Usunąć snapshot „${s.description}” (${data(s.createdAt)})? Tej operacji nie można cofnąć — nie będzie już można przywrócić z niego serwera.`,
+      `Usunąć snapshot „${s.description}” (${data(s.createdAt)})? Tej operacji nie można cofnąć – nie będzie już można przywrócić z niego serwera.`,
       { akcja: 'Usuń snapshot', niebezpieczne: true },
     );
     if (!ok) return;
@@ -144,7 +144,7 @@ export function VpsSnapshoty({
   const reinstaluj = async () => {
     const nazwa = systemy?.find((o) => o.name === system)?.description ?? system;
     const ok = await potwierdz(
-      `Zainstalować system ${nazwa} od nowa na serwerze „${vpsName}”? Cały dysk zostanie wyczyszczony — pliki, bazy danych i konfiguracja zostaną bezpowrotnie utracone. Jeśli chcesz zachować dane, najpierw utwórz snapshot.`,
+      `Zainstalować system ${nazwa} od nowa na serwerze „${vpsName}”? Cały dysk zostanie wyczyszczony – pliki, bazy danych i konfiguracja zostaną bezpowrotnie utracone. Jeśli chcesz zachować dane, najpierw utwórz snapshot.`,
       { akcja: 'Wyczyść dysk i zainstaluj', niebezpieczne: true, tytul: 'Reinstalacja systemu' },
     );
     if (!ok) return;
@@ -193,7 +193,7 @@ export function VpsSnapshoty({
           </div>
           {stan.enabled && stan.pricePerGbMonthly ? (
             <p className="text-[11px] text-neutral-500">
-              {kwota(stan.pricePerGbMonthly)} za GB miesięcznie, doliczane z dołu do odnowienia VPS-a — za każdy snapshot
+              {kwota(stan.pricePerGbMonthly)} za GB miesięcznie, doliczane z dołu do odnowienia VPS-a – za każdy snapshot
               przechowywany w minionym miesiącu (także usunięty przed jego końcem). Dla spójnych danych zatrzymaj serwer przed
               utworzeniem snapshotu.
             </p>
@@ -219,7 +219,7 @@ export function VpsSnapshoty({
             </div>
           ) : null}
           {n >= stan.limit && stan.enabled ? (
-            <p className="text-[11px] text-amber-200">Osiągnięto limit — usuń starszy snapshot, aby utworzyć nowy.</p>
+            <p className="text-[11px] text-amber-200">Osiągnięto limit – usuń starszy snapshot, aby utworzyć nowy.</p>
           ) : null}
           {n === 0 ? <p className="text-xs text-neutral-500">Brak snapshotów.</p> : null}
           <ul className="space-y-1.5">

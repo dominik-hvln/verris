@@ -37,7 +37,7 @@ const testPlikow = testZrodlaPlikowZaKlientaAction as jest.Mock;
 const katalogi = katalogiZrodlaZaKlientaAction as jest.Mock;
 const wykrytoSftp = {
   ok: true,
-  wynik: { ok: true, protocol: "sftp", port: 22, rsync: true, metoda: "SFTP + rsync — najszybciej, z dosyłaniem zmian", nieszyfrowane: false, proby: [] },
+  wynik: { ok: true, protocol: "sftp", port: 22, rsync: true, metoda: "SFTP + rsync – najszybciej, z dosyłaniem zmian", nieszyfrowane: false, proby: [] },
 };
 
 const baza = { host: "", port: "", database: "", username: "", password: "" };
@@ -57,7 +57,7 @@ const wejscie = (z: Partial<Parameters<typeof zbudujZlecenie>[0]> = {}): Paramet
 });
 
 describe("zbudujZlecenie (admin)", () => {
-  it("bez hosta FTP i bez wierszy — tylko usługa i powód", () => {
+  it("bez hosta FTP i bez wierszy – tylko usługa i powód", () => {
     expect(zbudujZlecenie(wejscie())).toEqual({
       subscriptionId: "sub-1",
       powod: "Zgłoszenie #1234",
@@ -98,7 +98,7 @@ describe("bliźniak formularza z panelu obsługi", () => {
     return src.slice(od, src.indexOf("\n}\n", od));
   };
 
-  it("zbudujZlecenie jest identyczne — oba panele wysyłają te same pola", () => {
+  it("zbudujZlecenie jest identyczne – oba panele wysyłają te same pola", () => {
     const a = funkcja(admin("za-klienta/formularz-za-klienta.tsx"));
     expect(a.length).toBeGreaterThan(200);
     expect(a).toBe(funkcja(staff("za-klienta/formularz-za-klienta.tsx")));
@@ -169,7 +169,7 @@ describe("formularz w przeglądarce", () => {
     wpisz(poleZEtykieta("Powód"), "Zgłoszenie #77");
     await act(async () => przycisk("Test połączenia").click());
     expect(testPlikow).toHaveBeenCalledWith("sub-1", { host: "ftp.stary.pl", username: "sklep", password: "tajne" });
-    expect(k.textContent).toContain("Połączenie działa — kopiujemy: SFTP + rsync");
+    expect(k.textContent).toContain("Połączenie działa – kopiujemy: SFTP + rsync");
     expect(przycisk("Wyślij klientowi prośbę o zgodę").disabled).toBe(false);
     // Zmiana hasła unieważnia wynik testu.
     wpisz(poleZEtykieta("Hasło"), "inne");
@@ -203,7 +203,7 @@ describe("formularz w przeglądarce", () => {
     expect((k.querySelector('input[aria-label="Hasło bazy"]') as HTMLInputElement).value).toBe("");
     // E2e 14.10: Dominik wpisał hasło ręcznie, bo nic nie mówiło, że może zostać puste (worker bierze je z wp-config).
     expect((k.querySelector('input[aria-label="Hasło bazy"]') as HTMLInputElement).placeholder).toBe("Hasło (z pliku strony)");
-    expect(k.textContent).toContain("Hasła nie musisz wpisywać — odczytamy je z pliku konfiguracyjnego strony");
+    expect(k.textContent).toContain("Hasła nie musisz wpisywać – odczytamy je z pliku konfiguracyjnego strony");
     await act(async () => przycisk("Wybierz ten katalog").click());
     expect(poleZEtykieta("Katalog strony").value).toBe("/public_html");
   });
@@ -214,12 +214,12 @@ describe("formularz w przeglądarce", () => {
     wpisz(poleZEtykieta("Host"), " ftp.stary.pl ");
     wpisz(poleZEtykieta("Użytkownik"), "sklep");
     wpisz(poleZEtykieta("Hasło"), "tajne");
-    wpisz(poleZEtykieta("Powód"), "Zgłoszenie #77 — przeniesienie");
+    wpisz(poleZEtykieta("Powód"), "Zgłoszenie #77 – przeniesienie");
     await act(async () => przycisk("Test połączenia").click());
     await act(async () => przycisk("Wyślij klientowi prośbę o zgodę").click());
     expect(utworz).toHaveBeenCalledWith({
       subscriptionId: "sub-1",
-      powod: "Zgłoszenie #77 — przeniesienie",
+      powod: "Zgłoszenie #77 – przeniesienie",
       ticketId: undefined,
       targetDomain: undefined,
       sourceDomain: undefined,

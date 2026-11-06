@@ -6,8 +6,8 @@ import './globals.css';
 // queries have exactly one entry” przy odpowiedzi Google dla Schibsted Grotesk).
 
 export const metadata = {
-  title: 'Verris — status usług',
-  description: 'Aktualny stan usług Verris — dostępność z ostatnich 90 dni, czas odpowiedzi, zdarzenia i planowane prace.',
+  title: 'Verris – status usług',
+  description: 'Aktualny stan usług Verris – dostępność z ostatnich 90 dni, czas odpowiedzi, zdarzenia i planowane prace.',
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

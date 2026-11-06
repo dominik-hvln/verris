@@ -14,7 +14,7 @@ export interface AssistantHint {
 }
 
 type Result<T> = ({ ok: true } & T) | { ok: false; error: string };
-const msg = (e: unknown) => (e instanceof ApiError ? e.message : 'Nie udało się — spróbuj ponownie.');
+const msg = (e: unknown) => (e instanceof ApiError ? e.message : 'Nie udało się – spróbuj ponownie.');
 
 export async function applyAssistantFix(serviceId: string, key: string): Promise<Result<{ undoId: string }>> {
   try {

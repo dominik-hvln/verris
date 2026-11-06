@@ -21,7 +21,7 @@ function kontekst(user: unknown, wymagane: string[]): ExecutionContext {
   } as unknown as ExecutionContext;
 }
 
-describe('PB-47 — suma uprawnień operatora', () => {
+describe('PB-47 – suma uprawnień operatora', () => {
   const wiersz = {
     staffRole: rola('a', ['CUSTOMERS_VIEW', 'CUSTOMERS_MANAGE']),
     staffRoleAssignments: [{ role: rola('a', ['CUSTOMERS_VIEW', 'CUSTOMERS_MANAGE']) }, { role: rola('b', ['BILLING_MANAGE']) }],

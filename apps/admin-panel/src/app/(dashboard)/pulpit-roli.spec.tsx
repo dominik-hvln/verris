@@ -51,7 +51,7 @@ it("konsultant: moje zgłoszenia z terminem SLA; zakładka Finanse się nie poka
   expect(html).not.toContain(">Finanse<");
 });
 
-it("administrator: stan platformy; ?pulpit=noc — pulpit floty; awaria API — komunikat zamiast pustych liczb", async () => {
+it("administrator: stan platformy; ?pulpit=noc – pulpit floty; awaria API – komunikat zamiast pustych liczb", async () => {
   dostep.mockResolvedValue({ role: "ADMIN", isAdmin: true, permissions: [] });
   expect(await render()).toContain('data-pulpit="admin"');
   api.mockRejectedValue(new Error("ECONNREFUSED"));

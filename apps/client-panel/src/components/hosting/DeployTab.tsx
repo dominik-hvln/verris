@@ -250,7 +250,7 @@ export default function DeployTab({ serviceId }: DeployTabProps) {
             {rows.length === 0 && !fetchError ? (
               <tr>
                 <td colSpan={3} className="px-3 py-8 text-center text-muted-foreground text-xs">
-                  Brak skonfigurowanych wdrożeń — dodaj pierwsze powyżej.
+                  Brak skonfigurowanych wdrożeń – dodaj pierwsze powyżej.
                 </td>
               </tr>
             ) : null}

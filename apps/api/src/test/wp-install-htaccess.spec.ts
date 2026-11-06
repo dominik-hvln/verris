@@ -19,7 +19,7 @@ function uruchom(docroot: string) {
   return spawnSync('bash', ['-c', skrypt], { encoding: 'utf8' });
 }
 
-describe('Instalator WordPressa — reguły ładnych adresów w .htaccess', () => {
+describe('Instalator WordPressa – reguły ładnych adresów w .htaccess', () => {
   it('fragment istnieje w skrypcie', () => {
     expect(start).toBeGreaterThan(-1);
   });

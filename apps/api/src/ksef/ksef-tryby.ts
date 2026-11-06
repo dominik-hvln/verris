@@ -61,14 +61,14 @@ export const TRYBY: Record<TrybWystawienia, OpisTrybu> = {
   },
   OFFLINE24: {
     tryb: 'OFFLINE24',
-    etykieta: 'Offline24 — problem po naszej stronie',
+    etykieta: 'Offline24 – problem po naszej stronie',
     dniRobocze: 1,
     odZdarzenia: 'wystawienia',
     wymagaKodowQr: true,
   },
   NIEDOSTEPNOSC: {
     tryb: 'NIEDOSTEPNOSC',
-    etykieta: 'Niedostępność — prace serwisowe KSeF',
+    etykieta: 'Niedostępność – prace serwisowe KSeF',
     dniRobocze: 1,
     odZdarzenia: 'zakonczenia-przerwy',
     wymagaKodowQr: true,
@@ -89,7 +89,7 @@ export const TRYBY: Record<TrybWystawienia, OpisTrybu> = {
   },
   NIESKLASYFIKOWANY: {
     tryb: 'NIESKLASYFIKOWANY',
-    etykieta: 'KSeF nie odpowiada — do zaklasyfikowania',
+    etykieta: 'KSeF nie odpowiada – do zaklasyfikowania',
     // Najkrótszy z możliwych terminów, liczony od wystawienia. Zaniżenie jest
     // bezpieczne: zaalarmujemy za wcześnie. Zawyżenie przegapiłoby termin.
     dniRobocze: 1,

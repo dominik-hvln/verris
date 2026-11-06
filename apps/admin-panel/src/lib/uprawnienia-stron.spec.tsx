@@ -32,7 +32,7 @@ const PLIKI = strony(KATALOG).map((p) => [sciezka(p), p] as const);
 /** Uprawnienie strony z mapy (lista porównywana treścią, nie referencją); „brak wpisu” — strony nie ma w mapie. */
 const permStrony = (href: string) => (href in STRONY ? STRONY[href as SciezkaStrony].perm : "brak wpisu");
 
-describe("D1 — mapa uprawnień stron", () => {
+describe("D1 – mapa uprawnień stron", () => {
   it("każda strona panelu ma wpis w mapie i każdy wpis ma stronę", () => {
     expect(PLIKI.map(([s]) => s).sort()).toEqual(Object.keys(STRONY).sort());
   });
@@ -42,7 +42,7 @@ describe("D1 — mapa uprawnień stron", () => {
     expect(kod).toContain(`await bramkaStrony("${s}")`);
   });
 
-  it("menu i Cmd+K: uprawnienie pozycji = uprawnienie strony (pozycja bez uprawnień — strona dla każdego)", () => {
+  it("menu i Cmd+K: uprawnienie pozycji = uprawnienie strony (pozycja bez uprawnień – strona dla każdego)", () => {
     const pozycje = [...grupy(null).flatMap((g) => g.pozycje.flatMap((p) => p.pod)), ...UKRYTE];
     const rozjazdy = pozycje
       .filter((p) => JSON.stringify(p.perm ?? null) !== JSON.stringify(permStrony(p.href)))
@@ -50,14 +50,14 @@ describe("D1 — mapa uprawnień stron", () => {
     expect(rozjazdy).toEqual([]);
   });
 
-  it("konfiguracja, plany/ceny, VPN i zespół-konfiguracja — tylko administrator (D1)", () => {
+  it("konfiguracja, plany/ceny, VPN i zespół-konfiguracja – tylko administrator (D1)", () => {
     for (const s of ["/settings/platform", "/settings/company", "/settings/mail", "/vpn", "/vps", "/autoscaling", "/plans/new", "/domain-pricing", "/nodes/wizard"] as const) {
       expect({ s, perm: STRONY[s].perm }).toEqual({ s, perm: "ADMIN" });
     }
   });
 });
 
-describe("D1 — bramka strony", () => {
+describe("D1 – bramka strony", () => {
   const api = adminApi as jest.Mock;
   const dostep = (d: unknown) => api.mockReset().mockImplementation(async (p: string) => (p === "/staff/me/access" ? d : Promise.reject(new Error("?"))));
   const html = async (s: SciezkaStrony) => {
@@ -73,14 +73,14 @@ describe("D1 — bramka strony", () => {
     expect(h).toContain("Węzły");
   });
 
-  it("operator z uprawnieniem i administrator — strona się renderuje (null)", async () => {
+  it("operator z uprawnieniem i administrator – strona się renderuje (null)", async () => {
     dostep({ role: "STAFF", isAdmin: false, permissions: ["NODES_VIEW"] });
     expect(await html("/nodes")).toBeNull();
     dostep({ role: "ADMIN", isAdmin: true, permissions: [] });
     expect(await html("/settings/platform")).toBeNull();
   });
 
-  it("strona tylko dla administratora: operator z kompletem uprawnień — odmowa", async () => {
+  it("strona tylko dla administratora: operator z kompletem uprawnień – odmowa", async () => {
     dostep({ role: "STAFF", isAdmin: false, permissions: ["SETTINGS_MANAGE", "STAFF_MANAGE", "PLANS_MANAGE"] });
     expect(await html("/settings/platform")).toContain("Wymaga roli administratora");
     expect(await html("/plans/new")).toContain("Brak uprawnień");
@@ -93,7 +93,7 @@ describe("D1 — bramka strony", () => {
     expect(await html("/subscriptions/[id]")).toContain("Brak uprawnień");
   });
 
-  it("weryfikacja 11.10: lista usług jak karta — L1 (CUSTOMERS_VIEW) ją otwiera, bez CUSTOMERS_VIEW i SUBSCRIPTIONS_MANAGE nie", async () => {
+  it("weryfikacja 11.10: lista usług jak karta – L1 (CUSTOMERS_VIEW) ją otwiera, bez CUSTOMERS_VIEW i SUBSCRIPTIONS_MANAGE nie", async () => {
     dostep({ role: "STAFF", isAdmin: false, permissions: ["DASHBOARD_VIEW", "CUSTOMERS_VIEW", "TICKETS_VIEW", "TICKETS_MANAGE", "BILLING_VIEW"] });
     expect(await html("/subscriptions")).toBeNull();
     dostep({ role: "STAFF", isAdmin: false, permissions: ["SUBSCRIPTIONS_MANAGE"] });
@@ -102,7 +102,7 @@ describe("D1 — bramka strony", () => {
     expect(await html("/subscriptions")).toContain("Wymaga CUSTOMERS_VIEW lub SUBSCRIPTIONS_MANAGE");
   });
 
-  it("API uprawnień nie odpowiada — odmowa (fail-closed) z prośbą o odświeżenie", async () => {
+  it("API uprawnień nie odpowiada – odmowa (fail-closed) z prośbą o odświeżenie", async () => {
     api.mockReset().mockRejectedValue(new Error("ECONNREFUSED"));
     expect(await html("/customers")).toContain("Nie udało się sprawdzić uprawnień");
   });

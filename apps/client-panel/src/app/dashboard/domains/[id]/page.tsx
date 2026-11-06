@@ -186,7 +186,7 @@ export default async function DomainDetailsPage({ params }: { params: Promise<{ 
             <dd><CopyValue value={domain.verification.recordValue} /></dd>
           </dl>
           <p className="mt-3 text-xs text-neutral-500">
-            Niektórzy operatorzy DNS dopisują nazwę domeny sami — wtedy w polu nazwy wpisz tylko
+            Niektórzy operatorzy DNS dopisują nazwę domeny sami – wtedy w polu nazwy wpisz tylko
             „_verris-challenge”. Niepotwierdzona domena po 7 dniach przestaje blokować tę nazwę dla innych.
           </p>
         </div>
@@ -197,7 +197,7 @@ export default async function DomainDetailsPage({ params }: { params: Promise<{ 
           <p className="font-medium text-amber-100">Brak powiązanej usługi hostingowej</p>
           <p className="mt-2 text-neutral-400">
             Żadna aktywna usługa nie ma tej domeny jako głównej. Zamów hosting na ten adres albo dodaj tę domenę
-            do istniejącej usługi (Usługa → Domeny i DNS) — wtedy pojawią się linki do DNS, plików i pozostałych modułów.
+            do istniejącej usługi (Usługa → Domeny i DNS) – wtedy pojawią się linki do DNS, plików i pozostałych modułów.
           </p>
           <Link href="/dashboard/services/new" className="mt-4 inline-block text-sm text-indigo-400 underline">
             Zamów usługę →
@@ -230,7 +230,7 @@ export default async function DomainDetailsPage({ params }: { params: Promise<{ 
             {checklist[0] ? (
               <div className="mt-4 space-y-3">
                 <p className="text-xs text-neutral-500">
-                  Sprawdzono: {checklist[0].checkedAt ? new Date(checklist[0].checkedAt).toLocaleString('pl-PL') : '—'}
+                  Sprawdzono: {checklist[0].checkedAt ? new Date(checklist[0].checkedAt).toLocaleString('pl-PL') : '–'}
                 </p>
                 {Array.isArray(checklist[0].issues) && checklist[0].issues.length > 0 ? (
                   <ul className="list-disc pl-5 text-sm text-amber-100">

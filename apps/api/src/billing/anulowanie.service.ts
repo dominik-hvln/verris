@@ -43,7 +43,7 @@ export class AnulowanieService {
       where: { id: f.id, status: { in: DO_ANULOWANIA } },
       data: { status: InvoiceStatus.VOID },
     });
-    if (count === 0) throw new BadRequestException('Status dokumentu zmienił się w międzyczasie — odśwież i spróbuj ponownie.');
+    if (count === 0) throw new BadRequestException('Status dokumentu zmienił się w międzyczasie – odśwież i spróbuj ponownie.');
     await this.audit.record({
       action: 'INVOICE_VOIDED',
       userId: f.userId,

@@ -70,14 +70,14 @@ export function BlokadyIpWezlaPanel({ serverId }: { serverId: string }) {
       co === "odblokuj"
         ? `Odblokować adres ${adres} na węźle (wszystkie usługi)?`
         : co === "dodaj"
-          ? `Dodać ${adres} do białej listy? Serwer przestanie blokować ten adres nawet przy zgadywaniu haseł — tylko dla zaufanych adresów (np. biuro klienta, monitoring).`
+          ? `Dodać ${adres} do białej listy? Serwer przestanie blokować ten adres nawet przy zgadywaniu haseł – tylko dla zaufanych adresów (np. biuro klienta, monitoring).`
           : `Usunąć ${adres} z białej listy? Serwer znów będzie go blokował po nieudanych logowaniach.`;
     if (!(await potwierdz(tresc, { akcja: co === "odblokuj" ? "Odblokuj" : co === "dodaj" ? "Dodaj" : "Usuń", niebezpieczne: co === "dodaj" }))) return;
     start(async () => {
       setMsg(null);
       if (await wywolaj(co, { ip: adres, powod })) {
         setPowod("");
-        setMsg({ ok: true, tekst: "Zlecone — serwer wykona zmianę w ciągu minuty." });
+        setMsg({ ok: true, tekst: "Zlecone – serwer wykona zmianę w ciągu minuty." });
       }
     });
   };
@@ -119,7 +119,7 @@ export function BlokadyIpWezlaPanel({ serverId }: { serverId: string }) {
       {op ? (
         <p className="text-xs text-muted-foreground" data-operacja="wynik">
           Ostatnie {TRYB[op.tryb] ?? op.tryb} {op.ip} ({kiedy(op.kiedy)}):{" "}
-          {op.wToku ? "w toku…" : op.blad ? `nie powiodło się — ${op.blad}` : op.odblokowano !== null ? `zdjęto ${op.odblokowano} ${plForm(op.odblokowano, "blokadę", "blokady", "blokad")}.` : "gotowe."}
+          {op.wToku ? "w toku…" : op.blad ? `nie powiodło się – ${op.blad}` : op.odblokowano !== null ? `zdjęto ${op.odblokowano} ${plForm(op.odblokowano, "blokadę", "blokady", "blokad")}.` : "gotowe."}
         </p>
       ) : null}
 

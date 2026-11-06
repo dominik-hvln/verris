@@ -5,7 +5,7 @@ import { NodeTasksService } from './node-tasks.service.js';
  * Audyt Fali 3 — „Ponów” nieudanego zadania (NODES_MANAGE) nie wykonuje ponownie operacji operatora z Fali 3, które mają
  * własne uprawnienia, powód i regułę właściciela (blokady IP, kolejka i limit poczty, trafienia WAF, kwarantanna).
  */
-describe('NodeTasksService.retryFailedTask — operacje operatora', () => {
+describe('NodeTasksService.retryFailedTask – operacje operatora', () => {
   function svc(kind: NodeTaskKind, payload: Record<string, unknown> = {}) {
     const zmiany: unknown[] = [];
     const s = new NodeTasksService(

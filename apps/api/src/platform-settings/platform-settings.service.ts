@@ -609,7 +609,7 @@ export class PlatformSettingsService {
   async ustawWymog2fa(wlaczony: boolean, actorUserId: string): Promise<StanWymogu2fa> {
     const przed = await stanWymogu2fa(this.prisma);
     if (!wlaczony && przed.wymuszonyEnv) {
-      throw new ConflictException('Wymóg 2FA jest włączony w konfiguracji serwera (REQUIRE_2FA_FOR_STAFF) — panel go nie wyłączy.');
+      throw new ConflictException('Wymóg 2FA jest włączony w konfiguracji serwera (REQUIRE_2FA_FOR_STAFF) – panel go nie wyłączy.');
     }
     if (wlaczony) {
       // Bez drugiego składnika administrator zamknąłby sobie logowanie hasłem.
@@ -618,7 +618,7 @@ export class PlatformSettingsService {
         select: { isTwoFactorEnabled: true, _count: { select: { webauthnCredentials: true } } },
       });
       if (!ja?.isTwoFactorEnabled && !ja?._count.webauthnCredentials) {
-        throw new BadRequestException('Najpierw włącz 2FA albo dodaj passkey na swoim koncie — inaczej nie zalogujesz się po włączeniu wymogu.');
+        throw new BadRequestException('Najpierw włącz 2FA albo dodaj passkey na swoim koncie – inaczej nie zalogujesz się po włączeniu wymogu.');
       }
     }
     await this.prisma.platformSetting.upsert({
@@ -806,7 +806,7 @@ export class PlatformSettingsService {
       if (wToku > 0) {
         throw new BadRequestException(
           `KSeF: ${wToku} ${wToku === 1 ? 'faktura czeka' : 'faktur czeka'} na status w środowisku ${obecneEnv}. ` +
-            'Poczekaj, aż KSeF je przyjmie lub odrzuci (zwykle kilkanaście minut), a faktury „do wyjaśnienia” rozstrzygnij na ich stronach — potem zmień środowisko ponownie.',
+            'Poczekaj, aż KSeF je przyjmie lub odrzuci (zwykle kilkanaście minut), a faktury „do wyjaśnienia” rozstrzygnij na ich stronach – potem zmień środowisko ponownie.',
         );
       }
       // Przegląd 15.10: faktury z kolejki (PENDING/OFFLINE) wystawione przy środowisku obecnym poszłyby po zmianie

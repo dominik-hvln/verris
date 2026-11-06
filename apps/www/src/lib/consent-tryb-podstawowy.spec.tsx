@@ -76,7 +76,7 @@ afterEach(() => {
   delete process.env.NEXT_PUBLIC_META_PIXEL_ID;
 });
 
-describe('decyzja 22 — przed zgodą nic do Google ani Meta', () => {
+describe('decyzja 22 – przed zgodą nic do Google ani Meta', () => {
   it('HTML strony: tylko Consent Mode default (bez żądań), bez loadera gtm.js i bez <noscript> z GTM', () => {
     const html = renderToStaticMarkup(<Analytics nonce="n" />);
     expect(html).toContain('id="consent-default"');
@@ -102,7 +102,7 @@ describe('decyzja 22 — przed zgodą nic do Google ani Meta', () => {
   });
 });
 
-describe('decyzja 22 — po zgodzie: consent update, potem tagi', () => {
+describe('decyzja 22 – po zgodzie: consent update, potem tagi', () => {
   it('zgoda analityczna: gtm.js z nonce strony, raz; consent update w dataLayer przed zdarzeniem gtm.js; bez Pixela', () => {
     const { wstawione, dataLayer } = atrapaPrzegladarki();
     mod.writeConsent({ functional: false, analytics: true, marketing: false });
@@ -130,7 +130,7 @@ describe('decyzja 22 — po zgodzie: consent update, potem tagi', () => {
     ]);
   });
 
-  it('powracający gość z zapisaną zgodą: tagi ładuje applyConsent przy wejściu (baner), bez zgody — nic', () => {
+  it('powracający gość z zapisaną zgodą: tagi ładuje applyConsent przy wejściu (baner), bez zgody – nic', () => {
     const zZgoda = atrapaPrzegladarki();
     mod.applyConsent({ v: 1, ts: 't', functional: false, analytics: true, marketing: false }, false);
     expect(doGoogleLubMeta(zZgoda.wstawione)).toHaveLength(1);

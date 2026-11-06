@@ -24,7 +24,7 @@ import {
 const PHASES: Array<{ key: string; label: string; detail: string }> = [
   { key: "PREFLIGHT", label: "Preflight", detail: "root, czysty OS, czas (NTP), brak innego panelu" },
   { key: "CLOUDLINUX", label: "CloudLinux", detail: "cldeploy → konwersja + reboot (kernel LVE)" },
-  { key: "QUOTA", label: "Limity dysku", detail: "quota XFS (rootflags) — restart, jeśli potrzebny" },
+  { key: "QUOTA", label: "Limity dysku", detail: "quota XFS (rootflags) – restart, jeśli potrzebny" },
   { key: "DA", label: "DirectAdmin", detail: "oficjalny instalator CLI (setup.sh)" },
   { key: "STACK", label: "LiteSpeed", detail: "CustomBuild: webserver litespeed + serial" },
   { key: "AGENT", label: "Agent + handshake", detail: "rejestracja w control-plane, agent LVE" },
@@ -102,12 +102,12 @@ export function NodeBootstrapProgress({ serverId }: { serverId: string }) {
 
         {rebooting ? (
           <div className="mb-4 flex items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-400/10 px-3 py-2 text-sm text-sky-100">
-            <RotateCw className="h-4 w-4 animate-spin" /> Węzeł się restartuje ({rebooting === "QUOTA" ? "włączenie quota XFS" : "jądro CloudLinux"}) — instalacja wznowi się automatycznie po powrocie.
+            <RotateCw className="h-4 w-4 animate-spin" /> Węzeł się restartuje ({rebooting === "QUOTA" ? "włączenie quota XFS" : "jądro CloudLinux"}) – instalacja wznowi się automatycznie po powrocie.
           </div>
         ) : null}
         {dns ? (
           <div className="mb-4 flex items-start gap-2 rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-sm text-amber-100">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> DNS w OVH (control-plane): {dns} — faza „Certyfikat panelu” czeka na rekord A
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> DNS w OVH (control-plane): {dns} – faza „Certyfikat panelu” czeka na rekord A
             i ponowi się sama.
           </div>
         ) : null}
@@ -150,7 +150,7 @@ export function NodeBootstrapProgress({ serverId }: { serverId: string }) {
                   <span className={e.status === "FAILED" ? "text-rose-300" : e.status === "OK" ? "text-emerald-300" : "text-sky-300"}>
                     {e.phase}/{e.status}
                   </span>
-                  {e.message ? ` — ${e.message}` : ""}
+                  {e.message ? ` – ${e.message}` : ""}
                 </li>
               ))}
             </ul>
@@ -191,12 +191,12 @@ function LicenseKeysForm({ serverId }: { serverId: string }) {
         <KeyRound className="h-4 w-4 text-amber-300" /> Klucze licencyjne
       </h3>
       <p className="mb-3 text-[11px] text-muted-foreground">
-        Wklej klucze po zakupie — są szyfrowane i wstrzykiwane do instalatora. Puste pole CloudLinux = faza pominięta (agent wymaga CloudLinux, więc tylko przy ręcznej konwersji). Puste pole LiteSpeed lub „TRIAL” = licencja trial z CustomBuild (15 dni).
+        Wklej klucze po zakupie – są szyfrowane i wstrzykiwane do instalatora. Puste pole CloudLinux = faza pominięta (agent wymaga CloudLinux, więc tylko przy ręcznej konwersji). Puste pole LiteSpeed lub „TRIAL” = licencja trial z CustomBuild (15 dni).
       </p>
       <div className="grid gap-3 md:grid-cols-3">
-        <Field label="DirectAdmin — License Key"><input value={da} onChange={(e) => setDa(e.target.value)} placeholder="XXXX-XXXX-…" className="inp" /></Field>
-        <Field label="CloudLinux — Activation Key"><input value={cl} onChange={(e) => setCl(e.target.value)} placeholder="12314-…" className="inp" /></Field>
-        <Field label="LiteSpeed — Serial"><input value={ls} onChange={(e) => setLs(e.target.value)} placeholder="XXXXXXXX (lub TRIAL)" className="inp" /></Field>
+        <Field label="DirectAdmin – License Key"><input value={da} onChange={(e) => setDa(e.target.value)} placeholder="XXXX-XXXX-…" className="inp" /></Field>
+        <Field label="CloudLinux – Activation Key"><input value={cl} onChange={(e) => setCl(e.target.value)} placeholder="12314-…" className="inp" /></Field>
+        <Field label="LiteSpeed – Serial"><input value={ls} onChange={(e) => setLs(e.target.value)} placeholder="XXXXXXXX (lub TRIAL)" className="inp" /></Field>
       </div>
       {msg ? <p className={`mt-2 text-sm ${msg.ok ? "text-emerald-300" : "text-rose-300"}`}>{msg.text}</p> : null}
       <button onClick={save} disabled={pending} className="mt-3 inline-flex items-center gap-2 rounded-xl bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-500 disabled:opacity-50">
@@ -255,7 +255,7 @@ function OneLinerCard({ serverId }: { serverId: string }) {
 
 function ManualSteps() {
   const steps = [
-    { t: "Czysty OS", d: "Zainstaluj świeży AlmaLinux (8/9/10) — bez innego panelu. CloudLinux 10 = konwersja z AlmaLinux 10 (brak ISO, konwertuje cldeploy)." },
+    { t: "Czysty OS", d: "Zainstaluj świeży AlmaLinux (8/9/10) – bez innego panelu. CloudLinux 10 = konwersja z AlmaLinux 10 (brak ISO, konwertuje cldeploy)." },
     { t: "Licencje", d: "Kup: DirectAdmin (License Key), CloudLinux (Activation Key), LiteSpeed (Serial) i wklej je powyżej." },
     { t: "rDNS / PTR", d: "W panelu dostawcy ustaw PTR dla IP węzła na jego hostname (np. srv01.verris.pl)." },
     { t: "Porty firewalla (dostawca)", d: "Otwórz: 22 (SSH), 2222 (DA), 80/443 (WWW), 25/465/587/993/995 (poczta), 53 (DNS)." },
@@ -266,7 +266,7 @@ function ManualSteps() {
       <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold text-white">
         <ChevronDown className="h-4 w-4 text-neutral-300" /> Kroki ręczne (czego nie da się zautomatyzować)
       </h3>
-      <p className="mb-3 text-[11px] text-muted-foreground">Te elementy wymagają Twojej akcji poza serwerem — reszta dzieje się automatycznie.</p>
+      <p className="mb-3 text-[11px] text-muted-foreground">Te elementy wymagają Twojej akcji poza serwerem – reszta dzieje się automatycznie.</p>
       <ol className="space-y-2">
         {steps.map((s, i) => (
           <li key={i} className="flex items-start gap-2.5 rounded-lg border border-white/5 bg-black/20 p-2.5">

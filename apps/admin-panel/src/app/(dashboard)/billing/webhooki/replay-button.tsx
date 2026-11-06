@@ -19,7 +19,7 @@ export function ReplayButton({
   if (disabled) {
     return (
       <span className="text-[10px] text-neutral-500" title={powod ?? undefined}>
-        {powod ?? "—"}
+        {powod ?? "–"}
       </span>
     );
   }

@@ -58,7 +58,7 @@ export function sprawdzBazeTestowa(url: string | undefined): void {
   if (!url) {
     throw new Error(
       'Testy integracyjne wymagają DATABASE_URL wskazującego na BAZĘ TESTOWĄ. ' +
-        'Nigdy nie uruchamiaj ich przeciwko bazie z danymi — zaczynają od TRUNCATE.',
+        'Nigdy nie uruchamiaj ich przeciwko bazie z danymi – zaczynają od TRUNCATE.',
     );
   }
 
@@ -69,7 +69,7 @@ export function sprawdzBazeTestowa(url: string | undefined): void {
       'Nie potrafię odczytać nazwy bazy z DATABASE_URL, więc nie potwierdzę, ' +
         'że to baza testowa. Oczekuję postaci ' +
         'postgresql://użytkownik:hasło@host:port/nazwa_bazy. Ta paczka zaczyna ' +
-        'od TRUNCATE — nie uruchamiam jej na bazie, której nie umiem nazwać.',
+        'od TRUNCATE – nie uruchamiam jej na bazie, której nie umiem nazwać.',
     );
   }
 
@@ -78,7 +78,7 @@ export function sprawdzBazeTestowa(url: string | undefined): void {
       `DATABASE_URL wskazuje na bazę "${nazwa}", a nazwa bazy testowej musi ` +
         'zawierać "test". Testy integracyjne zaczynają od ' +
         'TRUNCATE ... CASCADE na Invoice, WalletTransaction, Account, ' +
-        'Subscription, Server, Plan i User — na bazie deweloperskiej ' +
+        'Subscription, Server, Plan i User – na bazie deweloperskiej ' +
         'skasowałyby wszystko. Utwórz osobną bazę (np. verris_test) i wskaż ' +
         'na nią DATABASE_URL.',
     );

@@ -228,8 +228,8 @@ function AccountRow({ a }: { a: NodeAccountRow }) {
         </Link>
         <div className="text-[11px] text-muted-foreground font-mono">{a.daUsername}</div>
       </td>
-      <td className="py-2 pr-3 text-muted-foreground">{a.ownerEmail ?? "—"}</td>
-      <td className="py-2 pr-3 text-muted-foreground">{a.planName ?? "—"}</td>
+      <td className="py-2 pr-3 text-muted-foreground">{a.ownerEmail ?? "–"}</td>
+      <td className="py-2 pr-3 text-muted-foreground">{a.planName ?? "–"}</td>
       <td className="py-2 pr-3">
         <StatusBadge status={a.status} />
         {scaled ? (
@@ -239,15 +239,15 @@ function AccountRow({ a }: { a: NodeAccountRow }) {
         ) : null}
       </td>
       <td className="py-2 pr-3 text-white tabular-nums">
-        {cpu !== null ? `${cpu}%` : "—"}
+        {cpu !== null ? `${cpu}%` : "–"}
         <span className="text-[10px] text-muted-foreground"> / {a.cpuLimit}%</span>
       </td>
       <td className="py-2 pr-3 text-white tabular-nums">
-        {ram !== null ? fmtMb(ram) : "—"}
+        {ram !== null ? fmtMb(ram) : "–"}
         <span className="text-[10px] text-muted-foreground"> / {fmtMb(a.ramLimitMb)}</span>
       </td>
       <td className="py-2 pr-3 text-white tabular-nums">
-        {disk !== null ? fmtMb(disk) : "—"}
+        {disk !== null ? fmtMb(disk) : "–"}
         <span className="text-[10px] text-muted-foreground"> / {fmtMb(a.diskLimitMb)}</span>
       </td>
     </tr>

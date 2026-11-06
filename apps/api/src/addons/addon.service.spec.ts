@@ -15,7 +15,7 @@ import { PurchaseAddonDto } from './dto/purchase-addon.dto.js';
  * Testy pilnują trzech rzeczy naraz, bo poprawka tylko portfela nie wystarczy:
  * pieniądze, skutki uboczne (zgłoszenie, flaga wsparcia) i sam rekord zakupu.
  */
-describe('Z-06 — idempotencja zakupu dodatku', () => {
+describe('Z-06 – idempotencja zakupu dodatku', () => {
   interface Rekord {
     id: string;
     slug: string;
@@ -127,7 +127,7 @@ describe('Z-06 — idempotencja zakupu dodatku', () => {
       expect(b.debety[0].idempotencyKey).toBe(pierwszy);
     });
 
-    it('inna usługa to inny klucz — dwa dedykowane IP dla dwóch usług są legalne', async () => {
+    it('inna usługa to inny klucz – dwa dedykowane IP dla dwóch usług są legalne', async () => {
       const a = zbuduj();
       await a.service.purchase('user-1', 'dedicated_ip', 'sub-1');
       const b = zbuduj();

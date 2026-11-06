@@ -20,7 +20,7 @@ Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
 const przycisk = (tekst: string) => [...document.querySelectorAll("button")].find((b) => b.textContent?.includes(tekst))!;
 
-describe("Onboard LIVE — uruchomienie z potwierdzeniem", () => {
+describe("Onboard LIVE – uruchomienie z potwierdzeniem", () => {
   let root: Root;
   let el: HTMLElement;
   beforeEach(async () => {
@@ -47,7 +47,7 @@ describe("Onboard LIVE — uruchomienie z potwierdzeniem", () => {
   });
 });
 
-describe("Onboard LIVE — kopie offsite", () => {
+describe("Onboard LIVE – kopie offsite", () => {
   const renderuj = async () => {
     const el = document.createElement("div");
     document.body.appendChild(el);

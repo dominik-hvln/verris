@@ -84,13 +84,13 @@ export class BetaZgloszeniaPublicController {
 function stronaWyniku(stan: WynikPotwierdzeniaBety | StanLinkuBety): string {
   switch (stan) {
     case 'POTWIERDZONE':
-      return stronaLinku('Zgłoszenie potwierdzone ✓', 'Dziękujemy! Twoje zgłoszenie do testów Verris jest na liście. Zapraszamy małymi grupami — gdy przyjdzie Twoja kolej, wyślemy zaproszenie z imiennym kodem na ten adres.');
+      return stronaLinku('Zgłoszenie potwierdzone ✓', 'Dziękujemy! Twoje zgłoszenie do testów Verris jest na liście. Zapraszamy małymi grupami – gdy przyjdzie Twoja kolej, wyślemy zaproszenie z imiennym kodem na ten adres.');
     case 'ZMIANA_ZAPISANA':
-      return stronaLinku('Zmiana zapisana ✓', 'Nowe dane Twojego zgłoszenia są zapisane. Zgłoszenie dalej czeka na liście — zaproszenie z kodem przyjdzie na ten adres.');
+      return stronaLinku('Zmiana zapisana ✓', 'Nowe dane Twojego zgłoszenia są zapisane. Zgłoszenie dalej czeka na liście – zaproszenie z kodem przyjdzie na ten adres.');
     case 'JUZ_POTWIERDZONE':
-      return stronaLinku('Zgłoszenie jest już potwierdzone ✓', 'Ten adres jest już potwierdzony — nic więcej nie musisz robić. Gdy przyjdzie Twoja kolej, wyślemy zaproszenie z imiennym kodem na ten adres.');
+      return stronaLinku('Zgłoszenie jest już potwierdzone ✓', 'Ten adres jest już potwierdzony – nic więcej nie musisz robić. Gdy przyjdzie Twoja kolej, wyślemy zaproszenie z imiennym kodem na ten adres.');
     default:
-      return stronaLinku('Link nieaktualny', 'Ten link wygasł albo został już wykorzystany. Jeśli chcesz zgłosić się do testów, wypełnij formularz na verris.pl/beta — wyślemy nowy link.', undefined, true);
+      return stronaLinku('Link nieaktualny', 'Ten link wygasł albo został już wykorzystany. Jeśli chcesz zgłosić się do testów, wypełnij formularz na verris.pl/beta – wyślemy nowy link.', undefined, true);
   }
 }
 

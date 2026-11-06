@@ -31,7 +31,7 @@ it("filtry idą do API; strony i zakładki stanu zachowują pozostałe filtry; n
   expect(api).toHaveBeenCalledWith("/admin/users?limit=50");
 });
 
-it("eksport CSV z EXPORT_DATA — link do /api/klienci-csv z filtrami (bez strony)", async () => {
+it("eksport CSV z EXPORT_DATA – link do /api/klienci-csv z filtrami (bez strony)", async () => {
   odpowiedzi({ role: "STAFF", isAdmin: false, permissions: ["CUSTOMERS_VIEW", "EXPORT_DATA"] });
   const html = await render({ status: "zablokowane", saldoDo: "0", page: "3" });
   expect(html).toContain('href="/api/klienci-csv?status=zablokowane&amp;saldoDo=0"');

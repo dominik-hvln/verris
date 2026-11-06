@@ -59,8 +59,8 @@ const systemowa: Rola = { id: 'sys', name: 'L1 Konsultant', description: 'x', pe
 const wlasna: Rola = { id: 'own', name: 'Własna', description: null, permissions: ['BILLING_VIEW'], isSystem: false };
 const ADM = { userId: 'adm', role: 'ADMIN' };
 
-describe('PB-47 — StaffRolesService', () => {
-  it('roli systemowej nie da się edytować ani usunąć; własną — tak', async () => {
+describe('PB-47 – StaffRolesService', () => {
+  it('roli systemowej nie da się edytować ani usunąć; własną – tak', async () => {
     const { s, prisma } = zbuduj({ role: [systemowa, wlasna] });
     await expect(s.updateRole('sys', { permissions: ['BILLING_MANAGE'] }, ADM)).rejects.toBeInstanceOf(BadRequestException);
     await expect(s.deleteRole('sys', ADM)).rejects.toBeInstanceOf(BadRequestException);
@@ -78,7 +78,7 @@ describe('PB-47 — StaffRolesService', () => {
     expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'STAFF_ROLE_CLONED', actorUserId: 'adm' }));
   });
 
-  it('kolejny klon bez nazwy dostaje pierwszą wolną nazwę zamiast 409; podana zajęta nazwa — 409', async () => {
+  it('kolejny klon bez nazwy dostaje pierwszą wolną nazwę zamiast 409; podana zajęta nazwa – 409', async () => {
     const kopie: Rola[] = [
       { ...systemowa, id: 'k1', name: 'L1 Konsultant (kopia)', isSystem: false },
       { ...systemowa, id: 'k2', name: 'L1 Konsultant (kopia 2)', isSystem: false },
@@ -120,7 +120,7 @@ describe('PB-47 — StaffRolesService', () => {
     });
   });
 
-  it('pusta lista = brak ról; nieistniejąca rola i konto ADMIN — odmowa', async () => {
+  it('pusta lista = brak ról; nieistniejąca rola i konto ADMIN – odmowa', async () => {
     const op = zbuduj({ role: [wlasna], uzytkownik: { id: 'op', role: 'STAFF' }, wierszDostepu: null });
     await op.s.setOperatorRoles('op', [], ADM);
     expect(op.prisma.user.update).toHaveBeenCalledWith({ where: { id: 'op' }, data: { staffRoleId: null } });
@@ -185,7 +185,7 @@ describe('PB-47 — StaffRolesService', () => {
       expect(prisma.$transaction).not.toHaveBeenCalled();
     });
 
-    it('nie nadaje innemu ról z uprawnieniami, których sam nie ma, ani ADMIN_ONLY; w swoim zakresie — może', async () => {
+    it('nie nadaje innemu ról z uprawnieniami, których sam nie ma, ani ADMIN_ONLY; w swoim zakresie – może', async () => {
       const { s, prisma } = srodowisko();
       await expect(s.setOperatorRoles('op', ['l4'], KADRY)).rejects.toThrow(/Akceptacja wniosków/);
       await expect(s.setOperatorRoles('op', ['hr'], KADRY)).rejects.toBeInstanceOf(ForbiddenException);
@@ -223,7 +223,7 @@ describe('PB-47 — StaffRolesService', () => {
       expect(prisma.user.create).toHaveBeenCalledTimes(1);
     });
 
-    it('ADMIN — bez ograniczeń (L4 dla operatora, rola z ustawieniami platformy)', async () => {
+    it('ADMIN – bez ograniczeń (L4 dla operatora, rola z ustawieniami platformy)', async () => {
       const { s, prisma } = srodowisko(['BILLING_MANAGE']);
       await s.setOperatorRoles('op', ['l4'], ADM);
       await s.createRole({ name: 'Ustawienia', permissions: ['SETTINGS_MANAGE'] }, ADM);

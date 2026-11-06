@@ -423,7 +423,7 @@ export class MetricsService {
     write(
       lines,
       'verris_provisioning_pending',
-      'Subscriptions stuck in PROVISIONING — proxy for queue depth',
+      'Subscriptions stuck in PROVISIONING – proxy for queue depth',
       'gauge',
     );
     lines.push(`verris_provisioning_pending ${pendingProvision}`);

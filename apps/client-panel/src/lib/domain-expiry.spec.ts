@@ -5,7 +5,7 @@ describe('isExpiringSoon', () => {
   it('domena kończąca się za 10 dni wymaga uwagi', () => {
     expect(isExpiringSoon('2026-10-02T00:00:00Z', now)).toBe(true);
   });
-  it('domena kończąca się za pół roku — nie', () => {
+  it('domena kończąca się za pół roku – nie', () => {
     expect(isExpiringSoon('2027-03-22T00:00:00Z', now)).toBe(false);
   });
   it('domena po terminie liczy się jako do odnowienia', () => {

@@ -22,8 +22,8 @@ const teraz = () => new Date();
 const zle = (n: number, ip: string, reason = 'bad_password'): Proba[] =>
   Array.from({ length: n }, () => ({ email: 'ofiara@firma.pl', ip, succeeded: false, reason, createdAt: teraz() }));
 
-describe('Blokady logowania — źródło porażek, nie samo konto', () => {
-  it('10 złych haseł z IP A nie blokuje logowania z IP B; z IP A — blokuje', async () => {
+describe('Blokady logowania – źródło porażek, nie samo konto', () => {
+  it('10 złych haseł z IP A nie blokuje logowania z IP B; z IP A – blokuje', async () => {
     const s = new SuspiciousActivityService(baza(zle(10, '198.51.100.1')) as never, {} as never, {} as never);
     expect(await s.isEmailLockedOut('ofiara@firma.pl', '203.0.113.7')).toBe(false);
     expect(await s.isEmailLockedOut('ofiara@firma.pl', '198.51.100.1')).toBe(true);

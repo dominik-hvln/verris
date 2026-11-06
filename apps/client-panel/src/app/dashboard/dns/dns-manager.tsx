@@ -115,7 +115,7 @@ export function DnsManager({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          {records.length} {plForm(records.length, 'rekord', 'rekordy', 'rekordów')} w strefie <span className="font-mono text-neutral-300">{domain ?? '—'}</span>
+          {records.length} {plForm(records.length, 'rekord', 'rekordy', 'rekordów')} w strefie <span className="font-mono text-neutral-300">{domain ?? '–'}</span>
         </p>
         {!adding ? (
           <button
@@ -183,7 +183,7 @@ export function DnsManager({
 
       <div className="space-y-2">
         {records.length === 0 && !adding ? (
-          <p className="text-sm text-neutral-400">Brak rekordów — dodaj pierwszy.</p>
+          <p className="text-sm text-neutral-400">Brak rekordów – dodaj pierwszy.</p>
         ) : null}
         {records.map((r) =>
           editingId === r.id && domain ? (

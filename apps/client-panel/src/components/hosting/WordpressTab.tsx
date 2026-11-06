@@ -94,10 +94,10 @@ export default function WordpressTab({ serviceId }: Props) {
     <div className="space-y-5">
       <div className="rounded-[10px] border border-line bg-background p-6 space-y-2">
         <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-          <Globe className="h-5 w-5 text-data-hi" /> WordPress — instalacja jednym kliknięciem
+          <Globe className="h-5 w-5 text-data-hi" /> WordPress – instalacja jednym kliknięciem
         </h3>
         <p className="text-sm text-muted-foreground">
-          Postawimy WordPressa na <strong className="text-[color:var(--verris-body)]">{domena}</strong> —
+          Postawimy WordPressa na <strong className="text-[color:var(--verris-body)]">{domena}</strong> –
           z bazą danych, ładnymi linkami i wtyczką LiteSpeed Cache. Zajmie ~1 minutę.
         </p>
       </div>
@@ -191,7 +191,7 @@ export default function WordpressTab({ serviceId }: Props) {
           {installed && (
             <p className="text-xs text-warn">
               Uwaga: ponowna instalacja nadpisze konfigurację, jeśli WordPress nie jest jeszcze
-              skonfigurowany. Jeśli jest — operacja zostanie pominięta (bez utraty danych).
+              skonfigurowany. Jeśli jest – operacja zostanie pominięta (bez utraty danych).
             </p>
           )}
           {error && <p className="text-sm text-crit">{error}</p>}

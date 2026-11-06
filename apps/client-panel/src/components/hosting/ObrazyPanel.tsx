@@ -46,7 +46,7 @@ export function ObrazyPanel({ serviceId, domain }: { serviceId: string; domain: 
     <section className="mt-8">
       <SectionHead
         title="Optymalizacja obrazów"
-        desc="Zmniejsza pliki JPG i PNG bez utraty jakości — strona ładuje się szybciej. Każde kolejne uruchomienie bierze tylko nowe pliki."
+        desc="Zmniejsza pliki JPG i PNG bez utraty jakości – strona ładuje się szybciej. Każde kolejne uruchomienie bierze tylko nowe pliki."
       />
       <div className="rounded-[10px] border border-line bg-card px-4 py-3">
         <div className="flex flex-wrap items-end gap-3">
@@ -81,7 +81,7 @@ export function ObrazyPanel({ serviceId, domain }: { serviceId: string; domain: 
           <p className="m-0 mt-3 text-[13px] text-muted-foreground">
             Ostatnio ({new Date(o.kiedy).toLocaleString('pl-PL')}, {o.katalog || 'cała strona'}): {o.plikow.toLocaleString('pl-PL')} {plForm(o.plikow, 'plik', 'pliki', 'plików')},{' '}
             {mb(o.przed)} → {mb(o.po)} ({zysk}% mniej).
-            {o.zostalo > 0 ? ` Zostało ${o.zostalo.toLocaleString('pl-PL')} ${plForm(o.zostalo, 'plik', 'pliki', 'plików')} — uruchom ponownie, żeby je dokończyć.` : ''}
+            {o.zostalo > 0 ? ` Zostało ${o.zostalo.toLocaleString('pl-PL')} ${plForm(o.zostalo, 'plik', 'pliki', 'plików')} – uruchom ponownie, żeby je dokończyć.` : ''}
           </p>
         ) : null}
       </div>

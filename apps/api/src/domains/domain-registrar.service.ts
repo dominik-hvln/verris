@@ -471,7 +471,7 @@ export class DomainRegistrarService {
     if (!domain) throw new NotFoundException('Domena nie została znaleziona.');
     if (!domain.registrarExternalId) {
       throw new BadRequestException(
-        'Ta domena nie jest zarejestrowana przez Verris — abonentem, blokadą i kodem transferu zarządzasz u jej obecnego rejestratora.',
+        'Ta domena nie jest zarejestrowana przez Verris – abonentem, blokadą i kodem transferu zarządzasz u jej obecnego rejestratora.',
       );
     }
     return { domain, externalId: domain.registrarExternalId, provider: this.providerFactory.get() };
@@ -484,7 +484,7 @@ export class DomainRegistrarService {
     if (provider.operatorHandle && info.ownerHandle === provider.operatorHandle) {
       // Edycja tego uchwytu zmieniłaby dane abonenta WSZYSTKICH takich domen naraz.
       throw new BadRequestException(
-        'Ta domena jest zarejestrowana na dane operatora. Przepisanie jej na Ciebie robimy ręcznie — napisz zgłoszenie.',
+        'Ta domena jest zarejestrowana na dane operatora. Przepisanie jej na Ciebie robimy ręcznie – napisz zgłoszenie.',
       );
     }
     return info.ownerHandle;
@@ -504,7 +504,7 @@ export class DomainRegistrarService {
       || norm(obecny.companyName) !== norm(next.companyName)) {
       // Rejestrator nie zmienia imienia, nazwiska ani firmy abonenta — to cesja domeny, nie poprawka danych.
       throw new BadRequestException(
-        'Zmiana właściciela domeny (imię, nazwisko, firma) to cesja — wymaga zgłoszenia. Adres, telefon, e-mail i NIP zmienisz tutaj.',
+        'Zmiana właściciela domeny (imię, nazwisko, firma) to cesja – wymaga zgłoszenia. Adres, telefon, e-mail i NIP zmienisz tutaj.',
       );
     }
     await provider.updateRegistrant(handle, next);
@@ -597,7 +597,7 @@ export class DomainRegistrarService {
         },
         select: { id: true },
       });
-      if (wToku) throw new ConflictException('Włączanie ukrycia danych jest już w toku — odśwież stronę za chwilę.');
+      if (wToku) throw new ConflictException('Włączanie ukrycia danych jest już w toku – odśwież stronę za chwilę.');
       return db.domainRegistrarOrder.create({
         data: {
           domainName: domain.name,
@@ -613,7 +613,7 @@ export class DomainRegistrarService {
     });
 
     if (!order) return { whoisPrivacy: true };
-    const tx = await this.charge(userId, order, price, `Ukrycie danych w WHOIS — ${domain.name} (${lata(years)})`);
+    const tx = await this.charge(userId, order, price, `Ukrycie danych w WHOIS – ${domain.name} (${lata(years)})`);
     try {
       await provider.setWhoisPrivacy(externalId, true);
     } catch (err) {
@@ -722,7 +722,7 @@ export class DomainRegistrarService {
       if (wToku?.status === DomainRegistrarOrderStatus.COMPLETED) {
         throw new ConflictException('Ta domena została właśnie odnowiona. Jeśli chcesz przedłużyć ją o kolejny okres, spróbuj ponownie za minutę.');
       }
-      if (wToku) throw new ConflictException('Odnowienie tej domeny jest już w toku — odśwież stronę za chwilę.');
+      if (wToku) throw new ConflictException('Odnowienie tej domeny jest już w toku – odśwież stronę za chwilę.');
       return db.domainRegistrarOrder.create({
       data: {
         domainName: domain.name,
@@ -826,7 +826,7 @@ export class DomainRegistrarService {
     }
     if (!stare.ownerHandle) {
       throw new BadRequestException(
-        'Zamówienie sprzed zapisu abonenta — nie ma danych, na które zarejestrować domenę. Klient musi zamówić ją ponownie.',
+        'Zamówienie sprzed zapisu abonenta – nie ma danych, na które zarejestrować domenę. Klient musi zamówić ją ponownie.',
       );
     }
     const ownerHandle = stare.ownerHandle;
@@ -838,7 +838,7 @@ export class DomainRegistrarService {
     // Cena liczona od nowa (bieżący cennik rejestratora, kurs NBP) obciążała portfel inną kwotą bez zgody klienta.
     // Różnicę kursu/cennika przy ponowieniu bierze Verris; nowa cena = nowe zamówienie klienta.
     if (stare.priceAmount === null) {
-      throw new BadRequestException('Zamówienie bez zapisanej ceny — klient musi zamówić domenę ponownie.');
+      throw new BadRequestException('Zamówienie bez zapisanej ceny – klient musi zamówić domenę ponownie.');
     }
     const price = { amount: new Prisma.Decimal(stare.priceAmount).toFixed(2), currency: stare.currency };
     const provider = this.providerFactory.get();
@@ -909,7 +909,7 @@ export class DomainRegistrarService {
     const d = await this.prisma.domain.findUnique({ where: { id: domainId } });
     if (!d) throw new NotFoundException('Domena nie została znaleziona.');
     if (!d.registrarExternalId) {
-      throw new BadRequestException('Domena nie jest zarejestrowana przez Verris — u rejestratora nie ma czego sprawdzać.');
+      throw new BadRequestException('Domena nie jest zarejestrowana przez Verris – u rejestratora nie ma czego sprawdzać.');
     }
     const info = await this.providerFactory.get().domainInfo(d.registrarExternalId);
     if (info.state === 'failed') {
@@ -1192,7 +1192,7 @@ export class DomainRegistrarService {
     const apiKey = this.config.get<string>('OPENPROVIDER_WEBHOOK_API_KEY');
     const secret = this.config.get<string>('OPENPROVIDER_WEBHOOK_SECRET');
     if (!apiKey || !secret) {
-      throw new BadRequestException('Brak OPENPROVIDER_WEBHOOK_API_KEY albo OPENPROVIDER_WEBHOOK_SECRET — ustaw je skryptem prod-ustaw-klucze.sh openprovider.');
+      throw new BadRequestException('Brak OPENPROVIDER_WEBHOOK_API_KEY albo OPENPROVIDER_WEBHOOK_SECRET – ustaw je skryptem prod-ustaw-klucze.sh openprovider.');
     }
     const provider = this.providerFactory.get();
     if (!provider.configureWebhook) throw new BadRequestException('Ten rejestrator nie obsługuje powiadomień.');
@@ -1282,7 +1282,7 @@ export class DomainRegistrarService {
    * Zamówienie zostaje UNCERTAIN bez zwrotu; rozstrzyga `domknijNiepewne`. Zwraca błąd dla klienta.
    */
   private async oznaczNiepewne(userId: string, order: DomainRegistrarOrder, err: RejestrWynikNiepewny): Promise<Error> {
-    this.logger.warn(`Registrar ${order.type} ${order.domainName}: wynik niepewny — do sprawdzenia (${err.message})`);
+    this.logger.warn(`Registrar ${order.type} ${order.domainName}: wynik niepewny – do sprawdzenia (${err.message})`);
     await this.prisma.domainRegistrarOrder.update({
       where: { id: order.id },
       data: { status: DomainRegistrarOrderStatus.UNCERTAIN, lastError: err.message.slice(0, 1000), submittedAt: new Date() },
@@ -1293,7 +1293,7 @@ export class DomainRegistrarService {
       details: { orderId: order.id, domain: order.domainName, type: order.type, error: err.message },
     });
     return new ServiceUnavailableException(
-      'Rejestr domen nie potwierdził operacji. Sprawdzimy jej wynik w ciągu godziny — jeśli się nie udała, opłata wróci do portfela.',
+      'Rejestr domen nie potwierdził operacji. Sprawdzimy jej wynik w ciągu godziny – jeśli się nie udała, opłata wróci do portfela.',
     );
   }
 
@@ -1458,7 +1458,7 @@ export class DomainRegistrarService {
       });
     } catch (refundErr) {
       this.logger.error(
-        `Refund failed for order=${order.id}: ${(refundErr as Error).message} — wymaga ręcznej korekty.`,
+        `Refund failed for order=${order.id}: ${(refundErr as Error).message} – wymaga ręcznej korekty.`,
       );
     }
     await this.prisma.domainRegistrarOrder.update({
@@ -1529,7 +1529,7 @@ export function sprawdzNs(domena: string, wpisane: string[]): string[] {
   const zle = ns.filter((n) => !NAZWA_HOSTA.test(n));
   if (zle.length) throw new BadRequestException(`Niepoprawna nazwa serwera: ${zle.join(', ')}.`);
   if (ns.some((n) => n === domena || n.endsWith(`.${domena}`))) {
-    throw new BadRequestException(`Serwer nazw w domenie ${domena} wymaga rekordów glue — napisz do nas, ustawimy je ręcznie.`);
+    throw new BadRequestException(`Serwer nazw w domenie ${domena} wymaga rekordów glue – napisz do nas, ustawimy je ręcznie.`);
   }
   return ns;
 }
@@ -1555,7 +1555,7 @@ export function bladWhois(err: unknown, platne = true): Error {
   }
   if (/privacy|wpp|not (supported|allowed|available)|unsupported/i.test(msg)) {
     return new BadRequestException(
-      'Rejestr tej domeny nie pozwala ukryć danych w WHOIS (np. .pl — dane osób prywatnych i tak nie są publikowane).',
+      'Rejestr tej domeny nie pozwala ukryć danych w WHOIS (np. .pl – dane osób prywatnych i tak nie są publikowane).',
     );
   }
   return err instanceof Error ? err : new Error(msg);

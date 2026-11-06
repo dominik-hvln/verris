@@ -7,7 +7,7 @@ import { ViesService } from './vies.service.js';
 const t = (kraj: string, viesWazny: boolean | null = null, sprzedaz = 0, oss = false) =>
   ustalTraktowanieVat({ kraj, viesWazny, sprzedazB2cUePln: sprzedaz, ossWlaczone: oss });
 
-describe('M-09 — traktowanie VAT', () => {
+describe('M-09 – traktowanie VAT', () => {
   it('Polska 23%, także gdy kraj pusty', () => {
     expect(t('PL')).toMatchObject({ kod: 'PL', stawka: 23, cenaNetto: false });
     expect(t('')).toMatchObject({ kod: 'PL', stawka: 23 });

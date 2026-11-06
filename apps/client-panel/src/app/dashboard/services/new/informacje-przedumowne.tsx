@@ -73,7 +73,7 @@ export function InformacjePrzedumowne({
               {kredytAutoskalowania > 0 ? ' (najpierw z kredytów na autoskalowanie)' : ''}.{' '}
               {autoskalowanie > 0
                 ? `Twój limit: ${formatPln(autoskalowanie)} w ciągu 30 dni.`
-                : 'Bez limitu kosztu — płacisz za faktyczne użycie. Limit ustawisz też później w panelu.'}
+                : 'Bez limitu kosztu – płacisz za faktyczne użycie. Limit ustawisz też później w panelu.'}
             </dd>
           </>
         ) : null}

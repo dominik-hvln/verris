@@ -125,7 +125,7 @@ export class AiProviderService {
       : undefined;
     return email && lista.includes(email)
       ? null
-      : 'Asystent AI jest jeszcze w testach — wkrótce będzie dostępny na każdym koncie. Do tego czasu chętnie pomożemy w zgłoszeniu.';
+      : 'Asystent AI jest jeszcze w testach – wkrótce będzie dostępny na każdym koncie. Do tego czasu chętnie pomożemy w zgłoszeniu.';
   }
 
   /** E-maile z AI_TYLKO_KONTA (małe litery); pusta lista = brak ograniczenia z env. */
@@ -144,7 +144,7 @@ export class AiProviderService {
     const { limitKlientaUsd } = await this.konfiguracja();
     if (limitKlientaUsd <= 0) return null;
     if ((await this.zuzycieKlientaUsd(userId)) < limitKlientaUsd) return null;
-    return 'Wykorzystano miesięczny limit asystenta AI dla tego konta. Odnowi się 1. dnia miesiąca — do tego czasu chętnie pomożemy w zgłoszeniu.';
+    return 'Wykorzystano miesięczny limit asystenta AI dla tego konta. Odnowi się 1. dnia miesiąca – do tego czasu chętnie pomożemy w zgłoszeniu.';
   }
 
   /** Bezpiecznik kosztów (decyzja 2026-10-05): suma wszystkich wywołań w miesiącu ≥ limit platformy → AI stoi. */
@@ -163,7 +163,7 @@ export class AiProviderService {
         category: 'SYSTEM',
         severity: 'warning',
         title: 'Budżet AI platformy wykorzystany',
-        body: `Koszt AI w tym miesiącu osiągnął limit ${konf.limitPlatformyUsd} USD — asystent, prognozy i szkice są wyłączone do 1. dnia miesiąca albo do podniesienia limitu.`,
+        body: `Koszt AI w tym miesiącu osiągnął limit ${konf.limitPlatformyUsd} USD – asystent, prognozy i szkice są wyłączone do 1. dnia miesiąca albo do podniesienia limitu.`,
         link: '/settings/ai',
         dedupeKey: 'ai-budzet-platformy',
         dedupeWindowMin: 24 * 60,

@@ -77,7 +77,7 @@ export class BetaService {
         if (!(err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002')) throw err;
       }
     }
-    if (!invite) throw new BadRequestException('Nie udało się wylosować kodu — spróbuj ponownie.');
+    if (!invite) throw new BadRequestException('Nie udało się wylosować kodu – spróbuj ponownie.');
 
     const panelUrl = (this.config.get<string>('clientPanelUrl') || 'https://panel.verris.pl').replace(/\/$/, '');
     // Mail best-effort: przy awarii kod i tak jest ważny — admin widzi „niewysłane” i przekazuje go sam.

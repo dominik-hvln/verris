@@ -166,7 +166,7 @@ export function renderReferralFrame(d: { href: string; owner: string | null }, m
 .lead{margin-top:12px;font-size:14px;line-height:1.45}.by{display:block;margin-top:8px;font-size:11px;color:${p.muted}}.wmk{font-size:15px;font-weight:800;letter-spacing:-.045em}.on{font-size:12px;color:${p.muted}}
 #pill{height:36px;padding:0 12px 0 6px;border-radius:10px}`;
   const body = `<div id="r">
-<section id="card" hidden aria-label="Verris — hosting">
+<section id="card" hidden aria-label="Verris – hosting">
 <div class="hd">${MARK(28)}<div><b class="wmk" style="font-size:20px">verris</b></div><button id="close" type="button" aria-label="Zamknij">${ICON.x}</button></div>
 <p class="lead" style="margin-bottom:0">Hosting w UE z darmowym SSL, monitoringiem strony i kopiami, które przywrócisz sam jednym kliknięciem.</p>
 <a class="cta" href="${esc(d.href)}" target="_blank" rel="noopener">Zobacz ofertę →</a>
@@ -194,7 +194,7 @@ export function renderEkoSvg(input: { czesciDrzew: number }, motyw: Motyw, waria
   if (wariant === 'eko' && input.czesciDrzew >= 100) {
     const accent = dark ? '#34E5A0' : '#0F7A52';
     const opis = opisPosadzonychDrzew(input.czesciDrzew);
-    const tekst = `Verris — ${opis}`;
+    const tekst = `Verris – ${opis}`;
     const szer = Math.max(200, 52 + Math.ceil(tekst.length * 7.4));
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${szer}" height="44" viewBox="0 0 ${szer} 44" role="img" aria-label="${esc(tekst)}"><rect x=".5" y=".5" width="${szer - 1}" height="43" rx="12" fill="${dark ? '#08130E' : '#F1F7F3'}" stroke="${dark ? 'rgba(52,229,160,.28)' : '#BFE3D0'}"/>
 <path d="M14 31c1-8 6-13 15-14-1 9-6 14-14 15M14 31l8-8" fill="none" stroke="${accent}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
@@ -213,7 +213,7 @@ export function renderEkoSvg(input: { czesciDrzew: number }, motyw: Motyw, waria
  */
 export function renderLoader(apiBase: string): string {
   const base = JSON.stringify(apiBase);
-  return `/* Verris badge v1 — https://verris.pl */
+  return `/* Verris badge v1 – https://verris.pl */
 (function(){var B=${base};var K={pieczec:1,dostepnosc:1,polecenie:1};
 function mount(el){if(el.getAttribute('data-verris-ready'))return;var k=el.getAttribute('data-verris-badge'),id=el.getAttribute('data-id');
 if(!K[k]||!id||!/^[A-Za-z0-9_-]{1,64}$/.test(id))return;el.setAttribute('data-verris-ready','1');
@@ -247,6 +247,6 @@ li{display:flex;gap:12px}li b{display:block;font-size:15px}li span{font-size:14p
 .ft{margin-top:24px;font-size:13px;color:#5B6A60}.ft a{color:#0F7A52;font-weight:600}`;
   const body = `<main><div class="c" id="r"><div class="hd">${MARK(48)}<div><h1>${s ? 'Strona zweryfikowana' : 'Pieczęć nieaktywna'}</h1><div class="d mono">${esc(d.domain)}</div></div></div>
 ${s ? `<ul>${rows}</ul>` : '<p class="off">Ta strona nie spełnia teraz warunków pieczęci Verris. Jeśli widzisz pieczęć na tej stronie, nie jest ona aktualna.</p>'}
-<p class="ft">Weryfikację prowadzi <a href="https://verris.pl" target="_blank" rel="noopener">Verris</a> — hosting, na którym działa ta strona. Dane odświeżają się automatycznie.</p></div></main>`;
-  return frameDoc({ title: `Weryfikacja ${d.domain} — Verris`, nonce, css, body });
+<p class="ft">Weryfikację prowadzi <a href="https://verris.pl" target="_blank" rel="noopener">Verris</a> – hosting, na którym działa ta strona. Dane odświeżają się automatycznie.</p></div></main>`;
+  return frameDoc({ title: `Weryfikacja ${d.domain} – Verris`, nonce, css, body });
 }

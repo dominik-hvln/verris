@@ -103,16 +103,16 @@ export type StanProsbyZgody = "oczekuje" | "zaakceptowana" | "odrzucona" | "wyga
  * panel tylko go opisuje: anulowanie przez zespół to nie „klient nie zdecydował w terminie”, a odmowa to nie zgoda.
  */
 export function opisProsbyZgody(z: { stan: StanProsbyZgody; wygasa: string | null; decyzjaAt: string | null }): string {
-  const data = (iso: string | null) => (iso ? new Date(iso).toLocaleString("pl-PL") : "—");
+  const data = (iso: string | null) => (iso ? new Date(iso).toLocaleString("pl-PL") : "–");
   switch (z.stan) {
     case "oczekuje":
-      return `Czeka na zgodę klienta do ${data(z.wygasa)} — bez niej nie wystartuje.`;
+      return `Czeka na zgodę klienta do ${data(z.wygasa)} – bez niej nie wystartuje.`;
     case "zaakceptowana":
       return `Klient zgodził się ${data(z.decyzjaAt)}.`;
     case "odrzucona":
       return `Klient odmówił ${data(z.decyzjaAt)}.`;
     case "wygasla":
-      return "Klient nie zdecydował w terminie — prośba wygasła.";
+      return "Klient nie zdecydował w terminie – prośba wygasła.";
     case "anulowana":
       return "Prośba anulowana przez zespół przed decyzją klienta.";
   }
@@ -120,12 +120,12 @@ export function opisProsbyZgody(z: { stan: StanProsbyZgody; wygasa: string | nul
 
 const JOB_LABELS: Record<string, string> = {
   FILES_SFTP_RSYNC: "Pliki strony",
-  FILES_DELTA: "Pliki — dosync",
+  FILES_DELTA: "Pliki – dosync",
   MYSQL_IMPORT: "Baza danych",
-  MYSQL_DELTA: "Baza — dosync (konserwacja źródła)",
+  MYSQL_DELTA: "Baza – dosync (konserwacja źródła)",
   WP_FIXUP: "Konfiguracja strony (dane bazy)",
   IMAP_SYNC: "Poczta (skrzynki)",
-  IMAP_DELTA: "Poczta — dosync",
+  IMAP_DELTA: "Poczta – dosync",
   HTTP_POST_CHECK: "Test działania strony",
 };
 
@@ -241,7 +241,7 @@ export function MigrationDetailClient({ initial }: { initial: MigrationDetail })
       {detail.zaKlienta ? (
         <section className="rounded-xl border border-cyan-500/30 bg-cyan-500/5 p-4 text-xs text-cyan-50/90">
           <p className="font-semibold text-white">Migracja przygotowana przez obsługę</p>
-          <p className="mt-1">Powód: {detail.zaKlienta.powod ?? "—"}</p>
+          <p className="mt-1">Powód: {detail.zaKlienta.powod ?? "–"}</p>
           <p className="mt-1">
             {opisProsbyZgody(detail.zaKlienta)}
           </p>
@@ -291,12 +291,12 @@ function ClientHeader({ detail }: { detail: MigrationDetail }) {
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4 text-sm">
         <Field label="Klient" value={detail.clientName ?? detail.clientEmail} />
         <Field label="E-mail" value={detail.clientEmail} />
-        <Field label="Usługa / plan" value={`${detail.accountUsername ?? detail.subscriptionId.slice(0, 8)} · ${detail.planName ?? "—"}`} />
-        <Field label="Konto docelowe" value={detail.accountDomain ?? "—"} />
-        <Field label="Domena docelowa" value={detail.targetDomain ?? form?.targetDomain ?? "—"} />
-        <Field label="Domena źródłowa" value={form?.sourceDomain ?? "—"} />
-        <Field label="Panel źródłowy" value={detail.sourcePanelType ?? "—"} />
-        <Field label="Węzeł (serverId)" value={detail.serverId ?? "—"} />
+        <Field label="Usługa / plan" value={`${detail.accountUsername ?? detail.subscriptionId.slice(0, 8)} · ${detail.planName ?? "–"}`} />
+        <Field label="Konto docelowe" value={detail.accountDomain ?? "–"} />
+        <Field label="Domena docelowa" value={detail.targetDomain ?? form?.targetDomain ?? "–"} />
+        <Field label="Domena źródłowa" value={form?.sourceDomain ?? "–"} />
+        <Field label="Panel źródłowy" value={detail.sourcePanelType ?? "–"} />
+        <Field label="Węzeł (serverId)" value={detail.serverId ?? "–"} />
       </div>
 
       {form ? (
@@ -311,7 +311,7 @@ function ClientHeader({ detail }: { detail: MigrationDetail }) {
                 <KV k="Port" v={String(form.ftp.port)} />
                 <KV k="Użytkownik" v={form.ftp.username} />
                 <KV k="Ścieżka" v={form.ftp.remotePath} />
-                <KV k="Hasło" v={form.ftp.hasPassword ? "✓ podane" : "— brak"} />
+                <KV k="Hasło" v={form.ftp.hasPassword ? "✓ podane" : "– brak"} />
               </dl>
             </div>
           ) : null}
@@ -375,7 +375,7 @@ function RevealSecrets({ migrationId }: { migrationId: string }) {
     <section className="rounded-xl border border-rose-500/20 bg-rose-500/[0.04] p-4 space-y-2">
       <p className="text-sm font-semibold text-white">Dane dostępowe (hasła)</p>
       <p className="text-xs text-muted-foreground">
-        Odsłonięcie jest zapisywane w audycie. Podaj powód (min. 10 znaków) — np. numer ticketu.
+        Odsłonięcie jest zapisywane w audycie. Podaj powód (min. 10 znaków) – np. numer ticketu.
       </p>
       {bundle ? (
         <pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded-lg bg-black/60 p-3 text-[11px] text-emerald-200">
@@ -439,7 +439,7 @@ function JobCard({ job, disabled, onRetry }: { job: DetailJob; disabled: boolean
       {job.status === "RUNNING" && job.progress ? (
         <p className="mt-1 text-[11px] text-sky-300">
           {job.progress.note ?? "w toku"}
-          {Number(job.progress.bytes) > 0 ? ` — ${formatBytes(job.progress.bytes)}` : ""}
+          {Number(job.progress.bytes) > 0 ? ` – ${formatBytes(job.progress.bytes)}` : ""}
           {job.lastHeartbeatAt ? ` · sygnał ${new Date(job.lastHeartbeatAt).toLocaleTimeString("pl-PL")}` : ""}
         </p>
       ) : null}
@@ -478,7 +478,7 @@ function IntegrityBadge({ integrity }: { integrity: Record<string, unknown> }) {
   }
   const color = ok === false ? "text-amber-300" : "text-emerald-300";
   const icon = ok === false ? "⚠" : ok === true ? "✓" : "·";
-  return <p className={`mt-1 text-[11px] ${color}`}>{icon} spójność — {text}</p>;
+  return <p className={`mt-1 text-[11px] ${color}`}>{icon} spójność – {text}</p>;
 }
 
 function Field({ label, value }: { label: string; value: string }) {

@@ -24,7 +24,7 @@ const DANE = {
   ],
 };
 
-describe("F2.6 — przekroczenia limitów", () => {
+describe("F2.6 – przekroczenia limitów", () => {
   it("flota: wiersze z faultami, link do „Zasobów i diagnozy 508”, konto spoza panelu bez linku, węzły bez raportu", async () => {
     (adminApi as jest.Mock).mockResolvedValue(DANE);
     const html = renderToStaticMarkup(await PrzekroczeniaStrona());
@@ -38,7 +38,7 @@ describe("F2.6 — przekroczenia limitów", () => {
     expect(html).toContain("brak cloudlinux-statistics");
   });
 
-  it("błąd API — komunikat zamiast pustej listy", async () => {
+  it("błąd API – komunikat zamiast pustej listy", async () => {
     (adminApi as jest.Mock).mockRejectedValue(new Error("Forbidden"));
     expect(renderToStaticMarkup(await PrzekroczeniaStrona())).toContain("Nie udało się pobrać przekroczeń: Forbidden");
   });

@@ -55,7 +55,7 @@ const saldo = async (id: string) => Number((await prisma().user.findUniqueOrThro
 const sub = (id: string) => prisma().subscription.findUniqueOrThrow({ where: { id } });
 const obecny = async (id: string) => (await sub(id)).currentPeriodEnd ?? new Date(0);
 
-describe('F3.5 — anulacja na koniec okresu w harmonogramie odnowień', () => {
+describe('F3.5 – anulacja na koniec okresu w harmonogramie odnowień', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     zakonczone.length = 0;
@@ -111,7 +111,7 @@ const POWOD = 'Klient prosi w zgłoszeniu o rezygnację.';
 const aktywnosc = (userId: string) =>
   new UsersService(prisma() as never, {} as never, {} as never, {} as never, {} as never, {} as never).listMyActivity(userId);
 
-describe('F3.5 — cykl życia usługi zmieniany przez operatora', () => {
+describe('F3.5 – cykl życia usługi zmieniany przez operatora', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     zakonczone.length = 0;
@@ -183,7 +183,7 @@ describe('F3.5 — cykl życia usługi zmieniany przez operatora', () => {
     await expect(cykl().anulujNaKoniecOkresu({ subscriptionId: uz.id, operator: await operator('ADMIN'), powod: POWOD })).resolves.toMatchObject({ bezZmian: false });
   });
 
-  it('data odnowienia: przedłużenie gratis bez obciążenia; skrócenie tylko ze zgłoszeniem klienta; nie w oknie odnowienia; anulowana — najpierw cofnij', async () => {
+  it('data odnowienia: przedłużenie gratis bez obciążenia; skrócenie tylko ze zgłoszeniem klienta; nie w oknie odnowienia; anulowana – najpierw cofnij', async () => {
     const op = await operator('ADMIN');
     const k = await klient(100);
     const koniec = new Date(Date.now() + 10 * 86400000);
@@ -223,7 +223,7 @@ describe('F3.5 — cykl życia usługi zmieniany przez operatora', () => {
     await expect(cykl().zmienDateOdnowienia({ przed: await obecny(u.id), subscriptionId: u.id, operator: op, powod: POWOD, nowaData: nowa })).rejects.toMatchObject({ status: 400 });
   });
 
-  it('przegląd F3.5: okres próbny — data odnowienia odmowa (próba kończy się z trialEndsAt, „przedłużenie” byłoby pozorne)', async () => {
+  it('przegląd F3.5: okres próbny – data odnowienia odmowa (próba kończy się z trialEndsAt, „przedłużenie” byłoby pozorne)', async () => {
     const op = await operator('ADMIN');
     const k = await klient(0);
     const koniec = new Date(Date.now() + 10 * 86400000);
@@ -274,7 +274,7 @@ describe('F3.5 — cykl życia usługi zmieniany przez operatora', () => {
   });
 });
 
-describe('audyt Fali 3 — cofnięcie rezygnacji złożonej przez klienta', () => {
+describe('audyt Fali 3 – cofnięcie rezygnacji złożonej przez klienta', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     stripeWywolania.length = 0;
@@ -290,7 +290,7 @@ describe('audyt Fali 3 — cofnięcie rezygnacji złożonej przez klienta', () =
     return u;
   }
 
-  it('STAFF (L2/NOC) bez zgłoszenia klienta — 400 i nic nie zmienione; ze zgłoszeniem klienta albo jako ADMIN — tak', async () => {
+  it('STAFF (L2/NOC) bez zgłoszenia klienta – 400 i nic nie zmienione; ze zgłoszeniem klienta albo jako ADMIN – tak', async () => {
     const op = await operator();
     const k = await klient(100);
     const koniec = new Date(Date.now() + 10 * 86400000);
@@ -313,7 +313,7 @@ describe('audyt Fali 3 — cofnięcie rezygnacji złożonej przez klienta', () =
     expect(await cykl().cofnijAnulacje({ subscriptionId: u2.id, operator: await operator('ADMIN'), powod: POWOD })).toMatchObject({ bezZmian: false });
   });
 
-  it('rezygnacja bez wpisu źródła (np. z systemu płatności) — jak rezygnacja klienta; kartowa: Stripe nie jest wołany', async () => {
+  it('rezygnacja bez wpisu źródła (np. z systemu płatności) – jak rezygnacja klienta; kartowa: Stripe nie jest wołany', async () => {
     const op = await operator();
     const k = await klient(0);
     const koniec = new Date(Date.now() + 10 * 86400000);
@@ -322,7 +322,7 @@ describe('audyt Fali 3 — cofnięcie rezygnacji złożonej przez klienta', () =
     expect(stripeWywolania).toEqual([]);
   });
 
-  it('przegląd poprawek: anulacja obsługi cofnięta, a potem rezygnacja bez wpisu (system płatności) — liczy się jak klienta, nie wg starego wpisu obsługi', async () => {
+  it('przegląd poprawek: anulacja obsługi cofnięta, a potem rezygnacja bez wpisu (system płatności) – liczy się jak klienta, nie wg starego wpisu obsługi', async () => {
     const op = await operator();
     const k = await klient(100);
     const koniec = new Date(Date.now() + 10 * 86400000);
@@ -335,7 +335,7 @@ describe('audyt Fali 3 — cofnięcie rezygnacji złożonej przez klienta', () =
     expect((await sub(u.id)).cancelAt?.toISOString()).toBe(koniec.toISOString());
   });
 
-  it('w oknie odnowienia (mniej niż doba) rezygnacji klienta nie cofa nikt, także ADMIN ze zgłoszeniem; rezygnację obsługi — tak', async () => {
+  it('w oknie odnowienia (mniej niż doba) rezygnacji klienta nie cofa nikt, także ADMIN ze zgłoszeniem; rezygnację obsługi – tak', async () => {
     const admin = await operator('ADMIN');
     const k = await klient(100);
     const zgl = await prisma().ticket.create({ data: { userId: k.id, zrodlo: 'PANEL', subject: 'Zostaję', message: 'x' } });
@@ -351,7 +351,7 @@ describe('audyt Fali 3 — cofnięcie rezygnacji złożonej przez klienta', () =
   });
 });
 
-describe('audyt Fali 3 — data odnowienia z okresem bazowym (odnowienie w międzyczasie)', () => {
+describe('audyt Fali 3 – data odnowienia z okresem bazowym (odnowienie w międzyczasie)', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     zakonczone.length = 0;
@@ -380,7 +380,7 @@ describe('audyt Fali 3 — data odnowienia z okresem bazowym (odnowienie w międ
   });
 });
 
-describe('audyt Fali 3 — wyścig anulacji na koniec okresu z przebiegiem odnowień (portfel)', () => {
+describe('audyt Fali 3 – wyścig anulacji na koniec okresu z przebiegiem odnowień (portfel)', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     zakonczone.length = 0;
@@ -506,7 +506,7 @@ describe('audyt Fali 3 — wyścig anulacji na koniec okresu z przebiegiem odnow
   });
 });
 
-describe('audyt Fali 3 — karta (Stripe): anulacja w obie strony z bieżącego stanu i zapis operatora, gdy webhook był pierwszy', () => {
+describe('audyt Fali 3 – karta (Stripe): anulacja w obie strony z bieżącego stanu i zapis operatora, gdy webhook był pierwszy', () => {
   beforeEach(async () => {
     await wyczyscBaze();
   });
@@ -537,7 +537,7 @@ describe('audyt Fali 3 — karta (Stripe): anulacja w obie strony z bieżącego 
     return new BillingService(p, ledger, stripeMock as never, new AuditService(p), { get: () => undefined } as never, pusty, subsSvc, pusty, pusty, pusty, pusty);
   }
 
-  it('spóźnione „cancel_at_period_end=true” po cofnięciu: stan z bieżącej subskrypcji — cancelAt zostaje puste; „false” czyści cancelAt', async () => {
+  it('spóźnione „cancel_at_period_end=true” po cofnięciu: stan z bieżącej subskrypcji – cancelAt zostaje puste; „false” czyści cancelAt', async () => {
     const k = await klient(0);
     const koniec = new Date(Math.floor((Date.now() + 10 * 86400000) / 1000) * 1000);
     const sid = `sub_f3s_${Date.now()}`;

@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 const ZANIM_WYPOWIESZ = [
-  'Poczekaj, aż domena wskazuje na Verris, a nowa poczta przychodzi bez problemu — po zmianie DNS zwykle trwa to od kilkunastu minut do kilku godzin, wyjątkowo do 48 godzin.',
+  'Poczekaj, aż domena wskazuje na Verris, a nowa poczta przychodzi bez problemu – po zmianie DNS zwykle trwa to od kilkunastu minut do kilku godzin, wyjątkowo do 48 godzin.',
   'Sprawdź formularze kontaktowe i płatności w sklepie.',
   'Pobierz ze starego panelu faktury i dane, których możesz potrzebować.',
   'Dopiero potem wyłącz odnawianie u starego dostawcy.',
@@ -102,7 +102,7 @@ export default async function Page({ params }: Props) {
             id="b-panel"
             eyebrow="Twój obecny hosting"
             title="Jaki panel ma Twój obecny hosting?"
-            lead="Wybierz panel, a pokażemy, co przygotować. Nie wiesz, jaki masz? Wpisz domenę w kreatorze przeprowadzki — podpowiemy adres starego serwera."
+            lead="Wybierz panel, a pokażemy, co przygotować. Nie wiesz, jaki masz? Wpisz domenę w kreatorze przeprowadzki – podpowiemy adres starego serwera."
           />
           <nav aria-label="Poradniki według panelu">
             <ul className="b-panele">
@@ -129,7 +129,7 @@ export default async function Page({ params }: Props) {
 
       <section className="sec" aria-labelledby="b-kroki">
         <div className="wrap narrow">
-          <SectionHead id="b-kroki" eyebrow="Krok po kroku" title={`${p.h1} — ${p.kroki.length} kroków`} />
+          <SectionHead id="b-kroki" eyebrow="Krok po kroku" title={`${p.h1} – ${p.kroki.length} kroków`} />
           <ol className="b-kroki">
             {kroki.map((k, i) => (
               <li key={k.tytul} id={`krok-${i + 1}`}>
@@ -145,7 +145,7 @@ export default async function Page({ params }: Props) {
           </ol>
           <p className="b-przypis">
             Gdyby coś się zablokowało, przeprowadzkę przejmie nasz zespół. Wolisz od razu oddać ją w nasze ręce?{' '}
-            <Link href="/kontakt">Napisz do nas</Link> — przygotujemy ją, a Ty zatwierdzisz start w panelu. To też jest w
+            <Link href="/kontakt">Napisz do nas</Link> – przygotujemy ją, a Ty zatwierdzisz start w panelu. To też jest w
             cenie hostingu.
           </p>
         </div>
@@ -160,7 +160,7 @@ export default async function Page({ params }: Props) {
             ))}
           </ul>
           <div className="b-ramka" style={{ marginTop: 22 }}>
-            <h3>Własna kopia — opcjonalnie</h3>
+            <h3>Własna kopia – opcjonalnie</h3>
             <p>{p.wlasnaKopia}</p>
           </div>
         </div>

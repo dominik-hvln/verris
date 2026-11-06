@@ -145,7 +145,7 @@ export function FormularzZaKlienta(props: { subscriptionId: string; klient: stri
         <p>
           {wyslane.mailWyslany
             ? `E-mail poszedł na ${props.email}.`
-            : "E-maila nie udało się wysłać — klient i tak zobaczy baner w zakładce Migracje w panelu."}{" "}
+            : "E-maila nie udało się wysłać – klient i tak zobaczy baner w zakładce Migracje w panelu."}{" "}
           Prośba jest ważna do {new Date(wyslane.wygasa).toLocaleString("pl-PL")}; migracja wystartuje dopiero po zgodzie klienta.
         </p>
         <Link href={`/migrations/${wyslane.id}`} className="text-cyan-200 underline">
@@ -165,7 +165,7 @@ export function FormularzZaKlienta(props: { subscriptionId: string; klient: stri
       <section className="grid gap-3 rounded-xl border border-white/10 bg-black/30 p-4 sm:grid-cols-2">
         <label className={`${etykieta} sm:col-span-2`}>
           <span>Powód / numer zgłoszenia (trafia do dziennika)</span>
-          <input value={powod} onChange={(e) => setPowod(e.target.value)} className={pole} placeholder="np. Zgłoszenie #1234 — przeniesienie sklepu" />
+          <input value={powod} onChange={(e) => setPowod(e.target.value)} className={pole} placeholder="np. Zgłoszenie #1234 – przeniesienie sklepu" />
         </label>
         <label className={etykieta}>
           <span>ID zgłoszenia klienta (opcjonalnie)</span>
@@ -268,7 +268,7 @@ export function FormularzZaKlienta(props: { subscriptionId: string; klient: stri
             </button>
             {b.zPliku && !b.password ? (
               <p className="text-xs text-emerald-200/90 sm:col-span-6">
-                Hasła nie musisz wpisywać — odczytamy je z pliku konfiguracyjnego strony po skopiowaniu plików.
+                Hasła nie musisz wpisywać – odczytamy je z pliku konfiguracyjnego strony po skopiowaniu plików.
               </p>
             ) : null}
           </div>
@@ -336,7 +336,7 @@ export function FormularzZaKlienta(props: { subscriptionId: string; klient: stri
       ) : null}
       {blad ? <p className="text-sm text-rose-300">{blad}</p> : null}
       {brakWykrycia ? (
-        <p className="text-xs text-amber-200">Przed wysłaniem kliknij „Test połączenia” przy plikach — ustalimy, czym kopiować (SFTP/FTPS/FTP).</p>
+        <p className="text-xs text-amber-200">Przed wysłaniem kliknij „Test połączenia” przy plikach – ustalimy, czym kopiować (SFTP/FTPS/FTP).</p>
       ) : null}
 
       <div className="flex flex-wrap gap-2">

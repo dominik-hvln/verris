@@ -17,7 +17,7 @@ const CSV = [
   'śmieci',
 ].join('\n');
 
-describe('DB-IP Lite — tablica krajów', () => {
+describe('DB-IP Lite – tablica krajów', () => {
   const t = zbudujTablice(CSV);
 
   it('IPv4, IPv6, IPv4 zapisany jako IPv6; poza zakresem, „ZZ” i bzdury → null', () => {
@@ -41,7 +41,7 @@ describe('DB-IP Lite — tablica krajów', () => {
   });
 });
 
-describe('GeoIpService — pobranie miesięcznego pliku', () => {
+describe('GeoIpService – pobranie miesięcznego pliku', () => {
   const katalog = mkdtempSync(join(tmpdir(), 'geoip-test-'));
   afterAll(() => rmSync(katalog, { recursive: true, force: true }));
   afterEach(() => vi.unstubAllGlobals());
@@ -81,7 +81,7 @@ describe('GeoIpService — pobranie miesięcznego pliku', () => {
     expect(s2.kraj('8.8.8.8')).toBe('US');
   });
 
-  it('obcięty plik (za mało zakresów) nie podmienia bazy; GEOIP_DBIP=0 — nic nie pobiera', async () => {
+  it('obcięty plik (za mało zakresów) nie podmienia bazy; GEOIP_DBIP=0 – nic nie pobiera', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response(gzipSync(Buffer.from(CSV)), { status: 200 })));
     const s = new GeoIpService({ get: (k: string) => (k === 'GEOIP_KATALOG' ? mkdtempSync(join(tmpdir(), 'geoip-x-')) : undefined) } as never);
     expect(await s.odswiez(new Date(Date.UTC(2026, 9, 15)))).toBeNull();
@@ -94,14 +94,14 @@ describe('GeoIpService — pobranie miesięcznego pliku', () => {
   });
 });
 
-describe('POST /analytics/collect — kraj', () => {
+describe('POST /analytics/collect – kraj', () => {
   const zbieraj = (geo: string | null) => {
     const collect = vi.fn(async () => undefined);
     const c = new AnalyticsPublicController({ collect } as never, { kraj: vi.fn(() => geo) } as never);
     return { c, collect };
   };
 
-  it('bez nagłówka geo z proxy — kraj z bazy DB-IP; nagłówek proxy ma pierwszeństwo', async () => {
+  it('bez nagłówka geo z proxy – kraj z bazy DB-IP; nagłówek proxy ma pierwszeństwo', async () => {
     const a = zbieraj('PL');
     await a.c.collect({ k: 'site', p: '/' }, '5.172.10.20', 'UA');
     expect(a.collect).toHaveBeenCalledWith(expect.objectContaining({ country: 'PL' }));

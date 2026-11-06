@@ -197,7 +197,7 @@ export class EcoDrzewaService {
       });
       if (zdjete.count === 0) {
         if (!(await tx.user.count({ where: { id: userId } }))) throw new NotFoundException('Nie znaleziono konta.');
-        throw new BadRequestException(`Za mało punktów EKO — potrzebujesz ${punkty} pkt.`);
+        throw new BadRequestException(`Za mało punktów EKO – potrzebujesz ${punkty} pkt.`);
       }
       const wpis = await tx.ecoPointsLedgerEntry.create({
         data: { userId, delta: -punkty, reason: POWODY_WYMIANY_DRZEW[input.cel] },
@@ -337,7 +337,7 @@ export class EcoDrzewaService {
     const raport: RaportPrzebiegu = { wyslane: 0, posadzone: 0, bledy: [] };
     await this.prisma.ecoZamowienieSadzenia.updateMany({
       where: { status: 'WYSYLANE', wyslaneAt: { lt: new Date(teraz.getTime() - WYSYLANE_PRZETERMINOWANE_MS) } },
-      data: { status: 'NIEPEWNE', ostatniBlad: 'Wysyłka przerwana bez odpowiedzi — sprawdź w panelu partnera, czy zamówienie powstało.' },
+      data: { status: 'NIEPEWNE', ostatniBlad: 'Wysyłka przerwana bez odpowiedzi – sprawdź w panelu partnera, czy zamówienie powstało.' },
     });
 
     const u = await this.ustawienia();
@@ -466,7 +466,7 @@ export class EcoDrzewaService {
             certificateUrl: w.certificateUrl,
             certificateImageUrl: w.certificateImageUrl,
             posadzoneAt: w.certificateUrl ? teraz : null,
-            ostatniBlad: w.certificateUrl ? null : 'API przyjęło zamówienie bez certyfikatu — uzupełnij adres certyfikatu.',
+            ostatniBlad: w.certificateUrl ? null : 'API przyjęło zamówienie bez certyfikatu – uzupełnij adres certyfikatu.',
             nastepnaProbaPo: null,
           },
         });
@@ -495,7 +495,7 @@ export class EcoDrzewaService {
       await this.prisma.ecoZamowienieSadzenia.update({ where: { id }, data: { status: 'NIEPEWNE', ostatniBlad: w.blad } });
     }
     raport.bledy.push(`Zamówienie ${id}: ${w.blad}`);
-    this.logger.warn(`sadzenie drzew: zamówienie ${id} — ${w.rodzaj}: ${w.blad}`);
+    this.logger.warn(`sadzenie drzew: zamówienie ${id} – ${w.rodzaj}: ${w.blad}`);
     return false;
   }
 

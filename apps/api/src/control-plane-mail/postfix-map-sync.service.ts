@@ -96,7 +96,7 @@ export class PostfixMapSyncService {
       return {
         ok: false,
         dir: null,
-        message: 'CONTROL_PLANE_MAIL_MAPS_DIR nie jest ustawione — mapy wygenerowane tylko w pamięci.',
+        message: 'CONTROL_PLANE_MAIL_MAPS_DIR nie jest ustawione – mapy wygenerowane tylko w pamięci.',
       };
     }
 
@@ -120,7 +120,7 @@ export class PostfixMapSyncService {
     try {
       await fs.chmod(dir, 0o755);
     } catch {
-      this.logger.warn(`Could not chmod ${dir} to 0755 — set manually on host for Dovecot`);
+      this.logger.warn(`Could not chmod ${dir} to 0755 – set manually on host for Dovecot`);
     }
 
     return { ok: true, dir };

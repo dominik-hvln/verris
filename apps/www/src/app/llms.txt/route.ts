@@ -32,7 +32,7 @@ async function getPosts(): Promise<Post[]> {
 
 const naglowek = (c: Ceny) => `# Verris
 
-> Verris to polski ${OFERTA_KROTKO}. Płacisz tyle, ile widzisz —
+> Verris to polski ${OFERTA_KROTKO}. Płacisz tyle, ile widzisz –
 > odnowienie po cenie z cennika, bez pułapek odnowień. Migracja i SSL za 0 zł, SLA 99,5%
 > z automatycznymi rekompensatami, serwery w Unii Europejskiej (zgodność z RODO). Claim: „Hosting bez gwiazdek".
 
@@ -40,18 +40,18 @@ const naglowek = (c: Ceny) => `# Verris
 - Hosting z autoskalowaniem: ${cenaPakietu(c.hosting)}. Limity w pakiecie: 50 GB NVMe,
   limit 8 GB RAM i 2 vCPU (limity konta, nie rezerwacja); autoskalowanie do 1000 GB, 64 GB RAM, 24 vCPU (do 12× mocy CPU względem bazy),
   rozliczane w blokach 15 minut według stawek godzinowych; po piku zasoby wracają do bazy. Limit kosztu na 30 dni
-  (suma dopłat z ostatnich 30 dni) jest opcjonalny — bez limitu klient płaci za faktyczne użycie.
-- ${VPS_W_SPRZEDAZY ? 'VPS niezarządzany (pełny root), d' : 'D'}omeny bez auto-odnowień${EMAIL_MARKETING_W_SPRZEDAZY ? ', e-mail marketing' : ''}, program resellerski (wielu klientów w jednym panelu; własny narzut — wkrótce).
+  (suma dopłat z ostatnich 30 dni) jest opcjonalny – bez limitu klient płaci za faktyczne użycie.
+- ${VPS_W_SPRZEDAZY ? 'VPS niezarządzany (pełny root), d' : 'D'}omeny bez auto-odnowień${EMAIL_MARKETING_W_SPRZEDAZY ? ', e-mail marketing' : ''}, program resellerski (wielu klientów w jednym panelu; własny narzut – wkrótce).
 
 ## Kluczowe strony
 - [Hosting z autoskalowaniem](${BASE}/hosting)
 - [Hosting WordPress](${BASE}/hosting/wordpress) · [Hosting dla sklepu](${BASE}/hosting/sklep)
 - [Cennik](${BASE}/cennik)
 - [Przeniesienie strony na nowy hosting za darmo](${BASE}/przenies-strone)
-- [Jak wybrać hosting — lista pytań](${BASE}/jak-wybrac-hosting)
+- [Jak wybrać hosting – lista pytań](${BASE}/jak-wybrac-hosting)
 - [Funkcje](${BASE}/funkcje) · [Statystyki strony bez cookies](${BASE}/funkcje/statystyki)
 - ${VPS_W_SPRZEDAZY ? `[VPS](${BASE}/vps) · ` : ''}[Domeny](${BASE}/domeny) · [Poczta w domenie](${BASE}/poczta) · [Dla agencji](${BASE}/reseller)
-- [Program poleceń](${BASE}/polecaj) — 10% od płatności poleconych klientów
+- [Program poleceń](${BASE}/polecaj) – 10% od płatności poleconych klientów
 - [Dokumenty i RODO](${BASE}/dokumenty) · [O nas](${BASE}/o-nas) · [Kontakt](${BASE}/kontakt)
 - [Blog](${BASE}/blog)
 
@@ -59,7 +59,7 @@ const naglowek = (c: Ceny) => `# Verris
 ${PORADNIKI.map((p) => `- [${p.h1}](${BASE}/przenies-strone/${p.slug})`).join('\n')}
 
 ## Pliki maszynowe
-- [Cennik strukturalny](${BASE}/pricing.md) — ceny, limity, stawki autoskalowania
+- [Cennik strukturalny](${BASE}/pricing.md) – ceny, limity, stawki autoskalowania
 - [Pełny tekst poradników](${BASE}/llms-full.txt)
 - [Mapa strony](${BASE}/sitemap.xml)
 `;
@@ -89,7 +89,7 @@ export async function GET() {
   const [posts, ceny, kredyty] = await Promise.all([getPosts(), pobierzCeny(), pobierzKredytyStartowe()]);
 
   const featureLines = features
-    .map((f) => `- [${f.title}](${BASE}/funkcje/${f.slug}) — ${f.lead}`)
+    .map((f) => `- [${f.title}](${BASE}/funkcje/${f.slug}) – ${f.lead}`)
     .join('\n');
 
   let blogSection = '';

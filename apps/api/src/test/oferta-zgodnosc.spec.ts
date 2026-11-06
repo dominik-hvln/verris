@@ -112,7 +112,7 @@ function znajdzNaruszenia(tresc: string, plik: string): Naruszenie[] {
   return out;
 }
 
-describe('Z-14 — treść oferty nie obiecuje rezerwacji RAM ani CPU', () => {
+describe('Z-14 – treść oferty nie obiecuje rezerwacji RAM ani CPU', () => {
   const pliki = plikiZrodlowe(WWW_SRC);
 
   it('znajduje pliki źródłowe strony (test ma czego pilnować)', () => {
@@ -131,7 +131,7 @@ describe('Z-14 — treść oferty nie obiecuje rezerwacji RAM ani CPU', () => {
           `W CloudLinux/LVE RAM i CPU są sufitami burst, nie rezerwacjami. Węzeł domyka się\n` +
           `finansowo dopiero przy ok. 51 kontach (PB-01), czyli 408 GB RAM „w cenie" na maszynie\n` +
           `ze 128 GB. Napisz „do 8 GB RAM" i „do 2 vCPU" albo „limit 8 GB RAM i 2 vCPU".\n\n` +
-          `Dysk (50 GB) zostaje bez kwalifikatora — quota dyskowa jest realnie egzekwowana.\n\n` +
+          `Dysk (50 GB) zostaje bez kwalifikatora – quota dyskowa jest realnie egzekwowana.\n\n` +
           `Znalezione wystąpienia:\n${opis}`,
       );
     }
@@ -172,7 +172,7 @@ describe('Z-14 — treść oferty nie obiecuje rezerwacji RAM ani CPU', () => {
     expect(znajdzNaruszenia(zakres, join(WWW_SRC, 'atrapa.tsx'))).toEqual([]);
   });
 
-  it('nie czepia się dysku — 50 GB to realna quota, nie sufit', () => {
+  it('nie czepia się dysku – 50 GB to realna quota, nie sufit', () => {
     const dysk = 'Baza w cenie: 50 GB NVMe.';
     expect(znajdzNaruszenia(dysk, join(WWW_SRC, 'atrapa.tsx'))).toEqual([]);
   });

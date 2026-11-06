@@ -1,7 +1,7 @@
 import { fragmentInfrastruktury, zdradzaInfrastrukture } from '@verris/contracts';
 import { dlaKlienta, KOMUNIKAT_OGOLNY, zdradzaPanelSerwera } from './biala-etykieta.js';
 
-describe('biała etykieta — tekst dla klienta', () => {
+describe('biała etykieta – tekst dla klienta', () => {
   it('chowa nazwę panelu serwera, jego komendy, ścieżki i port 2222', () => {
     for (const t of [
       'DirectAdmin package "start" is missing',
@@ -31,14 +31,14 @@ describe('biała etykieta — tekst dla klienta', () => {
     }
   });
 
-  it('przepuszcza zwykły polski tekst — także „nie da się” i słowa z „da”', () => {
+  it('przepuszcza zwykły polski tekst – także „nie da się” i słowa z „da”', () => {
     for (const t of ['Tej bazy nie da się usunąć', 'Domena już istnieje', 'Dane zapisane', 'Limit 2222 MB', 'Włącz wtyczkę LiteSpeed Cache', 'Delve w nazwie']) {
       expect(dlaKlienta(t)).toBe(t);
     }
   });
 });
 
-describe('audyt Fal 2 — zdradzaInfrastrukture (raport pomigracyjny, eksport RODO)', () => {
+describe('audyt Fal 2 – zdradzaInfrastrukture (raport pomigracyjny, eksport RODO)', () => {
   it('łapie fail2ban, exim w odmianie, narzędzia LVE małymi literami, Imunify, IPv6 i węzły z bazy', () => {
     for (const t of [
       'Odblokowaliśmy Twoje IP w fail2ban',
@@ -60,7 +60,7 @@ describe('audyt Fal 2 — zdradzaInfrastrukture (raport pomigracyjny, eksport RO
     const wezly = ['t1', 't1.verris.pl'];
     for (const t of [
       'Przełączenie o 12:30:00, PageSpeed 92, TTFB 160 ms',
-      'Nie da się zmniejszyć obrazów bez utraty jakości — zostawiliśmy oryginały.',
+      'Nie da się zmniejszyć obrazów bez utraty jakości – zostawiliśmy oryginały.',
       'Panel: panel.verris.pl, test1 i wt1 bez zmian',
       'Wtyczka LiteSpeed Cache włączona, pamięć podręczna działa',
     ]) {
@@ -68,7 +68,7 @@ describe('audyt Fal 2 — zdradzaInfrastrukture (raport pomigracyjny, eksport RO
     }
   });
 
-  it('audyt Fali 3 — ModSecurity, OpenLiteSpeed, Dovecot, Rspamd; węzeł jako całe słowo (poddomena klienta to nie węzeł)', () => {
+  it('audyt Fali 3 – ModSecurity, OpenLiteSpeed, Dovecot, Rspamd; węzeł jako całe słowo (poddomena klienta to nie węzeł)', () => {
     for (const t of ['ModSecurity zablokował żądanie', 'mod_security', 'OpenLiteSpeed', 'Dovecot nie odpowiada', 'rspamd']) {
       expect(zdradzaInfrastrukture(t), t).toBe(true);
     }

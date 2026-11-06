@@ -63,7 +63,7 @@ describe('G-08 CSR i rekord weryfikacyjny', () => {
   });
 });
 
-describe('G-08 OpenProvider SSL — wywołania wg dokumentacji /v1/ssl', () => {
+describe('G-08 OpenProvider SSL – wywołania wg dokumentacji /v1/ssl', () => {
   const cfg: Record<string, string> = {
     REGISTRAR_PROVIDER: 'openprovider', OPENPROVIDER_USERNAME: 'u', OPENPROVIDER_PASSWORD: 'p', OPENPROVIDER_OWNER_HANDLE: 'OP-H', OPENPROVIDER_API_BASE_URL: 'https://api.sandbox.openprovider.nl',
   };
@@ -91,7 +91,7 @@ describe('G-08 OpenProvider SSL — wywołania wg dokumentacji /v1/ssl', () => {
     expect(p).toEqual({ id: 5, name: 'PositiveSSL', brand: 'Sectigo', category: 'domain_validation', wildcard: false, singleDomain: true, cost: { amount: '5.5', currency: 'EUR' } });
   });
 
-  it('zamówienie: POST /v1/ssl/orders z CSR, start_provision, metodą dns i uchwytem operatora — bez klucza prywatnego', async () => {
+  it('zamówienie: POST /v1/ssl/orders z CSR, start_provision, metodą dns i uchwytem operatora – bez klucza prywatnego', async () => {
     const f = stub(() => ({ code: 0, data: { id: 77 } }));
     const { csr } = wygenerujCsr('firma.pl');
     await expect(ssl().sslCreateOrder({ productId: 5, years: 1, csr, hostName: 'firma.pl', validation: 'dns' })).resolves.toBe('77');
@@ -148,7 +148,7 @@ describe('G-08 OpenProvider SSL — wywołania wg dokumentacji /v1/ssl', () => {
     await expect(ssl().sslOrder('77')).resolves.toMatchObject({ state: 'failed' });
   });
 
-  it('bez OpenProvidera — sprzedaż niedostępna (bez wołania czegokolwiek)', () => {
+  it('bez OpenProvidera – sprzedaż niedostępna (bez wołania czegokolwiek)', () => {
     expect(() => new RegistrarProviderFactory({ get: () => undefined } as never).getSsl()).toThrow('Sprzedaż certyfikatów SSL jest chwilowo niedostępna.');
   });
 });
@@ -264,12 +264,12 @@ describe('G-08 cykl zamówienia certyfikatu', () => {
   it('błąd wystawcy: zwrot z kluczem zwrotu, zamówienie FAILED, klient bez nazwy dostawcy', async () => {
     const s = stanowisko({ wystawcaPada: true });
     const err = (await s.svc.zamow('u1', 'u1', 's1', zamowienie).catch((e: unknown) => e)) as Error;
-    expect(err.message).toBe('Nie udało się zamówić certyfikatu — opłata wróciła do portfela. Spróbuj ponownie później.');
+    expect(err.message).toBe('Nie udało się zamówić certyfikatu – opłata wróciła do portfela. Spróbuj ponownie później.');
     expect(err.message).not.toMatch(/openprovider/i);
     const [id] = Object.keys(s.rows);
     expect(s.wallet.credit).toHaveBeenCalledWith(expect.objectContaining({ amount: '99.99', type: 'REFUND', idempotencyKey: `ssl-order-refund:${id}` }));
     expect(s.rows[id].status).toBe('FAILED');
-    expect(naDto(s.rows[id] as never).problem).toBe('Zamówienie nie powiodło się — opłata wróciła do portfela.');
+    expect(naDto(s.rows[id] as never).problem).toBe('Zamówienie nie powiodło się – opłata wróciła do portfela.');
   });
 
   it('brak środków: bez wystawcy, komunikat o doładowaniu', async () => {

@@ -78,7 +78,7 @@ export class PocztaWezlaService {
     if (s.status !== 'ACTIVE' && s.status !== 'MAINTENANCE') throw new BadRequestException('Węzeł nie jest aktywny.');
     const zadania = await this.zadania(serverId);
     if (zadania.some((z) => z.status === NodeTaskStatus.QUEUED || z.status === NodeTaskStatus.RUNNING)) {
-      throw new ConflictException('Statystyki poczty już się wczytują — chwila.');
+      throw new ConflictException('Statystyki poczty już się wczytują – chwila.');
     }
     await this.prisma.nodeTask.create({
       data: { serverId, kind: NodeTaskKind.MAIL_LOG, status: NodeTaskStatus.QUEUED, requestedById: operatorUserId, payload: { mode: 'stats' } },

@@ -109,7 +109,7 @@ function Row({ row }: { row: AuditLogRow }) {
               </div>
             </div>
           ) : (
-            <span className="text-neutral-600">—</span>
+            <span className="text-neutral-600">–</span>
           )}
         </td>
         <td className="px-5 py-3 align-top text-xs">

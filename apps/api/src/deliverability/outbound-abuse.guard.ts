@@ -55,7 +55,7 @@ export class OutboundAbuseGuard implements OnModuleDestroy {
         this.redis = null;
       }
     } else {
-      this.logger.log('REDIS_URL brak — liczniki outbound działają in-memory (single replica).');
+      this.logger.log('REDIS_URL brak – liczniki outbound działają in-memory (single replica).');
     }
   }
 
@@ -138,7 +138,7 @@ export class OutboundAbuseGuard implements OnModuleDestroy {
     if (breach) {
       await this.cordon(userId, breach, ctx);
       throw new ForbiddenException(
-        'Przekroczono limit wysyłki — konto zostało tymczasowo wstrzymane (ochrona antyspamowa).',
+        'Przekroczono limit wysyłki – konto zostało tymczasowo wstrzymane (ochrona antyspamowa).',
       );
     }
     return { minute, hour, day };
@@ -184,7 +184,7 @@ export class OutboundAbuseGuard implements OnModuleDestroy {
       await this.mailer
         .send({
           to: inbox,
-          subject: `[Verris][SECURITY] Auto-cordon wysyłki — konto ${userId}`,
+          subject: `[Verris][SECURITY] Auto-cordon wysyłki – konto ${userId}`,
           text:
             `Nałożono automatyczny cordon na wysyłkę konta.\n\n` +
             `Konto (userId): ${userId}\n` +

@@ -74,7 +74,7 @@ export class WpPodatnosciService implements OnApplicationBootstrap {
     const wiersze = wierszeZFeedu((await res.json()) as Record<string, unknown>);
     if (wiersze.length < 1000) {
       // Pełny feed ma dziesiątki tysięcy rekordów — mniej to uszkodzona odpowiedź, nie czyścimy bazy.
-      this.logger.warn(`Wordfence feed: tylko ${wiersze.length} rekordów — pomijam podmianę`);
+      this.logger.warn(`Wordfence feed: tylko ${wiersze.length} rekordów – pomijam podmianę`);
       return null;
     }
     await this.prisma.$transaction(async (tx) => {
@@ -120,7 +120,7 @@ export function opisBledu(e: unknown): string {
   // Prisma: komunikat zaczyna się od nowej linii, a sedno (np. „Unique constraint failed”) jest dalej — jedna linia + kod P….
   const k = (e as Error & { code?: unknown }).code;
   const kod = typeof k === 'string' ? ` [${k}]` : '';
-  return `${e.name}${kod}: ${e.message.replace(/\s+/g, ' ').trim() || '—'}${powod}`.slice(0, 600);
+  return `${e.name}${kod}: ${e.message.replace(/\s+/g, ' ').trim() || '–'}${powod}`.slice(0, 600);
 }
 
 /** Feed → wiersze tabeli; śmieci i rekordy „informational” (bez realnego wpływu) pomijamy. */

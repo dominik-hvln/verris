@@ -36,7 +36,7 @@ describe('Scenariusze testów (beta)', () => {
     expect(policzPostepBeta(null).zrobione).toBe(0);
   });
 
-  it('26.10: poczta z migracji, płatności i dostęp współpracownika są obowiązkowe; Git, aplikacje, SSH i cron — opcjonalne', () => {
+  it('26.10: poczta z migracji, płatności i dostęp współpracownika są obowiązkowe; Git, aplikacje, SSH i cron – opcjonalne', () => {
     const tytul = (id: string) => SCENARIUSZE_BETA.find((s) => s.id === id);
     expect(tytul('s12')?.tytul).toMatch(/poczty/i);
     expect(tytul('s13')?.tytul).toMatch(/faktury/i);
@@ -54,7 +54,7 @@ describe('Scenariusze testów (beta)', () => {
     expect(policzPostepBeta({ 's15.k1': 'x', 's16.k2': 'x', 's01.k1': 'x' })).toEqual({ zrobione: 1, wszystkie: LICZBA_KROKOW_BETA });
   });
 
-  it('decyzja 4: scenariusz 02 nie każe szukać faktury za zakup z kredytów z kodu — mówi, że jej nie ma', () => {
+  it('decyzja 4: scenariusz 02 nie każe szukać faktury za zakup z kredytów z kodu – mówi, że jej nie ma', () => {
     const s02 = SCENARIUSZE_BETA.find((s) => s.id === 's02')!;
     const tekst = [...s02.weryfikacja, ...s02.kroki.map((k) => k.tekst)].join(' ');
     expect(tekst).not.toMatch(/faktur\p{L}* za zakup/iu);
@@ -62,7 +62,7 @@ describe('Scenariusze testów (beta)', () => {
     expect(tekst).toMatch(/kredyty z kodu testera to nie zakup, więc nie ma za nie faktury/);
   });
 
-  it('P4-12: ścieżka „tylko poczta” — zamówienie samej poczty w 02 i oznaczone scenariusze bez strony i WordPressa', () => {
+  it('P4-12: ścieżka „tylko poczta” – zamówienie samej poczty w 02 i oznaczone scenariusze bez strony i WordPressa', () => {
     expect(SCENARIUSZE_BETA.find((s) => s.id === 's02')!.kroki.map((k) => k.tekst).join(' ')).toMatch(/Poczta e-mail/);
     const ids = SCENARIUSZE_BETA_POCZTA.map((s) => s.id);
     expect(ids).toEqual(expect.arrayContaining(['s01', 's02', 's05', 's12', 's13']));

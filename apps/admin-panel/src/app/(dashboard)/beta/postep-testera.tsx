@@ -11,7 +11,7 @@ export const ODSWIEZANIE_BETA_MS = 15_000;
 const KOLUMNY = 8;
 
 const data = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleDateString("pl-PL", { day: "numeric", month: "short", timeZone: "Europe/Warsaw" }) : "—";
+  iso ? new Date(iso).toLocaleDateString("pl-PL", { day: "numeric", month: "short", timeZone: "Europe/Warsaw" }) : "–";
 const kiedy = (iso: string | null) =>
   iso
     ? new Date(iso).toLocaleString("pl-PL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Warsaw" })
@@ -39,7 +39,7 @@ export function OdswiezanieNaZywo() {
   return (
     <span className="inline-flex items-center gap-2 text-xs text-muted-foreground" aria-live="polite">
       <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />
-      Postęp na żywo — odświeżanie co {ODSWIEZANIE_BETA_MS / 1000} s{ostatnio ? ` · ostatnio ${ostatnio}` : ""}
+      Postęp na żywo – odświeżanie co {ODSWIEZANIE_BETA_MS / 1000} s{ostatnio ? ` · ostatnio ${ostatnio}` : ""}
     </span>
   );
 }
@@ -76,7 +76,7 @@ export function WierszTestera({ r, akcja }: { r: TesterRow; akcja?: ReactNode })
         <td className="px-4 py-3">
           <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${STAN[r.stan].cls}`}>{STAN[r.stan].text}</span>
         </td>
-        <td className="px-4 py-3 text-xs">{r.konto ? `${r.konto.email} · od ${data(r.konto.od)}` : "—"}</td>
+        <td className="px-4 py-3 text-xs">{r.konto ? `${r.konto.email} · od ${data(r.konto.od)}` : "–"}</td>
         <td className="px-4 py-3">
           {p ? (
             <button
@@ -99,7 +99,7 @@ export function WierszTestera({ r, akcja }: { r: TesterRow; akcja?: ReactNode })
               <span className="text-xs text-muted-foreground">{kiedy(p.zaktualizowano) ?? "jeszcze nic nie odhaczył(a)"}</span>
             </button>
           ) : (
-            <span className="text-xs text-muted-foreground">—</span>
+            <span className="text-xs text-muted-foreground">–</span>
           )}
         </td>
         <td className="px-4 py-3">{r.aktywneUslugi}</td>

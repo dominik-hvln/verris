@@ -20,7 +20,7 @@ class Preflight extends MigrationPreflightService {
 const ftp = { host: '127.0.0.1', port: 21, username: 'u', password: 'p', protocol: 'ftps' };
 const baza = { host: 'hvln.pl', port: 3306, database: 'hvln_wp' };
 
-describe('test dostępów — adres strony do eksportu bazy przez PHP', () => {
+describe('test dostępów – adres strony do eksportu bazy przez PHP', () => {
   it('bez domeny źródłowej, domena konta bez wpisu w DNS → ostrzeżenie przy bazie (bez blokady)', async () => {
     const svc = new Preflight([]);
     const r = await svc.preflightBundle({ ftp, mysql: [baza] } as never, 'user', 'sub', 'user', 'sl.hvln.pl');
@@ -38,7 +38,7 @@ describe('test dostępów — adres strony do eksportu bazy przez PHP', () => {
     expect(r.checks.find((c) => c.kind === 'mysql')!.message).not.toContain('DNS');
   });
 
-  it('bez plików (bez FTP) nie ma eksportu przez PHP — nie sprawdzamy adresu', async () => {
+  it('bez plików (bez FTP) nie ma eksportu przez PHP – nie sprawdzamy adresu', async () => {
     const svc = new Preflight([]);
     await svc.preflightBundle({ mysql: [baza] } as never, 'user', 'sub', 'user', 'sl.hvln.pl');
     expect(svc.sprawdzone).toEqual([]);

@@ -96,7 +96,7 @@ export default function WafTab({ serviceId }: Props) {
     if (mode === status?.mode) return;
     setError(null);
     setSaving(mode);
-    const res = await setWafMode(serviceId, mode).catch(() => ({ error: 'Nie udało się zmienić trybu — spróbuj ponownie.' }));
+    const res = await setWafMode(serviceId, mode).catch(() => ({ error: 'Nie udało się zmienić trybu – spróbuj ponownie.' }));
     setSaving(null);
     if ('error' in res) {
       setError(res.error);
@@ -154,7 +154,7 @@ export default function WafTab({ serviceId }: Props) {
         />
         {bladOdczytu && (
           <p role="alert" className="flex flex-wrap items-center gap-2 text-xs text-crit">
-            <AlertCircle className="h-3.5 w-3.5 shrink-0" /> Nie udało się odświeżyć stanu zapory — pokazany stan może być nieaktualny. {ponow}
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" /> Nie udało się odświeżyć stanu zapory – pokazany stan może być nieaktualny. {ponow}
           </p>
         )}
         {applying && (
@@ -165,7 +165,7 @@ export default function WafTab({ serviceId }: Props) {
         {status.lastTask?.status === 'FAILED' && (
           <p className="inline-flex items-start gap-1.5 text-xs text-crit">
             <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-            Ostatnia zmiana nie powiodła się: {status.lastTask.errorMessage ?? 'błąd'} — spróbuj
+            Ostatnia zmiana nie powiodła się: {status.lastTask.errorMessage ?? 'błąd'} – spróbuj
             ponownie lub skontaktuj się z BOK.
           </p>
         )}
@@ -215,7 +215,7 @@ export default function WafTab({ serviceId }: Props) {
       <p className="text-xs text-muted-foreground">
         Wskazówka: po przejściu z trybu detekcji na blokowanie obserwuj stronę przez 1-2 dni. Jeśli
         prawidłowe żądania są blokowane (np. zapis w edytorze wtyczki), przełącz na tryb detekcji i
-        zgłoś to do BOK — dostroimy reguły dla Twojej domeny.
+        zgłoś to do BOK – dostroimy reguły dla Twojej domeny.
       </p>
     </div>
   );

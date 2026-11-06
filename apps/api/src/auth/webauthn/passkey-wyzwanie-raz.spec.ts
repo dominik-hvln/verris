@@ -44,7 +44,7 @@ function serwis() {
   return { svc, eco, klucze };
 }
 
-describe('passkey — wyzwanie rejestracji zużywane raz', () => {
+describe('passkey – wyzwanie rejestracji zużywane raz', () => {
   it('5 równoległych rejestracji na jedno wyzwanie: jeden klucz, jedna nagroda EKO, reszta odrzucona', async () => {
     const { svc, eco, klucze } = serwis();
     const wyniki = await Promise.allSettled([1, 2, 3, 4, 5].map((i) => svc.verifyRegistration('u1', { id: `klucz-${i}` } as never, 'MacBook')));

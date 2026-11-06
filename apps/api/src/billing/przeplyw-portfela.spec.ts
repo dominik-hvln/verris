@@ -5,7 +5,7 @@ import { BillingService } from './billing.service.js';
  * Przegląd F3.6 — wykres „wpływy/wypływy” portfela klienta (12 miesięcy) liczył kierunek po typie: ujemna korekta
  * salda (ADJUSTMENT, np. korekta w dół przez Finanse) trafiała do wpływów.
  */
-it('korekta salda w dół jest wypływem, w górę — wpływem', () => {
+it('korekta salda w dół jest wypływem, w górę – wpływem', () => {
   const teraz = new Date(2026, 9, 11);
   const d = (kwota: string, type: WalletTxType) => ({ amount: new Prisma.Decimal(kwota), type, createdAt: new Date(2026, 9, 5) });
   const przeplyw = (

@@ -70,7 +70,7 @@ const flaga = (o: Partial<{ userId: string; subscriptionId: string; isInternal: 
   uzasadnienie: 'Konto testowe zespołu.',
 });
 
-describe('PB-48 — WnioskiService', () => {
+describe('PB-48 – WnioskiService', () => {
   it('dwie równoległe akceptacje, obie widzą PENDING: operacja wykonana raz, druga 409', async () => {
     const { svc, users } = zbuduj();
     const w = await svc.zloz(L1, flaga());
@@ -81,7 +81,7 @@ describe('PB-48 — WnioskiService', () => {
     expect(users.patchCustomerOperational).toHaveBeenCalledTimes(1);
   });
 
-  it('ten sam oczekujący wniosek drugi raz → 409; dla innego klienta albo po rozpatrzeniu poprzedniego — można', async () => {
+  it('ten sam oczekujący wniosek drugi raz → 409; dla innego klienta albo po rozpatrzeniu poprzedniego – można', async () => {
     const { svc, wnioski } = zbuduj();
     const w = await svc.zloz(L1, flaga());
     await expect(svc.zloz(L1, flaga())).rejects.toBeInstanceOf(ConflictException);

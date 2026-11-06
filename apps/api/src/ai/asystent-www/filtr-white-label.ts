@@ -79,9 +79,14 @@ export function sprawdzWhiteLabel(tekst: string): WynikFiltra {
   return { ok: powody.size === 0, powody: [...powody] };
 }
 
+/** 6.11.2026 (decyzja Dominika): pauza „—” wygląda na tekst AI — w odpowiedzi do klienta tylko półpauza „–”. */
+export function bezPauzy(tekst: string): string {
+  return tekst.replace(/\u2014/g, '\u2013');
+}
+
 /** Bezpieczna formuła, gdy także druga odpowiedź nie przeszła filtra. */
 export const BEZPIECZNA_ODPOWIEDZ =
-  'Tę część wolę przekazać człowiekowi, żeby niczego nie pomylić. Zostaw numer w „Poproś o telefon” — oddzwonimy w dni robocze 9–17.';
+  'Tę część wolę przekazać człowiekowi, żeby niczego nie pomylić. Zostaw numer w „Poproś o telefon” – oddzwonimy w dni robocze 9–17.';
 
 /** Dopisek do drugiej próby po trafieniu filtra (bez ujawniania listy zakazanych słów). */
 export const DOPISEK_PONOWNEJ_PROBY =

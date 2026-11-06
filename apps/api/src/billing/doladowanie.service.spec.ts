@@ -183,22 +183,22 @@ describe('DoladowanieService', () => {
     await t.svc.zaksieguj({
       userId: 'u1', kwotaMinor: 46800, waluta: 'PLN', idempotencyKey: 'paynow:Z1', paymentRef: 'Z1', opis: 'x',
       zaplaconoAt: new Date('2026-10-13T10:00:00Z'),
-      nazwaPozycji: 'Hosting Start — 12 mies. (przyklad.pl), okres 13.10.2026–13.10.2027',
+      nazwaPozycji: 'Hosting Start – 12 mies. (przyklad.pl), okres 13.10.2026–13.10.2027',
     });
     t.przywroc();
     const pozycje = t.dokumenty[0].lineItems as Array<{ name: string; totalGross: string }>;
     expect(pozycje).toHaveLength(1);
-    expect(pozycje[0].name).toBe('Hosting Start — 12 mies. (przyklad.pl), okres 13.10.2026–13.10.2027');
+    expect(pozycje[0].name).toBe('Hosting Start – 12 mies. (przyklad.pl), okres 13.10.2026–13.10.2027');
     expect(pozycje[0].totalGross).toBe('468.00');
   });
 
-  it('proforma opłacona dokładną kwotą: pozycja z proformy i jej numer; inna kwota — „Doładowanie konta … (wpłata do proformy …)”', async () => {
+  it('proforma opłacona dokładną kwotą: pozycja z proformy i jej numer; inna kwota – „Doładowanie konta … (wpłata do proformy …)”', async () => {
     const proforma = {
       id: 'pf1',
       number: 'PRO/2026/10/3',
       amount: new Prisma.Decimal('123.00'),
       currency: 'PLN',
-      lineItems: [{ name: 'Hosting Start — odnowienie roczne (przyklad.pl), okres 20.10.2026–20.10.2027' }],
+      lineItems: [{ name: 'Hosting Start – odnowienie roczne (przyklad.pl), okres 20.10.2026–20.10.2027' }],
     };
     const t = zbuduj({ proforma });
     await t.svc.zaksieguj({
@@ -213,10 +213,10 @@ describe('DoladowanieService', () => {
     t.przywroc();
     t2.przywroc();
     expect((t.dokumenty[0].lineItems as Array<{ name: string }>)[0].name).toBe(
-      'Hosting Start — odnowienie roczne (przyklad.pl), okres 20.10.2026–20.10.2027 (proforma PRO/2026/10/3)',
+      'Hosting Start – odnowienie roczne (przyklad.pl), okres 20.10.2026–20.10.2027 (proforma PRO/2026/10/3)',
     );
     expect((t2.dokumenty[0].lineItems as Array<{ name: string }>)[0].name).toBe(
-      'Doładowanie konta Verris — 200.00 K do wykorzystania na usługi hostingowe (wpłata do proformy PRO/2026/10/3)',
+      'Doładowanie konta Verris – 200.00 K do wykorzystania na usługi hostingowe (wpłata do proformy PRO/2026/10/3)',
     );
   });
 });

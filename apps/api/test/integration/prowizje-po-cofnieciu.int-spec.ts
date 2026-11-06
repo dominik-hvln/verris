@@ -56,7 +56,7 @@ async function scena() {
 }
 const stan = (id: string) => prisma().partnerCommission.findUniqueOrThrow({ where: { id } });
 
-describe('decyzja 15.10 (#2) — cofnięcie wpłaty poleconego a prowizje partnera', () => {
+describe('decyzja 15.10 (#2) – cofnięcie wpłaty poleconego a prowizje partnera', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 
@@ -79,7 +79,7 @@ describe('decyzja 15.10 (#2) — cofnięcie wpłaty poleconego a prowizje partne
     expect(await prisma().partnerCommission.count({ where: { referredUserId: s.polecony.id, status: { not: 'CANCELED' } } })).toBe(1);
   });
 
-  it('częściowy zwrot: zdejmuje od najnowszych — karencja anulowana, dojrzała pomniejszona; drugi przebieg nic nie zmienia', async () => {
+  it('częściowy zwrot: zdejmuje od najnowszych – karencja anulowana, dojrzała pomniejszona; drugi przebieg nic nie zmienia', async () => {
     const s = await scena();
     await billing().zwrocPlatnoscPaynow({ walletTxId: s.wplata.id, kwota: 50, actorUserId: s.admin.id, wPaneluPaynow: true });
     expect((await stan(s.wKarencji.id)).status).toBe('CANCELED');

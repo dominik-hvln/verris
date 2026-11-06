@@ -259,7 +259,7 @@ export function normalizujNazweDomeny(raw: string): string {
     throw new BadRequestException('Podaj nazwę domeny, np. mojafirma.pl.');
   }
   if (SUFIKSY.has(name)) {
-    throw new BadRequestException('To jest końcówka domen, nie domena — podaj pełną nazwę, np. mojafirma.' + name + '.');
+    throw new BadRequestException('To jest końcówka domen, nie domena – podaj pełną nazwę, np. mojafirma.' + name + '.');
   }
   return name;
 }

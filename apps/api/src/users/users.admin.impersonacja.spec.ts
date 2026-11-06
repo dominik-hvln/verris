@@ -13,7 +13,7 @@ import { odbierzKodPrzekazania } from '../common/auth/przekazanie-sesji.js';
  */
 const SEKRET = 'test-jwt-sekret';
 const KLIENT = { id: 'klient-1', email: 'anna@firma.pl', role: Role.USER, tokenVersion: 0, firstName: 'Anna', lastName: null };
-const POWOD = 'Zgłoszenie #123 — klient prosi o sprawdzenie poczty';
+const POWOD = 'Zgłoszenie #123 – klient prosi o sprawdzenie poczty';
 
 function uklad() {
   const audit = { record: vi.fn(async () => undefined) };
@@ -41,8 +41,8 @@ function uklad() {
 const ctx = { actorUserId: 'operator-1', actorRole: Role.STAFF, alreadyImpersonating: null };
 const req = { ip: '203.0.113.7', headers: { 'user-agent': 'test' } } as never;
 
-describe('K7 — dziennik START/STOP logowania jako klient z powodem', () => {
-  it('START zapisuje powód (przycięty) w dzienniku, a STOP z tokenu tej sesji — ten sam powód', async () => {
+describe('K7 – dziennik START/STOP logowania jako klient z powodem', () => {
+  it('START zapisuje powód (przycięty) w dzienniku, a STOP z tokenu tej sesji – ten sam powód', async () => {
     const { svc, kontroler, strategia, jwt, audit } = uklad();
     const r = await svc.impersonate({ targetUserId: KLIENT.id, ctx, ipAddress: '203.0.113.7', userAgent: 'test', reason: `  ${POWOD}  ` });
 
@@ -73,7 +73,7 @@ describe('K7 — dziennik START/STOP logowania jako klient z powodem', () => {
     );
   });
 
-  it('bez powodu (lub krótszego niż 10 znaków) — odmowa bez wpisu; komunikat nie obiecuje powiadomienia klienta', async () => {
+  it('bez powodu (lub krótszego niż 10 znaków) – odmowa bez wpisu; komunikat nie obiecuje powiadomienia klienta', async () => {
     const { svc, audit } = uklad();
     const proba = svc.impersonate({ targetUserId: KLIENT.id, ctx, reason: 'krótko' });
     await expect(proba).rejects.toBeInstanceOf(BadRequestException);

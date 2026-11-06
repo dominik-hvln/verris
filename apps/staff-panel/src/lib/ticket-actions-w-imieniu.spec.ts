@@ -32,7 +32,7 @@ it("z karty: userId ma pierwszeństwo, e-mail nie idzie", async () => {
   expect(mockStaffApi).toHaveBeenCalledWith("/tickets/admin/w-imieniu", { method: "POST", body: { ...tresc, userId: "u1" } });
 });
 
-it("bez klienta — komunikat bez API; błąd API — jego komunikat", async () => {
+it("bez klienta – komunikat bez API; błąd API – jego komunikat", async () => {
   await expect(staffCreateTicketOnBehalf(fd(tresc))).resolves.toEqual({ error: "Podaj e-mail klienta." });
   expect(mockStaffApi).not.toHaveBeenCalled();
   mockStaffApi.mockRejectedValue(new StaffApiError("Nie znaleziono konta klienta.", 404));

@@ -33,7 +33,7 @@ export default async function KorektaPage({
           Korekta faktury {faktura.number}
         </h1>
         <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-          M-06 — pierwszy zwrot, pierwsza rezygnacja w trakcie okresu i pierwsza literówka w NIP-ie
+          M-06 – pierwszy zwrot, pierwsza rezygnacja w trakcie okresu i pierwsza literówka w NIP-ie
           nie wypychają już operatora poza system. Korekta dostaje własną serię numeracji (VFK),
           ten sam PDF i tę samą ścieżkę do KSeF-a co faktura.
         </p>
@@ -41,7 +41,7 @@ export default async function KorektaPage({
 
       {juzKorekta ? (
         <div className="rounded-md border border-amber-600/40 bg-amber-500/10 p-4 text-sm text-amber-100">
-          <b>To już jest korekta.</b> Nie koryguje się korekty — dokument odnosiłby się wtedy do
+          <b>To już jest korekta.</b> Nie koryguje się korekty – dokument odnosiłby się wtedy do
           dokumentu, który sam już coś zmienia, a wyliczenie „ile ostatecznie wyszło” przestaje być
           odczytem dwóch pól. Skoryguj fakturę pierwotną.
         </div>
@@ -58,7 +58,7 @@ export default async function KorektaPage({
               <div>
                 <dt className="text-xs text-neutral-500">Data wystawienia</dt>
                 <dd className="text-neutral-300">
-                  {faktura.issuedAt ? faktura.issuedAt.slice(0, 10) : "—"}
+                  {faktura.issuedAt ? faktura.issuedAt.slice(0, 10) : "–"}
                 </dd>
               </div>
               <div>

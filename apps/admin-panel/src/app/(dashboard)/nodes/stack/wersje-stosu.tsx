@@ -20,7 +20,7 @@ export function WersjeStosu({ start }: { start: WidokStosu }) {
   const [pending, run] = useTransition();
   const m = widok.manifest;
   const zmieniony = f.php1 !== m.php1 || f.mariadb !== m.mariadb || f.daKanal !== m.daKanal || f.daCommit !== m.daCommit || f.litespeedLinia !== m.litespeedLinia;
-  const opcje = (k: keyof WidokStosu["dozwolone"]) => widok.dozwolone[k].map((x) => ({ value: x.v, label: `${x.v} — ${x.opis}` }));
+  const opcje = (k: keyof WidokStosu["dozwolone"]) => widok.dozwolone[k].map((x) => ({ value: x.v, label: `${x.v} – ${x.opis}` }));
 
   const zapisz = () => {
     setBlad(null);

@@ -94,7 +94,7 @@ export function WskazywanieElementu({ onWybrano, onAnuluj }: { onWybrano: (el: E
         role="status"
         className="fixed inset-x-0 top-0 z-[80] flex flex-wrap items-center justify-center gap-3 border-b border-line-strong bg-card/95 px-4 py-2.5 text-sm text-foreground shadow-lg backdrop-blur"
       >
-        <span>Kliknij miejsce na stronie, którego dotyczy uwaga — albo przejdź do niego klawiszem Tab i naciśnij Enter.</span>
+        <span>Kliknij miejsce na stronie, którego dotyczy uwaga – albo przejdź do niego klawiszem Tab i naciśnij Enter.</span>
         <button
           type="button"
           onClick={() => anuluj.current()}

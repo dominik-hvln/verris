@@ -44,7 +44,7 @@ it("fala zatrzymana: kanarek z błędem z logu, pozostałe węzły", async () =>
   expect(el.querySelector('a[href="/nodes/s1"]')).not.toBeNull();
 });
 
-it("fala zakończona z węzłem do restartu; brak fali — informacja", async () => {
+it("fala zakończona z węzłem do restartu; brak fali – informacja", async () => {
   mockStan.mockResolvedValueOnce({
     ok: true,
     data: {

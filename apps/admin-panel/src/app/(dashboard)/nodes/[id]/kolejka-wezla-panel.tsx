@@ -56,7 +56,7 @@ export function KolejkaWezlaPanel({ serverId }: { serverId: string }) {
       setMsg(null);
       if (await wywolaj("wypchnij", { powod })) {
         setPowod("");
-        setMsg({ ok: true, tekst: "Wypchnięcie zlecone — wynik pojawi się poniżej." });
+        setMsg({ ok: true, tekst: "Wypchnięcie zlecone – wynik pojawi się poniżej." });
       }
     });
   };
@@ -70,7 +70,7 @@ export function KolejkaWezlaPanel({ serverId }: { serverId: string }) {
       <h2 className="flex items-center gap-1.5 font-display text-[17px] font-bold">
         Kolejka poczty węzła <Pomoc id="kolejka-wezla" />
       </h2>
-      <p className="text-xs text-muted-foreground">Nagłówki wiadomości wszystkich kont na węźle — bez treści. Każdy odczyt zapisuje się w dzienniku.</p>
+      <p className="text-xs text-muted-foreground">Nagłówki wiadomości wszystkich kont na węźle – bez treści. Każdy odczyt zapisuje się w dzienniku.</p>
       <div className="flex flex-wrap items-center gap-2">
         <input value={szukaj} onChange={(e) => setSzukaj(e.target.value)} maxLength={100} disabled={pending} placeholder="Fraza (opcjonalnie): nadawca, odbiorca, temat" aria-label="Fraza wyszukiwania na serwerze" className={`${POLE} max-w-sm`} />
         <button
@@ -106,7 +106,7 @@ export function KolejkaWezlaPanel({ serverId }: { serverId: string }) {
       </div>
       {w ? (
         <p className="text-xs text-muted-foreground" data-wypchniecie="wynik">
-          Ostatnie wypchnięcie ({kiedy(w.kiedy)}): {w.wToku ? "w toku…" : w.blad ? `nie powiodło się — ${w.blad}` : `w kolejce było ${w.przed ?? "?"}, zostało ${w.po ?? "?"}.`}
+          Ostatnie wypchnięcie ({kiedy(w.kiedy)}): {w.wToku ? "w toku…" : w.blad ? `nie powiodło się – ${w.blad}` : `w kolejce było ${w.przed ?? "?"}, zostało ${w.po ?? "?"}.`}
         </p>
       ) : null}
       {msg ? (

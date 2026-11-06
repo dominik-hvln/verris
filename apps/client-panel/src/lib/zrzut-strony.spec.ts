@@ -12,7 +12,7 @@ describe('kadr', () => {
     });
   });
 
-  it('płótno zmniejszone przez bibliotekę (limit 16384 px) — współrzędne w skali płótna', () => {
+  it('płótno zmniejszone przez bibliotekę (limit 16384 px) – współrzędne w skali płótna', () => {
     const k = kadr({ left: 0, top: -20000, width: 1280 }, { szer: 1280, wys: 800 }, { szer: 640, wys: 16384 });
     expect(k).toEqual({ sx: 0, sy: 10000, sw: 640, sh: 400, skala: 0.5 });
   });

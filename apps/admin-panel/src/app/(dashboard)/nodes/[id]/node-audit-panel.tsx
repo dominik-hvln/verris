@@ -75,7 +75,7 @@ export function NodeAuditPanel({ serverId, serverName }: { serverId: string; ser
           </div>
           <p className="mt-1 text-xs text-muted-foreground max-w-xl">
             Walidator dwufazowy (istnienie → zgodność z planem i dokumentacją DA/CloudLinux).
-            Audyt jest <strong className="text-white">nieinwazyjny</strong> (tylko odczyt) — można go
+            Audyt jest <strong className="text-white">nieinwazyjny</strong> (tylko odczyt) – można go
             uruchomić na węźle produkcyjnym z klientami. Naprawy wykonujesz świadomie, pojedynczo.
           </p>
         </div>
@@ -108,7 +108,7 @@ export function NodeAuditPanel({ serverId, serverName }: { serverId: string; ser
               <StatusBadge status={report.status} />
               <div className="text-xs text-muted-foreground">
                 Wygenerowano {new Date(report.generatedAt).toLocaleString("pl-PL")} • agent{" "}
-                {report.stackVersions.agent ?? "—"}
+                {report.stackVersions.agent ?? "–"}
               </div>
             </div>
             {safeRepairs.length > 0 && (
@@ -201,13 +201,13 @@ function CheckRow({
                   {check.records.map((r, i) => (
                     <tr key={i} className="border-t border-white/5">
                       <td className="py-1 pr-3 text-muted-foreground">{r.label}</td>
-                      <td className="py-1 pr-3 text-white/80">{r.expected ?? "—"}</td>
+                      <td className="py-1 pr-3 text-white/80">{r.expected ?? "–"}</td>
                       <td
                         className={`py-1 pr-3 font-medium ${
                           r.ok === undefined ? "text-white/80" : r.ok ? "text-emerald-300" : "text-rose-300"
                         }`}
                       >
-                        {r.actual ?? "—"}
+                        {r.actual ?? "–"}
                       </td>
                     </tr>
                   ))}

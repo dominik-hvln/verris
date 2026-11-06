@@ -56,7 +56,7 @@ describe("Karta operatora", () => {
     expect(html).toContain("Włączony");
   });
 
-  it("historia logowań niedostępna — karta i tak pokazuje dostęp", async () => {
+  it("historia logowań niedostępna – karta i tak pokazuje dostęp", async () => {
     (fetchStaffAccess as jest.Mock).mockResolvedValue(ADMIN);
     (getOperatorLoginHistory as jest.Mock).mockRejectedValue(new Error("Brak uprawnień."));
     const html = await render();
@@ -64,7 +64,7 @@ describe("Karta operatora", () => {
     expect(html).toContain("Historia logowań niedostępna: Brak uprawnień.");
   });
 
-  it("administrator na karcie — bez przełączników, pełny dostęp", async () => {
+  it("administrator na karcie – bez przełączników, pełny dostęp", async () => {
     (fetchStaffAccess as jest.Mock).mockResolvedValue(ADMIN);
     (getOperators as jest.Mock).mockResolvedValue([{ ...operator, role: "ADMIN" }]);
     const html = await render();

@@ -56,7 +56,7 @@ function stanowisko(opcje: { cena?: string; limit?: string; aktywne?: number; ok
   return { svc, prisma, hetzner, audit };
 }
 
-describe('VpsService — snapshoty (Q-08)', () => {
+describe('VpsService – snapshoty (Q-08)', () => {
   it('cudzy VPS → 404, bez wywołania dostawcy', async () => {
     const s = stanowisko({ cena: '0.1' });
     await expect(s.svc.createSnapshot('obcy', 'v1')).rejects.toBeInstanceOf(NotFoundException);
@@ -117,7 +117,7 @@ describe('VpsService — snapshoty (Q-08)', () => {
   });
 });
 
-describe('VpsService — reinstalacja, akcje, konsola', () => {
+describe('VpsService – reinstalacja, akcje, konsola', () => {
   it('reinstalacja tylko z listy systemów (nie np. ID cudzego snapshotu); nowe hasło raz, zaszyfrowane w bazie', async () => {
     const s = stanowisko();
     await expect(s.svc.rebuild('u1', 'v1', '123456')).rejects.toBeInstanceOf(BadRequestException);

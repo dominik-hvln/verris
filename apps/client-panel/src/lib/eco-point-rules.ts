@@ -65,7 +65,7 @@ export function buildEcoPointRules(platform: EcoPlatformConfig): EcoPointRule[] 
       title: 'Pierwsze włączenie trybu EKO na usłudze',
       points: '+5',
       description:
-        'Włącz tryb EKO w panelu usługi hostingowej. Punkty naliczamy raz — przy pierwszym włączeniu na danej usłudze (mniej agresywne kopie zapasowe, mniejsze obciążenie serwera).',
+        'Włącz tryb EKO w panelu usługi hostingowej. Punkty naliczamy raz – przy pierwszym włączeniu na danej usłudze (mniej agresywne kopie zapasowe, mniejsze obciążenie serwera).',
     },
     {
       id: 'EMAIL_VERIFIED',
@@ -117,14 +117,14 @@ export function buildEcoPointRules(platform: EcoPlatformConfig): EcoPointRule[] 
       id: 'REFERRAL_APPLIED_REFERRER',
       title: 'Ktoś wykorzystał Twój kod (po rejestracji)',
       points: '+5',
-      description: 'Inny klient dodał Twój kod polecenia — Ty też dostajesz punkty.',
+      description: 'Inny klient dodał Twój kod polecenia – Ty też dostajesz punkty.',
     },
     {
       id: 'EKO_REDEEM_WALLET',
       title: 'Wymiana punktów na saldo portfela',
       points: `−${redeemRate} = 10,00 K`,
       description:
-        'To nie jest sposób na zdobywanie punktów — wymieniasz je na środki w portfelu Verris albo na drzewa ' +
+        'To nie jest sposób na zdobywanie punktów – wymieniasz je na środki w portfelu Verris albo na drzewa ' +
         `(całe drzewo z certyfikatem: ${perTree.toLocaleString('pl-PL')} pkt).`,
     },
     {
@@ -139,7 +139,7 @@ export function buildEcoPointRules(platform: EcoPlatformConfig): EcoPointRule[] 
       title: 'Wymiana punktów na własne drzewo',
       points: `−${perTree} = 1 drzewo`,
       description:
-        'Wymieniasz punkty na całe drzewo z certyfikatem. Certyfikat wystawiamy na Verris („Drzewo posadzone dzięki klientom Verris”) — ' +
+        'Wymieniasz punkty na całe drzewo z certyfikatem. Certyfikat wystawiamy na Verris („Drzewo posadzone dzięki klientom Verris”) – ' +
         'w panelu widzisz, że to Twoje drzewo. Pojawi się po potwierdzeniu przez partnera.',
     },
   ];
@@ -158,9 +158,9 @@ export const ECO_LEDGER_REASON_LABEL: Record<string, string> = {
   PASSKEY_REGISTERED: 'Pierwszy passkey',
   BADGE_IMPRESSION: 'Wyświetlenia badge na stronie',
   REFERRAL_REGISTER_REFEREE: 'Polecenie (rejestracja)',
-  REFERRAL_REGISTER_REFERRER: 'Polecenie — nowy klient',
+  REFERRAL_REGISTER_REFERRER: 'Polecenie – nowy klient',
   REFERRAL_APPLIED_REFEREE: 'Polecenie (kod dodany)',
-  REFERRAL_APPLIED_REFERRER: 'Polecenie — kod wykorzystany',
+  REFERRAL_APPLIED_REFERRER: 'Polecenie – kod wykorzystany',
   EKO_REDEEM_WALLET: 'Wymiana na saldo portfela',
   EKO_DRZEWO_PULA: 'Wymiana na procent drzewa (wspólna pula)',
   EKO_DRZEWO_WLASNE: 'Wymiana na własne drzewo',

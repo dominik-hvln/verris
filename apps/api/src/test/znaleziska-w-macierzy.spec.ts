@@ -31,7 +31,7 @@ const NIE_ID = new Set([
   'PANEL-14', // historyczna etykieta w komentarzu kodu quota-alert.scheduler.ts, dziś K-08
 ]);
 
-describe('X-49 — rejestr jest jedynym źródłem pozycji', () => {
+describe('X-49 – rejestr jest jedynym źródłem pozycji', () => {
   it('każde zadanie z docs/zadania i archiwum jest w macierzy albo w zadaniach PB', () => {
     const brak: string[] = [];
     for (const kat of ['docs/zadania', 'docs/archiwum/zadania']) {

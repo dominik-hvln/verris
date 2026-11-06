@@ -49,16 +49,16 @@ describe("Karta „Prognoza węzła”", () => {
 
   it("notka AI i data-ai-generated tylko przy komentarzu AI", () => {
     const zAi = render(prognoza());
-    expect(zAi.tekst).toContain("Zalecenia tworzy AI — decyzję podejmuje operator.");
+    expect(zAi.tekst).toContain("Zalecenia tworzy AI – decyzję podejmuje operator.");
     expect(zAi.html.match(/data-ai-generated="true"/g)).toHaveLength(2);
 
-    const bezAi = render(prognoza({ komentarzAi: false, zalecenia: [], podsumowanie: "Najbliżej limitu: dysk — 81% teraz." }));
+    const bezAi = render(prognoza({ komentarzAi: false, zalecenia: [], podsumowanie: "Najbliżej limitu: dysk – 81% teraz." }));
     expect(bezAi.tekst).toContain("Najbliżej limitu: dysk");
     expect(bezAi.tekst).not.toContain("Zalecenia tworzy AI");
     expect(bezAi.html).not.toContain("data-ai-generated");
   });
 
-  it("za mało danych — bez wykresów, z opisem panelu", () => {
+  it("za mało danych – bez wykresów, z opisem panelu", () => {
     const { html, tekst } = render(prognoza({ dostepna: false, resources: [], oknoAktualizacji: null, kandydaci: [], komentarzAi: false, zalecenia: [], podsumowanie: "Za mało danych telemetrycznych." }));
     expect(tekst).toContain("za mało danych");
     expect(tekst).toContain("Za mało danych telemetrycznych.");

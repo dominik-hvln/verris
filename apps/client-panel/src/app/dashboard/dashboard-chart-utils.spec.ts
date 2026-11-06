@@ -69,7 +69,7 @@ describe('X-05 buildEcoLedgerSeries', () => {
   });
 });
 
-describe('12.10 buildEcoLedgerSeries — dni w czasie polskim (hydratacja, React #418)', () => {
+describe('12.10 buildEcoLedgerSeries – dni w czasie polskim (hydratacja, React #418)', () => {
   afterEach(() => {
     jest.useRealTimers();
   });

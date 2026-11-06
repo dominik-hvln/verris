@@ -63,7 +63,7 @@ export function ConsentsTable({
                     {SOURCE_LABEL[r.source] ?? r.source}
                   </td>
                   <td className="px-4 py-3 font-mono text-[11px] text-muted-foreground">
-                    {r.ipAddress ?? "—"}
+                    {r.ipAddress ?? "–"}
                   </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">
                     {new Date(r.grantedAt).toLocaleString("pl-PL")}

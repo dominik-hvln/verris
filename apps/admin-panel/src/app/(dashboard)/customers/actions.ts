@@ -127,7 +127,7 @@ export async function adminCreditWalletAction(
     }
     return {
       ok: false,
-      error: "Nie udało się przyznać kredytów — sprawdź logi API.",
+      error: "Nie udało się przyznać kredytów – sprawdź logi API.",
     };
   }
 

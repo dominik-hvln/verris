@@ -4,7 +4,7 @@ import { NodeTasksService } from './node-tasks.service.js';
  * Audyt bezpieczeństwa 13.10: kolejka zadań węzła była czystym FIFO — jedno konto z dziesiątkami zadań opóźniało
  * innych klientów i operatora o kilkadziesiąt minut.
  */
-describe('Kolejka zadań węzła — sprawiedliwe wydawanie', () => {
+describe('Kolejka zadań węzła – sprawiedliwe wydawanie', () => {
   type T = { id: string; accountId: string | null; createdAt: Date; requestedBy?: { role: string } | null; startedAt?: Date | null };
   function stanowisko(kolejka: T[], obsluzone: Array<{ accountId: string; startedAt: Date }> = []) {
     const prisma = {
@@ -48,7 +48,7 @@ describe('Kolejka zadań węzła — sprawiedliwe wydawanie', () => {
     expect(await s.wybrane()).toBe('b1');
   });
 
-  it('w ramach jednego konta — najstarsze', async () => {
+  it('w ramach jednego konta – najstarsze', async () => {
     const s = stanowisko([t('a2', 'A', 1), t('a1', 'A', 0)]);
     expect(await s.wybrane()).toBe('a1');
   });
@@ -59,7 +59,7 @@ describe('Kolejka zadań węzła — sprawiedliwe wydawanie', () => {
   });
 });
 
-describe('Kolejka zadań węzła — jedno zadanie całego węzła naraz (17.10)', () => {
+describe('Kolejka zadań węzła – jedno zadanie całego węzła naraz (17.10)', () => {
   function stanowisko(kolejka: Array<{ id: string; kind: string; accountId: string | null }>, trwaCiezkie: number) {
     const prisma = {
       nodeTask: {

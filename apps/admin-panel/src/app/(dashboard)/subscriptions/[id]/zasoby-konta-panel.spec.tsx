@@ -49,7 +49,7 @@ afterEach(async () => {
   k.remove();
 });
 
-describe("F2.6 — zasoby i diagnoza 508 na karcie usługi", () => {
+describe("F2.6 – zasoby i diagnoza 508 na karcie usługi", () => {
   it("L1 (bez ACCOUNT_DIAGNOSTICS_VIEW): nic nie czyta, informacja o brakującym uprawnieniu", async () => {
     await render(op("TICKETS_MANAGE", "CUSTOMERS_VIEW"));
     expect(akcja).not.toHaveBeenCalled();
@@ -62,7 +62,7 @@ describe("F2.6 — zasoby i diagnoza 508 na karcie usługi", () => {
     expect(akcja).toHaveBeenCalledWith("s1", false);
     expect(komorka("ep")).toEqual(["Procesy wejściowe (EP)", "30", "25", "90"]);
     expect(komorka("pmem")).toEqual(["Pamięć (PMEM)", "2048 MB", "0", "3"]);
-    expect(k.querySelector("[data-diagnoza]")?.textContent).toContain("Procesy wejściowe (EP) — odwiedzający dostają błąd 508");
+    expect(k.querySelector("[data-diagnoza]")?.textContent).toContain("Procesy wejściowe (EP) – odwiedzający dostają błąd 508");
     expect(k.querySelector('[data-sekcja="inody"]')?.textContent).toContain("(96%)");
     expect(k.querySelector('[data-sekcja="5xx"]')?.textContent).toContain("37 z 1000 żądań");
     expect(k.querySelector('[data-sekcja="5xx"]')?.textContent).toContain("30× /wp-admin/admin-ajax.php");
@@ -70,10 +70,10 @@ describe("F2.6 — zasoby i diagnoza 508 na karcie usługi", () => {
     expect(k.querySelector("[data-raport]")?.getAttribute("data-raport")).toBe("ok");
   });
 
-  it("brak raportu z węzła (stary agent): „—” zamiast zer i podpowiedź o redeployu agenta", async () => {
+  it("brak raportu z węzła (stary agent): „–” zamiast zer i podpowiedź o redeployu agenta", async () => {
     akcja.mockResolvedValue({ ok: true, wynik: { ...DANE, faulty: { odczytano: null, nieaktualne: true, blad: null, doba: null, tydzien: null } } });
     await render(op("ACCOUNT_DIAGNOSTICS_VIEW"));
-    expect(komorka("ep")).toEqual(["Procesy wejściowe (EP)", "30", "—", "—"]);
+    expect(komorka("ep")).toEqual(["Procesy wejściowe (EP)", "30", "–", "–"]);
     expect(k.querySelector("[data-diagnoza]")).toBeNull();
     expect(k.querySelector("[data-raport]")?.textContent).toContain("redeploy agenta");
   });
@@ -81,16 +81,16 @@ describe("F2.6 — zasoby i diagnoza 508 na karcie usługi", () => {
   it("doba bez odbić, 7 dni bez danych (raport ucięty): nie twierdzi, że w 7 dni było czysto", async () => {
     akcja.mockResolvedValue({ ok: true, wynik: { ...DANE, faulty: { ...DANE.faulty, doba: F0, tydzien: null } } });
     await render(op("ACCOUNT_DIAGNOSTICS_VIEW"));
-    expect(komorka("ep")).toEqual(["Procesy wejściowe (EP)", "30", "0", "—"]);
+    expect(komorka("ep")).toEqual(["Procesy wejściowe (EP)", "30", "0", "–"]);
     const opis = k.querySelector("[data-diagnoza]")?.textContent ?? "";
-    expect(opis).toContain("7 dni — brak danych");
+    expect(opis).toContain("7 dni – brak danych");
     expect(opis).not.toContain("Bez przekroczeń");
   });
 
-  it("audyt Fal 2: konto zawieszone (poza raportem węzła) — „—” i informacja, nie „Raport węzła … temu”", async () => {
+  it("audyt Fal 2: konto zawieszone (poza raportem węzła) – „–” i informacja, nie „Raport węzła … temu”", async () => {
     akcja.mockResolvedValue({ ok: true, wynik: { ...DANE, faulty: { ...DANE.faulty, doba: null, tydzien: null, pozaRaportem: true } } });
     await render(op("ACCOUNT_DIAGNOSTICS_VIEW"));
-    expect(komorka("ep")).toEqual(["Procesy wejściowe (EP)", "30", "—", "—"]);
+    expect(komorka("ep")).toEqual(["Procesy wejściowe (EP)", "30", "–", "–"]);
     expect(k.querySelector("[data-diagnoza]")).toBeNull();
     expect(k.querySelector("[data-raport]")?.getAttribute("data-raport")).toBe("poza");
     expect(k.querySelector("[data-raport]")?.textContent).toContain("brak danych");

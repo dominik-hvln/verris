@@ -6,7 +6,7 @@ import { AutoscalingEngineService } from './autoscaling-engine.service.js';
  * ledger debits. The cap guard must treat it as a positive total — otherwise
  * `autoscalingMaxCost` is never enforced.
  */
-describe('AutoscalingEngineService — cap guard (F-01)', () => {
+describe('AutoscalingEngineService – cap guard (F-01)', () => {
   function buildService(opts: { thirtyDaySumNegative: string; kredyty?: string }) {
     const prisma = {
       walletTransaction: {

@@ -17,7 +17,7 @@ const progi = (o: Partial<ProgiSla['odpowiedz']> = {}, r: Partial<ProgiSla['rozw
   rozwiazanie: { ...DOMYSLNE_PROGI_SLA.rozwiazanie, ...r },
 });
 
-describe('F3.7 (OE-25) — progi SLA zgłoszeń', () => {
+describe('F3.7 (OE-25) – progi SLA zgłoszeń', () => {
   it('domyślne = progi zaszyte do 11.10 (NORMAL 12 h zegarowo, decyzja 06.10)', () => {
     expect(DOMYSLNE_PROGI_SLA).toEqual({
       odpowiedz: { URGENT: 1, HIGH: 4, NORMAL: 12, LOW: 24 },

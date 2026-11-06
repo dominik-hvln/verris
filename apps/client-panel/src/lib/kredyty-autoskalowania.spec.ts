@@ -1,7 +1,7 @@
 import { korzyscZamowienia, okresWaznosci, opisPuli } from './kredyty-autoskalowania';
 
 /** Decyzja 6.11.2026 — kredyty na autoskalowanie zamiast rabatu na start: teksty w zamówieniu i stan puli w panelu. */
-describe('kredyty na autoskalowanie — teksty panelu', () => {
+describe('kredyty na autoskalowanie – teksty panelu', () => {
   it('korzyść w zamówieniu: kwota, plan i ważność; 0 zł = brak', () => {
     expect(korzyscZamowienia(60, 'YEAR')).toBe('+60 zł na autoskalowanie przy pierwszym zakupie (plan roczny), ważne 12 miesięcy.');
     expect(korzyscZamowienia(10, 'MONTH')).toBe('+10 zł na autoskalowanie przy pierwszym zakupie (plan miesięczny), ważne 12 miesięcy.');

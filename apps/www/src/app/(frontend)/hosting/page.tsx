@@ -41,7 +41,7 @@ const jak = (ceny: Ceny): Step[] => [
   {
     label: '02 · pilnujemy',
     title: 'Moc rośnie razem z ruchem',
-    text: 'Co minutę sprawdzamy procesor i pamięć Twojego konta. Gdy zaczyna brakować, dokładamy — strona działa dalej bez przerwy.',
+    text: 'Co minutę sprawdzamy procesor i pamięć Twojego konta. Gdy zaczyna brakować, dokładamy – strona działa dalej bez przerwy.',
     accent: true,
   },
   {
@@ -155,7 +155,7 @@ const pytania = (ceny: Ceny): { kat: string; q: string; my: string; rynek: strin
   {
     kat: 'Cena',
     q: 'Ile zapłacę w drugim roku?',
-    my: `Cenę z cennika, podaną z góry: ${zl(ceny.hosting.rocznie)} brutto (${zl(netto(ceny.hosting.rocznie))} netto) — tyle samo co za pierwszy rok. Przy pierwszym zakupie dostajesz jeszcze kredyty na autoskalowanie.`,
+    my: `Cenę z cennika, podaną z góry: ${zl(ceny.hosting.rocznie)} brutto (${zl(netto(ceny.hosting.rocznie))} netto) – tyle samo co za pierwszy rok. Przy pierwszym zakupie dostajesz jeszcze kredyty na autoskalowanie.`,
     rynek: 'Często: cena odnowienia drobnym drukiem, kilka razy wyższa.',
   },
   { kat: 'Ruch', q: 'Co, gdy przyjdzie dużo klientów?', my: 'Moc rośnie sama; limit kosztu ustawiasz, jeśli chcesz.', rynek: 'Często: zmiana na droższy pakiet.' },
@@ -180,7 +180,7 @@ const faq = (ceny: Ceny): [string, string][] => [
   ],
   [
     'Czy przeniesiecie moją stronę?',
-    'Tak, bezpłatnie w ramach zamówienia hostingu — stronę, bazy i pocztę. Stara strona działa, dopóki nie przełączysz domeny.',
+    'Tak, bezpłatnie w ramach zamówienia hostingu – stronę, bazy i pocztę. Stara strona działa, dopóki nie przełączysz domeny.',
   ],
 ];
 
@@ -214,7 +214,7 @@ export default async function HostingPage() {
             </span>
             <h1>Hosting WWW, który nie zwalnia, kiedy przychodzą klienci</h1>
             <p className="lead">
-              Reklama zadziałała, ktoś polecił Cię w mediach, ruszyła wyprzedaż — i nagle na stronie jest kilka razy
+              Reklama zadziałała, ktoś polecił Cię w mediach, ruszyła wyprzedaż – i nagle na stronie jest kilka razy
               więcej osób. U nas nie musisz wtedy w pośpiechu zmieniać pakietu. Dokładamy mocy na te godziny, a gdy ruch
               opadnie, wracasz do zwykłych {zl(ceny.hosting.miesiecznie)} miesięcznie brutto (
               {zl(netto(ceny.hosting.miesiecznie))} netto).
@@ -272,7 +272,7 @@ export default async function HostingPage() {
           <SectionHead
             eyebrow="Kalkulator"
             title="Policz swój pik"
-            lead="Przesuń suwaki — liczymy według stawek z cennika. Limity z pakietu (2 vCPU i 8 GB RAM) są zawsze w abonamencie."
+            lead="Przesuń suwaki – liczymy według stawek z cennika. Limity z pakietu (2 vCPU i 8 GB RAM) są zawsze w abonamencie."
           />
           <KalkulatorPiku stawki={st} />
         </div>

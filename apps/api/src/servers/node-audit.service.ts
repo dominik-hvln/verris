@@ -145,16 +145,16 @@ export class NodeAuditService {
       },
     ];
     let status: AuditCheckStatus = 'OK';
-    let summary = 'Agent węzła odpowiada — telemetria świeża.';
+    let summary = 'Agent węzła odpowiada – telemetria świeża.';
     if (!hasToken) {
       status = 'FAIL';
       summary = 'Węzeł nie ma agenta (brak identity token). Uruchom bootstrap ponownie.';
     } else if (!heartbeat) {
       status = 'WARN';
-      summary = 'Brak danych o heartbeat — poczekaj na pierwszy cykl agenta (1 min).';
+      summary = 'Brak danych o heartbeat – poczekaj na pierwszy cykl agenta (1 min).';
     } else if (!fresh) {
       status = 'WARN';
-      summary = 'Ostatni heartbeat starszy niż 5 min — sprawdź verris-lve.timer na węźle.';
+      summary = 'Ostatni heartbeat starszy niż 5 min – sprawdź verris-lve.timer na węźle.';
     }
     return {
       id: 'node-agent',
@@ -186,17 +186,17 @@ export class NodeAuditService {
     if (!checkedAt || !fresh) {
       status = 'UNKNOWN';
       summary = checkedAt
-        ? `Agent nie zgłosił statusu CageFS od ${checkedAt.toISOString()} — sprawdź verris-lve.timer na węźle.`
-        : 'Agent nie zgłosił jeszcze statusu CageFS — poczekaj na cykl agenta (1 min) lub zaktualizuj agenta.';
+        ? `Agent nie zgłosił statusu CageFS od ${checkedAt.toISOString()} – sprawdź verris-lve.timer na węźle.`
+        : 'Agent nie zgłosił jeszcze statusu CageFS – poczekaj na cykl agenta (1 min) lub zaktualizuj agenta.';
     } else if (enabled) {
       status = 'OK';
-      summary = `CageFS aktywny — konta izolowane, integracja LVE w DirectAdmin działa${
+      summary = `CageFS aktywny – konta izolowane, integracja LVE w DirectAdmin działa${
         count != null ? ` (kont w klatce: ${count})` : ''
       }.`;
     } else {
       status = 'FAIL';
       summary =
-        'CageFS nieaktywny — DirectAdmin spada na limity systemd-cgroup zamiast pełnej izolacji i integracji LVE. Uruchom profil hostingowy (instaluje i włącza CageFS).';
+        'CageFS nieaktywny – DirectAdmin spada na limity systemd-cgroup zamiast pełnej izolacji i integracji LVE. Uruchom profil hostingowy (instaluje i włącza CageFS).';
     }
 
     const canRepair =
@@ -219,7 +219,7 @@ export class NodeAuditService {
           actual: checkedAt ? (enabled ? 'enabled' : 'disabled') : 'brak danych',
           ok: enabled && fresh,
         },
-        { label: 'Kont w klatce (--list-enabled)', actual: count != null ? String(count) : '—' },
+        { label: 'Kont w klatce (--list-enabled)', actual: count != null ? String(count) : '–' },
         { label: 'Ostatni raport agenta', actual: checkedAt ? checkedAt.toISOString() : 'brak' },
       ],
       docAttestation: [
@@ -257,7 +257,7 @@ export class NodeAuditService {
       status: ok ? 'OK' : 'FAIL',
       summary: ok
         ? `Hostname ustawiony: ${hostname}`
-        : 'Brak hostname (FQDN) węzła — wymagany do TLS i linków panelu klienta.',
+        : 'Brak hostname (FQDN) węzła – wymagany do TLS i linków panelu klienta.',
       records: [
         { label: 'Hostname (FQDN)', expected: 'np. node-pl-02.verris.pl', actual: hostname || 'brak', ok },
         { label: 'IP węzła', actual: server.ipAddress },
@@ -282,7 +282,7 @@ export class NodeAuditService {
         title: 'Rekord DNS A',
         category: 'DNS',
         status: 'UNKNOWN',
-        summary: 'Brak hostname — nie można sprawdzić rekordu A.',
+        summary: 'Brak hostname – nie można sprawdzić rekordu A.',
         records: [],
         docAttestation: [],
         repair: null,
@@ -318,7 +318,7 @@ export class NodeAuditService {
       docAttestation: [
         {
           vendor: 'Verris',
-          statement: 'Rekord A węzła jest zarządzany ręcznie w OVH (lub OVH API) — patrz runbook.',
+          statement: 'Rekord A węzła jest zarządzany ręcznie w OVH (lub OVH API) – patrz runbook.',
           reference: 'ops/docs/OVH_WILDCARD_TLS_SETUP.md',
         },
       ],
@@ -341,7 +341,7 @@ export class NodeAuditService {
       summary = 'DirectAdmin nie jest jeszcze skonfigurowany (brak daHost).';
     } else if (isIp) {
       status = 'WARN';
-      summary = `daHost to surowe IP (${daHost}) — linki panelu klienta będą po IP zamiast hostname.`;
+      summary = `daHost to surowe IP (${daHost}) – linki panelu klienta będą po IP zamiast hostname.`;
     } else if (!matchesHostname && hostname) {
       status = 'WARN';
       summary = `daHost (${daHost}) różni się od hostname (${hostname}).`;
@@ -361,7 +361,7 @@ export class NodeAuditService {
         {
           vendor: 'Verris',
           statement:
-            'hostingPanelBaseUrl() preferuje server.hostname — daHost powinien być hostnamem, nie IP, by TLS wildcard działał.',
+            'hostingPanelBaseUrl() preferuje server.hostname – daHost powinien być hostnamem, nie IP, by TLS wildcard działał.',
           reference: 'apps/api/src/servers/directadmin.service.ts',
         },
       ],
@@ -370,7 +370,7 @@ export class NodeAuditService {
             actionId: 'repair-da-host',
             risk: 'safe',
             label: 'Ustaw daHost = hostname',
-            description: `Zaktualizuje pole daHost w bazie na "${hostname}". Nie zmienia konfiguracji na węźle — wpływa tylko na linki panelu i adres testu DA API.`,
+            description: `Zaktualizuje pole daHost w bazie na "${hostname}". Nie zmienia konfiguracji na węźle – wpływa tylko na linki panelu i adres testu DA API.`,
             requiresConfirmation: false,
             confirmValue: null,
             warning: null,
@@ -393,7 +393,7 @@ export class NodeAuditService {
           ? `Nie udało się połączyć z DirectAdmin: ${daClient.error ?? 'brak szczegółów'}`
           : 'DirectAdmin nie jest skonfigurowany (brak login key).',
         records: [
-          { label: 'daHost:port', actual: `${server.daHost ?? '—'}:${server.daPort ?? '—'}` },
+          { label: 'daHost:port', actual: `${server.daHost ?? '–'}:${server.daPort ?? '–'}` },
           { label: 'Login key', actual: server.daPasswordEnc ? 'ustawiony' : 'brak', ok: Boolean(server.daPasswordEnc) },
           { label: 'Błąd', actual: daClient.error ?? null },
         ],
@@ -417,7 +417,7 @@ export class NodeAuditService {
       records: [
         { label: 'CMD_API_PACKAGES_USER', expected: 'dostępne', actual: packagesOk ? 'OK' : (scope.packagesError ?? 'błąd'), ok: packagesOk },
         { label: 'CMD_API_SHOW_USERS', expected: 'dostępne', actual: accountsOk ? 'OK' : (scope.accountsError ?? 'błąd'), ok: accountsOk },
-        { label: 'Liczba pakietów', actual: scope.packageCount != null ? String(scope.packageCount) : '—' },
+        { label: 'Liczba pakietów', actual: scope.packageCount != null ? String(scope.packageCount) : '–' },
       ],
       docAttestation: [
         {
@@ -451,7 +451,7 @@ export class NodeAuditService {
         status: 'FAIL',
         summary: readError
           ? `Nie udało się odczytać pakietu ${plan.slug}: ${readError}`
-          : `Pakiet ${plan.slug} nie istnieje na węźle — utwórz z limitami planu.`,
+          : `Pakiet ${plan.slug} nie istnieje na węźle – utwórz z limitami planu.`,
         records: [{ label: 'Pakiet', expected: plan.slug, actual: 'brak', ok: false }],
         docAttestation: this.daPackageAttestation(),
         repair: this.daPackageRepair(plan.slug, 'caution'),
@@ -543,7 +543,7 @@ export class NodeAuditService {
     const status: AuditCheckStatus = hardFail ? 'FAIL' : softWarn ? 'WARN' : 'OK';
     let summary: string;
     if (hardFail) {
-      summary = `Pakiet ${plan.slug}: dysk/transfer/cgroups są "Bez ograniczeń" lub nie zgadzają się z planem — napraw.`;
+      summary = `Pakiet ${plan.slug}: dysk/transfer/cgroups są "Bez ograniczeń" lub nie zgadzają się z planem – napraw.`;
     } else if (softWarn) {
       summary = `Pakiet ${plan.slug}: limity dysku/transferu OK, ale język, LVE lub cgroups wymagają korekty.`;
     } else {
@@ -588,14 +588,14 @@ export class NodeAuditService {
     let summary = `Publiczne IP ${publicIp} jest zarejestrowane w DirectAdmin (IP manager).`;
     if (!hasRealIp) {
       status = 'WARN';
-      summary = `Węzeł nie ma jeszcze publicznego IP w panelu (ipAddress="${publicIp}") — uruchom bootstrap/handshake.`;
+      summary = `Węzeł nie ma jeszcze publicznego IP w panelu (ipAddress="${publicIp}") – uruchom bootstrap/handshake.`;
     } else if (fetchError) {
       status = 'UNKNOWN';
       summary = `Nie udało się pobrać listy IP z DA (${fetchError}).`;
     } else if (!registered) {
       status = 'FAIL';
       summary =
-        `IP ${publicIp} NIE jest zarejestrowane w DA — provisioning kont zakończy się błędem ` +
+        `IP ${publicIp} NIE jest zarejestrowane w DA – provisioning kont zakończy się błędem ` +
         `„A valid IP was not provided". Uruchom node-onboard-live.sh (Faza 3 wizarda) lub dodaj IP ` +
         `w DA → Admin → IP Manager.`;
     }
@@ -607,10 +607,10 @@ export class NodeAuditService {
       status,
       summary,
       records: [
-        { label: 'IP węzła (panel)', actual: publicIp || '—', ok: hasRealIp },
+        { label: 'IP węzła (panel)', actual: publicIp || '–', ok: hasRealIp },
         {
           label: 'IP w DA IP manager',
-          expected: publicIp || '—',
+          expected: publicIp || '–',
           actual: fetchError ? `błąd: ${fetchError}` : ips.join(', ') || 'brak',
           ok: registered,
         },
@@ -641,18 +641,18 @@ export class NodeAuditService {
 
     let status: AuditCheckStatus = 'UNKNOWN';
     let summary =
-      'Brak raportu hardeningu z agenta — zaktualizuj agenta (verris-lve) lub poczekaj na cykl (1 min).';
+      'Brak raportu hardeningu z agenta – zaktualizuj agenta (verris-lve) lub poczekaj na cykl (1 min).';
     if (checkedAt && hardened) {
       status = 'OK';
       summary = 'Security hardening wykonany (marker /etc/verris-hardened raportowany przez agenta).';
     } else if (checkedAt && !hardened && fresh) {
       status = 'FAIL';
       summary =
-        'Węzeł NIE przeszedł hardeningu LIVE — uruchom node-onboard-live.sh (baseline + egress lockdown) ' +
+        'Węzeł NIE przeszedł hardeningu LIVE – uruchom node-onboard-live.sh (baseline + egress lockdown) ' +
         'zanim trafią na niego płacący klienci.';
     } else if (checkedAt && !fresh) {
       status = 'WARN';
-      summary = 'Raport hardeningu nieświeży — sprawdź verris-lve.timer na węźle.';
+      summary = 'Raport hardeningu nieświeży – sprawdź verris-lve.timer na węźle.';
     }
 
     return {
@@ -692,14 +692,14 @@ export class NodeAuditService {
       category: 'SECURITY',
       status: ok ? 'OK' : raport ? 'FAIL' : 'UNKNOWN',
       summary: ok
-        ? 'Węzeł przeszedł weryfikację gotowości — może dostawać nowe konta.'
+        ? 'Węzeł przeszedł weryfikację gotowości – może dostawać nowe konta.'
         : raport
-          ? 'Ostatnia weryfikacja zgłosiła błędy — węzeł NIE dostaje nowych kont, dopóki node-onboard-live.sh nie przejdzie na zielono.'
-          : 'Brak raportu gotowości — uruchom Onboard LIVE. Do tego czasu węzeł nie dostaje nowych kont.',
+          ? 'Ostatnia weryfikacja zgłosiła błędy – węzeł NIE dostaje nowych kont, dopóki node-onboard-live.sh nie przejdzie na zielono.'
+          : 'Brak raportu gotowości – uruchom Onboard LIVE. Do tego czasu węzeł nie dostaje nowych kont.',
       records: [
         { label: 'Zweryfikowano', actual: server.onboardVerifiedAt?.toISOString() ?? 'nie', ok },
         { label: 'Ostatni raport', actual: raport?.at ?? 'brak' },
-        { label: 'FAIL / WARN', actual: raport ? `${raport.fail ?? 0} / ${raport.warn ?? 0}` : '—' },
+        { label: 'FAIL / WARN', actual: raport ? `${raport.fail ?? 0} / ${raport.warn ?? 0}` : '–' },
         ...(raport?.podsumowanie ? [{ label: 'Problemy', actual: raport.podsumowanie.slice(0, 2000) }] : []),
       ],
       docAttestation: [
@@ -725,9 +725,9 @@ export class NodeAuditService {
       category: 'STACK',
       status: brak ? 'UNKNOWN' : rozjazd ? 'WARN' : 'OK',
       summary: brak
-        ? 'Agent nie raportuje jeszcze wersji stosu — zaktualizuj verris-lve (profil hostingu).'
+        ? 'Agent nie raportuje jeszcze wersji stosu – zaktualizuj verris-lve (profil hostingu).'
         : rozjazd
-          ? 'Węzeł różni się od manifestu floty — wyrównaj (aktualizacja falami / node-db-upgrade), zanim różnice urosną.'
+          ? 'Węzeł różni się od manifestu floty – wyrównaj (aktualizacja falami / node-db-upgrade), zanim różnice urosną.'
           : 'Wersje zgodne z manifestem floty.',
       records: pozycje.map((p) => ({ label: p.co, expected: p.oczekiwane, actual: p.faktyczne ?? 'brak raportu', ok: p.zgodne ?? undefined })),
       docAttestation: [
@@ -746,7 +746,7 @@ export class NodeAuditService {
         title: 'Certyfikat TLS panelu DA',
         category: 'TLS',
         status: 'UNKNOWN',
-        summary: 'Brak hostname/daHost — nie można sprawdzić certyfikatu.',
+        summary: 'Brak hostname/daHost – nie można sprawdzić certyfikatu.',
         records: [],
         docAttestation: [],
         repair: null,
@@ -782,7 +782,7 @@ export class NodeAuditService {
     if (server.daAllowInvalidCert) {
       status = 'FAIL';
       summary =
-        `Weryfikacja certyfikatu DA jest WYŁĄCZONA (daAllowInvalidCert) — połączenie API↔DA ` +
+        `Weryfikacja certyfikatu DA jest WYŁĄCZONA (daAllowInvalidCert) – połączenie API↔DA ` +
         `podatne na MITM. Wdroż certyfikat na :${port} (verris-node-wildcard-tls.sh / ` +
         `node-directadmin-tls-http01.sh) i wyłącz opcję w konfiguracji DA węzła.`;
     }
@@ -795,9 +795,9 @@ export class NodeAuditService {
       summary,
       records: [
         { label: 'Host:port', actual: `${host}:${port}` },
-        { label: 'CN', actual: cn || '—' },
-        { label: 'SAN', expected: WILDCARD_TLS_SAN, actual: sans || '—', ok },
-        { label: 'Ważny do', actual: cert?.valid_to ?? '—' },
+        { label: 'CN', actual: cn || '–' },
+        { label: 'SAN', expected: WILDCARD_TLS_SAN, actual: sans || '–', ok },
+        { label: 'Ważny do', actual: cert?.valid_to ?? '–' },
         {
           label: 'Weryfikacja cert w API',
           expected: 'włączona',
@@ -809,7 +809,7 @@ export class NodeAuditService {
         {
           vendor: 'Verris',
           statement:
-            'Wildcard *.verris.pl wystawiany centralnie na control-plane (DNS-01 OVH) i wgrywany na :2222 węzła — nie obejmuje surowego IP.',
+            'Wildcard *.verris.pl wystawiany centralnie na control-plane (DNS-01 OVH) i wgrywany na :2222 węzła – nie obejmuje surowego IP.',
           reference: 'ops/docs/NODE_WILDCARD_TLS.md',
         },
       ],
@@ -867,7 +867,7 @@ export class NodeAuditService {
       actionId: 'repair-cagefs-enable',
       ok: true,
       message:
-        'Zlecono profil hostingowy — CageFS zostanie zainstalowany i włączony na węźle. Śledź log w sekcji „Profil hostingowy”. Status CageFS zaktualizuje się po następnym raporcie agenta.',
+        'Zlecono profil hostingowy – CageFS zostanie zainstalowany i włączony na węźle. Śledź log w sekcji „Profil hostingowy”. Status CageFS zaktualizuje się po następnym raporcie agenta.',
       check: updated ? this.checkCagefs(updated) : null,
     };
   }
@@ -915,7 +915,7 @@ export class NodeAuditService {
       {
         vendor: 'DirectAdmin',
         statement:
-          'W CMD_API_MANAGE_USER_PACKAGES (zweryfikowane na DA 1.697) o "Bez ograniczeń" decyduje SAMA OBECNOŚĆ parametru u<pole> — wartość jest ignorowana (u<pole>=no też daje unlimited). Realny limit wymaga wysłania tylko <pole>=<n> BEZ u<pole>.',
+          'W CMD_API_MANAGE_USER_PACKAGES (zweryfikowane na DA 1.697) o "Bez ograniczeń" decyduje SAMA OBECNOŚĆ parametru u<pole> – wartość jest ignorowana (u<pole>=no też daje unlimited). Realny limit wymaga wysłania tylko <pole>=<n> BEZ u<pole>.',
         reference: 'https://docs.directadmin.com/developer/api/legacy-api.html',
         verifiedAt: '2026-05-31',
       },
@@ -928,7 +928,7 @@ export class NodeAuditService {
       {
         vendor: 'DirectAdmin',
         statement:
-          'Limity systemd-cgroups pakietu (CPUQuota, MemoryHigh/Max, IO*BandwidthMax, IO*IOPSMax, TasksMax; cgroup=1, HAVE_CGROUPS=1) — puste pole = "Bez ograniczeń" (BRAK flagi u<pole>). Zweryfikowane na DA 1.697: zapis pakietu propaguje na istniejące konta i jest egzekwowany przez systemd (CPUQuotaPerSecUSec, MemoryMax, TasksMax na slice user-<uid>).',
+          'Limity systemd-cgroups pakietu (CPUQuota, MemoryHigh/Max, IO*BandwidthMax, IO*IOPSMax, TasksMax; cgroup=1, HAVE_CGROUPS=1) – puste pole = "Bez ograniczeń" (BRAK flagi u<pole>). Zweryfikowane na DA 1.697: zapis pakietu propaguje na istniejące konta i jest egzekwowany przez systemd (CPUQuotaPerSecUSec, MemoryMax, TasksMax na slice user-<uid>).',
         reference: 'https://www.directadmin.com/features.php?id=2934',
         verifiedAt: '2026-05-31',
       },
@@ -940,7 +940,7 @@ export class NodeAuditService {
       actionId: `repair-da-package-${slug}`,
       risk,
       label: `Napraw pakiet ${slug}`,
-      description: `Zapisze pakiet "${slug}" w DirectAdmin z realnymi limitami z planu: dysk, transfer (bez flag u*, które w DA oznaczają "Bez ograniczeń") oraz limity systemd-cgroups (CPUQuota, MemoryMax, IO, TasksMax — puste = bez ograniczeń) i język ${DA_DEFAULT_LANGUAGE}. Limity cgroups propagują również na ISTNIEJĄCE konta z tego pakietu (egzekwowane przez systemd).`,
+      description: `Zapisze pakiet "${slug}" w DirectAdmin z realnymi limitami z planu: dysk, transfer (bez flag u*, które w DA oznaczają "Bez ograniczeń") oraz limity systemd-cgroups (CPUQuota, MemoryMax, IO, TasksMax – puste = bez ograniczeń) i język ${DA_DEFAULT_LANGUAGE}. Limity cgroups propagują również na ISTNIEJĄCE konta z tego pakietu (egzekwowane przez systemd).`,
       requiresConfirmation: true,
       confirmValue: null,
       warning:

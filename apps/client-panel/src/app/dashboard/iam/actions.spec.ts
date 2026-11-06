@@ -43,7 +43,7 @@ describe('IAM: błędy formularzy', () => {
     expect(przekierowania).toEqual(['/accept-invite?token=tok%2F1&notice=blad']);
   });
 
-  it('P3-10 — aktywacja wysyła zgody do API; bez zaznaczonych zgód — komunikat, bez zapytania do API', async () => {
+  it('P3-10 – aktywacja wysyła zgody do API; bez zaznaczonych zgód – komunikat, bez zapytania do API', async () => {
     const { apiFetch } = jest.requireMock('@/lib/api') as { apiFetch: jest.Mock };
     apiFetch.mockClear();
     await expect(acceptInviteAction(form({ token: 'tok1', firstName: 'A', lastName: 'B', password: 'x'.repeat(10), acceptTerms: 'on' }))).rejects.toThrow('NEXT_REDIRECT');

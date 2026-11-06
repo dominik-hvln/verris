@@ -16,7 +16,7 @@ describe("menu obsługi według uprawnień (pozycja 12)", () => {
     expect(nazwy({ isAdmin: true, permissions: [] })).toHaveLength(13);
   });
 
-  it("F2.5 — „Nowe zgłoszenie” tylko z TICKETS_MANAGE (L1 tak, sam podgląd nie)", () => {
+  it("F2.5 – „Nowe zgłoszenie” tylko z TICKETS_MANAGE (L1 tak, sam podgląd nie)", () => {
     expect(nazwy({ isAdmin: false, permissions: L1 })).toContain("Nowe zgłoszenie");
     expect(nazwy({ isAdmin: false, permissions: ["TICKETS_VIEW"] })).not.toContain("Nowe zgłoszenie");
   });
@@ -25,7 +25,7 @@ describe("menu obsługi według uprawnień (pozycja 12)", () => {
     expect(nazwy({ isAdmin: false, permissions: [...L1, "MIGRATIONS_MANAGE"] })).toContain("Migracje");
   });
 
-  it("fail-closed: dostęp nieodczytany — tylko pozycje bez uprawnień, także dla „admina” z błędu", () => {
+  it("fail-closed: dostęp nieodczytany – tylko pozycje bez uprawnień, także dla „admina” z błędu", () => {
     const m = nazwy({ isAdmin: true, permissions: ["TICKETS_VIEW"], nieOdczytano: true });
     expect(m).toEqual(["Wnioski", "Baza wiedzy", "Ustawienia"]);
   });

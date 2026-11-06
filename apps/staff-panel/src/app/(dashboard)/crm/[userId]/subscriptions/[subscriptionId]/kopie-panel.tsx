@@ -12,7 +12,7 @@ const STATUS: Record<string, string> = {
   RUNNING: "przygotowanie",
   SAFETY_BACKUP: "kopia bezpieczeństwa",
   RESTORING: "serwer odtwarza (czekam na potwierdzenie)",
-  COMPLETED: "odtworzono — serwer potwierdził",
+  COMPLETED: "odtworzono – serwer potwierdził",
   FAILED: "nieudane",
 };
 const W_TOKU = ["QUEUED", "RUNNING", "SAFETY_BACKUP", "RESTORING"];
@@ -92,7 +92,7 @@ export function KopiePanel({
       ) : null}
       {bladOdczytu ? <p className="text-sm text-rose-300">{bladOdczytu}</p> : null}
       {dane?.fetchError ? (
-        <p className="text-sm text-amber-200">Serwer nie oddał listy kopii — lista może być niepełna: {dane.fetchError}</p>
+        <p className="text-sm text-amber-200">Serwer nie oddał listy kopii – lista może być niepełna: {dane.fetchError}</p>
       ) : null}
       {!dane ? null : dane.backups.length === 0 ? (
         <p className="text-sm text-muted-foreground">Na koncie nie ma kopii do odtworzenia.</p>

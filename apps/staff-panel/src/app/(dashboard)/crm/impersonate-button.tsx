@@ -18,7 +18,7 @@ export function StaffImpersonateButton({ userId, email }: Props) {
   const start = () => {
     setError(null);
     if (reason.trim().length < 10) {
-      setError("Powód jest wymagany — min. 10 znaków (zostanie zarchiwizowany).");
+      setError("Powód jest wymagany – min. 10 znaków (zostanie zarchiwizowany).");
       return;
     }
     startTransition(async () => {
@@ -66,7 +66,7 @@ export function StaffImpersonateButton({ userId, email }: Props) {
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 rows={3}
-                placeholder="np. Ticket #1234 — błąd DNS"
+                placeholder="np. Ticket #1234 – błąd DNS"
                 className="mt-1.5 w-full resize-none rounded-lg border border-white/10 bg-black/60 px-3 py-2 text-sm text-white placeholder:text-neutral-600 focus:border-amber-400 focus:outline-none"
                 aria-invalid={reason.length > 0 && reason.trim().length < 10}
               />

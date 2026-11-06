@@ -37,7 +37,7 @@ export default async function MigracjaZaKlientaPage({
           ? "Nie znaleziono usługi o tym ID."
           : e instanceof StaffApiError && e.status === 403
             ? "Twoja rola nie ma uprawnienia „Migracje (cockpit)”. Poproś administratora o jego nadanie."
-            : "Nie udało się pobrać usługi — spróbuj ponownie.";
+            : "Nie udało się pobrać usługi – spróbuj ponownie.";
     }
   }
 
@@ -53,7 +53,7 @@ export default async function MigracjaZaKlientaPage({
       <div>
         <h1 className="text-3xl font-bold text-white">Migracja za klienta</h1>
         <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-          Wypełnij dane starego hostingu (np. ze zgłoszenia). Klient dostanie e-mail z prośbą o zgodę i baner w panelu —
+          Wypełnij dane starego hostingu (np. ze zgłoszenia). Klient dostanie e-mail z prośbą o zgodę i baner w panelu –
           migracja wystartuje dopiero po jego „Zgadzam się”. Dane dostępowe są zaszyfrowane; jeśli klient nie zdecyduje
           w ciągu 7 dni, migracja zostanie anulowana, a dane usunięte.
         </p>
@@ -80,7 +80,7 @@ export default async function MigracjaZaKlientaPage({
         </form>
       ) : !usluga.account ? (
         <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-          Ta usługa nie ma konta hostingowego — nie ma dokąd przenieść danych.
+          Ta usługa nie ma konta hostingowego – nie ma dokąd przenieść danych.
         </p>
       ) : (
         <FormularzZaKlienta

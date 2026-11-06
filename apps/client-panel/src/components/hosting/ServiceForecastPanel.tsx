@@ -137,7 +137,7 @@ export default function ServiceForecastPanel({ serviceId }: { serviceId: string 
           ) : null}
 
           <p className="m-0 text-[11.5px] text-muted-foreground">
-            Prognoza orientacyjna, liczona przez Verris z historycznych metryk — nie stanowi gwarancji.
+            Prognoza orientacyjna, liczona przez Verris z historycznych metryk – nie stanowi gwarancji.
             {forecast.komentarzAi ? ' Opis i rekomendacje tworzy AI.' : ''}
           </p>
         </>

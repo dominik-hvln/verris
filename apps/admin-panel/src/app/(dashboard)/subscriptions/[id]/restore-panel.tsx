@@ -11,7 +11,7 @@ const STATUS: Record<string, string> = {
   RUNNING: 'przygotowanie',
   SAFETY_BACKUP: 'kopia bezpieczeństwa',
   RESTORING: 'serwer odtwarza (czekam na potwierdzenie)',
-  COMPLETED: 'odtworzono — serwer potwierdził',
+  COMPLETED: 'odtworzono – serwer potwierdził',
   FAILED: 'nieudane',
 };
 

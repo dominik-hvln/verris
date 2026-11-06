@@ -42,7 +42,7 @@ function Etykietowany({ start = '', disabled = false }: { start?: string; disabl
           setV(x);
         }}
         options={OPCJE}
-        placeholder="— wybierz temat —"
+        placeholder="– wybierz temat –"
         disabled={disabled}
       />
       <button type="button">Dalej</button>
@@ -79,7 +79,7 @@ const lista = (combo: HTMLElement) => document.getElementById(combo.getAttribute
 const opcje = (combo: HTMLElement) => [...lista(combo).querySelectorAll<HTMLElement>('[role="option"]')];
 const aktywna = (combo: HTMLElement) => document.getElementById(combo.getAttribute('aria-activedescendant') ?? '')?.textContent;
 
-describe('Select — nazwa i stan (APG select-only combobox)', () => {
+describe('Select – nazwa i stan (APG select-only combobox)', () => {
   it('combobox ma nazwę z widocznej etykiety <label for>, a nie z placeholdera', () => {
     const combo = renderuj(<Etykietowany />);
     expect(combo.getAttribute('role')).toBe('combobox');
@@ -89,7 +89,7 @@ describe('Select — nazwa i stan (APG select-only combobox)', () => {
     expect(combo.getAttribute('aria-labelledby')).toBe(etykieta.id);
     expect(etykieta.id).not.toBe('');
     // Placeholder to wartość, nie nazwa.
-    expect(combo.textContent).toContain('— wybierz temat —');
+    expect(combo.textContent).toContain('– wybierz temat –');
   });
 
   it('aria-labelledby wskazuje etykietę wprost (bez <label for>)', () => {
@@ -132,7 +132,7 @@ describe('Select — nazwa i stan (APG select-only combobox)', () => {
     expect(aktywna(combo)).toBe('Domeny');
   });
 
-  it('axe bez naruszeń — zamknięty i otwarty', async () => {
+  it('axe bez naruszeń – zamknięty i otwarty', async () => {
     const combo = renderuj(<Etykietowany start="domeny" />);
     const reguly = { runOnly: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'best-practice'] };
     expect((await axe.run(kontener, reguly)).violations.map((v) => v.id)).toEqual([]);
@@ -150,7 +150,7 @@ describe('Select — nazwa i stan (APG select-only combobox)', () => {
   });
 });
 
-describe('Select — klawiatura i fokus', () => {
+describe('Select – klawiatura i fokus', () => {
   it('↓ otwiera, ↓ przechodzi (pomija wyłączone), Enter wybiera, zamyka i zostawia fokus na polu', () => {
     const combo = renderuj(<Etykietowany start="domeny" />);
     combo.focus();
@@ -245,7 +245,7 @@ describe('Select — klawiatura i fokus', () => {
   });
 });
 
-describe('Select — użycia w panelu', () => {
+describe('Select – użycia w panelu', () => {
   /**
    * Strażnik: każde pole wyboru ma nazwę — `id` (z `<label htmlFor>` obok), `aria-labelledby` albo,
    * gdy widocznej etykiety nie ma, `aria-label`. Bez tego czytnik czyta tylko wartość/placeholder.

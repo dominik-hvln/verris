@@ -8,7 +8,7 @@ import { prisma, rozlacz, utworzPlan, wyczyscBaze } from './setup.js';
  * retencja 30 dni z kaskadą wiadomości, limity kosztu i dobowy limit IP liczone zapytaniami do bazy,
  * przebieg rozmowy w mailu „Poproś o telefon”. Anthropic zastąpiony atrapą (bez prawdziwych wywołań).
  */
-describe('asystent AI www — baza', () => {
+describe('asystent AI www – baza', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     await prisma().$executeRawUnsafe('TRUNCATE TABLE "AsystentRozmowa", "AsystentWiadomosc", "AiInteractionLog" CASCADE;');

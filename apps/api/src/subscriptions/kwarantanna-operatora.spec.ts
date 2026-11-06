@@ -49,7 +49,7 @@ function zbuduj() {
 
 const z = (powod = 'Zgłoszenie abuse: backdoor w uploads') => ({ subscriptionId: 's1', operatorUserId: OPERATOR, operatorRole: 'STAFF', powod, zgloszenie: '#ab12cd34' });
 
-describe('F3.2 — kwarantanna malware przez obsługę (G-12)', () => {
+describe('F3.2 – kwarantanna malware przez obsługę (G-12)', () => {
   it('plik z wyników skanera → zadanie kwarantanna konta (lista base64), wpis klienta z autorem = obsługa i zgłoszeniem', async () => {
     const { svc, wiersze, utworzone } = zbuduj();
     await svc.kwarantanna(z(), [PLIK]);
@@ -70,7 +70,7 @@ describe('F3.2 — kwarantanna malware przez obsługę (G-12)', () => {
 
   it('przywrócenie z kwarantanny: tylko wpis z ostatniego stanu → zadanie przywroc', async () => {
     const { svc, utworzone } = zbuduj();
-    await svc.przywrocZKwarantanny(z('Fałszywy alarm — plik wtyczki z repozytorium'), [WPIS]);
+    await svc.przywrocZKwarantanny(z('Fałszywy alarm – plik wtyczki z repozytorium'), [WPIS]);
     expect(utworzone[0]).toMatchObject({ payload: { mode: 'przywroc', pathsB64: Buffer.from(WPIS).toString('base64') } });
     await expect(zbuduj().svc.przywrocZKwarantanny(z(), [`20261010T100000Z-ffff/${PLIK}`])).rejects.toMatchObject({ status: 400 });
   });

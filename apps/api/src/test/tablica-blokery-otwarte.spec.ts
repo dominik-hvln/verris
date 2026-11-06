@@ -23,7 +23,7 @@ function funkcjeZSzablonu(): { otwartyBloker: (r: Wiersz) => boolean } {
 }
 
 describe('Tablica luk: blokery startu liczone jako otwarte', () => {
-  it('bloker z werdyktem PARYTET/PRZEWAGA nie jest otwarty; bez nich — jest', () => {
+  it('bloker z werdyktem PARYTET/PRZEWAGA nie jest otwarty; bez nich – jest', () => {
     const { otwartyBloker } = funkcjeZSzablonu();
     expect(otwartyBloker({ kr: 'BLOKER STARTU', w: 'PARYTET' })).toBe(false);
     expect(otwartyBloker({ kr: 'BLOKER STARTU', w: 'PRZEWAGA' })).toBe(false);

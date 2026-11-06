@@ -141,7 +141,7 @@ async function potwierdz(s: ReturnType<typeof zbuduj>, rekId: string) {
   await new Promise((r) => setTimeout(r, 0));
 }
 
-describe('Paynow — zakup nowej usługi', () => {
+describe('Paynow – zakup nowej usługi', () => {
   it('płatność na pełną cenę usługi, z danymi zamówienia w metadanych i powrotem „zamówienie”', async () => {
     const s = zbuduj();
     utworzonaPaynow();
@@ -152,13 +152,13 @@ describe('Paynow — zakup nowej usługi', () => {
     expect(body).toMatchObject({
       amount: 46800,
       currency: 'PLN',
-      description: 'Hosting Start — 12 mies. (przyklad.pl) — Verris',
+      description: 'Hosting Start – 12 mies. (przyklad.pl) – Verris',
       continueUrl: `https://panel.verris.pl/dashboard/billing?paynow=${rek.id}&zamowienie=1`,
     });
     expect(rek.meta).toMatchObject({ kind: 'zamowienie', zamowienieTyp: 'nowa', subscriptionId: 'sub-1', domena: 'przyklad.pl', region: 'PL-WAW', vatKod: 'PL' });
   });
 
-  it('klient rozliczany netto płaci cenę / 1,23 zaokrągloną w górę — wpłata pokrywa usługę', async () => {
+  it('klient rozliczany netto płaci cenę / 1,23 zaokrągloną w górę – wpłata pokrywa usługę', async () => {
     const s = zbuduj({ cenaNetto: true });
     utworzonaPaynow();
     await s.svc.zaplacZamowieniePaynow('u1', { subscriptionId: 'sub-1', kwotaK: new Prisma.Decimal('40.30'), domena: 'a.de' });
@@ -187,7 +187,7 @@ describe('Paynow — zakup nowej usługi', () => {
     await potwierdz(s, rek.id);
     await potwierdz(s, rek.id); // duplikat powiadomienia
     expect(s.doladowanie.zaksieguj).toHaveBeenCalledWith(
-      expect.objectContaining({ kwotaMinor: 46800, nazwaPozycji: 'Hosting Start — 12 mies. (przyklad.pl), okres 13.10.2026–13.10.2027' }),
+      expect.objectContaining({ kwotaMinor: 46800, nazwaPozycji: 'Hosting Start – 12 mies. (przyklad.pl), okres 13.10.2026–13.10.2027' }),
     );
     expect(s.subscriptions.oplacZamowienieZPortfela).toHaveBeenCalledTimes(1);
     expect(s.subscriptions.oplacZamowienieZPortfela).toHaveBeenCalledWith('u1', 'sub-1', { domain: 'przyklad.pl', preferredRegion: null });
@@ -212,7 +212,7 @@ describe('Paynow — zakup nowej usługi', () => {
   });
 });
 
-describe('Paynow — zaległe odnowienie', () => {
+describe('Paynow – zaległe odnowienie', () => {
   const zalegla = { status: 'PAST_DUE', interval: 'MONTH' as const, currentPeriodEnd: new Date('2026-10-10T09:00:00Z'), account: { domain: 'sklep.pl' } };
 
   it('kwota odnowienia z cennika usługi; po wpłacie dokument „odnowienie” od końca opłaconego okresu i odnowienie z portfela', async () => {
@@ -224,7 +224,7 @@ describe('Paynow — zaległe odnowienie', () => {
     expect(rek.meta).toMatchObject({ kind: 'zamowienie', zamowienieTyp: 'odnowienie', subscriptionId: 'sub-1' });
     await potwierdz(s, rek.id);
     expect(s.doladowanie.zaksieguj).toHaveBeenCalledWith(
-      expect.objectContaining({ nazwaPozycji: 'Hosting Start — odnowienie miesięczne (sklep.pl), okres 10.10.2026–10.11.2026' }),
+      expect.objectContaining({ nazwaPozycji: 'Hosting Start – odnowienie miesięczne (sklep.pl), okres 10.10.2026–10.11.2026' }),
     );
     expect(s.renewal.retryPastDueNow).toHaveBeenCalledWith('u1', 'sub-1');
     expect(s.subscriptions.oplacZamowienieZPortfela).not.toHaveBeenCalled();
@@ -253,7 +253,7 @@ describe('Paynow — zaległe odnowienie', () => {
   });
 });
 
-describe('Paynow — ponowienie płatności za zamówienie (BLIK odrzucony, okno zamknięte)', () => {
+describe('Paynow – ponowienie płatności za zamówienie (BLIK odrzucony, okno zamknięte)', () => {
   it('poprzednia płatność nieudana → nowa płatność za tę samą usługę z tą samą domeną', async () => {
     const s = zbuduj();
     utworzonaPaynow();
@@ -280,7 +280,7 @@ describe('Paynow — ponowienie płatności za zamówienie (BLIK odrzucony, okno
   });
 });
 
-describe('Paynow — zamówienie a skutki uboczne wpłaty', () => {
+describe('Paynow – zamówienie a skutki uboczne wpłaty', () => {
   it('błąd skutków ubocznych (dziennik) nie zatrzymuje realizacji opłaconego zamówienia', async () => {
     const s = zbuduj();
     utworzonaPaynow();
@@ -297,7 +297,7 @@ describe('Paynow — zamówienie a skutki uboczne wpłaty', () => {
  * PB-08 (e2e 14.10): zakup usługi Paynow nie trafiał do GA4 — po powrocie z Paynow strona nie miała danych zakupu.
  * Sprawdzenie statusu po powrocie zwraca je tylko dla opłaconej NOWEJ usługi.
  */
-describe('Paynow — dane zakupu po powrocie (PB-08)', () => {
+describe('Paynow – dane zakupu po powrocie (PB-08)', () => {
   const poId = (s: ReturnType<typeof zbuduj>) =>
     s.paynowPlatnosc.findFirst.mockImplementation((async ({ where }: { where: { id: string; userId: string } }) => {
       const r = s.rekordy.get(where.id);

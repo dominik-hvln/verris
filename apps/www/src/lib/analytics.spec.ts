@@ -28,7 +28,7 @@ afterEach(() => {
   delete w.window;
 });
 
-describe('CL-05 generateLead — jeden event_id dla dataLayer, Pixela i CAPI', () => {
+describe('CL-05 generateLead – jeden event_id dla dataLayer, Pixela i CAPI', () => {
   it('ze zgodą marketingową: ten sam event_id w trzech miejscach', async () => {
     zgoda.mockReturnValue({ v: 1, ts: 't', functional: false, analytics: false, marketing: true });
     const eventId = events.generateLead('kontakt');

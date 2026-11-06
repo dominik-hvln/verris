@@ -89,7 +89,7 @@ describe('kredyty na autoskalowanie zamiast rabatu na start (decyzja 6.11.2026)'
   });
   afterAll(rozlacz);
 
-  it('pierwszy zakup hostingu (rok): cena z cennika, kwota zapisana na zamówieniu, pula dopiero po założeniu konta — 60 zł na 12 miesięcy', async () => {
+  it('pierwszy zakup hostingu (rok): cena z cennika, kwota zapisana na zamówieniu, pula dopiero po założeniu konta – 60 zł na 12 miesięcy', async () => {
     await utworzWezel();
     const plan = await utworzPlan({ productKind: 'HOSTING', priceMonthly: 45, priceYearly: 449 });
     const k = await klient(500);
@@ -121,7 +121,7 @@ describe('kredyty na autoskalowanie zamiast rabatu na start (decyzja 6.11.2026)'
     expect(await prisma().walletTransaction.count({ where: { userId: k.id, type: { not: WalletTxType.CHARGE_SUBSCRIPTION } } })).toBe(0);
   });
 
-  it('pierwszy zakup miesięczny: 10 zł; kolejny zakup hostingu — bez kredytów i bez drugiej puli', async () => {
+  it('pierwszy zakup miesięczny: 10 zł; kolejny zakup hostingu – bez kredytów i bez drugiej puli', async () => {
     await utworzWezel();
     const plan = await utworzPlan({ productKind: 'HOSTING', priceMonthly: 45, priceYearly: 449 });
     const k = await klient(600);
@@ -201,7 +201,7 @@ describe('kredyty na autoskalowanie zamiast rabatu na start (decyzja 6.11.2026)'
     expect(await prisma().kredytAutoskalowaniaUzycie.count()).toBe(0);
   });
 
-  it('planu ani domeny z puli nie opłacisz: zamówienie hostingu i obciążenie za domenę przy pustym portfelu — odmowa', async () => {
+  it('planu ani domeny z puli nie opłacisz: zamówienie hostingu i obciążenie za domenę przy pustym portfelu – odmowa', async () => {
     const plan = await utworzPlan({ productKind: 'HOSTING', priceMonthly: 45, priceYearly: 449 });
     const k = await zPula(0, 60);
     await expect(zamowienia().create(k.id, zamowienie(plan.id, 'MONTH', 'bez-pieniedzy.pl'))).rejects.toThrow('Za mało środków');

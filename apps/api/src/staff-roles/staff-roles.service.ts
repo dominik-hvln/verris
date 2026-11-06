@@ -152,7 +152,7 @@ export class StaffRolesService implements OnModuleInit {
     if (!poza.length) return;
     const etykiety = poza.map((k) => STAFF_PERMISSIONS.find((p) => p.key === k)?.label ?? k);
     throw new ForbiddenException(
-      `${co} — wykracza poza Twoje uprawnienia albo dotyczy uprawnień tylko dla administratora: ${etykiety.join('; ')}.`,
+      `${co} – wykracza poza Twoje uprawnienia albo dotyczy uprawnień tylko dla administratora: ${etykiety.join('; ')}.`,
     );
   }
 
@@ -182,7 +182,7 @@ export class StaffRolesService implements OnModuleInit {
     const role = await this.roles.findUnique({ where: { id } });
     if (!role) throw new NotFoundException('Rola nie istnieje.');
     if (role.isSystem) {
-      throw new BadRequestException('Roli systemowej nie można edytować — sklonuj ją jako własną i zmień kopię.');
+      throw new BadRequestException('Roli systemowej nie można edytować – sklonuj ją jako własną i zmień kopię.');
     }
     const zakres = await this.zakresAktora(aktor);
     this.wymagajZakresu(zakres, role.permissions, 'Nie możesz edytować tej roli');
@@ -286,10 +286,10 @@ export class StaffRolesService implements OnModuleInit {
    */
   async setOperatorRoles(userId: string, roleIds: string[], aktor: AktorZmianyRol) {
     const zakres = await this.zakresAktora(aktor);
-    if (zakres && userId === aktor.userId) throw new ForbiddenException('Nie możesz zmieniać własnych ról — poproś administratora.');
+    if (zakres && userId === aktor.userId) throw new ForbiddenException('Nie możesz zmieniać własnych ról – poproś administratora.');
     const user = await this.users.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('Operator nie istnieje.');
-    if (user.role === 'ADMIN') throw new BadRequestException('ADMIN ma pełny dostęp — rola działowa nie ma zastosowania.');
+    if (user.role === 'ADMIN') throw new BadRequestException('ADMIN ma pełny dostęp – rola działowa nie ma zastosowania.');
     if (user.role !== 'STAFF') throw new BadRequestException('Rolę można przypisać tylko operatorom (STAFF).');
     const ids = [...new Set(roleIds.map(String).filter(Boolean))];
     const role = ids.length ? await this.roles.findMany({ where: { id: { in: ids } } }) : [];

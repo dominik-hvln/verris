@@ -20,7 +20,7 @@ export default async function UstawieniaAiPage() {
         <h1 className="text-[28px] lg:text-[34px]">Asystent AI</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Dwa poziomy: szybki (czat i podpowiedzi) oraz analiza (prognozy zasobów, szkice odpowiedzi obsługi).
-          Nowszy model to zmiana tutaj — bez wdrożenia.
+          Nowszy model to zmiana tutaj – bez wdrożenia.
         </p>
       </header>
       <UstawieniaAiForm initial={ustawienia} />

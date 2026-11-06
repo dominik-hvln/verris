@@ -16,7 +16,7 @@ export interface WidokStosu {
 }
 
 type Wynik<T> = { ok: true; data: T } | { ok: false; error: string };
-const blad = (e: unknown) => (e instanceof AdminApiError ? e.message : "Nie udało się — spróbuj ponownie.");
+const blad = (e: unknown) => (e instanceof AdminApiError ? e.message : "Nie udało się – spróbuj ponownie.");
 
 export async function pobierzStos(): Promise<Wynik<WidokStosu>> {
   try {

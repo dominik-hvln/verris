@@ -46,7 +46,7 @@ export class AutoscalingBillingScheduler {
     });
 
     if (subs.length === 0) {
-      this.logger.debug('Autoscaling block billing — nothing active');
+      this.logger.debug('Autoscaling block billing – nothing active');
       return { processed: 0, charged: 0, blocks: 0, depleted: 0 };
     }
 

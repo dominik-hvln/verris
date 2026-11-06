@@ -17,7 +17,7 @@ function uslugi() {
 const DZIEN = 24 * 60 * 60 * 1000;
 const temu = (dni: number, now: Date) => new Date(now.getTime() - dni * DZIEN);
 
-describe('Formularze verris.pl — plan migracji i retencja', () => {
+describe('Formularze verris.pl – plan migracji i retencja', () => {
   // SiteLead nie ma relacji do tabel z `wyczyscBaze` — czyścimy go sami.
   beforeEach(async () => {
     await wyczyscBaze();

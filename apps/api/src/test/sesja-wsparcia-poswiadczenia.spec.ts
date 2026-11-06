@@ -26,7 +26,7 @@ describe('Sesja wsparcia nie tworzy trwałych poświadczeń konta klienta', () =
   it.each([
     ['createHostingFtp', '/services/:id/hosting-ftp'],
     ['changeHostingFtpPassword', '/services/:id/hosting-ftp/:username/password'],
-  ])('%s: w impersonacji 403, klient sam — przepuszczony', (metoda, path) => {
+  ])('%s: w impersonacji 403, klient sam – przepuszczony', (metoda, path) => {
     expect(() => guard.canActivate(kontekst(UserServicesController, metoda, WSPARCIE, path))).toThrow(ForbiddenException);
     expect(guard.canActivate(kontekst(UserServicesController, metoda, KLIENT, path))).toBe(true);
   });

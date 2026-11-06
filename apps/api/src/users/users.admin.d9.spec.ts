@@ -42,7 +42,7 @@ function serwis(cel: Record<string, unknown> = KLIENT, mailer = { send: vi.fn(as
   return { svc, audit, prisma, mailer };
 }
 
-describe('D9 — historia logowań klienta', () => {
+describe('D9 – historia logowań klienta', () => {
   it('STAFF na koncie klienta: dane + wpis w dzienniku (zakładka logowania)', async () => {
     const { svc, audit } = serwis();
     const r = await svc.getLoginHistory('u1', { actorUserId: 'op1', actorRole: Role.STAFF });
@@ -55,7 +55,7 @@ describe('D9 — historia logowań klienta', () => {
     });
   });
 
-  it('STAFF na koncie operatora — 403 bez wpisu (historia zespołu zostaje dla ADMIN-a)', async () => {
+  it('STAFF na koncie operatora – 403 bez wpisu (historia zespołu zostaje dla ADMIN-a)', async () => {
     const { svc, audit } = serwis({ ...KLIENT, role: Role.STAFF });
     await expect(svc.getLoginHistory('u1', { actorUserId: 'op1', actorRole: Role.STAFF })).rejects.toBeInstanceOf(ForbiddenException);
     expect(audit.record).not.toHaveBeenCalled();
@@ -68,7 +68,7 @@ describe('D9 — historia logowań klienta', () => {
   });
 });
 
-describe('D9/D3 — reset hasła klienta przez operatora', () => {
+describe('D9/D3 – reset hasła klienta przez operatora', () => {
   it('odpowiedź bez hasła; klient dostaje link z tokenem, który trafia do bazy jako hash', async () => {
     const { svc, prisma, mailer, audit } = serwis();
     const r = await svc.resetCustomerPassword('u1', 'op1', { reason: 'zgłoszenie #12: nie pamięta hasła' }, {}, { role: Role.STAFF });
@@ -97,12 +97,12 @@ describe('D9/D3 — reset hasła klienta przez operatora', () => {
     );
   });
 
-  it('mail nie wyszedł — wynik to mówi (operator poleci „Nie pamiętasz hasła?”), bez wyjątku', async () => {
+  it('mail nie wyszedł – wynik to mówi (operator poleci „Nie pamiętasz hasła?”), bez wyjątku', async () => {
     const { svc } = serwis(KLIENT, { send: vi.fn(async () => Promise.reject(new Error('smtp'))) });
     expect(await svc.resetCustomerPassword('u1', 'op1', { reason: 'zgłoszenie #12' }, {}, { role: Role.STAFF })).toMatchObject({ linkWyslany: false });
   });
 
-  it('audyt Fal 2: e-mail zmieniony przez obsługę w ostatnich 24 h — STAFF dostaje 403 WYMAGA_WNIOSKU, nic się nie zmienia; ADMIN i akceptacja wniosku przechodzą', async () => {
+  it('audyt Fal 2: e-mail zmieniony przez obsługę w ostatnich 24 h – STAFF dostaje 403 WYMAGA_WNIOSKU, nic się nie zmienia; ADMIN i akceptacja wniosku przechodzą', async () => {
     const { svc, prisma, mailer } = serwis(KLIENT, undefined, { zmianaEmaila: true });
     const blad = await svc.resetCustomerPassword('u1', 'op1', { reason: 'zgłoszenie #12' }, {}, { role: Role.STAFF }).catch((e: unknown) => e);
     expect(blad).toBeInstanceOf(ForbiddenException);
@@ -129,13 +129,13 @@ describe('D9/D3 — reset hasła klienta przez operatora', () => {
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
   });
 
-  it('konto operatora — 403 (tylko konta klientów)', async () => {
+  it('konto operatora – 403 (tylko konta klientów)', async () => {
     const { svc } = serwis({ ...KLIENT, role: Role.STAFF });
     await expect(svc.resetCustomerPassword('u1', 'adm', { reason: 'zgłoszenie #12' }, {}, { role: Role.ADMIN })).rejects.toBeInstanceOf(ForbiddenException);
   });
 });
 
-describe('audyt Fal 2 — zmiana e-maila klienta przez obsługę', () => {
+describe('audyt Fal 2 – zmiana e-maila klienta przez obsługę', () => {
   function zmiana() {
     const audit = { record: vi.fn(async () => undefined) };
     const mailer = { send: vi.fn(async () => undefined) };

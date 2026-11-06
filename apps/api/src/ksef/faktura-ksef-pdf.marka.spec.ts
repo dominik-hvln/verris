@@ -33,7 +33,7 @@ function wizualizacja(nabywca?: string) {
   return { wiz, meta };
 }
 
-describe('PDF faktury KSeF — marka Verris', () => {
+describe('PDF faktury KSeF – marka Verris', () => {
   it('kroje marki: Hanken Grotesk w tekście, JetBrains Mono w kwotach; bez DejaVu, gdy niepotrzebny', async () => {
     const { wiz, meta } = wizualizacja();
     const kroje = await krojeWPdf((await renderujFaktureKsefZTekstem(wiz, meta)).pdf);

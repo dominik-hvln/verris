@@ -9,7 +9,7 @@ import { DpaPdfService } from '../../compliance/dpa-pdf.service.js';
  * w stałym nagłówku „Data sprzedaży” — żadna faktura ani DPA nie powstawała,
  * a nic tego nie sprawdzało, bo nikt nie renderował PDF-a w teście.
  */
-const PL = 'Zażółć gęślą jaźń — ŁÓDŹ, ul. Źródlana 5, „cudzysłów”, € 1 000,00 • ✓';
+const PL = 'Zażółć gęślą jaźń – ŁÓDŹ, ul. Źródlana 5, „cudzysłów”, € 1 000,00 • ✓';
 
 describe('PDF z polskimi znakami', () => {
   it('faktura', async () => {
@@ -46,7 +46,7 @@ describe('PDF z polskimi znakami', () => {
   });
 });
 
-describe('fontkitZModulu — kształt modułu jak w jest i jak w paczce webpacka', () => {
+describe('fontkitZModulu – kształt modułu jak w jest i jak w paczce webpacka', () => {
   const fk = { create: () => null };
 
   it('CommonJS/UMD (jest): obiekt z create', () => {

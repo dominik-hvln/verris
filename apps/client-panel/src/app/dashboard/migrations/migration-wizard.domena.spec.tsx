@@ -42,7 +42,7 @@ it('lista domen konta → wybór z listy (domena konta domyślnie), bez pola do 
   expect(pole.textContent).toContain('firma.pl (domena konta)');
 });
 
-it('bez listy (błąd serwera) — pole tekstowe jak dotąd', async () => {
+it('bez listy (błąd serwera) – pole tekstowe jak dotąd', async () => {
   mockDomeny.mockResolvedValue({ ok: false, blad: 'serwer niedostępny' });
   await otworz();
   expect(poleDomeny().querySelector('input')).not.toBeNull();

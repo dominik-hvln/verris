@@ -7,7 +7,7 @@ import type { RetrievedChunk } from './knowledge-base.service.js';
  * Panel otwiera artykuł po slugu (`/dashboard/knowledge?article=<slug>`). Wcześniej szło
  * wewnętrzne id dokumentu indeksu AI, więc kliknięta podpowiedź nie otwierała niczego.
  */
-describe('N-05 — kbSuggest', () => {
+describe('N-05 – kbSuggest', () => {
   const chunk = (docId: string, title: string, sourceRef: string | null): RetrievedChunk => ({
     docId,
     title,
@@ -48,8 +48,8 @@ describe('N-05 — kbSuggest', () => {
 });
 
 /** Asystent w panelu klienta (6.11) — źródła odpowiedzi jako linki do artykułów, więc odpowiedź niesie slug. */
-describe('dedupeSources — slug artykułu Bazy wiedzy', () => {
-  it('artykuł Bazy wiedzy ma slug; inne źródła i puste slugi — null; duplikaty raz', () => {
+describe('dedupeSources – slug artykułu Bazy wiedzy', () => {
+  it('artykuł Bazy wiedzy ma slug; inne źródła i puste slugi – null; duplikaty raz', () => {
     expect(
       dedupeSources([
         { docId: 'd1', title: 'Poczta', sourceRef: 'kb-cms:konfiguracja-poczty' },

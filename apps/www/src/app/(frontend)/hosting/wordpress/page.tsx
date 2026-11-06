@@ -12,7 +12,7 @@ import { PHP_ZAKRES, zweryfikowane } from '@/lib/oferta';
 
 // Makieta 14.10, plansza HostingWordpress (title z makiety, 59 zn.).
 export const metadata: Metadata = {
-  title: 'Hosting WordPress — szybki, z kopiami i stagingiem | Verris',
+  title: 'Hosting WordPress – szybki, z kopiami i stagingiem | Verris',
   description:
     'Hosting WordPress z cache LiteSpeed, wersją testową strony i kopiami, które przywracasz sam. Przeniesienie WordPressa gratis. Cena odnowienia znana z góry.',
   alternates: { canonical: '/hosting/wordpress' },
@@ -74,7 +74,7 @@ const W_PAKIECIE = zweryfikowane([
 
 const PRZENIESIENIE: [string, string][] = [
   ['Koszt przeniesienia', '0 zł'],
-  ['Przerwa w działaniu', 'brak — stara strona działa do przełączenia'],
+  ['Przerwa w działaniu', 'brak – stara strona działa do przełączenia'],
   ['Ty podajesz', 'dostęp do starego hostingu i hasła skrzynek'],
 ];
 
@@ -93,11 +93,11 @@ const faqWordpressa = (c: CenaPakietu): [string, string][] => [
   ],
   [
     'Czy mogę testować zmiany bez ryzyka?',
-    'Tak. Wersję testową strony tworzysz jednym kliknięciem. A gdy coś pójdzie nie tak na stronie, przywracasz kopię — przed przywróceniem system zapisuje kopię bezpieczeństwa obecnego stanu.',
+    'Tak. Wersję testową strony tworzysz jednym kliknięciem. A gdy coś pójdzie nie tak na stronie, przywracasz kopię – przed przywróceniem system zapisuje kopię bezpieczeństwa obecnego stanu.',
   ],
   [
     'Czy WooCommerce też będzie działać szybko?',
-    'Tak. Dla sklepów mamy osobną stronę z opisem tego, co ważne przy zamówieniach i koszyku — zobacz hosting dla sklepu.',
+    'Tak. Dla sklepów mamy osobną stronę z opisem tego, co ważne przy zamówieniach i koszyku – zobacz hosting dla sklepu.',
   ],
 ];
 

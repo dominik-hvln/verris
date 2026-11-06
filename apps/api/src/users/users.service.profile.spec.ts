@@ -86,7 +86,7 @@ describe('UsersService.getProfile (IAM)', () => {
     );
   });
 
-  it('PB-16: zapisuje widok i motyw panelu — także subkontu (preferencje są osobiste)', async () => {
+  it('PB-16: zapisuje widok i motyw panelu – także subkontu (preferencje są osobiste)', async () => {
     const update = vi.fn().mockResolvedValue({
       id: 'sub-1',
       email: 'ops@firma.pl',
@@ -142,7 +142,7 @@ describe('UsersService.getProfile (IAM)', () => {
   describe('kraj rozliczenia i NIP po pierwszej płatności (decyzja 09.10)', () => {
     const klient = { id: 'u1', customerOwnerId: null, companyName: 'ACME', nip: '123 456', address: null, city: null, postalCode: null, country: 'US' };
 
-    it('klient po płatności nie zmieni sam kraju — 403 z komunikatem po polsku, bez zapisu', async () => {
+    it('klient po płatności nie zmieni sam kraju – 403 z komunikatem po polsku, bez zapisu', async () => {
       const update = vi.fn();
       (prisma.user as unknown as { update: Mock }).update = update;
       prisma.user.findUnique.mockResolvedValue(klient);
@@ -154,7 +154,7 @@ describe('UsersService.getProfile (IAM)', () => {
     });
 
     // P2-05 (paczka 109) — NIP klient poprawia sam także po płatności (faktury mają kopię danych nabywcy), weryfikacja się zeruje.
-    it('klient po opłaconej fakturze poprawia NIP sam — zapis i wyzerowana weryfikacja nabywcy', async () => {
+    it('klient po opłaconej fakturze poprawia NIP sam – zapis i wyzerowana weryfikacja nabywcy', async () => {
       const update = vi.fn().mockResolvedValue({ id: 'u1', nip: '999', sidebarQuickLinks: [] });
       (prisma.user as unknown as { update: Mock }).update = update;
       prisma.user.findUnique.mockResolvedValue(klient);

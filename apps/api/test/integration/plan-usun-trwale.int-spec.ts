@@ -9,7 +9,7 @@ const plany = () => {
   return new PlansService(p, new AuditService(p), null as never, null as never);
 };
 
-describe('Plan — trwałe usunięcie', () => {
+describe('Plan – trwałe usunięcie', () => {
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 
@@ -19,7 +19,7 @@ describe('Plan — trwałe usunięcie', () => {
     expect(await prisma().plan.findUnique({ where: { id: plan.id } })).toBeNull();
   });
 
-  it('plan z subskrypcją (także zakończoną) — odmowa, plan zostaje', async () => {
+  it('plan z subskrypcją (także zakończoną) – odmowa, plan zostaje', async () => {
     const plan = await utworzPlan();
     const wezel = await utworzWezel();
     const k = await utworzKonto({ serverId: wezel.id, planId: plan.id });

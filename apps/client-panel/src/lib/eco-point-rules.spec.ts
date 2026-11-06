@@ -38,7 +38,7 @@ const PLATFORM = { ecoPointsPerTree: 1500, ecoPointsPer10Credits: 120, ecoBadgeI
 describe('X-05 zasady punktów EKO', () => {
   const rules = buildEcoPointRules(PLATFORM);
 
-  it('identyfikatory zasad są unikalne i każdy ma etykietę w historii — i odwrotnie', () => {
+  it('identyfikatory zasad są unikalne i każdy ma etykietę w historii – i odwrotnie', () => {
     const ids = rules.map((r) => r.id);
     expect(new Set(ids).size).toBe(ids.length);
     expect([...ids].sort()).toEqual(Object.keys(ECO_LEDGER_REASON_LABEL).sort());

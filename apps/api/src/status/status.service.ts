@@ -38,8 +38,8 @@ const HISTORIA_DNI = 90;
 export function tytulIncydentuDlaKlienta(i: { title: string; severity: string; detectionMeta: unknown }): string {
   if (isManualIncident(i.detectionMeta)) return i.title;
   return i.severity === 'MAJOR'
-    ? 'Usługa jest niedostępna lub działa z przerwami — pracujemy nad tym.'
-    : 'Usługa może działać wolniej niż zwykle — pracujemy nad tym.';
+    ? 'Usługa jest niedostępna lub działa z przerwami – pracujemy nad tym.'
+    : 'Usługa może działać wolniej niż zwykle – pracujemy nad tym.';
 }
 
 /** Usługa widoczna klientom (np. „Strony klientów”) — bez nazw węzłów, hostów i rodzajów sond. */

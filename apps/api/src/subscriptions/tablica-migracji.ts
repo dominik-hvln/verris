@@ -108,7 +108,7 @@ export function brakiDoEtapu(m: StanMigracji, cel: Etap): string[] {
       // Checklista „potwierdzanie” (przed przełączeniem DNS).
       return [...automat, ...wymagane(m.checklista, ['ttl300', 'testTymczasowy'])];
     case 'PO_PRZELACZENIU':
-      return m.cutoverAt ? [] : ['DNS nie wskazuje jeszcze na nas — użyj „Sprawdź DNS”'];
+      return m.cutoverAt ? [] : ['DNS nie wskazuje jeszcze na nas – użyj „Sprawdź DNS”'];
     case 'ZAMKNIETA':
       // Checklista „zamykanie”: podsumowanie, optymalizacja, raport z testem przed/po — wszystko wychodzi raportem.
       return m.raportWyslanyAt ? wymagane(m.checklista, POLA_RAPORTU) : ['Raport pomigracyjny nie został wysłany klientowi'];
@@ -141,7 +141,7 @@ export function przejscie(m: StanMigracji, cel: Etap, powod?: string | null): Wy
     return { ok: true, kierunek: 'wstecz' };
   }
   if (m.status === 'CANCELED') return { ok: false, bledy: ['Migracja jest anulowana'] };
-  if (na !== z + 1) return { ok: false, bledy: [`Najpierw „${ETAP_PL[ETAPY[z + 1]!]}” — etapów nie przeskakujemy`] };
+  if (na !== z + 1) return { ok: false, bledy: [`Najpierw „${ETAP_PL[ETAPY[z + 1]!]}” – etapów nie przeskakujemy`] };
   const braki = brakiDoEtapu(m, cel);
   return braki.length ? { ok: false, bledy: braki } : { ok: true, kierunek: 'naprzod' };
 }

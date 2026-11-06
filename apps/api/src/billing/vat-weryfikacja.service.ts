@@ -58,8 +58,8 @@ export class VatWeryfikacjaService {
     if (kraj === 'PL' || kraj in STAWKI_UE) {
       throw new BadRequestException(
         kraj === 'PL'
-          ? 'Nabywca z Polski — zawsze 23% VAT, weryfikacja nie dotyczy.'
-          : 'Firma z UE: status sprawdza VIES przy płatności na podstawie numeru VAT-UE z profilu — ręczna weryfikacja nie dotyczy.',
+          ? 'Nabywca z Polski – zawsze 23% VAT, weryfikacja nie dotyczy.'
+          : 'Firma z UE: status sprawdza VIES przy płatności na podstawie numeru VAT-UE z profilu – ręczna weryfikacja nie dotyczy.',
       );
     }
     const teraz = new Date();
@@ -115,7 +115,7 @@ export class VatWeryfikacjaService {
     wymagajTekstu(dto.powod, 5, 'Powód zmiany: co najmniej 5 znaków (np. numer zgłoszenia).');
     const u = await this.nabywca(userId, op);
     const zmiana = zmianaDanychVat(u, { country: dto.country, nip: dto.nip });
-    if (!zmiana.kraj && !zmiana.nip) throw new BadRequestException('Kraj i NIP są takie same jak w profilu — nic do zmiany.');
+    if (!zmiana.kraj && !zmiana.nip) throw new BadRequestException('Kraj i NIP są takie same jak w profilu – nic do zmiany.');
     const zapisany = await this.prisma.$transaction(async (tx) => {
       const w = await tx.user.update({
         where: { id: u.id },

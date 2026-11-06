@@ -24,7 +24,7 @@ export function BackupNowButton({ serviceId }: { serviceId: string }) {
           else
             setMsg({
               type: 'ok',
-              text: 'Kopia zapasowa została zlecona. Może potrwać kilka minut — odśwież listę później.',
+              text: 'Kopia zapasowa została zlecona. Może potrwać kilka minut – odśwież listę później.',
             });
         }}
       >

@@ -33,7 +33,7 @@ async function renderuj() {
 }
 const ukryte = (el: HTMLElement) => (el.querySelector('input[name="subscriptionId"]') as HTMLInputElement | null)?.value;
 
-describe('nowe zgłoszenie — usługa', () => {
+describe('nowe zgłoszenie – usługa', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('jedyna usługa wybrana od razu i trafia do wysyłki', async () => {
@@ -62,7 +62,7 @@ describe('nowe zgłoszenie — usługa', () => {
     act(() => root.unmount());
   });
 
-  it('lista usług niedostępna — czytelny komunikat, formularz dalej działa', async () => {
+  it('lista usług niedostępna – czytelny komunikat, formularz dalej działa', async () => {
     mockUslugi.mockResolvedValue(null);
     const { el, root } = await renderuj();
     expect(el.textContent).toContain('Nie udało się wczytać listy usług');
@@ -76,7 +76,7 @@ describe('nowe zgłoszenie — usługa', () => {
  * P-12 (VoiceOver 12.10): oba pola wyboru były czytane jako placeholder („— wybierz temat —”) zamiast
  * etykiety. Nazwa dostępna = widoczna etykieta, powiązana programowo (aria-labelledby → <label>).
  */
-describe('nowe zgłoszenie — nazwy pól wyboru (P-12)', () => {
+describe('nowe zgłoszenie – nazwy pól wyboru (P-12)', () => {
   it('„Czego dotyczy zgłoszenie?” i „Której usługi dotyczy?” mają nazwę z widocznej etykiety', async () => {
     mockUslugi.mockResolvedValue([{ id: 's1', nazwa: 'a.pl' }, { id: 's2', nazwa: 'b.pl' }]);
     const { el, root } = await renderuj();

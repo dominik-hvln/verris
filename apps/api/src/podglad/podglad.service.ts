@@ -62,7 +62,7 @@ export class PodgladService {
     const d = (process.env.PODGLAD_DOMENA ?? '').trim().toLowerCase().replace(/^\.+|\.+$/g, '');
     if (!d || !/^[a-z0-9.-]+\.[a-z]{2,}$/.test(d)) return null;
     if (d === 'verris.pl' || d.endsWith('.verris.pl')) {
-      this.logger.error('PODGLAD_DOMENA nie może być w domenie verris.pl (wspólne ciasteczka z panelami) — podgląd wyłączony.');
+      this.logger.error('PODGLAD_DOMENA nie może być w domenie verris.pl (wspólne ciasteczka z panelami) – podgląd wyłączony.');
       return null;
     }
     return d;
@@ -144,7 +144,7 @@ export class PodgladService {
     const t = this.zHosta(host);
     if (!t) return this.strona(res, 404, 'Ten adres podglądu jest nieprawidłowy albo wygasł. Wygeneruj nowy w panelu.');
     if (req.method !== 'GET' && req.method !== 'HEAD') {
-      return this.strona(res, 405, 'Podgląd przed zmianą DNS służy do oglądania strony — logowanie i formularze zadziałają po przełączeniu domeny.');
+      return this.strona(res, 405, 'Podgląd przed zmianą DNS służy do oglądania strony – logowanie i formularze zadziałają po przełączeniu domeny.');
     }
     const podglad = host!.toLowerCase().replace(/:\d+$/, '');
     const k = kluczDostepuPodgladu(this.klucz(), t.etykieta);
@@ -323,7 +323,7 @@ export class PodgladService {
     if (kodowanie !== 'identity' && !rozpakuj) {
       odp.resume();
       clearTimeout(czasomierz);
-      return this.strona(res, 502, 'Strona wysłała treść w nieobsługiwanym kodowaniu — podgląd jej nie pokaże.');
+      return this.strona(res, 502, 'Strona wysłała treść w nieobsługiwanym kodowaniu – podgląd jej nie pokaże.');
     }
     if (!dokument && (!czyTekstowy(typ) || rozmiar > MAKS_PRZEPISANIE)) return strumien();
 

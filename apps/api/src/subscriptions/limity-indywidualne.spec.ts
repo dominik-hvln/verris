@@ -36,7 +36,7 @@ describe('walidacja limitów indywidualnych (contracts)', () => {
     expect(walidujLimityIndywidualne(null)).toEqual({ ok: true, limity: {} });
   });
 
-  it('nieznane pole, ułamek, poza zakresem, ujemne, tekst — błąd z nazwą limitu', () => {
+  it('nieznane pole, ułamek, poza zakresem, ujemne, tekst – błąd z nazwą limitu', () => {
     expect(walidujLimityIndywidualne({ inodes: 5 })).toEqual({ ok: false, blad: 'Nieznany limit: inodes.' });
     expect(walidujLimityIndywidualne({ diskLimitMb: 1.5 })).toMatchObject({ ok: false, blad: expect.stringContaining('Dysk') });
     expect(walidujLimityIndywidualne({ diskLimitMb: 50 })).toMatchObject({ ok: false });
@@ -58,7 +58,7 @@ describe('walidacja limitów indywidualnych (contracts)', () => {
 });
 
 describe('efektywne limity = plan + nadpisania', () => {
-  it('bez nadpisań — plan bez zmian (ta sama referencja)', () => {
+  it('bez nadpisań – plan bez zmian (ta sama referencja)', () => {
     expect(planZNadpisaniami(PLAN, null)).toBe(PLAN);
     expect(maNadpisania(null)).toBe(false);
     expect(maNadpisania({})).toBe(false);
@@ -178,9 +178,9 @@ describe('SDK: customizeUserLimits (CMD_API_MODIFY_USER action=customize)', () =
     expect(Object.keys(w).filter((k) => /^u(quota|bandwidth|vdomains|nemails|mysql)$/.test(k))).toEqual([]);
   });
 
-  it('DA odrzuca (error=1) albo odpowiada stroną HTML — błąd, nie sukces', async () => {
+  it('DA odrzuca (error=1) albo odpowiada stroną HTML – błąd, nie sukces', async () => {
     await expect(atrapa({ zapis: 'error=1&text=Cannot+modify&details=quota' }).klient.customizeUserLimits('klient1', limityKontaNaWezle(PLAN, {}, 0))).rejects.toThrow(
-      'Cannot modify — quota',
+      'Cannot modify – quota',
     );
     await expect(atrapa({ zapis: '<html><body>Login</body></html>' }).klient.customizeUserLimits('klient1', limityKontaNaWezle(PLAN, {}, 0))).rejects.toThrow('stroną HTML');
   });

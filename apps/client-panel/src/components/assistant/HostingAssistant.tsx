@@ -31,7 +31,7 @@ export const SUGGESTIONS = [
 ];
 
 export const POWITANIE =
-  'Cześć! Jestem asystentem Verris. Zapytaj o domeny, SSL, pocztę, bazy danych, kopie zapasowe czy rozliczenia — odpowiem na podstawie bazy wiedzy i danych Twoich usług.';
+  'Cześć! Jestem asystentem Verris. Zapytaj o domeny, SSL, pocztę, bazy danych, kopie zapasowe czy rozliczenia – odpowiem na podstawie bazy wiedzy i danych Twoich usług.';
 /** AI Act art. 50 ust. 1 i 5 — informacja najpóźniej przy pierwszej interakcji: pierwsza linia okna (jak UWAGA_AI na www). */
 export const UWAGA_AI = 'Rozmawiasz z asystentem AI. Nie podawaj haseł ani danych do płatności.';
 export const STOPKA_AI = 'Odpowiedzi mogą zawierać błędy. Wiążące są Regulamin i odpowiedzi naszego zespołu.';
@@ -328,7 +328,7 @@ export default function HostingAssistant({ mozeZglaszac = false }: { mozeZglasza
               <div className="grid gap-2.5 self-stretch rounded-[14px] border border-data/35 bg-card p-3.5">
                 <h3 className="m-0 text-[15px] font-semibold text-foreground">Napisz do zespołu</h3>
                 <p className="m-0 text-[13px] text-muted-foreground">
-                  Załóż zgłoszenie — odpowiemy w nim, a historia zostanie w panelu.
+                  Załóż zgłoszenie – odpowiemy w nim, a historia zostanie w panelu.
                 </p>
                 <Link
                   href={NOWE_ZGLOSZENIE}

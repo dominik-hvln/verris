@@ -100,7 +100,7 @@ export function buildHints(i: HintInput): AssistantHint[] {
           : !i.backup.ok
             ? 'Ostatnia kopia zapasowa poza serwerem się nie udała'
             : `Ostatnia kopia zapasowa poza serwerem ma ${plDays(Math.floor(age / DAY))}`,
-        detail: 'Kopie robimy automatycznie — już się tym zajmujemy. Lokalne kopie konta znajdziesz w zakładce kopii zapasowych.',
+        detail: 'Kopie robimy automatycznie – już się tym zajmujemy. Lokalne kopie konta znajdziesz w zakładce kopii zapasowych.',
         action: { kind: 'tab', label: 'Kopie zapasowe', tab: 'backups' },
       });
     }
@@ -158,8 +158,8 @@ export function buildHints(i: HintInput): AssistantHint[] {
       severity: 'warn',
       title: 'Strona trafiała na limit zasobów',
       detail:
-        `W ostatniej dobie strona ${odbicia} ${odbicia === 1 ? 'raz' : 'razy'} osiągnęła limit zasobów pakietu — odwiedzający mogli wtedy zobaczyć błąd. ` +
-        (limitZAutoskalowaniem ? 'Autoskalowanie podniesie limity przy skokach ruchu.' : 'Napisz do nas — sprawdzimy, co obciąża stronę.'),
+        `W ostatniej dobie strona ${odbicia} ${odbicia === 1 ? 'raz' : 'razy'} osiągnęła limit zasobów pakietu – odwiedzający mogli wtedy zobaczyć błąd. ` +
+        (limitZAutoskalowaniem ? 'Autoskalowanie podniesie limity przy skokach ruchu.' : 'Napisz do nas – sprawdzimy, co obciąża stronę.'),
       action: limitZAutoskalowaniem
         ? { kind: 'href', label: 'Ustaw autoskalowanie', href: `/dashboard/services/${u.id}/autoscaling` }
         : { kind: 'href', label: 'Napisz do nas', href: '/dashboard/support' },

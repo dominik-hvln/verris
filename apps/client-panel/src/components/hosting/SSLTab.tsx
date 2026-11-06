@@ -93,7 +93,7 @@ export default function SSLTab({ serviceId }: Props) {
     <div className="space-y-6">
       <SectionHead
         title="Certyfikaty SSL"
-        desc="Kłódka i HTTPS dla każdej domeny. Let’s Encrypt wystawiamy za darmo i odnawiamy sami — warunek: domena wskazuje na nasz serwer."
+        desc="Kłódka i HTTPS dla każdej domeny. Let’s Encrypt wystawiamy za darmo i odnawiamy sami – warunek: domena wskazuje na nasz serwer."
         action={
           <div className="flex flex-wrap gap-2">
             <button
@@ -159,7 +159,7 @@ export default function SSLTab({ serviceId }: Props) {
                         {r?.isWildcard ? <span className="ml-2 font-mono text-[11px] text-muted-foreground">wildcard</span> : null}
                       </td>
                       <td className={`${TD} text-verris-body`} data-label="Wystawca">
-                        {r && r.status !== 'NONE' ? (r.isLetsEncrypt ? 'Let’s Encrypt' : r.issuer) : '—'}
+                        {r && r.status !== 'NONE' ? (r.isLetsEncrypt ? 'Let’s Encrypt' : r.issuer) : '–'}
                       </td>
                       <td className={`${TD} whitespace-nowrap`} data-label="Ważny do">
                         {r?.expiresAt ? (
@@ -172,7 +172,7 @@ export default function SSLTab({ serviceId }: Props) {
                             ) : null}
                           </>
                         ) : (
-                          <span className="text-muted-foreground">—</span>
+                          <span className="text-muted-foreground">–</span>
                         )}
                       </td>
                     </tr>
@@ -185,7 +185,7 @@ export default function SSLTab({ serviceId }: Props) {
       </section>
 
       <section>
-        <SectionHead title="Wystaw lub wgraj certyfikat" desc="Let’s Encrypt jednym kliknięciem albo własny certyfikat (np. z zakupu) — bez wychodzenia z panelu." />
+        <SectionHead title="Wystaw lub wgraj certyfikat" desc="Let’s Encrypt jednym kliknięciem albo własny certyfikat (np. z zakupu) – bez wychodzenia z panelu." />
         <div className="rounded-[10px] border border-line bg-card p-4">
           <HostingSslForms serviceId={serviceId} />
         </div>

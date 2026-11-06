@@ -1,6 +1,6 @@
 import { komunikatEkoDlaKlienta } from './eko-komunikat.js';
 
-describe('komunikatEkoDlaKlienta — tryb EKO bez nazwy panelu serwera', () => {
+describe('komunikatEkoDlaKlienta – tryb EKO bez nazwy panelu serwera', () => {
   it('zmiana harmonogramu: opis dla klienta zamiast „W DirectAdmin zaktualizowano … zadań cron”', () => {
     const wlaczony = komunikatEkoDlaKlienta({ adjusted: 2, notice: 'W DirectAdmin zaktualizowano 2 zadań cron z backupem' }, true);
     expect(wlaczony).toMatch(/raz w tygodniu/);
@@ -19,7 +19,7 @@ describe('komunikatEkoDlaKlienta — tryb EKO bez nazwy panelu serwera', () => {
     }
   });
 
-  it('nic do zmiany — bez komunikatu', () => {
+  it('nic do zmiany – bez komunikatu', () => {
     expect(komunikatEkoDlaKlienta({ adjusted: 0, notice: null }, true)).toBeNull();
   });
 });

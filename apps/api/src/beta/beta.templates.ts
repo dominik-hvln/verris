@@ -25,31 +25,31 @@ export function zaproszenieDoTestowTemplate(input: {
   const rejestracja = `${input.panelUrl}/register`;
   const { html, text } = renderEmailShell({
     title: 'Zaproszenie do testów Verris',
-    preheader: `Twój kod: ${input.code} — ${input.credit} K ${poczta ? 'na firmową pocztę' : 'na hosting'}, bez karty.`,
+    preheader: `Twój kod: ${input.code} – ${input.credit} K ${poczta ? 'na firmową pocztę' : 'na hosting'}, bez karty.`,
     bodyMarkdown: [
       input.name ? `Cześć **${md(input.name)}**,` : 'Cześć,',
       '',
       poczta
-        ? 'zapraszamy Cię do testów poczty Verris przed startem. Dostajesz kredyt na firmową pocztę w Twojej domenie — hostingu nie musisz kupować. Prosimy tylko o jedno: korzystaj z poczty i panelu jak zwykle i pisz nam, co przeszkadza.'
-        : 'zapraszamy Cię do testów hostingu Verris przed startem. Dostajesz kredyt na hosting — wystarczy mniej więcej na trzy miesiące — i prosimy tylko o jedno: korzystaj z panelu tak, jak z każdego hostingu, i pisz nam, co przeszkadza.',
+        ? 'zapraszamy Cię do testów poczty Verris przed startem. Dostajesz kredyt na firmową pocztę w Twojej domenie – hostingu nie musisz kupować. Prosimy tylko o jedno: korzystaj z poczty i panelu jak zwykle i pisz nam, co przeszkadza.'
+        : 'zapraszamy Cię do testów hostingu Verris przed startem. Dostajesz kredyt na hosting – wystarczy mniej więcej na trzy miesiące – i prosimy tylko o jedno: korzystaj z panelu tak, jak z każdego hostingu, i pisz nam, co przeszkadza.',
       '',
-      `**Twój kod: ${input.code}** — ${input.credit} K do portfela (1 K = 1 zł), jednorazowy, ważny do ${dzien}.`,
+      `**Twój kod: ${input.code}** – ${input.credit} K do portfela (1 K = 1 zł), jednorazowy, ważny do ${dzien}.`,
       '',
-      `**[Załóż konto](${rejestracja})** — to pierwszy krok.`,
+      `**[Załóż konto](${rejestracja})** – to pierwszy krok.`,
       '',
       '## Jak zacząć',
       '',
       `1. [Załóż konto](${rejestracja}) i potwierdź adres e-mail.`,
       '2. W panelu wejdź w **Płatności** i wpisz kod w polu kodu promocyjnego.',
       poczta
-        ? '3. Wejdź w **Nowa usługa → Poczta e-mail** i zamów pocztę z portfela. Domena może zostać tam, gdzie jest teraz — panel pokaże, co w niej ustawić.'
+        ? '3. Wejdź w **Nowa usługa → Poczta e-mail** i zamów pocztę z portfela. Domena może zostać tam, gdzie jest teraz – panel pokaże, co w niej ustawić.'
         : '3. Zamów hosting i przenieś stronę kreatorem migracji albo zainstaluj WordPressa.',
       '',
       'Kredyty z kodu to nie zakup, więc nie ma za nie faktury.',
       '',
       '## Co sprawdzić',
       '',
-      `Pełna lista scenariuszy jest w panelu: **[Testy (beta)](${input.panelUrl}/dashboard/beta)**. Odhaczasz tam kroki i dopisujesz uwagi — zapisują się na Twoim koncie, więc możesz przerwać i wrócić w dowolnej chwili.${poczta ? ' Scenariusze dotyczące poczty są oznaczone — resztę możesz pominąć.' : ''} Najważniejsze:`,
+      `Pełna lista scenariuszy jest w panelu: **[Testy (beta)](${input.panelUrl}/dashboard/beta)**. Odhaczasz tam kroki i dopisujesz uwagi – zapisują się na Twoim koncie, więc możesz przerwać i wrócić w dowolnej chwili.${poczta ? ' Scenariusze dotyczące poczty są oznaczone – resztę możesz pominąć.' : ''} Najważniejsze:`,
       '',
       ...(poczta
         ? [
@@ -70,14 +70,14 @@ export function zaproszenieDoTestowTemplate(input: {
       '',
       '## Jak zgłaszać uwagi',
       '',
-      'Po wpisaniu kodu w prawym dolnym rogu panelu pojawi się przycisk **„Zgłoś uwagę”**. Opisz, co się stało, i — jeśli chodzi o konkretne miejsce — kliknij **„Wskaż miejsce na stronie”**, a potem ten element. Do zgłoszenia dołączymy adres strony i zrzut ekranu z zaznaczeniem (przed wysłaniem zobaczysz podgląd i możesz go odznaczyć). Przycisk da się schować do zakładki przy prawej krawędzi.',
+      'Po wpisaniu kodu w prawym dolnym rogu panelu pojawi się przycisk **„Zgłoś uwagę”**. Opisz, co się stało, i – jeśli chodzi o konkretne miejsce – kliknij **„Wskaż miejsce na stronie”**, a potem ten element. Do zgłoszenia dołączymy adres strony i zrzut ekranu z zaznaczeniem (przed wysłaniem zobaczysz podgląd i możesz go odznaczyć). Przycisk da się schować do zakładki przy prawej krawędzi.',
       '',
       'Dłuższe sprawy możesz opisać też w **Centrum pomocy → Nowe zgłoszenie → temat „Testy (beta)”**. Każde zgłoszenie czytamy.',
       '',
-      'Usługa zostaje po testach — nic nie wygasa i nic nie trzeba przenosić. Później odnawiasz ją z portfela albo kartą, jak każdy klient. Gdyby coś miało się zmienić, napiszemy z wyprzedzeniem.',
+      'Usługa zostaje po testach – nic nie wygasa i nic nie trzeba przenosić. Później odnawiasz ją z portfela albo kartą, jak każdy klient. Gdyby coś miało się zmienić, napiszemy z wyprzedzeniem.',
     ].join('\n'),
     cta: { label: 'Załóż konto', url: rejestracja },
-    footnote: 'Kod jest imienny i działa raz. Jeśli to zaproszenie trafiło do Ciebie przez pomyłkę — zignoruj je.',
+    footnote: 'Kod jest imienny i działa raz. Jeśli to zaproszenie trafiło do Ciebie przez pomyłkę – zignoruj je.',
     recipientEmail: input.to,
     panelUrl: input.panelUrl,
     recipientHasAccount: false,
@@ -114,12 +114,12 @@ export function potwierdzenieZgloszeniaBetaTemplate(input: {
       // A1-04 — bez imienia: przed potwierdzeniem adresu pole z formularza wpisuje ktokolwiek, a mail idzie z adresu Verris.
       'Cześć,',
       '',
-      'dziękujemy za zgłoszenie do testów hostingu Verris. Potwierdź jeszcze, że to Twój adres — bez tego nie zobaczymy zgłoszenia.',
+      'dziękujemy za zgłoszenie do testów hostingu Verris. Potwierdź jeszcze, że to Twój adres – bez tego nie zobaczymy zgłoszenia.',
       '',
-      `Testy ruszają ${TERMIN_OTWARTEJ_BETY}. Testerów zapraszamy małymi grupami — gdy przyjdzie Twoja kolej, wyślemy na ten adres zaproszenie z imiennym kodem.`,
+      `Testy ruszają ${TERMIN_OTWARTEJ_BETY}. Testerów zapraszamy małymi grupami – gdy przyjdzie Twoja kolej, wyślemy na ten adres zaproszenie z imiennym kodem.`,
     ].join('\n'),
     cta: { label: 'Potwierdzam zgłoszenie', url: input.confirmUrl },
-    footnote: 'Jeśli to nie Ty wypełniłeś formularz na verris.pl — zignoruj tę wiadomość. Niepotwierdzone zgłoszenie usuniemy po 7 dniach.',
+    footnote: 'Jeśli to nie Ty wypełniłeś formularz na verris.pl – zignoruj tę wiadomość. Niepotwierdzone zgłoszenie usuniemy po 7 dniach.',
     recipientEmail: input.to,
     panelUrl: input.panelUrl,
     recipientHasAccount: false,
@@ -179,14 +179,14 @@ export function odmowaZgloszeniaBetaTemplate(input: { to: string; imie: string; 
     panelUrl: input.panelUrl,
     recipientHasAccount: false,
   });
-  return { to: input.to, tag: 'beta.zgloszenie.odmowa', subject: 'Testy Verris — dziękujemy za zgłoszenie', text, html };
+  return { to: input.to, tag: 'beta.zgloszenie.odmowa', subject: 'Testy Verris – dziękujemy za zgłoszenie', text, html };
 }
 
 /** A1-01 — ponowne zgłoszenie z już potwierdzonego adresu: nowe dane czekają na potwierdzenie linkiem (bez imienia, jak A1-04). */
 export function zmianaZgloszeniaBetaTemplate(input: { to: string; confirmUrl: string; panelUrl: string }): Szablon {
   const { html, text } = renderEmailShell({
     title: 'Potwierdź zmianę zgłoszenia do testów',
-    preheader: 'Twoje zgłoszenie jest już na liście — potwierdź, jeśli chcesz zmienić jego dane.',
+    preheader: 'Twoje zgłoszenie jest już na liście – potwierdź, jeśli chcesz zmienić jego dane.',
     bodyMarkdown: [
       'Cześć,',
       '',
@@ -195,7 +195,7 @@ export function zmianaZgloszeniaBetaTemplate(input: { to: string; confirmUrl: st
       'Jeśli to Ty i chcesz zmienić dane zgłoszenia (zakres, adres strony, uwagi), potwierdź zmianę przyciskiem poniżej. Bez potwierdzenia zostaje to, co zgłosiłeś wcześniej.',
     ].join('\n'),
     cta: { label: 'Potwierdzam zmianę', url: input.confirmUrl },
-    footnote: 'Jeśli to nie Ty — zignoruj tę wiadomość. Twoje zgłoszenie się nie zmieni.',
+    footnote: 'Jeśli to nie Ty – zignoruj tę wiadomość. Twoje zgłoszenie się nie zmieni.',
     recipientEmail: input.to,
     panelUrl: input.panelUrl,
     recipientHasAccount: false,
@@ -218,21 +218,21 @@ export function stanZaproszeniaBetaTemplate(input: { to: string; stan: 'TESTER' 
           '',
           'ktoś wysłał formularz na verris.pl/beta z tym adresem, ale Ty już testujesz: kod z zaproszenia jest zrealizowany na Twoim koncie.',
           '',
-          `Zaloguj się do panelu i otwórz **Testy (beta)** (${input.panelUrl}/dashboard/beta) — tam są scenariusze i przycisk „Zgłoś uwagę”.`,
+          `Zaloguj się do panelu i otwórz **Testy (beta)** (${input.panelUrl}/dashboard/beta) – tam są scenariusze i przycisk „Zgłoś uwagę”.`,
         ]
       : [
           'Cześć,',
           '',
           'ktoś wysłał formularz na verris.pl/beta z tym adresem. Zaproszenie z kodem, które wysłaliśmy wcześniej, wygasło albo zostało wycofane, więc formularz nie doda nowego zgłoszenia.',
           '',
-          `Jeśli dalej chcesz testować, napisz na ${input.kontakt} — odpowiemy z nowym terminem.`,
+          `Jeśli dalej chcesz testować, napisz na ${input.kontakt} – odpowiemy z nowym terminem.`,
         ]
     ).join('\n'),
     ...(tester ? { cta: { label: 'Przejdź do panelu', url: `${input.panelUrl}/dashboard/beta` } } : {}),
-    footnote: 'Jeśli to nie Ty wypełniłeś formularz — zignoruj tę wiadomość.',
+    footnote: 'Jeśli to nie Ty wypełniłeś formularz – zignoruj tę wiadomość.',
     recipientEmail: input.to,
     panelUrl: input.panelUrl,
     recipientHasAccount: tester,
   });
-  return { to: input.to, tag: 'beta.zgloszenie.stan', subject: tester ? 'Jesteś już w testach Verris' : 'Testy Verris — zaproszenie straciło ważność', text, html };
+  return { to: input.to, tag: 'beta.zgloszenie.stan', subject: tester ? 'Jesteś już w testach Verris' : 'Testy Verris – zaproszenie straciło ważność', text, html };
 }

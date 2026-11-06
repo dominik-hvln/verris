@@ -13,7 +13,7 @@ const MIN_POWOD = 10;
 export function PonowButton({ userId, kwota }: { userId: string; kwota: string | null }) {
   const [pending, start] = useTransition();
   const click = async () => {
-    const powod = await zapytaj(`Powód ponowienia do dziennika (min. ${MIN_POWOD} znaków):`, { akcja: "Dalej", tytul: "Ponów auto-doładowanie", placeholder: "np. klient zasilił kartę — zgłoszenie #ab12cd34" });
+    const powod = await zapytaj(`Powód ponowienia do dziennika (min. ${MIN_POWOD} znaków):`, { akcja: "Dalej", tytul: "Ponów auto-doładowanie", placeholder: "np. klient zasilił kartę – zgłoszenie #ab12cd34" });
     if (powod === null) return;
     if (powod.trim().length < MIN_POWOD) {
       await potwierdz(`Powód musi mieć co najmniej ${MIN_POWOD} znaków.`, { akcja: "OK", tytul: "Za krótki powód" });

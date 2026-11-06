@@ -37,7 +37,7 @@ function SavedCardsBlock({ cards }: { cards: SavedPaymentMethodDto[] }) {
   const [removing, setRemoving] = useState<string | null>(null);
 
   const remove = async (c: SavedPaymentMethodDto) => {
-    if (!(await potwierdz(`Usunąć kartę ${cardLabel(c)}? Nie obciążymy jej więcej — ani przy auto-doładowaniu, ani przy odnowieniu.`, { akcja: 'Usuń', niebezpieczne: true }))) return;
+    if (!(await potwierdz(`Usunąć kartę ${cardLabel(c)}? Nie obciążymy jej więcej – ani przy auto-doładowaniu, ani przy odnowieniu.`, { akcja: 'Usuń', niebezpieczne: true }))) return;
     setRemoving(c.id);
     const res = await deletePaymentMethodAction(c.id);
     setRemoving(null);
@@ -77,7 +77,7 @@ function SavedCardsBlock({ cards }: { cards: SavedPaymentMethodDto[] }) {
       </div>
       {cards.length === 0 ? (
         <p className="m-0 mt-2 text-sm text-muted-foreground">
-          Brak zapisanych kart. Dodaj kartę, żeby włączyć auto-doładowanie portfela — nic nie pobieramy przy dodaniu.
+          Brak zapisanych kart. Dodaj kartę, żeby włączyć auto-doładowanie portfela – nic nie pobieramy przy dodaniu.
         </p>
       ) : null}
       <ul className="m-0 mt-2 list-none p-0">
@@ -126,7 +126,7 @@ function PromoRedeemBlock() {
       if (res.ok) {
         setCode('');
         setDone(
-          `Na portfel dopisaliśmy ${formatCredits(res.amountPln, { signed: true })} — kod „${res.code}” został zrealizowany.`,
+          `Na portfel dopisaliśmy ${formatCredits(res.amountPln, { signed: true })} – kod „${res.code}” został zrealizowany.`,
         );
         router.refresh();
         // Saldo w nagłówku i „Zgłoś uwagę” dla testera (kod z zaproszenia do testów) — bez przeładowania strony.
@@ -144,7 +144,7 @@ function PromoRedeemBlock() {
         <div>
           <h3 className="m-0 font-display text-[15px] font-bold text-foreground">Kod promocyjny</h3>
           <p className="mt-1 text-[12.5px] text-muted-foreground">
-            Tu wpisz kod testera, kod od zespołu Verris albo z kampanii — kredyty od razu trafią na Twój portfel.
+            Tu wpisz kod testera, kod od zespołu Verris albo z kampanii – kredyty od razu trafią na Twój portfel.
             Kredyty z kodu to nie zakup, więc nie ma za nie faktury.
           </p>
         </div>
@@ -220,7 +220,7 @@ function WalletAutotopupBlock({
           <h3 className="m-0 font-display text-[15px] font-bold text-foreground">Auto-doładowanie</h3>
           <p className="mt-1 text-[12.5px] text-muted-foreground">
             Gdy saldo spadnie poniżej progu, obciążymy Twoją kartę bez Twojego udziału. Działa tylko z kartą
-            zapisaną przy płatności kartą — wpłata BLIK-iem czy przelewem nie zapisuje karty.
+            zapisaną przy płatności kartą – wpłata BLIK-iem czy przelewem nie zapisuje karty.
           </p>
         </div>
       </div>
@@ -282,7 +282,7 @@ function WalletAutotopupBlock({
             options={[
               {
                 value: '',
-                label: 'Automatycznie — pierwszy zapis na koncie lub domyślna przy płatności kartą',
+                label: 'Automatycznie – pierwszy zapis na koncie lub domyślna przy płatności kartą',
               },
               ...savedCards.map((c) => ({
                 value: c.id,
@@ -296,7 +296,7 @@ function WalletAutotopupBlock({
 
         {savedCards.length === 0 ? (
           <p className="text-xs text-muted-foreground">
-            Nie masz zapisanej karty — auto-doładowanie użyje karty z Twojej ostatniej płatności kartą (wpłaty BLIK-iem i przelewem się nie liczą).
+            Nie masz zapisanej karty – auto-doładowanie użyje karty z Twojej ostatniej płatności kartą (wpłaty BLIK-iem i przelewem się nie liczą).
           </p>
         ) : null}
 
@@ -306,9 +306,9 @@ function WalletAutotopupBlock({
             Ostatnia próba:{' '}
             {dataGodzinaPl(local.lastAttemptAt)}{' '}
             {local.lastAttemptOk === true
-              ? '— OK'
+              ? '– OK'
               : local.lastAttemptOk === false
-                ? '— niepowodzenie'
+                ? '– niepowodzenie'
                 : ''}
             {local.lastAttemptError ? (
               <span className="text-rose-200/90 block w-full mt-1">{local.lastAttemptError}</span>

@@ -36,7 +36,7 @@ const KORZEN = resolve(import.meta.dirname, '../../../..');
  * podniesienie wersji jest jedną świadomą zmianą w kilku plikach naraz,
  * a nie cichym dryfem jednego z nich.
  */
-describe('ENV-01 — wersja Node jest jedna we wszystkich deklaracjach', () => {
+describe('ENV-01 – wersja Node jest jedna we wszystkich deklaracjach', () => {
   const pkg = JSON.parse(readFileSync(resolve(KORZEN, 'package.json'), 'utf-8'));
 
   /** Główny numer wersji wymaganej przez repozytorium, np. 22 z ">=22.12". */

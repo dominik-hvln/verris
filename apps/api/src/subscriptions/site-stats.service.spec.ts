@@ -40,7 +40,7 @@ function uruchom(pliki: Record<string, string>, log: string, archiwa: Record<str
   return statystykiZLogu(out)!;
 }
 
-describe('PB-19 — statystyki strony', () => {
+describe('PB-19 – statystyki strony', () => {
   it('WordPress z wersją; ruch dzisiaj, 5xx bez parametrów w ścieżce, stare wpisy pominięte', () => {
     const d = new Date();
     const dzis = `${String(d.getUTCDate()).padStart(2, '0')}/${MIES[d.getUTCMonth()]}/${d.getUTCFullYear()}`;
@@ -57,7 +57,7 @@ describe('PB-19 — statystyki strony', () => {
     expect(JSON.stringify(w)).not.toMatch(/tajne|token|1\.2\.3\.4/);
   });
 
-  it('ruch z poprzednich dób z archiwów DA (log bieżący to tylko doba) — t1 01.10', () => {
+  it('ruch z poprzednich dób z archiwów DA (log bieżący to tylko doba) – t1 01.10', () => {
     const wczoraj = new Date(Date.now() - 86400000);
     const dz = `${String(wczoraj.getUTCDate()).padStart(2, '0')}/${MIES[wczoraj.getUTCMonth()]}/${wczoraj.getUTCFullYear()}`;
     const linia = `9.9.9.9 - - [${dz}:12:00:00 +0000] "GET / HTTP/1.1" 200 5 "-" "UA"\n`;
@@ -66,7 +66,7 @@ describe('PB-19 — statystyki strony', () => {
   });
 
   it('strona domyślna Verris rozpoznana; wynik z logu odporny na śmieci', () => {
-    expect(uruchom({ 'index.html': '<title>a.pl — hosting verris</title>' }, '').technologia.nazwa).toBe('domyślna Verris');
+    expect(uruchom({ 'index.html': '<title>a.pl – hosting verris</title>' }, '').technologia.nazwa).toBe('domyślna Verris');
     expect(statystykiZLogu('x')).toBeNull();
   });
 });

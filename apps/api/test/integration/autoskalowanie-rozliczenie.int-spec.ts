@@ -78,7 +78,7 @@ describe('X-04 rozliczanie autoskalowania', () => {
     expect(await zdarzenia(k.subscription.id)).toBe(4);
   });
 
-  it('reszta groszy: blok 0,0165 zł (cennik produkcyjny, +50% CPU) — suma pobrań zgodna z cennikiem, nie +21%', async () => {
+  it('reszta groszy: blok 0,0165 zł (cennik produkcyjny, +50% CPU) – suma pobrań zgodna z cennikiem, nie +21%', async () => {
     // Na żywo 09.10 (d3): 0,001323 zł za 1% CPU/h × 50% × 0,25 h = 0,0165375 zł, a portfel tracił 0,02 zł na blok.
     await prisma().autoscalingPriceRule.deleteMany({}); // cennik nie jest czyszczony między testami
     await prisma().autoscalingPriceRule.create({
@@ -98,7 +98,7 @@ describe('X-04 rozliczanie autoskalowania', () => {
     expect(Math.abs(reszta)).toBeLessThanOrEqual(0.005);
   });
 
-  it('blok tańszy niż pół grosza nie przepada — zlicza się w kolejnych blokach', async () => {
+  it('blok tańszy niż pół grosza nie przepada – zlicza się w kolejnych blokach', async () => {
     await prisma().autoscalingPriceRule.deleteMany({}); // cennik nie jest czyszczony między testami
     await prisma().autoscalingPriceRule.create({
       data: { resource: AutoscalingResource.CPU, unit: 'cpu_pct', pricePerUnit: 0.0001 },
@@ -121,7 +121,7 @@ describe('X-04 rozliczanie autoskalowania', () => {
     expect(await saldo(k.user.id)).toBe(9.5);
   });
 
-  it('rozliczenie poza Verris: bez obciążenia portfela, każdy blok raz w zestawieniu — także przy dwóch przebiegach', async () => {
+  it('rozliczenie poza Verris: bez obciążenia portfela, każdy blok raz w zestawieniu – także przy dwóch przebiegach', async () => {
     const k = await przygotuj(10, { paymentSource: 'MANUAL' });
     const { cron } = uslugi();
     await Promise.all([cron.chargeDueBlocks(min(40)), cron.chargeDueBlocks(min(40))]);
@@ -165,7 +165,7 @@ describe('X-04 rozliczanie autoskalowania', () => {
       expect(await saldo(k.user.id)).toBe(48.5);
       await uslugi().cron.chargeDueBlocks(min(15)); // następny blok już przy +200%
       expect(await saldo(k.user.id)).toBe(46.5);
-      expect(await opisy(k.user.id)).toContain('Autoskalowanie — dopłata za podbicie w bloku (cpu+100%→+200%, 7,5 min)');
+      expect(await opisy(k.user.id)).toContain('Autoskalowanie – dopłata za podbicie w bloku (cpu+100%→+200%, 7,5 min)');
       // Historia klienta: zdarzenie księgowe ze znanym prefiksem, który oś czasu panelu odfiltrowuje.
       const ev = await prisma().autoscalingEvent.findMany({ where: { subscriptionId: k.subscription.id } });
       expect(ev).toHaveLength(3);

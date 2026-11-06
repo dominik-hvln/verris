@@ -11,14 +11,14 @@ import { mailObslugiTemplate } from '../mail/templates/obsluga-notifications.js'
  */
 const OK = 'Dzień dobry,\n\nwykryliśmy problem z usługą firma.pl i już nad nim pracujemy.\n\nZespół obsługi Verris';
 
-describe('F3.8 — treść poczty serwisowej', () => {
+describe('F3.8 – treść poczty serwisowej', () => {
   it.each([
     ['Mamy dla Ciebie rabat 20% na kolejny rok.', 'rabat'],
     ['Skorzystaj z promocji do końca tygodnia.', 'promocji'],
     ['Kod rabatowy: JESIEN', 'Kod rabatowy'],
     ['Zapisz się na newsletter Verris.', 'newsletter'],
     ['Polec znajomym i zyskaj.', 'Polec znajomym'],
-  ])('treść promocyjna „%s” — odrzucona', (zdanie, fraza) => {
+  ])('treść promocyjna „%s” – odrzucona', (zdanie, fraza) => {
     expect(fraza.toLowerCase()).toContain(trescPromocyjna(zdanie)!.toLowerCase().slice(0, 4));
     expect(() => sprawdzTrescSerwisowa('Usługa firma.pl', `${OK}\n\n${zdanie}`)).toThrow(/promocyjnych/);
   });
@@ -33,7 +33,7 @@ describe('F3.8 — treść poczty serwisowej', () => {
     }
   });
 
-  it('nazwy infrastruktury, nieuzupełnione pola, długość — odrzucone', () => {
+  it('nazwy infrastruktury, nieuzupełnione pola, długość – odrzucone', () => {
     expect(() => sprawdzTrescSerwisowa('Awaria', `${OK}\nRestartujemy Exima na serwerze.`)).toThrow(/infrastruktury/);
     expect(() => sprawdzTrescSerwisowa('Awaria', `${OK}\nPanel na porcie :2222`)).toThrow(/infrastruktury/);
     expect(() => sprawdzTrescSerwisowa('Usługa {domena}', OK)).toThrow(/Uzupełnij/);
@@ -46,7 +46,7 @@ describe('F3.8 — treść poczty serwisowej', () => {
     expect(() => sprawdzTrescSerwisowa('Usługa firma.pl', 'krótko')).toThrow(/Treść/);
   });
 
-  it('przegląd: adres węzła (hostname albo IP) w temacie lub treści — odrzucony; podobny adres klienta przechodzi', () => {
+  it('przegląd: adres węzła (hostname albo IP) w temacie lub treści – odrzucony; podobny adres klienta przechodzi', () => {
     const wezly = ['fra-01.wezly.example', '203.0.113.7'];
     expect(() => sprawdzTrescSerwisowa('Awaria fra-01.wezly.example', OK, wezly)).toThrow(/adresów serwerów/);
     expect(() => sprawdzTrescSerwisowa('Awaria', `${OK}\nSerwer 203.0.113.7 jest niedostępny.`, wezly)).toThrow(/adresów serwerów/);
@@ -58,7 +58,7 @@ describe('F3.8 — treść poczty serwisowej', () => {
     expect(() => sprawdzTrescSerwisowa('Awaria', `${OK}\nTwój adres 203.0.113.70 odblokowaliśmy.`, wezly)).toThrow(/adresów serwerów/);
   });
 
-  it('audyt Fali 3 — jeden filtr white label: ModSecurity, OpenLiteSpeed, IPv6 i host panelu węzła, lvectl, CMD_API, ścieżki — odrzucone', () => {
+  it('audyt Fali 3 – jeden filtr white label: ModSecurity, OpenLiteSpeed, IPv6 i host panelu węzła, lvectl, CMD_API, ścieżki – odrzucone', () => {
     const wezly = ['n1', 'fra-01.wezly.example', 'panel-n1.infra.example', '203.0.113.7', '2a01:4f8:c17:1::2', null];
     for (const zdanie of [
       'Reguły ModSecurity blokowały formularze.',
@@ -117,8 +117,8 @@ function srodowisko(o: { rola?: string; anon?: boolean; dostarczony?: boolean; w
   return { svc, wyslane, audyt };
 }
 
-describe('F3.8 — mail do klienta z szablonu', () => {
-  const dto = { szablon: 'problem', temat: 'Usługa firma.pl — pracujemy nad problemem', tresc: OK };
+describe('F3.8 – mail do klienta z szablonu', () => {
+  const dto = { szablon: 'problem', temat: 'Usługa firma.pl – pracujemy nad problemem', tresc: OK };
 
   it('wysyła przez obsługę (TRANSACTIONAL, tag szablonu, userId klienta) i zapisuje w dzienniku zespołu', async () => {
     const s = srodowisko({ zgloszenia: ['11111111-2222-3333-4444-555555555555'] });
@@ -127,7 +127,7 @@ describe('F3.8 — mail do klienta z szablonu', () => {
     expect(s.audyt[0]).toMatchObject({ action: 'OPERATOR_CUSTOMER_MAILED', userId: 'k1', details: { szablon: 'problem', emailLogId: 'log1', wynik: 'wyslany' } });
   });
 
-  it('konto zespołu, zanonimizowane, treść promocyjna, obce zgłoszenie, nieznany szablon — odmowa bez wysyłki', async () => {
+  it('konto zespołu, zanonimizowane, treść promocyjna, obce zgłoszenie, nieznany szablon – odmowa bez wysyłki', async () => {
     await expect(srodowisko({ rola: 'STAFF' }).svc.wyslij('k1', 'op1', dto)).rejects.toBeInstanceOf(ForbiddenException);
     await expect(srodowisko({ anon: true }).svc.wyslij('k1', 'op1', dto)).rejects.toBeInstanceOf(BadRequestException);
     const s = srodowisko();

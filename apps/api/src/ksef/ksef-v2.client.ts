@@ -169,7 +169,7 @@ export class KsefV2Client implements InvoicingProvider {
       }
       // 21184: bieżąca sesja wstrzymana — porzucamy ją (zamknięcie i tak by się nie udało)
       // i, zgodnie z changelogiem 2.8.0, otwieramy nową. Jedna próba; potem faktura czeka na cykl.
-      this.logger.warn(`KSeF: sesja ${this.sessionRef} tymczasowo niedostępna (21184) — otwieram nową.`);
+      this.logger.warn(`KSeF: sesja ${this.sessionRef} tymczasowo niedostępna (21184) – otwieram nową.`);
       this.porzucSesjeOnline();
       try {
         return await this.wyslijWSesji(invoiceXml);
@@ -233,7 +233,7 @@ export class KsefV2Client implements InvoicingProvider {
       throw new KsefV2ApiError(`Nieprawidłowy identyfikator faktury: ${elementReferenceNumber}`);
     }
     if (!this.accessToken) {
-      throw new KsefV2ApiError('Brak accessToken — wywołaj openSession() przed invoiceStatus().');
+      throw new KsefV2ApiError('Brak accessToken – wywołaj openSession() przed invoiceStatus().');
     }
     const res = await this.http(`/sessions/${sessionRef}/invoices/${invoiceRef}`, {
       method: 'GET',
@@ -276,7 +276,7 @@ export class KsefV2Client implements InvoicingProvider {
       throw new KsefV2ApiError(`Nieprawidłowy identyfikator faktury: ${elementReferenceNumber}`);
     }
     if (!this.accessToken) {
-      throw new KsefV2ApiError('Brak accessToken — wywołaj openSession() przed downloadUpo().');
+      throw new KsefV2ApiError('Brak accessToken – wywołaj openSession() przed downloadUpo().');
     }
     const res = await this.http(`/sessions/${sessionRef}/invoices/${invoiceRef}/upo`, {
       method: 'GET',
@@ -446,7 +446,7 @@ export class KsefV2Client implements InvoicingProvider {
   private async ensureOnlineSession(): Promise<void> {
     if (this.sessionRef) return;
     if (!this.accessToken || !this.symCertKey || !this.symKeyId) {
-      throw new KsefV2ApiError('Brak uwierzytelnienia — wywołaj openSession() najpierw.');
+      throw new KsefV2ApiError('Brak uwierzytelnienia – wywołaj openSession() najpierw.');
     }
     this.cipherKey = randomBytes(32); // AES-256
     this.cipherIv = randomBytes(16); // 128-bit IV

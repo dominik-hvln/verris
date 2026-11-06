@@ -6,7 +6,7 @@ export const TEMATY_KONTAKTU: { nazwa: string; podpowiedz: string }[] = [
   { nazwa: 'Hosting', podpowiedz: 'Napisz, jaka to strona (WordPress, sklep, inna) i ile ma mniej więcej odwiedzin.' },
   {
     nazwa: 'Przeniesienie strony',
-    podpowiedz: 'Podaj adres strony i obecnego dostawcę. Haseł i dostępów tu nie wpisuj — podasz je bezpiecznie w panelu.',
+    podpowiedz: 'Podaj adres strony i obecnego dostawcę. Haseł i dostępów tu nie wpisuj – podasz je bezpiecznie w panelu.',
   },
   {
     nazwa: 'Poczta w domenie',

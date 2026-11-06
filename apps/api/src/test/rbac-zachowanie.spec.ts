@@ -109,7 +109,7 @@ const OPERATOR: Uzytkownik = { userId: 's', role: 'STAFF' };
 const ADMIN: Uzytkownik = { userId: 'a', role: 'ADMIN' };
 const nazwa = (t: Trasa) => `${t.kontroler}.${t.metoda} (${t.sciezka})`;
 
-describe('X-10 — RBAC paneli operatorskich sprawdzany zachowaniem', () => {
+describe('X-10 – RBAC paneli operatorskich sprawdzany zachowaniem', () => {
   it('znaleziono trasy admin/* do sprawdzenia (strażnik nie jest pusty)', () => {
     expect(TRASY.length).toBeGreaterThan(100);
   });
@@ -152,7 +152,7 @@ describe('X-10 — RBAC paneli operatorskich sprawdzany zachowaniem', () => {
     expect(wpuszczoneMimoWymogu).toEqual([]);
   });
 
-  it('@StaffPermAny tylko na metodach — żaden kontroler operatora nie ma any-of na klasie (L1-KARTA)', () => {
+  it('@StaffPermAny tylko na metodach – żaden kontroler operatora nie ma any-of na klasie (L1-KARTA)', () => {
     const klasy = [...new Set(TRASY.map((t) => t.klasa))];
     expect(klasy.filter((k) => Reflect.getMetadata(STAFF_PERMISSIONS_ANY_KEY, k) !== undefined).map((k) => k.name)).toEqual([]);
   });
@@ -171,7 +171,7 @@ describe('X-10 — RBAC paneli operatorskich sprawdzany zachowaniem', () => {
     expect(await wpuszcza(grafana!, ADMIN)).toBe(true);
   });
 
-  it('operator z właściwym uprawnieniem przechodzi, z sąsiednim — nie', async () => {
+  it('operator z właściwym uprawnieniem przechodzi, z sąsiednim – nie', async () => {
     const zaloz = TRASY.find((t) => t.kontroler === 'UsersAdminController' && t.metoda === 'createCustomer');
     expect(zaloz).toBeDefined();
     expect(await wpuszcza(zaloz!, OPERATOR, ['CUSTOMERS_VIEW', 'CUSTOMERS_MANAGE'])).toBe(true);
@@ -192,7 +192,7 @@ describe('X-10 — RBAC paneli operatorskich sprawdzany zachowaniem', () => {
  * w podglądzie (nagłówek, zasoby, historia migracji, stan odtwarzania), ale nie zmienia planu, nie odtwarza
  * i nie czyta kopii z węzła. NOC (SUBSCRIPTIONS_MANAGE bez CUSTOMERS_VIEW) nie traci karty.
  */
-describe('L1-KARTA — karta usługi dla ról systemowych', () => {
+describe('L1-KARTA – karta usługi dla ról systemowych', () => {
   const uprawnieniaRoli = (nazwa: string) => [...ROLE_SYSTEMOWE.find((r) => r.name === nazwa)!.permissions];
   const L1 = uprawnieniaRoli('L1 Konsultant');
   const NOC = uprawnieniaRoli('Inżynier infrastruktury (NOC/DevOps)');
@@ -204,7 +204,7 @@ describe('L1-KARTA — karta usługi dla ról systemowych', () => {
   const wynik = async (uprawnienia: string[], metody: string[]) =>
     Object.fromEntries(await Promise.all(metody.map(async (m) => [m, await wpuszcza(trasa(m), OPERATOR, uprawnienia)] as const)));
 
-  it('L1: odczyty karty tak; zmiana planu, odtworzenie, migracja, kopie z węzła i zawieszenie — nie', async () => {
+  it('L1: odczyty karty tak; zmiana planu, odtworzenie, migracja, kopie z węzła i zawieszenie – nie', async () => {
     expect(L1).not.toContain('SUBSCRIPTIONS_MANAGE');
     expect(
       await wynik(L1, [
@@ -242,7 +242,7 @@ describe('L1-KARTA — karta usługi dla ról systemowych', () => {
     });
   });
 
-  it('F2.3 (D2): zawieszenie i odwieszenie — L3 i zespół abuse sami; L1, L2 i NOC nie (L2 składa wniosek)', async () => {
+  it('F2.3 (D2): zawieszenie i odwieszenie – L3 i zespół abuse sami; L1, L2 i NOC nie (L2 składa wniosek)', async () => {
     const metody = ['suspend', 'unsuspend'];
     for (const rola of ['L3 Starszy specjalista', 'L4 Kierownik zmiany', 'Nadużycia i bezpieczeństwo']) {
       expect({ rola, w: await wynik(uprawnieniaRoli(rola), metody) }).toEqual({ rola, w: { suspend: true, unsuspend: true } });
@@ -252,7 +252,7 @@ describe('L1-KARTA — karta usługi dla ról systemowych', () => {
     }
   });
 
-  it('F3.5 (D2): cykl życia usługi — anulacja i cofnięcie od L2 i NOC; data odnowienia L4 (niżej wniosek); obietnica zapłaty L3', async () => {
+  it('F3.5 (D2): cykl życia usługi – anulacja i cofnięcie od L2 i NOC; data odnowienia L4 (niżej wniosek); obietnica zapłaty L3', async () => {
     const cykl = TRASY.filter((t) => t.kontroler === 'CyklZyciaUslugiAdminController');
     expect(cykl.map((t) => t.metoda).sort()).toEqual(['anuluj', 'cofnijAnulacje', 'odwolajObietnice', 'ustawObietnice', 'zmienDateOdnowienia']);
     const wolno = async (rola: string) => {
@@ -284,7 +284,7 @@ describe('L1-KARTA — karta usługi dla ról systemowych', () => {
     }
   });
 
-  it('F3.5 (D2): dodatki obsługi — podgląd jak karta usługi (L1+, NOC); dodanie (koszt) tylko L4, niżej wniosek', async () => {
+  it('F3.5 (D2): dodatki obsługi – podgląd jak karta usługi (L1+, NOC); dodanie (koszt) tylko L4, niżej wniosek', async () => {
     const t = (m: string) => {
       const x = TRASY.find((r) => r.kontroler === 'DodatkiOperatoraAdminController' && r.metoda === m);
       expect(x, m).toBeDefined();
@@ -299,7 +299,7 @@ describe('L1-KARTA — karta usługi dla ról systemowych', () => {
     expect(await wpuszcza(t('dodaj'), KLIENT, ['*', 'BILLING_MANAGE', 'SUBSCRIPTIONS_MANAGE'])).toBe(false);
   });
 
-  it('M-33: zlecenia dodatków — podgląd L1+ i NOC; „Zrealizowano” L2+ i NOC; „Odmowa ze zwrotem” (portfel) tylko L4', async () => {
+  it('M-33: zlecenia dodatków – podgląd L1+ i NOC; „Zrealizowano” L2+ i NOC; „Odmowa ze zwrotem” (portfel) tylko L4', async () => {
     const t = (m: string) => {
       const x = TRASY.find((r) => r.kontroler === 'ZleceniaDodatkowAdminController' && r.metoda === m);
       expect(x, m).toBeDefined();
@@ -323,7 +323,7 @@ describe('L1-KARTA — karta usługi dla ról systemowych', () => {
     }
   });
 
-  it('F2.4: eksport list do CSV (dane osobowe) — tylko z EXPORT_DATA (L4), obok uprawnienia do samej listy', async () => {
+  it('F2.4: eksport list do CSV (dane osobowe) – tylko z EXPORT_DATA (L4), obok uprawnienia do samej listy', async () => {
     const eksporty = TRASY.filter((t) => t.metoda === 'exportCsv' && ['SubscriptionsAdminController', 'UsersAdminController'].includes(t.kontroler));
     expect(eksporty).toHaveLength(2);
     for (const t of eksporty) {
@@ -333,14 +333,14 @@ describe('L1-KARTA — karta usługi dla ról systemowych', () => {
     }
   });
 
-  it('decyzja 10.10: dane dostępowe migracji (stary hosting) odkrywa L2 — support migracji; L1 (helpdesk) nie', async () => {
+  it('decyzja 10.10: dane dostępowe migracji (stary hosting) odkrywa L2 – support migracji; L1 (helpdesk) nie', async () => {
     const t = TRASY.find((x) => x.kontroler === 'MigrationsStaffController' && x.metoda === 'revealSecrets');
     expect(t).toBeDefined();
     expect(await wpuszcza(t!, OPERATOR, uprawnieniaRoli('L1 Konsultant'))).toBe(false);
     expect(await wpuszcza(t!, OPERATOR, uprawnieniaRoli('L2 Specjalista techniczny'))).toBe(true);
   });
 
-  it('decyzja 10.10: eksport faktur i transakcji portfela tylko z EXPORT_DATA — L1 przegląda płatności, ale nie eksportuje', async () => {
+  it('decyzja 10.10: eksport faktur i transakcji portfela tylko z EXPORT_DATA – L1 przegląda płatności, ale nie eksportuje', async () => {
     const eksporty = TRASY.filter(
       (t) =>
         (t.kontroler === 'InvoicesAdminController' && t.metoda === 'exportCsv') ||
@@ -359,7 +359,7 @@ describe('L1-KARTA — karta usługi dla ról systemowych', () => {
     expect(await wpuszcza(lista!, OPERATOR, uprawnieniaRoli('L1 Konsultant'))).toBe(true);
   });
 
-  it('F2.2 (D2): pasek akcji konta — akcje odwracalne od L2 i zespołu abuse, DNS od L3; L1, NOC i audytor nie', async () => {
+  it('F2.2 (D2): pasek akcji konta – akcje odwracalne od L2 i zespołu abuse, DNS od L3; L1, NOC i audytor nie', async () => {
     const akcje = TRASY.filter((t) => t.kontroler === 'KontoKlientaAkcjeAdminController');
     const odwracalne = ['hasloSkrzynki', 'hasloFtp', 'hasloBazy', 'ssl', 'php', 'kopia', 'skan', 'kwarantanna', 'przywrocZKwarantanny'];
     const dns = ['dnsDodaj', 'dnsZmien', 'dnsUsun'];
@@ -388,7 +388,7 @@ describe('L1-KARTA — karta usługi dla ról systemowych', () => {
     for (const t of akcje) expect(await wpuszcza(t, ADMIN)).toBe(true);
   });
 
-  it('F3.1 (D4): blokada wysyłki konta — L3, L4, zespół abuse i NOC; stan wysyłki od L2; L1 i audytor nic', async () => {
+  it('F3.1 (D4): blokada wysyłki konta – L3, L4, zespół abuse i NOC; stan wysyłki od L2; L1 i audytor nic', async () => {
     const poczta = TRASY.filter((t) => t.kontroler === 'PocztaKontaAdminController');
     const t = (m: string) => {
       const x = poczta.find((p) => p.metoda === m);
@@ -428,7 +428,7 @@ describe('L1-KARTA — karta usługi dla ról systemowych', () => {
     }
   });
 
-  it('F3.1 (D4): kolejka poczty CAŁEGO węzła (nagłówki wszystkich klientów) — tylko NOC i ADMIN', async () => {
+  it('F3.1 (D4): kolejka poczty CAŁEGO węzła (nagłówki wszystkich klientów) – tylko NOC i ADMIN', async () => {
     const trasy = TRASY.filter((t) => t.kontroler === 'KolejkaPocztyWezlaAdminController');
     expect(trasy.map((t) => t.metoda).sort()).toEqual(['stan', 'wczytaj', 'wypchnij']);
     for (const t of trasy) {
@@ -441,7 +441,7 @@ describe('L1-KARTA — karta usługi dla ról systemowych', () => {
     }
   });
 
-  it('F3.1 reszta: nadawcy i odrzucenia węzła, RBL na żądanie — tylko NOC i ADMIN', async () => {
+  it('F3.1 reszta: nadawcy i odrzucenia węzła, RBL na żądanie – tylko NOC i ADMIN', async () => {
     const trasy = TRASY.filter((t) => t.kontroler === 'PocztaWezlaAdminController');
     expect(trasy.map((t) => t.metoda).sort()).toEqual(['rbl', 'statystyki', 'wczytajStatystyki']);
     for (const t of trasy) {
@@ -455,7 +455,7 @@ describe('L1-KARTA — karta usługi dla ról systemowych', () => {
     }
   });
 
-  it('F2.7 (D2/D8): domeny — odczyt od L1, operacje od L3, odnowienie na koszt Verris tylko L4 i ADMIN', async () => {
+  it('F2.7 (D2/D8): domeny – odczyt od L1, operacje od L3, odnowienie na koszt Verris tylko L4 i ADMIN', async () => {
     const domeny = TRASY.filter((t) => t.kontroler === 'DomenyAdminController');
     const t = (m: string) => {
       const x = domeny.find((p) => p.metoda === m);
@@ -509,7 +509,7 @@ describe('L1-KARTA — karta usługi dla ról systemowych', () => {
  * Fala 2A (decyzja D1, 10.10) — panel admina wpuszcza STAFF, więc każda trasa, którą STAFF może wywołać, musi mieć
  * uprawnienie (@StaffPerm / @StaffPermAny), a akcje nieodwracalne i konfiguracja zostają tylko dla ADMIN-a.
  */
-describe('D1 — panel operatora dla STAFF: macierz tras', () => {
+describe('D1 – panel operatora dla STAFF: macierz tras', () => {
   const straznicy = (t: Trasa) => [
     ...((Reflect.getMetadata(GUARDS_METADATA, t.klasa) as unknown[]) ?? []),
     ...((Reflect.getMetadata(GUARDS_METADATA, t.handler) as unknown[]) ?? []),
@@ -582,7 +582,7 @@ describe('D1 — panel operatora dla STAFF: macierz tras', () => {
     ComplianceAdminController: ['publish', 'forceAnonymize'],
   };
 
-  it('akcje nieodwracalne i konfiguracja zostają tylko dla ADMIN-a (STAFF z kompletem uprawnień — 403)', async () => {
+  it('akcje nieodwracalne i konfiguracja zostają tylko dla ADMIN-a (STAFF z kompletem uprawnień – 403)', async () => {
     const otwarte: string[] = [];
     const brakujace: string[] = [];
     for (const [kontroler, metody] of Object.entries(TYLKO_ADMIN)) {
@@ -597,7 +597,7 @@ describe('D1 — panel operatora dla STAFF: macierz tras', () => {
     expect(otwarte).toEqual([]);
   });
 
-  it('pulpit i menu — DASHBOARD_VIEW; metryki biznesowe — METRICS_VIEW (11.10); błędy aplikacji — NODES_VIEW; blokady poczty — CUSTOMERS_VIEW', async () => {
+  it('pulpit i menu – DASHBOARD_VIEW; metryki biznesowe – METRICS_VIEW (11.10); błędy aplikacji – NODES_VIEW; blokady poczty – CUSTOMERS_VIEW', async () => {
     const t = (kontroler: string, metoda: string) => TRASY.find((x) => x.kontroler === kontroler && x.metoda === metoda)!;
     for (const [k, m, perm] of [
       ['AdminDashboardController', 'overview', 'DASHBOARD_VIEW'],
@@ -631,7 +631,7 @@ describe('D1 — panel operatora dla STAFF: macierz tras', () => {
  * ryzyka, kroki runbooka — TICKETS_MANAGE (L1 i wyżej); skrzynka i lista tagów — TICKETS_VIEW. Klient (USER)
  * nie wchodzi na żadną z tych tras (sprawdza to test ogólny wyżej).
  */
-describe('F2.5 — trasy helpdesku', () => {
+describe('F2.5 – trasy helpdesku', () => {
   const t = (metoda: string) => {
     const x = TRASY.find((r) => r.kontroler === 'TicketsController' && r.metoda === metoda);
     expect(x, metoda).toBeDefined();
@@ -642,7 +642,7 @@ describe('F2.5 — trasy helpdesku', () => {
   const ZAPIS = ['adminAddNote', 'adminCreateOnBehalf', 'adminUndoEscalation', 'adminSetTags', 'adminRunbookSteps', 'adminEscalateTicket', 'adminSetRiskFlag'];
   const ODCZYT = ['adminListTags', 'adminFindAll'];
 
-  it('zapis — TICKETS_MANAGE: L1 tak, sam TICKETS_VIEW nie, Marketing nie', async () => {
+  it('zapis – TICKETS_MANAGE: L1 tak, sam TICKETS_VIEW nie, Marketing nie', async () => {
     for (const m of ZAPIS) {
       expect({ m, ok: await wpuszcza(t(m), OPERATOR, L1) }).toEqual({ m, ok: true });
       expect({ m, ok: await wpuszcza(t(m), OPERATOR, ['TICKETS_VIEW']) }).toEqual({ m, ok: false });
@@ -651,7 +651,7 @@ describe('F2.5 — trasy helpdesku', () => {
     }
   });
 
-  it('odczyt — TICKETS_VIEW', async () => {
+  it('odczyt – TICKETS_VIEW', async () => {
     for (const m of ODCZYT) {
       expect({ m, ok: await wpuszcza(t(m), OPERATOR, ['TICKETS_VIEW']) }).toEqual({ m, ok: true });
       expect({ m, ok: await wpuszcza(t(m), OPERATOR, MARKETING) }).toEqual({ m, ok: false });
@@ -664,7 +664,7 @@ describe('F2.5 — trasy helpdesku', () => {
  * raport do klienta, sprawdzenie DNS) — MIGRATIONS_MANAGE: L2 (support migracji) i wyżej oraz NOC; L1 (helpdesk),
  * audytor i Marketing nie. Klient (USER) nie wchodzi (test ogólny wyżej).
  */
-describe('D11 — tablica migracji', () => {
+describe('D11 – tablica migracji', () => {
   const rola = (n: string) => [...ROLE_SYSTEMOWE.find((r) => r.name === n)!.permissions];
   const METODY = ['lista', 'obsluga', 'etap', 'ustawienia', 'checklista', 'kontakt', 'podgladRaportu', 'wyslijRaport', 'sprawdzDns'];
   const trasy = () => {
@@ -673,7 +673,7 @@ describe('D11 — tablica migracji', () => {
     return t;
   };
 
-  it('L2, L3, L4 i NOC — tak; L1, audytor i Marketing — nie; sam MIGRATIONS_MANAGE wystarcza', async () => {
+  it('L2, L3, L4 i NOC – tak; L1, audytor i Marketing – nie; sam MIGRATIONS_MANAGE wystarcza', async () => {
     for (const t of trasy()) {
       for (const r of ['L2 Specjalista techniczny', 'L3 Starszy specjalista', 'L4 Kierownik zmiany', 'Inżynier infrastruktury (NOC/DevOps)']) {
         expect({ m: t.metoda, r, ok: await wpuszcza(t, OPERATOR, rola(r)) }).toEqual({ m: t.metoda, r, ok: true });
@@ -691,7 +691,7 @@ describe('D11 — tablica migracji', () => {
  * F2.6 (10.10) — zasoby i diagnoza „508”: karta usługi (faulty, inody, wolne SQL, 5xx) — ACCOUNT_DIAGNOSTICS_VIEW
  * (L2 i wyżej, NOC, abuse); konta przekraczające limity we flocie / na węźle — NODES_VIEW (NOC, L2+, audytor).
  */
-describe('F2.6 — zasoby i diagnoza 508', () => {
+describe('F2.6 – zasoby i diagnoza 508', () => {
   const rola = (n: string) => [...ROLE_SYSTEMOWE.find((r) => r.name === n)!.permissions];
   const trasa = (kontroler: string, metoda: string) => {
     const t = TRASY.find((x) => x.kontroler === kontroler && x.metoda === metoda);
@@ -699,7 +699,7 @@ describe('F2.6 — zasoby i diagnoza 508', () => {
     return t;
   };
 
-  it('karta usługi: odczyt i „wczytaj z serwera” — L2, L3, L4, NOC; L1, audytor i Marketing — nie', async () => {
+  it('karta usługi: odczyt i „wczytaj z serwera” – L2, L3, L4, NOC; L1, audytor i Marketing – nie', async () => {
     for (const m of ['zasoby', 'odczytajZasoby']) {
       const t = trasa('KontoKlientaAdminController', m);
       for (const r of ['L2 Specjalista techniczny', 'L3 Starszy specjalista', 'L4 Kierownik zmiany', 'Inżynier infrastruktury (NOC/DevOps)']) {
@@ -714,7 +714,7 @@ describe('F2.6 — zasoby i diagnoza 508', () => {
     }
   });
 
-  it('flota i węzeł: przekroczenia limitów — NODES_VIEW (NOC, audytor, L2+); L1 i Marketing — nie', async () => {
+  it('flota i węzeł: przekroczenia limitów – NODES_VIEW (NOC, audytor, L2+); L1 i Marketing – nie', async () => {
     const t = trasa('ServersAdminController', 'przekroczenia');
     expect(t.sciezka).toBe('admin/servers/przekroczenia');
     for (const r of ['Inżynier infrastruktury (NOC/DevOps)', 'Audytor (tylko podgląd)', 'L2 Specjalista techniczny']) {
@@ -731,7 +731,7 @@ describe('F2.6 — zasoby i diagnoza 508', () => {
  * F3.2 (D5, 10.10) — bezpieczeństwo węzła. Blokady IP: na karcie usługi „Zablokowało mi IP” — IP_UNBLOCK (L2+, NOC)
  * albo IP_BLOCKS_NODE; lista blokad węzła, dowolne IP i biała lista — tylko IP_BLOCKS_NODE (NOC) i ADMIN.
  */
-describe('F3.2 — bezpieczeństwo węzła', () => {
+describe('F3.2 – bezpieczeństwo węzła', () => {
   const rola = (n: string) => [...ROLE_SYSTEMOWE.find((r) => r.name === n)!.permissions];
   const trasy = (kontroler: string, metody: string[]) => {
     const t = TRASY.filter((x) => x.kontroler === kontroler);
@@ -739,7 +739,7 @@ describe('F3.2 — bezpieczeństwo węzła', () => {
     return t;
   };
 
-  it('karta usługi „Zablokowało mi IP”: L2, L3, L4, NOC — tak; L1, audytor, abuse, Marketing — nie', async () => {
+  it('karta usługi „Zablokowało mi IP”: L2, L3, L4, NOC – tak; L1, audytor, abuse, Marketing – nie', async () => {
     for (const t of trasy('BlokadyIpKontaAdminController', ['stan', 'sprawdz', 'odblokuj'])) {
       for (const r of ['L2 Specjalista techniczny', 'L3 Starszy specjalista', 'L4 Kierownik zmiany', 'Inżynier infrastruktury (NOC/DevOps)']) {
         expect({ m: t.metoda, r, ok: await wpuszcza(t, OPERATOR, rola(r)) }).toEqual({ m: t.metoda, r, ok: true });
@@ -754,7 +754,7 @@ describe('F3.2 — bezpieczeństwo węzła', () => {
     }
   });
 
-  it('malware floty: ACCOUNT_DIAGNOSTICS_VIEW (L2+, NOC, abuse); L1, audytor, Marketing — nie', async () => {
+  it('malware floty: ACCOUNT_DIAGNOSTICS_VIEW (L2+, NOC, abuse); L1, audytor, Marketing – nie', async () => {
     const t = TRASY.find((x) => x.kontroler === 'ServersAdminController' && x.metoda === 'malware')!;
     expect(t.sciezka).toBe('admin/servers/malware');
     for (const r of ['L2 Specjalista techniczny', 'L4 Kierownik zmiany', 'Inżynier infrastruktury (NOC/DevOps)', 'Nadużycia i bezpieczeństwo']) {
@@ -764,7 +764,7 @@ describe('F3.2 — bezpieczeństwo węzła', () => {
     expect(await wpuszcza(t, ADMIN)).toBe(true);
   });
 
-  it('kwarantanna i przywrócenie z karty usługi: ACCOUNT_ACTIONS (L2+, abuse); L1, NOC, audytor — nie', async () => {
+  it('kwarantanna i przywrócenie z karty usługi: ACCOUNT_ACTIONS (L2+, abuse); L1, NOC, audytor – nie', async () => {
     for (const m of ['kwarantanna', 'przywrocZKwarantanny']) {
       const t = TRASY.find((x) => x.kontroler === 'KontoKlientaAkcjeAdminController' && x.metoda === m)!;
       for (const r of ['L2 Specjalista techniczny', 'L3 Starszy specjalista', 'Nadużycia i bezpieczeństwo']) {
@@ -777,7 +777,7 @@ describe('F3.2 — bezpieczeństwo węzła', () => {
     }
   });
 
-  it('trafienia WAF konta (odczyt i wczytanie): ACCOUNT_DIAGNOSTICS_VIEW (L2+, NOC); zmiana trybu WAF — tylko ADMIN', async () => {
+  it('trafienia WAF konta (odczyt i wczytanie): ACCOUNT_DIAGNOSTICS_VIEW (L2+, NOC); zmiana trybu WAF – tylko ADMIN', async () => {
     for (const m of ['trafieniaWaf', 'wczytajTrafieniaWaf']) {
       const t = TRASY.find((x) => x.kontroler === 'KontoKlientaAdminController' && x.metoda === m)!;
       expect(t.sciezka).toBe('admin/subscriptions/:id/konto/waf');
@@ -791,7 +791,7 @@ describe('F3.2 — bezpieczeństwo węzła', () => {
     expect(await wpuszcza(zmianaTrybu, ADMIN)).toBe(true);
   });
 
-  it('blokady IP węzła (lista, dowolne IP, biała lista): tylko NOC i ADMIN; L2–L4 z IP_UNBLOCK — nie', async () => {
+  it('blokady IP węzła (lista, dowolne IP, biała lista): tylko NOC i ADMIN; L2–L4 z IP_UNBLOCK – nie', async () => {
     for (const t of trasy('BlokadyIpWezlaAdminController', ['stan', 'wczytaj', 'odblokuj', 'bialaLista'])) {
       expect(t.sciezka.startsWith('admin/servers/:id/blokady-ip')).toBe(true);
       expect({ m: t.metoda, ok: await wpuszcza(t, OPERATOR, rola('Inżynier infrastruktury (NOC/DevOps)')) }).toEqual({ m: t.metoda, ok: true });
@@ -808,7 +808,7 @@ describe('F3.2 — bezpieczeństwo węzła', () => {
  * usługi wspólnej; restart działającej usługi wspólnej — tylko ADMIN (NODE_SERVICES_RESTART_SHARED jest ADMIN_ONLY),
  * NOC dostaje WYMAGA_WNIOSKU. L1–L4, abuse, audytor — nic.
  */
-describe('F3.4 — usługi i logi węzła', () => {
+describe('F3.4 – usługi i logi węzła', () => {
   const rola = (n: string) => [...ROLE_SYSTEMOWE.find((r) => r.name === n)!.permissions];
   const trasy = TRASY.filter((t) => t.kontroler === 'UslugiWezlaAdminController');
   const NOC = rola('Inżynier infrastruktury (NOC/DevOps)');
@@ -818,7 +818,7 @@ describe('F3.4 — usługi i logi węzła', () => {
     for (const t of trasy) expect(t.sciezka.startsWith('admin/servers/:id/uslugi')).toBe(true);
   });
 
-  it('NOC: stan, sprawdzenie, logi, restart — tak; restart działającej usługi wspólnej — nie (wniosek); ADMIN — wszystko', async () => {
+  it('NOC: stan, sprawdzenie, logi, restart – tak; restart działającej usługi wspólnej – nie (wniosek); ADMIN – wszystko', async () => {
     for (const t of trasy) {
       expect({ m: t.metoda, ok: await wpuszcza(t, OPERATOR, NOC) }).toEqual({ m: t.metoda, ok: t.metoda !== 'restartWspolnej' });
       expect(await wpuszcza(t, ADMIN)).toBe(true);
@@ -831,7 +831,7 @@ describe('F3.4 — usługi i logi węzła', () => {
     expect(await wpuszcza(t, OPERATOR, [...new Set(ROLE_SYSTEMOWE.flatMap((r) => r.permissions))])).toBe(false);
   });
 
-  it('L1–L4, abuse, audytor, Finanse — żadnej trasy', async () => {
+  it('L1–L4, abuse, audytor, Finanse – żadnej trasy', async () => {
     for (const r of ['L1 Konsultant', 'L2 Specjalista techniczny', 'L3 Starszy specjalista', 'L4 Kierownik zmiany', 'Nadużycia i bezpieczeństwo', 'Audytor (tylko podgląd)', 'Finanse i księgowość']) {
       for (const t of trasy) expect({ r, m: t.metoda, ok: await wpuszcza(t, OPERATOR, rola(r)) }).toEqual({ r, m: t.metoda, ok: false });
     }
@@ -843,11 +843,11 @@ describe('F3.4 — usługi i logi węzła', () => {
  * Finanse, Sprzedaż, IOD, abuse), NOC i Marketing nie; komunikat do klientów węzła/planu — L4 (SERVICE_NOTICES_SEND)
  * i ADMIN; baner incydentów — każda rola systemowa.
  */
-describe('F3.8 — komunikacja operacyjna', () => {
+describe('F3.8 – komunikacja operacyjna', () => {
   const rola = (n: string) => [...ROLE_SYSTEMOWE.find((r) => r.name === n)!.permissions];
   const t = (k: string) => TRASY.filter((x) => x.kontroler === k);
 
-  it('mail z szablonu (admin/users/:id/mail-obslugi): L1–L4, Finanse, Sprzedaż, IOD, abuse — tak; NOC, Marketing, Audytor — nie', async () => {
+  it('mail z szablonu (admin/users/:id/mail-obslugi): L1–L4, Finanse, Sprzedaż, IOD, abuse – tak; NOC, Marketing, Audytor – nie', async () => {
     const [m] = t('MailDoKlientaAdminController');
     expect(m.sciezka).toBe('admin/users/:id/mail-obslugi');
     for (const r of ['L1 Konsultant', 'L4 Kierownik zmiany', 'Finanse i księgowość', 'Sprzedaż i partnerzy', 'Inspektor ochrony danych (IOD)', 'Nadużycia i bezpieczeństwo']) {
@@ -870,7 +870,7 @@ describe('F3.8 — komunikacja operacyjna', () => {
     }
   });
 
-  it('baner incydentów: każda rola systemowa tak; operator bez uprawnień i klient — nie', async () => {
+  it('baner incydentów: każda rola systemowa tak; operator bez uprawnień i klient – nie', async () => {
     const [b] = t('StatusObslugiAdminController');
     for (const r of ROLE_SYSTEMOWE) expect({ r: r.name, ok: await wpuszcza(b, OPERATOR, [...r.permissions]) }).toEqual({ r: r.name, ok: true });
     expect(await wpuszcza(b, OPERATOR, [])).toBe(false);
@@ -879,7 +879,7 @@ describe('F3.8 — komunikacja operacyjna', () => {
 });
 
 /** F3.9 — pulpity per rola: obsługa (TICKETS_VIEW), NOC (NODES_VIEW), finanse (BILLING_VIEW); klient — nic. */
-describe('F3.9 — pulpity per rola', () => {
+describe('F3.9 – pulpity per rola', () => {
   const rola = (n: string) => [...ROLE_SYSTEMOWE.find((r) => r.name === n)!.permissions];
   const t = (m: string) => TRASY.find((x) => x.kontroler === 'PulpityRolAdminController' && x.metoda === m)!;
   it.each([
@@ -896,10 +896,10 @@ describe('F3.9 — pulpity per rola', () => {
 });
 
 /** F3.3 — kopie floty: admin i NOC (NODES_VIEW, jak lista węzłów); L1 i Marketing — nie. */
-describe('F3.3 — kopie floty', () => {
+describe('F3.3 – kopie floty', () => {
   const rola = (n: string) => [...ROLE_SYSTEMOWE.find((r) => r.name === n)!.permissions];
 
-  it('GET admin/servers/kopie: NODES_VIEW (NOC, L2+, audytor); L1 i Marketing — nie; klient — nie', async () => {
+  it('GET admin/servers/kopie: NODES_VIEW (NOC, L2+, audytor); L1 i Marketing – nie; klient – nie', async () => {
     const t = TRASY.find((x) => x.kontroler === 'ServersAdminController' && x.metoda === 'kopie')!;
     expect(t.sciezka).toBe('admin/servers/kopie');
     for (const r of ['Inżynier infrastruktury (NOC/DevOps)', 'L2 Specjalista techniczny', 'Audytor (tylko podgląd)']) {
@@ -916,7 +916,7 @@ describe('F3.3 — kopie floty', () => {
  * Finanse, Audytor; pieniądze (wpłata przelewem, korekta salda, ponowienie auto-doładowania) — BILLING_MANAGE (L4,
  * Finanse). NOC, Marketing i zespół abuse rozliczeń nie widzą.
  */
-describe('F3.6 — rozliczenia operatora', () => {
+describe('F3.6 – rozliczenia operatora', () => {
   const rola = (n: string) => [...ROLE_SYSTEMOWE.find((r) => r.name === n)!.permissions];
   const trasy = TRASY.filter((t) => t.kontroler === 'RozliczeniaAdminController');
   // K4 — proformy: lista i PDF to odczyt (BILLING_VIEW), wystawienie i anulowanie — pieniądze (BILLING_MANAGE).
@@ -946,8 +946,8 @@ describe('F3.6 — rozliczenia operatora', () => {
 });
 
 /** F3.7 (OE-25, D1) — progi SLA zgłoszeń to konfiguracja platformy: odczyt i zapis tylko ADMIN, także dla L4. */
-describe('F3.7 — progi SLA zgłoszeń', () => {
-  it('GET/PUT admin/support/sla: ADMIN tak; operator nawet z kompletem uprawnień zgłoszeń — nie; klient — nie', async () => {
+describe('F3.7 – progi SLA zgłoszeń', () => {
+  it('GET/PUT admin/support/sla: ADMIN tak; operator nawet z kompletem uprawnień zgłoszeń – nie; klient – nie', async () => {
     const trasy = TRASY.filter((t) => t.kontroler === 'OpiekaZgloszenAdminController' && ['progiSla', 'zapiszProgiSla'].includes(t.metoda));
     expect(trasy.map((t) => t.sciezka).sort()).toEqual(['admin/support/sla', 'admin/support/sla']);
     const l4 = [...ROLE_SYSTEMOWE.find((r) => r.name === 'L4 Kierownik zmiany')!.permissions];
@@ -964,7 +964,7 @@ describe('F3.7 — progi SLA zgłoszeń', () => {
  * Audyt Fali 3 — maile z abuse@ i blokada całej domeny dodatkowo ABUSE_MANAGE albo ADMIN: sprawdza serwis per wpis
  * (test/integration/poczta-przychodzaca.int-spec.ts), bo granica zależy od rodzaju wpisu, nie od trasy.
  */
-describe('F3.7 — poczta przychodząca do zgłoszeń', () => {
+describe('F3.7 – poczta przychodząca do zgłoszeń', () => {
   const rola = (n: string) => [...ROLE_SYSTEMOWE.find((r) => r.name === n)!.permissions];
   const trasy = TRASY.filter((t) => t.kontroler === 'PocztaPrzychodzacaAdminController');
   const ODCZYT = ['lista', 'blokady', 'plik'];
@@ -977,7 +977,7 @@ describe('F3.7 — poczta przychodząca do zgłoszeń', () => {
     expect(trasy.every((t) => t.sciezka.startsWith('admin/poczta-zgloszen'))).toBe(true);
   });
 
-  it('L1–L4: wszystko; Audytor i NOC: tylko odczyt; Marketing: nic; sam TICKETS_VIEW — bez decyzji', async () => {
+  it('L1–L4: wszystko; Audytor i NOC: tylko odczyt; Marketing: nic; sam TICKETS_VIEW – bez decyzji', async () => {
     for (const r of ['L1 Konsultant', 'L2 Specjalista techniczny', 'L3 Starszy specjalista', 'L4 Kierownik zmiany']) {
       expect({ r, w: await wynik(rola(r)) }).toEqual({ r, w: oczekiwane(true, true) });
     }
@@ -998,7 +998,7 @@ describe('F3.7 — poczta przychodząca do zgłoszeń', () => {
  * i „kto teraz pisze” — TICKETS_VIEW; scalenie (nieodwracalne, D2) — TICKETS_MERGE (L3+), L1/L2 przez wniosek;
  * raporty obsługi — TICKETS_REPORTS (L4) i ADMIN.
  */
-describe('F3.7 — makra, scalanie, obecność, akcje masowe, raporty', () => {
+describe('F3.7 – makra, scalanie, obecność, akcje masowe, raporty', () => {
   const rola = (n: string) => [...ROLE_SYSTEMOWE.find((r) => r.name === n)!.permissions];
   const METODY = ['adminBulk', 'adminMacros', 'adminApplyMacro', 'adminMergeCandidates', 'adminMerge', 'adminPresence', 'adminLeave'];
   const trasy = [
