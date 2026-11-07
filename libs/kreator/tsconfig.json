@@ -1,0 +1,15 @@
+{
+  "extends": "@verris/typescript-config/base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM"],
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "types": ["node", "vitest/globals"]
+  },
+  "include": ["src"]
+}

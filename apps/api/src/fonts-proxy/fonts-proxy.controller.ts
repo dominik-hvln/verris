@@ -1,4 +1,4 @@
-import { Controller, Get, Header, Query, Res } from '@nestjs/common';
+import { Controller, Get, Header, Param, Query, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { FontsProxyService } from './fonts-proxy.service.js';
 
@@ -20,6 +20,15 @@ export class FontsProxyController {
     // Odtwórz surowy querystring z parametrów (zachowując family/wght/display/…).
     const qs = new URLSearchParams(query).toString();
     return this.fonts.css(qs);
+  }
+
+  @Get('kreator/:plik')
+  async plikKreatora(@Param('plik') plik: string, @Res() res: Response): Promise<void> {
+    const { buf, type } = await this.fonts.plikKreatora(plik);
+    res.setHeader('Content-Type', type);
+    res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.end(buf);
   }
 
   @Get('file')

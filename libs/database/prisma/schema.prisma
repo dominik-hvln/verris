@@ -320,6 +320,10 @@ model User {
 
   // PB-26 — postęp testera (strona „Testy (beta)”)
   betaPostep                BetaPostep?
+
+  // Paczka 119 — Verris Kreator: strony klienta i miesięczne zużycie AI kreatora
+  kreatorStrony             KreatorStrona[]
+  kreatorZuzycie            KreatorZuzycie[]
   @@index([role, createdAt])
   @@index([referredByUserId])
 }
@@ -4820,4 +4824,80 @@ model AsystentWiadomosc {
   createdAt DateTime        @default(now())
 
   @@index([rozmowaId, createdAt])
+}
+
+// -----------------------------------------------------------------------------
+// Verris Kreator (paczka 119, 7.11.2026) — strony budowane przez AI z modelu JSON (@verris/kreator).
+// Model strony jest jedynym źródłem prawdy; HTML powstaje z niego w rendererze. Publikacja w kolejnej paczce.
+// -----------------------------------------------------------------------------
+
+enum KreatorStatus {
+  SZKIC
+  GENEROWANIE
+  BLAD
+  GOTOWA
+}
+
+enum KreatorZrodloWersji {
+  AI_GENERACJA
+  AI_ZMIANA
+  RECZNA
+  PRZYWROCENIE
+}
+
+model KreatorStrona {
+  id             String          @id @default(uuid())
+  userId         String
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nazwa          String
+  /// Model strony (`Strona` z @verris/kreator) w wersji `wersjaModelu`; przed generacją pusty obiekt.
+  model          Json
+  wersjaModelu   Int
+  /// Odcisk projektu (styl + fonty + kluczowe warianty) — unikanie powtórek w tej samej branży.
+  odcisk         String
+  branza         String?
+  status         KreatorStatus   @default(SZKIC)
+  /// Powód błędu generacji dla klienta (po polsku, bez szczegółów dostawcy AI).
+  bladOpis       String?
+  opublikowanaAt DateTime?
+  domena         String?
+  /// Kreator Pro: pozostałe propozycje z generacji (tablica modeli) do wyboru; null = brak.
+  propozycje     Json?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  wersje         KreatorWersja[]
+
+  @@index([userId])
+  @@index([branza, createdAt])
+}
+
+model KreatorWersja {
+  id        String              @id @default(uuid())
+  stronaId  String
+  strona    KreatorStrona       @relation(fields: [stronaId], references: [id], onDelete: Cascade)
+  numer     Int
+  model     Json
+  zrodlo    KreatorZrodloWersji
+  opis      String?
+  createdAt DateTime            @default(now())
+
+  @@unique([stronaId, numer])
+}
+
+/// Miesięczny licznik kreatora konta (limity z PLANY_KREATORA) i koszt AI z rozbiciem na cache. Miesiąc w UTC.
+model KreatorZuzycie {
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// 'YYYY-MM' (UTC)
+  miesiac     String
+  generacje   Int      @default(0)
+  zmiany      Int      @default(0)
+  wejTokeny   Int      @default(0)
+  wyjTokeny   Int      @default(0)
+  cacheZapis  Int      @default(0)
+  cacheOdczyt Int      @default(0)
+  kosztUsd    Decimal  @default(0) @db.Decimal(10, 4)
+  updatedAt   DateTime @updatedAt
+
+  @@id([userId, miesiac])
 }

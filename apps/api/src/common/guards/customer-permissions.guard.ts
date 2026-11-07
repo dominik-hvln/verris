@@ -215,6 +215,13 @@ export const REGULY_TRAS: Regula[] = [
     po_co: 'Zakup dodatku to wydatek z portfela właściciela – stąd BILLING_MANAGE, nie SERVICES_MANAGE.',
   },
   {
+    // Paczka 119 – Verris Kreator: strona klienta to treść jak pliki konta (kolejna paczka publikuje ją na hosting),
+    // a każda generacja i zmiana AI zużywa miesięczny limit konta.
+    pasuje: zaczyna('/kreator'),
+    odczyt: [SERVICES_READ], zapis: [FILES_MANAGE],
+    po_co: 'Kreator stron: podgląd jak usługa; generacja, zmiany AI i zapis treści strony jak menedżer plików.',
+  },
+  {
     pasuje: zaczyna('/autoscaling'),
     odczyt: [SERVICES_READ], zapis: [SERVICES_MANAGE],
     po_co: 'Kalkulator i ustawienia autoskalowania.',

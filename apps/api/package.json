@@ -35,6 +35,7 @@
     "@verris/contracts": "workspace:^",
     "@verris/database": "workspace:*",
     "@verris/directadmin-sdk": "workspace:^",
+    "@verris/kreator": "workspace:^",
     "archiver": "^8.0.0",
     "basic-ftp": "^6.2.3",
     "bcrypt": "^6.0.0",

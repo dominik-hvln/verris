@@ -1,12 +1,16 @@
 import { Injectable, Optional, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { AiInteractionStatus, type Prisma } from '@verris/database';
+import { createHash } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import {
   type DostawcaAi,
   type KonfiguracjaAi,
   type PoziomAi,
+  type UzycieZCache,
   kosztUsd,
+  kosztZCacheUsd,
   odczytajKonfiguracjeAi,
 } from './ai-modele.js';
 
@@ -39,8 +43,82 @@ interface OdpowiedzOpenAi {
 }
 interface OdpowiedzAnthropic {
   content?: Array<{ type?: string; text?: unknown }>;
-  usage?: { input_tokens?: number; output_tokens?: number };
+  usage?: {
+    input_tokens?: number;
+    output_tokens?: number;
+    cache_creation_input_tokens?: number;
+    cache_read_input_tokens?: number;
+    cache_creation?: { ephemeral_5m_input_tokens?: number; ephemeral_1h_input_tokens?: number };
+  };
+  stop_reason?: string;
   error?: unknown;
+}
+
+/**
+ * Blok promptu systemowego z punktem cache (prompt caching). Kształt zgodny z `BlokSystemu` z @verris/kreator
+ * (ai/kontrakt.ts) – zdefiniowany tu, żeby dostawca AI nie zależał od kreatora.
+ */
+export interface BlokSystemuAi {
+  tekst: string;
+  cache: '1h' | '5m' | null;
+}
+
+/** Wynik wywołania z cache: `wej` = tokeny poza cache, zapis rozbity na TTL, odczyt z cache. */
+export interface WynikAiZCache extends WynikAi<string>, Omit<UzycieZCache, 'wej' | 'wyj'> {
+  /** stop_reason z Messages API (np. 'max_tokens' = odpowiedź ucięta). */
+  powodKonca: string | null;
+}
+
+/** Limit punktów cache w jednym żądaniu (platform.claude.com/docs/en/build-with-claude/prompt-caching). */
+const MAKS_PUNKTOW_CACHE = 4;
+
+/**
+ * Sprawdza bloki przed wysłaniem: najwyżej 4 punkty cache, a wpisy 1 h przed 5 min („Cache entries with longer TTL
+ * must appear before shorter TTLs” – sekcja Mixing different TTLs). Błąd programisty, nie klienta – rzuca Error.
+ */
+export function sprawdzBlokiCache(bloki: BlokSystemuAi[]): void {
+  const punkty = bloki.filter((b) => b.cache !== null);
+  if (punkty.length > MAKS_PUNKTOW_CACHE) throw new Error(`Za dużo punktów cache: ${punkty.length} (maks. ${MAKS_PUNKTOW_CACHE}).`);
+  const pierwszy5m = punkty.findIndex((b) => b.cache === '5m');
+  if (pierwszy5m >= 0 && punkty.slice(pierwszy5m).some((b) => b.cache === '1h')) {
+    throw new Error('Blok cache 1 h po bloku 5 min – API Anthropic wymaga kolejności od dłuższego TTL.');
+  }
+}
+
+/** Bloki systemu w formacie Messages API: `cache_control` tylko na blokach z punktem cache. */
+export function blokiSystemuAnthropic(bloki: BlokSystemuAi[]) {
+  return bloki.map((b) =>
+    b.cache
+      ? { type: 'text' as const, text: b.tekst, cache_control: { type: 'ephemeral' as const, ttl: b.cache } }
+      : { type: 'text' as const, text: b.tekst },
+  );
+}
+
+/**
+ * Rozbicie zapisu cache po TTL: z `usage.cache_creation` (ephemeral_5m/1h_input_tokens); gdy go brak – całość wg TTL
+ * bloków żądania (przy mieszanych TTL po droższym 1 h – lepiej przeszacować koszt niż go zaniżyć).
+ */
+export function uzycieZOdpowiedzi(usage: OdpowiedzAnthropic['usage'], bloki: BlokSystemuAi[]): UzycieZCache {
+  const zapis = usage?.cache_creation_input_tokens ?? 0;
+  let zapis5m: number;
+  let zapis1h: number;
+  if (usage?.cache_creation) {
+    zapis5m = usage.cache_creation.ephemeral_5m_input_tokens ?? 0;
+    zapis1h = usage.cache_creation.ephemeral_1h_input_tokens ?? 0;
+  } else if (bloki.some((b) => b.cache === '1h')) {
+    zapis5m = 0;
+    zapis1h = zapis;
+  } else {
+    zapis5m = zapis;
+    zapis1h = 0;
+  }
+  return {
+    wej: usage?.input_tokens ?? 0,
+    wyj: usage?.output_tokens ?? 0,
+    zapis5m,
+    zapis1h,
+    odczyt: usage?.cache_read_input_tokens ?? 0,
+  };
 }
 
 @Injectable()
@@ -288,6 +366,105 @@ export class AiProviderService {
       .join('');
     if (!tekst) throw new ServiceUnavailableException('AI provider returned an empty response.');
     return { wynik: tekst, wej: body?.usage?.input_tokens ?? 0, wyj: body?.usage?.output_tokens ?? 0 };
+  }
+
+  /**
+   * Anthropic Messages API z promptem systemowym w blokach i prompt caching (kreator stron; tylko Anthropic –
+   * decyzja właściciela 7.11.2026). Format: platform.claude.com/docs/en/build-with-claude/prompt-caching –
+   * `system: [{ type: 'text', text, cache_control: { type: 'ephemeral', ttl: '1h' | '5m' } }]`, bez nagłówka beta.
+   * Koszt: wejście poza cache × cena, zapis 1 h × 2, zapis 5 min × 1,25, odczyt × mnożnik modelu (0,1 albo mniej).
+   * Ten sam bezpiecznik budżetu platformy co pozostałe wywołania; każde wywołanie (także nieudane) trafia do
+   * AiInteractionLog z `funkcja` – raport kosztów w adminie i budżet platformy liczą je razem z resztą AI.
+   */
+  async anthropicZBlokami(input: {
+    model: string;
+    system: BlokSystemuAi[];
+    wiadomosci: Wiadomosc[];
+    maxTokens: number;
+    funkcja: string;
+    userId: string | null;
+    actorUserId?: string | null;
+    /** Do dziennika (np. 'generacja-pro'); bez treści promptu. */
+    rodzaj?: string;
+    timeoutMs?: number;
+  }): Promise<WynikAiZCache> {
+    sprawdzBlokiCache(input.system);
+    const konf = await this.konfiguracja();
+    const key = this.klucz('anthropic');
+    if (!key) throw new ServiceUnavailableException('Kreator AI jest chwilowo niedostępny – spróbuj ponownie później.');
+    if (await this.budzetPlatformyWyczerpany(konf)) {
+      throw new ServiceUnavailableException('Kreator AI jest chwilowo niedostępny – spróbuj ponownie później.');
+    }
+    const promptHash = createHash('sha256')
+      .update(JSON.stringify([input.funkcja, input.model, input.system.map((b) => b.tekst), input.wiadomosci]))
+      .digest('hex');
+    const dziennik = async (dane: Partial<Prisma.AiInteractionLogUncheckedCreateInput>) => {
+      await this.prisma?.aiInteractionLog
+        .create({
+          data: {
+            feature: input.funkcja,
+            provider: 'anthropic',
+            model: input.model,
+            promptHash,
+            userId: input.userId,
+            actorUserId: input.actorUserId ?? input.userId,
+            status: AiInteractionStatus.COMPLETED,
+            ...dane,
+          },
+        })
+        .catch(() => undefined);
+    };
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+        body: JSON.stringify({
+          model: input.model,
+          max_tokens: input.maxTokens,
+          system: blokiSystemuAnthropic(input.system),
+          messages: input.wiadomosci,
+        }),
+        signal: AbortSignal.timeout(input.timeoutMs ?? 180_000),
+      });
+      const body = (await res.json().catch(() => null)) as OdpowiedzAnthropic | null;
+      if (!res.ok) throw blad(body, res.status);
+      const tekst = (body?.content ?? [])
+        .filter((b) => b.type === 'text' && typeof b.text === 'string')
+        .map((b) => b.text as string)
+        .join('');
+      const u = uzycieZOdpowiedzi(body?.usage, input.system);
+      const koszt = kosztZCacheUsd(konf, input.model, u);
+      await dziennik({
+        inputTokens: u.wej + u.zapis5m + u.zapis1h + u.odczyt,
+        outputTokens: u.wyj,
+        costUsd: koszt,
+        status: tekst ? AiInteractionStatus.COMPLETED : AiInteractionStatus.FAILED,
+        inputSummary: { rodzaj: input.rodzaj ?? null, wejPozaCache: u.wej, zapis5m: u.zapis5m, zapis1h: u.zapis1h, odczyt: u.odczyt },
+        ...(tekst ? {} : { errorMessage: 'Pusta odpowiedź' }),
+      });
+      if (!tekst) throw new ServiceUnavailableException('AI provider returned an empty response.');
+      return {
+        wynik: tekst,
+        dostawca: 'anthropic',
+        model: input.model,
+        wej: u.wej,
+        wyj: u.wyj,
+        zapis5m: u.zapis5m,
+        zapis1h: u.zapis1h,
+        odczyt: u.odczyt,
+        kosztUsd: koszt,
+        powodKonca: body?.stop_reason ?? null,
+      };
+    } catch (e) {
+      if (!(e instanceof ServiceUnavailableException && e.message === 'AI provider returned an empty response.')) {
+        await dziennik({
+          status: AiInteractionStatus.FAILED,
+          inputSummary: { rodzaj: input.rodzaj ?? null },
+          errorMessage: (e instanceof Error ? e.message : String(e)).slice(0, 2000),
+        });
+      }
+      throw e;
+    }
   }
 
   /** Wektory do RAG (OpenAI /embeddings). */

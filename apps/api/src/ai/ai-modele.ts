@@ -101,3 +101,36 @@ export function kosztUsd(konf: KonfiguracjaAi, model: string, wej: number, wyj: 
   const cena = konf.ceny[model] ?? { wej: 20, wyj: 100 };
   return (wej * cena.wej + wyj * cena.wyj) / 1_000_000;
 }
+
+/**
+ * Prompt caching (Anthropic) – mnożniki ceny wejścia wg platform.claude.com/docs/en/build-with-claude/prompt-caching
+ * (sekcja Pricing, stan 2026-11-07): zapis z TTL 5 min = 1,25×, zapis z TTL 1 h = 2×, odczyt = 0,1× – poza wyjątkami
+ * z przypisów tabeli: Claude Opus 5.5 i Sonnet 5.5 czytają cache za 0,05×, Fable 5.1 i Mythos 5.1 za 0,025×.
+ */
+export const MNOZNIK_ZAPISU_CACHE = { '5m': 1.25, '1h': 2 } as const;
+
+export function mnoznikOdczytuCache(model: string): number {
+  if (/^claude-(fable|mythos)-5-1(-|$)/.test(model)) return 0.025;
+  if (/^claude-(opus|sonnet)-5-5(-|$)/.test(model)) return 0.05;
+  return 0.1;
+}
+
+/** Zużycie jednego wywołania z cache: `wej` = tokeny po ostatnim punkcie cache (input_tokens z usage). */
+export interface UzycieZCache {
+  wej: number;
+  wyj: number;
+  zapis5m: number;
+  zapis1h: number;
+  odczyt: number;
+}
+
+/** Koszt w USD z rozbiciem na cache; nieznany model jak w `kosztUsd` – po najdroższym znanym. */
+export function kosztZCacheUsd(konf: KonfiguracjaAi, model: string, u: UzycieZCache): number {
+  const cena = konf.ceny[model] ?? { wej: 20, wyj: 100 };
+  const wejscie =
+    u.wej +
+    u.zapis5m * MNOZNIK_ZAPISU_CACHE['5m'] +
+    u.zapis1h * MNOZNIK_ZAPISU_CACHE['1h'] +
+    u.odczyt * mnoznikOdczytuCache(model);
+  return (wejscie * cena.wej + u.wyj * cena.wyj) / 1_000_000;
+}

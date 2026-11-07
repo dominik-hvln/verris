@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { KATALOG_FONTOW, plikFontu, ZAKRESY_FONTOW, type ZakresFontu } from '@verris/kreator';
 
 /**
  * FONT-1 — Proxy/CDN fontów (RODO-safe self-hosting Google Fonts).
@@ -109,6 +110,37 @@ export class FontsProxyService {
 
     this.rememberFile(u, { buf, type, at: Date.now() });
     return { buf, type };
+  }
+
+  /**
+   * Pliki fontów stron z kreatora: `<rodzina>-<waga>[-italic]-<latin|latin-ext>.woff2` (nazwy z renderera,
+   * `plikFontu`). Tylko rodziny, wagi i kursywy z KATALOG_FONTOW – endpoint nie jest ogólnym proxy.
+   * Podgląd w panelu ładuje fonty stąd; publikacja kopiuje te same pliki na hosting klienta.
+   */
+  async plikKreatora(nazwa: string): Promise<{ buf: Buffer; type: string }> {
+    const cel = this.wariantKreatora(nazwa);
+    if (!cel) throw new BadRequestException('Nieznany plik fontu.');
+    const os = cel.kursywa ? `ital,wght@1,${cel.waga}` : `wght@${cel.waga}`;
+    const css = await this.css(`family=${encodeURIComponent(cel.rodzina).replace(/%20/g, '+')}:${os}&display=swap`);
+    const blok = new RegExp(`/\\* ${cel.zakres} \\*/\\s*@font-face\\s*\\{[^}]*?url\\(([^)]+)\\)`).exec(css);
+    const u = blok ? new URL(blok[1], this.base()).searchParams.get('u') : null;
+    if (!u) throw new BadRequestException('Brak pliku fontu w tym zakresie znaków.');
+    return this.file(u);
+  }
+
+  /** Nazwa pliku → odmiana z katalogu (albo null). Dopasowanie przez porównanie z `plikFontu`, bez parsowania nazw. */
+  wariantKreatora(nazwa: string): { rodzina: string; waga: number; kursywa: boolean; zakres: ZakresFontu } | null {
+    if (!/^[a-z0-9-]{1,80}\.woff2$/.test(nazwa)) return null;
+    for (const f of KATALOG_FONTOW) {
+      for (const waga of f.wagi) {
+        for (const kursywa of f.kursywa ? [false, true] : [false]) {
+          for (const zakres of Object.keys(ZAKRESY_FONTOW) as ZakresFontu[]) {
+            if (plikFontu(f.rodzina, waga, kursywa, zakres) === nazwa) return { rodzina: f.rodzina, waga, kursywa, zakres };
+          }
+        }
+      }
+    }
+    return null;
   }
 
   // -------------------------------------------------------------------------

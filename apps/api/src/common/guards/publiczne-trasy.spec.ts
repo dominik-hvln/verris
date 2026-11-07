@@ -76,6 +76,8 @@ const PUBLICZNE = [
   'EmailMarketingPublicController.unsubscribePost',
   'FontsProxyController.css2',
   'FontsProxyController.file',
+  // Paczka 119: pliki fontów stron z kreatora (tylko odmiany z KATALOG_FONTOW) – ładuje je podgląd i opublikowana strona.
+  'FontsProxyController.plikKreatora',
   'GitWebhookController.wyzwol',
   'GrafanaAuthController.sso',
   'GrafanaAuthController.ticket',

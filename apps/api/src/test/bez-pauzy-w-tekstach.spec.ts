@@ -27,6 +27,7 @@ const KATALOGI = [
   'apps/api/src',
   'libs/contracts/src',
   'libs/ui/src',
+  'libs/kreator/src',
 ];
 /**
  * Pomijane: pliki generowane, migracje Payload już wdrożone na produkcji (zmiana pliku nie zmieni danych)
