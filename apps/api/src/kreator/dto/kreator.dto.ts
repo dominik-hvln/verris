@@ -59,6 +59,13 @@ export class UtworzStroneDto {
   brief!: BriefStronyDto;
 }
 
+/** PATCH /kreator/strony/:id – zmiana nazwy (serwis dodatkowo przycina białe znaki i sprawdza długość po tym). */
+export class ZmienNazweDto {
+  @IsString()
+  @Length(1, 80, { message: 'Nazwa strony: od 1 do 80 znaków.' })
+  nazwa!: string;
+}
+
 /** Zapis ręczny z edytora – model sprawdza walidujStrone (@verris/kreator) w serwisie. */
 export class ZapiszModelDto {
   @IsObject()

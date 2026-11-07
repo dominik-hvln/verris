@@ -40,6 +40,8 @@ ARG APP_NAME
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/${APP_NAME}/package.json apps/${APP_NAME}/package.json
 COPY libs/contracts/package.json libs/contracts/package.json
+# Verris Kreator (panel klienta): model, katalogi i renderer podglądu; źródła dochodzą w `COPY libs libs` niżej.
+COPY libs/kreator/package.json libs/kreator/package.json
 COPY libs/ui/package.json libs/ui/package.json
 COPY libs/typescript-config libs/typescript-config
 COPY libs/eslint-config libs/eslint-config

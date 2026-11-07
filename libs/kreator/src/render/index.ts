@@ -16,6 +16,7 @@ export { kontrastWcag, dopasujKontrast } from './kolor.ts';
 export { budujKolory } from './paleta.ts';
 export { znakKreatora, logoKreatora } from './znak.ts';
 export { plikFontu, slugRodziny, ZAKRESY_FONTOW, type ZakresFontu } from './fonty.ts';
+export { MAKS_POL_FORMULARZA } from './sekcje/wspolne.ts';
 
 const ZNACZNIK_GLOWY = '<!--glowa-->';
 const EFEKTY_ZNANE = new Set(KATALOG_EFEKTOW.map((e) => e.id));

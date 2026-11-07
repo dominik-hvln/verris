@@ -464,6 +464,9 @@ importers:
       '@verris/contracts':
         specifier: workspace:^
         version: link:../../libs/contracts
+      '@verris/kreator':
+        specifier: workspace:^
+        version: link:../../libs/kreator
       '@verris/ui':
         specifier: workspace:*
         version: link:../../libs/ui

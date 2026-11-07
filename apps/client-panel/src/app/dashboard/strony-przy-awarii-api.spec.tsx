@@ -18,6 +18,10 @@ jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: () => undefined, refresh: () => undefined, replace: () => undefined }),
   usePathname: () => "/",
   useSearchParams: () => new URLSearchParams(),
+  // Akcje z wynikiem zamiast wyjątku (kreator/akcje.ts, lib/wynik-akcji.ts) przepuszczają tylko redirect/notFound.
+  unstable_rethrow: (e: unknown) => {
+    if (/NEXT_(REDIRECT|NOT_FOUND)/.test(String((e as { digest?: string })?.digest ?? ""))) throw e;
+  },
 }));
 jest.mock("@/lib/api", () => {
   class ApiError extends Error {

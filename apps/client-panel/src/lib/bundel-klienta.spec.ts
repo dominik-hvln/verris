@@ -117,3 +117,40 @@ it('decyzja 24 – katalog wersji PHP węzła (/opt/alt/) bez wyjątku w kodzie 
   const zle = pliki(SRC).filter((p) => /\/opt\/alt\b/.test(bezKomentarzy(readFileSync(p, 'utf8'))));
   expect(zle).toEqual([]);
 });
+
+/**
+ * Paczka 120 – Verris Kreator. Pełne wejście `@verris/kreator` niesie renderer (CSS/JS stron) i master prompt AI
+ * (know-how kreatora, kilkadziesiąt KB tekstu) – nie mogą trafić do przeglądarki. Komponenty panelu biorą tylko
+ * `@verris/kreator/klient` (model, katalogi, wersje, style); pełne wejście wolno w modułach serwerowych:
+ * trasach `app/api/**` (route handlery nie trafiają do przeglądarki), `'use server'` i modułach z `next/headers`.
+ */
+const KREATOR = resolve(__dirname, '../../../../libs/kreator/src');
+
+function serwerowyModul(sciezkaWzgledna: string, kod: string): boolean {
+  return sciezkaWzgledna.startsWith('app/api/') || /^\s*['"]use server['"]/m.test(kod) || /from\s+['"]next\/headers['"]/.test(kod);
+}
+
+it('kreator: pełne wejście @verris/kreator tylko w modułach serwerowych, komponenty – @verris/kreator/klient', () => {
+  const zle: string[] = [];
+  for (const p of pliki(SRC)) {
+    const kod = readFileSync(p, 'utf8');
+    if (!/from\s+['"]@verris\/kreator['"]|import\(\s*['"]@verris\/kreator['"]/.test(kod)) continue;
+    const wzgl = p.slice(SRC.length + 1);
+    if (!serwerowyModul(wzgl, kod)) zle.push(wzgl);
+  }
+  expect(zle).toEqual([]);
+  // Trasa podglądu renderuje po stronie serwera Next – to jedyne miejsce panelu z rendererem.
+  expect(readFileSync(join(SRC, 'app/api/kreator/podglad/route.ts'), 'utf8')).toMatch(/from '@verris\/kreator'/);
+});
+
+it('kreator: drzewo wejścia klienckiego (klient.ts) nie sięga renderera ani master promptu', () => {
+  const osiagalne = [...drzewo(join(KREATOR, 'klient.ts')).keys()].map((p) => p.slice(KREATOR.length + 1));
+  expect(osiagalne.filter((p) => p.startsWith('render/') || (p.startsWith('ai/') && p !== 'ai/kontrakt.ts') || p.startsWith('przyklady/'))).toEqual([]);
+  expect(osiagalne).toEqual(expect.arrayContaining(['model.ts', 'katalog.ts', 'plany.ts', 'style/katalog-stylow.ts']));
+});
+
+it('kreator: strażnik łapie pełne wejście (index.ts sięga renderera i master promptu)', () => {
+  const pelne = [...drzewo(join(KREATOR, 'index.ts')).keys()].map((p) => p.slice(KREATOR.length + 1));
+  expect(pelne).toEqual(expect.arrayContaining(['render/index.ts', 'ai/master-prompt.ts']));
+  expect(serwerowyModul('app/dashboard/kreator/edytor/edytor.tsx', "'use client';\nimport { renderujStrone } from '@verris/kreator';")).toBe(false);
+});

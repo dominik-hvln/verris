@@ -84,6 +84,12 @@ const PUBLICZNE = [
   'GrafanaAuthController.validate',
   'HealthController.liveness',
   'HealthController.readiness',
+  // Paczka 121: link podglądu wersji próbnej strony z kreatora – token HMAC (id strony + termin 7 dni) w adresie,
+  // unieważniany wycofaniem i usunięciem strony; noindex, CSP ze skrótami skryptów, limit 120/min per IP.
+  // Formularz kontaktowy opublikowanej strony z kreatora – token HMAC strony w adresie (bez terminu, unieważniany
+  // wycofaniem/usunięciem strony), honeypot, czas wypełniania, 5/10 min per IP, 50/dobę per strona; tylko 303.
+  'KreatorFormularzController.wyslij',
+  'KreatorLinkController.strona',
   'KbPublicController.apiArticle',
   'KbPublicController.apiTree',
   'KbPublicController.article',

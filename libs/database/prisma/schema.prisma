@@ -4861,6 +4861,16 @@ model KreatorStrona {
   bladOpis       String?
   opublikowanaAt DateTime?
   domena         String?
+  /// Paczka 121 – publikacja na domenę: adres strony (https://domena/), usługa hostingu, katalog strony na koncie
+  /// (względem katalogu domowego, np. /domains/x.pl/public_html) i kopia poprzedniej zawartości (poza public_html).
+  adres          String?
+  subskrypcjaId  String?
+  katalog        String?
+  kopia          String?
+  /// Link podglądu wersji próbnej ważny do (token HMAC ze stronaId i terminem; null = brak/unieważniony).
+  podgladDo      DateTime?
+  /// Trwająca publikacja albo wycofanie (blokada między replikami; starsza niż 15 min = przerwana).
+  publikacjaOd   DateTime?
   /// Kreator Pro: pozostałe propozycje z generacji (tablica modeli) do wyboru; null = brak.
   propozycje     Json?
   createdAt      DateTime        @default(now())

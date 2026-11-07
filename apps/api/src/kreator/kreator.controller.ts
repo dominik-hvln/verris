@@ -1,10 +1,10 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, ParseIntPipe, ParseUUIDPipe, Post, Put, Query, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, ParseIntPipe, ParseUUIDPipe, Patch, Post, Put, Query, Res, UseGuards } from '@nestjs/common';
 import type { Response } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { RateLimit } from '../common/guards/rate-limit.guard.js';
 import { KreatorService } from './kreator.service.js';
-import { PodgladQueryDto, UtworzStroneDto, ZapiszModelDto, ZmianaAiDto } from './dto/kreator.dto.js';
+import { PodgladQueryDto, UtworzStroneDto, ZapiszModelDto, ZmianaAiDto, ZmienNazweDto } from './dto/kreator.dto.js';
 
 /** Tożsamość z JWT: `userId` = konto (właściciel), `principalUserId` = człowiek za subkontem albo impersonacją. */
 type Uzytkownik = { userId: string; principalUserId?: string };
@@ -51,6 +51,13 @@ export class KreatorController {
   @RateLimit({ limit: 120, windowMs: 60 * 1000, scope: 'kreator:zapis', perKonto: true })
   zapisz(@CurrentUser() u: Uzytkownik, @Param('id', ParseUUIDPipe) id: string, @Body() dto: ZapiszModelDto) {
     return this.kreator.zapiszRecznie(u.userId, id, dto.model);
+  }
+
+  /** Zmiana nazwy strony na liście (panel: zmienNazweStrony) – te same strażniki i limit co zapis (PUT). */
+  @Patch('strony/:id')
+  @RateLimit({ limit: 120, windowMs: 60 * 1000, scope: 'kreator:zapis', perKonto: true })
+  zmienNazwe(@CurrentUser() u: Uzytkownik, @Param('id', ParseUUIDPipe) id: string, @Body() dto: ZmienNazweDto) {
+    return this.kreator.zmienNazwe(u.userId, id, dto.nazwa);
   }
 
   @Post('strony/:id/ai')

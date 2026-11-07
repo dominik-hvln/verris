@@ -129,6 +129,32 @@ const MODULY: Record<string, string> = {
     });
   });
 `,
+  formularz: `
+  // Formularz kontaktowy: adres powrotu i czas wypełniania (ochrona przed botami), komunikat po wysyłce.
+  gotowe(function () {
+    var start = Date.now();
+    [].slice.call(d.querySelectorAll('form[data-formularz]')).forEach(function (f) {
+      var powrot = f.querySelector('input[name="powrot"]');
+      if (powrot && !powrot.value) powrot.value = location.href.split('#')[0].split('?')[0];
+      f.addEventListener('submit', function () {
+        var czas = f.querySelector('input[name="czas"]');
+        if (czas) czas.value = String(Date.now() - start);
+      });
+    });
+    var m = /[?&]formularz=(wyslano|blad)(&|$)/.exec(location.search);
+    if (!m) return;
+    var cel = location.hash ? d.getElementById(location.hash.slice(1)) : null;
+    var st = (cel || d).querySelector('form[data-formularz] .form-status');
+    if (!st) return;
+    var ok = m[1] === 'wyslano';
+    st.classList.add(ok ? 'form-ok' : 'form-blad');
+    st.textContent = ok
+      ? 'Dziękujemy, wiadomość została wysłana. Odpowiemy najszybciej, jak to możliwe.'
+      : 'Nie udało się wysłać wiadomości. Spróbuj ponownie za chwilę albo skontaktuj się z nami telefonicznie lub mailowo.';
+    st.focus();
+    if (history.replaceState) history.replaceState(null, '', location.pathname + location.hash);
+  });
+`,
   postep: `
   // Postęp czytania – zapas dla przeglądarek bez CSS scroll-driven animations.
   if (!(window.CSS && CSS.supports && CSS.supports('animation-timeline: scroll()'))) {

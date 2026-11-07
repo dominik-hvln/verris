@@ -455,6 +455,16 @@ export class KreatorService {
     return { html, naglowki: naglowkiPodgladu(bazaFontow) };
   }
 
+  /** PATCH /kreator/strony/:id { nazwa } – zmiana nazwy na liście; dostęp jak zapis (PUT), tylko własna strona. */
+  async zmienNazwe(userId: string, id: string, nazwa: string): Promise<{ id: string; nazwa: string }> {
+    await this.wymagajDostepu(userId);
+    const czysta = nazwa.replace(/\s+/g, ' ').trim();
+    if (!czysta || czysta.length > 80) throw new BadRequestException('Nazwa strony: od 1 do 80 znaków.');
+    const r = await this.prisma.kreatorStrona.updateMany({ where: { id, userId }, data: { nazwa: czysta } });
+    if (!r.count) throw new NotFoundException(NIE_MA_STRONY);
+    return { id, nazwa: czysta };
+  }
+
   /** Usunięcie bez sprawdzania wersji kreatora: klient bez hostingu też może sprzątnąć swoje dane. */
   async usun(userId: string, id: string): Promise<{ ok: true }> {
     const r = await this.prisma.kreatorStrona.deleteMany({ where: { id, userId } });

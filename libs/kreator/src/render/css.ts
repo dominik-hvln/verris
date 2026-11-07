@@ -186,6 +186,11 @@ p a,.zgoda a,address a{text-decoration-thickness:1px}
 .zgoda input{width:1.125rem;height:1.125rem;margin:.15rem 0 0;flex:none;accent-color:var(--s-btn)}
 .zgoda a{color:var(--s-tekst)}
 .formularz .btn{width:100%}
+.formularz .btn:disabled{opacity:.6;cursor:not-allowed}
+.form-info{margin-top:.75rem;font-size:.8125rem;color:var(--s-tekst2)}
+.form-status{margin-bottom:1.25rem;padding:.75rem 1rem;border:1px solid var(--s-ramka);border-left-width:4px;border-radius:var(--r-pole);font-weight:var(--w-b)}
+.form-status:empty{display:none}
+.form-status.form-ok{border-left-color:var(--s-btn)}
 .form-linia .btn{width:auto}
 @container (min-width:30rem){.pola{grid-template-columns:1fr 1fr}}
 

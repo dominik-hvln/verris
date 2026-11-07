@@ -31,7 +31,9 @@ const DYREKTYWY_STALE: ReadonlyArray<string> = [
   "style-src 'self' 'unsafe-inline'",
   // wss://*.hetzner.cloud: konsola VPS (noVNC) łączy się z websocketem z request_console (D3 06.10).
   "connect-src 'self' https://api.verris.pl wss://*.hetzner.cloud https://*.stripe.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.doubleclick.net https://*.googlesyndication.com https://www.googleadservices.com https://www.google.com https://www.facebook.com",
-  "frame-src https://js.stripe.com https://hooks.stripe.com https://td.doubleclick.net https://www.googletagmanager.com https://www.facebook.com https://api.verris.pl",
+  // 'self': podgląd Verris Kreatora w edytorze panelu klienta – ramka z odpowiedzią POST /api/kreator/podglad
+  // (ten sam origin; dokument w ramce ma własne CSP `sandbox allow-scripts` bez allow-same-origin).
+  "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://td.doubleclick.net https://www.googletagmanager.com https://www.facebook.com https://api.verris.pl",
 ];
 
 /** Zapas dla przeglądarek bez `'strict-dynamic'` (CSP2) — CSP3 tę listę ignoruje. */

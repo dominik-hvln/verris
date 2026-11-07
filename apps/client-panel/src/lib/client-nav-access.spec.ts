@@ -110,3 +110,18 @@ describe('Beta „Zgłoś uwagę” – kto może założyć zgłoszenie', () =>
     expect(canCreateTicket({ isSubaccount: true, customerPermissions: null })).toBe(false);
   });
 });
+
+describe('Paczka 120 – Kreator stron (jak customer-permissions.guard w API: odczyt jak usługi, zapis jak pliki)', () => {
+  const sub = (customerPermissions: string[]) => ({ isSubaccount: true, customerPermissions });
+  it('lista i edytor z podglądem usług albo plików; nowa strona (generacja AI) tylko z FILES_MANAGE', () => {
+    expect(canAccessDashboardRoute('/dashboard/kreator', sub(['SERVICES_READ']))).toBe(true);
+    expect(canAccessDashboardRoute('/dashboard/kreator/0b8f6a52-5f0e-4b39-9a51-6a1f3c2d4e5f', sub(['SERVICES_READ']))).toBe(true);
+    expect(canAccessDashboardRoute('/dashboard/kreator/nowa', sub(['SERVICES_READ', 'SERVICES_MANAGE']))).toBe(false);
+    expect(canAccessDashboardRoute('/dashboard/kreator/nowa', sub(['FILES_MANAGE']))).toBe(true);
+    expect(canAccessDashboardRoute('/dashboard/kreator', sub(['TICKETS_READ']))).toBe(false);
+    expect(canAccessDashboardRoute('/dashboard/kreator/nowa', { isSubaccount: false, customerPermissions: [] })).toBe(true);
+  });
+  it('zakres usług (PB-20): kreator jest zasobem całego konta – znika', () => {
+    expect(canAccessDashboardRoute('/dashboard/kreator', { ...sub(['SERVICES_READ', 'FILES_MANAGE']), serviceScope: ['s1'] })).toBe(false);
+  });
+});

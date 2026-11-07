@@ -16,6 +16,11 @@ export interface OpcjeRenderu {
   bazaFontow: string;
   /** Wymuś noindex (próba zawsze noindex). */
   noindex?: boolean;
+  /**
+   * Adres POST formularza kontaktowego (API: …/kreator/formularz/<token>) – podaje go publikacja na domenę i ZIP.
+   * Brak = formularz wyłączony z informacją „Formularz zadziała po publikacji strony” (podgląd edytora, link próbny).
+   */
+  adresFormularza?: string;
   /** ISO – deterministyczne testy (rok w stopce, lastmod). */
   dataGeneracji?: string;
 }

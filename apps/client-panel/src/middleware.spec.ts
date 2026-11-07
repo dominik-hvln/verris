@@ -4,7 +4,7 @@ jest.mock('@/lib/session-profile', () => ({
   fetchSessionProfileState: jest.fn(async () => ({ profile: null, unauthorized: false })),
 }));
 
-import { middleware } from './middleware';
+import { config, middleware } from './middleware';
 import { cspPanelu, dostawcaCaptchy } from '@verris/ui/csp';
 
 /** API chwilowo nie odpowiada na /users/me: strona → 503 z komunikatem, akcja serwera → dalej (API ją oceni). */
@@ -212,5 +212,28 @@ describe('middleware – strona bez uprawnienia subkonta', () => {
     const cel = new URL(res.headers.get('location')!);
     expect(cel.pathname).toBe('/dashboard');
     expect(cel.searchParams.get('brak_dostepu')).toBe('/dashboard/billing/invoices');
+  });
+});
+
+/**
+ * Paczka 120 – podgląd Verris Kreatora: edytor wysyła formularz POST (target = ramka) na /api/kreator/podglad.
+ * CSP strony panelu musi dopuścić ten sam origin w frame-src i form-action, a middleware nie może nadpisać
+ * własnego CSP odpowiedzi podglądu (sandbox bez allow-same-origin) – trasy /api są poza matcherem.
+ */
+describe('CSP panelu a podgląd kreatora', () => {
+  const dyrektywa = (csp: string, nazwa: string) => csp.split('; ').find((d) => d.startsWith(`${nazwa} `))?.split(' ') ?? [];
+
+  it("frame-src i form-action zawierają 'self' (ramka podglądu w edytorze)", () => {
+    const csp = cspPanelu('n');
+    expect(dyrektywa(csp, 'frame-src')).toContain("'self'");
+    expect(dyrektywa(csp, 'form-action')).toContain("'self'");
+    // Panel nadal nie pozwala się osadzać na cudzych stronach.
+    expect(dyrektywa(csp, 'frame-ancestors')).toEqual(['frame-ancestors', "'none'"]);
+  });
+
+  it('middleware nie obejmuje /api/kreator/podglad (CSP podglądu zostaje z trasy)', () => {
+    const wzor = new RegExp(`^${config.matcher[0]}$`);
+    expect(wzor.test('/api/kreator/podglad')).toBe(false);
+    expect(wzor.test('/dashboard/kreator')).toBe(true);
   });
 });

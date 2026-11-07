@@ -1,8 +1,11 @@
-import { ForbiddenException, NotFoundException, ServiceUnavailableException, UnprocessableEntityException } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
+import { BadRequestException, ForbiddenException, NotFoundException, ServiceUnavailableException, UnprocessableEntityException } from '@nestjs/common';
 import { PRZYKLAD_SALON, walidujStrone, type FunkcjeAiKreatora, type Strona } from '@verris/kreator';
 import { KreatorService, LIMIT_WERSJI } from './kreator.service.js';
 import { KLUCZ_KONFIGURACJI_KREATORA, miesiacUtc } from './konfiguracja.js';
 import type { RendererKreatora } from './zaleznosci.js';
+import { ZmienNazweDto } from './dto/kreator.dto.js';
 
 /**
  * Serwis kreatora na atrapie Prismy w pamięci (tabele kreatora + to, z czego liczy się wersja kreatora)
@@ -217,7 +220,27 @@ describe('KreatorService – dostęp i wersje', () => {
     await expect(svc.zapiszRecznie('u1', 'obca', SALON)).rejects.toBeInstanceOf(NotFoundException);
     await expect(svc.podglad('u1', 'obca', {})).rejects.toBeInstanceOf(NotFoundException);
     await expect(svc.usun('u1', 'obca')).rejects.toBeInstanceOf(NotFoundException);
+    await expect(svc.zmienNazwe('u1', 'obca', 'Moja')).rejects.toBeInstanceOf(NotFoundException);
     expect(db.strony).toHaveLength(1);
+    expect(db.strony[0].nazwa).toBeUndefined();
+  });
+
+  it('PATCH nazwy: własna strona – nazwa przycięta i zapisana; pusta / ponad 80 znaków → 400; bez dostępu → 403', async () => {
+    const { svc, db } = zbuduj([]);
+    db.strony.push({ id: 'moja', userId: 'u1', nazwa: 'Stara', status: 'GOTOWA', model: SALON, propozycje: null });
+    expect(await svc.zmienNazwe('u1', 'moja', '  Salon   na Rynku ')).toEqual({ id: 'moja', nazwa: 'Salon na Rynku' });
+    expect(db.strony[0].nazwa).toBe('Salon na Rynku');
+    await expect(svc.zmienNazwe('u1', 'moja', '   ')).rejects.toBeInstanceOf(BadRequestException);
+    await expect(svc.zmienNazwe('u1', 'moja', 'x'.repeat(81))).rejects.toBeInstanceOf(BadRequestException);
+    expect(db.strony[0].nazwa).toBe('Salon na Rynku');
+    db.subs = [];
+    await expect(svc.zmienNazwe('u1', 'moja', 'Nowa')).rejects.toBeInstanceOf(ForbiddenException);
+
+    const dto = (nazwa: unknown) => validate(plainToInstance(ZmienNazweDto, { nazwa }));
+    expect(await dto('Salon')).toHaveLength(0);
+    expect(await dto('')).not.toHaveLength(0);
+    expect(await dto('x'.repeat(81))).not.toHaveLength(0);
+    expect(await dto(5)).not.toHaveLength(0);
   });
 });
 

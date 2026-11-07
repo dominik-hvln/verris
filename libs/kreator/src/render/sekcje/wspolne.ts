@@ -106,6 +106,9 @@ const POLA: Record<string, { etykieta: string; typ: string; auto?: string; tryb?
   wiadomosc: { etykieta: 'Wiadomość', typ: 'textarea' },
 };
 
+/** Limity długości pól (te same sprawdza API – apps/api/src/kreator/formularz.ts). */
+export const MAKS_POL_FORMULARZA: Record<string, number> = { imie: 120, email: 254, telefon: 40, firma: 160, termin: 120, usluga: 160, wiadomosc: 5000 };
+
 export interface OpcjeFormularza {
   pola: string[];
   przycisk: string;
@@ -113,9 +116,20 @@ export interface OpcjeFormularza {
   styl?: 'karta' | 'linia';
 }
 
+/** Adres bieżącej podstrony (pole „powrot” formularza) – z adresu strony; bez niego uzupełnia go skrypt. */
+function adresPodstrony(k: KontekstPodstrony): string {
+  if (!k.s.adres) return '';
+  return `${k.s.adres}/${k.podstrona.slug ? `${k.podstrona.slug}/` : ''}`;
+}
+
 /**
- * Formularz kontaktowy (tylko markup – obsługę POST /kontakt.php dostarcza osobna paczka).
- * Etykiety przy każdym polu, honeypot, zgoda RODO z linkiem do polityki prywatności.
+ * Formularz kontaktowy. Etykiety przy każdym polu, honeypot, zgoda RODO z linkiem do polityki prywatności.
+ *
+ * Z `opcje.adresFormularza` (publikacja na domenę, ZIP opublikowanej strony): zwykły POST bez JS na adres API
+ * (POST /kreator/formularz/<token>), ukryte pola: id sekcji, adres powrotu, czas wypełniania (uzupełnia go skrypt
+ * – bez JS pole zostaje puste i API traktuje to jako sygnał pomocniczy, nie powód odrzucenia). Po powrocie
+ * (`?formularz=wyslano|blad#<id sekcji>`) skrypt wpisuje komunikat do `.form-status` (role="status").
+ * Bez adresu (podgląd edytora, link próbny) – formularz wyłączony: bez action, przycisk nieaktywny, informacja.
  */
 export function formularz(k: KontekstPodstrony, sek: Sekcja, o: OpcjeFormularza): string {
   const pid = sek.id;
@@ -129,13 +143,14 @@ export function formularz(k: KontekstPodstrony, sek: Sekcja, o: OpcjeFormularza)
     const id = `${pid}-${nazwa}`;
     const req = nazwa === 'imie' || nazwa === wymagany ? ' required' : '';
     const etykieta = `<label for="${id}">${p.etykieta}${req ? '' : ' <span class="opc">(opcjonalnie)</span>'}</label>`;
-    if (p.typ === 'textarea') return `<div class="pole pole-pelne">${etykieta}<textarea id="${id}" name="${nazwa}" rows="4"${req}></textarea></div>`;
+    const max = ` maxlength="${MAKS_POL_FORMULARZA[nazwa] ?? 200}"`;
+    if (p.typ === 'textarea') return `<div class="pole pole-pelne">${etykieta}<textarea id="${id}" name="${nazwa}" rows="4"${max}${req}></textarea></div>`;
     if (p.typ === 'select' && uslugi.length) {
       const opcje = ['<option value="">Wybierz usługę</option>', ...uslugi.map((u) => `<option>${esc(u)}</option>`), '<option>Inna / jeszcze nie wiem</option>'].join('');
       return `<div class="pole">${etykieta}<select id="${id}" name="${nazwa}">${opcje}</select></div>`;
     }
     const typ = p.typ === 'select' ? 'text' : p.typ;
-    return `<div class="pole">${etykieta}<input id="${id}" name="${nazwa}" type="${typ}"${p.auto ? ` autocomplete="${p.auto}"` : ''}${p.tryb ? ` inputmode="${p.tryb}"` : ''}${p.podpowiedz ? ` placeholder="${esc(p.podpowiedz)}"` : ''}${req}></div>`;
+    return `<div class="pole">${etykieta}<input id="${id}" name="${nazwa}" type="${typ}"${p.auto ? ` autocomplete="${p.auto}"` : ''}${p.tryb ? ` inputmode="${p.tryb}"` : ''}${p.podpowiedz ? ` placeholder="${esc(p.podpowiedz)}"` : ''}${max}${req}></div>`;
   });
   const polityka = k.s.strona.stopka.politykaPrywatnosci;
   if (!polityka) k.s.ostrzezenia.push('Formularz bez linku do polityki prywatności – dodaj politykę w ustawieniach stopki.');
@@ -144,9 +159,24 @@ export function formularz(k: KontekstPodstrony, sek: Sekcja, o: OpcjeFormularza)
     `<div class="zgoda"><input id="${pid}-zgoda" name="zgoda" type="checkbox" value="tak" required>` +
     `<label for="${pid}-zgoda">Wyrażam zgodę na przetwarzanie podanych danych w celu odpowiedzi na moją wiadomość. Administratorem danych jest ${esc(k.s.strona.firma.nazwa)}.${linkPolityki}</label></div>`;
   const hp = `<div class="hp" aria-hidden="true"><label for="${pid}-www">Zostaw to pole puste</label><input id="${pid}-www" name="strona_www" type="text" tabindex="-1" autocomplete="off"></div>`;
+  const klasa = `formularz form-${o.styl ?? 'karta'}`;
+  const adres = k.s.opcje.adresFormularza?.trim();
+  if (!adres) {
+    return (
+      `<form class="${klasa} form-wylaczony" aria-describedby="${esc(pid)}-info">` +
+      `<div class="pola">${html.join('')}</div>${hp}${zgoda}` +
+      `<button class="btn btn-1" type="submit" disabled>${esc(o.przycisk)}</button>` +
+      `<p class="form-info" id="${esc(pid)}-info">Formularz zadziała po publikacji strony.</p>` +
+      `</form>`
+    );
+  }
+  k.s.js.add('formularz');
   return (
-    `<form class="formularz form-${o.styl ?? 'karta'}" action="/kontakt.php" method="post">` +
+    `<form class="${klasa}" action="${esc(adres)}" method="post" accept-charset="utf-8" data-formularz>` +
+    `<p class="form-status" role="status" tabindex="-1"></p>` +
     `<input type="hidden" name="formularz" value="${esc(pid)}">` +
+    `<input type="hidden" name="powrot" value="${esc(adresPodstrony(k))}">` +
+    `<input type="hidden" name="czas" value="">` +
     `<div class="pola">${html.join('')}</div>${hp}${zgoda}` +
     `<button class="btn btn-1" type="submit">${esc(o.przycisk)}</button>` +
     `</form>`

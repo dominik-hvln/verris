@@ -15,12 +15,17 @@ if (!existsSync(katalog)) {
   process.exit(2);
 }
 const trafienia = [];
+// Paczka 120 – Verris Kreator: renderer stron i master prompt AI zostają na serwerze (podgląd renderuje trasa
+// /api/kreator/podglad). Znaczniki: klasa wstęgi „Pro” z renderera i zdanie z reguł master promptu.
+const ZNACZNIKI_KREATORA = ['wstega-pro', 'Dane kontaktowe i rejestrowe'];
 const przejdz = (dir) => {
   for (const n of readdirSync(dir)) {
     const p = join(dir, n);
     if (statSync(p).isDirectory()) przejdz(p);
     else if (n.endsWith('.js')) {
       const kod = readFileSync(p, 'utf8');
+      const znacznik = ZNACZNIKI_KREATORA.find((z) => kod.includes(z));
+      if (znacznik) trafienia.push(`${p.slice(katalog.length + 1)}: kod serwerowy kreatora w przeglądarce („${znacznik}”)`);
       const slowo = slowoZaplecza(kod);
       if (slowo) {
         const i = kod.indexOf(slowo);

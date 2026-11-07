@@ -54,6 +54,7 @@ import {
   Bell,
   ChevronUp,
   FlaskConical,
+  LayoutTemplate,
 } from "lucide-react";
 import { sidebarTilesFromLinks } from "@/lib/sidebar-tiles";
 import { clientFeatures } from "@/lib/client-features";
@@ -81,6 +82,7 @@ const secondaryItems = [
       { name: "Usługi", href: "/dashboard/services", icon: VerrisSerweryIcon },
       { name: "Domeny", href: "/dashboard/domains", icon: VerrisDomenyIcon },
       { name: "Płatności", href: "/dashboard/billing", icon: VerrisPortfelIcon },
+      { name: "Kreator stron", href: "/dashboard/kreator", icon: LayoutTemplate },
       { name: "Migracje", href: "/dashboard/migrations", icon: Globe },
       { name: "Dodatki", href: "/dashboard/addons", icon: Calculator },
       { name: "VPS / Cloud", href: "/dashboard/vps", icon: ServerIcon },
@@ -479,6 +481,7 @@ function DashboardLayoutInner({
     { label: "Faktury", hint: "płatności", href: "/dashboard/billing/invoices" },
     { label: "Nowe zgłoszenie do pomocy", hint: "pomoc", href: "/dashboard/support/new" },
     { label: "Przenieś stronę od innego hostingu", hint: "migracja", href: "/dashboard/migrations" },
+    { label: "Zbuduj stronę w kreatorze", hint: "kreator", href: "/dashboard/kreator/nowa" },
     { label: "Ustawienia konta", hint: "konto", href: "/dashboard/settings" },
     { label: "Bezpieczeństwo i logowanie", hint: "konto", href: "/dashboard/settings?tab=security" },
     { label: "Widok prosty", hint: "widok", run: () => setPanelMode(true) },
