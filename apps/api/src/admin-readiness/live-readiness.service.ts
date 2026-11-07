@@ -5,6 +5,40 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
 import { LegalDocumentsService } from '../compliance/legal-documents.service.js';
 import { ocenProby, type ProbaOdtworzenia } from './proba-odtworzenia.js';
+import type { CertyfikatKsefDto, KsefSettingsDto } from '../platform-settings/platform-settings.service.js';
+
+/**
+ * KSeF 07.11 — ocena poświadczeń KSeF do go/no-go. Bez sekretów: tylko metoda i daty certyfikatów.
+ * Certyfikat do uwierzytelnienia wygasły = automat nie zaloguje się do KSeF; brak certyfikatu Offline =
+ * faktury wystawione w trybie offline bez KODU II (kody-qr.md). Tokeny KSeF mają przestać działać przed
+ * startem sprzedaży (11.01.2027) — przy metodzie „token” ostrzegamy.
+ */
+export function ocenPoswiadczenKsef(
+  ksef: Pick<KsefSettingsDto, 'enabled' | 'metoda' | 'tokenSet' | 'certyfikatUwierzytelniania' | 'certyfikatOffline'>,
+): Array<{ key: string; label: string; status: ReadinessStatus; detail: string }> {
+  if (!ksef.enabled) return [];
+  const ocenCert = (c: CertyfikatKsefDto | null, brak: string): { status: ReadinessStatus; detail: string } => {
+    if (!c) return { status: 'fail', detail: brak };
+    if (c.dniDoWygasniecia < 0) return { status: 'fail', detail: `Certyfikat ${c.numerSeryjny} wygasł ${c.waznyDo.slice(0, 10)} – wgraj nowy.` };
+    if (c.dniDoWygasniecia < 30) return { status: 'warn', detail: `Certyfikat ${c.numerSeryjny} wygasa ${c.waznyDo.slice(0, 10)} (za ${c.dniDoWygasniecia} dni).` };
+    return { status: 'ok', detail: `Certyfikat ${c.numerSeryjny} ważny do ${c.waznyDo.slice(0, 10)}.` };
+  };
+  const wynik: Array<{ key: string; label: string; status: ReadinessStatus; detail: string }> = [];
+  if (ksef.metoda === 'certyfikat') {
+    wynik.push({ key: 'ksef_uwierzytelnienie', label: 'KSeF – certyfikat do uwierzytelnienia', ...ocenCert(ksef.certyfikatUwierzytelniania, 'Brak certyfikatu KSeF (Authentication) – automat nie zaloguje się do KSeF.') });
+  } else {
+    wynik.push({
+      key: 'ksef_uwierzytelnienie',
+      label: 'KSeF – uwierzytelnienie',
+      status: 'warn',
+      detail: ksef.tokenSet
+        ? 'Logowanie tokenem KSeF – tokeny mają przestać działać przed startem sprzedaży; wgraj certyfikat KSeF i przełącz metodę na „certyfikat”.'
+        : 'Brak tokenu i certyfikatu – wgraj certyfikat KSeF (Authentication).',
+    });
+  }
+  wynik.push({ key: 'ksef_offline', label: 'KSeF – certyfikat Offline (KOD II)', ...ocenCert(ksef.certyfikatOffline, 'Brak certyfikatu KSeF typu Offline – faktury wystawione w trybie offline nie będą miały KODU II.') });
+  return wynik;
+}
 
 export type ReadinessStatus = 'ok' | 'warn' | 'fail';
 
@@ -160,10 +194,16 @@ export class LiveReadinessService {
     add(
       'ksef',
       'KSeF (e-faktury)',
-      ksef.enabled ? 'ok' : 'warn',
-      ksef.enabled ? `Włączony (${ksef.env}).` : 'Wyłączony – włącz po smoke na środowisku testowym.',
+      ksef.enabled ? (ksef.env === 'prod' ? 'ok' : 'warn') : 'warn',
+      ksef.enabled
+        ? ksef.env === 'prod'
+          ? 'Włączony (prod).'
+          : `Włączony na środowisku ${ksef.env} – przed sprzedażą przełącz na produkcyjne.`
+        : 'Wyłączony – włącz po smoke na środowisku testowym.',
       false,
     );
+    // KSeF 07.11 — poświadczenia: metoda, ważność certyfikatów (uwierzytelnienie i Offline dla KODU II).
+    for (const ocena of ocenPoswiadczenKsef(ksef)) add(ocena.key, ocena.label, ocena.status, ocena.detail, false);
     const webmail = (await this.settings.getClientConfig()).webmailUrl;
     add(
       'webmail',

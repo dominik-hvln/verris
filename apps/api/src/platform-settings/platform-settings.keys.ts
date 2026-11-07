@@ -100,6 +100,19 @@ export const PLATFORM_SETTING_KEYS = {
   KSEF_ENV: 'ksef.env',
   KSEF_NIP: 'ksef.nip',
   KSEF_TOKEN_ENC: 'ksef.tokenEnc',
+  /**
+   * KSeF 07.11 — metoda uwierzytelnienia: `token` (token KSeF) albo `certyfikat` (XAdES certyfikatem KSeF
+   * typu Authentication, uwierzytelnianie.md 2.1). Certyfikaty są jawne (PEM), klucze prywatne — wyłącznie
+   * zaszyfrowane KMS (`…KluczEnc`), nigdy nie wracają do UI ani logów.
+   */
+  KSEF_METODA: 'ksef.metoda',
+  KSEF_CERT_AUTH_PEM: 'ksef.certAuthPem',
+  KSEF_CERT_AUTH_KLUCZ_ENC: 'ksef.certAuthKluczEnc',
+  /** `certificateSubject` (NIP/PESEL z certyfikatu) albo `certificateFingerprint` (odcisk SHA-256). */
+  KSEF_CERT_AUTH_TYP: 'ksef.certAuthTyp',
+  /** Certyfikat KSeF typu Offline — wyłącznie do KODU II na fakturach offline (kody-qr.md). */
+  KSEF_CERT_OFFLINE_PEM: 'ksef.certOfflinePem',
+  KSEF_CERT_OFFLINE_KLUCZ_ENC: 'ksef.certOfflineKluczEnc',
 
   // RESELL — program partnerski (afiliacja).
   /** Czy program partnerski jest aktywny (1/0). */
@@ -165,6 +178,12 @@ export const PLATFORM_SETTING_DEFAULTS: Record<PlatformSettingKey, string> = {
   [PLATFORM_SETTING_KEYS.KSEF_ENV]: 'test',
   [PLATFORM_SETTING_KEYS.KSEF_NIP]: '',
   [PLATFORM_SETTING_KEYS.KSEF_TOKEN_ENC]: '',
+  [PLATFORM_SETTING_KEYS.KSEF_METODA]: 'token',
+  [PLATFORM_SETTING_KEYS.KSEF_CERT_AUTH_PEM]: '',
+  [PLATFORM_SETTING_KEYS.KSEF_CERT_AUTH_KLUCZ_ENC]: '',
+  [PLATFORM_SETTING_KEYS.KSEF_CERT_AUTH_TYP]: 'certificateSubject',
+  [PLATFORM_SETTING_KEYS.KSEF_CERT_OFFLINE_PEM]: '',
+  [PLATFORM_SETTING_KEYS.KSEF_CERT_OFFLINE_KLUCZ_ENC]: '',
   [PLATFORM_SETTING_KEYS.PARTNER_ENABLED]: '1',
   [PLATFORM_SETTING_KEYS.PARTNER_COMMISSION_PCT]: '10',
   [PLATFORM_SETTING_KEYS.PARTNER_HOLD_DAYS]: '30',

@@ -29,17 +29,36 @@ export interface InvoiceStatusResult {
   statusDescription: string | null;
   /** Faktura odrzucona (błąd walidacji/przetwarzania). */
   rejected: boolean;
+  /**
+   * Kod 440 „Duplikat faktury” (open-api.json, SessionInvoiceStatusResponse): faktura o tym numerze jest już
+   * w KSeF — numer KSeF i sesja pierwotnej z rozszerzeń statusu. `undefined` = to nie duplikat.
+   */
+  duplikat?: { numerKsef: string; sesja: string | null };
+  /** Szczegóły statusu z KSeF (`status.details`) — do komunikatu dla operatora. */
+  szczegoly?: string[];
+}
+
+export interface OpcjeWysylki {
+  /** Tryb offline zadeklarowany przez podatnika (tryby-offline.md: `offlineMode: true`). */
+  offlineMode?: boolean;
+  /** Korekta techniczna faktury offline: SHA-256 (Base64) odrzuconego pliku (offline/korekta-techniczna.md). */
+  hashOfCorrectedInvoice?: string | null;
 }
 
 export interface InvoicingProvider {
   /** Uwierzytelnia i przygotowuje sesję wysyłki. */
   openSession(): Promise<void>;
   /** Wysyła XML faktury; zwraca identyfikator do późniejszego sprawdzenia statusu. */
-  sendInvoice(invoiceXml: string): Promise<InvoiceSendResult>;
+  sendInvoice(invoiceXml: string, opcje?: OpcjeWysylki): Promise<InvoiceSendResult>;
   /** Sprawdza status wcześniej wysłanej faktury (numer KSeF / odrzucenie). */
   invoiceStatus(elementReferenceNumber: string): Promise<InvoiceStatusResult>;
   /** Pobiera UPO (XML) przyjętej faktury. */
   downloadUpo(elementReferenceNumber: string): Promise<string>;
+  /**
+   * Faktura o numerze KSeF w sesji (GET /sessions/{ref}/invoices) — skrót SHA-256 (Base64) jej pliku
+   * i data przyjęcia. Do potwierdzenia, że duplikat (440) to ta sama faktura. `null` = nie ma jej tam.
+   */
+  fakturaWSesji?(sesja: string, numerKsef: string): Promise<{ skrotB64: string; przyjeto: string | null } | null>;
   /** Zamyka sesję (dla KSeF 2.0 wyzwala generowanie UPO). Best-effort. */
   terminateSession(): Promise<void>;
 }

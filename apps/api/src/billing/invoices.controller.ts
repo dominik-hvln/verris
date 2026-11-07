@@ -73,6 +73,23 @@ export class InvoicesController {
   }
 
   /**
+   * M-14 (KSeF 07.11) — UPO (urzędowe poświadczenie odbioru, XML podpisany przez MF) faktury przyjętej
+   * przez KSeF. Tylko właściciel faktury: `pobierzUpoKsef` szuka po (id, userId).
+   */
+  @Get(':id/upo')
+  @Header('Cache-Control', 'no-store')
+  async upo(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    const { xml, filename } = await this.invoices.pobierzUpoKsef(user.userId, id);
+    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.end(Buffer.from(xml, 'utf8'));
+  }
+
+  /**
    * Streams the Verris-issued PDF directly from MinIO. Auth required —
    * we never expose presigned URLs publicly because invoices are sensitive
    * (full names, addresses, NIP). Output is a regular `application/pdf`

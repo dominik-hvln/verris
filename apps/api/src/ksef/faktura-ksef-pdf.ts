@@ -1,7 +1,7 @@
 import { PDFDocument, rgb, type PDFFont, type PDFPage, type RGB } from 'pdf-lib';
 import { KOLORY_MARKI, osadzCzcionkiMarki, rysujLockup, szerokoscLockupu, type CzcionkiMarki } from '../common/pdf/marka.js';
 import { zawin } from '../billing/invoice-pdf.service.js';
-import { macierzQr, PODPIS_QR_BEZ_NUMERU, type SrodowiskoKsef } from './kod-qr-ksef.js';
+import { macierzQr, PODPIS_QR_BEZ_NUMERU, PODPIS_QR_CERTYFIKAT, type SrodowiskoKsef } from './kod-qr-ksef.js';
 import { FORMY_PLATNOSCI, type PodmiotWiz, type WierszWiz, type WizualizacjaFa3 } from './wizualizacja-fa3.js';
 
 /**
@@ -14,13 +14,16 @@ import { FORMY_PLATNOSCI, type PodmiotWiz, type WierszWiz, type WizualizacjaFa3 
  * dlatego w tabeli nie ma VAT-u ani brutto per wiersz: FA(3) z panelu ich nie niesie.
  *
  * Kod QR (KOD I) wg https://github.com/CIRFMF/ksef-docs/blob/main/kody-qr.md:
- * pod kodem numer KSeF, a gdy numeru jeszcze nie ma — „OFFLINE”.
+ * pod kodem numer KSeF, a gdy numeru jeszcze nie ma — „OFFLINE”. Faktura offline ma obok KOD II
+ * (weryfikacja certyfikatu wystawcy) z napisem „CERTYFIKAT” (kody-qr.md, „2. KOD II”).
  */
 
 export interface MetaKsef {
   numerKsef: string | null;
   przyjetoWKsef: Date | null;
   linkWeryfikacji: string;
+  /** KOD II — tylko faktura wystawiona w trybie offline; `null`/brak = online. */
+  linkCertyfikatu?: string | null;
   srodowisko: SrodowiskoKsef;
 }
 
@@ -365,28 +368,32 @@ export async function renderujFaktureKsefZTekstem(
 
   // --- KSeF: KOD I + numer / OFFLINE --------------------------------------------------------------
   const BOK_QR = 96;
-  const WYS_PANELU = BOK_QR + 34;
+  const WYS_PANELU = BOK_QR + (meta.linkCertyfikatu ? 64 : 34);
   r.zapewnMiejsce(WYS_PANELU + 16);
   r.y -= 12;
   const gora = r.y;
   r.prostokat(MARGIN, gora - WYS_PANELU, szerokosc, WYS_PANELU, K.paper);
-  const qr = macierzQr(meta.linkWeryfikacji);
-  const modul = BOK_QR / (qr.rozmiar + 8); // 4 moduły strefy ciszy z każdej strony (ISO/IEC 18004)
   const xQr = MARGIN + 12;
   const yQr = gora - 10 - BOK_QR;
-  r.prostokat(xQr, yQr, BOK_QR, BOK_QR, K.bialy);
-  for (let w = 0; w < qr.rozmiar; w++) {
-    for (let k = 0; k < qr.rozmiar; k++) {
-      if (!qr.ciemny(w, k)) continue;
-      // Moduły czarne na białym — kontrast wymagany przez czytniki (nie kolor marki).
-      r.prostokat(xQr + (k + 4) * modul, yQr + BOK_QR - (w + 5) * modul, modul, modul, rgb(0, 0, 0));
+  const rysujQr = (tresc: string, x: number, podpis: string, rozmiarPodpisu: number) => {
+    const qr = macierzQr(tresc);
+    const modul = BOK_QR / (qr.rozmiar + 8); // 4 moduły strefy ciszy z każdej strony (ISO/IEC 18004)
+    r.prostokat(x, yQr, BOK_QR, BOK_QR, K.bialy);
+    for (let w = 0; w < qr.rozmiar; w++) {
+      for (let k = 0; k < qr.rozmiar; k++) {
+        if (!qr.ciemny(w, k)) continue;
+        // Moduły czarne na białym — kontrast wymagany przez czytniki (nie kolor marki).
+        r.prostokat(x + (k + 4) * modul, yQr + BOK_QR - (w + 5) * modul, modul, modul, rgb(0, 0, 0));
+      }
     }
-  }
-  const podpis = meta.numerKsef ?? PODPIS_QR_BEZ_NUMERU;
-  const pioroPodpisu: Pioro = { font: cz.liczby, size: meta.numerKsef ? 5.4 : 9, color: rgb(0, 0, 0) };
-  r.tekst(podpis, xQr + BOK_QR / 2 - r.szer(podpis, pioroPodpisu) / 2, yQr - 11, pioroPodpisu);
+    const pioroPodpisu: Pioro = { font: cz.liczby, size: rozmiarPodpisu, color: rgb(0, 0, 0) };
+    r.tekst(podpis, x + BOK_QR / 2 - r.szer(podpis, pioroPodpisu) / 2, yQr - 11, pioroPodpisu);
+  };
+  rysujQr(meta.linkWeryfikacji, xQr, meta.numerKsef ?? PODPIS_QR_BEZ_NUMERU, meta.numerKsef ? 5.4 : 9);
+  const xQr2 = xQr + BOK_QR + 14;
+  if (meta.linkCertyfikatu) rysujQr(meta.linkCertyfikatu, xQr2, PODPIS_QR_CERTYFIKAT, 9);
 
-  const xOpis = xQr + BOK_QR + 28;
+  const xOpis = (meta.linkCertyfikatu ? xQr2 : xQr) + BOK_QR + 28;
   const szerOpisu = prawa - 12 - xOpis;
   let yOpis = gora - 20;
   r.tekst('Weryfikacja faktury w KSeF', xOpis, yOpis, B(10.5, K.green));
@@ -404,6 +411,12 @@ export async function renderujFaktureKsefZTekstem(
     yOpis -= 13;
   }
   yOpis -= 2;
+  if (meta.linkCertyfikatu) {
+    for (const l of zawin('Faktura wystawiona w trybie offline – drugi kod (CERTYFIKAT) potwierdza wystawcę certyfikatem KSeF.', cz.tekst, 8, szerOpisu)) {
+      r.tekst(l, xOpis, yOpis, T(8, K.stoneDruk));
+      yOpis -= 10;
+    }
+  }
   for (const l of zawin('Zeskanuj kod QR albo otwórz link, aby sprawdzić fakturę w Krajowym Systemie e-Faktur:', cz.tekst, 8, szerOpisu)) {
     r.tekst(l, xOpis, yOpis, T(8, K.stoneDruk));
     yOpis -= 10;

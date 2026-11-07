@@ -15,11 +15,27 @@ export interface SellerCompany {
   bankAccount: string;
 }
 
+/** KSeF 07.11 — jawne dane certyfikatu KSeF (bez klucza prywatnego, który nigdy nie wraca z API). */
+export interface CertyfikatKsef {
+  podmiot: string;
+  wystawca: string;
+  numerSeryjny: string;
+  waznyOd: string;
+  waznyDo: string;
+  odciskSha256: string;
+  algorytm: "RSA" | "EC";
+  dniDoWygasniecia: number;
+  typIdentyfikatora?: "certificateSubject" | "certificateFingerprint";
+}
+
 export interface KsefSettings {
   enabled: boolean;
   env: "test" | "demo" | "prod";
   nip: string;
   tokenSet: boolean;
+  metoda: "token" | "certyfikat";
+  certyfikatUwierzytelniania: CertyfikatKsef | null;
+  certyfikatOffline: CertyfikatKsef | null;
 }
 
 export interface KsefOverview {
@@ -34,6 +50,22 @@ export interface KsefOverview {
   recentRejected: Array<{ id: string; number: string; error: string | null; updatedAt: string }>;
   /** Przegląd 15.10 — faktury w kolejce z powodem czekania (token odrzucony, korekta czeka na pierwotną…). */
   czekajaZBledem?: Array<{ id: string; number: string; error: string | null; updatedAt: string }>;
+  /** KSeF 07.11 — faktury poza KSeF (offline / do wyjaśnienia) z trybem i terminem dosłania. */
+  offline?: Array<{
+    id: string;
+    number: string;
+    status: string;
+    tryb: string | null;
+    terminDo: string | null;
+    poTerminie: boolean;
+    proby: number;
+    nastepnaProba: string | null;
+    czekaNaOperatora: boolean;
+    error: string | null;
+  }>;
+  offlineBezKoduII?: number;
+  wstrzymanoDo?: string | null;
+  ostatniCykl?: { koniec: string; wyslane: number; przyjete: number; odrzucone: number; upo: number; blad: string | null } | null;
 }
 
 function err(e: unknown): string {
@@ -73,6 +105,7 @@ export async function saveKsef(input: {
   env: "test" | "demo" | "prod";
   nip: string;
   token?: string;
+  metoda?: "token" | "certyfikat";
 }) {
   try {
     const data = await adminApi<KsefSettings>("/admin/platform-settings/ksef", {
@@ -80,6 +113,37 @@ export async function saveKsef(input: {
       body: input,
     });
     return { data };
+  } catch (e) {
+    return { error: err(e) };
+  }
+}
+
+/**
+ * KSeF 07.11 — wgranie certyfikatu KSeF i klucza (treść plików w Base64, hasło do klucza). API zapisuje klucz
+ * wyłącznie zaszyfrowany i odpowiada samymi danymi jawnymi certyfikatu.
+ */
+export async function wgrajCertyfikatKsef(input: {
+  rodzaj: "uwierzytelnianie" | "offline";
+  certyfikat: string;
+  klucz: string;
+  haslo?: string;
+  typIdentyfikatora?: "certificateSubject" | "certificateFingerprint";
+}) {
+  try {
+    return {
+      data: await adminApi<{ ustawienia: KsefSettings; ostrzezenia: string[] }>("/admin/platform-settings/ksef/certyfikat", {
+        method: "POST",
+        body: input,
+      }),
+    };
+  } catch (e) {
+    return { error: err(e) };
+  }
+}
+
+export async function usunCertyfikatKsef(rodzaj: "uwierzytelnianie" | "offline") {
+  try {
+    return { data: await adminApi<KsefSettings>(`/admin/platform-settings/ksef/certyfikat/${rodzaj}`, { method: "DELETE" }) };
   } catch (e) {
     return { error: err(e) };
   }

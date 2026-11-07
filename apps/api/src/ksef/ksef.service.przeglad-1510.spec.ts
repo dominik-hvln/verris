@@ -15,6 +15,8 @@ vi.mock('./fa3-xml.builder.js', async (orig) => ({
   },
 }));
 vi.mock('../billing/forma-zaplaty.js', () => ({ formaZaplatyFaktury: async () => ({ fa: undefined }) }));
+// Atrapy XML-a z buildera nie są fakturą FA(3) — walidację XSD (od 07.11 przed zapisem pliku) testuje fa3-xsd.spec.ts.
+vi.mock('./fa3-xsd.js', () => ({ walidujFa3Xsd: async () => ({ ok: true, bledy: [] }) }));
 const klienciV2: Array<{ baseUrl: string; wyslane: string[] }> = [];
 let poOtwarciuSesji: (() => void) | null = null;
 let bladOtwarcia: Error | null = null;
@@ -45,6 +47,7 @@ let wszystkie: Row[] = [];
 function pasuje(row: Row, where: Record<string, unknown>): boolean {
   return Object.entries(where).every(([k, w]) => {
     if (k === 'OR') return (w as Record<string, unknown>[]).some((s) => pasuje(row, s));
+    if (k === 'AND') return (w as Record<string, unknown>[]).every((s) => pasuje(row, s));
     if (k === 'NOT') return !pasuje(row, w as Record<string, unknown>);
     if (k === 'corrected') {
       const orig = wszystkie.find((r) => r.id === row.correctedId);

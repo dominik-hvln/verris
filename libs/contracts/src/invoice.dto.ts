@@ -41,6 +41,12 @@ export interface InvoiceDto {
    * z kodem QR, a sam XML jest do pobrania przez GET billing/invoices/:id/xml.
    */
   ksefXml: boolean;
+  /** M-14 (KSeF 07.11) — data przyjęcia faktury w KSeF (nadania numeru), gdy już jest. */
+  ksefPrzyjeto?: string | null;
+  /** M-14 — link weryfikacji faktury w KSeF (KOD I z PDF-u), gdy faktura ma plik w KSeF. */
+  ksefWeryfikacja?: string | null;
+  /** M-14 — UPO (urzędowe poświadczenie odbioru) do pobrania przez GET billing/invoices/:id/upo. */
+  ksefUpo?: boolean;
 }
 
 export interface InvoiceListResponse {

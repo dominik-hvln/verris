@@ -26,7 +26,8 @@ describe('KsefAdminController – UPO', () => {
 
   it('pobranie UPO zostawia wpis w dzienniku z operatorem i numerem faktury', async () => {
     const audit = { record: vi.fn(async () => undefined) };
-    const prisma = { invoice: { findUnique: vi.fn(async () => ({ id: 'f1', number: 'VFV/2026/10/0002', ksefStatus: 'ACCEPTED', ksefElementRef: 'ref-1' })) } };
+    // KSeF 07.11: UPO pobrane z KSeF zostaje w bazie (updateMany) — kolejne pobrania bez wywołania KSeF.
+    const prisma = { invoice: { findUnique: vi.fn(async () => ({ id: 'f1', number: 'VFV/2026/10/0002', ksefStatus: 'ACCEPTED', ksefElementRef: 'ref-1', ksefUpo: null })), updateMany: vi.fn(async () => ({ count: 1 })) } };
     const svc = new KsefService(prisma as never, {} as never, audit as never, {} as never);
     const klient = { openSession: vi.fn(async () => undefined), downloadUpo: vi.fn(async () => '<UPO/>'), terminateSession: vi.fn(async () => undefined) };
     vi.spyOn(svc as unknown as { buildClient: () => Promise<unknown> }, 'buildClient').mockResolvedValue({ client: klient, env: 'test' });
@@ -111,7 +112,10 @@ describe('KSeF – przegląd stanu: faktury czekające z powodem', () => {
         : [{ id: 'f1', number: 'VFV/2026/10/0001', ksefError: 'Uwierzytelnienie KSeF odrzucone – sprawdź token', updatedAt: new Date('2026-10-15T04:00:00Z') }],
     );
     const prisma = { invoice: { groupBy: vi.fn(async () => [{ ksefStatus: 'PENDING', _count: { _all: 1 } }]), findMany } };
-    const settings = { getKsefRuntimeConfig: async () => ({ enabled: true, env: 'prod', nip: '5250000000', token: 't' }) };
+    const settings = {
+      getKsefRuntimeConfig: async () => ({ enabled: true, env: 'prod', nip: '5250000000', token: 't' }),
+      getKsefSettings: async () => ({ enabled: true, env: 'prod', nip: '5250000000', tokenSet: true, metoda: 'token', certyfikatUwierzytelniania: null, certyfikatOffline: null }),
+    };
     const svc = new KsefService(prisma as never, { get: () => undefined } as never, {} as never, settings as never);
     const o = await svc.adminOverview();
     expect(o.czekajaZBledem).toEqual([{ id: 'f1', number: 'VFV/2026/10/0001', error: 'Uwierzytelnienie KSeF odrzucone – sprawdź token', updatedAt: '2026-10-15T04:00:00.000Z' }]);

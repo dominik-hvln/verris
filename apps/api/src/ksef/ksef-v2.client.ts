@@ -11,8 +11,18 @@ import {
   InvoiceSendResult,
   InvoiceStatusResult,
   InvoicingProvider,
+  type OpcjeWysylki,
 } from './invoicing-provider.interface.js';
 import { FA3_FORM_VALUE, FA3_SCHEMA_VERSION, FA3_SYSTEM_CODE } from './fa3-xml.builder.js';
+import { wczytajCertyfikat, wczytajKluczPrywatny, type TypIdentyfikatoraKsef } from './ksef-certyfikat.js';
+import { podpiszAuthTokenRequest } from './ksef-xades.js';
+import {
+  KOD_DUPLIKAT_FAKTURY,
+  KODY_NOWA_SESJA,
+  STATUSY_UWIERZYTELNIENIA_PRZEJSCIOWE,
+  komunikatUwierzytelnienia,
+  komunikatWyjatkuXades,
+} from './ksef-statusy.js';
 
 /**
  * KSEF-2.0-2 — własny klient KSeF 2.0 (API v2) implementujący pełny przepływ
@@ -59,19 +69,55 @@ import { FA3_FORM_VALUE, FA3_SCHEMA_VERSION, FA3_SYSTEM_CODE } from './fa3-xml.b
  * warning — zapowiada przyszłe odrzucenia), zaostrzona walidacja XML od
  * 16.07.2026 (sanityzacja w fa-xml.types).
  *
- * ⚠️ PRZED LIVE: przejść smoke na api-test/api-demo z realnym tokenem KSeF
- * (ops/scripts/ksef-smoke.ts) oraz zwalidować XML FA(3) walidatorem XSD MF.
+ * 2026-11-07 — uwierzytelnienie CERTYFIKATEM (XAdES, POST /auth/xades-signature) obok tokenu
+ * (https://github.com/CIRFMF/ksef-docs/blob/main/uwierzytelnianie.md, 2.1), odświeżanie accessToken
+ * przez refreshToken (tamże, pkt 5 — POST /auth/token/refresh) zamiast pełnego logowania co cykl,
+ * `offlineMode` i `hashOfCorrectedInvoice` przy wysyłce (tryby-offline.md, offline/korekta-techniczna.md),
+ * duplikat 440 z rozszerzeniami `originalKsefNumber`/`originalSessionReferenceNumber` (open-api.json)
+ * i potwierdzenie skrótu pierwotnej faktury listą faktur sesji (GET /sessions/{ref}/invoices),
+ * `Retry-After` przy 429 (limity/limity-api.md).
+ *
+ * ⚠️ PRZED LIVE: przejść smoke na api-test/api-demo z realnym tokenem/certyfikatem KSeF
+ * (ops/scripts/ksef-smoke.ts).
  */
+
+export type UwierzytelnienieKsef =
+  | { metoda: 'token'; token: string }
+  | {
+      metoda: 'certyfikat';
+      /** Certyfikat KSeF typu Authentication (PEM). */
+      certyfikatPem: string;
+      /** Klucz prywatny PKCS#8 PEM (bez hasła — w ustawieniach leży zaszyfrowany kluczem KMS). */
+      kluczPem: string;
+      typIdentyfikatora: TypIdentyfikatoraKsef;
+    };
+
+/** Para tokenów z /auth/token/redeem — trzymana w pamięci procesu między cyklami, nigdy w bazie ani logach. */
+export interface TokenyKsef {
+  accessToken: string;
+  accessDo: number;
+  refreshToken: string | null;
+  refreshDo: number | null;
+}
+export interface PamiecTokenowKsef {
+  tokeny: TokenyKsef | null;
+}
 
 export interface KsefV2Config {
   /** np. https://api-test.ksef.mf.gov.pl/api/v2 */
   baseUrl: string;
   /** NIP kontekstu (operatora). */
   nip: string;
-  /** Token KSeF (z Aplikacji Podatnika). */
-  token: string;
+  /** Token KSeF (z Aplikacji Podatnika) — zgodność wstecz; nowy kod podaje `uwierzytelnienie`. */
+  token?: string;
+  uwierzytelnienie?: UwierzytelnienieKsef;
+  /** Wspólna dla cykli pamięć tokenów — bez niej każde openSession to pełne uwierzytelnienie. */
+  pamiec?: PamiecTokenowKsef;
   timeoutMs?: number;
 }
+
+/** Zapas ważności accessToken, poniżej którego odświeżamy go przed użyciem. */
+const ZAPAS_ACCESS_MS = 2 * 60_000;
 
 export class KsefV2ApiError extends Error {
   constructor(
@@ -85,9 +131,21 @@ export class KsefV2ApiError extends Error {
      * KSeF mógł ją przyjąć. Ponowna wysyłka dałaby duplikat; faktura idzie „do wyjaśnienia”.
      */
     public readonly niepewny = false,
+    /** HTTP 429: ile sekund KSeF każe czekać (nagłówek `Retry-After`, limity/limity-api.md). */
+    public readonly retryAfterS?: number,
   ) {
     super(message);
   }
+}
+
+/**
+ * Kody błędów sieci, przy których żądanie NIE dotarło do KSeF (brak połączenia) — wysyłka faktury
+ * na pewno się nie odbyła, więc to nie jest „wynik niepewny”.
+ */
+const BLEDY_PRZED_WYSLANIEM = new Set(['ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN', 'EHOSTUNREACH', 'ENETUNREACH', 'UND_ERR_CONNECT_TIMEOUT']);
+function niewyslano(err: unknown): boolean {
+  const przyczyna = (err as { przyczyna?: unknown }).przyczyna as { code?: string } | undefined;
+  return Boolean(przyczyna?.code && BLEDY_PRZED_WYSLANIEM.has(przyczyna.code));
 }
 
 /**
@@ -133,8 +191,11 @@ export class KsefV2Client implements InvoicingProvider {
   private cipherIv: Buffer | null = null;
   private symKeyId: string | null = null;
   private sessionClosed = false;
+  private readonly uwierzytelnienie: UwierzytelnienieKsef;
 
-  constructor(private readonly config: KsefV2Config) {}
+  constructor(private readonly config: KsefV2Config) {
+    this.uwierzytelnienie = config.uwierzytelnienie ?? { metoda: 'token', token: config.token ?? '' };
+  }
 
   // --- InvoicingProvider -----------------------------------------------------
 
@@ -143,38 +204,77 @@ export class KsefV2Client implements InvoicingProvider {
     this.symKeyId = symKey.publicKeyId;
     // pamiętamy klucz symetryczny (do lazy-open online session przy 1. fakturze)
     this.symCertKey = symKey.key;
-
-    const challenge = await this.authChallenge();
-    const encryptedToken = this.rsaEncrypt(
-      tokenKey.key,
-      Buffer.from(`${this.config.token}|${challenge.timestampMs}`, 'utf8'),
-    ).toString('base64');
-
-    const authToken = await this.submitKsefToken(
-      challenge.challenge,
-      encryptedToken,
-      tokenKey.publicKeyId,
-    );
-    await this.pollAuthStatus(authToken.referenceNumber, authToken.authenticationToken);
-    this.accessToken = await this.redeemAccessToken(authToken.authenticationToken);
-    this.logger.log('KSeF 2.0: uwierzytelniono (accessToken uzyskany).');
+    this.accessToken = await this.zapewnijAccessToken(tokenKey);
   }
 
-  async sendInvoice(invoiceXml: string): Promise<InvoiceSendResult> {
+  /**
+   * accessToken z pamięci (ważny jeszcze ≥ 2 min), odświeżony refreshTokenem albo — gdy żadnego nie ma —
+   * z pełnego uwierzytelnienia (uwierzytelnianie.md, pkt 4–5). Odmowa odświeżenia (4xx) = pełne
+   * uwierzytelnienie; niedostępność KSeF przy odświeżaniu idzie wyżej jak każda inna.
+   */
+  private async zapewnijAccessToken(tokenKey: SelectedKey | null): Promise<string> {
+    const pamiec = this.config.pamiec;
+    const teraz = Date.now();
+    const t = pamiec?.tokeny;
+    if (t && t.accessDo - teraz > ZAPAS_ACCESS_MS) return t.accessToken;
+    if (pamiec && t?.refreshToken && (t.refreshDo == null || t.refreshDo - teraz > ZAPAS_ACCESS_MS)) {
+      try {
+        const odswiezony = await this.odswiezAccessToken(t.refreshToken);
+        pamiec.tokeny = { ...t, ...odswiezony };
+        return odswiezony.accessToken;
+      } catch (err) {
+        const status = (err as KsefV2ApiError).httpStatus;
+        if (status === undefined || status >= 500 || status === 429) throw err;
+        this.logger.warn(`KSeF: odświeżenie tokenu odrzucone (HTTP ${status}) – uwierzytelniam od nowa.`);
+        pamiec.tokeny = null;
+      }
+    }
+    const tokeny = await this.uwierzytelnij(tokenKey);
+    if (pamiec) pamiec.tokeny = tokeny;
+    this.logger.log(`KSeF 2.0: uwierzytelniono (${this.uwierzytelnienie.metoda === 'certyfikat' ? 'certyfikat, XAdES' : 'token KSeF'}).`);
+    return tokeny.accessToken;
+  }
+
+  private async uwierzytelnij(tokenKey: SelectedKey | null): Promise<TokenyKsef> {
+    const challenge = await this.authChallenge();
+    let authToken: { authenticationToken: string; referenceNumber: string };
+    if (this.uwierzytelnienie.metoda === 'certyfikat') {
+      const u = this.uwierzytelnienie;
+      const podpisany = podpiszAuthTokenRequest({
+        challenge: challenge.challenge,
+        nip: this.config.nip,
+        typIdentyfikatora: u.typIdentyfikatora,
+        certyfikat: wczytajCertyfikat(u.certyfikatPem),
+        klucz: wczytajKluczPrywatny(u.kluczPem),
+      });
+      authToken = await this.submitXades(podpisany);
+    } else {
+      const encryptedToken = this.rsaEncrypt(
+        tokenKey!.key,
+        Buffer.from(`${this.uwierzytelnienie.token}|${challenge.timestampMs}`, 'utf8'),
+      ).toString('base64');
+      authToken = await this.submitKsefToken(challenge.challenge, encryptedToken, tokenKey!.publicKeyId);
+    }
+    await this.pollAuthStatus(authToken.referenceNumber, authToken.authenticationToken);
+    return await this.redeemAccessToken(authToken.authenticationToken);
+  }
+
+  async sendInvoice(invoiceXml: string, opcje: OpcjeWysylki = {}): Promise<InvoiceSendResult> {
     try {
-      return await this.wyslijWSesji(invoiceXml);
+      return await this.wyslijWSesji(invoiceXml, opcje);
     } catch (err) {
-      if (!(err instanceof KsefV2ApiError) || !kodyBleduKsef(err.body).includes(KOD_SESJA_TYMCZASOWO_NIEDOSTEPNA)) {
+      if (!(err instanceof KsefV2ApiError) || !kodyBleduKsef(err.body).some((k) => KODY_NOWA_SESJA.includes(k))) {
         throw err;
       }
-      // 21184: bieżąca sesja wstrzymana — porzucamy ją (zamknięcie i tak by się nie udało)
-      // i, zgodnie z changelogiem 2.8.0, otwieramy nową. Jedna próba; potem faktura czeka na cykl.
-      this.logger.warn(`KSeF: sesja ${this.sessionRef} tymczasowo niedostępna (21184) – otwieram nową.`);
+      // 21184 (API 2.8.0) i pokrewne (21155 limit faktur w sesji, 21173 brak sesji, 21180 status sesji):
+      // bieżąca sesja nie przyjmie faktury — porzucamy ją i, zgodnie z changelogiem 2.8.0, otwieramy nową.
+      // Jedna próba; potem faktura czeka na cykl.
+      this.logger.warn(`KSeF: sesja ${this.sessionRef} nie przyjmuje faktur (${kodyBleduKsef(err.body).join(',')}) – otwieram nową.`);
       this.porzucSesjeOnline();
       try {
-        return await this.wyslijWSesji(invoiceXml);
+        return await this.wyslijWSesji(invoiceXml, opcje);
       } catch (err2) {
-        if (err2 instanceof KsefV2ApiError && kodyBleduKsef(err2.body).includes(KOD_SESJA_TYMCZASOWO_NIEDOSTEPNA)) {
+        if (err2 instanceof KsefV2ApiError && kodyBleduKsef(err2.body).some((k) => KODY_NOWA_SESJA.includes(k))) {
           this.porzucSesjeOnline();
           throw new KsefV2ApiError(err2.message, err2.httpStatus, err2.body, true);
         }
@@ -190,18 +290,21 @@ export class KsefV2Client implements InvoicingProvider {
     this.cipherIv = null;
   }
 
-  private async wyslijWSesji(invoiceXml: string): Promise<InvoiceSendResult> {
+  private async wyslijWSesji(invoiceXml: string, opcje: OpcjeWysylki): Promise<InvoiceSendResult> {
     await this.ensureOnlineSession();
     const plaintext = Buffer.from(invoiceXml, 'utf8');
     const ciphertext = this.aesEncrypt(plaintext);
 
-    const body = {
+    const body: Record<string, unknown> = {
       invoiceHash: this.sha256b64(plaintext),
       invoiceSize: plaintext.length,
       encryptedInvoiceHash: this.sha256b64(ciphertext),
       encryptedInvoiceSize: ciphertext.length,
       encryptedInvoiceContent: ciphertext.toString('base64'),
     };
+    // open-api.json, SendInvoiceRequest: `offlineMode` (domyślnie false) i `hashOfCorrectedInvoice`.
+    if (opcje.offlineMode) body.offlineMode = true;
+    if (opcje.hashOfCorrectedInvoice) body.hashOfCorrectedInvoice = opcje.hashOfCorrectedInvoice;
     let res: Response;
     try {
       res = await this.http(`/sessions/online/${this.sessionRef}/invoices`, {
@@ -210,7 +313,10 @@ export class KsefV2Client implements InvoicingProvider {
         body: JSON.stringify(body),
       });
     } catch (err) {
-      // Żądanie z fakturą wyszło, odpowiedzi nie ma — nie wiemy, czy KSeF ją przyjął.
+      // 429 przyszło z odpowiedzią — faktura nie została przyjęta, to nie jest wynik niepewny.
+      if (err instanceof KsefV2ApiError && err.httpStatus !== undefined) throw err;
+      // Brak połączenia — żądanie nie wyszło. Inaczej: wyszło, odpowiedzi nie ma, nie wiemy, czy KSeF je przyjął.
+      if (niewyslano(err)) throw new KsefV2ApiError((err as Error).message, undefined, undefined, true, false);
       throw new KsefV2ApiError((err as Error).message, undefined, undefined, false, true);
     }
     const json = (await res.json().catch(() => null)) as { referenceNumber?: string } | null;
@@ -240,7 +346,7 @@ export class KsefV2Client implements InvoicingProvider {
       headers: this.authHeader(),
     });
     const json = (await res.json().catch(() => null)) as {
-      status?: { code?: number; description?: string };
+      status?: { code?: number; description?: string; details?: string[]; extensions?: Record<string, string | null> };
       ksefNumber?: string;
       acquisitionTimestamp?: string;
       acquisitionDate?: string;
@@ -254,7 +360,8 @@ export class KsefV2Client implements InvoicingProvider {
     }
     const code = json?.status?.code ?? null;
     const ksefNumber = json?.ksefNumber ?? null;
-    return {
+    const ext = json?.status?.extensions;
+    const wynik: InvoiceStatusResult = {
       processed: Boolean(ksefNumber),
       ksefReferenceNumber: ksefNumber,
       acquisitionTimestamp: json?.acquisitionTimestamp ?? json?.acquisitionDate ?? null,
@@ -262,13 +369,45 @@ export class KsefV2Client implements InvoicingProvider {
       statusDescription: json?.status?.description ?? null,
       rejected: code != null && code >= 400,
     };
+    if (code === KOD_DUPLIKAT_FAKTURY && ext?.originalKsefNumber) {
+      wynik.duplikat = { numerKsef: ext.originalKsefNumber, sesja: ext.originalSessionReferenceNumber ?? null };
+    }
+    if (json?.status?.details?.length) wynik.szczegoly = json.status.details;
+    return wynik;
+  }
+
+  /**
+   * GET /sessions/{ref}/invoices (open-api.json; stronicowanie nagłówkiem `x-continuation-token`) —
+   * odszukanie faktury po numerze KSeF, żeby porównać jej skrót z naszym plikiem.
+   */
+  async fakturaWSesji(sesja: string, numerKsef: string): Promise<{ skrotB64: string; przyjeto: string | null } | null> {
+    if (!this.accessToken) throw new KsefV2ApiError('Brak accessToken – wywołaj openSession() przed fakturaWSesji().');
+    let kontynuacja: string | null = null;
+    for (let strona = 0; strona < 20; strona++) {
+      const res = await this.http(`/sessions/${sesja}/invoices?pageSize=1000`, {
+        method: 'GET',
+        headers: { ...this.authHeader(), ...(kontynuacja ? { 'x-continuation-token': kontynuacja } : {}) },
+      });
+      const json = (await res.json().catch(() => null)) as {
+        continuationToken?: string | null;
+        invoices?: Array<{ ksefNumber?: string | null; invoiceHash?: string; acquisitionDate?: string | null }>;
+      } | null;
+      if (!res.ok) {
+        throw new KsefV2ApiError(`KSeF 2.0 lista faktur sesji nie powiodła się (HTTP ${res.status})`, res.status, json);
+      }
+      const f = json?.invoices?.find((x) => x.ksefNumber === numerKsef);
+      if (f?.invoiceHash) return { skrotB64: f.invoiceHash, przyjeto: f.acquisitionDate ?? null };
+      kontynuacja = json?.continuationToken ?? null;
+      if (!kontynuacja) return null;
+    }
+    return null;
   }
 
   /**
    * Pobiera UPO pojedynczej faktury (XML podpisany XAdES przez MF).
-   * GET /sessions/{ref}/invoices/{invoiceRef}/upo — dostępne po zamknięciu
-   * sesji i przyjęciu faktury; statusy sesji/faktur nie podlegają retencji,
-   * więc UPO można pobrać na żądanie także długo po wysyłce.
+   * GET /sessions/{ref}/invoices/{invoiceRef}/upo — dostępne po zamknięciu sesji i przyjęciu faktury.
+   * Dla faktury przyjętej jako duplikat (440) identyfikator ma postać `sesjaPierwotnej|ksef:{numer}` —
+   * wtedy GET /sessions/{ref}/invoices/ksef/{ksefNumber}/upo (open-api.json).
    */
   async downloadUpo(elementReferenceNumber: string): Promise<string> {
     const [sessionRef, invoiceRef] = elementReferenceNumber.split('|');
@@ -278,7 +417,10 @@ export class KsefV2Client implements InvoicingProvider {
     if (!this.accessToken) {
       throw new KsefV2ApiError('Brak accessToken – wywołaj openSession() przed downloadUpo().');
     }
-    const res = await this.http(`/sessions/${sessionRef}/invoices/${invoiceRef}/upo`, {
+    const sciezka = invoiceRef.startsWith('ksef:')
+      ? `/sessions/${sessionRef}/invoices/ksef/${invoiceRef.slice(5)}/upo`
+      : `/sessions/${sessionRef}/invoices/${invoiceRef}/upo`;
+    const res = await this.http(sciezka, {
       method: 'GET',
       headers: this.authHeader(),
     });
@@ -316,7 +458,7 @@ export class KsefV2Client implements InvoicingProvider {
 
   private symCertKey: X509Certificate | null = null;
 
-  private async fetchPublicKeys(): Promise<{ tokenKey: SelectedKey; symKey: SelectedKey }> {
+  private async fetchPublicKeys(): Promise<{ tokenKey: SelectedKey | null; symKey: SelectedKey }> {
     const res = await this.http('/security/public-key-certificates', { method: 'GET' });
     const list = (await res.json().catch(() => null)) as PublicKeyCert[] | null;
     if (!res.ok || !Array.isArray(list) || list.length === 0) {
@@ -345,7 +487,9 @@ export class KsefV2Client implements InvoicingProvider {
         key: new X509Certificate(Buffer.from(chosen.certificate, 'base64')),
       };
     };
-    return { tokenKey: pick('KsefTokenEncryption'), symKey: pick('SymmetricKeyEncryption') };
+    const symKey = pick('SymmetricKeyEncryption');
+    // Klucz do szyfrowania tokenu potrzebny tylko przy logowaniu tokenem (i tylko gdy nie ma tokenów w pamięci).
+    return { tokenKey: this.uwierzytelnienie.metoda === 'token' ? pick('KsefTokenEncryption') : null, symKey };
   }
 
   private async authChallenge(): Promise<{ challenge: string; timestampMs: number }> {
@@ -379,6 +523,20 @@ export class KsefV2Client implements InvoicingProvider {
         publicKeyId,
       }),
     });
+    return this.odpowiedzUwierzytelnienia(res, '/auth/ksef-token');
+  }
+
+  /** POST /auth/xades-signature — podpisany dokument XML w treści (application/xml), uwierzytelnianie.md 2.1 pkt 3. */
+  private async submitXades(podpisanyXml: string): Promise<{ authenticationToken: string; referenceNumber: string }> {
+    const res = await this.http('/auth/xades-signature', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/xml' },
+      body: podpisanyXml,
+    });
+    return this.odpowiedzUwierzytelnienia(res, '/auth/xades-signature');
+  }
+
+  private async odpowiedzUwierzytelnienia(res: Response, sciezka: string): Promise<{ authenticationToken: string; referenceNumber: string }> {
     const json = (await res.json().catch(() => null)) as {
       authenticationToken?: { token?: string } | string;
       referenceNumber?: string;
@@ -388,8 +546,9 @@ export class KsefV2Client implements InvoicingProvider {
         ? json.authenticationToken
         : json?.authenticationToken?.token;
     if (!res.ok || !authToken || !json?.referenceNumber) {
+      const opis = komunikatWyjatkuXades(kodyBleduKsef(json));
       throw new KsefV2ApiError(
-        `KSeF 2.0 /auth/ksef-token nie powiódł się (HTTP ${res.status})`,
+        `KSeF 2.0 ${sciezka} nie powiódł się (HTTP ${res.status})${opis ? `: ${opis}` : ''}`,
         res.status,
         json,
       );
@@ -410,35 +569,58 @@ export class KsefV2Client implements InvoicingProvider {
       // 200 = uwierzytelnienie zakończone sukcesem; 4xx = błąd.
       if (code === 200) return;
       if (code != null && code >= 400) {
-        throw new KsefV2ApiError(
-          `KSeF 2.0 uwierzytelnianie odrzucone: ${json?.status?.description ?? code}`,
-          res.status,
-          json,
-        );
+        const komunikat = `KSeF 2.0 uwierzytelnianie odrzucone: ${komunikatUwierzytelnienia(code, json?.status?.description)}`;
+        // 500/550 — problem po stronie KSeF (open-api.json: „Spróbuj ponownie”), nie naszych poświadczeń:
+        // bez httpStatus, żeby serwis potraktował to jak niedostępność, a nie odrzucony token/certyfikat.
+        if (STATUSY_UWIERZYTELNIENIA_PRZEJSCIOWE.includes(code)) throw new KsefV2ApiError(komunikat, undefined, json, true);
+        throw new KsefV2ApiError(komunikat, res.status, json);
       }
       await this.delay(AUTH_POLL_DELAY_MS);
     }
     throw new KsefV2ApiError('KSeF 2.0: przekroczono czas oczekiwania na uwierzytelnienie.');
   }
 
-  private async redeemAccessToken(authToken: string): Promise<string> {
+  private async redeemAccessToken(authToken: string): Promise<TokenyKsef> {
     const res = await this.http('/auth/token/redeem', {
       method: 'POST',
       headers: { Authorization: `Bearer ${authToken}` },
     });
     const json = (await res.json().catch(() => null)) as {
-      accessToken?: { token?: string } | string;
+      accessToken?: { token?: string; validUntil?: string } | string;
+      refreshToken?: { token?: string; validUntil?: string } | string;
     } | null;
-    const accessToken =
-      typeof json?.accessToken === 'string' ? json.accessToken : json?.accessToken?.token;
-    if (!res.ok || !accessToken) {
+    const access = this.tokenZOdpowiedzi(json?.accessToken);
+    if (!res.ok || !access) {
       throw new KsefV2ApiError(
         `KSeF 2.0 /auth/token/redeem nie powiódł się (HTTP ${res.status})`,
         res.status,
         json,
       );
     }
-    return accessToken;
+    const refresh = this.tokenZOdpowiedzi(json?.refreshToken);
+    return { accessToken: access.token, accessDo: access.do, refreshToken: refresh?.token ?? null, refreshDo: refresh ? refresh.do : null };
+  }
+
+  /** POST /auth/token/refresh z `Authorization: Bearer {refreshToken}` → nowy accessToken (uwierzytelnianie.md, pkt 5). */
+  private async odswiezAccessToken(refreshToken: string): Promise<{ accessToken: string; accessDo: number }> {
+    const res = await this.http('/auth/token/refresh', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${refreshToken}` },
+    });
+    const json = (await res.json().catch(() => null)) as { accessToken?: { token?: string; validUntil?: string } | string } | null;
+    const access = this.tokenZOdpowiedzi(json?.accessToken);
+    if (!res.ok || !access) {
+      throw new KsefV2ApiError(`KSeF 2.0 /auth/token/refresh nie powiódł się (HTTP ${res.status})`, res.status, json);
+    }
+    return { accessToken: access.token, accessDo: access.do };
+  }
+
+  /** `TokenInfo` {token, validUntil}; bez daty ważności zakładamy krótki czas życia (kilkanaście minut wg dokumentacji). */
+  private tokenZOdpowiedzi(t: { token?: string; validUntil?: string } | string | undefined): { token: string; do: number } | null {
+    const token = typeof t === 'string' ? t : t?.token;
+    if (!token) return null;
+    const waznosc = typeof t === 'object' && t.validUntil ? new Date(t.validUntil).getTime() : NaN;
+    return { token, do: Number.isFinite(waznosc) ? waznosc : Date.now() + 10 * 60_000 };
   }
 
   // --- Online session --------------------------------------------------------
@@ -533,22 +715,40 @@ export class KsefV2Client implements InvoicingProvider {
   private async http(path: string, init: RequestInit): Promise<Response> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.config.timeoutMs ?? 30_000);
+    let res: Response;
     try {
-      const res = await fetch(`${this.config.baseUrl.replace(/\/$/, '')}${path}`, {
+      res = await fetch(`${this.config.baseUrl.replace(/\/$/, '')}${path}`, {
         ...init,
         signal: controller.signal,
       });
-      // API 2.6.0: ostrzeżenia techniczne bez wpływu na wynik operacji —
-      // logujemy, bo zapowiadają zachowania, które w przyszłości będą odrzucane.
-      const warning = res.headers.get('X-System-Warning');
-      if (warning) this.logger.warn(`KSeF X-System-Warning (${path}): ${warning}`);
-      return res;
     } catch (err) {
-      throw new KsefV2ApiError(
+      const blad = new KsefV2ApiError(
         `KSeF 2.0 niedostępny (${path}): ${err instanceof Error ? err.message : String(err)}`,
       );
+      Object.assign(blad, { przyczyna: (err as { cause?: unknown })?.cause });
+      throw blad;
     } finally {
       clearTimeout(timer);
     }
+    // API 2.6.0: ostrzeżenia techniczne bez wpływu na wynik operacji —
+    // logujemy, bo zapowiadają zachowania, które w przyszłości będą odrzucane.
+    const warning = res.headers.get('X-System-Warning');
+    if (warning) this.logger.warn(`KSeF X-System-Warning (${path}): ${warning}`);
+    // limity/limity-api.md: 429 + `Retry-After` (sekundy); kolejne żądania są blokowane, a „wielokrotne
+    // przekroczenia mogą skutkować znacznym wydłużeniem blokady” — serwis wstrzymuje cykle na ten czas.
+    if (res.status === 429) {
+      const ra = Number(res.headers.get('Retry-After'));
+      throw new KsefV2ApiError(
+        `KSeF: przekroczony limit żądań (${path})${Number.isFinite(ra) && ra > 0 ? ` – ponowienie za ${ra} s` : ''}.`,
+        429,
+        await res.json().catch(() => null),
+        true,
+        false,
+        Number.isFinite(ra) && ra > 0 ? ra : undefined,
+      );
+    }
+    // 401 przy tokenie z pamięci (np. unieważniony) — następny cykl uwierzytelnia się od nowa.
+    if (res.status === 401 && this.config.pamiec) this.config.pamiec.tokeny = null;
+    return res;
   }
 }

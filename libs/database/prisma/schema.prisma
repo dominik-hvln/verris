@@ -1970,6 +1970,18 @@ model Invoice {
   /// Termin ustawowy przesłania do KSeF. `null` = brak obowiązku ALBO nieznany —
   /// czyta się to przez `stanTerminu`, nigdy przez `=== null`.
   ksefTerminDo        DateTime?
+  /// KSeF 07.11 — liczba nieudanych prób wysyłki z rzędu i termin następnej (backoff); po przyjęciu
+  /// te same pola odliczają próby pobrania UPO. Zerowane po udanej operacji.
+  ksefProby           Int       @default(0)
+  ksefNastepnaProba   DateTime?
+  /// KSeF 07.11 — UPO faktury (XML podpisany przez MF), pobrane automatycznie po przyjęciu — klient
+  /// i admin pobierają je z bazy, bez wywołań KSeF na żądanie (limity/limity-api.md).
+  ksefUpo             String?   @db.Text
+  /// KSeF 07.11 — kiedy ostatnio wysłano zespołowi alarm o zbliżającym się terminie dosłania.
+  ksefAlertTerminuAt  DateTime?
+  /// KSeF 07.11 — korekta techniczna faktury offline (offline/korekta-techniczna.md): SHA-256 (Base64URL)
+  /// odrzuconego pliku, wskazywany przy ponownej wysyłce w `hashOfCorrectedInvoice`.
+  ksefSkrotKorygowanej String?
 
   /// Z-01 — finalizacja (PDF + MinIO + KSeF + mail) jest ponawiana, a nie
   /// wykonywana raz i porzucana. Do 2026-08-22 błąd generowania PDF-u kończył
@@ -2014,6 +2026,7 @@ model Invoice {
   @@index([userId])
   @@index([ksefStatus])
   @@index([ksefStatus, ksefTerminDo])
+  @@index([ksefStatus, ksefNastepnaProba])
   @@index([status, storageKey])
   @@index([status, finalizeNextAttemptAt])
   @@index([correctedId])

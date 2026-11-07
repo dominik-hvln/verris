@@ -7,6 +7,7 @@ import { stanPoKorektach } from './korekty.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { MailerService } from '../mail/mailer.service.js';
 import { KsefService, STATUSY_Z_PLIKIEM_KSEF } from '../ksef/ksef.service.js';
+import { daneLinkuZPliku, linkWeryfikacjiKsef, normalizujSrodowiskoKsef } from '../ksef/kod-qr-ksef.js';
 import { Readable } from 'stream';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
 import { ObjectStorageService } from '../storage/object-storage.service.js';
@@ -77,6 +78,12 @@ export interface InvoiceDto {
   ksefNumber: string | null;
   /** KSeF 12.10 — faktura ma plik w KSeF (PDF z kodem QR, XML do pobrania). */
   ksefXml: boolean;
+  /** M-14 (KSeF 07.11) — data przyjęcia w KSeF. */
+  ksefPrzyjeto: string | null;
+  /** M-14 — link weryfikacji w KSeF (KOD I), gdy plik jest zapisany. */
+  ksefWeryfikacja: string | null;
+  /** M-14 — UPO pobrane z KSeF i dostępne dla klienta. */
+  ksefUpo: boolean;
 }
 
 export interface InvoiceListDto {
@@ -761,6 +768,22 @@ export class InvoicesService {
     return this.ksef.pdfFaktury(invoice.id);
   }
 
+  /**
+   * M-14 (KSeF 07.11) — UPO faktury przyjętej przez KSeF; tylko dla właściciela faktury i tylko z bazy
+   * (cykl KSeF pobiera je automatycznie) — akcja klienta nie woła API KSeF (limity/limity-api.md).
+   */
+  async pobierzUpoKsef(userId: string, invoiceId: string): Promise<{ xml: string; filename: string }> {
+    const invoice = await this.prisma.invoice.findFirst({
+      where: { id: invoiceId, userId },
+      select: { number: true, ksefStatus: true, ksefUpo: true },
+    });
+    if (!invoice) throw new NotFoundException('Faktura nie znaleziona');
+    if (invoice.ksefStatus !== KsefStatus.ACCEPTED || !invoice.ksefUpo) {
+      throw new NotFoundException('UPO nie jest jeszcze dostępne – pojawi się po przyjęciu faktury przez KSeF.');
+    }
+    return { xml: invoice.ksefUpo, filename: `${invoice.number.replace(/\//g, '-')}-UPO.xml` };
+  }
+
   /** KSeF 12.10 — plik XML FA(3) wysłany do KSeF; tylko dla właściciela faktury. */
   async pobierzXmlKsef(userId: string, invoiceId: string): Promise<{ xml: string; filename: string }> {
     const invoice = await this.prisma.invoice.findFirst({
@@ -1205,7 +1228,21 @@ function toDto(invoice: Invoice): InvoiceDto {
     externalInvoiceAt: invoice.externalInvoiceAt?.toISOString() ?? null,
     ksefNumber: invoice.ksefNumber,
     ksefXml: STATUSY_Z_PLIKIEM_KSEF.includes(invoice.ksefStatus),
+    ksefPrzyjeto: invoice.ksefAcceptedAt?.toISOString() ?? null,
+    ksefWeryfikacja: linkWeryfikacjiZFaktury(invoice),
+    ksefUpo: invoice.ksefStatus === KsefStatus.ACCEPTED && Boolean(invoice.ksefUpo),
   };
+}
+
+/** M-14 — KOD I z zapisanego pliku (ten sam link co na PDF-ie); `null`, gdy pliku jeszcze nie ma. */
+function linkWeryfikacjiZFaktury(invoice: Pick<Invoice, 'ksefStatus' | 'ksefXml' | 'ksefXmlSha256' | 'ksefSrodowisko'>): string | null {
+  if (!STATUSY_Z_PLIKIEM_KSEF.includes(invoice.ksefStatus) || !invoice.ksefXml || !invoice.ksefXmlSha256) return null;
+  try {
+    const { nipSprzedawcy, dataWystawienia } = daneLinkuZPliku(invoice.ksefXml);
+    return linkWeryfikacjiKsef(normalizujSrodowiskoKsef(invoice.ksefSrodowisko), nipSprzedawcy, dataWystawienia, invoice.ksefXmlSha256);
+  } catch {
+    return null;
+  }
 }
 
 function clamp(value: number, min: number, max: number): number {

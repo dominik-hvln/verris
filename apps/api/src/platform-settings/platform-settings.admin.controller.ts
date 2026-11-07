@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, ParseEnumPipe, Patch, Post, UseGuards } from '@nestjs/common';
 import { Role } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
@@ -6,7 +6,7 @@ import { Roles } from '../common/decorators/roles.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { PlatformSettingsService } from './platform-settings.service.js';
 import { UpdatePlatformSettingsDto } from './dto/platform-settings.dto.js';
-import { UpdateSellerCompanyDto, UpdateKsefSettingsDto, UpdateTrybFakturowaniaDto } from './dto/company-settings.dto.js';
+import { UpdateSellerCompanyDto, UpdateKsefSettingsDto, UpdateTrybFakturowaniaDto, WgrajCertyfikatKsefDto } from './dto/company-settings.dto.js';
 import { UpdateTrialOfferDto } from './dto/trial-offer.dto.js';
 import { UpdateMonitoringSettingsDto, UpdateWhoisPrivacyPriceDto } from './dto/monitoring-settings.dto.js';
 import { UpdateSlaCreditPolicyDto } from './dto/sla-credit-policy.dto.js';
@@ -201,8 +201,25 @@ export class PlatformSettingsAdminController {
         env: dto.env,
         nip: dto.nip ?? '',
         token: dto.token,
+        metoda: dto.metoda,
       },
       actor.userId,
     );
+  }
+
+  /** KSeF 07.11 — certyfikat KSeF + klucz (zapis zaszyfrowany KMS; odpowiedź bez klucza). */
+  @Post('ksef/certyfikat')
+  @HttpCode(200)
+  wgrajCertyfikatKsef(@Body() dto: WgrajCertyfikatKsefDto, @CurrentUser() actor: { userId: string }) {
+    return this.settings.wgrajCertyfikatKsef(dto, actor.userId);
+  }
+
+  @Delete('ksef/certyfikat/:rodzaj')
+  @HttpCode(200)
+  usunCertyfikatKsef(
+    @Param('rodzaj', new ParseEnumPipe({ uwierzytelnianie: 'uwierzytelnianie', offline: 'offline' })) rodzaj: 'uwierzytelnianie' | 'offline',
+    @CurrentUser() actor: { userId: string },
+  ) {
+    return this.settings.usunCertyfikatKsef(rodzaj, actor.userId);
   }
 }

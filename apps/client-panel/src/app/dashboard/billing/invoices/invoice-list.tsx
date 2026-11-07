@@ -60,6 +60,16 @@ function InvoiceDownload({ invoice }: { invoice: InvoiceDto }) {
             Pobierz XML (KSeF)
           </a>
         ) : null}
+        {invoice.ksefUpo ? (
+          <a
+            href={`/api/billing/invoices/${invoice.id}/upo`}
+            className={PRZYCISK}
+            title="Urzędowe poświadczenie odbioru faktury przez Krajowy System e-Faktur (XML podpisany przez Ministerstwo Finansów)"
+          >
+            <Download className="h-3.5 w-3.5" />
+            UPO
+          </a>
+        ) : null}
       </span>
     );
   }
@@ -99,15 +109,40 @@ function InvoiceDownload({ invoice }: { invoice: InvoiceDto }) {
 function RodzajDokumentu({ invoice }: { invoice: InvoiceDto }) {
   if (invoice.rodzajPrawny !== 'DOKUMENT_ROZLICZENIOWY') {
     // KSeF 12.10 — numer KSeF przy numerze faktury; faktura w drodze do KSeF jest oznaczona wprost.
+    // M-14 — numer KSeF, data przyjęcia i link weryfikacji (ten sam co kod QR na PDF-ie).
+    const weryfikacja = invoice.ksefWeryfikacja ? (
+      <a
+        href={invoice.ksefWeryfikacja}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="ml-1 text-indigo-300 underline hover:text-indigo-200"
+      >
+        sprawdź w KSeF
+      </a>
+    ) : null;
     if (invoice.ksefNumber) {
       return (
         <span className="mt-1 block text-xs text-neutral-400">
           KSeF <span className="break-all font-mono text-neutral-200">{invoice.ksefNumber}</span>
+          {invoice.ksefPrzyjeto ? (
+            <span className="block">
+              przyjęta {new Date(invoice.ksefPrzyjeto).toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              {weryfikacja ? ' ·' : null}
+              {weryfikacja}
+            </span>
+          ) : (
+            weryfikacja
+          )}
         </span>
       );
     }
     if (invoice.ksefXml) {
-      return <span className="mt-1 block text-xs text-amber-200/80">KSeF: numer w trakcie nadawania</span>;
+      return (
+        <span className="mt-1 block text-xs text-amber-200/80">
+          KSeF: numer w trakcie nadawania{weryfikacja ? ' ·' : null}
+          {weryfikacja}
+        </span>
+      );
     }
     return null;
   }

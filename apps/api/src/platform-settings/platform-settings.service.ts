@@ -12,6 +12,16 @@ import { ksefDozwolony, normalizujTryb, type TrybFakturowania } from '../billing
 import { MAKS_KREDYT_AUTOSKALOWANIA, type TrialOfferConfig } from './dto/trial-offer.dto.js';
 import { KREDYT_AUTOSKALOWANIA_DOMYSLNIE, WAZNOSC_KREDYTOW_AUTOSKALOWANIA_MIES } from '../autoscaling/kredyty-autoskalowania.js';
 import { wersjePhpZRaportu } from '../servers/stos-wezla.js';
+import {
+  BladCertyfikatuKsef,
+  kluczDoZapisu,
+  opisCertyfikatu,
+  sprawdzPareKsef,
+  wczytajCertyfikat,
+  wczytajKluczPrywatny,
+  type RodzajCertyfikatuKsef,
+  type TypIdentyfikatoraKsef,
+} from '../ksef/ksef-certyfikat.js';
 
 /** G-08 — pozycja cennika SSL: cena brutto za rok (PLN), nazwa produktu, czy wildcard. */
 export interface SslCena {
@@ -33,11 +43,31 @@ export interface SellerCompanyDto {
   bankAccount: string;
 }
 
+export type MetodaUwierzytelnieniaKsef = 'token' | 'certyfikat';
+
+/** Jawne dane certyfikatu KSeF do UI — bez klucza prywatnego. */
+export interface CertyfikatKsefDto {
+  podmiot: string;
+  wystawca: string;
+  numerSeryjny: string;
+  waznyOd: string;
+  waznyDo: string;
+  odciskSha256: string;
+  algorytm: 'RSA' | 'EC';
+  /** Pełne dni do końca ważności (ujemne = wygasł). */
+  dniDoWygasniecia: number;
+  /** Tylko certyfikat do uwierzytelnienia. */
+  typIdentyfikatora?: TypIdentyfikatoraKsef;
+}
+
 export interface KsefSettingsDto {
   enabled: boolean;
   env: 'test' | 'demo' | 'prod';
   nip: string;
   tokenSet: boolean;
+  metoda: MetodaUwierzytelnieniaKsef;
+  certyfikatUwierzytelniania: CertyfikatKsefDto | null;
+  certyfikatOffline: CertyfikatKsefDto | null;
 }
 
 export interface KsefRuntimeConfig {
@@ -45,7 +75,15 @@ export interface KsefRuntimeConfig {
   env: 'test' | 'demo' | 'prod';
   nip: string;
   token: string;
+  /** Brak w starszych wywołaniach/testach = `token`. */
+  metoda?: MetodaUwierzytelnieniaKsef;
+  /** Certyfikat KSeF typu Authentication + klucz (odszyfrowany) — tylko dla KsefService. */
+  certyfikat?: { pem: string; kluczPem: string; typIdentyfikatora: TypIdentyfikatoraKsef } | null;
+  /** Certyfikat KSeF typu Offline + klucz (odszyfrowany) — do KODU II. */
+  certyfikatOffline?: { pem: string; kluczPem: string } | null;
 }
+
+const DZIEN_MS = 86_400_000;
 
 export type ClientPlatformConfigDto = {
   ecoPointsPerTree: number;
@@ -744,6 +782,9 @@ export class PlatformSettingsService {
       env: this.normalizeKsefEnv(this.readStr(map, K.KSEF_ENV, process.env.KSEF_ENV ?? 'test')),
       nip: this.readStr(map, K.KSEF_NIP, process.env.KSEF_NIP ?? ''),
       tokenSet: Boolean(map.get(K.KSEF_TOKEN_ENC) || process.env.KSEF_TOKEN),
+      metoda: this.metodaKsef(map),
+      certyfikatUwierzytelniania: this.opisCertyfikatuZUstawien(map.get(K.KSEF_CERT_AUTH_PEM), this.typIdentyfikatoraKsef(map)),
+      certyfikatOffline: this.opisCertyfikatuZUstawien(map.get(K.KSEF_CERT_OFFLINE_PEM)),
     };
   }
 
@@ -751,7 +792,45 @@ export class PlatformSettingsService {
     return raw === 'prod' ? 'prod' : raw === 'demo' ? 'demo' : 'test';
   }
 
-  /** Pełna konfiguracja runtime (z odszyfrowanym tokenem) — tylko dla KsefService. */
+  private metodaKsef(map: Map<string, string>): MetodaUwierzytelnieniaKsef {
+    return map.get(PLATFORM_SETTING_KEYS.KSEF_METODA) === 'certyfikat' ? 'certyfikat' : 'token';
+  }
+
+  private typIdentyfikatoraKsef(map: Map<string, string>): TypIdentyfikatoraKsef {
+    return map.get(PLATFORM_SETTING_KEYS.KSEF_CERT_AUTH_TYP) === 'certificateFingerprint' ? 'certificateFingerprint' : 'certificateSubject';
+  }
+
+  private opisCertyfikatuZUstawien(pem: string | undefined, typ?: TypIdentyfikatoraKsef): CertyfikatKsefDto | null {
+    if (!pem) return null;
+    try {
+      const o = opisCertyfikatu(wczytajCertyfikat(pem));
+      return {
+        podmiot: o.podmiot,
+        wystawca: o.wystawca,
+        numerSeryjny: o.numerSeryjny,
+        waznyOd: o.waznyOd,
+        waznyDo: o.waznyDo,
+        odciskSha256: o.odciskSha256,
+        algorytm: o.algorytm,
+        dniDoWygasniecia: Math.floor((new Date(o.waznyDo).getTime() - Date.now()) / DZIEN_MS),
+        ...(typ ? { typIdentyfikatora: typ } : {}),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  /** Klucz prywatny z ustawień (odszyfrowany KMS) — `null`, gdy brak albo nie da się odszyfrować. */
+  private odszyfrujKlucz(enc: string | undefined): string | null {
+    if (!enc) return null;
+    try {
+      return this.crypto.decrypt(enc);
+    } catch {
+      return null;
+    }
+  }
+
+  /** Pełna konfiguracja runtime (z odszyfrowanym tokenem i kluczami) — tylko dla KsefService. */
   async getKsefRuntimeConfig(): Promise<KsefRuntimeConfig> {
     const map = await this.loadMap();
     const K = PLATFORM_SETTING_KEYS;
@@ -762,6 +841,10 @@ export class PlatformSettingsService {
     } catch {
       token = '';
     }
+    const certAuth = map.get(K.KSEF_CERT_AUTH_PEM);
+    const kluczAuth = this.odszyfrujKlucz(map.get(K.KSEF_CERT_AUTH_KLUCZ_ENC));
+    const certOff = map.get(K.KSEF_CERT_OFFLINE_PEM);
+    const kluczOff = this.odszyfrujKlucz(map.get(K.KSEF_CERT_OFFLINE_KLUCZ_ENC));
     return {
       enabled: ksefDozwolony(
         normalizujTryb(map.get(K.FAKTURY_TRYB)),
@@ -770,7 +853,76 @@ export class PlatformSettingsService {
       env: this.normalizeKsefEnv(this.readStr(map, K.KSEF_ENV, process.env.KSEF_ENV ?? 'test')),
       nip: this.readStr(map, K.KSEF_NIP, process.env.KSEF_NIP ?? ''),
       token,
+      metoda: this.metodaKsef(map),
+      certyfikat: certAuth && kluczAuth ? { pem: certAuth, kluczPem: kluczAuth, typIdentyfikatora: this.typIdentyfikatoraKsef(map) } : null,
+      certyfikatOffline: certOff && kluczOff ? { pem: certOff, kluczPem: kluczOff } : null,
     };
+  }
+
+  /**
+   * KSeF 07.11 — wgranie certyfikatu KSeF i klucza prywatnego (Ustawienia → Firma → KSeF). Klucz
+   * odszyfrowany hasłem (jeśli było) i zapisany ponownie wyłącznie zaszyfrowany kluczem KMS — hasło nie
+   * jest nigdzie zapisywane. Odpowiedź i dziennik: tylko dane jawne certyfikatu.
+   */
+  async wgrajCertyfikatKsef(
+    input: {
+      rodzaj: RodzajCertyfikatuKsef;
+      certyfikat: string;
+      klucz: string;
+      haslo?: string;
+      typIdentyfikatora?: TypIdentyfikatoraKsef;
+    },
+    actorUserId: string,
+  ): Promise<{ ustawienia: KsefSettingsDto; ostrzezenia: string[] }> {
+    let opis: ReturnType<typeof sprawdzPareKsef>['opis'];
+    let ostrzezenia: string[];
+    let pem: string;
+    let kluczPem: string;
+    try {
+      const cert = wczytajCertyfikat(input.certyfikat);
+      const klucz = wczytajKluczPrywatny(input.klucz, input.haslo);
+      ({ opis, ostrzezenia } = sprawdzPareKsef(cert, klucz, input.rodzaj));
+      pem = cert.pem;
+      kluczPem = kluczDoZapisu(klucz);
+    } catch (err) {
+      if (err instanceof BladCertyfikatuKsef) throw new BadRequestException(`KSeF: ${err.message}`);
+      throw err;
+    }
+    const K = PLATFORM_SETTING_KEYS;
+    const wpisy: Array<[PlatformSettingKey, string]> =
+      input.rodzaj === 'uwierzytelnianie'
+        ? [
+            [K.KSEF_CERT_AUTH_PEM, pem],
+            [K.KSEF_CERT_AUTH_KLUCZ_ENC, this.crypto.encrypt(kluczPem)],
+            [K.KSEF_CERT_AUTH_TYP, input.typIdentyfikatora === 'certificateFingerprint' ? 'certificateFingerprint' : 'certificateSubject'],
+          ]
+        : [
+            [K.KSEF_CERT_OFFLINE_PEM, pem],
+            [K.KSEF_CERT_OFFLINE_KLUCZ_ENC, this.crypto.encrypt(kluczPem)],
+          ];
+    await this.upsertMany(wpisy, actorUserId);
+    await this.audit.record({
+      action: 'KSEF_CERTYFIKAT_WGRANY',
+      userId: actorUserId,
+      details: { rodzaj: input.rodzaj, numerSeryjny: opis.numerSeryjny, waznyDo: opis.waznyDo, odciskSha256: opis.odciskSha256 },
+    });
+    return { ustawienia: await this.getKsefSettings(), ostrzezenia };
+  }
+
+  async usunCertyfikatKsef(rodzaj: RodzajCertyfikatuKsef, actorUserId: string): Promise<KsefSettingsDto> {
+    const K = PLATFORM_SETTING_KEYS;
+    const obecne = await this.getKsefSettings();
+    if (rodzaj === 'uwierzytelnianie' && obecne.enabled && obecne.metoda === 'certyfikat') {
+      throw new BadRequestException('KSeF: wysyłka używa tego certyfikatu – najpierw przełącz metodę uwierzytelnienia albo wyłącz KSeF.');
+    }
+    await this.upsertMany(
+      rodzaj === 'uwierzytelnianie'
+        ? [[K.KSEF_CERT_AUTH_PEM, ''], [K.KSEF_CERT_AUTH_KLUCZ_ENC, '']]
+        : [[K.KSEF_CERT_OFFLINE_PEM, ''], [K.KSEF_CERT_OFFLINE_KLUCZ_ENC, '']],
+      actorUserId,
+    );
+    await this.audit.record({ action: 'KSEF_CERTYFIKAT_USUNIETY', userId: actorUserId, details: { rodzaj } });
+    return this.getKsefSettings();
   }
 
   async updateKsefSettings(
@@ -780,6 +932,8 @@ export class PlatformSettingsService {
       nip: string;
       /** Nowy token KSeF — gdy puste, zachowujemy obecny. */
       token?: string;
+      /** KSeF 07.11 — metoda uwierzytelnienia; brak = bez zmiany. */
+      metoda?: MetodaUwierzytelnieniaKsef;
     },
     actorUserId: string,
   ): Promise<KsefSettingsDto> {
@@ -795,6 +949,10 @@ export class PlatformSettingsService {
       throw new BadRequestException('KSeF: NIP (10 cyfr) jest wymagany przy włączeniu.');
     }
     const K = PLATFORM_SETTING_KEYS;
+    const metoda = input.metoda ?? this.metodaKsef(await this.loadMap());
+    if (input.enabled && metoda === 'certyfikat' && !(await this.getKsefSettings()).certyfikatUwierzytelniania) {
+      throw new BadRequestException('KSeF: uwierzytelnienie certyfikatem wymaga wgranego certyfikatu KSeF (Authentication) z kluczem.');
+    }
     // Przegląd 13.10 — przełączenie środowiska (np. TEST → PROD) przy fakturach wysłanych, a jeszcze bez statusu:
     // sprawdzanie statusu poszłoby do nowego środowiska z numerem sesji ze starego, faktury wisiałyby jako
     // „wysłane” na zawsze i blokowały kolejkę wysyłki. Najpierw niech stare środowisko je przyjmie lub odrzuci.
@@ -831,6 +989,7 @@ export class PlatformSettingsService {
       [K.KSEF_ENABLED, input.enabled ? '1' : '0'],
       [K.KSEF_ENV, noweEnv],
       [K.KSEF_NIP, nip],
+      [K.KSEF_METODA, metoda],
     ];
     if (input.token && input.token.trim()) {
       entries.push([K.KSEF_TOKEN_ENC, this.crypto.encrypt(input.token.trim())]);
@@ -843,6 +1002,7 @@ export class PlatformSettingsService {
         enabled: input.enabled,
         env: input.env,
         nip,
+        metoda,
         tokenChanged: Boolean(input.token),
       },
     });

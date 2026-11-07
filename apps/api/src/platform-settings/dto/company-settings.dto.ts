@@ -54,6 +54,31 @@ export class UpdateKsefSettingsDto {
 
   @IsOptional() @IsString() @MaxLength(200)
   token?: string;
+
+  /** KSeF 07.11 — metoda uwierzytelnienia (brak = bez zmiany). */
+  @IsOptional() @IsIn(['token', 'certyfikat'])
+  metoda?: 'token' | 'certyfikat';
+}
+
+/**
+ * KSeF 07.11 — certyfikat KSeF i klucz prywatny (PEM albo DER w Base64, np. pliki .crt/.key z Aplikacji
+ * Podatnika). Hasło tylko do zaszyfrowanego klucza; nie jest zapisywane.
+ */
+export class WgrajCertyfikatKsefDto {
+  @IsIn(['uwierzytelnianie', 'offline'])
+  rodzaj!: 'uwierzytelnianie' | 'offline';
+
+  @IsString() @MaxLength(20000)
+  certyfikat!: string;
+
+  @IsString() @MaxLength(20000)
+  klucz!: string;
+
+  @IsOptional() @IsString() @MaxLength(500)
+  haslo?: string;
+
+  @IsOptional() @IsIn(['certificateSubject', 'certificateFingerprint'])
+  typIdentyfikatora?: 'certificateSubject' | 'certificateFingerprint';
 }
 
 /**

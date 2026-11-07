@@ -12,6 +12,8 @@ vi.mock('../../src/ksef/fa3-xml.builder.js', () => ({
   buildFa3Xml: () => ({ xml: '<Faktura/>' }),
   FaXmlValidationError: class extends Error {},
 }));
+// Atrapa XML-a nie jest fakturą FA(3) — walidację XSD testuje src/ksef/fa3-xsd.spec.ts.
+vi.mock('../../src/ksef/fa3-xsd.js', () => ({ walidujFa3Xsd: async () => ({ ok: true, bledy: [] }) }));
 
 const wyslane: string[] = [];
 let sesjaPada = false;

@@ -8,6 +8,9 @@
  * Wymagane env:
  *   KSEF_NIP    — NIP testowy (z konta na api-test/api-demo)
  *   KSEF_TOKEN  — token KSeF (Aplikacja Podatnika, środowisko testowe)
+ *   ALBO (KSeF 07.11, uwierzytelnienie certyfikatem — XAdES, uwierzytelnianie.md 2.1):
+ *   KSEF_CERT_PLIK, KSEF_KLUCZ_PLIK — ścieżki do certyfikatu KSeF (Authentication) i klucza prywatnego,
+ *   KSEF_KLUCZ_HASLO — hasło do klucza, jeśli zaszyfrowany (nie wpisywać do historii powłoki: `read -s`).
  * Opcjonalne:
  *   KSEF_ENV=test|demo (domyślnie test) LUB KSEF_BASE_URL (pełny, z /api/v2)
  *   KSEF_FA3_TARGET_NAMESPACE — dokładny namespace z XSD FA(3) (walidacja XML)
@@ -19,7 +22,9 @@
  */
 import { Prisma } from '@verris/database';
 import { buildFa3Xml } from '../../apps/api/src/ksef/fa3-xml.builder';
-import { KsefV2Client } from '../../apps/api/src/ksef/ksef-v2.client';
+import { readFileSync } from 'fs';
+import { KsefV2Client, type UwierzytelnienieKsef } from '../../apps/api/src/ksef/ksef-v2.client';
+import { kluczDoZapisu, wczytajKluczPrywatny } from '../../apps/api/src/ksef/ksef-certyfikat';
 
 function baseUrl(): string {
   if (process.env.KSEF_BASE_URL) return process.env.KSEF_BASE_URL;
@@ -36,10 +41,26 @@ function baseUrl(): string {
 async function main() {
   const nip = (process.env.KSEF_NIP ?? '').replace(/\D/g, '');
   const token = process.env.KSEF_TOKEN ?? '';
-  if (!nip || !token) {
-    console.error('Ustaw KSEF_NIP i KSEF_TOKEN (środowisko TESTOWE/DEMO).');
+  const certPlik = process.env.KSEF_CERT_PLIK ?? '';
+  const kluczPlik = process.env.KSEF_KLUCZ_PLIK ?? '';
+  if (!nip || (!token && !(certPlik && kluczPlik))) {
+    console.error('Ustaw KSEF_NIP oraz KSEF_TOKEN albo KSEF_CERT_PLIK i KSEF_KLUCZ_PLIK (środowisko TESTOWE/DEMO).');
     process.exit(1);
   }
+  const uwierzytelnienie: UwierzytelnienieKsef =
+    certPlik && kluczPlik
+      ? {
+          metoda: 'certyfikat',
+          certyfikatPem: readFileSync(certPlik).toString(readFileSync(certPlik, 'utf8').includes('-----BEGIN') ? 'utf8' : 'base64'),
+          kluczPem: kluczDoZapisu(
+            wczytajKluczPrywatny(
+              readFileSync(kluczPlik).toString(readFileSync(kluczPlik, 'utf8').includes('-----BEGIN') ? 'utf8' : 'base64'),
+              process.env.KSEF_KLUCZ_HASLO,
+            ),
+          ),
+          typIdentyfikatora: process.env.KSEF_TYP_IDENTYFIKATORA === 'certificateFingerprint' ? 'certificateFingerprint' : 'certificateSubject',
+        }
+      : { metoda: 'token', token };
   if ((process.env.KSEF_ENV ?? 'test') === 'prod' && !process.env.KSEF_SMOKE_ALLOW_PROD) {
     console.error('Odmowa: smoke na PROD. Ustaw KSEF_SMOKE_ALLOW_PROD=1 tylko świadomie.');
     process.exit(1);
@@ -80,7 +101,8 @@ async function main() {
   });
   console.log('[smoke] FA(3) XML zbudowany:', summary);
 
-  const client = new KsefV2Client({ baseUrl: baseUrl(), nip, token });
+  const client = new KsefV2Client({ baseUrl: baseUrl(), nip, uwierzytelnienie });
+  console.log(`[smoke] Metoda uwierzytelnienia: ${uwierzytelnienie.metoda}`);
 
   console.log('[smoke] Uwierzytelnianie (KSeF 2.0)…');
   await client.openSession();
