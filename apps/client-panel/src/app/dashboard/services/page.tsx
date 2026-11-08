@@ -12,6 +12,7 @@ import { fetchSessionProfile } from '@/lib/session-profile';
 import { canAccessDashboardRoute } from '@/lib/client-nav-access';
 import { plForm, plural } from '@/lib/pl';
 import { terminUslugi } from '@/lib/service-events';
+import { adresUslugi, ETYKIETA_RODZAJU } from '@/lib/rodzaj-uslugi';
 
 /** PB-15 — wszystkie usługi w nowym wyglądzie (wzorzec: docs/design/wzorzec-panelu.html). */
 
@@ -25,11 +26,6 @@ const STATUS: Record<SubscriptionStatus, string> = {
   EXPIRED: 'wygasła',
 };
 
-const KIND: Record<ServiceSummaryDto['productKind'], string> = {
-  HOSTING: 'Hosting',
-  EMAIL: 'Poczta',
-  EMAIL_MARKETING: 'E-mail marketing',
-};
 
 const PROVISIONING: Record<NonNullable<ServiceSummaryDto['provisioning']>['stage'], string> = {
   queued: 'w kolejce',
@@ -53,11 +49,8 @@ function dataKrotka(iso: string) {
   return new Date(iso).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-function href(s: ServiceSummaryDto) {
-  // Q-05 — e-mail marketing nie ma strony usługi hostingowej; zarządza się nim w swojej przestrzeni.
-  if (s.productKind === 'EMAIL_MARKETING') return `/dashboard/email-marketing/${s.id}`;
-  return `/dashboard/services/${s.id}?kind=${s.productKind ?? 'HOSTING'}`;
-}
+// Q-05 / paczka 121 — e-mail marketing i Kreator Pro nie mają strony usługi hostingowej (lib/rodzaj-uslugi.ts).
+const href = adresUslugi;
 
 export default async function ServicesPage() {
   let services: ServiceSummaryDto[] = [];
@@ -166,7 +159,7 @@ function ServicesTable({ services }: { services: ServiceSummaryDto[] }) {
                   <Link href={href(s)} className="flex flex-col">
                     <b className="whitespace-nowrap font-semibold text-foreground">{s.planName}</b>
                     <small className="whitespace-nowrap text-[12.5px] text-muted-foreground">
-                      {KIND[s.productKind]}
+                      {ETYKIETA_RODZAJU[s.productKind] ?? s.productKind}
                       {a?.domain ? ` · ${a.domain}` : ''}
                       {s.serviceTag ? <span className="font-mono"> · {s.serviceTag}</span> : null}
                     </small>

@@ -35,6 +35,7 @@ import { ServiceNav } from "@/components/panel/service-nav";
 import { THEME_KEY, ThemeToggle, applyTheme } from "@/components/panel/theme-toggle";
 import { CommandPalette, tylkoDostepne, type PaletteItem } from "@/components/panel/command-palette";
 import { useSzufladaMenu } from "@/components/panel/szuflada-menu";
+import { DostawcaSkupienia, trybSkupienia, type KontekstSkupienia } from "@/components/panel/tryb-skupienia";
 import { fetchRailDataAction, type RailData } from "./rail-actions";
 import { najnizszyPostep } from "./onboarding-kroki";
 import {
@@ -353,10 +354,24 @@ function DashboardLayoutInner({
   const [userLoading, setUserLoading] = useState(true);
   const [impersonating, setImpersonating] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Edytor kreatora i kreator nowej strony: bez menu bocznego, górnego paska i stopki (tryb-skupienia.tsx).
+  // Adres jest znany już przy renderze na serwerze – HTML od razu bez menu, bez mignięcia.
+  const skupienie = trybSkupienia(pathname);
   // A3-3 — szuflada poniżej lg: inert, gdy zamknięta; po otwarciu fokus w środku, Esc wraca na ☰.
+  // W trybie skupienia szufladą na każdej szerokości (przycisk „Menu” w pasku edytora).
   const szuflada = useRef<HTMLElement | null>(null);
-  const przyciskMenu = useRef<HTMLButtonElement | null>(null);
-  const { atrybutySzuflady, atrybutyPrzycisku } = useSzufladaMenu(sidebarOpen, () => setSidebarOpen(false), szuflada, przyciskMenu);
+  const przyciskMenu = useRef<HTMLElement | null>(null);
+  const { atrybutySzuflady, atrybutyPrzycisku } = useSzufladaMenu(sidebarOpen, () => setSidebarOpen(false), szuflada, przyciskMenu, undefined, skupienie);
+  const kontekstSkupienia: KontekstSkupienia | null = skupienie
+    ? {
+        otworzMenu: (wyzwalacz) => {
+          przyciskMenu.current = wyzwalacz;
+          setSidebarOpen(true);
+        },
+        menuOtwarte: sidebarOpen,
+        idMenu: atrybutySzuflady.id,
+      }
+    : null;
   const navCtx = clientNavContextFromSidebar(user);
   // N-12: moduł wyłączony flagą operatora znika z menu, kafelków i palety.
   const canAccess = (href: string) =>
@@ -499,7 +514,10 @@ function DashboardLayoutInner({
       : user?.email?.[0]?.toUpperCase() || "A";
 
   return (
-    <div className="w-full max-w-[100vw] bg-background font-sans text-sidebar-foreground">
+    <div
+      className={`w-full max-w-[100vw] bg-background font-sans text-sidebar-foreground ${skupienie ? "flex h-dvh flex-col overflow-hidden" : ""}`}
+      data-tryb-skupienia={skupienie ? "" : undefined}
+    >
       <ImpersonationBanner />
       <IncidentBanner />
       <NoticesBanner />
@@ -507,27 +525,38 @@ function DashboardLayoutInner({
       <BanerNowejWersji />
       {/* Zgody składa wyłącznie klient — podczas sesji wsparcia (impersonacji) modal się nie pokazuje. */}
       {userLoading || impersonating ? null : <ReConsentModal />}
-      <div className="relative flex min-h-screen w-full max-w-full flex-col lg:flex-row lg:items-start">
+      <div
+        className={
+          skupienie
+            ? "relative flex min-h-0 w-full max-w-full flex-1 flex-col"
+            : "relative flex min-h-screen w-full max-w-full flex-col lg:flex-row lg:items-start"
+        }
+      >
 
       {sidebarOpen ? (
         <button
           type="button"
           aria-label="Zamknij menu"
-          className="fixed inset-0 z-40 bg-black/60 lg:hidden"
+          className={`fixed inset-0 bg-black/60 ${skupienie ? "z-[75]" : "z-40 lg:hidden"}`}
           onClick={() => setSidebarOpen(false)}
         />
       ) : null}
 
-      {/* Sidebar: drawer na mobile, stały panel na desktop (lg+) */}
-      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- delegacja kliknięć z linków menu (Enter na linku też wywołuje click) zamyka szufladę */}
+      {/* Sidebar: drawer na mobile, stały panel na desktop (lg+); w trybie skupienia tylko szuflada, renderowana po otwarciu */}
+      {skupienie && !sidebarOpen ? null : (
+      /* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- delegacja kliknięć z linków menu (Enter na linku też wywołuje click) zamyka szufladę */
       <aside
         ref={szuflada}
         {...atrybutySzuflady}
-        className={`max-lg:fixed max-lg:inset-y-0 max-lg:left-0 z-[60] flex w-[300px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-transform duration-300 max-lg:duration-300 lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:max-h-screen lg:self-start lg:translate-x-0 ${
-          sidebarOpen ? "max-lg:translate-x-0" : "max-lg:-translate-x-full"
-        }`}
+        className={
+          skupienie
+            ? "fixed inset-y-0 left-0 z-[80] flex w-[300px] max-w-[85vw] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground shadow-2xl animate-in slide-in-from-left duration-200 motion-reduce:animate-none"
+            : `max-lg:fixed max-lg:inset-y-0 max-lg:left-0 z-[60] flex w-[300px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-transform duration-300 max-lg:duration-300 lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:max-h-screen lg:self-start lg:translate-x-0 ${
+                sidebarOpen ? "max-lg:translate-x-0" : "max-lg:-translate-x-full"
+              }`
+        }
         onClick={(e) => {
-          if (window.innerWidth >= 1024) return;
+          if (!skupienie && window.innerWidth >= 1024) return;
           const target = e.target as HTMLElement;
           if (target.closest("a")) setSidebarOpen(false);
         }}
@@ -555,7 +584,7 @@ function DashboardLayoutInner({
           </Link>
           <button
             type="button"
-            className="ml-auto rounded-md border border-white/10 p-2 text-neutral-300 hover:bg-white/10 lg:hidden"
+            className={`ml-auto rounded-md border border-white/10 p-2 text-neutral-300 hover:bg-white/10 ${skupienie ? "inline-flex min-h-11 min-w-11 items-center justify-center md:min-h-9 md:min-w-9" : "lg:hidden"}`}
             onClick={() => setSidebarOpen(false)}
             aria-label="Zamknij menu"
           >
@@ -616,14 +645,26 @@ function DashboardLayoutInner({
           <UserMenu displayName={displayName} email={user?.email ?? ""} initials={initials} loading={userLoading && user === null} />
         </div>
       </aside>
+      )}
 
-      {/* Main Content Area */}
-      <div className="v2-content v2-skin relative z-10 flex bg-background text-foreground min-h-screen w-full min-w-0 max-w-full flex-1 flex-col overflow-x-hidden">
+      {/* Main Content Area — w trybie skupienia bez z-10: szuflady edytora (z-[70]) mają być nad pływającym asystentem */}
+      <div
+        className={
+          skupienie
+            ? "v2-content v2-skin relative flex min-h-0 w-full min-w-0 max-w-full flex-1 flex-col overflow-hidden bg-background text-foreground"
+            : "v2-content v2-skin relative z-10 flex bg-background text-foreground min-h-screen w-full min-w-0 max-w-full flex-1 flex-col overflow-x-hidden"
+        }
+      >
+        {/* Strażnik bezczynności sesji — w trybie skupienia bez górnego paska, więc tutaj. */}
+        {skupienie ? <PlatformConfigLoader /> : null}
         {/* Top Navbar — na mobile fixed (hamburger zawsze dostępny), na desktop sticky */}
+        {skupienie ? null : (
         <header className="z-50 flex min-h-14 min-w-0 shrink-0 items-center justify-between gap-3 border-b border-border bg-background/95 px-4 backdrop-blur-xl max-lg:fixed max-lg:inset-x-0 max-lg:top-0 max-lg:h-mobile-header sm:gap-3 sm:px-6 lg:sticky lg:top-0 lg:z-40 lg:h-[61px] lg:bg-background/90 lg:px-7 lg:py-3">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <button
-              ref={przyciskMenu}
+              ref={(el) => {
+                przyciskMenu.current = el;
+              }}
               type="button"
               className="inline-flex rounded-md border border-line p-2 text-muted-foreground hover:bg-raised lg:hidden"
               onClick={() => setSidebarOpen(true)}
@@ -648,22 +689,31 @@ function DashboardLayoutInner({
             )}
           </div>
         </header>
+        )}
 
         {/* Page Content */}
         <main
           id="main"
-          className="w-full min-w-0 max-w-full flex-1 overflow-x-hidden px-3 pb-4 max-lg:pt-mobile-header sm:px-6 sm:pb-6 lg:px-10 lg:pb-12 lg:pt-10"
+          className={
+            skupienie
+              ? "flex min-h-0 w-full min-w-0 max-w-full flex-1 flex-col overflow-y-auto overflow-x-hidden"
+              : "w-full min-w-0 max-w-full flex-1 overflow-x-hidden px-3 pb-4 max-lg:pt-mobile-header sm:px-6 sm:pb-6 lg:px-10 lg:pb-12 lg:pt-10"
+          }
         >
-          <PasekCudzegoKonta actingFor={user?.actingFor} kontoSubkonta={user?.kontoSubkonta} zakres={user?.serviceScope?.length ?? 0} />
-          <Suspense fallback={null}>
-            <BanerBrakuDostepu navCtx={navCtx} />
-          </Suspense>
-          {children}
+          <div className={skupienie ? "flex-none px-3 pt-2 empty:hidden [&>*]:mb-2" : "contents"}>
+            <PasekCudzegoKonta actingFor={user?.actingFor} kontoSubkonta={user?.kontoSubkonta} zakres={user?.serviceScope?.length ?? 0} />
+            <Suspense fallback={null}>
+              <BanerBrakuDostepu navCtx={navCtx} />
+            </Suspense>
+          </div>
+          <DostawcaSkupienia value={kontekstSkupienia}>{children}</DostawcaSkupienia>
         </main>
 
         {/* Compliance footer (L-09) — cookie consent managed by
             CookieConsentManager (root layout); the button below reopens
-            the preferences modal, as required by Polityka cookies §3. */}
+            the preferences modal, as required by Polityka cookies §3.
+            W trybie skupienia (edytor na cały ekran) stopki nie ma — linki prawne są w menu panelu i na liście stron. */}
+        {skupienie ? null : (
         <footer className="mt-auto border-t border-white/5 bg-black/60 px-3 py-5 pb-safe sm:px-8 sm:py-6">
           <div className="flex flex-col gap-2 text-[11px] text-neutral-500 sm:flex-row sm:items-center sm:justify-between">
             <p>© {new Date().getFullYear()} Verris – hosting, który liczy realne zużycie.</p>
@@ -687,19 +737,24 @@ function DashboardLayoutInner({
             </nav>
           </div>
         </footer>
+        )}
         {/* Dymki w kolumnie treści — dziedziczą motyw (jasny: ciemny dymek, jak we wzorcu). */}
         <TipLayer />
       </div>
       </div>
-      {/* Przy błędzie asystenta link do nowego zgłoszenia — tylko gdy konto może je zakładać. */}
-      <HostingAssistant mozeZglaszac={mozeZglaszac} />
-      {/* Beta — „Zgłoś uwagę” (tester albo flaga beta.zglos-uwage); nad przyciskiem asystenta. */}
-      <ZglosUwage
-        flagi={flagi}
-        tester={tester}
-        mozeZglaszac={mozeZglaszac}
-        usluga={uslugaStrony}
-      />
+      {/* Tryb skupienia na telefonie: pływające przyciski zasłaniałyby dolne zakładki edytora — chowamy je (display:none
+          rodzica ukrywa też dzieci „fixed”); asystent zostaje dostępny od 768 px i z menu panelu → Centrum pomocy. */}
+      <div className={skupienie ? "max-md:hidden" : "contents"}>
+        {/* Przy błędzie asystenta link do nowego zgłoszenia — tylko gdy konto może je zakładać. */}
+        <HostingAssistant mozeZglaszac={mozeZglaszac} />
+        {/* Beta — „Zgłoś uwagę” (tester albo flaga beta.zglos-uwage); nad przyciskiem asystenta. */}
+        <ZglosUwage
+          flagi={flagi}
+          tester={tester}
+          mozeZglaszac={mozeZglaszac}
+          usluga={uslugaStrony}
+        />
+      </div>
     </div>
   );
 }

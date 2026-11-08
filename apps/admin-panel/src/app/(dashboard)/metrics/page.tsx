@@ -2,6 +2,7 @@ import { bramkaStrony } from "@/lib/bramka-strony";
 import Link from "next/link";
 import { adminApi } from "@/lib/api";
 import { nodes as nodesLabel, accounts as accountsLabel, plForm } from "@/lib/pl";
+import { PRODUCT_KIND_PL } from "@verris/contracts";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,8 @@ interface BusinessMetrics {
   };
 }
 
-const PRODUCT_PL: Record<string, string> = { HOSTING: "Hosting", EMAIL: "Poczta", VPS: "VPS" };
+// Paczka 121 — rodzaje usług z kontraktów (z KREATOR_PRO i EMAIL_MARKETING); VPS liczony osobno.
+const PRODUCT_PL: Record<string, string> = { ...PRODUCT_KIND_PL, VPS: "VPS" };
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (

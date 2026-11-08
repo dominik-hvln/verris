@@ -2,7 +2,7 @@
 
 import { bezpiecznie, type Wynik as WynikAkcji } from '@/lib/wynik-akcji';
 
-import type { ServiceDetailsDto } from '@verris/contracts/klient';
+import type { ServiceDetailsDto, ServiceSummaryDto } from '@verris/contracts/klient';
 import { apiFetch } from '@/lib/api';
 
 async function fetchServiceDetailsActionTresc(serviceId: string): Promise<ServiceDetailsDto> {
@@ -13,8 +13,8 @@ async function fetchServiceDetailsActionTresc(serviceId: string): Promise<Servic
 // natychmiast dobrał właściwy zestaw zakładek przy wejściu z deep-linku.
 export async function fetchServiceKindAction(
   serviceId: string,
-): Promise<{ productKind: 'HOSTING' | 'EMAIL' | 'EMAIL_MARKETING'; serviceTag: string | null }> {
-  return apiFetch<{ productKind: 'HOSTING' | 'EMAIL' | 'EMAIL_MARKETING'; serviceTag: string | null }>(
+): Promise<{ productKind: ServiceSummaryDto['productKind']; serviceTag: string | null }> {
+  return apiFetch<{ productKind: ServiceSummaryDto['productKind']; serviceTag: string | null }>(
     `/services/${serviceId}/kind`,
   );
 }

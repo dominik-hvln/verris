@@ -64,6 +64,11 @@ export default function HostingManagerPage() {
           router.replace(`/dashboard/email-marketing/${params.id}`);
           return;
         }
+        // Paczka 121 — abonamentem Kreator Pro zarządza się na stronie kreatora (także powrót z płatności kartą).
+        if (svc?.productKind === 'KREATOR_PRO') {
+          router.replace(searchParams.get('platnosc') === 'karta' ? '/dashboard/kreator?platnosc=karta' : '/dashboard/kreator');
+          return;
+        }
         if (kindHint == null && svc?.productKind === 'EMAIL') setProductKind('EMAIL');
         if (svc?.serviceTag) setServiceTag(svc.serviceTag);
         setKindResolved(true);

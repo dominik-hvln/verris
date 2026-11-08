@@ -137,6 +137,12 @@ describe('PROD-02 – pasek postępu w sidebarze', () => {
     expect(u.map((x) => x.id)).toEqual(['a']);
     expect(u[0].onboarding.dnsOk).toBe(false);
   });
+
+  it('paczka 121 – abonament Kreator Pro i e-mail marketing (bez konta na serwerze) nie wchodzą do postępu konfiguracji', () => {
+    const s = (id: string, productKind: string) =>
+      ({ id, status: 'ACTIVE', planName: 'Plan', productKind, account: productKind === 'HOSTING' ? { domain: `${id}.pl` } : null, health: null }) as unknown as ServiceSummaryDto;
+    expect(uslugiOnboardingu([s('h', 'HOSTING'), s('k', 'KREATOR_PRO'), s('n', 'EMAIL_MARKETING')]).map((x) => x.id)).toEqual(['h']);
+  });
 });
 
 describe('PROD-02 – kroki płatność i faktura', () => {

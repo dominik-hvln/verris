@@ -1,4 +1,5 @@
 import type { InvoiceStatus } from './invoice.dto.ts';
+import type { ProductKind } from './plan.dto.ts';
 import type { WalletTxStatus, WalletTxType } from './wallet.dto.ts';
 
 /**
@@ -57,6 +58,14 @@ export const SUBSCRIPTION_STATUS_PL: Record<string, string> = {
   SUSPENDED: 'Zawieszona',
   CANCELED: 'Anulowana',
   EXPIRED: 'Wygasła',
+};
+
+/** Rodzaj usługi (ProductKind planu) – lista usług, pulpit, panel obsługi. Paczka 121: Kreator Pro. */
+export const PRODUCT_KIND_PL: Record<ProductKind, string> = {
+  HOSTING: 'Hosting',
+  EMAIL: 'Poczta',
+  EMAIL_MARKETING: 'E-mail marketing',
+  KREATOR_PRO: 'Kreator Pro',
 };
 
 export const BILLING_INTERVAL_PL: Record<string, string> = {

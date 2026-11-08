@@ -418,6 +418,7 @@ export async function pozycjaOdnowieniaUslugi(d: ZaleznosciOdnowienia, userId: s
     domena: sub.account?.domain ?? null,
     od,
     rodzaj: 'odnowienie',
+    produkt: sub.plan?.productKind ?? null,
   });
   return { sub, od, nazwa, doZaplaty, traktowanie, vies };
 }

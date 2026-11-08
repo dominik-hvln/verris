@@ -11,7 +11,9 @@ import { bladPod, NAZWY_SEKCJI, nowaSekcja, OPISY_SEKCJI, przesun } from './sche
 import { klasaPrzyciskuDrugiego, klasaPrzyciskuIkony, ZnakPro } from '../wspolne';
 import { nazwaWariantu } from './panel-sekcji';
 
-const klasaMalejIkony = klasaPrzyciskuIkony.replace('h-7 w-7', 'h-6 w-6');
+/** Na telefonie (< 768 px) cele dotykowe ≥ 44 px, na komputerze zwarte. */
+const klasaIkonyListy = `${klasaPrzyciskuIkony} max-md:h-11 max-md:w-11`;
+const klasaMalejIkony = `${klasaPrzyciskuIkony.replace('h-7 w-7', 'h-6 w-6')} max-md:h-11 max-md:w-11`;
 
 /** Adres podstrony z tytułu: małe litery bez polskich znaków, myślniki, do 60 znaków. */
 export function slugZTytulu(tytul: string, zajete: Set<string>): string {
@@ -135,24 +137,24 @@ export function Struktura(p: PropsStruktury) {
                 type="button"
                 onClick={() => p.onPodstrona(i)}
                 aria-current={i === ip ? 'page' : undefined}
-                className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1.5 text-left text-[13.5px] text-foreground"
+                className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1.5 text-left text-[13.5px] text-foreground max-md:min-h-11"
               >
                 {s.slug === '' ? <Home className="h-3.5 w-3.5 flex-none text-muted-foreground" aria-hidden /> : <FileText className="h-3.5 w-3.5 flex-none text-muted-foreground" aria-hidden />}
                 <span className="min-w-0 break-words">{s.tytul}</span>
                 {bladPod(p.bledy, `strony.${i}`) ? <span className="ml-auto h-2 w-2 flex-none rounded-full bg-crit" aria-label="Są pola do poprawienia" role="img" /> : null}
               </button>
-              <button type="button" className={klasaPrzyciskuIkony} aria-label={`Zmień nazwę podstrony ${s.tytul}`} onClick={() => void zmienPodstrone(i)}>
+              <button type="button" className={klasaIkonyListy} aria-label={`Zmień nazwę podstrony ${s.tytul}`} onClick={() => void zmienPodstrone(i)}>
                 <Pencil className="h-3.5 w-3.5" aria-hidden />
               </button>
               {s.slug !== '' ? (
-                <button type="button" className={klasaPrzyciskuIkony} aria-label={`Usuń podstronę ${s.tytul}`} onClick={() => void usunPodstrone(i)}>
+                <button type="button" className={klasaIkonyListy} aria-label={`Usuń podstronę ${s.tytul}`} onClick={() => void usunPodstrone(i)}>
                   <Trash2 className="h-3.5 w-3.5" aria-hidden />
                 </button>
               ) : null}
             </li>
           ))}
         </ul>
-        <button type="button" className={`${klasaPrzyciskuDrugiego} w-full`} onClick={() => void dodajPodstrone()} disabled={limitOsiagniety} aria-describedby={limitOsiagniety ? 'kr-limit-podstron' : undefined}>
+        <button type="button" className={`${klasaPrzyciskuDrugiego} w-full max-md:min-h-11`} onClick={() => void dodajPodstrone()} disabled={limitOsiagniety} aria-describedby={limitOsiagniety ? 'kr-limit-podstron' : undefined}>
           <Plus className="h-3.5 w-3.5" aria-hidden /> Dodaj podstronę
         </button>
         {limitOsiagniety ? (
@@ -174,15 +176,15 @@ export function Struktura(p: PropsStruktury) {
             const bladSekcji = bladPod(p.bledy, `strony.${ip}.sekcje.${i}`);
             return (
               <li key={s.id} className={cx('relative rounded-[6px] border', zazn ? 'border-data bg-data-soft' : 'border-line bg-card hover:border-line-strong')}>
-                <button type="button" onClick={() => p.onZaznacz(s.id)} aria-pressed={zazn} className={cx('flex w-full flex-col items-start gap-0.5 px-2.5 pb-2 pt-2 text-left', s.ukryta && 'opacity-60')}>
+                <button type="button" onClick={() => p.onZaznacz(s.id)} aria-pressed={zazn} className={cx('flex w-full flex-col items-start gap-0.5 px-2.5 pb-2 pt-2 text-left max-md:min-h-[52px] max-md:justify-center max-md:pr-[184px]', s.ukryta && 'opacity-60')}>
                   <span className="flex w-full items-center gap-1.5 text-[13px] font-semibold leading-tight text-foreground">
                     <span className="min-w-0">{nazwa}</span>
                     {proSekcja ? <ZnakPro zablokowane={!funkcjePro} /> : null}
                     {bladSekcji ? <span className="ml-auto h-2 w-2 flex-none rounded-full bg-crit" role="img" aria-label="Są pola do poprawienia" /> : null}
                   </span>
-                  <span className="pr-[104px] text-[11.5px] leading-tight text-muted-foreground">{s.ukryta ? 'Ukryta na stronie' : nazwaWariantu(s.wariant)}</span>
+                  <span className="text-[11.5px] md:pr-[104px] leading-tight text-muted-foreground">{s.ukryta ? 'Ukryta na stronie' : nazwaWariantu(s.wariant)}</span>
                 </button>
-                <div className="absolute bottom-1 right-1 flex items-center">
+                <div className="absolute inset-y-0 right-1 flex items-center md:inset-y-auto md:bottom-1">
                   <button type="button" className={klasaMalejIkony} aria-label={`${nazwa}: wyżej`} disabled={i === 0} onClick={() => zmienSekcje((l) => przesun(l, i, i - 1))}>
                     <ArrowUp className="h-3.5 w-3.5" aria-hidden />
                   </button>
@@ -206,7 +208,7 @@ export function Struktura(p: PropsStruktury) {
             );
           })}
         </ol>
-        <button type="button" className={`${klasaPrzyciskuDrugiego} w-full`} onClick={() => setDodawanie(true)} disabled={biezaca.sekcje.length >= 30}>
+        <button type="button" className={`${klasaPrzyciskuDrugiego} w-full max-md:min-h-11`} onClick={() => setDodawanie(true)} disabled={biezaca.sekcje.length >= 30}>
           <Plus className="h-3.5 w-3.5" aria-hidden /> Dodaj sekcję
         </button>
       </section>

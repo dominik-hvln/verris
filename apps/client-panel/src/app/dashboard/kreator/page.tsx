@@ -17,14 +17,16 @@ import {
 import { listaStron, pobierzStrone, stanKreatora } from './akcje';
 import { ListaStron, type KartaStrony } from './lista-stron';
 import { BrakDostepu } from './brak-dostepu';
-import { klasaPrzyciskuGlownego } from './wspolne';
+import { klasaPrzyciskuGlownego } from './klasy';
+import { AbonamentPro, ZakupPro } from './kreator-pro';
 
 export const dynamic = 'force-dynamic';
 
 const OPIS = 'Opisz firmę, a AI zaproponuje gotową stronę – teksty, układ, kolory i fonty. Wszystko zmienisz potem w edytorze albo poleceniem.';
 
-export default async function KreatorPage() {
+export default async function KreatorPage({ searchParams }: { searchParams: Promise<{ platnosc?: string }> }) {
   const stan = await stanKreatora();
+  const parametry = await searchParams;
   if (!stan.ok) {
     return (
       <div className="space-y-6">
@@ -85,7 +87,7 @@ export default async function KreatorPage() {
         <ListaStron strony={karty} nowaZablokowana={!!blokada} />
         <div className="flex flex-col gap-6">
           <KartaWersji stan={stan.dane} />
-          {stan.dane.wersja !== 'pro' ? <KorzysciPro stan={stan.dane} /> : null}
+          <KartaPro stan={stan.dane} poPlatnosciKarta={parametry.platnosc === 'karta'} />
         </div>
       </div>
     </div>
@@ -142,8 +144,29 @@ function KartaWersji({ stan }: { stan: StanKreatora }) {
   );
 }
 
-function KorzysciPro({ stan }: { stan: StanKreatora }) {
+/**
+ * Paczka 121 – karta Kreatora Pro: bez abonamentu „Co daje Kreator Pro” z wyborem okresu i zakupem; z abonamentem
+ * jego stan („aktywny do …”, odnawianie, „Anuluj odnowienie”). Abonament zawieszony albo czekający na płatność
+ * pokazuje się obok korzyści, bo Pro wtedy nie działa.
+ */
+function KartaPro({ stan, poPlatnosciKarta }: { stan: StanKreatora; poPlatnosciKarta: boolean }) {
+  const pro = stan.pro;
+  const abonament = pro?.abonament ?? null;
+  const czekaNaKarte = poPlatnosciKarta && (!abonament || abonament.status === 'PENDING_PAYMENT');
+  if (abonament && (abonament.status === 'ACTIVE' || abonament.status === 'PAST_DUE')) {
+    return (
+      <div id="kreator-pro">
+        <PanelCard className="flex flex-col gap-4">
+          <Label className="flex items-center gap-1.5">
+            <Sparkles className="h-3.5 w-3.5" aria-hidden /> Kreator Pro
+          </Label>
+          <AbonamentPro abonament={abonament} />
+        </PanelCard>
+      </div>
+    );
+  }
   return (
+    <div id="kreator-pro">
     <PanelCard className="flex flex-col gap-4">
       <div>
         <Label className="flex items-center gap-1.5">
@@ -164,8 +187,19 @@ function KorzysciPro({ stan }: { stan: StanKreatora }) {
         ))}
       </ul>
       <p className="rounded-[8px] bg-raised px-3 py-2 text-[12.5px] text-muted-foreground">
-        Funkcje Pro możesz obejrzeć w edytorze już teraz – są oznaczone kłódką. Zamówienie Kreatora Pro będzie wkrótce dostępne w zakładce Dodatki.
+        Funkcje Pro możesz obejrzeć w edytorze już teraz – są oznaczone kłódką.
       </p>
+      {czekaNaKarte ? (
+        <p role="status" className="rounded-[8px] border border-data/40 bg-data-soft px-3 py-2 text-[12.5px] text-foreground">
+          Płatność kartą przyjęta – Kreator Pro włączy się, gdy operator płatności ją potwierdzi (zwykle w ciągu minuty). Odśwież stronę.
+        </p>
+      ) : null}
+      {abonament ? (
+        <AbonamentPro abonament={abonament} />
+      ) : pro ? (
+        <ZakupPro pro={pro} />
+      ) : null}
     </PanelCard>
+    </div>
   );
 }

@@ -88,7 +88,10 @@ export function NewSubscriptionForm({
   const [productKind, setProductKind] = useState<PlanDto['productKind']>(initialKind);
   // Q-05 — pakiet Newsletter: usługa aplikacyjna, bez domeny, serwera i opcji hostingu.
   const newsletter = productKind === 'EMAIL_MARKETING';
-  const kategoria = newsletter ? 'email-marketing' : productKind === 'EMAIL' ? 'email' : 'hosting';
+  // Paczka 121 — abonament Kreator Pro: usługa aplikacyjna jak newsletter (bez domeny, serwera i opcji hostingu).
+  const kreatorPro = productKind === 'KREATOR_PRO';
+  const aplikacyjny = newsletter || kreatorPro;
+  const kategoria = newsletter ? 'email-marketing' : kreatorPro ? 'kreator-pro' : productKind === 'EMAIL' ? 'email' : 'hosting';
   const visiblePlans = useMemo(
     () => plans.filter((p) => (p.productKind ?? 'HOSTING') === productKind),
     [plans, productKind],
@@ -173,9 +176,9 @@ export function NewSubscriptionForm({
     () => plans.find((p) => p.id === planId),
     [plans, planId],
   );
-  const zAutoskalowaniem = !newsletter && selectedPlan?.productKind !== 'EMAIL' && autoscalingEnabled;
+  const zAutoskalowaniem = !aplikacyjny && selectedPlan?.productKind !== 'EMAIL' && autoscalingEnabled;
   const limit = zAutoskalowaniem && limitTryb === 'wlasny' ? odczytajLimit(limitKwota) : null;
-  const domena = !newsletter && domainSel.mode === 'own' && domain.trim() ? sprawdzDomene(domain) : null;
+  const domena = !aplikacyjny && domainSel.mode === 'own' && domain.trim() ? sprawdzDomene(domain) : null;
 
   const listPrice = useMemo(() => {
     if (!selectedPlan) return null;
@@ -216,7 +219,7 @@ export function NewSubscriptionForm({
   // A3-2 — czego brakuje do zamówienia: widoczne przy przycisku (zamiast cichego `disabled`) i fokus na pierwsze pole.
   const braki: { id: string; tekst: string }[] = [];
   if (!selectedPlan) braki.push({ id: 'plan-zamowienia', tekst: 'wybierz plan' });
-  if (!newsletter) {
+  if (!aplikacyjny) {
     if (domainSel.mode === 'own') {
       if (!domain.trim()) braki.push({ id: 'domena-wlasna', tekst: 'wpisz domenę' });
       else if (domena && !domena.ok) braki.push({ id: 'domena-wlasna', tekst: 'popraw adres domeny' });
@@ -334,7 +337,7 @@ export function NewSubscriptionForm({
         }
       }
 
-      const domenaDoZamowienia = newsletter
+      const domenaDoZamowienia = aplikacyjny
         ? undefined
         : domainSel.mode === 'own' && domena?.ok
           ? domena.ascii
@@ -347,7 +350,7 @@ export function NewSubscriptionForm({
         domain: domenaDoZamowienia,
         autoscalingEnabled: zAutoskalowaniem,
         ...(zAutoskalowaniem && limit && 'kwota' in limit ? { autoscalingMaxCost: limit.kwota } : {}),
-        ecoModeEnabled: newsletter ? false : ecoModeEnabled,
+        ecoModeEnabled: aplikacyjny ? false : ecoModeEnabled,
         immediatePerformanceConsent: immediateConsent,
       });
       if (!res.ok) {
@@ -384,6 +387,9 @@ export function NewSubscriptionForm({
         setProvisionQueuedSubId(res.data.subscription.id);
       } else if (res.data?.checkoutRedirectUrl) {
         window.location.href = res.data.checkoutRedirectUrl;
+      } else if (kreatorPro && res.data?.subscription) {
+        // Abonament aktywny od razu – z powrotem do kreatora, karta pokazuje „Kreator Pro aktywny do …”.
+        router.push('/dashboard/kreator#kreator-pro');
       } else if (newsletter && res.data?.subscription?.id) {
         // Usługa aktywna od razu — prosto do przestrzeni e-mail marketingu.
         router.push(`/dashboard/email-marketing/${res.data.subscription.id}`);
@@ -433,7 +439,9 @@ export function NewSubscriptionForm({
       <section>
         <h2 className="text-xl font-bold text-white">1. Wybierz plan</h2>
         <p className="text-neutral-400 text-sm mt-1">
-          {newsletter
+          {kreatorPro
+            ? 'Abonament rozszerza Verris Kreator na całym koncie: więcej stron i generacji, sekcje i efekty Pro, pełne SEO. Działa przy płatnym hostingu Verris.'
+            : newsletter
             ? 'Newslettery do własnej listy odbiorców. Limit kontaktów obejmuje zapisanych i oczekujących na potwierdzenie; wysyłki liczymy w miesiącu kalendarzowym.'
             : productKind === 'EMAIL'
             ? 'Firmowa poczta w Twojej domenie: skrzynki, poczta w przeglądarce, filtr antyspamowy.'
@@ -462,7 +470,7 @@ export function NewSubscriptionForm({
                 {plan.description ? (
                   <p className="mt-1 text-sm text-neutral-400">{plan.description}</p>
                 ) : null}
-                {plan.productKind === 'EMAIL_MARKETING' ? (
+                {plan.productKind === 'KREATOR_PRO' ? null : plan.productKind === 'EMAIL_MARKETING' ? (
                   <NewsletterLimity plan={plan} />
                 ) : plan.productKind === 'EMAIL' ? (
                   <PocztaParametry plan={plan} />
@@ -512,7 +520,7 @@ export function NewSubscriptionForm({
         ) : null}
       </section>
 
-      {newsletter ? null : (
+      {aplikacyjny ? null : (
         <DomainStep
           value={domainSel}
           onChange={setDomainSel}
@@ -529,7 +537,7 @@ export function NewSubscriptionForm({
       ) : null}
 
       <section>
-        <h2 className="text-xl font-bold text-white">{newsletter ? 3 : 4}. Sposób płatności</h2>
+        <h2 className="text-xl font-bold text-white">{aplikacyjny ? 3 : 4}. Sposób płatności</h2>
         <div role="group" aria-label="Sposób płatności" className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 max-w-2xl">
           <PaymentCard
             value="WALLET"
@@ -621,7 +629,7 @@ export function NewSubscriptionForm({
         </section>
       ) : null}
 
-      {newsletter ? null : (
+      {aplikacyjny ? null : (
       <section>
         <h2 className="text-xl font-bold text-white">5. Opcje</h2>
         <div className="mt-3 space-y-3 max-w-2xl">
@@ -685,6 +693,7 @@ export function NewSubscriptionForm({
           waznoscKredytowMiesiecy={kredytyStartowe?.waznoscMiesiecy}
           autoskalowanie={zAutoskalowaniem ? (limit && 'kwota' in limit ? limit.kwota : 0) : null}
           rejestracjaDomeny={domainSel.mode === 'register'}
+          {...(kreatorPro ? { gdzieWylaczyc: 'na stronie Kreator stron („Anuluj odnowienie”)' } : {})}
         />
       ) : null}
 

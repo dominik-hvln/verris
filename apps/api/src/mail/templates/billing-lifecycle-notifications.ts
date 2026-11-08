@@ -577,14 +577,37 @@ export interface SubscriptionSuspendedContext {
   dataDeletedAt: Date;
   paymentUpdateUrl: string;
   panelUrl: string;
+  /** Paczka 121 — abonament Kreator Pro: bez danych do usunięcia, strony zostają (wersja kreatora wraca do „w cenie hostingu”). */
+  kreatorPro?: boolean;
 }
+
+/** Paczka 121 — co dzieje się po końcu abonamentu Kreator Pro (zamiast sekcji o usuwaniu danych konta hostingowego). */
+const SKUTKI_KONCA_KREATORA_PRO = [
+  `## Twoje strony`,
+  ``,
+  `- Strony w Verris Kreatorze **zostają** – kreator wraca do wersji w cenie hostingu,`,
+  `- Opublikowane strony działają dalej; elementy Pro znikną przy następnej publikacji,`,
+  `- Kreator Pro możesz kupić ponownie w panelu: Kreator stron.`,
+];
 
 export function subscriptionSuspendedTemplate(ctx: SubscriptionSuspendedContext): MailMessage {
   const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
 
+  const skutki = ctx.kreatorPro
+    ? SKUTKI_KONCA_KREATORA_PRO
+    : [
+        `## Co to oznacza`,
+        ``,
+        `- Usługa **przestała działać** (strony WWW niedostępne),`,
+        `- Twoje **dane są zachowane** – w tym pliki, e-maile, bazy danych,`,
+        `- Dane zachowujemy do **${escapeMarkdown(formatDate(ctx.dataDeletedAt))}** (14 dni od zakończenia subskrypcji),`,
+        `- Po tym terminie konto zostanie **trwale usunięte** zgodnie z naszą polityką retencji.`,
+      ];
   const { html, text } = renderEmailShell({
     title: `Subskrypcja "${ctx.serviceName}" została zawieszona`,
-    preheader: `Brak płatności – dane zachowujemy do ${escapeMarkdown(formatDate(ctx.dataDeletedAt))}.`,
+    preheader: ctx.kreatorPro
+      ? 'Brak płatności – strony zostają, kreator wraca do wersji w cenie hostingu.'
+      : `Brak płatności – dane zachowujemy do ${escapeMarkdown(formatDate(ctx.dataDeletedAt))}.`,
     bodyMarkdown: [
       greeting,
       ``,
@@ -592,12 +615,7 @@ export function subscriptionSuspendedTemplate(ctx: SubscriptionSuspendedContext)
         ctx.serviceName,
       )}** została **zawieszona** dnia ${escapeMarkdown(formatDate(ctx.suspendedAt))} z powodu nieuregulowanej płatności.`,
       ``,
-      `## Co to oznacza`,
-      ``,
-      `- Usługa **przestała działać** (strony WWW niedostępne),`,
-      `- Twoje **dane są zachowane** – w tym pliki, e-maile, bazy danych,`,
-      `- Dane zachowujemy do **${escapeMarkdown(formatDate(ctx.dataDeletedAt))}** (14 dni od zakończenia subskrypcji),`,
-      `- Po tym terminie konto zostanie **trwale usunięte** zgodnie z naszą polityką retencji.`,
+      ...skutki,
       ``,
       `## Chcesz zachować usługę?`,
       ``,
@@ -607,8 +625,9 @@ export function subscriptionSuspendedTemplate(ctx: SubscriptionSuspendedContext)
       label: 'Napisz do nas',
       url: `${ctx.panelUrl}/dashboard/support`,
     },
-    footnote:
-      'Jeśli to świadoma decyzja (rezygnacja) – nie musisz nic robić. Po 14 dniach automatycznie usuniemy Twoje dane zgodnie z RODO.',
+    footnote: ctx.kreatorPro
+      ? 'Jeśli to świadoma decyzja (rezygnacja) – nie musisz nic robić.'
+      : 'Jeśli to świadoma decyzja (rezygnacja) – nie musisz nic robić. Po 14 dniach automatycznie usuniemy Twoje dane zgodnie z RODO.',
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,
     category: 'TRANSACTIONAL',
@@ -617,7 +636,9 @@ export function subscriptionSuspendedTemplate(ctx: SubscriptionSuspendedContext)
   return {
     to: ctx.to,
     tag: 'subscription.suspended',
-    subject: `[Verris] Subskrypcja ${ctx.serviceName} zawieszona – dane do ${formatDate(ctx.dataDeletedAt)}`,
+    subject: ctx.kreatorPro
+      ? `[Verris] Subskrypcja ${ctx.serviceName} zawieszona`
+      : `[Verris] Subskrypcja ${ctx.serviceName} zawieszona – dane do ${formatDate(ctx.dataDeletedAt)}`,
     text,
     html,
   };
@@ -643,6 +664,8 @@ export interface SubscriptionCancelledContext {
   /** True when user explicitly cancelled (vs automatic post-failure). */
   userInitiated: boolean;
   panelUrl: string;
+  /** Paczka 121 — abonament Kreator Pro: strony zostają, bez usuwania danych. */
+  kreatorPro?: boolean;
 }
 
 export function subscriptionCancelledTemplate(ctx: SubscriptionCancelledContext): MailMessage {
@@ -656,9 +679,21 @@ export function subscriptionCancelledTemplate(ctx: SubscriptionCancelledContext)
       ? `Usługa **działa nadal do ${escapeMarkdown(formatDate(ctx.effectiveUntil))}** (do końca opłaconego okresu) – pełnia funkcjonalności bez zmian.`
       : 'Usługa została zakończona z dniem dzisiejszym.';
 
+  const dane = ctx.kreatorPro
+    ? SKUTKI_KONCA_KREATORA_PRO
+    : [
+        `## Twoje dane`,
+        ``,
+        `- Pliki, e-maile, bazy są **zachowane do ${escapeMarkdown(formatDate(ctx.dataDeletedAt))}** (14 dni od końca subskrypcji),`,
+        `- Po tym terminie dane są **usuwane trwale** (RODO art. 17).`,
+        ``,
+        `Jeśli zmienisz zdanie – napisz do nas w Centrum pomocy w panelu przed tym terminem.`,
+      ];
   const { html, text } = renderEmailShell({
     title: `Subskrypcja "${ctx.serviceName}" – ${ctx.userInitiated ? 'anulacja potwierdzona' : 'usługa zakończona'}`,
-    preheader: `Działa do ${escapeMarkdown(formatDate(ctx.effectiveUntil))}, dane do ${escapeMarkdown(formatDate(ctx.dataDeletedAt))}.`,
+    preheader: ctx.kreatorPro
+      ? `Działa do ${escapeMarkdown(formatDate(ctx.effectiveUntil))}, strony w kreatorze zostają.`
+      : `Działa do ${escapeMarkdown(formatDate(ctx.effectiveUntil))}, dane do ${escapeMarkdown(formatDate(ctx.dataDeletedAt))}.`,
     bodyMarkdown: [
       greeting,
       ``,
@@ -666,12 +701,7 @@ export function subscriptionCancelledTemplate(ctx: SubscriptionCancelledContext)
       ``,
       stillWorksLine,
       ``,
-      `## Twoje dane`,
-      ``,
-      `- Pliki, e-maile, bazy są **zachowane do ${escapeMarkdown(formatDate(ctx.dataDeletedAt))}** (14 dni od końca subskrypcji),`,
-      `- Po tym terminie dane są **usuwane trwale** (RODO art. 17).`,
-      ``,
-      `Jeśli zmienisz zdanie – napisz do nas w Centrum pomocy w panelu przed tym terminem.`,
+      ...dane,
       ``,
       `Dziękujemy za wspólny czas!`,
     ].join('\n'),

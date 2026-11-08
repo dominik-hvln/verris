@@ -27,7 +27,28 @@ export interface StanKreatora {
   zuzycie: { miesiac: string; generacje: number; zmiany: number; stron: number };
   korzysciPro: { id: string; nazwa: string; opis: string }[];
   cenaPro: { miesiacBrutto: number; miesiacNetto: number; rokBrutto: number; rokNetto: number };
+  /** Paczka 121 – abonament Kreator Pro (plan KREATOR_PRO): zakup i bieżący abonament. Brak w starszym API. */
+  pro?: StanKreatoraPro;
   katalog: { warianty: Record<TypSekcji, WariantSekcji[]>; efekty: Efekt[]; sekcjePro: TypSekcji[] };
+}
+
+/** GET /kreator/stan → `pro` (apps/api/src/kreator/kreator-pro.ts `stanKreatoraPro`). */
+export interface StanKreatoraPro {
+  planId: string | null;
+  cena: StanKreatora['cenaPro'];
+  /** Zakup możliwy przy płatnym hostingu i bez innego abonamentu; `powod` po polsku z API. */
+  zakup: { mozliwy: boolean; powod: string | null };
+  abonament: AbonamentKreatoraPro | null;
+}
+
+export interface AbonamentKreatoraPro {
+  id: string;
+  status: 'PENDING_PAYMENT' | 'PROVISIONING' | 'ACTIVE' | 'PAST_DUE' | 'SUSPENDED' | 'CANCELED' | 'EXPIRED';
+  interval: 'MONTH' | 'YEAR';
+  aktywnyDo: string | null;
+  odnowienie: 'portfel' | 'karta' | 'reczne';
+  bezOdnowienia: boolean;
+  cena: string;
 }
 
 /** GET /kreator/strony – pozycja listy. Daty jako ISO (JSON). */
@@ -120,6 +141,40 @@ export function nettoZBrutto(brutto: number): number {
 /** „9,90 zł brutto/mies. (8,05 zł netto) albo 99 zł brutto/rok (80,49 zł netto)” – zawsze netto i brutto. */
 export function opisCenyPro(c: StanKreatora['cenaPro'] = CENA_KREATORA_PRO): string {
   return `${zl(c.miesiacBrutto)} brutto/mies. (${zl(c.miesiacNetto)} netto) albo ${zl(c.rokBrutto)} brutto/rok (${zl(c.rokNetto)} netto)`;
+}
+
+/** Oszczędność przy płatności rocznej względem 12 × miesiąc (zł brutto, do grosza; 0 gdy rok nie jest tańszy). */
+export function oszczednoscRoczna(c: StanKreatora['cenaPro']): number {
+  return Math.max(0, Math.round((c.miesiacBrutto * 12 - c.rokBrutto) * 100) / 100);
+}
+
+/** Tekst skutków końca abonamentu – decyzja 8.11: strony zostają, opublikowane pliki się nie zmieniają. */
+export const SKUTKI_KONCA_PRO = 'Opublikowane strony działają dalej; elementy Pro znikną przy następnej publikacji.';
+
+/**
+ * Stan abonamentu Pro na karcie kreatora: nagłówek i opis odnawiania. Daty z API (ISO) w czasie polskim.
+ * Zawieszony (brak płatności) = Pro wyłączony do zapłaty.
+ */
+export function opisAbonamentuPro(a: AbonamentKreatoraPro): { naglowek: string; odnawianie: string } {
+  const data = a.aktywnyDo
+    ? new Date(a.aktywnyDo).toLocaleDateString('pl-PL', { timeZone: 'Europe/Warsaw', day: 'numeric', month: 'long', year: 'numeric' })
+    : null;
+  const cykl = a.interval === 'YEAR' ? 'co rok' : 'co miesiąc';
+  const zrodlo = a.odnowienie === 'karta' ? 'z karty' : a.odnowienie === 'portfel' ? 'z portfela' : 'w rozliczeniu z opiekunem';
+  if (a.status === 'PENDING_PAYMENT') return { naglowek: 'Zamówienie Kreatora Pro czeka na płatność', odnawianie: '' };
+  if (a.status === 'SUSPENDED') {
+    return {
+      naglowek: 'Kreator Pro wstrzymany – brak płatności',
+      odnawianie: a.odnowienie === 'karta' ? 'Opłać zaległą fakturę w Płatnościach – Pro wróci sam.' : 'Doładuj portfel – pobierzemy opłatę w ciągu godziny i Pro wróci sam.',
+    };
+  }
+  if (a.bezOdnowienia) {
+    return { naglowek: data ? `Kreator Pro aktywny do ${data}` : 'Kreator Pro aktywny', odnawianie: 'Odnowienie anulowane – abonament nie przedłuży się.' };
+  }
+  return {
+    naglowek: data ? `Kreator Pro aktywny do ${data}` : 'Kreator Pro aktywny',
+    odnawianie: `Odnawia się automatycznie ${cykl}, ${zrodlo} (${zl(Number(a.cena))} brutto).`,
+  };
 }
 
 export const ETYKIETY_WERSJI: Record<WersjaKreatora, string> = {

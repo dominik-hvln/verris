@@ -51,6 +51,9 @@ import { POWODY_ZDEJMOWANE_BEZ_OBSLUGI, zawieszenieObejmujeZaleglosc } from './p
 import { limityIndywidualneDlaKlienta, planZNadpisaniami } from './limity-indywidualne.js';
 import { planResourceFields } from '../servers/da-package-spec.js';
 import { gdziePlatnoscZamowienia, kluczPierwszejOplaty } from '../billing/paynow/zamowienie-paynow.js';
+import { produktAplikacyjny } from './produkt-aplikacyjny.js';
+import { sprawdzZakupKreatoraPro } from '../kreator/kreator-pro.js';
+import { nazwaPozycjiUslugi } from '../billing/pozycja-uslugi.js';
 
 export type SuspendReason =
   | 'PAYMENT_FAILED'
@@ -350,11 +353,10 @@ export class SubscriptionsService {
       );
     }
 
-    // EMM — produkty aplikacyjne (email-marketing) nie tworzą konta DA i nie
-    // potrzebują domeny. Dla pozostałych produktów domena jest wymagana.
-    // Cast przez string — generated Prisma client regeneruje enum w prod
-    // (Dockerfile.api); w sandboxie literal EMAIL_MARKETING jeszcze nie istnieje.
-    const isAppLevel = (plan.productKind as string) === 'EMAIL_MARKETING';
+    // EMM / Kreator Pro — produkty aplikacyjne nie tworzą konta DA i nie potrzebują domeny
+    // (produkt-aplikacyjny.ts). Dla pozostałych produktów domena jest wymagana.
+    const isAppLevel = produktAplikacyjny(plan.productKind);
+    const kreatorPro = (plan.productKind as string) === 'KREATOR_PRO';
     if (!isAppLevel && !dto.domain) {
       throw new BadRequestException('Domena jest wymagana dla tego produktu.');
     }
@@ -381,6 +383,9 @@ export class SubscriptionsService {
     const { pricing, subscription, oddajKod, serviceTag } = await this.prisma.$transaction(
       async (tx) => {
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`zamowienie-uslugi:${userId}`}))`;
+        // Paczka 121 — Kreator Pro: tylko przy płatnym hostingu (403) i jeden na konto (409). Pod blokadą klienta:
+        // dwa równoległe zamówienia nie przejdą obu kontroli (drugie zobaczy zapisane pierwsze).
+        if (kreatorPro) await sprawdzZakupKreatoraPro(tx, userId);
         const pricing =
           op?.individualPrice != null || op?.oplaconeDo
             ? {
@@ -1675,7 +1680,7 @@ export class SubscriptionsService {
     if (await this.walletLedger.findByIdempotencyKey(kluczPierwszejOplaty(sub.id))) {
       throw new ConflictException('To zamówienie było już obciążane (nieudane zakładanie, środki zwrócone) – wymaga nowego zamówienia.');
     }
-    const isAppLevel = (sub.plan.productKind as string) === 'EMAIL_MARKETING';
+    const isAppLevel = produktAplikacyjny(sub.plan.productKind);
     if (!isAppLevel && !z.domain) throw new BadRequestException('Zamówienie bez domeny – nie da się założyć konta.');
     const dto = {
       planId: sub.planId,
@@ -1837,7 +1842,7 @@ export class SubscriptionsService {
   }
 
   /**
-   * EMM — aktywacja produktu aplikacyjnego (email-marketing) bez konta DA.
+   * EMM / Kreator Pro — aktywacja produktu aplikacyjnego bez konta DA.
    * Brak węzła, brak domeny, brak provisioning queue: opcjonalnie pobieramy z
    * portfela i od razu ustawiamy ACTIVE. Idempotentny debit (klucz
    * `sub-<id>-initial`); przy braku środków rollback do PENDING_PAYMENT.
@@ -1848,12 +1853,19 @@ export class SubscriptionsService {
     userId: string,
     opts: { charge: Prisma.Decimal | null; appliedPromoCodeId: string | null },
   ): Promise<CreatedSubscription> {
+    const plan = await this.prisma.plan.findUnique({ where: { id: dto.planId }, select: { name: true, productKind: true } });
+    const productKind = (plan?.productKind as string | undefined) ?? 'EMAIL_MARKETING';
     if (opts.charge && opts.charge.greaterThan(0)) {
       await this.walletLedger.debit({
         userId,
         type: WalletTxType.CHARGE_SUBSCRIPTION,
         amount: opts.charge,
-        description: `Subscription ${subscriptionId} (initial payment)`,
+        // Paczka 121 — opis obciążenia jest nazwą pozycji faktury w modelu „przy obciążeniu” (faktura-za-portfel.ts):
+        // abonament Kreator Pro nazywa się jak na dokumencie. Pozostałe produkty bez zmian.
+        description:
+          productKind === 'KREATOR_PRO' && plan
+            ? nazwaPozycjiUslugi({ plan: plan.name, interval: dto.interval, od: new Date(), rodzaj: 'zakup', produkt: productKind })
+            : `Subscription ${subscriptionId} (initial payment)`,
         idempotencyKey: `sub-${subscriptionId}-initial`,
         subscriptionId,
       });
@@ -1874,7 +1886,7 @@ export class SubscriptionsService {
         data: {
           subscriptionId,
           type: 'ACTIVATED',
-          details: { appLevel: true, productKind: 'EMAIL_MARKETING' },
+          details: { appLevel: true, productKind },
         },
       });
       await this.audit.record({
@@ -2533,13 +2545,13 @@ export class SubscriptionsService {
         });
       }
 
-      // EMM — produkt aplikacyjny (email-marketing) nie ma konta DA: po
+      // EMM / Kreator Pro — produkt aplikacyjny nie ma konta DA: po
       // pierwszej płatności Stripe od razu ACTIVE, bez provisioningu/domeny.
       const planForActivation = await this.prisma.plan.findUnique({
         where: { id: sub.planId },
         select: { productKind: true },
       });
-      if ((planForActivation?.productKind as string | undefined) === 'EMAIL_MARKETING') {
+      if (produktAplikacyjny(planForActivation?.productKind)) {
         const activated = await this.prisma.subscription.update({
           where: { id: sub.id },
           data: {
@@ -2552,7 +2564,7 @@ export class SubscriptionsService {
           data: {
             subscriptionId: sub.id,
             type: 'ACTIVATED',
-            details: { source: 'STRIPE', appLevel: true, productKind: 'EMAIL_MARKETING' },
+            details: { source: 'STRIPE', appLevel: true, productKind: planForActivation?.productKind ?? null },
           },
         });
         await this.audit.record({
@@ -2793,11 +2805,13 @@ export class SubscriptionsService {
     const sub = await this.prisma.subscription.findUnique({
       where: { id: opts.subscriptionId },
       select: {
-        plan: { select: { name: true } },
+        plan: { select: { name: true, productKind: true } },
         account: { select: { domain: true } },
       },
     });
     const planName = sub?.plan?.name ?? 'Hosting Verris';
+    // Paczka 121 — koniec abonamentu Kreator Pro nie usuwa żadnych danych (strony zostają).
+    const kreatorPro = (sub?.plan?.productKind as string | undefined) === 'KREATOR_PRO';
     const serviceName = sub?.account?.domain ? `${planName} (${sub.account.domain})` : planName;
 
     const panelUrl = this.config.get<string>('CLIENT_PANEL_URL') ?? 'https://panel.verris.pl';
@@ -2813,6 +2827,7 @@ export class SubscriptionsService {
           dataDeletedAt,
           paymentUpdateUrl: `${panelUrl}/dashboard/billing`,
           panelUrl,
+          kreatorPro,
         })
       : subscriptionCancelledTemplate({
           to: user.email,
@@ -2823,6 +2838,7 @@ export class SubscriptionsService {
           dataDeletedAt,
           userInitiated: opts.userInitiated,
           panelUrl,
+          kreatorPro,
         });
 
     await this.mailer.send({ ...message, category: 'TRANSACTIONAL', fromRole: 'BILLING' });

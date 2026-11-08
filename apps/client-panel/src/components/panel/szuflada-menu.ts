@@ -23,15 +23,17 @@ export function useSzufladaMenu(
   open: boolean,
   zamknij: () => void,
   szuflada: RefObject<HTMLElement | null>,
-  przycisk: RefObject<HTMLButtonElement | null>,
+  przycisk: RefObject<HTMLElement | null>,
   id = 'menu-panelu',
+  /** Tryb skupienia (edytor kreatora): menu jest szufladą na każdej szerokości, nie tylko poniżej `lg`. */
+  zawsze = false,
 ) {
   const zamknijRef = useRef(zamknij);
   useEffect(() => {
     zamknijRef.current = zamknij;
   });
   // Serwer i hydratacja: jak desktop (bez inert); zaraz potem wartość z przeglądarki.
-  const szufladaAktywna = useSyncExternalStore(subskrybuj, odczytaj, () => false);
+  const szufladaAktywna = useSyncExternalStore(subskrybuj, odczytaj, () => false) || zawsze;
   const modalna = szufladaAktywna && open;
 
   useEffect(() => {

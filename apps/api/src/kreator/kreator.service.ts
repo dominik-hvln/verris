@@ -13,7 +13,6 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { KreatorStatus, KreatorZrodloWersji, Prisma, type KreatorStrona } from '@verris/database';
 import {
-  CENA_KREATORA_PRO,
   Firma,
   KATALOG_EFEKTOW,
   KATALOG_WARIANTOW,
@@ -44,6 +43,7 @@ import {
   type KonfiguracjaKreatora,
 } from './konfiguracja.js';
 import { wersjaKreatora } from './wersja-kreatora.js';
+import { stanKreatoraPro } from './kreator-pro.js';
 import { FUNKCJE_AI_KREATORA, RENDERER_KREATORA, type RendererKreatora } from './zaleznosci.js';
 import { naglowkiPodgladu, zlozPodglad } from './podglad.js';
 import type { BriefStronyDto } from './dto/kreator.dto.js';
@@ -141,9 +141,10 @@ export class KreatorService {
   async stan(userId: string) {
     const d = await this.dostep(userId);
     const miesiac = miesiacUtc();
-    const [zuzycie, stron] = await Promise.all([
+    const [zuzycie, stron, pro] = await Promise.all([
       this.prisma.kreatorZuzycie.findUnique({ where: { userId_miesiac: { userId, miesiac } } }),
       this.prisma.kreatorStrona.count({ where: { userId } }),
+      stanKreatoraPro(this.prisma, userId),
     ]);
     const plan = d.wersja ? PLANY_KREATORA[d.wersja] : null;
     return {
@@ -158,7 +159,9 @@ export class KreatorService {
         stron,
       },
       korzysciPro: KORZYSCI_PRO,
-      cenaPro: CENA_KREATORA_PRO,
+      // Paczka 121 – cennik z planu KREATOR_PRO w bazie (netto jak na fakturze), zakup i bieżący abonament.
+      cenaPro: pro.cena,
+      pro,
       katalog: { warianty: KATALOG_WARIANTOW, efekty: KATALOG_EFEKTOW, sekcjePro: SEKCJE_PRO },
     };
   }

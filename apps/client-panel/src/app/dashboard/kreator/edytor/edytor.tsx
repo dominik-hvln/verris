@@ -1,16 +1,16 @@
 'use client';
 
-import Link from 'next/link';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import { toast } from 'sonner';
-import { AlertCircle, ArrowLeft, Check, CloudOff, History, Loader2, Monitor, Rocket, Smartphone } from 'lucide-react';
+import { AlertCircle, Check, CloudOff, Eye, History, ListTree, Loader2, Menu, Monitor, MoreHorizontal, Pencil, Rocket, Smartphone, Sparkles, X } from 'lucide-react';
 import { KATALOG_STYLOW, type Motyw, type Strona } from '@verris/kreator/klient';
 import { Switch } from '@/components/panel/v2';
 import { cx } from '@/components/panel/cx';
+import { klasaPrzyciskuPaska, PasekSkupienia, useSkupienie } from '@/components/panel/tryb-skupienia';
 import { plForm } from '@/lib/pl';
 import { pozostalo, type StanKreatora, type WidokStronyKreatora } from '@/lib/kreator';
 import { polecenieAi, przywrocWersje, wybierzPropozycje, zapiszModel, zmienNazweStrony } from '../akcje';
-import { klasaPrzyciskuDrugiego, klasaPrzyciskuGlownego, klasaPrzyciskuIkony } from '../wspolne';
+import { klasaPrzyciskuGlownego } from '../wspolne';
 import { Struktura } from './struktura';
 import { PanelSekcji } from './panel-sekcji';
 import { PanelMotywu } from './panel-motywu';
@@ -21,12 +21,16 @@ import { Publikacja } from './publikacja';
 import { Podglad, type WiadomoscPodgladu } from './podglad';
 import { NAZWY_SEKCJI, ustaw, walidujWEdytorze, type Sciezka } from './schemat';
 import type { KontekstFormularza } from './formularz-sekcji';
+import { useOknoModalne, useUkladEdytora } from './uklad';
 
 /** Autozapis po tylu ms od ostatniej zmiany (Ctrl/Cmd+S zapisuje od razu). */
 export const ZWLOKA_ZAPISU_MS = 2000;
 
 export type StanZapisu = 'zapisano' | 'zapisywanie' | 'niezapisane' | 'bledy' | 'blad';
 type Zakladka = 'sekcja' | 'motyw' | 'seo' | 'ai';
+/** Panel widoczny na telefonie (< 768 px) – jeden naraz, wybierany zakładkami na dole ekranu. */
+export type WidokMobilny = 'sekcje' | 'podglad' | 'edycja';
+type Szuflada = 'sekcje' | 'edycja' | null;
 
 const ZAKLADKI: { id: Zakladka; nazwa: string }[] = [
   { id: 'sekcja', nazwa: 'Sekcja' },
@@ -48,28 +52,35 @@ function OpisZapisu({ stan, bledow }: { stan: StanZapisu; bledow: number }) {
   if (stan === 'zapisano')
     return (
       <>
-        <Check className="h-3.5 w-3.5 text-data-hi" aria-hidden /> Zapisano
+        <Check className="h-3.5 w-3.5 text-data-hi" aria-hidden /> <span className="max-lg:sr-only">Zapisano</span>
       </>
     );
   if (stan === 'zapisywanie')
     return (
       <>
-        <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> Zapisywanie…
+        <Loader2 className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" aria-hidden /> <span className="max-lg:sr-only">Zapisywanie…</span>
       </>
     );
   if (stan === 'bledy')
     return (
       <>
-        <AlertCircle className="h-3.5 w-3.5 text-crit" aria-hidden /> Niezapisane zmiany – popraw {bledow} {plForm(bledow, 'pole', 'pola', 'pól')}
+        <AlertCircle className="h-3.5 w-3.5 text-crit" aria-hidden />{' '}
+        <span className="max-lg:sr-only">
+          Niezapisane zmiany – popraw {bledow} {plForm(bledow, 'pole', 'pola', 'pól')}
+        </span>
       </>
     );
   if (stan === 'blad')
     return (
       <>
-        <CloudOff className="h-3.5 w-3.5 text-warn" aria-hidden /> Nie zapisano – spróbujemy ponownie
+        <CloudOff className="h-3.5 w-3.5 text-warn" aria-hidden /> <span className="max-lg:sr-only">Nie zapisano – spróbujemy ponownie</span>
       </>
     );
-  return <>Niezapisane zmiany</>;
+  return (
+    <>
+      <span className="h-2 w-2 rounded-full bg-warn" aria-hidden /> <span className="max-lg:sr-only">Niezapisane zmiany</span>
+    </>
+  );
 }
 
 export function Edytor({ widok: widokPoczatkowy, stan }: { widok: WidokStronyKreatora; stan: StanKreatora }) {
@@ -98,6 +109,47 @@ export function Edytor({ widok: widokPoczatkowy, stan }: { widok: WidokStronyKre
   const [nazwa, setNazwa] = useState(widokPoczatkowy.nazwa);
   const [ogloszenie, setOgloszenie] = useState('');
   const [propozycjaW, setPropozycjaW] = useState<number | null>(null);
+
+  // Układ responsywny (paczka 121): wygląd z klas CSS, tu tylko zachowanie szuflad i zakładek telefonu.
+  const uklad = useUkladEdytora();
+  const skupienie = useSkupienie();
+  const [szuflada, setSzuflada] = useState<Szuflada>(null);
+  const [widokMobilny, setWidokMobilny] = useState<WidokMobilny>('podglad');
+  const [wiecej, setWiecej] = useState(false);
+  const [pelnyEkran, setPelnyEkran] = useState(false);
+  // Zmiana układu (obrót tabletu, zmiana okna) zamyka szuflady – panel mógł właśnie stać się kolumną.
+  const [poprzedniUklad, setPoprzedniUklad] = useState(uklad);
+  if (uklad !== poprzedniUklad) {
+    setPoprzedniUklad(uklad);
+    setSzuflada(null);
+  }
+  const szufladaSekcji = useRef<HTMLElement>(null);
+  const szufladaEdycji = useRef<HTMLElement>(null);
+  const przyciskWiecej = useRef<HTMLButtonElement>(null);
+  const menuWiecej = useRef<HTMLDivElement>(null);
+  const zamknijSzuflade = useCallback(() => setSzuflada(null), []);
+  useOknoModalne(szuflada === 'sekcje', zamknijSzuflade, szufladaSekcji);
+  useOknoModalne(szuflada === 'edycja', zamknijSzuflade, szufladaEdycji);
+
+  // „Więcej” (menu rozwijane): Esc i kliknięcie obok zamykają, Esc oddaje fokus przyciskowi.
+  useEffect(() => {
+    if (!wiecej) return;
+    const klawisz = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      setWiecej(false);
+      przyciskWiecej.current?.focus();
+    };
+    const klik = (e: PointerEvent) => {
+      const cel = e.target as Node;
+      if (!menuWiecej.current?.contains(cel) && !przyciskWiecej.current?.contains(cel)) setWiecej(false);
+    };
+    window.addEventListener('keydown', klawisz);
+    window.addEventListener('pointerdown', klik);
+    return () => {
+      window.removeEventListener('keydown', klawisz);
+      window.removeEventListener('pointerdown', klik);
+    };
+  }, [wiecej]);
 
   const walidacja = useMemo(() => walidujWEdytorze(model), [model]);
   const stanZapisu: StanZapisu = zapisywanie
@@ -221,11 +273,39 @@ export function Edytor({ widok: widokPoczatkowy, stan }: { widok: WidokStronyKre
   const indeksSekcji = podstrona.sekcje.findIndex((s) => s.id === zaznaczona);
   const sekcja = indeksSekcji >= 0 ? podstrona.sekcje[indeksSekcji]! : null;
 
-  const zaznacz = (sid: string | null, przewin = true) => {
+  /** Pokaż panel edycji: na telefonie zakładka „Edytuj”, na wąskim ekranie szuflada z prawej, szerzej – kolumna. */
+  const pokazEdycje = () => {
+    if (uklad === 'telefon') setWidokMobilny('edycja');
+    else if (uklad === 'waski') setSzuflada('edycja');
+  };
+
+  /**
+   * Zaznaczenie sekcji. Z listy sekcji (`struktura`) od razu do edycji; z podglądu – szuflada edycji na wąskim
+   * ekranie, a na telefonie bez zmiany zakładki (dotknięcia w podglądzie to zwykle przewijanie i oglądanie).
+   */
+  const zaznacz = (sid: string | null, przewin = true, zrodlo: 'struktura' | 'podglad' | 'inne' = 'inne') => {
     setZaznaczona(sid);
     if (sid) {
       setZakladka((z) => (z === 'ai' ? z : 'sekcja'));
       if (przewin) setPrzewinDo((p) => ({ id: sid, nr: (p?.nr ?? 0) + 1 }));
+      if (zrodlo === 'struktura') {
+        if (uklad === 'sredni') setSzuflada(null);
+        else pokazEdycje();
+      } else if (zrodlo === 'podglad' && uklad === 'waski') setSzuflada('edycja');
+    }
+  };
+
+  /** Pomiń do podglądu / do edycji (skip link) – na telefonie i w szufladach najpierw pokazuje panel. */
+  const przejdzDo = (e: ReactMouseEvent, cel: 'podglad' | 'edycja') => {
+    e.preventDefault();
+    if (cel === 'podglad') {
+      setSzuflada(null);
+      if (uklad === 'telefon') setWidokMobilny('podglad');
+      requestAnimationFrame(() => document.getElementById('kr-podglad')?.focus());
+    } else {
+      pokazEdycje();
+      // W szufladzie fokus ustawia sama szuflada.
+      if (uklad !== 'waski') requestAnimationFrame(() => document.getElementById('kr-edycja')?.focus());
     }
   };
 
@@ -246,11 +326,12 @@ export function Edytor({ widok: widokPoczatkowy, stan }: { widok: WidokStronyKre
       if (s) zaznacz(s.id);
     }
     setZakladka(cel.zakladka);
+    pokazEdycje();
     requestAnimationFrame(() => document.querySelector<HTMLElement>('#kr-panel [aria-invalid="true"]')?.focus());
   };
 
   const wiadomosc = (w: WiadomoscPodgladu) => {
-    if (w.typ === 'sekcja') zaznacz(w.id, false);
+    if (w.typ === 'sekcja') zaznacz(w.id, false, 'podglad');
     else if (w.typ === 'podstrona') {
       const i = model.strony.findIndex((p) => p.slug === w.slug);
       if (i >= 0) {
@@ -350,13 +431,53 @@ export function Edytor({ widok: widokPoczatkowy, stan }: { widok: WidokStronyKre
   const sciezkaSekcji: Sciezka = ['strony', ip, 'sekcje', indeksSekcji];
   const propozycje = widok.propozycje.filter((p): p is Strona => !!p && typeof p === 'object' && 'motyw' in (p as object));
 
+  const proSwitch = !funkcjePro ? (
+    <span className="flex items-center gap-2 text-[12.5px] text-foreground">
+      <Switch label="Pokaż funkcje Pro w podglądzie" checked={pokazPro} onChange={setPokazPro} />
+      <span aria-hidden>Pokaż funkcje Pro</span>
+    </span>
+  ) : null;
+
+  const zakladkiMobilne: { id: string; nazwa: string; Ikona: typeof Eye; aktywna: boolean; wybierz: () => void }[] = [
+    { id: 'sekcje', nazwa: 'Sekcje', Ikona: ListTree, aktywna: widokMobilny === 'sekcje', wybierz: () => setWidokMobilny('sekcje') },
+    { id: 'podglad', nazwa: 'Podgląd', Ikona: Eye, aktywna: widokMobilny === 'podglad', wybierz: () => setWidokMobilny('podglad') },
+    {
+      id: 'edytuj',
+      nazwa: 'Edytuj',
+      Ikona: Pencil,
+      aktywna: widokMobilny === 'edycja' && zakladka !== 'ai',
+      wybierz: () => {
+        setWidokMobilny('edycja');
+        setZakladka((z) => (z === 'ai' ? 'sekcja' : z));
+      },
+    },
+    {
+      id: 'ai',
+      nazwa: 'AI',
+      Ikona: Sparkles,
+      aktywna: widokMobilny === 'edycja' && zakladka === 'ai',
+      wybierz: () => {
+        setWidokMobilny('edycja');
+        setZakladka('ai');
+      },
+    },
+  ];
+
   return (
-    <div className="flex flex-col gap-3 lg:h-[calc(100dvh-61px-4.5rem)]">
-      {/* Pasek górny */}
-      <div className="flex flex-wrap items-center gap-2 rounded-[10px] border border-line bg-card px-3 py-2">
-        <Link href="/dashboard/kreator" className={klasaPrzyciskuIkony} aria-label="Wróć do listy stron">
-          <ArrowLeft className="h-4 w-4" aria-hidden />
-        </Link>
+    <div className="relative flex h-full min-h-0 w-full min-w-0 flex-1 flex-col">
+      <h1 className="sr-only">Edytor strony „{widok.nazwa}”</h1>
+      {/* Skip linki (WCAG 2.4.1) – widoczne po fokusie z klawiatury. */}
+      <div className="sr-only focus-within:not-sr-only focus-within:absolute focus-within:left-2 focus-within:top-2 focus-within:z-[95] focus-within:flex focus-within:gap-2">
+        <a href="#kr-podglad" onClick={(e) => przejdzDo(e, 'podglad')} className="rounded-[7px] border border-line-strong bg-card px-3 py-2 text-sm font-semibold text-foreground shadow-lg">
+          Przejdź do podglądu
+        </a>
+        <a href="#kr-edycja" onClick={(e) => przejdzDo(e, 'edycja')} className="rounded-[7px] border border-line-strong bg-card px-3 py-2 text-sm font-semibold text-foreground shadow-lg">
+          Przejdź do edycji
+        </a>
+      </div>
+
+      {/* Pasek edytora na całą szerokość (tryb skupienia – bez menu bocznego panelu) */}
+      <PasekSkupienia kompaktowy>
         <input
           aria-label="Nazwa strony"
           value={nazwa}
@@ -370,19 +491,19 @@ export function Edytor({ widok: widokPoczatkowy, stan }: { widok: WidokStronyKre
               (e.target as HTMLInputElement).blur();
             }
           }}
-          className="min-w-0 flex-1 rounded-[6px] border border-transparent bg-transparent px-2 py-1 font-display text-[16px] font-bold text-foreground outline-none hover:border-line focus:border-data sm:max-w-[280px]"
+          className="min-h-11 min-w-0 flex-1 rounded-[6px] border border-transparent bg-transparent px-1.5 py-1 font-display text-[15px] font-bold text-foreground outline-none hover:border-line focus:border-data sm:px-2 sm:text-[16px] md:min-h-9 lg:max-w-[280px]"
         />
-        <div role="status" aria-live="polite" className="flex items-center gap-1.5 text-[12.5px] text-muted-foreground">
+        <div role="status" aria-live="polite" className="flex flex-none items-center gap-1.5 text-[12.5px] text-muted-foreground">
           {stanZapisu === 'bledy' ? (
-            <button type="button" onClick={doBledu} className="inline-flex items-center gap-1.5 rounded-[6px] px-1.5 py-0.5 hover:bg-raised">
+            <button type="button" onClick={doBledu} className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-[6px] px-1.5 py-0.5 hover:bg-raised md:min-h-0 md:min-w-0">
               <OpisZapisu stan={stanZapisu} bledow={walidacja.bledy.size} />
             </button>
           ) : (
             <OpisZapisu stan={stanZapisu} bledow={walidacja.bledy.size} />
           )}
         </div>
-        <div className="ml-auto flex flex-wrap items-center gap-2">
-          <div role="group" aria-label="Rozmiar podglądu" className="flex rounded-[7px] border border-line-strong p-0.5">
+        <div className="ml-auto flex flex-none items-center gap-1 sm:gap-1.5">
+          <div role="group" aria-label="Rozmiar podglądu" className="flex rounded-[7px] border border-line-strong p-0.5 max-md:hidden">
             {(
               [
                 ['komputer', 'Komputer', Monitor],
@@ -394,33 +515,95 @@ export function Edytor({ widok: widokPoczatkowy, stan }: { widok: WidokStronyKre
                 type="button"
                 aria-pressed={urzadzenie === w}
                 onClick={() => setUrzadzenie(w)}
-                className={cx('inline-flex items-center gap-1.5 rounded-[5px] px-2 py-1 text-[12.5px]', urzadzenie === w ? 'bg-data-soft font-semibold text-data-hi' : 'text-muted-foreground hover:text-foreground')}
+                className={cx('inline-flex min-h-8 items-center gap-1.5 rounded-[5px] px-2 py-1 text-[12.5px]', urzadzenie === w ? 'bg-data-soft font-semibold text-data-hi' : 'text-muted-foreground hover:text-foreground')}
               >
-                <Ikona className="h-3.5 w-3.5" aria-hidden /> {n}
+                <Ikona className="h-3.5 w-3.5" aria-hidden /> <span className="max-xl:sr-only">{n}</span>
               </button>
             ))}
           </div>
-          {!funkcjePro ? (
-            <span className="flex items-center gap-2 text-[12.5px] text-foreground">
-              <Switch label="Pokaż funkcje Pro w podglądzie" checked={pokazPro} onChange={setPokazPro} />
-              <span aria-hidden>Pokaż funkcje Pro</span>
-            </span>
-          ) : null}
-          <button type="button" className={klasaPrzyciskuDrugiego} onClick={() => setHistoria(true)}>
+          <span className="max-xl:hidden">{proSwitch}</span>
+          <button type="button" className={cx(klasaPrzyciskuPaska, 'border border-line-strong px-3 max-xl:hidden')} onClick={() => setHistoria(true)}>
             <History className="h-4 w-4" aria-hidden /> Historia
           </button>
-          <button type="button" className={klasaPrzyciskuGlownego} onClick={() => setPublikacja(true)}>
+          <button
+            type="button"
+            className={cx(klasaPrzyciskuPaska, 'border border-line-strong px-3 max-md:hidden min-[90rem]:hidden')}
+            aria-expanded={szuflada === 'sekcje'}
+            aria-controls="kr-struktura"
+            onClick={() => setSzuflada('sekcje')}
+          >
+            <ListTree className="h-4 w-4" aria-hidden /> Sekcje
+          </button>
+          <button
+            type="button"
+            className={cx(klasaPrzyciskuPaska, 'border border-line-strong px-3 max-md:hidden lg:hidden')}
+            aria-expanded={szuflada === 'edycja'}
+            aria-controls="kr-edycja"
+            onClick={() => setSzuflada('edycja')}
+          >
+            <Pencil className="h-4 w-4" aria-hidden /> Edytuj
+          </button>
+          <button type="button" className={cx(klasaPrzyciskuGlownego, 'min-h-11 px-3 md:min-h-9')} onClick={() => setPublikacja(true)}>
             <Rocket className="h-4 w-4" aria-hidden /> Publikuj
           </button>
+          <div className="relative xl:hidden">
+            <button
+              ref={przyciskWiecej}
+              type="button"
+              className={klasaPrzyciskuPaska}
+              aria-label="Więcej"
+              aria-expanded={wiecej}
+              aria-controls="kr-wiecej"
+              onClick={() => setWiecej((w) => !w)}
+            >
+              <MoreHorizontal className="h-5 w-5" aria-hidden />
+            </button>
+            {wiecej ? (
+              <div
+                ref={menuWiecej}
+                id="kr-wiecej"
+                className="absolute right-0 top-full z-[60] mt-1 flex w-64 flex-col gap-0.5 rounded-[10px] border border-line-strong bg-card p-1.5 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.5)]"
+              >
+                <button
+                  type="button"
+                  className="flex min-h-11 items-center gap-2 rounded-[7px] px-2.5 text-left text-sm text-foreground hover:bg-raised md:min-h-9"
+                  onClick={() => {
+                    // Fokus na „Więcej” przed otwarciem okna – po jego zamknięciu wróci tutaj, a nie na zniknięty element menu.
+                    przyciskWiecej.current?.focus();
+                    setWiecej(false);
+                    setHistoria(true);
+                  }}
+                >
+                  <History className="h-4 w-4" aria-hidden /> Historia wersji
+                </button>
+                {proSwitch ? <div className="flex min-h-11 items-center px-2.5 md:min-h-9">{proSwitch}</div> : null}
+                {skupienie ? (
+                  <button
+                    type="button"
+                    className="flex min-h-11 items-center gap-2 rounded-[7px] px-2.5 text-left text-sm text-foreground hover:bg-raised md:hidden"
+                    onClick={() => {
+                      setWiecej(false);
+                      skupienie.otworzMenu(przyciskWiecej.current);
+                    }}
+                  >
+                    <Menu className="h-4 w-4" aria-hidden /> Menu panelu
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
         </div>
-      </div>
+      </PasekSkupienia>
 
       {propozycje.length ? (
-        <section aria-label="Propozycje projektu" className="flex flex-wrap items-center gap-2 rounded-[10px] border border-line bg-card px-3 py-2">
-          <span className="text-[12.5px] font-semibold text-foreground">
+        <section
+          aria-label="Propozycje projektu"
+          className="mx-2 mt-2 flex flex-none items-center gap-2 overflow-x-auto rounded-[10px] border border-line bg-card px-3 py-2 md:mx-3 md:mt-3 md:flex-wrap"
+        >
+          <span className="flex-none text-[12.5px] font-semibold text-foreground">
             {propozycje.length + 1} {plForm(propozycje.length + 1, 'propozycja', 'propozycje', 'propozycji')} projektu:
           </span>
-          <span className="inline-flex items-center gap-2 rounded-[7px] border border-data bg-data-soft px-2.5 py-1 text-[12.5px] font-semibold text-data-hi" aria-current="true">
+          <span className="inline-flex flex-none items-center gap-2 rounded-[7px] border border-data bg-data-soft px-2.5 py-1 text-[12.5px] font-semibold text-data-hi" aria-current="true">
             <Probka m={model} /> Obecny · {KATALOG_STYLOW.find((s) => s.id === model.motyw.styl)?.nazwa ?? model.motyw.styl}
           </span>
           {propozycje.map((p, i) => (
@@ -429,7 +612,7 @@ export function Edytor({ widok: widokPoczatkowy, stan }: { widok: WidokStronyKre
               type="button"
               disabled={propozycjaW !== null}
               onClick={() => void wybierzPropozycjeN(i + 1)}
-              className="inline-flex items-center gap-2 rounded-[7px] border border-line-strong px-2.5 py-1 text-[12.5px] text-foreground hover:bg-raised disabled:opacity-50"
+              className="inline-flex min-h-11 flex-none items-center gap-2 rounded-[7px] border border-line-strong px-2.5 py-1 text-[12.5px] text-foreground hover:bg-raised disabled:opacity-50 md:min-h-0"
             >
               {propozycjaW === i + 1 ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <Probka m={p} />}
               Propozycja {i + 1} · {KATALOG_STYLOW.find((s) => s.id === p.motyw.styl)?.nazwa ?? p.motyw.styl}
@@ -438,8 +621,42 @@ export function Edytor({ widok: widokPoczatkowy, stan }: { widok: WidokStronyKre
         </section>
       ) : null}
 
-      <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[240px_minmax(0,1fr)_340px] 2xl:grid-cols-[260px_minmax(0,1fr)_380px]">
-        <aside aria-label="Struktura strony" className="min-h-0 overflow-y-auto rounded-[10px] border border-line bg-card p-3">
+      {szuflada ? (
+        <button
+          type="button"
+          tabIndex={-1}
+          aria-label="Zamknij panel"
+          className="fixed inset-0 z-[65] bg-black/50 animate-in fade-in duration-200 motion-reduce:animate-none"
+          onClick={zamknijSzuflade}
+        />
+      ) : null}
+
+      {/*
+        Obszar roboczy. Klasy według szerokości (bez nakładania się zakresów):
+        < 768 (max-md) – jeden panel naraz; 768–1023 (md:max-lg) – podgląd, edycja w szufladzie;
+        768–1439 (md:max-[90rem]) – struktura w szufladzie; ≥ 1024 (lg) – edycja kolumną; ≥ 1440 – trzy kolumny.
+      */}
+      <div className="flex min-h-0 flex-1 flex-col md:gap-3 md:p-3 lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:grid-rows-[minmax(0,1fr)] min-[90rem]:grid-cols-[260px_minmax(0,1fr)_380px]">
+        <aside
+          ref={szufladaSekcji}
+          id="kr-struktura"
+          tabIndex={-1}
+          {...(szuflada === 'sekcje' ? { role: 'dialog' as const, 'aria-modal': true as const, 'aria-label': 'Sekcje strony' } : { 'aria-label': 'Struktura strony' })}
+          className={cx(
+            'min-h-0 overflow-y-auto bg-card outline-none',
+            'min-[90rem]:block min-[90rem]:rounded-[10px] min-[90rem]:border min-[90rem]:border-line min-[90rem]:p-3',
+            szuflada === 'sekcje'
+              ? 'md:max-[90rem]:fixed md:max-[90rem]:inset-y-0 md:max-[90rem]:left-0 md:max-[90rem]:z-[70] md:max-[90rem]:block md:max-[90rem]:w-[min(340px,88vw)] md:max-[90rem]:border-r md:max-[90rem]:border-line-strong md:max-[90rem]:p-4 md:max-[90rem]:shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] animate-in slide-in-from-left duration-200 motion-reduce:animate-none'
+              : 'md:max-[90rem]:hidden',
+            widokMobilny === 'sekcje' ? 'max-md:block max-md:flex-1 max-md:p-3' : 'max-md:hidden',
+          )}
+        >
+          <div className="mb-3 hidden items-center justify-between gap-2 md:max-[90rem]:flex">
+            <p className="m-0 font-display text-[15px] font-bold text-foreground">Sekcje strony</p>
+            <button type="button" className={klasaPrzyciskuPaska} aria-label="Zamknij panel sekcji" onClick={zamknijSzuflade}>
+              <X className="h-4 w-4" aria-hidden />
+            </button>
+          </div>
           <Struktura
             model={model}
             podstrona={ip}
@@ -451,13 +668,21 @@ export function Edytor({ widok: widokPoczatkowy, stan }: { widok: WidokStronyKre
               setIp(i);
               setZaznaczona(model.strony[i]?.sekcje[0]?.id ?? null);
             }}
-            onZaznacz={(s) => zaznacz(s)}
+            onZaznacz={(s) => zaznacz(s, true, 'struktura')}
             onZmiana={zmienModel}
             onKomunikat={oglos}
           />
         </aside>
 
-        <div className="relative h-[70vh] min-h-0 overflow-hidden rounded-[10px] border border-line bg-raised lg:h-auto">
+        <section
+          id="kr-podglad"
+          tabIndex={-1}
+          aria-label="Podgląd strony"
+          className={cx(
+            'relative min-h-0 overflow-hidden bg-raised outline-none md:flex-1 md:rounded-[10px] md:border md:border-line lg:flex-none',
+            widokMobilny === 'podglad' ? 'max-md:flex-1' : 'max-md:hidden',
+          )}
+        >
           {!walidacja.ok ? (
             <p className="absolute inset-x-3 top-3 z-10 rounded-[7px] border border-warn/40 bg-card px-3 py-2 text-[12.5px] text-foreground shadow-sm">
               Podgląd pokazuje ostatnią poprawną wersję – popraw zaznaczone pola, a odświeży się sam.
@@ -471,12 +696,32 @@ export function Edytor({ widok: widokPoczatkowy, stan }: { widok: WidokStronyKre
             przewinDo={przewinDo}
             urzadzenie={urzadzenie}
             poprawny={walidacja.ok}
+            onPelnyEkran={() => setPelnyEkran(true)}
             onWiadomosc={wiadomosc}
           />
-        </div>
+        </section>
 
-        <aside aria-label="Ustawienia" className="flex min-h-0 flex-col overflow-hidden rounded-[10px] border border-line bg-card">
-          <div role="tablist" aria-label="Panele edycji" className="flex flex-none gap-1 border-b border-line px-2 pt-2">
+        <aside
+          ref={szufladaEdycji}
+          id="kr-edycja"
+          tabIndex={-1}
+          {...(szuflada === 'edycja' ? { role: 'dialog' as const, 'aria-modal': true as const, 'aria-label': 'Edycja' } : { 'aria-label': 'Ustawienia' })}
+          className={cx(
+            'min-h-0 flex-col overflow-hidden bg-card outline-none',
+            'lg:flex lg:rounded-[10px] lg:border lg:border-line',
+            szuflada === 'edycja'
+              ? 'md:max-lg:fixed md:max-lg:inset-y-0 md:max-lg:right-0 md:max-lg:z-[70] md:max-lg:flex md:max-lg:w-[min(420px,92vw)] md:max-lg:border-l md:max-lg:border-line-strong md:max-lg:shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] animate-in slide-in-from-right duration-200 motion-reduce:animate-none'
+              : 'md:max-lg:hidden',
+            widokMobilny === 'edycja' ? 'max-md:flex max-md:flex-1' : 'max-md:hidden',
+          )}
+        >
+          <div className="hidden flex-none items-center justify-between gap-2 border-b border-line px-3 py-2 md:max-lg:flex">
+            <p className="m-0 font-display text-[15px] font-bold text-foreground">Edycja</p>
+            <button type="button" className={klasaPrzyciskuPaska} aria-label="Zamknij panel edycji" onClick={zamknijSzuflade}>
+              <X className="h-4 w-4" aria-hidden />
+            </button>
+          </div>
+          <div role="tablist" aria-label="Panele edycji" className="flex flex-none gap-1 overflow-x-auto border-b border-line px-2 pt-2">
             {ZAKLADKI.map((z, i) => (
               <button
                 key={z.id}
@@ -489,7 +734,7 @@ export function Edytor({ widok: widokPoczatkowy, stan }: { widok: WidokStronyKre
                 onClick={() => setZakladka(z.id)}
                 onKeyDown={(e) => klawiszZakladek(e, i)}
                 className={cx(
-                  '-mb-px rounded-t-[6px] border-b-2 px-2.5 py-2 text-[13px] font-medium',
+                  '-mb-px min-h-11 flex-none rounded-t-[6px] border-b-2 px-2.5 py-2 text-[13px] font-medium md:min-h-0',
                   zakladka === z.id ? 'border-data text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground',
                 )}
               >
@@ -532,9 +777,44 @@ export function Edytor({ widok: widokPoczatkowy, stan }: { widok: WidokStronyKre
         </aside>
       </div>
 
+      {/* Telefon: jeden panel naraz – zakładki na dole ekranu (cele dotykowe ≥ 44 px). */}
+      <nav aria-label="Widok edytora" className="grid flex-none grid-cols-4 border-t border-line bg-card pb-[env(safe-area-inset-bottom)] md:hidden">
+        {zakladkiMobilne.map(({ id: zid, nazwa: n, Ikona, aktywna, wybierz }) => (
+          <button
+            key={zid}
+            type="button"
+            aria-pressed={aktywna}
+            onClick={wybierz}
+            className={cx(
+              'flex min-h-[52px] flex-col items-center justify-center gap-0.5 border-t-2 text-[12px] font-medium',
+              aktywna ? 'border-data text-data-hi' : 'border-transparent text-muted-foreground hover:text-foreground',
+            )}
+          >
+            <Ikona className="h-5 w-5" aria-hidden />
+            {n}
+          </button>
+        ))}
+      </nav>
+
       <p className="sr-only" aria-live="polite">
         {ogloszenie}
       </p>
+
+      {pelnyEkran ? (
+        <PelnyPodglad onZamknij={() => setPelnyEkran(false)}>
+          <Podglad
+            model={model}
+            podstrona={podstrona.slug}
+            pro={funkcjePro || pokazPro}
+            zaznaczona={zaznaczona}
+            przewinDo={null}
+            urzadzenie="komputer"
+            poprawny={walidacja.ok}
+            pelnyRozmiar
+            onWiadomosc={(w) => (w.typ === 'sekcja' ? zaznacz(w.id, false) : wiadomosc(w))}
+          />
+        </PelnyPodglad>
+      ) : null}
 
       <Historia id={id} otwarta={historia} onZamknij={() => setHistoria(false)} onPrzywroc={przywroc} />
       <Publikacja
@@ -544,6 +824,32 @@ export function Edytor({ widok: widokPoczatkowy, stan }: { widok: WidokStronyKre
         przedPublikacja={zapiszTeraz}
         onOpublikowano={(w) => setWidok((x) => ({ ...x, opublikowanaAt: new Date().toISOString(), ...(w.tryb === 'domena' ? { domena: new URL(w.adres).hostname } : {}) }))}
       />
+    </div>
+  );
+}
+
+/** Widok komputera w skali 100% na całym ekranie – gdy kolumna podglądu jest za wąska na czytelną miniaturę. */
+function PelnyPodglad({ children, onZamknij }: { children: ReactNode; onZamknij: () => void }) {
+  const okno = useRef<HTMLDivElement>(null);
+  useOknoModalne(true, onZamknij, okno);
+  return (
+    <div
+      ref={okno}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="kr-pelny-tytul"
+      tabIndex={-1}
+      className="fixed inset-0 z-[90] flex flex-col bg-background outline-none animate-in fade-in duration-200 motion-reduce:animate-none"
+    >
+      <div className="flex min-h-14 flex-none items-center gap-2 border-b border-line bg-card px-3">
+        <h2 id="kr-pelny-tytul" className="m-0 min-w-0 flex-1 break-words font-display text-[15px] font-bold text-foreground">
+          Podgląd – widok komputera (100%)
+        </h2>
+        <button type="button" className={cx(klasaPrzyciskuPaska, 'border border-line-strong px-3')} onClick={onZamknij}>
+          <X className="h-4 w-4" aria-hidden /> Zamknij
+        </button>
+      </div>
+      <div className="min-h-0 flex-1">{children}</div>
     </div>
   );
 }

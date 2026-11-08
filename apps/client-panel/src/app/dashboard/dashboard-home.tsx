@@ -38,6 +38,7 @@ import { plForm, plural } from '@/lib/pl';
 const jednostkaZgloszen = (v: number) => plForm(v, 'nowe zgłoszenie', 'nowe zgłoszenia', 'nowych zgłoszeń');
 import { terminUslugi } from '@/lib/service-events';
 import { dataPl, dzienPl, ostatnieDniPl } from '@/lib/data-pl';
+import { adresUslugi, ETYKIETA_RODZAJU } from '@/lib/rodzaj-uslugi';
 
 const BTN =
   'inline-flex items-center gap-2 whitespace-nowrap rounded-md border border-line-strong bg-card px-3 py-2 text-sm font-medium text-foreground hover:border-primary';
@@ -46,16 +47,8 @@ const BTN_PRIMARY =
 const TH = 'px-3 pb-2.5 pt-3 text-left font-mono text-[11px] font-medium uppercase tracking-[0.07em] text-muted-foreground';
 const TD = 'border-t border-line px-3 py-3';
 
-const KIND: Record<ServiceSummaryDto['productKind'], string> = {
-  HOSTING: 'Hosting',
-  EMAIL: 'Poczta',
-  EMAIL_MARKETING: 'E-mail marketing',
-};
-
-function serviceHref(s: ServiceSummaryDto) {
-  if (s.productKind === 'EMAIL_MARKETING') return `/dashboard/email-marketing/${s.id}`;
-  return `/dashboard/services/${s.id}?kind=${s.productKind ?? 'HOSTING'}`;
-}
+const KIND = ETYKIETA_RODZAJU;
+const serviceHref = adresUslugi;
 
 // Czas polski także w renderze serwera (UTC) — inaczej hydratacja się nie zgadza (React #418, 12.10).
 function date(iso: string | null | undefined) {

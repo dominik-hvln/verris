@@ -2,6 +2,7 @@ import {
   BillingInterval,
   DomainStatus,
   InvoiceStatus,
+  ProductKind,
   SubscriptionStatus,
   WalletTxStatus,
   WalletTxType,
@@ -10,6 +11,7 @@ import {
   BILLING_INTERVAL_PL,
   DOMAIN_STATUS_PL,
   INVOICE_STATUS_PL,
+  PRODUCT_KIND_PL,
   SUBSCRIPTION_STATUS_PL,
   WALLET_TX_STATUS_PL,
   WALLET_TX_TYPE_PL,
@@ -30,6 +32,8 @@ const PARY: Array<[string, Record<string, string>, Record<string, string>]> = [
   ['SubscriptionStatus', SubscriptionStatus, SUBSCRIPTION_STATUS_PL],
   ['BillingInterval', BillingInterval, BILLING_INTERVAL_PL],
   ['DomainStatus', DomainStatus, DOMAIN_STATUS_PL],
+  // Paczka 121 — nowy produkt (KREATOR_PRO) ma etykietę na liście usług i w panelu obsługi.
+  ['ProductKind', ProductKind, PRODUCT_KIND_PL],
 ];
 
 it.each(PARY)('%s – etykiety = wartości enumu w bazie', (_nazwa, enumBazy, etykiety) => {

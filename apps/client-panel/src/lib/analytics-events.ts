@@ -21,7 +21,7 @@
 
 export interface EcommerceItem {
   item_name: string;
-  item_category?: "hosting" | "vps" | "domena" | "email" | "email-marketing" | "trial" | "kredyty";
+  item_category?: "hosting" | "vps" | "domena" | "email" | "email-marketing" | "kreator-pro" | "trial" | "kredyty";
   price?: number;
   quantity?: number;
 }

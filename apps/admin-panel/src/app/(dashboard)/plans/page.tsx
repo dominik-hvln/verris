@@ -4,6 +4,7 @@ import { Box, Plus, AlertTriangle, CheckCircle2, EyeOff, EyeIcon, Mail } from "l
 import { listAdminPlans, type AdminPlanRow } from "./data";
 import { plForm } from "@/lib/pl";
 import { fetchStaffAccess } from "@/lib/staff-access";
+import { PRODUCT_KIND_PL } from "@verris/contracts";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,7 @@ function PlanRow({ plan, edycja = true }: { plan: AdminPlanRow; edycja?: boolean
             <div className="text-[11px] text-muted-foreground font-mono">
               {plan.slug} · sortOrder={plan.sortOrder}
             </div>
+            <div className="text-[11px] text-muted-foreground">{PRODUCT_KIND_PL[plan.productKind] ?? plan.productKind}</div>
           </div>
         </div>
       </td>
@@ -47,6 +49,9 @@ function PlanRow({ plan, edycja = true }: { plan: AdminPlanRow; edycja?: boolean
           {formatPrice(plan.priceYearly, plan.currency)}
         </div>
       </td>
+      {plan.productKind === "EMAIL_MARKETING" || plan.productKind === "KREATOR_PRO" ? (
+      <td className="px-6 py-4 text-[11px] text-muted-foreground">Usługa aplikacyjna – bez konta i limitów na serwerze</td>
+      ) : (
       <td className="px-6 py-4 text-[11px] text-white space-y-0.5">
         <div className="text-muted-foreground">
           CPU <span className="text-white">{plan.cpuLimit}%</span> · RAM{" "}
@@ -61,6 +66,7 @@ function PlanRow({ plan, edycja = true }: { plan: AdminPlanRow; edycja?: boolean
           <span className="text-white">{plan.nprocLimit}</span>
         </div>
       </td>
+      )}
       <td className="px-6 py-4 text-[11px]">
         <StripeIdBadge label="M" id={plan.stripePriceMonthlyId} />
         <StripeIdBadge label="Y" id={plan.stripePriceYearlyId} />

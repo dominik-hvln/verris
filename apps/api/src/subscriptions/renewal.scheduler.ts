@@ -21,6 +21,7 @@ import {
   ZAWIESZENIE_DO_WYGASNIECIA_DNI,
 } from './subscriptions.service.js';
 import { EcoPointsService } from '../eco/eco-points.service.js';
+import { nazwaPozycjiUslugi } from '../billing/pozycja-uslugi.js';
 
 const HOURS = 60 * 60 * 1000;
 const DAYS = 24 * HOURS;
@@ -111,7 +112,7 @@ export class RenewalScheduler {
         status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE] },
         currentPeriodEnd: { lte: upTo },
       },
-      include: { plan: { select: { slug: true } } },
+      include: { plan: PLAN_ODNOWIENIA },
       orderBy: { currentPeriodEnd: 'asc' },
       take: 200,
     });
@@ -199,7 +200,7 @@ export class RenewalScheduler {
   async retryPastDueNow(userId: string, subscriptionId: string): Promise<{ status: string }> {
     const sub = await this.prisma.subscription.findFirst({
       where: { id: subscriptionId, userId },
-      include: { plan: { select: { slug: true } }, ...OSTATNIE_ZAWIESZENIE },
+      include: { plan: PLAN_ODNOWIENIA, ...OSTATNIE_ZAWIESZENIE },
     });
     if (!sub) throw new NotFoundException('Usługa nie istnieje.');
     const zawieszona = sub.status === SubscriptionStatus.SUSPENDED;
@@ -270,7 +271,7 @@ export class RenewalScheduler {
         userId: sub.userId,
         type: WalletTxType.CHARGE_SUBSCRIPTION,
         amount: renewalAmount,
-        description: `Auto-renewal ${sub.plan.slug} (${sub.interval})`,
+        description: opisOdnowienia(sub, periodEnd),
         idempotencyKey,
         subscriptionId: sub.id,
       });
@@ -477,7 +478,7 @@ export class RenewalScheduler {
         paymentSource: { in: ['WALLET', 'STRIPE_CARD'] },
         stripeSubscriptionId: null,
       },
-      include: { plan: { select: { slug: true } }, ...OSTATNIE_ZAWIESZENIE },
+      include: { plan: PLAN_ODNOWIENIA, ...OSTATNIE_ZAWIESZENIE },
       take: 200,
     });
     for (const sub of zawieszone) {
@@ -548,9 +549,27 @@ export class RenewalScheduler {
 
   private findRenewable() {
     return this.prisma.subscription.findMany({
-      include: { plan: { select: { slug: true } } },
+      include: { plan: PLAN_ODNOWIENIA },
     });
   }
+}
+
+/** Plan w odczytach odnowień: slug do opisu obciążenia, nazwa i rodzaj do nazwy pozycji abonamentu. */
+const PLAN_ODNOWIENIA = { select: { slug: true, name: true, productKind: true } } as const;
+
+/**
+ * Opis obciążenia za odnowienie. Paczka 121: abonament Kreator Pro nazywa się jak na dokumencie
+ * („Verris Kreator Pro – abonament miesięczny, okres …”) – w modelu fakturowania „przy obciążeniu” opis jest
+ * nazwą pozycji faktury (faktura-za-portfel.ts). Pozostałe produkty bez zmian.
+ */
+export function opisOdnowienia(
+  sub: { interval: 'MONTH' | 'YEAR'; plan: { slug: string; name?: string; productKind?: string } },
+  periodEnd: Date,
+): string {
+  if (sub.plan.productKind === 'KREATOR_PRO' && sub.plan.name) {
+    return nazwaPozycjiUslugi({ plan: sub.plan.name, interval: sub.interval, od: periodEnd, rodzaj: 'odnowienie', produkt: sub.plan.productKind });
+  }
+  return `Auto-renewal ${sub.plan.slug} (${sub.interval})`;
 }
 
 export const OSTATNIE_ZAWIESZENIE = {

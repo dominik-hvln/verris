@@ -29,6 +29,7 @@ export function InformacjePrzedumowne({
   rejestracjaDomeny,
   kredytAutoskalowania = 0,
   waznoscKredytowMiesiecy = 12,
+  gdzieWylaczyc = 'w ustawieniach usługi',
 }: {
   nazwaUslugi: string;
   okres: 'MONTH' | 'YEAR';
@@ -41,6 +42,8 @@ export function InformacjePrzedumowne({
   /** Decyzja 6.11.2026 — kredyty na autoskalowanie przy pierwszym zakupie hostingu (zł); 0 = nie przysługują. */
   kredytAutoskalowania?: number;
   waznoscKredytowMiesiecy?: number;
+  /** Gdzie w panelu klient wyłącza odnowienie (paczka 121: Kreator Pro – na stronie Kreator stron). */
+  gdzieWylaczyc?: string;
 }) {
   const coOkres = okres === 'YEAR' ? 'co rok' : 'co miesiąc';
   const zaOkres = okres === 'YEAR' ? 'za rok' : 'za miesiąc';
@@ -62,8 +65,8 @@ export function InformacjePrzedumowne({
         <dt className="text-neutral-400">Odnowienie</dt>
         <dd>
           Automatycznie {coOkres}, kwotą {formatPln(odnowienie)} brutto według cennika z dnia odnowienia,{' '}
-          {zKarty ? 'z Twojej karty' : 'z portfela'}. Przypomnimy o nim e-mailem. Wyłączysz je w panelu, w ustawieniach
-          usługi, przed końcem okresu.
+          {zKarty ? 'z Twojej karty' : 'z portfela'}. Przypomnimy o nim e-mailem. Wyłączysz je w panelu, {gdzieWylaczyc},
+          przed końcem okresu.
         </dd>
         {autoskalowanie !== null ? (
           <>

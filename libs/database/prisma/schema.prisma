@@ -999,6 +999,9 @@ enum ProductKind {
   // EMM — produkt email-marketingu: klient wysyła newslettery do WŁASNYCH
   // subskrybentów (listy/kontakty/kampanie). Aplikacyjny, bez konta DA/węzła.
   EMAIL_MARKETING
+  // Paczka 121 — abonament Verris Kreator Pro (decyzja 8.11.2026). Aplikacyjny jak EMM:
+  // bez konta DA/węzła, aktywny od razu po płatności; wymaga płatnego hostingu na koncie.
+  KREATOR_PRO
 }
 
 model Plan {

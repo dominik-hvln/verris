@@ -12,6 +12,7 @@ import { AuditService } from '../common/audit/audit.service.js';
 import { StripeService } from '../billing/stripe/stripe.service.js';
 import { PlanStripeSyncService } from './plan-stripe-sync.service.js';
 import { CreatePlanDto, UpdatePlanDto } from './dto/plan.dto.js';
+import { produktAplikacyjny } from '../subscriptions/produkt-aplikacyjny.js';
 
 interface PriceValidationContext {
   /** Walidujemy z planem ile-w-PLN i jakim intervalem powinien się zgadzać. */
@@ -145,6 +146,11 @@ export class PlansService {
 
   async update(id: string, dto: UpdatePlanDto, actorUserId: string): Promise<Plan> {
     const current = await this.getById(id);
+    // Paczka 121 — plan produktu aplikacyjnego (Newsletter, Kreator Pro) nie staje się hostingiem ani pocztą:
+    // dostałby pakiet DirectAdmina z limitami 1 MB, a jego usługi – zakładanie konta na węźle.
+    if (dto.productKind !== undefined && dto.productKind !== current.productKind && produktAplikacyjny(current.productKind)) {
+      throw new BadRequestException('Rodzaju tego planu nie zmienisz – to usługa aplikacyjna (bez konta na serwerze).');
+    }
 
     this.validateCloudLinuxLimits(
       dto.entryProcesses ?? current.entryProcesses,

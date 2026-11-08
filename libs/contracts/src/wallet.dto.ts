@@ -91,7 +91,7 @@ export interface StatusPlatnosciPaynowDto {
     wartosc: number;
     waluta: string;
     nazwa: string;
-    kategoria: 'hosting' | 'email' | 'email-marketing';
+    kategoria: 'hosting' | 'email' | 'email-marketing' | 'kreator-pro';
   };
 }
 

@@ -23,13 +23,29 @@ export function dataPl(d: Date): string {
 /** Najdłuższa nazwa pozycji — z zapasem pod limit pola P_7 w FA(3) (512 znaków). */
 export const MAKS_NAZWA_POZYCJI = 256;
 
+/**
+ * Paczka 121 — abonament Verris Kreator Pro na dokumencie: „Verris Kreator Pro – abonament miesięczny/roczny”
+ * (nazwa planu z bazy). Ta sama pozycja przy zakupie i odnowieniu – okres na dokumencie mówi, za który czas.
+ */
+export function nazwaAbonamentu(plan: string, interval: 'MONTH' | 'YEAR'): string {
+  return `${plan} – abonament ${interval === 'YEAR' ? 'roczny' : 'miesięczny'}`;
+}
+
+/** Produkty rozliczane jako „abonament” zamiast „<plan> – 1 mies.”. */
+const ABONAMENTY = new Set(['KREATOR_PRO']);
+
 export function nazwaPozycjiUslugi(u: {
   plan: string;
   interval: 'MONTH' | 'YEAR';
   domena?: string | null;
   od: Date;
   rodzaj: 'zakup' | 'odnowienie';
+  /** ProductKind planu – KREATOR_PRO nazywa się „abonament miesięczny/roczny”. */
+  produkt?: string | null;
 }): string {
+  if (u.produkt && ABONAMENTY.has(u.produkt)) {
+    return `${nazwaAbonamentu(u.plan, u.interval)}, okres ${dataPl(u.od)}–${dataPl(koniecOkresu(u.od, u.interval))}`.slice(0, MAKS_NAZWA_POZYCJI);
+  }
   const okres =
     u.rodzaj === 'odnowienie'
       ? `odnowienie ${u.interval === 'YEAR' ? 'roczne' : 'miesięczne'}`

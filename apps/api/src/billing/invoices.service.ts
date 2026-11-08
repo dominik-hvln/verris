@@ -25,6 +25,7 @@ import { StripeInvoice } from './stripe/stripe.client.js';
 import { etykietaStawki, rozbicieWgStawki, type VatDokumentu } from './vat.js';
 import { VatNabywcyService } from './vat-nabywcy.service.js';
 import { formaZaplatyFaktury } from './forma-zaplaty.js';
+import { nazwaAbonamentu } from './pozycja-uslugi.js';
 import {
   DOSTAWCA_RECZNY,
   nadajNumerDokumentu,
@@ -669,6 +670,8 @@ export class InvoicesService {
       });
       if (sub) {
         const planName = sub.plan?.name ?? 'Hosting';
+        // Paczka 121 — abonament Kreator Pro: „Verris Kreator Pro – abonament miesięczny/roczny”.
+        if ((sub.plan?.productKind as string | undefined) === 'KREATOR_PRO') return nazwaAbonamentu(planName, sub.interval);
         const interval = sub.interval === 'MONTH' ? 'miesięczna' : 'roczna';
         return sub.account?.domain
           ? `${planName} – subskrypcja ${interval} (${sub.account.domain})`

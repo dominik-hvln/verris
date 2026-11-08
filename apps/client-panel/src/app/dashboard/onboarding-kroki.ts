@@ -1,5 +1,6 @@
 import type { ServiceSummaryDto } from '@verris/contracts/klient';
 import type { OnboardingSnapshot } from './onboarding-data';
+import { produktAplikacyjny } from '@/lib/rodzaj-uslugi';
 
 /**
  * PANEL-01 — kroki onboardingu jako dane, nie JSX.
@@ -232,7 +233,9 @@ export function platnoscZabezpieczona(s: ServiceSummaryDto, konto: KontoOnboardi
 /** PROD-02 — każda żywa usługa, nie tylko `services[0]`. Anulowane i wygasłe nie mają czego konfigurować. */
 export function uslugiOnboardingu(services: ServiceSummaryDto[], konto: KontoOnboardingu | null = null): UslugaOnboardingu[] {
   return services
-    .filter((s) => s.status !== 'CANCELED' && s.status !== 'EXPIRED')
+    // Paczka 121 — produkty bez konta na serwerze (e-mail marketing, Kreator Pro) nie mają domeny, DNS ani SSL do
+    // skonfigurowania: bez tego abonament Kreatora Pro wisiałby w postępie jako „usługa bez domeny”.
+    .filter((s) => s.status !== 'CANCELED' && s.status !== 'EXPIRED' && !produktAplikacyjny(s.productKind))
     .map((s) => ({
       id: s.id,
       nazwa: s.account?.domain || s.planName,

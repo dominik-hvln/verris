@@ -927,13 +927,13 @@ export class BillingService {
         status: true,
         interval: true,
         currentPeriodEnd: true,
-        plan: { select: { name: true } },
+        plan: { select: { name: true, productKind: true } },
         account: { select: { domain: true } },
       },
     });
     if (!sub) return null;
     if (meta.zamowienieTyp === 'nowa' && sub.status === 'PENDING_PAYMENT') {
-      return nazwaPozycjiUslugi({ plan: sub.plan.name, interval: sub.interval, domena: meta.domena ?? null, od: teraz, rodzaj: 'zakup' });
+      return nazwaPozycjiUslugi({ plan: sub.plan.name, interval: sub.interval, domena: meta.domena ?? null, od: teraz, rodzaj: 'zakup', produkt: sub.plan.productKind });
     }
     if (meta.zamowienieTyp === 'odnowienie' && (sub.status === 'PAST_DUE' || sub.status === 'SUSPENDED')) {
       return nazwaPozycjiUslugi({
@@ -942,6 +942,7 @@ export class BillingService {
         domena: sub.account?.domain ?? null,
         od: sub.currentPeriodEnd ?? teraz,
         rodzaj: 'odnowienie',
+        produkt: sub.plan.productKind,
       });
     }
     return null;
@@ -1132,7 +1133,14 @@ export class BillingService {
         wartosc: rek.kwotaMinor / 100,
         waluta: rek.waluta,
         nazwa: sub.plan.name,
-        kategoria: sub.plan.productKind === 'EMAIL' ? 'email' : sub.plan.productKind === 'EMAIL_MARKETING' ? 'email-marketing' : 'hosting',
+        kategoria:
+          sub.plan.productKind === 'EMAIL'
+            ? 'email'
+            : sub.plan.productKind === 'EMAIL_MARKETING'
+              ? 'email-marketing'
+              : sub.plan.productKind === 'KREATOR_PRO'
+                ? 'kreator-pro'
+                : 'hosting',
       },
     };
   }

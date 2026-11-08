@@ -1,3 +1,9 @@
+/**
+ * Rodzina produktu planu (enum ProductKind w bazie). EMAIL_MARKETING i KREATOR_PRO to produkty aplikacyjne:
+ * bez konta na serwerze i bez domeny. Etykiety: PRODUCT_KIND_PL (etykiety.ts).
+ */
+export type ProductKind = 'HOSTING' | 'EMAIL' | 'EMAIL_MARKETING' | 'KREATOR_PRO';
+
 export interface PlanDto {
   id: string;
   slug: string;
@@ -20,8 +26,8 @@ export interface PlanDto {
   sortOrder: number;
   /** O-1 — free trial length in days. 0 = no trial available. */
   trialDays: number;
-  /** P-1b / EMM — 'HOSTING' (web), 'EMAIL' (mailbox), 'EMAIL_MARKETING' (newsletter app). */
-  productKind: 'HOSTING' | 'EMAIL' | 'EMAIL_MARKETING';
+  /** P-1b / EMM / paczka 121 — 'HOSTING' (web), 'EMAIL' (mailbox), 'EMAIL_MARKETING' (newsletter), 'KREATOR_PRO' (abonament kreatora). */
+  productKind: ProductKind;
   /** EMM — limity pakietu e-mail marketingu (null = bez limitu; dla innych produktów null). */
   emmMaxContacts?: number | null;
   emmMonthlySends?: number | null;

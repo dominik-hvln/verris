@@ -1,6 +1,7 @@
 "use server";
 
 import { adminApi } from "@/lib/api";
+import type { ProductKind } from "@verris/contracts";
 
 export interface AdminPlanRow {
   id: string;
@@ -26,8 +27,8 @@ export interface AdminPlanRow {
   sortOrder: number;
   /** O-1 — free trial length in days. 0 = no trial available. */
   trialDays: number;
-  /** HOSTING vs standalone e-mail product (P-1b). */
-  productKind: 'HOSTING' | 'EMAIL';
+  /** P-1b / paczka 121 — rodzaj produktu; EMAIL_MARKETING i KREATOR_PRO to usługi aplikacyjne (bez konta na serwerze). */
+  productKind: ProductKind;
   /** SUP-4 — SLA response window in hours; 0 = no SLA badge. */
   supportSlaHours: number;
   /** H-03 — najdłuższa retencja kopii poza serwerem do wyboru przez klienta (dni). */

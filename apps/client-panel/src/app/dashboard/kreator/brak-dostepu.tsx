@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { LayoutTemplate } from 'lucide-react';
-import { klasaPrzyciskuGlownego, klasaPrzyciskuDrugiego } from './wspolne';
+import { klasaPrzyciskuGlownego, klasaPrzyciskuDrugiego } from './klasy';
 
 /** Ekran „kreator niedostępny” – czytelny powód z API (kreator w testach, brak hostingu), bez błędu strony. */
 export function BrakDostepu({ powod, zamowHosting = false }: { powod: string | null; zamowHosting?: boolean }) {

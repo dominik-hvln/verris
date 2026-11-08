@@ -38,6 +38,22 @@ function zastosuj(r: Rek, data: Rek) {
   r.updatedAt = new Date();
 }
 
+function usluga(x: Rek): Rek {
+  return { status: 'ACTIVE', plan: { productKind: 'HOSTING' }, createdAt: new Date(0), ...x };
+}
+
+function pasujeUsluga(x: Rek, where: Rek): boolean {
+  const u = usluga(x);
+  if (where.userId !== undefined && u.userId !== where.userId) return false;
+  const st = where.status as { in?: string[] } | undefined;
+  if (st?.in && !st.in.includes(u.status as string)) return false;
+  const pk = (where.plan as { productKind?: string | { in: string[] } } | undefined)?.productKind;
+  const rodzaj = (u.plan as { productKind: string }).productKind;
+  if (typeof pk === 'string' && rodzaj !== pk) return false;
+  if (pk && typeof pk === 'object' && !pk.in.includes(rodzaj)) return false;
+  return true;
+}
+
 function bazaAtrapa() {
   const strony: Rek[] = [];
   const wersje: Rek[] = [];
@@ -47,15 +63,20 @@ function bazaAtrapa() {
     wersje,
     zuzycie,
     subs: [{ userId: 'u1', isTrial: false, trialConvertedAt: null }] as Rek[],
-    addons: [] as Rek[],
+    /** Plan KREATOR_PRO w sprzedaży (paczka 121) – null = przed migracją danych. */
+    planPro: null as Rek | null,
     ustawienia: { [KLUCZ_KONFIGURACJI_KREATORA]: JSON.stringify({ wlaczony: true }) } as Record<string, string>,
   };
   let n = 0;
   const prisma = {
     platformSetting: { findUnique: vi.fn(async ({ where }: { where: { key: string } }) => (db.ustawienia[where.key] ? { value: db.ustawienia[where.key] } : null)) },
     user: { findUnique: vi.fn(async ({ where }: { where: { id: string } }) => ({ email: `${where.id}@example.com` })) },
-    subscription: { findMany: vi.fn(async ({ where }: { where: { userId: string } }) => db.subs.filter((s) => s.userId === where.userId)) },
-    purchasedAddon: { findFirst: vi.fn(async ({ where }: { where: Rek }) => db.addons.find((a) => pasuje(a, where)) ?? null) },
+    // Usługa bez `status`/`plan` = działający hosting (ACTIVE, HOSTING); abonament Pro – plan.productKind KREATOR_PRO.
+    subscription: {
+      findMany: vi.fn(async ({ where }: { where: Rek }) => db.subs.filter((x) => pasujeUsluga(x, where)).map(usluga)),
+      findFirst: vi.fn(async ({ where }: { where: Rek }) => db.subs.filter((x) => pasujeUsluga(x, where)).map(usluga).at(-1) ?? null),
+    },
+    plan: { findFirst: vi.fn(async () => db.planPro) },
     kreatorStrona: {
       count: vi.fn(async ({ where }: { where: Rek }) => strony.filter((s) => pasuje(s, where)).length),
       create: vi.fn(async ({ data }: { data: Rek }) => {
@@ -199,18 +220,41 @@ describe('KreatorService – dostęp i wersje', () => {
     expect((await svc.stan('u1')).dostep).toBe(true);
   });
 
-  it('wersja: próba (tylko usługi w próbie), hosting (płatny), pro (dodatek kreator_pro)', async () => {
+  it('wersja: próba (tylko usługi w próbie), hosting (płatny), pro (abonament KREATOR_PRO przy płatnym hostingu)', async () => {
     const { svc, db } = zbuduj([]);
     db.subs = [{ userId: 'u1', isTrial: true, trialConvertedAt: null }];
     expect((await svc.stan('u1')).wersja).toBe('proba');
+    // Abonament przy samej próbie hostingu nie włącza Pro (kupić go można tylko przy płatnym hostingu).
+    db.subs.push({ userId: 'u1', isTrial: false, trialConvertedAt: null, plan: { productKind: 'KREATOR_PRO' }, priceAmount: '9.90' });
+    expect((await svc.stan('u1')).wersja).toBe('proba');
     db.subs.push({ userId: 'u1', isTrial: true, trialConvertedAt: new Date() });
-    expect((await svc.stan('u1')).wersja).toBe('hosting');
-    db.addons.push({ userId: 'u1', slug: 'kreator_pro', status: 'REFUNDED' });
-    expect((await svc.stan('u1')).wersja).toBe('hosting');
-    db.addons.push({ userId: 'u1', slug: 'kreator_pro', status: 'APPLIED' });
     const stan = await svc.stan('u1');
     expect(stan.wersja).toBe('pro');
     expect(stan.plan?.wariantyGeneracji).toBe(3);
+    db.subs[1].status = 'SUSPENDED';
+    expect((await svc.stan('u1')).wersja).toBe('hosting');
+  });
+
+  it('stan: cennik Pro z planu w bazie (netto jak faktura), abonament z datą końca i sposobem odnawiania', async () => {
+    const { svc, db } = zbuduj([]);
+    // Bez planu w sprzedaży – cennik z decyzji, zakup wyłączony.
+    let stan = await svc.stan('u1');
+    expect(stan.cenaPro).toEqual({ miesiacBrutto: 9.9, miesiacNetto: 8.05, rokBrutto: 99, rokNetto: 80.49 });
+    expect(stan.pro.zakup).toEqual({ mozliwy: false, powod: expect.stringContaining('niedostępny') });
+    db.planPro = { id: 'plan-pro', priceMonthly: '12.30', priceYearly: '123.00' };
+    stan = await svc.stan('u1');
+    expect(stan.cenaPro).toEqual({ miesiacBrutto: 12.3, miesiacNetto: 10, rokBrutto: 123, rokNetto: 100 });
+    expect(stan.pro).toMatchObject({ planId: 'plan-pro', zakup: { mozliwy: true, powod: null }, abonament: null });
+    const koniec = new Date('2026-12-08T10:00:00Z');
+    db.subs.push({
+      id: 'sub-pro', userId: 'u1', plan: { productKind: 'KREATOR_PRO' }, interval: 'YEAR', paymentSource: 'STRIPE_CARD',
+      currentPeriodEnd: koniec, cancelAt: koniec, priceAmount: '99.00', listPriceAmount: null,
+    });
+    stan = await svc.stan('u1');
+    expect(stan.pro.zakup).toEqual({ mozliwy: false, powod: expect.stringContaining('Masz już abonament') });
+    expect(stan.pro.abonament).toEqual({
+      id: 'sub-pro', status: 'ACTIVE', interval: 'YEAR', aktywnyDo: koniec.toISOString(), odnowienie: 'karta', bezOdnowienia: true, cena: '99.00',
+    });
   });
 
   it('cudza strona → 404 (odczyt, zapis, podgląd, usunięcie)', async () => {
@@ -318,7 +362,7 @@ describe('KreatorService – zadanie generacji', () => {
 
   it('Pro: 3 kierunki, pierwszy przed resztą; pierwsza poprawna propozycja = model, reszta w propozycje; wybór propozycji', async () => {
     const { svc, db, ai, dokonczZadania } = zbuduj([JSON.stringify(zeStylem('a')), JSON.stringify(zeStylem('b')), JSON.stringify(zeStylem('c'))]);
-    db.addons.push({ userId: 'u1', slug: 'kreator_pro', status: 'APPLIED' });
+    db.subs.push({ userId: 'u1', isTrial: false, trialConvertedAt: null, plan: { productKind: 'KREATOR_PRO' }, priceAmount: '9.90' });
     db.strony.push({ id: 'stara', userId: 'u9', branza: 'fryzjer', odcisk: 'odcisk-x', status: 'GOTOWA' });
     const { id } = await svc.utworz('u1', 'u1', { nazwa: 'Salon', brief: BRIEF });
     await dokonczZadania();

@@ -1,4 +1,5 @@
 import { PageHeaderRow } from '@/components/panel';
+import { StronaSkupienia } from '@/components/panel/tryb-skupienia';
 import { pobierzStrone, stanKreatora } from '../akcje';
 import { BrakDostepu } from '../brak-dostepu';
 import { StronaKreatora } from './strona-kreatora';
@@ -10,18 +11,22 @@ export default async function EdytorStronyPage({ params }: { params: Promise<{ i
   const [stan, strona] = await Promise.all([stanKreatora(), pobierzStrone(id)]);
   if (!stan.ok || !stan.dane.dostep || !stan.dane.plan) {
     return (
-      <div className="space-y-6">
-        <PageHeaderRow title="Kreator stron" />
-        <BrakDostepu powod={stan.ok ? stan.dane.powod : 'Nie udało się wczytać kreatora – odśwież stronę za chwilę.'} zamowHosting={stan.ok && !!stan.dane.powod?.includes('Zamów hosting')} />
-      </div>
+      <StronaSkupienia>
+        <div className="space-y-6">
+          <PageHeaderRow title="Kreator stron" />
+          <BrakDostepu powod={stan.ok ? stan.dane.powod : 'Nie udało się wczytać kreatora – odśwież stronę za chwilę.'} zamowHosting={stan.ok && !!stan.dane.powod?.includes('Zamów hosting')} />
+        </div>
+      </StronaSkupienia>
     );
   }
   if (!strona.ok) {
     return (
-      <div className="space-y-6">
-        <PageHeaderRow title="Kreator stron" />
-        <BrakDostepu powod={strona.status === 404 ? 'Nie znaleziono tej strony – mogła zostać usunięta.' : strona.blad} />
-      </div>
+      <StronaSkupienia>
+        <div className="space-y-6">
+          <PageHeaderRow title="Kreator stron" />
+          <BrakDostepu powod={strona.status === 404 ? 'Nie znaleziono tej strony – mogła zostać usunięta.' : strona.blad} />
+        </div>
+      </StronaSkupienia>
     );
   }
   return <StronaKreatora widok={strona.dane} stan={stan.dane} />;

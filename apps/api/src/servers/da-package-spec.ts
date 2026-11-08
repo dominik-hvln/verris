@@ -120,13 +120,13 @@ export interface PlanResourceFields {
   nprocLimit: number;
   /** B6 — SSH/Git shell access per plan (off by default; CageFS isolates). */
   sshAccess?: boolean;
-  /** P-1b / EMM — rodzina produktu; EMAIL = pakiet pocztowy, EMAIL_MARKETING = aplikacyjny (bez DA). */
-  productKind?: 'HOSTING' | 'EMAIL' | 'EMAIL_MARKETING';
+  /** P-1b / EMM — rodzina produktu; EMAIL = pakiet pocztowy, EMAIL_MARKETING i KREATOR_PRO = aplikacyjne (bez DA). */
+  productKind?: 'HOSTING' | 'EMAIL' | 'EMAIL_MARKETING' | 'KREATOR_PRO';
 }
 
 /**
  * Q-05 — plany, które mają pakiet DirectAdmina i limity LVE na węźle. Produkty aplikacyjne
- * (EMAIL_MARKETING) nie mają konta na węźle: bez tego filtra synchronizacja pakietów, audyt węzła
+ * (EMAIL_MARKETING, KREATOR_PRO) nie mają konta na węźle: bez tego filtra synchronizacja pakietów, audyt węzła
  * i stan LVE zakładałyby na każdym węźle pakiet „newsletter-start” z limitami 1 MB / 1% CPU.
  * Lista dozwolona (nie „wszystko poza EMAIL_MARKETING”), żeby kolejny produkt aplikacyjny nie trafił
  * na węzeł przez pominięcie.

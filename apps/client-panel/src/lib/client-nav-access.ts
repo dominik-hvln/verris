@@ -18,7 +18,7 @@ const W_ZAKRESIE = [
 ];
 
 /** PB-28 — przy rozliczeniu poza Verris klient nie płaci w panelu i nie zamawia sam nowych usług. */
-const POZA_VERRIS = ['/dashboard/billing', '/dashboard/services/new', '/dashboard/domains/buy', '/dashboard/calculator'];
+const POZA_VERRIS = ['/dashboard/billing', '/dashboard/services/new', '/dashboard/domains/buy', '/dashboard/calculator', '/dashboard/kreator/pro'];
 
 function hasAny(permissions: Set<string>, keys: string[]): boolean {
   return keys.some((key) => permissions.has(key));
@@ -84,6 +84,10 @@ export function canAccessDashboardRoute(
   // nowa strona (generacja AI z limitu konta) jak menedżer plików; zapis w edytorze sprawdza API.
   if (href === '/dashboard/kreator/nowa' || href.startsWith('/dashboard/kreator/nowa?')) {
     return perms.has('FILES_MANAGE');
+  }
+  // Paczka 121 – zakup abonamentu Kreator Pro to zamówienie usługi (POST /subscriptions) – jak /dashboard/services/new.
+  if (href === '/dashboard/kreator/pro' || href.startsWith('/dashboard/kreator/pro?')) {
+    return perms.has('SERVICES_MANAGE') && perms.has('BILLING_MANAGE');
   }
   if (href === '/dashboard/kreator' || href.startsWith('/dashboard/kreator/') || href.startsWith('/dashboard/kreator?')) {
     return hasAny(perms, ['SERVICES_READ', 'SERVICES_MANAGE', 'FILES_MANAGE']);

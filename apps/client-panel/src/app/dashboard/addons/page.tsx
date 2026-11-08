@@ -2,11 +2,13 @@ import { Sparkles } from 'lucide-react';
 import { PanelPageHeader, PanelCard, PanelFetchError } from '@/components/panel';
 import { fetchAddons } from './addons-actions';
 import { AddonsClient } from './addons-client';
+import { KafelekKreatoraPro } from './kafelek-kreatora-pro';
+import { stanKreatora } from '../kreator/akcje';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AddonsPage() {
-  const overview = await fetchAddons();
+  const [overview, kreator] = await Promise.all([fetchAddons(), stanKreatora()]);
   return (
     <div className="space-y-4">
       <PanelPageHeader
@@ -14,6 +16,7 @@ export default async function AddonsPage() {
         title="Dodatki"
         description="Jednorazowe usługi dodatkowe – opłacane z portfela."
       />
+      <KafelekKreatoraPro stan={kreator.ok ? kreator.dane : null} />
       <PanelCard>
         {!overview ? (
           <PanelFetchError message="Nie udało się pobrać katalogu dodatków." />

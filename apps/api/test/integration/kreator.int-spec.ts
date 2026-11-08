@@ -61,9 +61,19 @@ describe('Verris Kreator – baza', () => {
     expect(await wersjaKreatora(prisma() as never, (await klient({ trial: true })).id)).toBe('proba');
     expect(await wersjaKreatora(prisma() as never, (await klient({ productKind: 'EMAIL' })).id)).toBeNull();
     expect(await wersjaKreatora(prisma() as never, (await klient({ status: 'SUSPENDED' })).id)).toBeNull();
-    const pro = await klient({ trial: true });
+    // Paczka 121 — Pro = subskrypcja KREATOR_PRO (ACTIVE/PAST_DUE) przy płatnym hostingu; dawny dodatek nie działa.
+    const pro = await klient();
     await prisma().purchasedAddon.create({ data: { userId: pro.id, slug: 'kreator_pro', name: 'Kreator Pro', amount: 9.9, status: 'APPLIED' } });
+    expect(await wersjaKreatora(prisma() as never, pro.id)).toBe('hosting');
+    const planPro = await utworzPlan({ productKind: 'KREATOR_PRO', priceMonthly: 9.9, priceYearly: 99 });
+    const abonament = await prisma().subscription.create({
+      data: { userId: pro.id, planId: planPro.id, interval: 'MONTH', priceAmount: 9.9, status: 'ACTIVE', paymentSource: 'WALLET' },
+    });
     expect(await wersjaKreatora(prisma() as never, pro.id)).toBe('pro');
+    await prisma().subscription.update({ where: { id: abonament.id }, data: { status: 'PAST_DUE' } });
+    expect(await wersjaKreatora(prisma() as never, pro.id)).toBe('pro');
+    await prisma().subscription.update({ where: { id: abonament.id }, data: { status: 'SUSPENDED' } });
+    expect(await wersjaKreatora(prisma() as never, pro.id)).toBe('hosting');
   });
 
   it('generacja: strona GOTOWA z modelem JSON, wersja 1, zużycie miesiąca z kosztem i cache', async () => {

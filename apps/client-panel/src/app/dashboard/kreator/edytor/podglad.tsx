@@ -1,13 +1,24 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { Maximize2 } from 'lucide-react';
 import { cx } from '@/components/panel/cx';
 
 /** Odświeżenie podglądu po ostatniej zmianie (ms) – szybko, ale bez renderu przy każdym znaku. */
 export const ZWLOKA_PODGLADU_MS = 400;
 export const SZEROKOSC_KOMPUTER = 1280;
 export const SZEROKOSC_TELEFON = 390;
-const CEL = 'kreator-podglad';
+/**
+ * Poniżej tej skali widok komputera (1280 px) jest nieczytelny – tekst 16 px wychodzi poniżej 8 px. Podgląd sam
+ * przechodzi wtedy na telefon i proponuje widok komputera na pełnym ekranie.
+ */
+export const PROG_SKALI_KOMPUTERA = 0.5;
+
+/** Który widok naprawdę pokazać w kolumnie o tej szerokości (0 = jeszcze nie zmierzona). */
+export function widokPodgladu(urzadzenie: 'komputer' | 'telefon', szerokosc: number): { urzadzenie: 'komputer' | 'telefon'; zaWasko: boolean } {
+  const zaWasko = urzadzenie === 'komputer' && szerokosc > 0 && szerokosc / SZEROKOSC_KOMPUTER < PROG_SKALI_KOMPUTERA;
+  return { urzadzenie: zaWasko ? 'telefon' : urzadzenie, zaWasko };
+}
 
 export type WiadomoscPodgladu =
   | { typ: 'sekcja'; id: string }
@@ -40,8 +51,10 @@ export function Podglad({
   pro,
   zaznaczona,
   przewinDo,
-  urzadzenie,
+  urzadzenie: wybrane,
   poprawny = true,
+  pelnyRozmiar = false,
+  onPelnyEkran,
   onWiadomosc,
 }: {
   model: unknown;
@@ -53,8 +66,14 @@ export function Podglad({
   /** Zmiana `nr` = przewiń do sekcji `id` przy najbliższym odświeżeniu. */
   przewinDo: { id: string; nr: number } | null;
   urzadzenie: 'komputer' | 'telefon';
+  /** Okno „pełny ekran”: ramka w skali 100%, przewijana (także w poziomie na telefonie). */
+  pelnyRozmiar?: boolean;
+  /** Przycisk „pełny ekran” przy automatycznym przejściu na telefon. */
+  onPelnyEkran?: () => void;
   onWiadomosc: (w: WiadomoscPodgladu) => void;
 }) {
+  // Każda ramka ma własną nazwę – podgląd w kolumnie i na pełnym ekranie mogą istnieć naraz.
+  const CEL = `kreator-podglad-${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   const formularz = useRef<HTMLFormElement>(null);
   const ramka = useRef<HTMLIFrameElement>(null);
   const kontener = useRef<HTMLDivElement>(null);
@@ -117,12 +136,40 @@ export function Podglad({
     przewin.current = 0;
   }, [podstrona]);
 
+  const { urzadzenie, zaWasko } = pelnyRozmiar ? { urzadzenie: wybrane, zaWasko: false } : widokPodgladu(wybrane, wymiary.w);
   const szer = urzadzenie === 'komputer' ? SZEROKOSC_KOMPUTER : SZEROKOSC_TELEFON;
-  const skala = wymiary.w ? Math.min(1, (wymiary.w - (urzadzenie === 'telefon' ? 32 : 0)) / szer) : 1;
-  const wys = urzadzenie === 'komputer' ? (wymiary.h || 800) / skala : Math.min(844, ((wymiary.h || 800) - 32) / skala);
+  const skala = pelnyRozmiar ? 1 : wymiary.w ? Math.min(1, (wymiary.w - (urzadzenie === 'telefon' ? 32 : 0)) / szer) : 1;
+  const wys = pelnyRozmiar
+    ? Math.max(400, wymiary.h || 800)
+    : urzadzenie === 'komputer'
+      ? (wymiary.h || 800) / skala
+      : Math.min(844, ((wymiary.h || 800) - 32) / skala);
 
   return (
-    <div ref={kontener} className={cx('relative h-full w-full overflow-hidden', urzadzenie === 'telefon' && 'flex items-start justify-center pt-4')}>
+    <div className="flex h-full w-full flex-col">
+      {zaWasko ? (
+        <p className="flex flex-none items-center gap-x-3 border-b border-line bg-card px-3 py-0.5 text-[12.5px] text-muted-foreground md:flex-wrap md:py-1.5" data-podglad-auto-telefon>
+          {/* Telefon: widok telefonu jest oczekiwany – wystarczy krótka informacja i przycisk. */}
+          <span className="min-w-0 flex-1 md:flex-none">
+            <span className="md:hidden">Podgląd na telefonie.</span>
+            <span className="max-md:hidden">Za mało miejsca na czytelny widok komputera – pokazujemy telefon.</span>
+          </span>
+          {onPelnyEkran ? (
+            <button type="button" onClick={onPelnyEkran} className="inline-flex min-h-11 flex-none items-center gap-1.5 rounded-[6px] px-1 font-medium text-data-hi underline-offset-2 hover:underline md:min-h-0">
+              <Maximize2 className="h-3.5 w-3.5" aria-hidden /> Widok komputera<span className="max-md:sr-only"> na pełnym ekranie</span>
+            </button>
+          ) : null}
+        </p>
+      ) : null}
+    <div
+      ref={kontener}
+      className={cx(
+        'relative min-h-0 w-full flex-1',
+        pelnyRozmiar ? 'overflow-auto' : 'overflow-hidden',
+        urzadzenie === 'telefon' && 'flex items-start justify-center pt-4',
+      )}
+      data-urzadzenie={urzadzenie}
+    >
       <form ref={formularz} method="post" target={CEL} action="/api/kreator/podglad" className="hidden" aria-hidden>
         <input type="hidden" name="model" />
         <input type="hidden" name="podstrona" />
@@ -150,6 +197,7 @@ export function Podglad({
       >
         <span className="block h-full w-1/3 animate-pulse bg-data" />
       </div>
+    </div>
     </div>
   );
 }

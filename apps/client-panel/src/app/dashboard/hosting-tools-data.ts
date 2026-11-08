@@ -11,6 +11,7 @@ import type {
 } from "@verris/contracts/klient";
 import { apiFetch } from "@/lib/api";
 import { idZasobu } from "@/lib/id-zasobu";
+import { produktAplikacyjny } from "@/lib/rodzaj-uslugi";
 
 export async function listUserServices(): Promise<ServiceSummaryDto[]> {
   return apiFetch<ServiceSummaryDto[]>("/services");
@@ -20,8 +21,8 @@ export async function getPrimaryService(): Promise<ServiceSummaryDto | null> {
   // Awaria API → null: strony-przekierowania trafiają na listę usług, która pokazuje błąd po polsku
   // (zamiast „This page couldn’t load” na każdej z 11 tras narzędzi).
   const services = await listUserServices().catch(() => [] as ServiceSummaryDto[]);
-  // Narzędzia hostingu nie dotyczą e-mail marketingu — ta usługa nie ma konta na serwerze.
-  return services.find((s) => s.productKind !== 'EMAIL_MARKETING') ?? null;
+  // Narzędzia hostingu nie dotyczą e-mail marketingu ani Kreatora Pro — te usługi nie mają konta na serwerze.
+  return services.find((s) => !produktAplikacyjny(s.productKind)) ?? null;
 }
 
 /**
@@ -37,7 +38,7 @@ export async function resolveServiceForHostingPages(
   if (serviceIdParam) {
     return services.find((s) => s.id === serviceIdParam) ?? null;
   }
-  return services.find((s) => s.productKind !== 'EMAIL_MARKETING') ?? null;
+  return services.find((s) => !produktAplikacyjny(s.productKind)) ?? null;
 }
 
 export async function getHostingDns(serviceId: string, domain?: string) {

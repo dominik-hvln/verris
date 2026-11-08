@@ -98,6 +98,9 @@ export function odmowyZmianyWlasciciela(s: StanZmianyWlasciciela, teraz = Date.n
   if (u.plan.productKind === 'EMAIL_MARKETING') {
     odmowy.push('Zmiana właściciela dotyczy hostingu i poczty – usługa e-mail marketingu ma listy odbiorców poprzedniego właściciela.');
   }
+  if (u.plan.productKind === 'KREATOR_PRO') {
+    odmowy.push('Zmiana właściciela dotyczy hostingu i poczty – abonament Kreator Pro jest przypisany do konta, nowy właściciel kupi go u siebie.');
+  }
   if (u.isTrial) odmowy.push('To okres próbny – przysługuje klientowi, nie usłudze. Przeniesiesz usługę po zamianie na płatną.');
   if (kartowa(u)) {
     odmowy.push('Usługa jest opłacana cyklicznie kartą obecnego właściciela – najpierw zakończ płatność kartą, inaczej jego karta dalej byłaby obciążana.');

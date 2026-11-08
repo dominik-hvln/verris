@@ -1,4 +1,4 @@
-import { dataPl, koniecOkresu, MAKS_NAZWA_POZYCJI, nazwaPozycjiUslugi, nazwyPozycji } from './pozycja-uslugi.js';
+import { dataPl, koniecOkresu, MAKS_NAZWA_POZYCJI, nazwaAbonamentu, nazwaPozycjiUslugi, nazwyPozycji } from './pozycja-uslugi.js';
 
 describe('nazwa pozycji dokumentu za usługę', () => {
   it('zakup: plan, liczba miesięcy, domena i okres od dnia zapłaty (strefa Europe/Warsaw)', () => {
@@ -14,6 +14,20 @@ describe('nazwa pozycji dokumentu za usługę', () => {
     expect(
       nazwaPozycjiUslugi({ plan: 'Hosting Start', interval: 'MONTH', domena: 'a.pl', od: new Date('2026-11-05T10:00:00Z'), rodzaj: 'odnowienie' }),
     ).toBe('Hosting Start – odnowienie miesięczne (a.pl), okres 05.11.2026–05.12.2026');
+  });
+
+  it('Kreator Pro (paczka 121): „abonament miesięczny/roczny” przy zakupie i odnowieniu, z okresem, bez domeny', () => {
+    expect(nazwaAbonamentu('Verris Kreator Pro', 'MONTH')).toBe('Verris Kreator Pro – abonament miesięczny');
+    expect(
+      nazwaPozycjiUslugi({ plan: 'Verris Kreator Pro', interval: 'MONTH', od: new Date('2026-11-08T10:00:00Z'), rodzaj: 'zakup', produkt: 'KREATOR_PRO' }),
+    ).toBe('Verris Kreator Pro – abonament miesięczny, okres 08.11.2026–08.12.2026');
+    expect(
+      nazwaPozycjiUslugi({ plan: 'Verris Kreator Pro', interval: 'YEAR', od: new Date('2026-11-08T10:00:00Z'), rodzaj: 'odnowienie', produkt: 'KREATOR_PRO' }),
+    ).toBe('Verris Kreator Pro – abonament roczny, okres 08.11.2026–08.11.2027');
+    // Inne produkty bez zmian.
+    expect(nazwaPozycjiUslugi({ plan: 'Newsletter Start', interval: 'MONTH', od: new Date('2026-11-08T10:00:00Z'), rodzaj: 'zakup', produkt: 'EMAIL_MARKETING' })).toBe(
+      'Newsletter Start – 1 mies., okres 08.11.2026–08.12.2026',
+    );
   });
 
   it('dzień i miesiąc zawsze dwucyfrowe; nazwa przycięta do limitu', () => {

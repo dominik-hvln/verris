@@ -1,6 +1,6 @@
 "use client";
 
-import { KOPIE_OFFSITE_DNI, KOPIE_OFFSITE_MAX_DNI } from "@verris/contracts";
+import { KOPIE_OFFSITE_DNI, KOPIE_OFFSITE_MAX_DNI, PRODUCT_KIND_PL, type ProductKind } from "@verris/contracts";
 import { Select } from "@/components/select";
 import { useState, useTransition, useId } from "react";
 import { useRouter } from "next/navigation";
@@ -41,7 +41,7 @@ interface FormState {
   trialDays: string;
   supportSlaHours: string;
   offsiteRetentionMaxDays: string;
-  productKind: "HOSTING" | "EMAIL";
+  productKind: ProductKind;
   stripePriceMonthlyId: string;
   stripePriceYearlyId: string;
   autoscalingMaxOverscaleCpu: string;
@@ -69,7 +69,7 @@ function toFormState(plan: AdminPlanRow): FormState {
     trialDays: String(plan.trialDays ?? 0),
     supportSlaHours: String(plan.supportSlaHours ?? 0),
     offsiteRetentionMaxDays: String(plan.offsiteRetentionMaxDays ?? KOPIE_OFFSITE_DNI),
-    productKind: (plan.productKind ?? "HOSTING") as "HOSTING" | "EMAIL",
+    productKind: plan.productKind ?? "HOSTING",
     stripePriceMonthlyId: plan.stripePriceMonthlyId ?? "",
     stripePriceYearlyId: plan.stripePriceYearlyId ?? "",
     autoscalingMaxOverscaleCpu: String(plan.autoscalingMaxOverscaleCpu ?? 3),
@@ -87,6 +87,7 @@ export function PlanEditForm({ plan }: { plan: AdminPlanRow }) {
   const router = useRouter();
   const kindId = useId();
   const [state, setState] = useState<FormState>(() => toFormState(plan));
+  const aplikacyjny = plan.productKind === "EMAIL_MARKETING" || plan.productKind === "KREATOR_PRO";
   const [stripeManual, setStripeManual] = useState(false);
   const stripeIds = {
     productId: plan.stripeProductId,
@@ -158,7 +159,9 @@ export function PlanEditForm({ plan }: { plan: AdminPlanRow }) {
         trialDays: Number.parseInt(state.trialDays, 10) || 0,
         supportSlaHours: Number.parseInt(state.supportSlaHours, 10) || 0,
         offsiteRetentionMaxDays: Number.parseInt(state.offsiteRetentionMaxDays, 10) || KOPIE_OFFSITE_DNI,
-        productKind: state.productKind,
+        // Paczka 121 — rodzaju planu aplikacyjnego (Newsletter, Kreator Pro) nie zmienia się z formularza; API i tak
+        // przyjmuje tylko HOSTING/EMAIL, więc wysłanie go wywracało każdy zapis takiego planu (np. ceny Stripe).
+        ...(aplikacyjny ? {} : { productKind: state.productKind as "HOSTING" | "EMAIL" }),
         ...(stripeManual
           ? {
               stripePriceMonthlyId: state.stripePriceMonthlyId.trim(),
@@ -495,7 +498,13 @@ export function PlanEditForm({ plan }: { plan: AdminPlanRow }) {
           />
         </Field>
         <Field label="Rodzaj produktu" htmlFor={kindId}>
-          {/* Klasy = .form-input z tego pliku: styled-jsx jest lokalny i nie sięga do przycisku Selecta. */}
+          {aplikacyjny ? (
+            <p id={kindId} className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white">
+              {PRODUCT_KIND_PL[state.productKind]}{" "}
+              <span className="text-muted-foreground">– usługa aplikacyjna, bez konta na serwerze (limity zasobów nie mają znaczenia)</span>
+            </p>
+          ) : (
+          /* Klasy = .form-input z tego pliku: styled-jsx jest lokalny i nie sięga do przycisku Selecta. */
           <Select
             id={kindId}
             value={state.productKind}
@@ -506,6 +515,7 @@ export function PlanEditForm({ plan }: { plan: AdminPlanRow }) {
               { value: "EMAIL", label: "Poczta e-mail" },
             ]}
           />
+          )}
         </Field>
         <Field label="SLA wsparcia (godz., 0 = brak)">
           <input

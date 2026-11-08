@@ -1,7 +1,7 @@
 'use client';
 
 import { Check, ChevronRight, Globe, ShieldCheck, LayoutTemplate, Mail, Sparkles } from 'lucide-react';
-import type { ServiceHealthSummaryDto } from '@verris/contracts/klient';
+import type { ServiceHealthSummaryDto, ServiceSummaryDto } from '@verris/contracts/klient';
 
 /**
  * UX-2 — „Asystent startu". Zamienia surowe checki zdrowia w prowadzące za rękę,
@@ -16,7 +16,7 @@ export function FirstStepsAssistant({
   onNavigate,
 }: {
   health: ServiceHealthSummaryDto | null;
-  productKind?: 'HOSTING' | 'EMAIL' | 'EMAIL_MARKETING';
+  productKind?: ServiceSummaryDto['productKind'];
   onNavigate: (tab: string) => void;
 }) {
   const dnsOk = health?.checks.dnsOk === true;

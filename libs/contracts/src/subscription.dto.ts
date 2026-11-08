@@ -1,4 +1,5 @@
 import type { PozycjaLimitu } from './limity-indywidualne.ts';
+import type { ProductKind } from './plan.dto.ts';
 
 export type BillingInterval = 'MONTH' | 'YEAR';
 
@@ -19,7 +20,7 @@ export interface CreateSubscriptionInput {
   planId: string;
   interval: BillingInterval;
   paymentSource: SubscriptionPaymentSource;
-  /** Wymagana dla hostingu i poczty; produkt aplikacyjny (EMAIL_MARKETING) zamawia się bez domeny. */
+  /** Wymagana dla hostingu i poczty; produkt aplikacyjny (EMAIL_MARKETING, KREATOR_PRO) zamawia się bez domeny. */
   domain?: string;
   preferredRegion?: string;
   autoscalingEnabled?: boolean;
@@ -106,8 +107,8 @@ export interface ServiceSummaryDto {
   /** O-1 — true while in a free trial; `trialEndsAt` is the window end. */
   isTrial: boolean;
   trialEndsAt: string | null;
-  /** P-1b / EMM — product family of the underlying plan (drives panel UX). */
-  productKind: 'HOSTING' | 'EMAIL' | 'EMAIL_MARKETING';
+  /** P-1b / EMM / paczka 121 — product family of the underlying plan (drives panel UX). */
+  productKind: ProductKind;
   account: ServiceAccountSummaryDto | null;
   /** Sprint 5 / R-11+B-7 — postęp provisioningu widoczny dla klienta. */
   provisioning: ProvisioningProgressDto | null;

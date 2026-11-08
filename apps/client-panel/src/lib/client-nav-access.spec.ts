@@ -121,6 +121,12 @@ describe('Paczka 120 – Kreator stron (jak customer-permissions.guard w API: od
     expect(canAccessDashboardRoute('/dashboard/kreator', sub(['TICKETS_READ']))).toBe(false);
     expect(canAccessDashboardRoute('/dashboard/kreator/nowa', { isSubaccount: false, customerPermissions: [] })).toBe(true);
   });
+  it('paczka 121 – zakup Kreatora Pro jak zamówienie usługi: subkonto z SERVICES_MANAGE i BILLING_MANAGE; rozliczenie poza Verris – nie', () => {
+    expect(canAccessDashboardRoute('/dashboard/kreator/pro?okres=YEAR', sub(['SERVICES_READ', 'FILES_MANAGE']))).toBe(false);
+    expect(canAccessDashboardRoute('/dashboard/kreator/pro', sub(['SERVICES_MANAGE', 'BILLING_MANAGE']))).toBe(true);
+    expect(canAccessDashboardRoute('/dashboard/kreator/pro', { isSubaccount: false, customerPermissions: [], billingOutside: true })).toBe(false);
+    expect(canAccessDashboardRoute('/dashboard/kreator', { isSubaccount: false, customerPermissions: [], billingOutside: true })).toBe(true);
+  });
   it('zakres usług (PB-20): kreator jest zasobem całego konta – znika', () => {
     expect(canAccessDashboardRoute('/dashboard/kreator', { ...sub(['SERVICES_READ', 'FILES_MANAGE']), serviceScope: ['s1'] })).toBe(false);
   });
