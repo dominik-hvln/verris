@@ -13,7 +13,6 @@ jest.mock('@/lib/api', () => {
 
 import { ApiError } from '@/lib/api';
 import { POST, GET } from './route';
-import { zlozPodglad } from './sklad';
 
 const stan = (wersja: 'proba' | 'hosting' | 'pro', dostep = true) => ({ dostep, powod: dostep ? null : 'Verris Kreator jest jeszcze w testach.', wersja: dostep ? wersja : null });
 
@@ -186,19 +185,4 @@ describe('POST /api/kreator/podglad', () => {
   });
 });
 
-describe('zlozPodglad', () => {
-  it('zamienia arkusz i skrypt z defer na treść inline, bez wyjścia z elementu', () => {
-    const html = zlozPodglad(
-      [
-        { sciezka: 'o-nas/index.html', tresc: '<html><head><link rel="stylesheet" href="../assets/styl.css"><script src="../assets/kreator.js" defer></script></head><body></body></html>' },
-        { sciezka: 'assets/styl.css', tresc: 'a{color:red}</style><script>x</script>' },
-        { sciezka: 'assets/kreator.js', tresc: 'console.log("</script>")' },
-      ],
-      'o-nas',
-    )!;
-    expect(html).toContain('<style>a{color:red}<\\/style>');
-    expect(html).toContain("document.addEventListener('DOMContentLoaded'");
-    expect(html).not.toContain('console.log("</script>")');
-    expect(zlozPodglad([], '')).toBeNull();
-  });
-});
+// zlozPodglad: libs/kreator/src/render/podglad-jeden-plik.spec.ts (paczka 123 – jedno składanie dla API i panelu).

@@ -83,6 +83,9 @@ function bazaAtrapa() {
       findMany: vi.fn(async ({ where }: { where: { userId: string; id: { in: string[] } } }) =>
         db.zasoby.filter((z) => z.userId === where.userId && where.id.in.includes(z.id as string)),
       ),
+      aggregate: vi.fn(async ({ where }: { where: { userId: string } }) => ({
+        _sum: { bajty: db.zasoby.filter((z) => z.userId === where.userId).reduce((a, z) => a + Number(z.bajty ?? 0), 0) || null },
+      })),
     },
     kreatorStrona: {
       count: vi.fn(async ({ where }: { where: Rek }) => strony.filter((s) => pasuje(s, where)).length),
@@ -248,6 +251,12 @@ describe('KreatorService – dostęp i wersje', () => {
     let stan = await svc.stan('u1');
     expect(stan.cenaPro).toEqual({ miesiacBrutto: 9.9, miesiacNetto: 8.05, rokBrutto: 99, rokNetto: 80.49 });
     expect(stan.pro.zakup).toEqual({ mozliwy: false, powod: expect.stringContaining('niedostępny') });
+    // Paczka 123: zajęte miejsce na zdjęcia (suma bajtów biblioteki konta) i limit z planu.
+    expect(stan.zuzycie.zdjeciaBajty).toBe(0);
+    db.zasoby.push({ id: 'z1', userId: 'u1', bajty: 3 * 1048576 }, { id: 'z2', userId: 'u2', bajty: 7 });
+    stan = await svc.stan('u1');
+    expect(stan.zuzycie.zdjeciaBajty).toBe(3 * 1048576);
+    expect(stan.plan?.miejsceZdjecMb).toBe(500);
     db.planPro = { id: 'plan-pro', priceMonthly: '12.30', priceYearly: '123.00' };
     stan = await svc.stan('u1');
     expect(stan.cenaPro).toEqual({ miesiacBrutto: 12.3, miesiacNetto: 10, rokBrutto: 123, rokNetto: 100 });
@@ -261,7 +270,15 @@ describe('KreatorService – dostęp i wersje', () => {
     expect(stan.pro.zakup).toEqual({ mozliwy: false, powod: expect.stringContaining('Masz już abonament') });
     expect(stan.pro.abonament).toEqual({
       id: 'sub-pro', status: 'ACTIVE', interval: 'YEAR', aktywnyDo: koniec.toISOString(), odnowienie: 'karta', bezOdnowienia: true, cena: '99.00',
+      powodBezOdnowienia: null, nastepnyOkres: null,
     });
+    // Paczka 123: odnowienie wyłączone, a płatnego hostingu już nie ma (anulowany) → powód „brak hostingu”.
+    db.subs[0]!.status = 'CANCELED';
+    stan = await svc.stan('u1');
+    expect(stan.pro.abonament?.powodBezOdnowienia).toBe('brak-hostingu');
+    // Hosting zawieszony (wraca po zapłacie) – nadal „jest hosting”.
+    db.subs[0]!.status = 'SUSPENDED';
+    expect((await svc.stan('u1')).pro.abonament?.powodBezOdnowienia).toBeNull();
   });
 
   it('cudza strona → 404 (odczyt, zapis, podgląd, usunięcie)', async () => {
@@ -518,5 +535,52 @@ describe('KreatorService – edycja, wersje, podgląd', () => {
       const opcje = vi.mocked(renderer.renderuj).mock.calls[0]![1] as { adresZasobu?: (id: string, s: number, f: 'webp' | 'jpg') => string };
       expect(opcje.adresZasobu!(ZASOB, 960, 'webp')).toMatch(/^https:\/\/api\.verris\.test\/kreator\/z\/[0-9a-f]{64}\/960\.webp$/);
     });
+  });
+});
+
+describe('KreatorService – ponowna generacja (paczka 123)', () => {
+  it('utworzenie zapisuje brief przy stronie (bez pól spoza formularza)', async () => {
+    const { svc, db } = zbuduj([]);
+    const { id } = await svc.utworz('u1', 'u1', { nazwa: 'Salon', brief: BRIEF });
+    expect(db.strony.find((s) => s.id === id)?.brief).toEqual(BRIEF);
+  });
+
+  it('strona z błędem: ta sama strona generowana od nowa z zapisanego briefu, limit zarezerwowany, bez nowej strony', async () => {
+    const { svc, db, ai, dokonczZadania } = zbuduj([JSON.stringify(SALON)]);
+    db.strony.push({ id: 's1', userId: 'u1', nazwa: 'Salon', status: 'BLAD', bladOpis: 'Nie udało się', model: {}, brief: BRIEF, propozycje: null, createdAt: new Date(), updatedAt: new Date() });
+    const w = await svc.generujPonownie('u1', 'u1', 's1');
+    expect(w).toMatchObject({ id: 's1', status: 'GENEROWANIE', bladOpis: null });
+    expect(zuzycie(db)?.generacje).toBe(1);
+    await dokonczZadania();
+    expect(db.strony).toHaveLength(1);
+    expect(db.strony[0]).toMatchObject({ status: 'GOTOWA', model: SALON });
+    expect(ai.budujZapytanieGeneracji.mock.calls[0]![0]).toEqual(BRIEF);
+    // Bez historii wersji „przed” – strona z błędem nie miała projektu.
+    expect(db.wersje.map((v) => v.zrodlo)).toEqual(['AI_GENERACJA']);
+  });
+
+  it('gotowa strona: bieżący model najpierw w historii wersji; nieudana generacja zwraca poprzedni projekt i limit', async () => {
+    const { svc, db, dokonczZadania } = zbuduj(['źle', 'źle']);
+    const stary = zeStylem('stary');
+    db.strony.push({ id: 's1', userId: 'u1', nazwa: 'Salon', status: 'GOTOWA', model: stary, brief: BRIEF, propozycje: null, createdAt: new Date(), updatedAt: new Date() });
+    db.wersje.push({ stronaId: 's1', numer: 3, model: stary, zrodlo: 'AI_GENERACJA' });
+    await svc.generujPonownie('u1', 'u1', 's1');
+    expect(db.wersje.at(-1)).toMatchObject({ stronaId: 's1', numer: 4, model: stary, zrodlo: 'RECZNA', opis: 'Projekt przed wygenerowaniem od nowa' });
+    await dokonczZadania();
+    expect(db.strony[0]).toMatchObject({ status: 'GOTOWA', model: stary, bladOpis: expect.stringMatching(/zostawiliśmy poprzedni projekt/) });
+    expect(zuzycie(db)?.generacje).toBe(0);
+  });
+
+  it('w trakcie generowania → 409; strona bez briefu (sprzed paczki) → 409; wyczerpany limit → 403 bez zmiany strony', async () => {
+    const { svc, db } = zbuduj([]);
+    db.strony.push({ id: 's1', userId: 'u1', status: 'GENEROWANIE', model: {}, brief: BRIEF, propozycje: null, updatedAt: new Date() });
+    db.strony.push({ id: 's2', userId: 'u1', status: 'BLAD', model: {}, brief: null, propozycje: null });
+    db.strony.push({ id: 's3', userId: 'u1', status: 'BLAD', model: {}, brief: BRIEF, propozycje: null });
+    await expect(svc.generujPonownie('u1', 'u1', 's1')).rejects.toThrow(/jeszcze generowana/);
+    await expect(svc.generujPonownie('u1', 'u1', 's2')).rejects.toThrow(/przed zapisywaniem opisu/);
+    db.zuzycie.push({ userId: 'u1', miesiac: miesiacUtc(), generacje: 3, zmiany: 0, kosztUsd: 0 });
+    await expect(svc.generujPonownie('u1', 'u1', 's3')).rejects.toBeInstanceOf(ForbiddenException);
+    expect(db.strony[2].status).toBe('BLAD');
+    await expect(svc.generujPonownie('u1', 'u1', 'obca')).rejects.toBeInstanceOf(NotFoundException);
   });
 });

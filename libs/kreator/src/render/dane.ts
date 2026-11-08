@@ -51,25 +51,32 @@ export function adresTekst(f: Firma): string {
   return f.adres ? `${f.adres.ulica}, ${f.adres.kod} ${f.adres.miasto}` : '';
 }
 
-export function adresHtml(f: Firma): string {
+/**
+ * Atrybuty edycji na stronie dla danych firmy (paczka 123: `atrFirmy` z edycja.ts – klik otwiera pole w formularzu
+ * „Firma i SEO”); poza edycją pusta funkcja.
+ */
+export type AtrDanych = (pole: 'telefon' | 'email' | 'adres.ulica') => string;
+const bezAtr: AtrDanych = () => '';
+
+export function adresHtml(f: Firma, atr: AtrDanych = bezAtr): string {
   if (!f.adres) return '';
-  return `<address>${esc(f.adres.ulica)}<br>${esc(f.adres.kod)} ${esc(f.adres.miasto)}</address>`;
+  return `<address${atr('adres.ulica')}>${esc(f.adres.ulica)}<br>${esc(f.adres.kod)} ${esc(f.adres.miasto)}</address>`;
 }
 
-export function telefonLink(f: Firma, klasa = ''): string {
-  return f.telefon ? `<a${klasa ? ` class="${klasa}"` : ''} href="${esc(telHref(f.telefon))}">${esc(f.telefon)}</a>` : '';
+export function telefonLink(f: Firma, klasa = '', atr: AtrDanych = bezAtr): string {
+  return f.telefon ? `<a${klasa ? ` class="${klasa}"` : ''} href="${esc(telHref(f.telefon))}"${atr('telefon')}>${esc(f.telefon)}</a>` : '';
 }
 
-export function emailLink(f: Firma, klasa = ''): string {
-  return f.email ? `<a${klasa ? ` class="${klasa}"` : ''} href="mailto:${esc(f.email)}">${esc(f.email)}</a>` : '';
+export function emailLink(f: Firma, klasa = '', atr: AtrDanych = bezAtr): string {
+  return f.email ? `<a${klasa ? ` class="${klasa}"` : ''} href="mailto:${esc(f.email)}"${atr('email')}>${esc(f.email)}</a>` : '';
 }
 
 /** Lista danych kontaktowych z ikonami (sekcja kontakt). */
-export function daneKontaktowe(f: Firma): string {
+export function daneKontaktowe(f: Firma, atr: AtrDanych = bezAtr): string {
   const w: string[] = [];
-  if (f.adres) w.push(`<li>${ikona('pin')}<div><span class="et">Adres</span>${adresHtml(f)}</div></li>`);
-  if (f.telefon) w.push(`<li>${ikona('telefon')}<div><span class="et">Telefon</span>${telefonLink(f)}</div></li>`);
-  if (f.email) w.push(`<li>${ikona('mail')}<div><span class="et">E-mail</span>${emailLink(f)}</div></li>`);
+  if (f.adres) w.push(`<li>${ikona('pin')}<div><span class="et">Adres</span>${adresHtml(f, atr)}</div></li>`);
+  if (f.telefon) w.push(`<li>${ikona('telefon')}<div><span class="et">Telefon</span>${telefonLink(f, '', atr)}</div></li>`);
+  if (f.email) w.push(`<li>${ikona('mail')}<div><span class="et">E-mail</span>${emailLink(f, '', atr)}</div></li>`);
   if (f.godziny.length) w.push(`<li>${ikona('zegar')}<div><span class="et">Godziny otwarcia</span>${listaGodzin(f)}</div></li>`);
   if (f.obszar) w.push(`<li>${ikona('pin')}<div><span class="et">Obszar działania</span><p>${esc(f.obszar)}</p></div></li>`);
   return w.length ? `<ul class="dane-kontaktowe">${w.join('')}</ul>` : '';

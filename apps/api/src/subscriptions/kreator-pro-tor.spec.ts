@@ -3,8 +3,9 @@ import { InvoicesService } from '../billing/invoices.service.js';
 import { PlansService } from '../plans/plans.service.js';
 import { NodeSelectorService } from './node-selector.service.js';
 import { produktAplikacyjny } from './produkt-aplikacyjny.js';
-import { opisOdnowienia } from './renewal.scheduler.js';
-import { subscriptionCancelledTemplate, subscriptionSuspendedTemplate } from '../mail/templates/billing-lifecycle-notifications.js';
+import { opisOdnowienia, zmianaOkresu } from './renewal.scheduler.js';
+import { Prisma } from '@verris/database';
+import { kreatorProBezHostinguTemplate, subscriptionCancelledTemplate, subscriptionSuspendedTemplate } from '../mail/templates/billing-lifecycle-notifications.js';
 
 /**
  * Paczka 121 — Kreator Pro idzie torem subskrypcji jak e-mail marketing. Te testy pilnują rozgałęzień, które
@@ -65,5 +66,25 @@ describe('Kreator Pro w torze subskrypcji', () => {
     const svc = new PlansService(prisma as never, null as never, null as never, null as never);
     await expect(svc.update('p', { productKind: 'HOSTING' } as never, 'admin')).rejects.toThrow('usługa aplikacyjna');
     expect(prisma.plan.update).not.toHaveBeenCalled();
+  });
+
+  it('paczka 123 – zmiana okresu przy odnowieniu: nowy okres i cena z planu; bez planu zmiany albo ten sam okres – nic', () => {
+    const plan = { priceMonthly: new Prisma.Decimal('9.90'), priceYearly: new Prisma.Decimal('99.00') };
+    expect(zmianaOkresu({ interval: 'MONTH', nastepnyInterwal: 'YEAR', plan })).toEqual({ interval: 'YEAR', cena: new Prisma.Decimal('99.00') });
+    expect(zmianaOkresu({ interval: 'YEAR', nastepnyInterwal: 'MONTH', plan })?.cena.toFixed(2)).toBe('9.90');
+    expect(zmianaOkresu({ interval: 'YEAR', nastepnyInterwal: 'YEAR', plan })).toBeNull();
+    expect(zmianaOkresu({ interval: 'YEAR', nastepnyInterwal: null, plan })).toBeNull();
+    expect(opisOdnowienia({ interval: 'YEAR', plan: { slug: 'kreator-pro', name: 'Verris Kreator Pro', productKind: 'KREATOR_PRO' } }, new Date('2026-12-08T10:00:00Z'))).toBe(
+      'Verris Kreator Pro – abonament roczny, okres 08.12.2026–08.12.2027',
+    );
+  });
+
+  it('paczka 123 – mail „Kreator Pro nie odnowi się – brak hostingu”: data końca, strony zostają, link do kreatora', () => {
+    const m = kreatorProBezHostinguTemplate({ to: 'a@b.pl', firstName: null, aktywnyDo: new Date('2026-12-08T10:00:00Z'), panelUrl: 'https://panel.verris.pl' });
+    expect(m.subject).toBe('[Verris] Kreator Pro nie odnowi się – brak hostingu');
+    expect(m.text).toContain('wyłączyliśmy automatyczne odnowienie');
+    expect(m.text).toContain('Opłacony okres kończy się 8 grudnia 2026');
+    expect(m.text).toContain('https://panel.verris.pl/dashboard/kreator');
+    expect(kreatorProBezHostinguTemplate({ to: 'a@b.pl', firstName: 'Ola', aktywnyDo: null, panelUrl: 'https://panel.verris.pl' }).text).toContain('Abonament zakończyliśmy');
   });
 });

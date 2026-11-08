@@ -53,10 +53,44 @@ export function sciezkaPola(k: KontekstPodstrony, sek: Pick<Sekcja, 'id'>, wzgle
   return baza ? `${baza}.${wzgledna}` : null;
 }
 
-/** Element otwierający pole w formularzu edytora (np. cena liczbowa – nie piszemy jej w podglądzie). */
-export function atrFormularza(k: KontekstPodstrony, sek: Pick<Sekcja, 'id'>, wzgledna: string): string {
+/**
+ * Element otwierający pole w formularzu edytora (np. cena liczbowa – nie piszemy jej w podglądzie). `etykieta` –
+ * nazwa dla czytnika ekranu (mostek: aria-label; domyślnie „Zmień cenę w formularzu sekcji”).
+ */
+export function atrFormularza(k: KontekstPodstrony, sek: Pick<Sekcja, 'id'>, wzgledna: string, etykieta?: string): string {
   const s = k.s.edycja ? sciezkaPola(k, sek, wzgledna) : null;
-  return s ? ` data-k-formularz="${esc(s)}"` : '';
+  return s ? ` data-k-formularz="${esc(s)}"${etykieta ? ` data-k-etykieta="${esc(etykieta)}"` : ''}` : '';
+}
+
+/**
+ * Paczka 123 – dane firmy na stronie (telefon, e-mail, adres, linia ©): to dane firmy, nie tekst strony, więc klik
+ * w podglądzie otwiera zakładkę „Firma i SEO” z fokusem na polu (`firma.<pole>`), jak cena otwiera pole sekcji.
+ */
+export type PoleFirmy = 'nazwa' | 'telefon' | 'email' | 'adres.ulica';
+const ETYKIETY_FIRMY: Record<PoleFirmy, string> = {
+  nazwa: 'Zmień nazwę firmy w danych firmy',
+  telefon: 'Zmień telefon w danych firmy',
+  email: 'Zmień e-mail w danych firmy',
+  'adres.ulica': 'Zmień adres w danych firmy',
+};
+export function atrFirmy(k: KontekstPodstrony, pole: PoleFirmy): string {
+  return k.s.edycja ? ` data-k-formularz="firma.${pole}" data-k-etykieta="${esc(ETYKIETY_FIRMY[pole])}"` : '';
+}
+
+/**
+ * Paczka 123 – etykieta pozycji menu: `wMenu` sekcji strony głównej (menu jest na każdej podstronie, a sekcje z menu
+ * leżą na stronie głównej) albo tytuł podstrony. Ścieżka w modelu z edytora; null poza edycją.
+ */
+export function sciezkaMenu(k: KontekstPodstrony, cel: { sekcja: string } | { podstrona: string }): string | null {
+  const e = k.s.edycja;
+  if (!e) return null;
+  if ('podstrona' in cel) {
+    const p = e.strony.get(cel.podstrona);
+    return p ? `strony.${p.i}.tytul` : null;
+  }
+  const g = e.strony.get('');
+  const j = g?.sekcje.get(cel.sekcja);
+  return g && j !== undefined ? `strony.${g.i}.sekcje.${j}.wMenu` : null;
 }
 
 /** Tekst wielowierszowy w edycji: jeden element z \n (CSS edycji: white-space: pre-line), zamiast akapitów. */

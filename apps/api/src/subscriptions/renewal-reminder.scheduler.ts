@@ -6,6 +6,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { MailerService } from '../mail/mailer.service.js';
 import { PromoService } from '../billing/promo.service.js';
+import { zmianaOkresu } from './renewal.scheduler.js';
 import {
   subscriptionRenewalReminderTemplate,
   type RenewalReminderWindow,
@@ -133,7 +134,9 @@ export class RenewalReminderScheduler {
       // (z uwzględnieniem rabatu startowego), żeby przypomnienie nie kłamało
       // po wejściu BILL-1. Wcześniej mail pokazywał `priceAmount` (cena z
       // rabatem 1. okresu), a portfel obciążany był pełną kwotą.
-      const renewalDecimal = await this.promo.resolveNextRenewalAmount({
+      // Paczka 123 – zaplanowana zmiana okresu (Kreator Pro miesiąc ↔ rok): przypomnienie podaje kwotę nowego okresu.
+      const zmiana = zmianaOkresu(sub);
+      const renewalDecimal = zmiana ? zmiana.cena : await this.promo.resolveNextRenewalAmount({
         priceAmount: sub.priceAmount,
         listPriceAmount: sub.listPriceAmount,
         appliedPromoCodeId: sub.appliedPromoCodeId,

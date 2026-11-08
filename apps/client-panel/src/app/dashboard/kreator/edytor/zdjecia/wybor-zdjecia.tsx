@@ -1,14 +1,15 @@
 'use client';
 
 import { useCallback, useEffect, useId, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
-import { ExternalLink, ImageIcon, Loader2, Search, Upload } from 'lucide-react';
+import { ExternalLink, ImageIcon, Loader2, Search, Trash2, Upload } from 'lucide-react';
 import type { Obraz } from '@verris/kreator/klient';
 import { PanelModal } from '@/components/panel/panel-modal';
 import { Checkbox } from '@/components/panel/checkbox';
 import { cx } from '@/components/panel/cx';
+import { potwierdz } from '@/components/panel/potwierdz';
 import { plForm } from '@/lib/pl';
 import { Kafelki, Komunikat, Pole, klasaPola, klasaPrzyciskuDrugiego, klasaPrzyciskuGlownego } from '../../wspolne';
-import { importujZdjecie, listaZasobow, szukajZdjec } from './akcje';
+import { importujZdjecie, listaZasobow, szukajZdjec, usunZasob } from './akcje';
 import { MAKS_BAJTOW_ZDJECIA, TYPY_ZDJEC, nazwaLicencji, type DostawcaZdjec, type OdpowiedzBiblioteki, type WynikBiblioteki, type ZasobKreatora } from './typy';
 
 /**
@@ -110,7 +111,7 @@ function Tresc({ obraz, stronaId, onWybierz, onZamknij }: Omit<WyborZdjeciaProps
       </div>
       <div role="tabpanel" id={`${id}-panel-${zakladka}`} aria-labelledby={`${id}-tab-${zakladka}`}>
         {zakladka === 'wgraj' ? <Wgraj stronaId={stronaId} onWgrane={setWybrany} /> : null}
-        {zakladka === 'twoje' ? <TwojeZdjecia onWybierz={setWybrany} /> : null}
+        {zakladka === 'twoje' ? <TwojeZdjecia stronaId={stronaId} onWybierz={setWybrany} /> : null}
         {zakladka === 'biblioteka' ? <Biblioteka podpowiedz={obraz?.opisDoWyszukania ?? ''} stronaId={stronaId} onZaimportowane={setWybrany} /> : null}
       </div>
     </div>
@@ -273,7 +274,31 @@ function Siatka({ etykieta, kafle, zaznaczony, onZaznacz, onWybierz }: { etykiet
 // Twoje zdjęcia
 // ---------------------------------------------------------------------------------------------------------------
 
-function TwojeZdjecia({ onWybierz }: { onWybierz: (z: ZasobKreatora) => void }) {
+const nazwyStron = (u: NonNullable<ZasobKreatora['uzyte']>) => u.map((x) => `„${x.nazwa}”`).join(', ');
+
+/**
+ * Paczka 123 – usunięcie zdjęcia z biblioteki: odmowa (bez pytania), gdy zdjęcie jest na opublikowanej stronie (API i tak
+ * odmówi – pliki strony i link próbny czytają je z biblioteki); inaczej treść potwierdzenia z miejscami, w których
+ * zdjęcie jest (strona w edytorze i inne nieopublikowane – trzeba tam wybrać inne zdjęcie).
+ */
+export function opisUsunieciaZdjecia(z: Pick<ZasobKreatora, 'uzyte'>, stronaId?: string): { blokada: string } | { potwierdzenie: string } {
+  const uzyte = z.uzyte ?? [];
+  const opublikowane = uzyte.filter((u) => u.opublikowana);
+  if (opublikowane.length) {
+    return {
+      blokada: `To zdjęcie jest na ${opublikowane.length > 1 ? 'opublikowanych stronach' : 'opublikowanej stronie'} ${nazwyStron(opublikowane)}. Zmień zdjęcie na stronie i opublikuj ją ponownie, potem usuń je z biblioteki.`,
+    };
+  }
+  if (!uzyte.length) return { potwierdzenie: 'Zdjęcie zniknie z biblioteki konta i zwolni miejsce. Tej operacji nie można cofnąć.' };
+  const tutaj = !!stronaId && uzyte.some((u) => u.stronaId === stronaId);
+  return {
+    potwierdzenie:
+      `Zdjęcie jest na ${plForm(uzyte.length, 'stronie', 'stronach', 'stronach')} ${nazwyStron(uzyte)}${tutaj ? ' (także na tej, którą edytujesz)' : ''}. ` +
+      'Po usunięciu wybierz tam inne zdjęcie – strona ze skasowanym zdjęciem się nie zapisze. Tej operacji nie można cofnąć.',
+  };
+}
+
+function TwojeZdjecia({ stronaId, onWybierz }: { stronaId?: string; onWybierz: (z: ZasobKreatora) => void }) {
   const [zasoby, setZasoby] = useState<ZasobKreatora[] | null>(null);
   const [razem, setRazem] = useState(0);
   const [strona, setStrona] = useState(1);
@@ -281,6 +306,30 @@ function TwojeZdjecia({ onWybierz }: { onWybierz: (z: ZasobKreatora) => void }) 
   const [blad, setBlad] = useState<string | null>(null);
   const [zaznaczony, setZaznaczony] = useState<string | null>(null);
   const [laduje, setLaduje] = useState(false);
+  const [usuwanie, setUsuwanie] = useState(false);
+  const [bladUsuniecia, setBladUsuniecia] = useState<string | null>(null);
+
+  const usun = async (z: ZasobKreatora) => {
+    setBladUsuniecia(null);
+    const opis = opisUsunieciaZdjecia(z, stronaId);
+    if ('blokada' in opis) {
+      setBladUsuniecia(opis.blokada);
+      return;
+    }
+    if (!(await potwierdz(opis.potwierdzenie, { tytul: 'Usunąć zdjęcie z biblioteki?', akcja: 'Usuń zdjęcie', niebezpieczne: true }))) return;
+    setUsuwanie(true);
+    const w = await usunZasob(z.id);
+    setUsuwanie(false);
+    if (!w.ok) {
+      // API mówi, na której opublikowanej stronie jest zdjęcie (stan mógł się zmienić od wczytania listy).
+      setBladUsuniecia(w.blad);
+      return;
+    }
+    setZasoby((l) => (l ?? []).filter((x) => x.id !== z.id));
+    setRazem((r) => Math.max(0, r - 1));
+    setMiejsce((m) => (m ? { ...m, zajete: Math.max(0, m.zajete - z.bajty) } : m));
+    setZaznaczony(null);
+  };
 
   // Stan ustawiamy dopiero w odpowiedzi (then) – efekt startowy nie wywołuje kaskady renderów (react-hooks/set-state-in-effect).
   const przyjmij = useCallback((w: Awaited<ReturnType<typeof listaZasobow>>, s: number) => {
@@ -342,7 +391,16 @@ function TwojeZdjecia({ onWybierz }: { onWybierz: (z: ZasobKreatora) => void }) 
           </button>
         ) : null}
       </div>
-      <div className="flex justify-end">
+      {bladUsuniecia ? <Komunikat rodzaj="blad">{bladUsuniecia}</Komunikat> : null}
+      {wybrany?.uzyte?.length ? (
+        <p className="text-[12px] text-muted-foreground">
+          Zaznaczone zdjęcie jest na {plForm(wybrany.uzyte.length, 'stronie', 'stronach', 'stronach')} {nazwyStron(wybrany.uzyte)}.
+        </p>
+      ) : null}
+      <div className="flex flex-wrap justify-end gap-2">
+        <button type="button" className={klasaPrzyciskuDrugiego} disabled={!wybrany || usuwanie} onClick={() => wybrany && void usun(wybrany)}>
+          {usuwanie ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Trash2 className="h-4 w-4" aria-hidden />} Usuń zdjęcie
+        </button>
         <button type="button" className={klasaPrzyciskuGlownego} disabled={!wybrany} onClick={() => wybrany && onWybierz(wybrany)}>
           Użyj
         </button>

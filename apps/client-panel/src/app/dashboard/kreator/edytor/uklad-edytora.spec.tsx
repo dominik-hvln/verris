@@ -7,7 +7,8 @@ import { PRZYKLAD_SALON } from '@verris/kreator';
 import { PLANY_KREATORA, type Strona } from '@verris/kreator/klient';
 import type { StanKreatora, WidokStronyKreatora } from '@/lib/kreator';
 import { DostawcaSkupienia } from '@/components/panel/tryb-skupienia';
-import { Edytor } from './edytor';
+import { potwierdz } from '@/components/panel/potwierdz';
+import { Edytor, POTWIERDZENIE_OD_NOWA } from './edytor';
 import { Podglad, PROG_SKALI_KOMPUTERA, widokPodgladu } from './podglad';
 import { ukladDlaSzerokosci } from './uklad';
 
@@ -19,6 +20,8 @@ import { ukladDlaSzerokosci } from './uklad';
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 globalThis.structuredClone ??= <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 jest.mock('sonner', () => ({ toast: { error: jest.fn(), success: jest.fn(), message: jest.fn() } }));
+// Okno potwierdzenia – w testach odpowiedź ustawiana per test (domyślnie „Anuluj”, jak Esc).
+jest.mock('@/components/panel/potwierdz', () => ({ potwierdz: jest.fn(async () => false), zapytaj: jest.fn(async () => null) }));
 jest.mock('next/link', () => ({
   __esModule: true,
   default: ({ href, children, ...r }: { href: string; children: React.ReactNode }) => (
@@ -27,7 +30,9 @@ jest.mock('next/link', () => ({
     </a>
   ),
 }));
+const generujPonownie = jest.fn();
 jest.mock('../akcje', () => ({
+  generujPonownie: (...a: unknown[]) => generujPonownie(...a),
   zapiszModel: jest.fn(),
   zmienNazweStrony: jest.fn(),
   polecenieAi: jest.fn(),
@@ -267,6 +272,27 @@ describe('telefon (< 768 px): zakładki na dole ekranu', () => {
     await klawisz('Escape');
     expect(el.querySelector('#kr-wiecej')).toBeNull();
     expect(document.activeElement).toBe(wiecej);
+  });
+});
+
+describe('„Wygeneruj od nowa” (paczka 123)', () => {
+  it('w menu „Więcej” także na szerokim ekranie; potwierdzenie, potem ta sama strona w generowaniu (onGeneruj)', async () => {
+    ustawOkno(1600);
+    const onGeneruj = jest.fn();
+    const wGenerowaniu = { ...widok(), status: 'GENEROWANIE', model: null };
+    generujPonownie.mockResolvedValue({ ok: true, dane: wGenerowaniu });
+    await act(async () => root.render(<Edytor widok={widok()} stan={stan()} onGeneruj={onGeneruj} />));
+    const wiecej = przycisk('Więcej');
+    await act(async () => wiecej.click());
+    // Anulowane potwierdzenie – nic nie wysyłamy.
+    await act(async () => przycisk('Wygeneruj od nowa', el.querySelector('#kr-wiecej')!).click());
+    expect(potwierdz).toHaveBeenLastCalledWith(POTWIERDZENIE_OD_NOWA, { tytul: 'Wygenerować stronę od nowa?', akcja: 'Wygeneruj od nowa' });
+    expect(generujPonownie).not.toHaveBeenCalled();
+    (potwierdz as jest.Mock).mockResolvedValueOnce(true);
+    await act(async () => wiecej.click());
+    await act(async () => przycisk('Wygeneruj od nowa', el.querySelector('#kr-wiecej')!).click());
+    expect(generujPonownie).toHaveBeenCalledWith('11111111-1111-4111-8111-111111111111');
+    expect(onGeneruj).toHaveBeenCalledWith(wGenerowaniu);
   });
 });
 

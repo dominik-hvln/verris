@@ -9,9 +9,6 @@ import type { NowaStronaKreatora } from '@/lib/kreator';
 import { utworzStrone } from '../akcje';
 import { Kafelki, Komunikat, Pole, klasaPola, klasaPrzyciskuDrugiego, klasaPrzyciskuGlownego, type OpcjaKafelka } from '../wspolne';
 
-/** Brief przechowywany w sessionStorage pod tym kluczem – „Spróbuj ponownie” po błędzie generowania. */
-export const kluczBriefu = (id: string) => `verris-kreator-brief-${id}`;
-
 export const MAX_OPISU = 3000;
 const MIN_OPISU = 20;
 const MAX_CEN = 2000;
@@ -149,11 +146,7 @@ export function KreatorBriefu({ wersja }: { wersja: WersjaKreatora }) {
       setBladWysylki(r.blad);
       return;
     }
-    try {
-      sessionStorage.setItem(kluczBriefu(r.dane.id), JSON.stringify(dane));
-    } catch {
-      /* tryb prywatny / brak miejsca – „Spróbuj ponownie” odeśle wtedy do formularza */
-    }
+    // Brief zapisuje API przy stronie (KreatorStrona.brief) – „Spróbuj ponownie” i „Wygeneruj od nowa” go używają.
     router.push(`/dashboard/kreator/${r.dane.id}`);
   };
 

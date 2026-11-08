@@ -20,6 +20,7 @@ const STATIC = [
   ...(VPS_W_SPRZEDAZY ? ['/vps'] : []),
   '/domeny',
   ...(EMAIL_MARKETING_W_SPRZEDAZY ? ['/email-marketing'] : []),
+  '/kreator-stron',
   '/reseller',
   '/funkcje',
   '/cennik',

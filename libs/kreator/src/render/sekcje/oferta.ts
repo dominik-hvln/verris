@@ -133,15 +133,19 @@ export function renderCennik(k: KontekstPodstrony, sek: Cennik): string {
     const naglowki = d.pakiety
       .map((p, i) => `<th scope="col"${p.wyrozniony ? ' class="wyrozniony"' : ''}${atrOkresu(p)}><span class="tab-nazwa"${aN(i)}>${esc(p.nazwa)}</span>${cena(p, aCena(i))}</th>`)
       .join('');
+    // Wiersz cechy łączy cechy wielu pakietów – klik otwiera tę cechę w formularzu pierwszego pakietu, który ją ma (paczka 123).
+    const atrCechy = (c: string) => {
+      const i = d.pakiety.findIndex((p) => p.cechy.includes(c));
+      return i < 0 ? '' : atrFormularza(k, sek, `dane.pakiety.${i}.cechy.${d.pakiety[i]!.cechy.indexOf(c)}`, 'Zmień cechę w formularzu pakietu');
+    };
     const wiersze = wszystkie
       .map(
         (c) =>
-          `<tr><th scope="row">${esc(c)}</th>${d.pakiety
+          `<tr><th scope="row"${atrCechy(c)}>${esc(c)}</th>${d.pakiety
             .map((p) => `<td${p.wyrozniony ? ' class="wyrozniony"' : ''}${atrOkresu(p)}>${p.cechy.includes(c) ? `${ikona('check')}<span class="sr">Tak</span>` : '<span class="brak" aria-hidden="true"></span><span class="sr">Nie</span>'}</td>`)
             .join('')}</tr>`,
       )
       .join('');
-    // Wiersze cech tabeli łączą cechy wielu pakietów – edycja cech w formularzu, nie w podglądzie.
     const stopka = `<tr class="tab-akcje"><td></td>${d.pakiety.map((p, i) => `<td${atrOkresu(p)}>${przyciskPakietu(k, p, aP(i))}</td>`).join('')}</tr>`;
     return sekcja(
       k,

@@ -10,7 +10,8 @@ import { StronaSkupienia } from '@/components/panel/tryb-skupienia';
 /** Strona w trakcie generowania (albo z błędem) → ekran postępu; gotowa → edytor. Wszystko w trybie skupienia. */
 export function StronaKreatora({ widok, stan }: { widok: WidokStronyKreatora; stan: StanKreatora }) {
   const [biezacy, setBiezacy] = useState(widok);
-  if (biezacy.status === 'GOTOWA' && biezacy.model) return <Edytor widok={biezacy} stan={stan} />;
+  // Paczka 123 – „Wygeneruj od nowa” w edytorze: strona w GENEROWANIE → ekran postępu, po nim nowy edytor (key).
+  if (biezacy.status === 'GOTOWA' && biezacy.model) return <Edytor key={biezacy.updatedAt} widok={biezacy} stan={stan} onGeneruj={setBiezacy} />;
   if (biezacy.status === 'GOTOWA') {
     return (
       <StronaSkupienia>

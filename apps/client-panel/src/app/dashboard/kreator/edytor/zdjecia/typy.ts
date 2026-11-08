@@ -21,6 +21,8 @@ export interface ZasobKreatora {
   /** Bazowy adres plików wariantów w API (…/kreator/z/<token>/) – dalej `<szer>.<webp|jpg>`. */
   adres: string;
   miniatura: string;
+  /** Paczka 123 – strony konta, na których jest zdjęcie (opublikowana = domena albo ważny link próbny). Tylko lista. */
+  uzyte?: { stronaId: string; nazwa: string; opublikowana: boolean }[];
 }
 
 export interface ListaZasobow {

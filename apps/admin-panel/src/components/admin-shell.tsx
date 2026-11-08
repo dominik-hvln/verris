@@ -96,6 +96,12 @@ const IKONY = {
     </>
   ),
   czat: <path d="M4 5h16v11H9l-5 4z" />,
+  kreator: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M3 9h18M7 13h6M7 16h4M16 13l2 2-2 2" />
+    </>
+  ),
   operatorzy: (
     <>
       <circle cx="9" cy="8" r="4" />
@@ -296,6 +302,12 @@ export function grupy(l: LicznikiMenu | null): Grupa[] {
         { name: "Baza wiedzy", ikona: "wiedza", pod: [{ name: "Baza wiedzy", href: "/knowledge-base", szukaj: "artykuły pomoc poradniki" }] },
         { name: "Wiedza AI", ikona: "wiedza", pod: [{ name: "Wiedza AI", href: "/ai-knowledge", perm: "DASHBOARD_VIEW", szukaj: "baza wiedzy ai embeddingi asystent źródła" }] },
         { name: "Konfiguracja asystenta", ikona: "czat", pod: [{ name: "Konfiguracja asystenta", href: "/settings/ai", perm: "ADMIN", szukaj: "asystent ai czat model budżet klucze" }] },
+        // Paczka 123 — Verris Kreator (admin/kreator/* — @Roles(ADMIN)): włącznik, konta testowe, modele, zdjęcia, koszty.
+        {
+          name: "Kreator stron",
+          ikona: "kreator",
+          pod: [{ name: "Kreator stron", href: "/settings/kreator", perm: "ADMIN", szukaj: "verris kreator strony www ai konta testowe zdjęcia pixabay openverse pexels koszty cache kreator pro" }],
+        },
       ],
     },
     {

@@ -53,6 +53,7 @@ export const footerCols: { heading: string; links: { label: string; href: string
       { label: 'Poczta w domenie', href: '/poczta' },
       ...(VPS_W_SPRZEDAZY ? [{ label: 'Serwery VPS', href: '/vps' }] : []),
       { label: 'Przeniesienie strony', href: '/przenies-strone' },
+      { label: 'Kreator stron', href: '/kreator-stron' },
       ...(EMAIL_MARKETING_W_SPRZEDAZY ? [{ label: 'E-mail marketing', href: '/email-marketing' }] : []),
     ],
   },

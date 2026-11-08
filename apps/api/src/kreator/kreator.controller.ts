@@ -4,7 +4,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { RateLimit } from '../common/guards/rate-limit.guard.js';
 import { KreatorService } from './kreator.service.js';
-import { PodgladQueryDto, UtworzStroneDto, ZapiszModelDto, ZmianaAiDto, ZmienNazweDto } from './dto/kreator.dto.js';
+import { OkresProDto, PodgladQueryDto, UtworzStroneDto, ZapiszModelDto, ZmianaAiDto, ZmienNazweDto } from './dto/kreator.dto.js';
 
 /** Tożsamość z JWT: `userId` = konto (właściciel), `principalUserId` = człowiek za subkontem albo impersonacją. */
 type Uzytkownik = { userId: string; principalUserId?: string };
@@ -23,6 +23,14 @@ export class KreatorController {
     return this.kreator.stan(u.userId);
   }
 
+  /** Paczka 123 – Kreator Pro: rozliczenie miesięczne/roczne od następnego odnowienia (okres = bieżący → bez zmiany). */
+  @Post('pro/okres')
+  @HttpCode(200)
+  @RateLimit({ limit: 20, windowMs: 60 * 60 * 1000, scope: 'kreator:pro-okres', perKonto: true })
+  okresPro(@CurrentUser() u: Uzytkownik, @Body() dto: OkresProDto) {
+    return this.kreator.okresPro(u.userId, dto.okres);
+  }
+
   @Get('strony')
   lista(@CurrentUser() u: Uzytkownik) {
     return this.kreator.lista(u.userId);
@@ -39,6 +47,17 @@ export class KreatorController {
   @RateLimit({ limit: 10, windowMs: 60 * 60 * 1000, scope: 'kreator:generacja', perKonto: true })
   utworz(@CurrentUser() u: Uzytkownik, @Body() dto: UtworzStroneDto) {
     return this.kreator.utworz(u.userId, u.principalUserId ?? u.userId, dto);
+  }
+
+  /**
+   * Paczka 123 – ta sama strona generowana od nowa z briefu zapisanego przy tworzeniu (po błędzie albo „Wygeneruj
+   * od nowa” w edytorze). Limit generacji i limit żądań jak przy tworzeniu; generacja w tle, odpowiedź = widok strony.
+   */
+  @Post('strony/:id/generuj-ponownie')
+  @HttpCode(202)
+  @RateLimit({ limit: 10, windowMs: 60 * 60 * 1000, scope: 'kreator:generacja', perKonto: true })
+  generujPonownie(@CurrentUser() u: Uzytkownik, @Param('id', ParseUUIDPipe) id: string) {
+    return this.kreator.generujPonownie(u.userId, u.principalUserId ?? u.userId, id);
   }
 
   @Post('strony/:id/propozycja/:n')

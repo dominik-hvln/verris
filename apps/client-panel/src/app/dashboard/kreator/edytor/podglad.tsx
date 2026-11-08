@@ -36,6 +36,8 @@ export type WiadomoscEdycji =
   | { typ: 'tekst'; sciezka: string; wartosc: string }
   | { typ: 'obraz'; sciezka: string }
   | { typ: 'polecenie'; sekcja: string; polecenie: PolecenieSekcji; sciezka?: string }
+  /** Paczka 123 – element poza sekcją (nagłówek, stopka: dane firmy) otwierający pole w formularzu edytora. */
+  | { typ: 'pole'; sciezka: string }
   | { typ: 'skrot'; skrot: 'cofnij' | 'ponow' | 'zapisz' };
 /** Edytor → ramka. */
 export type WiadomoscDoRamki =
@@ -70,6 +72,8 @@ export function odczytajWiadomoscEdycji(dane: unknown): WiadomoscEdycji | { typ:
       if (typeof d.sekcja !== 'string' || !ID_SEKCJI.test(d.sekcja) || !POLECENIA.includes(d.polecenie as PolecenieSekcji)) return null;
       if (d.sciezka !== undefined && !sciezkaOk(d.sciezka)) return null;
       return { typ: 'polecenie', sekcja: d.sekcja, polecenie: d.polecenie as PolecenieSekcji, ...(d.sciezka !== undefined ? { sciezka: d.sciezka as string } : {}) };
+    case 'pole':
+      return sciezkaOk(d.sciezka) ? { typ: 'pole', sciezka: d.sciezka } : null;
     case 'skrot':
       return d.skrot === 'cofnij' || d.skrot === 'ponow' || d.skrot === 'zapisz' ? { typ: 'skrot', skrot: d.skrot } : null;
     case 'gotowe':

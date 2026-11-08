@@ -123,3 +123,9 @@ export class KonfiguracjaKreatoraDto {
   @IsIn(DOSTAWCY_ZDJEC as unknown as string[], { each: true, message: 'Nieznana biblioteka zdjęć.' })
   bibliotekiZdjec?: NazwaDostawcy[];
 }
+
+/** POST /kreator/pro/okres – okres abonamentu Kreator Pro od następnego odnowienia (paczka 123). */
+export class OkresProDto {
+  @IsIn(['MONTH', 'YEAR'], { message: 'Okres: miesięczny albo roczny.' })
+  okres!: 'MONTH' | 'YEAR';
+}

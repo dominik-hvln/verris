@@ -16,7 +16,7 @@ export function KafelekKreatoraPro({ stan }: { stan: Pick<StanKreatora, 'dostep'
           <Sparkles className="h-4 w-4 text-amber-300" aria-hidden /> Verris Kreator Pro
         </h3>
         <p className="mt-1 text-sm text-neutral-400">
-          Abonament do kreatora stron: 3 propozycje projektu, sekcje sklepu i bloga, pełne SEO, wersje językowe i wyższe limity.
+          Abonament do kreatora stron: 3 propozycje projektu, sekcje sklepu i bloga, pełne SEO i wyższe limity.
         </p>
         <p className="mt-2 text-sm text-neutral-300">{opisCenyPro(stan.cenaPro)}</p>
         {!stan.pro.zakup.mozliwy && stan.pro.zakup.powod ? <p className="mt-1 text-xs text-neutral-400">{stan.pro.zakup.powod}</p> : null}

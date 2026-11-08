@@ -7,7 +7,9 @@ import {
   ETYKIETY_WERSJI,
   generacji,
   kolorMiniatury,
+  limitMb,
   opisCenyPro,
+  opisMiejscaZdjec,
   podstron,
   pozostalo,
   stron,
@@ -36,10 +38,17 @@ export default async function KreatorPage({ searchParams }: { searchParams: Prom
     );
   }
   if (!stan.dane.dostep) {
+    // Paczka 123 – bez hostingu abonament Kreator Pro nadal istnieje (odnowienie wyłączone): jego karta zostaje widoczna.
+    const abonament = stan.dane.pro?.abonament ?? null;
     return (
       <div className="space-y-6">
         <PageHeaderRow title="Kreator stron" description={OPIS} />
         <BrakDostepu powod={stan.dane.powod} zamowHosting={stan.dane.powod?.includes('Zamów hosting') ?? false} />
+        {abonament ? (
+          <div className="max-w-[420px]">
+            <KartaPro stan={stan.dane} poPlatnosciKarta={false} />
+          </div>
+        ) : null}
       </div>
     );
   }
@@ -110,6 +119,20 @@ function Licznik({ etykieta, zuzyte, limit, opis }: { etykieta: string; zuzyte: 
   );
 }
 
+function MiejsceZdjec({ bajty, limitMbPlanu }: { bajty: number; limitMbPlanu: number }) {
+  const pct = limitMbPlanu > 0 ? (bajty / (limitMbPlanu * 1048576)) * 100 : 0;
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-baseline justify-between gap-2 text-[13px]">
+        <span className="text-foreground">Miejsce na zdjęcia</span>
+        <span className="font-mono text-[12.5px] tabular-nums text-muted-foreground">{limitMb(limitMbPlanu)}</span>
+      </div>
+      <Meter pct={Math.min(100, pct)} tone={pct >= 90 ? 'warn' : 'data'} />
+      <span className="text-[12px] text-muted-foreground">{opisMiejscaZdjec(bajty, limitMbPlanu)} Usuniesz nieużywane zdjęcia w oknie wyboru zdjęcia („Twoje zdjęcia”).</span>
+    </div>
+  );
+}
+
 function KartaWersji({ stan }: { stan: StanKreatora }) {
   const plan = stan.plan!;
   const wersja = stan.wersja!;
@@ -125,8 +148,8 @@ function KartaWersji({ stan }: { stan: StanKreatora }) {
       </div>
       {wersja === 'proba' ? (
         <p className="text-[13px] text-muted-foreground">
-          W okresie próbnym zbudujesz stronę i opublikujesz ją pod adresem podglądu (bez indeksowania w wyszukiwarkach). Własna domena, ZIP
-          i przejście na WordPressa włączą się po opłaceniu hostingu.
+          W okresie próbnym zbudujesz stronę i opublikujesz ją pod adresem podglądu (bez indeksowania w wyszukiwarkach). Własna domena
+          i pobranie ZIP włączą się po opłaceniu hostingu.
         </p>
       ) : null}
       <div className="flex flex-col gap-3.5">
@@ -138,6 +161,8 @@ function KartaWersji({ stan }: { stan: StanKreatora }) {
           opis={`Zostało ${generacji(pozostalo(plan.generacjiMies, z.generacje))}. Nieudana generacja nie zużywa limitu.`}
         />
         <Licznik etykieta="Zmiany AI w tym miesiącu" zuzyte={z.zmiany} limit={plan.zmianAiMies} opis={`Zostało ${zmianAi(pozostalo(plan.zmianAiMies, z.zmiany))}. Edycja ręczna jest bez limitu.`} />
+        {/* Paczka 123 – miejsce na zdjęcia (biblioteka konta) z limitu planu. */}
+        <MiejsceZdjec bajty={z.zdjeciaBajty ?? 0} limitMbPlanu={plan.miejsceZdjecMb} />
       </div>
       <p className="text-[12px] text-muted-foreground">Limity odnawiają się 1. dnia każdego miesiąca.</p>
     </PanelCard>
@@ -160,7 +185,7 @@ function KartaPro({ stan, poPlatnosciKarta }: { stan: StanKreatora; poPlatnosciK
           <Label className="flex items-center gap-1.5">
             <Sparkles className="h-3.5 w-3.5" aria-hidden /> Kreator Pro
           </Label>
-          <AbonamentPro abonament={abonament} />
+          <AbonamentPro abonament={abonament} cena={pro?.cena ?? null} />
         </PanelCard>
       </div>
     );
@@ -195,7 +220,7 @@ function KartaPro({ stan, poPlatnosciKarta }: { stan: StanKreatora; poPlatnosciK
         </p>
       ) : null}
       {abonament ? (
-        <AbonamentPro abonament={abonament} />
+        <AbonamentPro abonament={abonament} cena={pro?.cena ?? null} />
       ) : pro ? (
         <ZakupPro pro={pro} />
       ) : null}

@@ -15,7 +15,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { KreatorZrodloZasobu, type KreatorZasob } from '@verris/database';
-import { szerokosciWariantow, type Strona, type WersjaKreatora } from '@verris/kreator';
+import { PLANY_KREATORA, szerokosciWariantow, type Strona, type WersjaKreatora } from '@verris/kreator';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ObjectStorageService } from '../storage/object-storage.service.js';
 import { ObjectBuckets } from '../storage/object-storage.types.js';
@@ -27,16 +27,8 @@ import { BibliotekaZdjec, CZAS_CACHE_MS, MAKS_STRONA, NA_STRONE } from './biblio
 import { BladDostawcy, DOSTAWCY_ZDJEC, type NazwaDostawcy } from './biblioteka/dostawca.js';
 import type { PlikPublikacji } from './publikacja.js';
 
-/**
- * Limit miejsca na zdjęcia w bibliotece konta (suma oryginałów i wariantów) per wersja kreatora.
- * TODO (paczka 122): przenieść do PLANY_KREATORA w libs/kreator/src/plany.ts (pole `miejsceNaZdjecia`) – plany.ts
- * jest kontraktem wspólnym, ta paczka go nie zmienia.
- */
-export const LIMIT_MIEJSCA_ZDJEC: Record<WersjaKreatora, number> = {
-  proba: 50 * 1024 * 1024,
-  hosting: 500 * 1024 * 1024,
-  pro: 2 * 1024 * 1024 * 1024,
-};
+/** Limit miejsca na zdjęcia w bibliotece konta (suma oryginałów i wariantów), bajty – z PLANY_KREATORA (miejsceZdjecMb). */
+export const limitMiejscaZdjec = (wersja: WersjaKreatora): number => PLANY_KREATORA[wersja].miejsceZdjecMb * 1024 * 1024;
 export const NA_STRONE_ZASOBOW = 48;
 export const MAKS_ADRESOW = 100;
 /** Katalog zdjęć w opublikowanej stronie (względem korzenia strony). */
@@ -134,7 +126,7 @@ export class KreatorZasobyService {
     if (istniejacy) return this.widok(istniejacy);
     const suma = await this.prisma.kreatorZasob.aggregate({ where: { userId }, _sum: { bajty: true } });
     const zajete = suma._sum.bajty ?? 0;
-    const limit = LIMIT_MIEJSCA_ZDJEC[wersja];
+    const limit = limitMiejscaZdjec(wersja);
     // Dwa równoległe wgrania mogą razem przekroczyć limit o jedno zdjęcie (≤ kilkanaście MB) – świadomie bez blokady.
     if (zajete + o.bajty > limit) {
       throw new ForbiddenException(
@@ -185,32 +177,51 @@ export class KreatorZasobyService {
   async lista(userId: string, strona = 1) {
     const wersja = await this.wersja(userId);
     const s = Math.max(1, Math.min(1000, Math.floor(strona) || 1));
-    const [zasoby, razem, suma] = await Promise.all([
+    const [zasoby, razem, suma, uzycia] = await Promise.all([
       this.prisma.kreatorZasob.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, skip: (s - 1) * NA_STRONE_ZASOBOW, take: NA_STRONE_ZASOBOW }),
       this.prisma.kreatorZasob.count({ where: { userId } }),
       this.prisma.kreatorZasob.aggregate({ where: { userId }, _sum: { bajty: true } }),
+      this.uzycia(userId),
     ]);
     return {
-      zasoby: zasoby.map((z) => this.widok(z)),
+      // Paczka 123 – `uzyte`: strony, na których jest zdjęcie (panel pokazuje to przy usuwaniu).
+      zasoby: zasoby.map((z) => ({ ...this.widok(z), uzyte: uzycia.filter((u) => u.ids.includes(z.id.toLowerCase())).map(({ ids: _ids, ...u }) => u) })),
       razem,
       strona: s,
       naStrone: NA_STRONE_ZASOBOW,
-      miejsce: { zajete: suma._sum.bajty ?? 0, limit: LIMIT_MIEJSCA_ZDJEC[wersja] },
+      miejsce: { zajete: suma._sum.bajty ?? 0, limit: limitMiejscaZdjec(wersja) },
     };
   }
 
-  /** Usunięcie – odmowa, gdy zdjęcie jest na opublikowanej stronie (domena albo ważny link próbny). */
+  /** Strony konta ze zdjęciami z biblioteki: opublikowana = na domenie albo pod ważnym linkiem próbnym. */
+  private async uzycia(userId: string, teraz = new Date()): Promise<{ stronaId: string; nazwa: string; opublikowana: boolean; ids: string[] }[]> {
+    const strony = await this.prisma.kreatorStrona.findMany({
+      where: { userId },
+      select: { id: true, nazwa: true, model: true, opublikowanaAt: true, podgladDo: true },
+    });
+    return strony
+      .map((st) => ({
+        stronaId: st.id,
+        nazwa: st.nazwa,
+        opublikowana: st.opublikowanaAt != null || (st.podgladDo != null && st.podgladDo > teraz),
+        ids: idZasobow(st.model),
+      }))
+      .filter((u) => u.ids.length);
+  }
+
+  /**
+   * Usunięcie – odmowa, gdy zdjęcie jest na opublikowanej stronie (domena albo ważny link próbny): pliki strony
+   * wskazują na kopię w assets/img, ale ponowna publikacja i link próbny czytają je z biblioteki. Na stronie
+   * nieopublikowanej usunąć wolno – edytor przy zapisie poprosi o wybór innego zdjęcia (BLAD_CUDZEGO_ZASOBU).
+   */
   async usun(userId: string, id: string): Promise<{ ok: true }> {
     const z = await this.prisma.kreatorZasob.findFirst({ where: { id, userId } });
     if (!z) throw new NotFoundException(NIE_MA);
-    const opublikowane = await this.prisma.kreatorStrona.findMany({
-      where: { userId, OR: [{ opublikowanaAt: { not: null } }, { podgladDo: { gt: new Date() } }] },
-      select: { nazwa: true, model: true },
-    });
-    const uzyte = opublikowane.filter((s) => idZasobow(s.model).includes(id.toLowerCase()));
+    const uzyte = (await this.uzycia(userId)).filter((u) => u.opublikowana && u.ids.includes(id.toLowerCase()));
     if (uzyte.length) {
+      const nazwy = uzyte.map((u) => `„${u.nazwa}”`).join(', ');
       throw new ConflictException(
-        `To zdjęcie jest na opublikowanej stronie „${uzyte[0]!.nazwa}”. Zmień zdjęcie na stronie i opublikuj ją ponownie, potem usuń je z biblioteki.`,
+        `To zdjęcie jest na ${uzyte.length > 1 ? 'opublikowanych stronach' : 'opublikowanej stronie'} ${nazwy}. Zmień zdjęcie na stronie i opublikuj ją ponownie, potem usuń je z biblioteki.`,
       );
     }
     await this.prisma.kreatorZasob.delete({ where: { id: z.id } });

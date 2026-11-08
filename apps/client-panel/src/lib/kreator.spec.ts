@@ -1,5 +1,5 @@
 import { CENA_KREATORA_PRO, PLANY_KREATORA } from '@verris/kreator/klient';
-import { blokadaNowejStrony, moznaDodacPodstrone, nettoZBrutto, opisAbonamentuPro, opisCenyPro, oszczednoscRoczna, zl, type AbonamentKreatoraPro, type StanKreatora } from './kreator';
+import { blokadaNowejStrony, limitMb, moznaDodacPodstrone, nettoZBrutto, opisAbonamentuPro, opisCenyPro, opisMiejscaZdjec, oszczednoscRoczna, rozmiar, zl, type AbonamentKreatoraPro, type StanKreatora } from './kreator';
 
 const stan = (wersja: 'proba' | 'hosting' | 'pro', zuzycie: Partial<StanKreatora['zuzycie']> = {}): StanKreatora =>
   ({
@@ -60,5 +60,27 @@ describe('paczka 121 – abonament Kreator Pro na karcie kreatora', () => {
     });
     expect(opisAbonamentuPro(abonament({ status: 'SUSPENDED' })).naglowek).toBe('Kreator Pro wstrzymany – brak płatności');
     expect(opisAbonamentuPro(abonament({ status: 'PENDING_PAYMENT' })).naglowek).toBe('Zamówienie Kreatora Pro czeka na płatność');
+  });
+});
+
+describe('paczka 123 – karta Pro i miejsce na zdjęcia', () => {
+  const abonament = (o: Partial<AbonamentKreatoraPro> = {}): AbonamentKreatoraPro => ({
+    id: 's1', status: 'ACTIVE', interval: 'MONTH', aktywnyDo: '2026-12-08T10:00:00.000Z', odnowienie: 'portfel', bezOdnowienia: false, cena: '9.90', ...o,
+  });
+
+  it('odnowienie wyłączone przez brak hostingu: „Odnowienie wyłączone – brak hostingu”', () => {
+    expect(opisAbonamentuPro(abonament({ bezOdnowienia: true, powodBezOdnowienia: 'brak-hostingu' })).odnawianie).toMatch(/^Odnowienie wyłączone – brak hostingu\./);
+  });
+
+  it('zaplanowana zmiana okresu widoczna przy odnawianiu', () => {
+    expect(opisAbonamentuPro(abonament({ nastepnyOkres: 'YEAR' })).odnawianie).toBe(
+      'Odnawia się automatycznie co miesiąc, z portfela (9,90 zł brutto). Od następnego odnowienia: rozliczenie roczne.',
+    );
+  });
+
+  it('rozmiary po polsku: MB z przecinkiem, GB od 1024 MB; limity planów', () => {
+    expect([rozmiar(0), rozmiar(3.5 * 1048576), rozmiar(123 * 1048576), rozmiar(1.25 * 1024 ** 3)]).toEqual(['0 MB', '3,5 MB', '123 MB', '1,3 GB']);
+    expect([limitMb(PLANY_KREATORA.proba.miejsceZdjecMb), limitMb(PLANY_KREATORA.hosting.miejsceZdjecMb), limitMb(PLANY_KREATORA.pro.miejsceZdjecMb)]).toEqual(['50 MB', '500 MB', '2 GB']);
+    expect(opisMiejscaZdjec(3.5 * 1048576, 500)).toBe('Zajęte 3,5 MB z 500 MB.');
   });
 });

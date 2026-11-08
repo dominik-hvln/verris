@@ -42,7 +42,7 @@ INSERT INTO "Plan" (
     'e0b2ca4c-8c80-4fd5-a740-40d5693ecf14',
     'kreator-pro',
     'Verris Kreator Pro',
-    'Rozszerzona wersja Verris Kreatora: 3 propozycje projektu z każdej generacji, sekcje sklepu i bloga, interakcje i animacje, pełne SEO, wersje językowe i wyższe limity. Wymaga płatnego hostingu Verris.',
+    'Rozszerzona wersja Verris Kreatora: 3 propozycje projektu z każdej generacji, sekcje sklepu i bloga, interakcje i animacje, pełne SEO i wyższe limity. Wymaga płatnego hostingu Verris.',
     1, 1, 1, 1, 1, 1, 17,
     NULL,
     9.90,

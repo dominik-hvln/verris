@@ -4,7 +4,7 @@ import { esc } from '../esc.ts';
 import type { KontekstPodstrony } from '../kontekst.ts';
 import { atrLinku, celDostepny, hrefPodstrony, przycisk } from '../linki.ts';
 import { obraz } from '../obraz.ts';
-import { atrFormularza, edytowalne, zeSciezkaObrazu } from '../edycja.ts';
+import { atrFirmy, atrFormularza, edytowalne, zeSciezkaObrazu } from '../edycja.ts';
 import { formularz, glowa, klasaPojawiania, sekcja, zl } from './wspolne.ts';
 
 type Kontakt = SekcjaTypu<'kontakt'>;
@@ -30,10 +30,12 @@ export function renderKontakt(k: KontekstPodstrony, sek: Kontakt): string {
   const poj = klasaPojawiania(k);
   const form = (styl: 'karta' | 'linia' = 'karta') => (d.formularz ? formularz(k, sek, { pola: d.pola, przycisk: przyciskFormularza(sek), styl }) : '');
   const g = glowa(sek, { naglowek: d.naglowek, wstep: d.wstep }, k);
+  // Dane firmy w edycji na stronie otwierają pole w formularzu „Firma i SEO” (paczka 123).
+  const af = (pole: 'telefon' | 'email' | 'adres.ulica') => atrFirmy(k, pole);
 
   if (sek.wariant === 'kontakt-minimalny') {
-    const duze = [f.email ? emailLink(f, 'duzy-link') : '', f.telefon ? telefonLink(f, 'duzy-link') : ''].filter(Boolean).join('');
-    const male = [f.adres ? `<div><p class="et">Adres</p>${adresHtml(f)}</div>` : '', f.godziny.length ? `<div><p class="et">Godziny</p>${listaGodzin(f)}</div>` : '']
+    const duze = [f.email ? emailLink(f, 'duzy-link', af) : '', f.telefon ? telefonLink(f, 'duzy-link', af) : ''].filter(Boolean).join('');
+    const male = [f.adres ? `<div><p class="et">Adres</p>${adresHtml(f, af)}</div>` : '', f.godziny.length ? `<div><p class="et">Godziny</p>${listaGodzin(f)}</div>` : '']
       .filter(Boolean)
       .join('');
     const href = linkMapy(f);
@@ -49,7 +51,7 @@ export function renderKontakt(k: KontekstPodstrony, sek: Kontakt): string {
     return sekcja(
       k,
       sek,
-      `<div class="kontener kontakt-siatka${poj}"><div class="kontakt-lewa">${g}${daneKontaktowe(f)}</div>` +
+      `<div class="kontener kontakt-siatka${poj}"><div class="kontakt-lewa">${g}${daneKontaktowe(f, af)}</div>` +
         (d.formularz ? `<div class="karta-form tlo-domyslne"><p class="karta-tytul">Napisz do nas</p>${form()}</div>` : d.mapa ? mapa(k) : '') +
         `</div>`,
       { tloWariantu: 'akcent' },
@@ -59,7 +61,7 @@ export function renderKontakt(k: KontekstPodstrony, sek: Kontakt): string {
   return sekcja(
     k,
     sek,
-    `<div class="kontener kontakt-siatka${poj}"><div class="kontakt-lewa">${g}${d.mapa ? mapa(k) : ''}${daneKontaktowe(f)}</div>` +
+    `<div class="kontener kontakt-siatka${poj}"><div class="kontakt-lewa">${g}${d.mapa ? mapa(k) : ''}${daneKontaktowe(f, af)}</div>` +
       (d.formularz ? `<div class="karta-form"><p class="karta-tytul">Napisz do nas</p><p class="karta-opis">Odpowiemy najszybciej, jak to możliwe.</p>${form()}</div>` : '') +
       `</div>`,
   );

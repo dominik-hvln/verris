@@ -1,12 +1,21 @@
-import type { PlikRenderu } from './zaleznosci.js';
-
 /**
- * Podgląd strony w edytorze kreatora. Renderer zwraca osobne pliki (HTML, CSS, JS); podgląd składa je w JEDEN
- * dokument z CSS i JS osadzonymi inline – panel pobiera go z tokenem (Bearer) i pokazuje w ramce, więc nie ma
- * drugiego żądania po zasoby ani publicznego adresu podglądu. Bezpieczeństwo: CSP `sandbox` bez allow-same-origin
- * (skrypty strony działają w nieprzezroczystym originie – bez dostępu do panelu, ciasteczek i API), bez połączeń
- * sieciowych poza fontami z proxy Verris i obrazami https.
+ * Podgląd strony kreatora jako JEDEN dokument (paczka 123 – wspólne dla API i panelu; wcześniej dwie kopie:
+ * apps/api/src/kreator/podglad.ts i apps/client-panel/src/app/api/kreator/podglad/sklad.ts).
+ *
+ * Renderer zwraca osobne pliki (HTML, CSS, JS); podgląd składa je w jeden dokument z CSS i JS osadzonymi inline –
+ * ramka nie wysyła drugiego żądania po zasoby i nie ma publicznego adresu podglądu. Bezpieczeństwo: CSP `sandbox`
+ * bez allow-same-origin (skrypty strony w nieprzezroczystym originie – bez dostępu do panelu, ciasteczek i API),
+ * bez połączeń sieciowych poza fontami z proxy Verris i obrazami https.
+ *
+ * Moduł serwerowy: eksport tylko z pełnego wejścia `@verris/kreator` (render/index.ts), NIE z klient.ts
+ * (strażnik apps/client-panel/src/lib/bundel-klienta.spec.ts).
  */
+
+/** Plik z renderu (ścieżka względem korzenia strony i treść tekstowa). */
+export interface PlikPodgladu {
+  sciezka: string;
+  tresc: string;
+}
 
 /** Pliki HTML podstrony w kolejności prób: '' → index.html; 'o-nas' → o-nas/index.html albo o-nas.html. */
 export function sciezkiHtml(podstrona: string): string[] {
@@ -16,7 +25,7 @@ export function sciezkiHtml(podstrona: string): string[] {
 /** Ścieżka zasobu względem katalogu pliku HTML (bez wychodzenia ponad katalog strony); null = adres zewnętrzny. */
 export function rozwiazSciezke(katalogHtml: string, ref: string): string | null {
   if (/^[a-z][a-z0-9+.-]*:|^\/\//i.test(ref)) return null;
-  const bez = ref.split(/[?#]/)[0];
+  const bez = ref.split(/[?#]/)[0] ?? '';
   const czesci = bez.startsWith('/') ? [] : katalogHtml.split('/').filter(Boolean);
   for (const c of bez.split('/')) {
     if (!c || c === '.') continue;
@@ -39,7 +48,7 @@ export const bezpiecznyJs = (js: string) => js.replace(/<\/(script)/gi, '<\\/$1'
  * Składa podgląd podstrony: <link rel="stylesheet" href> i <script src></script> wskazujące pliki z renderu
  * zamienia na treść inline. Odwołania zewnętrzne (fonty z proxy) zostają. null = brak HTML tej podstrony.
  */
-export function zlozPodglad(pliki: PlikRenderu[], podstrona: string): string | null {
+export function zlozPodglad(pliki: readonly PlikPodgladu[], podstrona: string): string | null {
   const mapa = new Map(pliki.map((p) => [p.sciezka.replace(/^\.?\/+/, ''), p.tresc]));
   const sciezka = sciezkiHtml(podstrona).find((s) => mapa.has(s));
   if (!sciezka) return null;
@@ -69,8 +78,23 @@ export function zlozPodglad(pliki: PlikRenderu[], podstrona: string): string | n
     });
 }
 
-/** Nagłówki odpowiedzi podglądu. `bazaFontow` – publiczny adres proxy fontów (…/fonts). */
-export function naglowkiPodgladu(bazaFontow: string): Record<string, string> {
+export interface OpcjeNaglowkowPodgladu {
+  /**
+   * `frame-ancestors 'self'` – podgląd osadza w ramce wyłącznie panel z tego samego originu (trasa panelu
+   * /api/kreator/podglad). Konieczne tam, bo Caddy dodaje do odpowiedzi panelu `X-Frame-Options: DENY`
+   * (ops/caddy/Caddyfile, panel_headers), a przeglądarka ignoruje X-Frame-Options, gdy CSP ma frame-ancestors
+   * (https://www.w3.org/TR/CSP3/#frame-ancestors-and-frame-options). API (GET /kreator/strony/:id/podglad) bez tej
+   * dyrektywy – jego HTML panel pobiera z tokenem, nie osadza adresu API w ramce.
+   */
+  ramkaTegoOriginu?: boolean;
+}
+
+/**
+ * Nagłówki odpowiedzi podglądu. `bazaFontow` – publiczny adres proxy fontów (…/fonts/kreator). Zdjęcia z biblioteki
+ * konta to podpisane adresy API (ten sam origin co fonty) – dopisany do img-src (w produkcji API jest na https,
+ * w środowisku deweloperskim może być http).
+ */
+export function naglowkiPodgladu(bazaFontow: string, opcje: OpcjeNaglowkowPodgladu = {}): Record<string, string> {
   const fonty = URL.canParse(bazaFontow) ? new URL(bazaFontow).origin : '';
   const csp = [
     'sandbox allow-scripts',
@@ -78,11 +102,11 @@ export function naglowkiPodgladu(bazaFontow: string): Record<string, string> {
     "script-src 'unsafe-inline'",
     `style-src 'unsafe-inline'${fonty ? ` ${fonty}` : ''}`,
     `font-src data:${fonty ? ` ${fonty}` : ''}`,
-    // Zdjęcia z biblioteki: podpisane adresy API (…/kreator/z/…); API po http tylko w środowisku deweloperskim.
-    `img-src data: https:${fonty.startsWith('http:') ? ` ${fonty}` : ''}`,
+    `img-src data: https:${fonty ? ` ${fonty}` : ''}`,
     "connect-src 'none'",
     "form-action 'none'",
     "base-uri 'none'",
+    ...(opcje.ramkaTegoOriginu ? ["frame-ancestors 'self'"] : []),
   ].join('; ');
   return {
     'Content-Type': 'text/html; charset=utf-8',

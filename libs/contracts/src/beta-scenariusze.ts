@@ -124,6 +124,35 @@ export const SCENARIUSZE_BETA: ScenariuszBeta[] = [
     ],
   },
   {
+    // Paczka 123 (8.11.2026) – Verris Kreator. Po domenie (s04): publikacja wymaga domeny dodanej do hostingu.
+    id: 's17',
+    tytul: 'Kreator stron',
+    czas: 'ok. 20 min',
+    cel: 'Nowa funkcja: strona firmowa z opisu, poprawiona na podglądzie i opublikowana na domenie. Sprawdzamy, czy da się to zrobić bez instrukcji – i bezpiecznie wycofać.',
+    weryfikacja: [
+      'Strona z kreatora otwiera się pod Twoją domeną (w okresie próbnym – pod linkiem podglądu) ze zmienionym tekstem i zdjęciem.',
+      'Na stronie nie ma danych, których nie podałeś(-aś): cen, opinii klientów, telefonu ani adresu.',
+      'Po wycofaniu publikacji pod domeną jest znów poprzednia strona (albo nic, jeśli katalog był pusty).',
+    ],
+    kroki: [
+      { id: 's17.k1', tekst: 'W „Kreatorze stron” kliknij „Nowa strona”, opisz firmę (swoją albo wymyśloną) i poczekaj na gotową stronę.' },
+      { id: 's17.k2', tekst: 'Włącz „Edycję na stronie”, kliknij nagłówek na podglądzie i zmień jego tekst.' },
+      { id: 's17.k3', tekst: 'Kliknij zdjęcie na podglądzie i podmień je: wgraj własne albo wybierz z biblioteki, ustaw kadr i opis zdjęcia.' },
+      {
+        id: 's17.k4',
+        tekst:
+          'Kliknij „Publikuj” i opublikuj stronę na swojej domenie (w okresie próbnym – podgląd pod linkiem), a potem otwórz ją w przeglądarce. Na domenie jest już strona? Kreator zapyta o zastąpienie, a obecne pliki trafią do kopii.',
+      },
+      { id: 's17.k5', tekst: 'W oknie publikacji kliknij „Wycofaj publikację” i sprawdź, co jest teraz pod Twoją domeną.' },
+    ],
+    uwagi: [
+      'Czy opis firmy było łatwo napisać? Czego zabrakło w formularzu?',
+      'Czy AI coś wymyśliło (cenę, opinię, liczbę klientów, nagrodę)? Zapisz dokładnie co i gdzie.',
+      'Czy przed publikacją było jasne, co stanie się z plikami, które już były na domenie?',
+      'Czy edycja tekstu i zdjęć działała tak, jak się spodziewałeś(-aś) – także na telefonie?',
+    ],
+  },
+  {
     id: 's05',
     tytul: 'Poczta: skrzynka, wysyłka, odbiór, telefon',
     czas: 'ok. 15 min',

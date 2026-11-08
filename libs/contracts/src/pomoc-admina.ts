@@ -422,6 +422,13 @@ export const POMOC = {
     opis: "Godziny na pierwszą odpowiedź i na rozwiązanie dla każdego priorytetu, liczone zegarowo przez całą dobę od utworzenia zgłoszenia.",
     kiedy: "Zmiana działa dla nowych zgłoszeń i przy zmianie priorytetu; terminów już liczonych nie przesuwa.",
   },
+  // Paczka 123 — Admin → Wiedza i AI → Kreator stron (/settings/kreator).
+  "kreator-stron": {
+    tytul: "Kreator stron",
+    opis: "Verris Kreator dla klientów: włącznik dla wszystkich, konta testowe, modele AI (tylko Anthropic), biblioteki zdjęć oraz zużycie, koszt AI z cache i przychód z Kreatora Pro w bieżącym miesiącu.",
+    kiedy: "Przed włączeniem kreatora dla wszystkich (najpierw Regulamin z kreatorem), przy dodawaniu testera i przy przeglądzie kosztów AI.",
+    rozniSieOd: "„Kreator węzła” zakłada serwer; ten ekran dotyczy stron www klientów. Koszty pozostałego AI są w Konfiguracji asystenta.",
+  },
 } satisfies Record<string, WpisPomocy>;
 
 export type PomocId = keyof typeof POMOC;

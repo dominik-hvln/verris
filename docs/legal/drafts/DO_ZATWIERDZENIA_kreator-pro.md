@@ -42,7 +42,7 @@
 >    i ich publikacji na Hostingu Klienta. Kreator jest dostępny w cenie Hostingu w zakresie i z limitami opisanymi
 >    w Panelu; w okresie próbnym Hostingu (§7 ust. 8) – w wersji próbnej, bez publikacji pod domeną Klienta.
 > 2. Kreator Pro to odpłatny abonament rozszerzający Kreator na całym Koncie (m.in. więcej stron i generacji AI,
->    dodatkowe sekcje i efekty, pełniejsze SEO, wersje językowe) – w zakresie opisanym w Panelu przed zakupem.
+>    dodatkowe sekcje i efekty, pełniejsze SEO) – w zakresie opisanym w Panelu przed zakupem.
 >    Kreatora Pro można zamówić wyłącznie przy opłaconym Hostingu; na Koncie może działać jeden abonament.
 > 3. Abonament jest Subskrypcją w rozumieniu §7 – miesięczną albo roczną, odnawianą automatycznie z Portfela albo
 >    kartą; cenę określa Cennik (§9). Klient może w każdej chwili wyłączyć odnowienie w Panelu; abonament działa

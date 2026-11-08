@@ -179,7 +179,7 @@ function OknoPublikacji({ id, otwarta, onZamknij, przedPublikacja, onOpublikowan
             <p className="text-[13.5px] text-foreground">
               W okresie próbnym publikujesz stronę jako podgląd: dostaniesz link ważny 7 dni (do odnowienia), niewidoczny dla wyszukiwarek.
             </p>
-            <Komunikat rodzaj="info">Własna domena, pobranie ZIP i przejście na WordPressa włączą się po opłaceniu hostingu.</Komunikat>
+            <Komunikat rodzaj="info">Własna domena i pobranie ZIP włączą się po opłaceniu hostingu.</Komunikat>
             {s.linkPodgladu ? (
               <p className="text-[13px] text-muted-foreground">
                 Obecny link:{' '}

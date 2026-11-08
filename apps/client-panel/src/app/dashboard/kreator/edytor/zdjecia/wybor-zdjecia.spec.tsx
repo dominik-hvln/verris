@@ -4,8 +4,9 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import type { Obraz } from '@verris/kreator/klient';
-import { WyborZdjecia, bladPliku } from './wybor-zdjecia';
-import { importujZdjecie, listaZasobow, szukajZdjec } from './akcje';
+import { WyborZdjecia, bladPliku, opisUsunieciaZdjecia } from './wybor-zdjecia';
+import { importujZdjecie, listaZasobow, szukajZdjec, usunZasob } from './akcje';
+import { potwierdz } from '@/components/panel/potwierdz';
 import type { ZasobKreatora } from './typy';
 
 /**
@@ -14,6 +15,7 @@ import type { ZasobKreatora } from './typy';
  * SVG/HEIC/za dużych plików przed wysłaniem, Esc zamyka.
  */
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+jest.mock('@/components/panel/potwierdz', () => ({ potwierdz: jest.fn(async () => true) }));
 jest.mock('./akcje', () => ({
   listaZasobow: jest.fn(),
   szukajZdjec: jest.fn(),
@@ -186,5 +188,52 @@ describe('WyborZdjecia', () => {
     const { onZamknij } = await otworz();
     await act(async () => void window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));
     expect(onZamknij).toHaveBeenCalled();
+  });
+});
+
+describe('Twoje zdjęcia – usuwanie (paczka 123)', () => {
+  const STRONA = '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d';
+
+  it('opis: opublikowana strona = odmowa z nazwą strony; nieopublikowane – potwierdzenie z miejscami (także ta strona)', () => {
+    expect(opisUsunieciaZdjecia({ uzyte: [{ stronaId: STRONA, nazwa: 'Salon', opublikowana: true }] })).toEqual({
+      blokada: 'To zdjęcie jest na opublikowanej stronie „Salon”. Zmień zdjęcie na stronie i opublikuj ją ponownie, potem usuń je z biblioteki.',
+    });
+    const p = opisUsunieciaZdjecia({ uzyte: [{ stronaId: STRONA, nazwa: 'Salon', opublikowana: false }, { stronaId: 'x', nazwa: 'Kawiarnia', opublikowana: false }] }, STRONA);
+    expect('potwierdzenie' in p && p.potwierdzenie).toContain('Zdjęcie jest na stronach „Salon”, „Kawiarnia” (także na tej, którą edytujesz).');
+    expect(opisUsunieciaZdjecia({ uzyte: [] })).toEqual({ potwierdzenie: expect.stringContaining('zwolni miejsce') });
+  });
+
+  async function twoje(zasob: ZasobKreatora) {
+    jest.mocked(listaZasobow).mockResolvedValue({ ok: true, dane: { zasoby: [zasob], razem: 1, strona: 1, naStrone: 48, miejsce: { zajete: 400_000, limit: 500 * 1048576 } } });
+    await otworz({ stronaId: STRONA });
+    await act(async () => zakladka('Twoje zdjęcia').click());
+    await czekaj();
+    await act(async () => document.querySelector<HTMLElement>('[role="listbox"] [role="option"]')!.click());
+  }
+
+  it('nieużywane: potwierdzenie, usunięcie w API, kafel znika, miejsce się zwalnia', async () => {
+    jest.mocked(usunZasob).mockResolvedValue({ ok: true, dane: { ok: true } });
+    await twoje({ ...ZASOB, uzyte: [] });
+    await act(async () => przycisk('Usuń zdjęcie').click());
+    expect(potwierdz).toHaveBeenCalledWith(expect.stringContaining('zwolni miejsce'), expect.objectContaining({ akcja: 'Usuń zdjęcie', niebezpieczne: true }));
+    expect(usunZasob).toHaveBeenCalledWith(ZASOB.id);
+    expect(document.querySelector('[role="listbox"] [role="option"]')).toBeNull();
+  });
+
+  it('na opublikowanej stronie: komunikat, gdzie jest użyte, bez pytania i bez wywołania API', async () => {
+    await twoje({ ...ZASOB, uzyte: [{ stronaId: STRONA, nazwa: 'Salon', opublikowana: true }] });
+    expect(document.body.textContent).toContain('Zaznaczone zdjęcie jest na stronie „Salon”.');
+    await act(async () => przycisk('Usuń zdjęcie').click());
+    expect(potwierdz).not.toHaveBeenCalled();
+    expect(usunZasob).not.toHaveBeenCalled();
+    expect(document.body.textContent).toContain('To zdjęcie jest na opublikowanej stronie „Salon”.');
+  });
+
+  it('odmowa API (strona opublikowana po wczytaniu listy): komunikat z API, kafel zostaje', async () => {
+    jest.mocked(usunZasob).mockResolvedValue({ ok: false, status: 409, blad: 'To zdjęcie jest na opublikowanej stronie „Nowa”.' });
+    await twoje({ ...ZASOB, uzyte: [] });
+    await act(async () => przycisk('Usuń zdjęcie').click());
+    expect(document.body.textContent).toContain('To zdjęcie jest na opublikowanej stronie „Nowa”.');
+    expect(document.querySelector('[role="listbox"] [role="option"]')).not.toBeNull();
   });
 });

@@ -1,13 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, Check, Loader2, RotateCcw } from 'lucide-react';
 import { cx } from '@/components/panel/cx';
-import type { NowaStronaKreatora, WidokStronyKreatora } from '@/lib/kreator';
-import { pobierzStrone, usunStrone, utworzStrone } from '../akcje';
-import { kluczBriefu } from '../nowa/kreator-briefu';
+import type { WidokStronyKreatora } from '@/lib/kreator';
+import { generujPonownie, pobierzStrone } from '../akcje';
 import { klasaPrzyciskuDrugiego, klasaPrzyciskuGlownego } from '../wspolne';
 
 export const ODSTEP_ODPYTYWANIA_MS = 3000;
@@ -33,7 +31,6 @@ export function postepPoCzasie(sekundy: number): number {
 }
 
 export function EkranGenerowania({ widok, onGotowa }: { widok: WidokStronyKreatora; onGotowa: (w: WidokStronyKreatora) => void }) {
-  const router = useRouter();
   const [stan, setStan] = useState(widok);
   // 0 przy pierwszym renderze (ten sam tekst na serwerze i w przeglądarce), potem czas od utworzenia strony.
   const [sekundy, setSekundy] = useState(0);
@@ -46,7 +43,8 @@ export function EkranGenerowania({ widok, onGotowa }: { widok: WidokStronyKreato
 
   useEffect(() => {
     if (stan.status !== 'GENEROWANIE') return;
-    const start = new Date(widok.createdAt).getTime();
+    // Początek generacji = ostatnia zmiana strony (utworzenie albo „Spróbuj ponownie” / „Wygeneruj od nowa”).
+    const start = new Date(stan.updatedAt).getTime();
     const zegar = setInterval(() => setSekundy(Math.max(0, Math.round((Date.now() - start) / 1000))), 1000);
     const odpytywanie = setInterval(() => {
       void pobierzStrone(widok.id).then((r) => {
@@ -59,42 +57,23 @@ export function EkranGenerowania({ widok, onGotowa }: { widok: WidokStronyKreato
       clearInterval(zegar);
       clearInterval(odpytywanie);
     };
-  }, [stan.status, widok.id, widok.createdAt]);
+  }, [stan.status, stan.updatedAt, widok.id]);
 
-  /** „Spróbuj ponownie”: nieudana strona idzie do kosza (liczy się do limitu stron), nowa – z tym samym briefem. */
+  /**
+   * „Spróbuj ponownie” (paczka 123): ta sama strona generowana od nowa z opisu zapisanego w API
+   * (POST /kreator/strony/:id/generuj-ponownie) – bez usuwania strony i bez pamięci przeglądarki.
+   */
   const ponow = async () => {
-    let brief: NowaStronaKreatora | null = null;
-    try {
-      const zapis = sessionStorage.getItem(kluczBriefu(widok.id));
-      brief = zapis ? (JSON.parse(zapis) as NowaStronaKreatora) : null;
-    } catch {
-      brief = null;
-    }
-    if (!brief) {
-      router.push('/dashboard/kreator/nowa');
-      return;
-    }
     setPonawianie(true);
     setBladPonowienia(null);
-    const usun = await usunStrone(widok.id);
-    if (!usun.ok && usun.status !== 404) {
-      setPonawianie(false);
-      setBladPonowienia(usun.blad);
-      return;
-    }
-    const r = await utworzStrone(brief);
+    const r = await generujPonownie(widok.id);
+    setPonawianie(false);
     if (!r.ok) {
-      setPonawianie(false);
       setBladPonowienia(r.blad);
       return;
     }
-    try {
-      sessionStorage.removeItem(kluczBriefu(widok.id));
-      sessionStorage.setItem(kluczBriefu(r.dane.id), JSON.stringify(brief));
-    } catch {
-      /* bez sessionStorage – kolejna próba odeśle do formularza */
-    }
-    router.replace(`/dashboard/kreator/${r.dane.id}`);
+    setSekundy(0);
+    setStan(r.dane);
   };
 
   if (stan.status === 'BLAD') {

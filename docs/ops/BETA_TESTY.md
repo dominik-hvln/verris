@@ -49,26 +49,31 @@ rodzaj `FIXED_CREDIT`, `maxRedemptions: 1`, ważny 14 dni od wysłania):
 ## Scenariusze do przejścia (lista dla testera)
 
 Jedno źródło: `libs/contracts/src/beta-scenariusze.ts` — strona „Testy (beta)” w panelu klienta, postęp w panelu
-admina i przewodnik PDF. 14 scenariuszy obowiązkowych i 2 opcjonalne dla osób technicznych (nie liczą się do postępu).
+admina i przewodnik PDF. 15 scenariuszy obowiązkowych (61 kroków) i 2 opcjonalne dla osób technicznych (nie liczą się do postępu).
+
+> 8.11.2026 (paczka 123): dopisany scenariusz „Kreator stron” (s17, po domenie). Przewodnik PDF
+> (`apps/client-panel/assets/beta/Verris-przewodnik-testera.pdf`) generuje się poza repo – trzeba go wygenerować
+> ponownie z `SCENARIUSZE_BETA` (okładka mówi dziś „16 scenariuszy – 14 obowiązkowych (56 kroków)”).
 
 1. Konto i bezpieczeństwo (rejestracja, e-mail, 2FA/passkey).
 2. Kod testera, portfel i zakup hostingu.
 3. Przeniesienie strony albo nowy WordPress.
 4. Domena, DNS i certyfikat SSL.
-5. Poczta: skrzynka, wysyłka, odbiór, telefon.
-6. Przeniesienie poczty ze starego hostingu (IMAP, foldery i liczba wiadomości) — dopisane 26.10.
-7. Kopie zapasowe i odtwarzanie.
-8. Staging i narzędzia strony (PHP, phpMyAdmin, FTP).
-9. Asystent AI w panelu.
-10. Zużycie, prognoza i autoskalowanie.
-11. Płatności, faktury i odnowienie (dane do faktury, doładowanie BLIK/kartą, faktura, data odnowienia) — dopisane 26.10.
-12. Dostęp dla współpracownika (IAM: zaproszenie z ograniczonymi uprawnieniami i odebranie dostępu) — dopisane 26.10.
-13. Pomoc i zgłoszenia.
-14. Wszystko jeszcze raz — z telefonu.
-15. *Opcjonalnie:* Deploy z Gita i budowanie (npm/composer, zmienne, webhook; `/.git/config` i `/.env` niedostępne).
-16. *Opcjonalnie:* Aplikacja Node.js albo Python, SSH (CageFS — tylko własne pliki) i cron.
+5. Kreator stron (nowa strona z opisu, zmiana tekstu i zdjęcia na podglądzie, publikacja na domenie, wycofanie) — dopisane 8.11.
+6. Poczta: skrzynka, wysyłka, odbiór, telefon.
+7. Przeniesienie poczty ze starego hostingu (IMAP, foldery i liczba wiadomości) — dopisane 26.10.
+8. Kopie zapasowe i odtwarzanie.
+9. Staging i narzędzia strony (PHP, phpMyAdmin, FTP).
+10. Asystent AI w panelu.
+11. Zużycie, prognoza i autoskalowanie.
+12. Płatności, faktury i odnowienie (dane do faktury, doładowanie BLIK/kartą, faktura, data odnowienia) — dopisane 26.10.
+13. Dostęp dla współpracownika (IAM: zaproszenie z ograniczonymi uprawnieniami i odebranie dostępu) — dopisane 26.10.
+14. Pomoc i zgłoszenia.
+15. Wszystko jeszcze raz — z telefonu.
+16. *Opcjonalnie:* Deploy z Gita i budowanie (npm/composer, zmienne, webhook; `/.git/config` i `/.env` niedostępne).
+17. *Opcjonalnie:* Aplikacja Node.js albo Python, SSH (CageFS — tylko własne pliki) i cron.
 
-Doładowanie w scenariuszu 11 zależy od trybu płatności: przy kluczach testowych Paynow/Stripe tester potrzebuje danych
+Doładowanie w scenariuszu 12 zależy od trybu płatności: przy kluczach testowych Paynow/Stripe tester potrzebuje danych
 testowych (np. karta 4242…), przy produkcyjnych płaci naprawdę i dostaje równowartość kredytem (patrz „Co dostają”).
 Przed wysłaniem zaproszeń właściciel decyduje, który tryb obowiązuje, i pisze to testerom.
 

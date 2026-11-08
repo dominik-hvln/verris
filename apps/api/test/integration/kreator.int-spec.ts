@@ -152,4 +152,26 @@ describe('Verris Kreator – baza', () => {
     expect(await prisma().kreatorWersja.count()).toBe(0);
     expect(await prisma().kreatorZuzycie.count()).toBe(0);
   });
+
+  it('paczka 123 – ponowna generacja: brief z bazy, ta sama strona, wersja „przed” i limit; JSONB briefu bez strat', async () => {
+    const u = await klient();
+    const { svc, dokoncz } = serwis();
+    const brief = { opis: 'Salon fryzjerski w Poznaniu, strzyżenie i koloryzacja.', typ: 'wizytowka' as const, firma: { nazwa: 'Salon', branza: 'fryzjer' } };
+    const { id } = await svc.utworz(u.id, u.id, { nazwa: 'Salon', brief });
+    await dokoncz();
+    expect((await prisma().kreatorStrona.findUniqueOrThrow({ where: { id } })).brief).toEqual(brief);
+    const w = await svc.generujPonownie(u.id, u.id, id);
+    expect(w.status).toBe('GENEROWANIE');
+    await dokoncz();
+    const s = await prisma().kreatorStrona.findUniqueOrThrow({ where: { id } });
+    expect(s.status).toBe('GOTOWA');
+    const wersje = await prisma().kreatorWersja.findMany({ where: { stronaId: id }, orderBy: { numer: 'asc' } });
+    expect(wersje.map((v) => [v.numer, v.zrodlo, v.opis])).toEqual([
+      [1, 'AI_GENERACJA', 'Strona wygenerowana przez AI'],
+      [2, 'RECZNA', 'Projekt przed wygenerowaniem od nowa'],
+      [3, 'AI_GENERACJA', 'Strona wygenerowana przez AI'],
+    ]);
+    expect((await prisma().kreatorZuzycie.findUniqueOrThrow({ where: { userId_miesiac: { userId: u.id, miesiac: miesiacUtc() } } })).generacje).toBe(2);
+    expect(await prisma().kreatorStrona.count({ where: { userId: u.id } })).toBe(1);
+  });
 });

@@ -48,6 +48,7 @@ const naglowek = (c: Ceny) => `# Verris
 - [Hosting WordPress](${BASE}/hosting/wordpress) · [Hosting dla sklepu](${BASE}/hosting/sklep)
 - [Cennik](${BASE}/cennik)
 - [Przeniesienie strony na nowy hosting za darmo](${BASE}/przenies-strone)
+- [Kreator stron z AI w cenie hostingu](${BASE}/kreator-stron) – dodatek Kreator Pro: ${cenaPakietu(c.kreatorPro)}
 - [Jak wybrać hosting – lista pytań](${BASE}/jak-wybrac-hosting)
 - [Funkcje](${BASE}/funkcje) · [Statystyki strony bez cookies](${BASE}/funkcje/statystyki)
 - ${VPS_W_SPRZEDAZY ? `[VPS](${BASE}/vps) · ` : ''}[Domeny](${BASE}/domeny) · [Poczta w domenie](${BASE}/poczta) · [Dla agencji](${BASE}/reseller)

@@ -1148,6 +1148,8 @@ model Subscription {
   currentPeriodEnd     DateTime?
   cancelAt             DateTime?
   canceledAt           DateTime?
+  /// Paczka 123 – okres rozliczenia od następnego odnowienia (zmiana miesiąc ↔ rok, dziś Kreator Pro); null = bez zmiany.
+  nastepnyInterwal     BillingInterval?
   // F3.5 — obietnica zapłaty (operator L3, maks. 7 dni): do tej chwili harmonogram nie zawiesza zaległej
   // usługi (PAST_DUE) za brak płatności; po niej normalny cykl. Szczegóły (kto, powód) w SubscriptionEvent PAYMENT_PROMISE.
   paymentPromiseUntil  DateTime?
@@ -4878,6 +4880,8 @@ model KreatorStrona {
   publikacjaOd   DateTime?
   /// Kreator Pro: pozostałe propozycje z generacji (tablica modeli) do wyboru; null = brak.
   propozycje     Json?
+  /// Paczka 123 – brief z formularza „Nowa strona” (BriefStrony) do ponownej generacji; null = strona sprzed zapisu briefu.
+  brief          Json?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   wersje         KreatorWersja[]

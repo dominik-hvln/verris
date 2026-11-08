@@ -4,7 +4,8 @@
  *
  * Test czerwieni się, gdy w kodzie strony, komponentu, tras tekstowych (llms.txt, llms-full.txt, pricing.md)
  * albo modułów lib (poza samym lib/ceny.ts, gdzie są wartości zapasowe) pojawi się wpisana ręcznie cena hostingu
- * („45 zł”, „449 zł”, „399 zł”, „36,59”, „365,04”) albo stawka autoskalowania („0,0882”, „0,001323”).
+ * („45 zł”, „449 zł”, „399 zł”, „36,59”, „365,04”), cena Kreatora Pro („9,90”, „99 zł”, „8,05”, „80,49”)
+ * albo stawka autoskalowania („0,0882”, „0,001323”).
  * Treści z CMS (baza) nie są tu sprawdzane — to dane, nie kod.
  *
  * Lista WYJATKI jest pusta i ma taka zostać. Gdyby kiedyś trzeba było dopisać plik, w którym kwota nie jest ceną
@@ -15,7 +16,8 @@ import { join, relative } from 'node:path';
 
 /** src/ — ścieżki w raportach są względem tego katalogu. */
 const SRC = join(__dirname, '../..');
-const CENA_NA_SZTYWNO = /(?<![\d,])(45|449|399)(\s| )?zł|36,59|365,04|0,0882|0,001323/;
+// Paczka 123: także abonament Kreator Pro (plan kreator-pro: 9,90 zł / 99 zł brutto, 8,05 zł / 80,49 zł netto).
+const CENA_NA_SZTYWNO = /(?<![\d,])(45|449|399|99)(\s| )?zł|36,59|365,04|0,0882|0,001323|(?<![\d,])(9,90|8,05|80,49)(?!\d)/;
 
 /** Ścieżki względem src/. */
 const WYJATKI = new Set<string>([]);
@@ -62,10 +64,10 @@ describe('ceny z API, nie na sztywno', () => {
   });
 
   it('wzorzec łapie ceny i stawki wpisane ręcznie, a nie łapie innych liczb', () => {
-    for (const t of ['45 zł/mies', '449 zł', '399 zł/rok', '45 zł', '36,59 zł netto', '365,04', '0,0882 zł']) {
+    for (const t of ['45 zł/mies', '449 zł', '399 zł/rok', '45 zł', '36,59 zł netto', '365,04', '0,0882 zł', '9,90 zł', '99 zł/rok', '8,05', '80,49 zł']) {
       expect(t).toMatch(CENA_NA_SZTYWNO);
     }
-    for (const t of ['145 zł', '1449 zł', '44,90 zł', '9,45 zł', '45 GB', 'SLA 99,5%', '${zl(c.rocznie)}']) {
+    for (const t of ['145 zł', '1449 zł', '44,90 zł', '9,45 zł', '45 GB', 'SLA 99,5%', '${zl(c.rocznie)}', '99,99 zł', '199 zł', '19,90 zł', '9,905']) {
       expect(t).not.toMatch(CENA_NA_SZTYWNO);
     }
   });

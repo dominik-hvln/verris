@@ -356,10 +356,9 @@ const KOD = String.raw`(function () {
       return;
     }
     var f = najblizszy(t, '[data-k-formularz]');
-    if (f && s) {
+    if (f) {
       ev.preventDefault(); ev.stopPropagation();
-      zaznacz(s, false);
-      wyslij({ typ: 'polecenie', sekcja: idSekcji(s), polecenie: 'opcje', sciezka: atr(f, 'data-k-formularz') });
+      otworzFormularz(f, s);
       return;
     }
     // Linki i przyciski-odnośniki w trybie edycji nie prowadzą nigdzie (przyciski strony – karuzela, menu – działają).
@@ -367,6 +366,16 @@ const KOD = String.raw`(function () {
     if (s) zaznacz(s, true);
   }
   w.addEventListener('click', klik, true);
+
+  // Pole otwierane formularzem edytora: w sekcji – polecenie „opcje” sekcji ze ścieżką; poza sekcją (nagłówek, stopka –
+  // dane firmy, paczka 123) – sama ścieżka pola.
+  function otworzFormularz(el, s) {
+    var sciezka = atr(el, 'data-k-formularz');
+    if (s) {
+      zaznacz(s, false);
+      wyslij({ typ: 'polecenie', sekcja: idSekcji(s), polecenie: 'opcje', sciezka: sciezka });
+    } else wyslij({ typ: 'pole', sciezka: sciezka });
+  }
 
   d.addEventListener('keydown', function (ev) {
     var t = ev.target;
@@ -403,8 +412,7 @@ const KOD = String.raw`(function () {
       if (t.hasAttribute('data-k-obraz')) { ev.preventDefault(); ev.stopPropagation(); wyslij({ typ: 'obraz', sciezka: atr(t, 'data-k-obraz') }); return; }
       if (t.hasAttribute('data-k-formularz')) {
         ev.preventDefault(); ev.stopPropagation();
-        var s2 = sekcjaElementu(t);
-        if (s2) wyslij({ typ: 'polecenie', sekcja: idSekcji(s2), polecenie: 'opcje', sciezka: atr(t, 'data-k-formularz') });
+        otworzFormularz(t, sekcjaElementu(t));
         return;
       }
     }
@@ -491,7 +499,7 @@ const KOD = String.raw`(function () {
         if (!e.hasAttribute('tabindex')) e.setAttribute('tabindex', '0');
       }
       if (e.hasAttribute('data-k-obraz') && !e.hasAttribute('role')) { e.setAttribute('role', 'button'); e.setAttribute('aria-label', 'Zmień zdjęcie'); }
-      if (e.hasAttribute('data-k-formularz') && !e.hasAttribute('role')) { e.setAttribute('role', 'button'); e.setAttribute('aria-label', 'Zmień cenę w formularzu sekcji'); }
+      if (e.hasAttribute('data-k-formularz') && !e.hasAttribute('role')) { e.setAttribute('role', 'button'); e.setAttribute('aria-label', atr(e, 'data-k-etykieta') || 'Zmień cenę w formularzu sekcji'); }
     }
     (d.body || d.documentElement).appendChild(host);
     var juz = d.querySelector('[data-kreator-zaznaczona][data-k-sekcja]');

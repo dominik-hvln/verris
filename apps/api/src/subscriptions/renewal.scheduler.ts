@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { ClientWebhooksService } from '../client-webhooks/client-webhooks.service.js';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { Prisma, SubscriptionStatus, WalletTxType } from '@verris/database';
+import { Prisma, ProductKind, SubscriptionStatus, WalletTxType } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { WalletLedgerService } from '../billing/wallet-ledger.service.js';
@@ -22,9 +22,15 @@ import {
 } from './subscriptions.service.js';
 import { EcoPointsService } from '../eco/eco-points.service.js';
 import { nazwaPozycjiUslugi } from '../billing/pozycja-uslugi.js';
+import { maPlatnyHosting } from '../kreator/kreator-pro.js';
 
 const HOURS = 60 * 60 * 1000;
 const DAYS = 24 * HOURS;
+/**
+ * Paczka 123 — zmiana okresu abonamentu kartą (Stripe) idzie w ostatnich tylu godzinach opłaconego okresu
+ * (przebieg co godzinę: dwie szanse przed odnowieniem w Stripe). Klient traci najwyżej tyle opłaconego czasu.
+ */
+export const OKNO_ZMIANY_OKRESU_KARTY_MS = 2 * HOURS;
 
 /**
  * Background loop that keeps subscriptions in good standing.
@@ -69,6 +75,17 @@ export class RenewalScheduler {
   @Cron(CronExpression.EVERY_HOUR, { name: 'subscriptions:renewal-cycle' })
   async handleHourlyTick(): Promise<void> {
     this.logger.log('Renewal scheduler tick');
+    // Przed oknem odnowień: abonament Kreator Pro bez płatnego hostingu nie może się odnowić w tym samym przebiegu.
+    try {
+      await this.runKreatorProBezHostingu();
+    } catch (err) {
+      this.logger.error(`Kreator Pro bez hostingu: ${(err as Error).message}`, (err as Error).stack);
+    }
+    try {
+      await this.runZmianyOkresuKarta();
+    } catch (err) {
+      this.logger.error(`Zmiana okresu (karta): ${(err as Error).message}`, (err as Error).stack);
+    }
     try {
       await this.runRenewalWindow();
     } catch (err) {
@@ -95,6 +112,65 @@ export class RenewalScheduler {
     } catch (err) {
       this.logger.error(`Wygaśnięcie po zawieszeniu: ${(err as Error).message}`, (err as Error).stack);
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Kreator Pro (paczka 123)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Kreator Pro działa tylko z płatnym hostingiem. Hosting przechodzi w CANCELED/EXPIRED w kilku miejscach (rezygnacja
+   * klienta, koniec okresu, operator, wygaśnięcie po zawieszeniu, webhook Stripe), więc zamiast haka w każdym z nich –
+   * przebieg co godzinę (wzorzec tego harmonogramu): abonament Pro z odnowieniem przy koncie bez płatnego hostingu →
+   * SubscriptionsService.wylaczOdnowienieKreatoraProBezHostingu (odnowienie wyłączone + mail). Hosting zawieszony
+   * się liczy (wraca po zapłacie), sama próba – nie.
+   */
+  async runKreatorProBezHostingu(): Promise<number> {
+    const pro = await this.prisma.subscription.findMany({
+      where: {
+        status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE] },
+        cancelAt: null,
+        plan: { productKind: ProductKind.KREATOR_PRO },
+      },
+      select: { id: true, userId: true },
+      take: 200,
+    });
+    let wylaczone = 0;
+    for (const sub of pro) {
+      try {
+        if (await maPlatnyHosting(this.prisma, sub.userId)) continue;
+        if (await this.subs.wylaczOdnowienieKreatoraProBezHostingu(sub.id)) wylaczone += 1;
+      } catch (err) {
+        this.logger.error(`Kreator Pro bez hostingu sub=${sub.id}: ${(err as Error).message}`);
+      }
+    }
+    if (wylaczone) this.logger.log(`Kreator Pro: wyłączono odnowienie ${wylaczone} abonamentów bez płatnego hostingu`);
+    return wylaczone;
+  }
+
+  /** Zaplanowana zmiana okresu (miesiąc ↔ rok) przy płatności kartą – tuż przed odnowieniem w Stripe. */
+  async runZmianyOkresuKarta(now = new Date()): Promise<number> {
+    const due = await this.prisma.subscription.findMany({
+      where: {
+        status: SubscriptionStatus.ACTIVE,
+        cancelAt: null,
+        nastepnyInterwal: { not: null },
+        paymentSource: 'STRIPE_CARD',
+        stripeSubscriptionId: { not: null },
+        currentPeriodEnd: { gt: now, lte: new Date(now.getTime() + OKNO_ZMIANY_OKRESU_KARTY_MS) },
+      },
+      select: { id: true },
+      take: 200,
+    });
+    let zmienione = 0;
+    for (const sub of due) {
+      try {
+        if (await this.subs.zmienOkresKartyPrzedOdnowieniem(sub.id)) zmienione += 1;
+      } catch (err) {
+        this.logger.error(`Zmiana okresu kartą sub=${sub.id}: ${(err as Error).message}`);
+      }
+    }
+    return zmienione;
   }
 
   // ---------------------------------------------------------------------------
@@ -227,11 +303,14 @@ export class RenewalScheduler {
   ): Promise<boolean> {
     const periodEnd = sub.currentPeriodEnd ?? new Date();
     const idempotencyKey = await this.kluczOdnowienia(sub.id, periodEnd);
+    // Paczka 123 – zaplanowana zmiana okresu (miesiąc ↔ rok): ten okres już w nowym cyklu i po cenie z planu.
+    const zmiana = zmianaOkresu(sub);
+    const interval = zmiana?.interval ?? sub.interval;
     // Zawieszona zostaje SUSPENDED po obciążeniu — ACTIVE ustawia dopiero odwieszenie konta na serwerze.
     const aktywuj = sub.status !== SubscriptionStatus.SUSPENDED;
     // Obciążenie tym kluczem (kto by go nie zrobił) liczy kwotę z rabatem, gdy zostały okresy — więc ten, kto przesuwa
     // okres, zużywa jeden okres rabatu, także po trafieniu w cudze obciążenie.
-    const useIntro = sub.introDiscountPeriodsLeft > 0 && sub.introDiscountPct > 0;
+    const useIntro = !zmiana && sub.introDiscountPeriodsLeft > 0 && sub.introDiscountPct > 0;
 
     const existing = await this.walletLedger.findByIdempotencyKey(idempotencyKey);
     if (existing) {
@@ -241,7 +320,7 @@ export class RenewalScheduler {
       // Treat as already-paid; just extend period if not extended yet.
       // Noc 15.10 (niestabilny test odnowienia-wyscig): cron obciążył, „Opłać teraz” trafił w to obciążenie i PIERWSZY
       // przesunął okres — z `false` żaden przebieg nie zużył okresu rabatu (klient dostawał dodatkowy okres z rabatem).
-      if (!(await this.extendPeriod(sub.id, periodEnd, sub.interval, useIntro, aktywuj, new Prisma.Decimal(existing.amount).abs()))) {
+      if (!(await this.extendPeriod(sub.id, periodEnd, interval, useIntro, aktywuj, new Prisma.Decimal(existing.amount).abs(), zmiana))) {
         await this.zwrotGdyAnulowana(sub, periodEnd, idempotencyKey);
       }
       void this.ecoPoints.safeAward(`wallet_renewal:${idempotencyKey}`, async () => {
@@ -256,7 +335,7 @@ export class RenewalScheduler {
 
     // BILL-1/BILL-2 — kwota odnowienia (z rabatem startowym, jeśli zostały okresy)
     // liczona w jednym miejscu (PromoService), wspólnie z mailem przypominającym.
-    const renewalAmount = await this.promo.resolveNextRenewalAmount({
+    const renewalAmount = zmiana ? zmiana.cena : await this.promo.resolveNextRenewalAmount({
       priceAmount: sub.priceAmount,
       listPriceAmount: sub.listPriceAmount,
       appliedPromoCodeId: sub.appliedPromoCodeId,
@@ -271,7 +350,7 @@ export class RenewalScheduler {
         userId: sub.userId,
         type: WalletTxType.CHARGE_SUBSCRIPTION,
         amount: renewalAmount,
-        description: opisOdnowienia(sub, periodEnd),
+        description: opisOdnowienia({ ...sub, interval }, periodEnd),
         idempotencyKey,
         subscriptionId: sub.id,
       });
@@ -294,7 +373,7 @@ export class RenewalScheduler {
     // Zużycie okresu rabatu startowego razem z przedłużeniem i tylko przez tego, kto przedłużył:
     // „Opłać teraz” w tej samej chwili co cron (to samo obciążenie przez klucz idempotencji)
     // zdejmował wcześniej dwa okresy rabatu.
-    if (!(await this.extendPeriod(sub.id, periodEnd, sub.interval, useIntro, aktywuj, new Prisma.Decimal(renewalAmount)))) {
+    if (!(await this.extendPeriod(sub.id, periodEnd, interval, useIntro, aktywuj, new Prisma.Decimal(renewalAmount), zmiana))) {
       await this.zwrotGdyAnulowana(sub, periodEnd, idempotencyKey);
     }
 
@@ -362,6 +441,8 @@ export class RenewalScheduler {
      * Wcześniej zostawała cena sprzed odnowienia — po upgradzie katalogowa, choć odnowienie pobrało ją z rabatem.
      */
     oplaconaKwota?: Prisma.Decimal,
+    /** Paczka 123 – zmiana okresu przy tym odnowieniu: nowy `interval` i cena katalogowa, plan zmiany skasowany. */
+    zmiana?: { interval: 'MONTH' | 'YEAR'; cena: Prisma.Decimal } | null,
   ): Promise<boolean> {
     const newEnd = addInterval(periodEnd, interval);
     // Warunkowo na opłacany okres: drugi, równoległy przebieg dla tego samego okresu nic nie zmienia
@@ -374,6 +455,7 @@ export class RenewalScheduler {
         currentPeriodEnd: newEnd,
         ...(zuzyjRabat ? { introDiscountPeriodsLeft: { decrement: 1 } } : {}),
         ...(oplaconaKwota ? { priceAmount: oplaconaKwota } : {}),
+        ...(zmiana ? { interval: zmiana.interval, listPriceAmount: zmiana.cena, nastepnyInterwal: null } : {}),
       },
     });
     if (count === 0) return false;
@@ -382,7 +464,7 @@ export class RenewalScheduler {
       data: {
         subscriptionId,
         type: 'RENEWED',
-        details: { until: newEnd.toISOString() },
+        details: { until: newEnd.toISOString(), ...(zmiana ? { interval: zmiana.interval } : {}) },
       },
     });
     this.logger.log(`Renewed subscription=${subscriptionId} until ${newEnd.toISOString()}`);
@@ -554,8 +636,26 @@ export class RenewalScheduler {
   }
 }
 
-/** Plan w odczytach odnowień: slug do opisu obciążenia, nazwa i rodzaj do nazwy pozycji abonamentu. */
-const PLAN_ODNOWIENIA = { select: { slug: true, name: true, productKind: true } } as const;
+/**
+ * Plan w odczytach odnowień: slug do opisu obciążenia, nazwa i rodzaj do nazwy pozycji abonamentu, ceny okresów do
+ * zaplanowanej zmiany okresu (paczka 123).
+ */
+const PLAN_ODNOWIENIA = { select: { slug: true, name: true, productKind: true, priceMonthly: true, priceYearly: true } } as const;
+
+/**
+ * Paczka 123 – zmiana okresu (miesiąc ↔ rok) zaplanowana na to odnowienie: nowy okres i cena z planu. Rabat startowy,
+ * kod i cena indywidualna dotyczą starego okresu – nowy idzie po cenniku planu.
+ */
+export function zmianaOkresu(sub: {
+  interval: 'MONTH' | 'YEAR';
+  nastepnyInterwal?: 'MONTH' | 'YEAR' | null;
+  plan: { priceMonthly?: Prisma.Decimal | null; priceYearly?: Prisma.Decimal | null };
+}): { interval: 'MONTH' | 'YEAR'; cena: Prisma.Decimal } | null {
+  if (!sub.nastepnyInterwal || sub.nastepnyInterwal === sub.interval) return null;
+  const cena = sub.nastepnyInterwal === 'YEAR' ? sub.plan.priceYearly : sub.plan.priceMonthly;
+  if (cena == null) return null;
+  return { interval: sub.nastepnyInterwal, cena: new Prisma.Decimal(cena) };
+}
 
 /**
  * Opis obciążenia za odnowienie. Paczka 121: abonament Kreator Pro nazywa się jak na dokumencie

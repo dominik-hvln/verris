@@ -20,6 +20,16 @@ export { plikFontu, slugRodziny, ZAKRESY_FONTOW, type ZakresFontu } from './font
 export { MAKS_POL_FORMULARZA } from './sekcje/wspolne.ts';
 export { dodatkiMostu, kodMostu, STYL_MOSTU, type OpcjeMostu } from './edycja-most.ts';
 export { SZEROKOSCI_ZDJEC, szerokosciWariantow, wymagaAtrybucji } from './obraz.ts';
+export {
+  bezpiecznyCss,
+  bezpiecznyJs,
+  naglowkiPodgladu,
+  rozwiazSciezke,
+  sciezkiHtml,
+  zlozPodglad,
+  type OpcjeNaglowkowPodgladu,
+  type PlikPodgladu,
+} from './podglad-jeden-plik.ts';
 
 const ZNACZNIK_GLOWY = '<!--glowa-->';
 const EFEKTY_ZNANE = new Set(KATALOG_EFEKTOW.map((e) => e.id));

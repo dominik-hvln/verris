@@ -1,6 +1,6 @@
 import type { Podstrona, Sekcja } from '../model.ts';
 import { adresHtml, emailLink, listaGodzin, telefonLink } from './dane.ts';
-import { atrTekstu, sciezkaPodstrony } from './edycja.ts';
+import { atrFirmy, atrTekstu, sciezkaMenu, sciezkaPodstrony } from './edycja.ts';
 import { esc } from './esc.ts';
 import { ikona, NAZWY_SOCIAL } from './ikony.ts';
 import type { KontekstPodstrony } from './kontekst.ts';
@@ -16,6 +16,8 @@ export interface PozycjaMenu {
   etykieta: string;
   href: string;
   biezaca: boolean;
+  /** Paczka 123 – ścieżka etykiety w modelu (edycja na stronie); null poza edycją. */
+  sciezka: string | null;
 }
 
 /** Menu: kotwice sekcji strony głównej z `wMenu` + podstrony najwyższego poziomu (bez wpisów bloga). */
@@ -24,11 +26,16 @@ export function menu(k: KontekstPodstrony): PozycjaMenu[] {
   const glowna = s.strona.strony.find((p) => p.slug === '');
   const pozycje: PozycjaMenu[] = [];
   for (const sek of glowna?.sekcje ?? []) {
-    if (sek.wMenu && czyWidoczna(s, sek)) pozycje.push({ etykieta: sek.wMenu, href: hrefCelu(k, `#${sek.id}`), biezaca: false });
+    if (sek.wMenu && czyWidoczna(s, sek)) pozycje.push({ etykieta: sek.wMenu, href: hrefCelu(k, `#${sek.id}`), biezaca: false, sciezka: sciezkaMenu(k, { sekcja: sek.id }) });
   }
   for (const p of s.strona.strony) {
     if (!p.slug || p.slug.includes('/')) continue;
-    pozycje.push({ etykieta: p.tytul, href: hrefPodstrony(k, p.slug), biezaca: p.slug === k.podstrona.slug || k.podstrona.slug.startsWith(p.slug + '/') });
+    pozycje.push({
+      etykieta: p.tytul,
+      href: hrefPodstrony(k, p.slug),
+      biezaca: p.slug === k.podstrona.slug || k.podstrona.slug.startsWith(p.slug + '/'),
+      sciezka: sciezkaMenu(k, { podstrona: p.slug }),
+    });
   }
   return pozycje;
 }
@@ -60,14 +67,19 @@ export function naglowekStrony(k: KontekstPodstrony): string {
   const cta = ctaNaglowka(k);
   const przyklejony = s.efekty.has('przyklejony-naglowek');
   if (przyklejony) s.js.add('naglowek');
-  const lista = pozycje.map((p) => `<li><a href="${esc(p.href)}"${p.biezaca ? ' aria-current="page"' : ''}>${esc(p.etykieta)}</a></li>`).join('');
+  // Edycja na stronie (paczka 123): etykieta pozycji menu pisana w miejscu (wMenu sekcji albo tytuł podstrony).
+  const etykieta = (p: PozycjaMenu) => {
+    const atr = atrTekstu(k, p.sciezka);
+    return atr ? `<span${atr}>${esc(p.etykieta)}</span>` : esc(p.etykieta);
+  };
+  const lista = pozycje.map((p) => `<li><a href="${esc(p.href)}"${p.biezaca ? ' aria-current="page"' : ''}>${etykieta(p)}</a></li>`).join('');
   const nav = pozycje.length
     ? `<button class="menu-btn" type="button" aria-expanded="false" aria-controls="menu-glowne"><span class="sr">Menu</span>${ikona('menu')}</button>` +
       `<nav class="nav" id="menu-glowne" aria-label="Główna"><ul>${lista}</ul></nav>`
     : '';
   if (pozycje.length) s.js.add('menu');
   const prawa =
-    (f.telefon ? `<a class="nag-tel" href="${esc(telHref(f.telefon))}">${ikona('telefon')}<span>${esc(f.telefon)}</span></a>` : '') +
+    (f.telefon ? `<a class="nag-tel" href="${esc(telHref(f.telefon))}"${atrFirmy(k, 'telefon')}>${ikona('telefon')}<span>${esc(f.telefon)}</span></a>` : '') +
     (cta ? `<a class="btn btn-1 btn-maly nag-cta" href="${esc(hrefCelu(k, cta.cel))}">${esc(cta.etykieta)}</a>` : '');
   return `<header class="naglowek${przyklejony ? ' przyklejony' : ''}"><div class="kontener naglowek-wnetrze">${logo(k)}${nav}<div class="nag-prawa">${prawa}</div></div></header>`;
 }
@@ -80,7 +92,8 @@ export function stopka(k: KontekstPodstrony): string {
   const kol: string[] = [];
   const atrOpisu = atrTekstu(k, k.s.edycja ? (st.tekst !== undefined ? 'stopka.tekst' : 'firma.opisKrotki') : null);
   kol.push(`<div class="stopka-firma">${logo(k)}<p${atrOpisu}>${esc(st.tekst ?? f.opisKrotki)}</p></div>`);
-  const kontakt = [adresHtml(f), telefonLink(f) ? `<p>${telefonLink(f)}</p>` : '', emailLink(f) ? `<p>${emailLink(f)}</p>` : ''].join('');
+  const af = (pole: 'telefon' | 'email' | 'adres.ulica') => atrFirmy(k, pole);
+  const kontakt = [adresHtml(f, af), f.telefon ? `<p>${telefonLink(f, '', af)}</p>` : '', f.email ? `<p>${emailLink(f, '', af)}</p>` : ''].join('');
   if (kontakt) kol.push(`<div><h2 class="stopka-tytul">Kontakt</h2>${kontakt}</div>`);
   const godziny = listaGodzin(f, 'godziny-lista godziny-stopka');
   if (godziny) kol.push(`<div><h2 class="stopka-tytul">Godziny</h2>${godziny}</div>`);
@@ -98,7 +111,7 @@ export function stopka(k: KontekstPodstrony): string {
   return (
     `<footer class="stopka tlo-ciemne"><div class="kontener">` +
     `<div class="stopka-siatka">${kol.join('')}</div>` +
-    `<div class="stopka-dol"><p class="stopka-prawa">© ${s.rok} ${esc(f.nazwa)}${f.nip ? ` · NIP ${esc(f.nip)}` : ''}</p>${prawne ? `<p class="stopka-linki">${prawne}</p>` : ''}${social}${znakKreatora(st.znakKreatora, ciemne)}</div>` +
+    `<div class="stopka-dol"><p class="stopka-prawa"${atrFirmy(k, 'nazwa')}>© ${s.rok} ${esc(f.nazwa)}${f.nip ? ` · NIP ${esc(f.nip)}` : ''}</p>${prawne ? `<p class="stopka-linki">${prawne}</p>` : ''}${social}${znakKreatora(st.znakKreatora, ciemne)}</div>` +
     `</div></footer>`
   );
 }

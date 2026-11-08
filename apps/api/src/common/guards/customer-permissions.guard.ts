@@ -215,6 +215,13 @@ export const REGULY_TRAS: Regula[] = [
     po_co: 'Zakup dodatku to wydatek z portfela właściciela – stąd BILLING_MANAGE, nie SERVICES_MANAGE.',
   },
   {
+    // Paczka 123 – zmiana okresu abonamentu Kreator Pro od następnego odnowienia zmienia kwotę obciążenia – jak zmiana
+    // planu usługi (/subscriptions/:id/plan): oba uprawnienia, nie samo „pliki” z reguły /kreator.
+    pasuje: (s) => s === '/kreator/pro/okres',
+    odczyt: [SERVICES_READ], zapis: [SERVICES_MANAGE, BILLING_MANAGE],
+    po_co: 'Okres abonamentu Kreator Pro (miesiąc/rok) – kwota kolejnych obciążeń portfela albo karty właściciela.',
+  },
+  {
     // Paczka 119 – Verris Kreator: strona klienta to treść jak pliki konta (kolejna paczka publikuje ją na hosting),
     // a każda generacja i zmiana AI zużywa miesięczny limit konta.
     pasuje: zaczyna('/kreator'),

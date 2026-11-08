@@ -9,6 +9,7 @@ const FUNKCJE: Record<string, string> = {
   chatbot_staff: 'Czat obsługi',
   service_forecast: 'Prognoza zasobów',
   support_suggestion: 'Szkic odpowiedzi BOK',
+  kreator: 'Kreator stron',
 };
 
 export function KosztyAiPanel({ koszty }: { koszty: KosztyAi | null }) {

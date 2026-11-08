@@ -9,7 +9,7 @@ jest.mock('@/lib/api', () => {
 });
 
 import { ApiError } from '@/lib/api';
-import { opublikuj, polecenieAi, przywrocWersje, stanPublikacji, usunStrone, utworzStrone, zapiszModel, zmienNazweStrony } from './akcje';
+import { generujPonownie, opublikuj, polecenieAi, przywrocWersje, stanPublikacji, usunStrone, utworzStrone, zapiszModel, zmienNazweStrony, zmienOkresPro } from './akcje';
 
 const ID = '0b8f6a52-5f0e-4b39-9a51-6a1f3c2d4e5f';
 
@@ -88,4 +88,20 @@ it('błąd sieci (status 0) – komunikat z apiFetch; „API 500” zamienione n
   expect(await usunStrone(ID)).toMatchObject({ ok: false, status: 0, blad: 'Brak połączenia z serwerem.' });
   mockApi.mockRejectedValueOnce(new ApiError('API 500', 500, null));
   expect(await usunStrone(ID)).toMatchObject({ ok: false, status: 500, blad: 'Operacja nie powiodła się – spróbuj ponownie.' });
+});
+
+it('paczka 123 – ponowna generacja: POST /kreator/strony/:id/generuj-ponownie (bez usuwania strony); zły id nie dochodzi do API', async () => {
+  mockApi.mockResolvedValue({ id: ID, status: 'GENEROWANIE' });
+  expect(await generujPonownie(ID)).toEqual({ ok: true, dane: { id: ID, status: 'GENEROWANIE' } });
+  expect(mockApi).toHaveBeenCalledTimes(1);
+  expect(mockApi).toHaveBeenCalledWith(`/kreator/strony/${ID}/generuj-ponownie`, { method: 'POST' });
+  expect(await generujPonownie('x/../y')).toMatchObject({ ok: false, status: 404 });
+  expect(mockApi).toHaveBeenCalledTimes(1);
+});
+
+it('paczka 123 – okres Kreatora Pro od następnego odnowienia: POST /kreator/pro/okres { okres }', async () => {
+  mockApi.mockResolvedValue({ abonament: null });
+  await zmienOkresPro('YEAR');
+  expect(mockApi).toHaveBeenCalledWith('/kreator/pro/okres', { method: 'POST', body: JSON.stringify({ okres: 'YEAR' }) });
+  expect(await zmienOkresPro('DAY' as never)).toMatchObject({ ok: false, status: 400 });
 });

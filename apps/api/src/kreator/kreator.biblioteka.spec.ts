@@ -1,6 +1,5 @@
-import { PRZYKLAD_SALON, walidujStrone, WERSJE_KREATORA, type BriefStrony } from '@verris/kreator';
+import { PRZYKLAD_SALON, walidujStrone, WERSJE_KREATORA, zlozPodglad, type BriefStrony } from '@verris/kreator';
 import { sprawdzBlokiCache } from '../ai/ai-provider.service.js';
-import { zlozPodglad } from './podglad.js';
 import { fabrykaFunkcjiAiKreatora, fabrykaRendereraKreatora } from './zaleznosci.js';
 
 /**

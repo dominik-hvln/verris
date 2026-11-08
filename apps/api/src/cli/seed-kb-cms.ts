@@ -44,6 +44,7 @@ const CATEGORIES: Cat[] = [
   { slug: 'migracja', name: 'Migracja do Verris', description: 'Przeniesienie strony, poczty i domen od innego dostawcy hostingu (np. z cPanel lub Plesk).', order: 11 },
   { slug: 'wydajnosc', name: 'Wydajność i optymalizacja', description: 'Cache, kompresja, Core Web Vitals i szybkość strony.', order: 12 },
   { slug: 'api-integracje', name: 'API i integracje', description: 'Tokeny API, publiczne API v1 i webhooki.', order: 13 },
+  { slug: 'kreator-stron', name: 'Kreator stron', description: 'Verris Kreator: strona z opisu firmy, edycja tekstu i zdjęć, publikacja na domenie i Kreator Pro.', order: 14 },
 ];
 
 const A = (
@@ -1009,6 +1010,131 @@ Zamawianie i opłacanie usług, rejestracja domen i zakładanie skrzynek pocztow
         { q: 'Czy mogę ustawić rekordy DNS z Terraform albo certbota?', a: 'Tak. Utwórz token z uprawnieniem dns:write i wołaj POST /services/:id/dns oraz /dns/delete. To wystarcza m.in. do weryfikacji DNS-01 przy certyfikatach wildcard.' },
         { q: 'Jak sprawdzić, że webhook naprawdę wysłał Verris?', a: 'Policz HMAC-SHA256 z surowej treści żądania kluczem-sekretem webhooka i porównaj z nagłówkiem x-verris-signature. Jeśli się nie zgadza, odrzuć żądanie.' },
       ], related: ['dwuskladnikowe-logowanie-passkey'] }),
+  // ---------------- Kreator stron (paczka 123 – Verris Kreator). Liczby i ceny: libs/kreator/src/plany.ts
+  // i apps/api/src/plans/plan-kreator-pro.ts – zgodność pilnuje src/test/baza-wiedzy-kreator.spec.ts.
+  // Bez przejścia na WordPressa i wersji językowych – tego nie ma jeszcze w publikacji.
+  A('kreator-stron', 'jak-stworzyc-strone-w-kreatorze', 'Jak stworzyć stronę w Verris Kreatorze',
+    'Opisz firmę, a AI przygotuje gotową stronę – krok po kroku od opisu do pierwszej wersji.',
+    `## Czym jest Verris Kreator
+Verris Kreator to kreator stron firmowych w panelu Verris. Opisujesz firmę własnymi słowami, a AI przygotowuje stronę: układ sekcji, teksty, kolory i fonty. Potem poprawiasz ją w edytorze i publikujesz na swojej domenie. Kreator jest w cenie hostingu.
+
+## Krok 1 – rodzaj strony
+W menu wybierz **Kreator stron** i kliknij **Nowa strona**. Wybierz rodzaj: wizytówka firmy, strona sprzedażowa, sklep lub katalog, portfolio, blog albo inna. Katalog produktów i wpisy bloga są częścią Kreatora Pro – bez niego strona powstanie z ofertą i cenami zamiast katalogu albo bez sekcji wpisów.
+
+## Krok 2 – dane firmy
+Podaj nazwę firmy i branżę (np. salon fryzjerski, biuro rachunkowe). Miasto, telefon, e-mail, godziny otwarcia i adres są opcjonalne. **AI nie dopisze danych, których nie podasz** – telefonu, adresu ani godzin nie zgadujemy. Brakujące dane uzupełnisz później w edytorze.
+
+## Krok 3 – opis i styl
+Napisz, czym się zajmujesz, dla kogo, co wyróżnia firmę i jak klienci się umawiają – co najmniej 20 znaków, najwyżej 3000. Konkrety dają lepszą stronę niż ogólniki. W polu **Ceny** możesz wpisać usługi i ceny brutto – AI przepisze je na stronę, ale nigdy nie wymyśli cen. Na końcu wybierz ton (np. przyjazny, ekspercki, formalny) i styl albo zostaw **Dobierze AI**.
+
+## Generowanie
+Generowanie trwa zwykle od jednej do dwóch minut. Możesz zamknąć kartę – gotowa strona będzie na liście w **Kreatorze stron**. Jeśli generowanie się nie uda, kliknij **Spróbuj ponownie** albo opisz firmę trochę inaczej. Nieudana generacja nie zużywa limitu.
+
+## Limity
+- **W cenie hostingu:** 3 strony na koncie, do 5 podstron w każdej, 3 generacje i 200 zmian AI miesięcznie.
+- **Kreator Pro:** 10 stron, podstrony bez limitu, 10 generacji i 1000 zmian AI miesięcznie, a każda generacja daje 3 propozycje projektu.
+- **Okres próbny hostingu:** 1 strona, 1 generacja i 20 zmian AI – stronę zobaczysz pod linkiem podglądu.
+
+Limity odnawiają się 1. dnia każdego miesiąca. Ręczna edycja w edytorze jest bez limitu.
+
+## Czego AI nie robi
+AI nie wymyśla opinii klientów, ocen, liczby klientów, lat doświadczenia, nagród ani certyfikatów. Ceny i dane kontaktowe biorą się tylko z Twojego opisu. Opinie klientów dodajesz sam w edytorze.`,
+    { t: 'Jak stworzyć stronę w Verris Kreatorze – od opisu firmy do gotowej strony', d: 'Verris Kreator krok po kroku: rodzaj strony, dane firmy, opis i styl. AI przygotuje stronę w 1–2 minuty, bez zmyślonych cen i opinii. Limity w cenie hostingu.',
+      faq: [
+        { q: 'Ile kosztuje Verris Kreator?', a: 'Kreator jest w cenie hostingu: 3 strony, do 5 podstron w każdej, 3 generacje i 200 zmian AI miesięcznie. Płatny jest tylko dodatek Kreator Pro – szczegóły w artykule „Kreator Pro – co daje i jak kupić”.' },
+        { q: 'Czy AI może dopisać opinie klientów albo ceny?', a: 'Nie. Ceny i dane kontaktowe biorą się tylko z Twojego opisu, a opinie klientów wpisujesz sam. Odpowiedź AI z nowymi opiniami jest odrzucana i nie trafia na stronę.' },
+        { q: 'Generowanie się nie udało. Czy straciłem limit?', a: 'Nie. Nieudana generacja nie zużywa limitu. Kliknij „Spróbuj ponownie” albo opisz firmę trochę inaczej.' },
+      ], related: ['edycja-tekstu-i-zdjec-w-kreatorze', 'publikacja-strony-z-kreatora', 'kreator-pro'] }),
+
+  A('kreator-stron', 'edycja-tekstu-i-zdjec-w-kreatorze', 'Edycja tekstu i zdjęć na stronie',
+    'Zmieniaj teksty bezpośrednio na podglądzie, podmieniaj zdjęcia i cofaj zmiany.',
+    `## Edycja tekstu na stronie
+W edytorze włącz przełącznik **Edycja na stronie**, kliknij tekst na podglądzie i pisz. Zmiana zapisuje się sama – stan zapisu widzisz na górnym pasku. Każde pole ma limit znaków: dłuższy tekst przytniemy do limitu, a pola, które nie mogą być puste, wrócą do poprzedniego tekstu. Te same pola znajdziesz w panelu **Sekcja** po prawej stronie.
+
+## Sekcje i podstrony
+Kliknij sekcję na podglądzie, żeby ją zaznaczyć. Przy zaznaczonej sekcji przesuniesz ją wyżej albo niżej, ukryjesz albo zmienisz poleceniem dla AI. Ukrytą sekcję przywrócisz na liście **Sekcje** (ikona oka). Tam dodasz też nowe sekcje i podstrony.
+
+## Zmiany poleceniem AI
+W zakładce **AI** napisz, co zmienić, np. „dopisz, że dojeżdżamy do klienta w promieniu 30 km” albo „zmień ton na bardziej formalny”. Zmiana może dotyczyć zaznaczonej sekcji albo całej strony. Każda taka zmiana zużywa jedną zmianę AI z miesięcznego limitu. Kolory, fonty, zaokrąglenia i animacje zmienisz w zakładce **Motyw**, a nazwę firmy, dane kontaktowe i opisy dla Google – w zakładce **Firma i SEO**.
+
+## Podmiana zdjęcia
+Kliknij zdjęcie na podglądzie (albo przycisk przy polu zdjęcia w panelu sekcji). W oknie **Wybierz zdjęcie** masz trzy zakładki:
+- **Wgraj** – zdjęcie z komputera lub telefonu: JPEG, PNG, WebP albo AVIF, do 15 MB. Dane z aparatu (np. lokalizację) usuwamy. Zdjęć HEIC z iPhone'a i plików SVG nie obsługujemy.
+- **Twoje zdjęcia** – zdjęcia, które już wgrałeś.
+- **Biblioteka** – darmowe zdjęcia z bibliotek, takich jak Openverse i Pixabay. Przy każdym widzisz autora i licencję, a wybrane zdjęcie kopiujemy na Twoją stronę.
+
+Po wyborze kliknij na zdjęciu punkt, który ma zostać w kadrze, i opisz, co widać na zdjęciu (tekst alternatywny – czytają go czytniki ekranu i wyszukiwarki). Jeśli zdjęcie jest tylko dekoracją, zaznacz to. Na koniec kliknij **Użyj zdjęcia**.
+
+## Cofanie i historia wersji
+Ostatnią zmianę cofniesz skrótem Ctrl+Z (na Macu Cmd+Z). Przycisk **Historia** pokazuje wcześniejsze wersje: każdy zapis, zmiana AI i przywrócenie to osobna wersja. Przywrócenie tworzy nową wersję, więc nic nie ginie.`,
+    { t: 'Edycja strony w Verris Kreatorze – tekst na podglądzie, zdjęcia, historia wersji', d: 'Jak zmienić tekst bezpośrednio na stronie, podmienić zdjęcie (wgranie, Openverse, Pixabay), ustawić kadr i cofnąć zmiany w Verris Kreatorze.',
+      faq: [
+        { q: 'Czy ręczna edycja zużywa limit zmian AI?', a: 'Nie. Ręczna edycja tekstu, zdjęć, sekcji i motywu jest bez limitu. Limit dotyczy tylko zmian wykonywanych przez AI.' },
+        { q: 'Dlaczego nie mogę wgrać zdjęcia z iPhone\'a?', a: 'Zdjęcia HEIC nie są obsługiwane. Zapisz zdjęcie jako JPEG – na iPhonie: Ustawienia → Aparat → Formaty → Najbardziej zgodne – i wgraj je ponownie.' },
+        { q: 'Czy mogę używać zdjęć z biblioteki na stronie firmy?', a: 'Zdjęcia z bibliotek mają licencję i autora widocznego przy wyborze – sprawdź je przed użyciem. Wybrane zdjęcie kopiujemy na Twoją stronę.' },
+      ], related: ['jak-stworzyc-strone-w-kreatorze', 'publikacja-strony-z-kreatora'] }),
+
+  A('kreator-stron', 'publikacja-strony-z-kreatora', 'Publikacja na domenie, ZIP i wycofanie',
+    'Opublikuj stronę z kreatora na swojej domenie, pobierz ją jako ZIP albo wycofaj publikację.',
+    `## Zanim opublikujesz
+Do publikacji potrzebujesz opłaconego hostingu Verris z dodaną domeną. Jeśli usługa nie ma jeszcze domeny, dodaj ją do hostingu i wróć do edytora. Domena musi wskazywać na Twój hosting, żeby strona była widoczna pod jej adresem (patrz: Jak podpiąć domenę do hostingu).
+
+## Publikacja na domenie
+W edytorze kliknij **Publikuj**, wybierz domenę i kliknij **Opublikuj na …**. Wysyłamy na hosting zwykłe pliki strony: HTML, CSS i zdjęcia w kilku rozmiarach. Formularz kontaktowy działa od razu na opublikowanej stronie. Po zmianach w edytorze opublikuj stronę ponownie – na domenie zawsze jest ostatnio opublikowana wersja.
+
+## Gdy na domenie jest już inna strona
+Jeśli w katalogu domeny są pliki innej strony, pokażemy ich listę i zapytamy, czy je zastąpić. Po zaznaczeniu **Zastąp – obecne pliki trafią do kopii** dotychczasowe pliki przenosimy do kopii, a na ich miejsce trafia strona z kreatora.
+
+## Bez Kreatora Pro
+Jeśli strona ma elementy Pro (np. karuzele, katalog produktów, blog), okno publikacji pokaże listę zmian: elementy Pro zostaną zastąpione wersją podstawową albo pominięte. Strona w edytorze się nie zmienia.
+
+## Pobranie ZIP
+Przycisk **Pobierz ZIP** w oknie publikacji pobiera całą stronę jako archiwum ze zwykłymi plikami. ZIP jest dostępny po opłaceniu hostingu.
+
+## Wycofanie publikacji
+Kliknij **Wycofaj publikację** w oknie publikacji. Jeśli przed pierwszą publikacją na domenie były inne pliki, przywrócimy je z kopii. Jeśli katalog był pusty, usuniemy pliki strony z kreatora. Stronę w edytorze możesz opublikować ponownie w każdej chwili.
+
+## Okres próbny – link podglądu
+W okresie próbnym hostingu publikujesz stronę jako podgląd: dostajesz link ważny 7 dni, niewidoczny dla wyszukiwarek. Po wygaśnięciu odnowisz go przyciskiem **Odnów link podglądu**. Własna domena i ZIP włączą się po opłaceniu hostingu.`,
+    { t: 'Publikacja strony z Verris Kreatora – domena, ZIP i wycofanie', d: 'Jak opublikować stronę z Verris Kreatora na swojej domenie, co się dzieje z dotychczasowymi plikami, jak pobrać ZIP i wycofać publikację.',
+      faq: [
+        { q: 'Czy publikacja usunie moją obecną stronę?', a: 'Nie bez Twojej zgody. Pokażemy pliki w katalogu domeny i zapytamy, czy je zastąpić – po zgodzie trafią do kopii, a wycofanie publikacji je przywróci.' },
+        { q: 'Zmieniłem tekst w edytorze, a na stronie go nie ma. Dlaczego?', a: 'Na domenie jest wersja z ostatniej publikacji. Po zmianach kliknij „Publikuj” i opublikuj stronę ponownie.' },
+        { q: 'Jak długo działa link podglądu w okresie próbnym?', a: '7 dni. Link nie jest indeksowany przez wyszukiwarki, a po wygaśnięciu odnowisz go w oknie publikacji.' },
+      ], related: ['jak-podpiac-domene', 'edycja-tekstu-i-zdjec-w-kreatorze', 'kreator-pro'] }),
+
+  A('kreator-stron', 'kreator-pro', 'Kreator Pro – co daje i jak kupić',
+    'Dodatek do Verris Kreatora: wyższe limity, 3 propozycje projektu, katalog produktów, blog i pełne SEO.',
+    `## Co daje Kreator Pro
+Kreator Pro to dodatek do Verris Kreatora, który działa na wszystkich stronach Twojego konta:
+- **3 propozycje projektu** z każdej generacji zamiast jednej.
+- **Pełny projekt AI** – bogatsze układy i więcej sekcji dopasowanych do branży.
+- **Interakcje i animacje** – karuzele, powiększanie zdjęć, paralaksa, przełącznik cen, animowany nagłówek.
+- **Katalog produktów** z cenami i przyciskiem zakupu oraz **blog** z wpisami.
+- **Pełne SEO** – dane strukturalne FAQ, produktów, artykułów i nawigacji okruszkowej, przegląd SEO przez AI.
+- **Wyższe limity** – 10 stron, podstrony bez limitu, 10 generacji i 1000 zmian AI miesięcznie.
+- **Dyskretny znak** „Stworzone w Verris Kreator” w stopce.
+
+Bez Kreatora Pro funkcje Pro widzisz w edytorze jako podgląd z oznaczeniem – przy publikacji zastępujemy je wersją podstawową.
+
+## Ile kosztuje
+- **Miesięcznie:** 9,90 zł brutto (8,05 zł netto).
+- **Za rok:** 99 zł brutto (80,49 zł netto).
+
+## Jak kupić
+Kreator Pro kupisz po opłaceniu hostingu Verris – w okresie próbnym korzystasz z kreatora w wersji próbnej. W menu wybierz **Kreator stron**, na karcie **Kreator Pro** wybierz okres (miesiąc albo rok) i kliknij **Kup Kreator Pro**. Płacisz tak jak za inne usługi: z portfela, BLIK-iem, przelewem albo kartą. Fakturę dostajesz jak przy innych usługach. Na koncie może być jeden abonament Kreator Pro.
+
+## Odnowienie i rezygnacja
+Abonament odnawia się automatycznie z portfela albo kartą. Odnowienie anulujesz na karcie Kreatora Pro w każdej chwili – Pro działa wtedy do końca opłaconego okresu. Zmiana okresu (miesiąc ↔ rok): anuluj odnowienie, a po końcu okresu kup abonament z nowym okresem.
+
+## Co po zakończeniu Pro
+Opublikowane strony działają dalej. Elementy Pro znikną przy następnej publikacji – okno publikacji pokaże wcześniej, co się zmieni.`,
+    { t: 'Kreator Pro – co daje, ile kosztuje i jak go kupić', d: 'Kreator Pro w Verris: 3 propozycje projektu, katalog produktów, blog, pełne SEO i wyższe limity. 9,90 zł/mies. albo 99 zł/rok brutto (8,05 albo 80,49 zł netto).',
+      faq: [
+        { q: 'Ile kosztuje Kreator Pro?', a: '9,90 zł brutto miesięcznie (8,05 zł netto) albo 99 zł brutto za rok (80,49 zł netto).' },
+        { q: 'Czy mogę kupić Kreator Pro w okresie próbnym?', a: 'Nie. Kreator Pro kupisz po opłaceniu hostingu – w okresie próbnym korzystasz z kreatora w wersji próbnej.' },
+        { q: 'Co się stanie z moją stroną, gdy zrezygnuję z Pro?', a: 'Opublikowana strona działa dalej. Elementy Pro znikną dopiero przy następnej publikacji, a okno publikacji pokaże wcześniej listę zmian.' },
+      ], related: ['jak-stworzyc-strone-w-kreatorze', 'publikacja-strony-z-kreatora', 'portfel-i-platnosci'] }),
 ];
 
 function toPlain(md: string): string {

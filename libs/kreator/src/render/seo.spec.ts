@@ -118,4 +118,14 @@ describe('indeksowanie', () => {
     expect(plik(wynik, 'sitemap.xml')).not.toContain('<loc>');
     expect(wynik.ostrzezenia.join(' ')).toContain('Brak adresu strony');
   });
+
+  it('hreflang tylko do istniejących wersji językowych (paczka 123: sam wpis w jezykiDodatkowe nie daje linków do 404)', () => {
+    const w = structuredClone(PRZYKLADY.ksiegowa!) as { jezykiDodatkowe?: string[]; strony: { slug: string; tytul: string }[] };
+    w.jezykiDodatkowe = ['en'];
+    expect(plik(render(w as never, 'pro'), 'index.html')).not.toContain('hreflang');
+    w.strony.push({ ...structuredClone(w.strony[0]!), slug: 'en', tytul: 'Home' });
+    const html = plik(render(w as never, 'pro'), 'index.html');
+    expect(html).toContain(`<link rel="alternate" hreflang="en" href="${ADRES}/en/">`);
+    expect(html).toContain('hreflang="x-default"');
+  });
 });

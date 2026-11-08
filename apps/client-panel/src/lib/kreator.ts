@@ -24,7 +24,8 @@ export interface StanKreatora {
   powod: string | null;
   wersja: WersjaKreatora | null;
   plan: PlanKreatora | null;
-  zuzycie: { miesiac: string; generacje: number; zmiany: number; stron: number };
+  /** `zdjeciaBajty` – paczka 123: miejsce zajęte przez zdjęcia biblioteki konta (limit: plan.miejsceZdjecMb). */
+  zuzycie: { miesiac: string; generacje: number; zmiany: number; stron: number; zdjeciaBajty?: number };
   korzysciPro: { id: string; nazwa: string; opis: string }[];
   cenaPro: { miesiacBrutto: number; miesiacNetto: number; rokBrutto: number; rokNetto: number };
   /** Paczka 121 – abonament Kreator Pro (plan KREATOR_PRO): zakup i bieżący abonament. Brak w starszym API. */
@@ -48,6 +49,10 @@ export interface AbonamentKreatoraPro {
   aktywnyDo: string | null;
   odnowienie: 'portfel' | 'karta' | 'reczne';
   bezOdnowienia: boolean;
+  /** Paczka 123 – 'brak-hostingu': odnowienie wyłączył system, bo konto nie ma już płatnego hostingu. */
+  powodBezOdnowienia?: 'brak-hostingu' | null;
+  /** Paczka 123 – okres od następnego odnowienia (zmiana miesiąc ↔ rok); null = bez zmiany. */
+  nastepnyOkres?: 'MONTH' | 'YEAR' | null;
   cena: string;
 }
 
@@ -169,11 +174,20 @@ export function opisAbonamentuPro(a: AbonamentKreatoraPro): { naglowek: string; 
     };
   }
   if (a.bezOdnowienia) {
-    return { naglowek: data ? `Kreator Pro aktywny do ${data}` : 'Kreator Pro aktywny', odnawianie: 'Odnowienie anulowane – abonament nie przedłuży się.' };
+    return {
+      naglowek: data ? `Kreator Pro aktywny do ${data}` : 'Kreator Pro aktywny',
+      odnawianie:
+        a.powodBezOdnowienia === 'brak-hostingu'
+          ? 'Odnowienie wyłączone – brak hostingu. Kreator Pro działa razem z płatnym hostingiem Verris.'
+          : 'Odnowienie anulowane – abonament nie przedłuży się.',
+    };
   }
+  const zmiana = a.nastepnyOkres && a.nastepnyOkres !== a.interval
+    ? ` Od następnego odnowienia: rozliczenie ${a.nastepnyOkres === 'YEAR' ? 'roczne' : 'miesięczne'}.`
+    : '';
   return {
     naglowek: data ? `Kreator Pro aktywny do ${data}` : 'Kreator Pro aktywny',
-    odnawianie: `Odnawia się automatycznie ${cykl}, ${zrodlo} (${zl(Number(a.cena))} brutto).`,
+    odnawianie: `Odnawia się automatycznie ${cykl}, ${zrodlo} (${zl(Number(a.cena))} brutto).${zmiana}`,
   };
 }
 
@@ -225,4 +239,22 @@ export function moznaDodacPodstrone(plan: Pick<PlanKreatora, 'podstron'> | null,
 export function kolorMiniatury(model: Pick<Strona, 'motyw'> | null | undefined): { tlo: string; akcent: string; tekst: string } {
   const p = model?.motyw?.paleta;
   return p ? { tlo: p.tlo, akcent: p.akcent, tekst: p.tekst } : { tlo: '#eceee6', akcent: '#0f7a52', tekst: '#0c1a14' };
+}
+
+/** Paczka 123 – rozmiar w MB/GB po polsku (przecinek dziesiętny): 0 → „0 MB”, 3,5 MB, 1,2 GB. */
+export function rozmiar(bajty: number): string {
+  if (bajty >= 1024 ** 3) return `${(bajty / 1024 ** 3).toFixed(1).replace('.', ',')} GB`;
+  const mb = bajty / 1048576;
+  if (mb === 0) return '0 MB';
+  return `${mb < 10 ? Math.max(0.1, mb).toFixed(1).replace('.', ',') : Math.round(mb)} MB`;
+}
+
+/** Limit z planu (MB) → „50 MB”, „500 MB”, „2 GB”. */
+export function limitMb(mb: number): string {
+  return mb >= 1024 && mb % 1024 === 0 ? `${mb / 1024} GB` : `${mb} MB`;
+}
+
+/** Miejsce na zdjęcia na karcie wersji: „Zajęte 3,5 MB z 500 MB.” */
+export function opisMiejscaZdjec(bajty: number, limitMbPlanu: number): string {
+  return `Zajęte ${rozmiar(bajty)} z ${limitMb(limitMbPlanu)}.`;
 }

@@ -6,6 +6,7 @@ import type {
   NowaStronaKreatora,
   PozycjaListyKreatora,
   StanKreatora,
+  StanKreatoraPro,
   StanPublikacji,
   WersjaStronyKreatora,
   WidokStronyKreatora,
@@ -77,6 +78,26 @@ export async function pobierzStrone(id: string): Promise<WynikKreatora<WidokStro
 /** Brief → nowa strona (202 z `id`); generacja idzie w tle, edytor odpytuje pobierzStrone. */
 export async function utworzStrone(dane: NowaStronaKreatora): Promise<WynikKreatora<{ id: string }>> {
   return wynik(() => apiFetch<{ id: string }>('/kreator/strony', { method: 'POST', body: JSON.stringify(dane) }));
+}
+
+/**
+ * Paczka 123 – ta sama strona generowana od nowa z briefu zapisanego w API (po błędzie: „Spróbuj ponownie”, gotowa:
+ * „Wygeneruj od nowa” w edytorze – bieżący projekt trafia do historii wersji). Odpowiedź = widok strony w trakcie
+ * generowania; ekran postępu odpytuje pobierzStrone.
+ */
+export async function generujPonownie(id: string): Promise<WynikKreatora<WidokStronyKreatora>> {
+  return wynik(async () => {
+    sprawdzId(id);
+    return apiFetch<WidokStronyKreatora>(`/kreator/strony/${id}/generuj-ponownie`, { method: 'POST' });
+  });
+}
+
+/** Paczka 123 – Kreator Pro: okres rozliczenia od następnego odnowienia (ten sam co bieżący = bez zmiany). */
+export async function zmienOkresPro(okres: 'MONTH' | 'YEAR'): Promise<WynikKreatora<StanKreatoraPro>> {
+  return wynik(async () => {
+    if (okres !== 'MONTH' && okres !== 'YEAR') throw new ApiError('Okres: miesięczny albo roczny.', 400, null);
+    return apiFetch<StanKreatoraPro>('/kreator/pro/okres', { method: 'POST', body: JSON.stringify({ okres }) });
+  });
 }
 
 /** Zapis modelu z edytora (PUT). API sprawdza model tym samym walidatorem co edytor (walidujStrone). */

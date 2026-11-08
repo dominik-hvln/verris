@@ -22,7 +22,9 @@ import {
   WERSJA_MODELU,
   dopasujDoPlanu,
   migrujModel,
+  naglowkiPodgladu,
   walidujStrone,
+  zlozPodglad,
   wszystkieSekcje,
   type BriefStrony,
   type FunkcjeAiKreatora,
@@ -43,9 +45,8 @@ import {
   type KonfiguracjaKreatora,
 } from './konfiguracja.js';
 import { wersjaKreatora } from './wersja-kreatora.js';
-import { stanKreatoraPro } from './kreator-pro.js';
+import { stanKreatoraPro, zaplanujOkresPro } from './kreator-pro.js';
 import { FUNKCJE_AI_KREATORA, RENDERER_KREATORA, type RendererKreatora } from './zaleznosci.js';
-import { naglowkiPodgladu, zlozPodglad } from './podglad.js';
 import { idZasobow, uzupelnijWymiary } from './zasoby-model.js';
 import { adresBazowyZasobu } from './zasoby-token.js';
 import type { BriefStronyDto } from './dto/kreator.dto.js';
@@ -67,6 +68,9 @@ const POWOD_BRAK_HOSTINGU =
   'Verris Kreator jest dostępny dla kont z hostingiem Verris, także w okresie próbnym. Zamów hosting, żeby zbudować stronę.';
 const BLAD_GENERACJI = 'Nie udało się wygenerować strony – spróbuj ponownie albo opisz firmę trochę inaczej.';
 const BLAD_PRZERWANE = 'Generowanie zostało przerwane – spróbuj ponownie.';
+/** Ponowna generacja gotowej strony nie wyszła – strona wraca do poprzedniego projektu (status GOTOWA z tym opisem). */
+export const BLAD_PONOWNEJ_GENERACJI = 'Nie udało się wygenerować strony od nowa – zostawiliśmy poprzedni projekt. Spróbuj ponownie za chwilę.';
+const BRAK_BRIEFU = 'Ta strona powstała przed zapisywaniem opisu firmy – utwórz nową stronę z opisem, żeby wygenerować ją od nowa.';
 const BLAD_AI = 'Kreator AI jest chwilowo niedostępny – spróbuj ponownie za chwilę.';
 const NIE_MA_STRONY = 'Nie znaleziono strony.';
 
@@ -143,10 +147,11 @@ export class KreatorService {
   async stan(userId: string) {
     const d = await this.dostep(userId);
     const miesiac = miesiacUtc();
-    const [zuzycie, stron, pro] = await Promise.all([
+    const [zuzycie, stron, pro, zdjecia] = await Promise.all([
       this.prisma.kreatorZuzycie.findUnique({ where: { userId_miesiac: { userId, miesiac } } }),
       this.prisma.kreatorStrona.count({ where: { userId } }),
       stanKreatoraPro(this.prisma, userId),
+      this.prisma.kreatorZasob.aggregate({ where: { userId }, _sum: { bajty: true } }),
     ]);
     const plan = d.wersja ? PLANY_KREATORA[d.wersja] : null;
     return {
@@ -159,6 +164,8 @@ export class KreatorService {
         generacje: zuzycie?.generacje ?? 0,
         zmiany: zuzycie?.zmiany ?? 0,
         stron,
+        /** Paczka 123 – miejsce zajęte przez zdjęcia biblioteki konta (bajty); limit: plan.miejsceZdjecMb. */
+        zdjeciaBajty: zdjecia._sum.bajty ?? 0,
       },
       korzysciPro: KORZYSCI_PRO,
       // Paczka 121 – cennik z planu KREATOR_PRO w bazie (netto jak na fakturze), zakup i bieżący abonament.
@@ -166,6 +173,15 @@ export class KreatorService {
       pro,
       katalog: { warianty: KATALOG_WARIANTOW, efekty: KATALOG_EFEKTOW, sekcjePro: SEKCJE_PRO },
     };
+  }
+
+  /**
+   * POST /kreator/pro/okres (paczka 123) – zmiana okresu abonamentu od następnego odnowienia. Bez sprawdzania wersji
+   * kreatora (abonament należy do konta); zwraca odświeżony stan Pro.
+   */
+  async okresPro(userId: string, okres: 'MONTH' | 'YEAR') {
+    await zaplanujOkresPro(this.prisma, userId, okres);
+    return stanKreatoraPro(this.prisma, userId);
   }
 
   // ---------------------------------------------------------------------------
@@ -204,12 +220,7 @@ export class KreatorService {
         `W tej wersji kreatora możesz mieć najwyżej ${plan.stron} ${plan.stron === 1 ? 'stronę' : plan.stron < 5 ? 'strony' : 'stron'}. Usuń jedną z nich${wersja === 'pro' ? '' : ' albo przejdź na Kreator Pro'}.`,
       );
     }
-    const miesiac = await this.rezerwuj(userId, 'generacje', plan.generacjiMies);
-    if (!miesiac) {
-      throw new ForbiddenException(
-        `Wykorzystano miesięczny limit generacji stron (${plan.generacjiMies}). Odnowi się 1. dnia miesiąca – do tego czasu możesz zmieniać istniejące strony.`,
-      );
-    }
+    const miesiac = await this.rezerwujGeneracje(userId, plan.generacjiMies);
     let id: string;
     try {
       const s = await this.prisma.kreatorStrona.create({
@@ -221,6 +232,7 @@ export class KreatorService {
           odcisk: '',
           branza: brief.firma?.branza?.trim() || null,
           status: KreatorStatus.GENEROWANIE,
+          brief: brief as unknown as Prisma.InputJsonValue,
         },
         select: { id: true },
       });
@@ -231,6 +243,65 @@ export class KreatorService {
     }
     this.wTle(() => this.generuj({ stronaId: id, userId, actorUserId, brief, wersja, miesiac }));
     return { id };
+  }
+
+  /** Rezerwacja jednej generacji w miesiącu albo 403 z polskim komunikatem (tworzenie i ponowna generacja). */
+  private async rezerwujGeneracje(userId: string, limit: number): Promise<string> {
+    const miesiac = await this.rezerwuj(userId, 'generacje', limit);
+    if (!miesiac) {
+      throw new ForbiddenException(
+        `Wykorzystano miesięczny limit generacji stron (${limit}). Odnowi się 1. dnia miesiąca – do tego czasu możesz zmieniać istniejące strony.`,
+      );
+    }
+    return miesiac;
+  }
+
+  /**
+   * POST /kreator/strony/:id/generuj-ponownie (paczka 123) – ta sama strona generowana od nowa z briefu zapisanego
+   * przy tworzeniu: po błędzie (BLAD) albo na życzenie (GOTOWA). Limit generacji jak przy tworzeniu (rezerwacja
+   * przed AI, zwrot przy błędzie). Gotowa strona: bieżący model trafia najpierw do historii wersji (do przywrócenia),
+   * a gdy generacja zawiedzie, strona wraca do niego (zakonczBledem).
+   */
+  async generujPonownie(userId: string, actorUserId: string, id: string) {
+    const { wersja } = await this.wymagajDostepu(userId);
+    const plan = PLANY_KREATORA[wersja];
+    const s = await this.wlasna(userId, id);
+    if (s.status !== KreatorStatus.BLAD && s.status !== KreatorStatus.GOTOWA) {
+      throw new ConflictException('Strona jest jeszcze generowana – poczekaj na koniec.');
+    }
+    if (!s.brief || typeof s.brief !== 'object' || typeof (s.brief as { opis?: unknown }).opis !== 'string') throw new ConflictException(BRAK_BRIEFU);
+    const brief = s.brief as unknown as BriefStrony;
+    const miesiac = await this.rezerwujGeneracje(userId, plan.generacjiMies);
+    const biezacy = s.status === KreatorStatus.GOTOWA ? walidujStrone(migrujModel(s.model)) : null;
+    let ruszyla = false;
+    try {
+      ruszyla = await this.prisma.$transaction(async (tx) => {
+        // Warunkowo na status z odczytu: równoległe „od nowa” albo zapis w tej chwili nie uruchomią dwóch generacji.
+        const r = await tx.kreatorStrona.updateMany({
+          where: { id, userId, status: s.status },
+          data: { status: KreatorStatus.GENEROWANIE, bladOpis: null },
+        });
+        if (!r.count) return false;
+        if (biezacy?.ok) {
+          const max = await tx.kreatorWersja.aggregate({ where: { stronaId: id }, _max: { numer: true } });
+          await tx.kreatorWersja.create({
+            data: {
+              stronaId: id,
+              numer: (max._max.numer ?? 0) + 1,
+              model: biezacy.strona as unknown as Prisma.InputJsonValue,
+              zrodlo: KreatorZrodloWersji.RECZNA,
+              opis: 'Projekt przed wygenerowaniem od nowa',
+            },
+          });
+        }
+        return true;
+      });
+    } finally {
+      if (!ruszyla) await this.zwolnij(userId, miesiac, 'generacje').catch(() => undefined);
+    }
+    if (!ruszyla) throw new ConflictException('Strona właśnie się zmieniła – odśwież widok i spróbuj ponownie.');
+    this.wTle(() => this.generuj({ stronaId: id, userId, actorUserId, brief, wersja, miesiac }));
+    return this.widok(await this.wlasna(userId, id), wersja);
   }
 
   /** Zadanie w tle: osobny tik pętli zdarzeń; każdy błąd kończy się statusem BLAD w `generuj`, nie wyjątkiem procesu. */
@@ -331,24 +402,32 @@ export class KreatorService {
     return r;
   }
 
+  /**
+   * Koniec generacji bez wyniku. Strona z poprawnym modelem (ponowna generacja gotowej strony – paczka 123) wraca do
+   * GOTOWA z opisem błędu i dotychczasowym projektem; strona bez modelu (pierwsza generacja) → BLAD.
+   */
   private async zakonczBledem(z: ZadanieGeneracji, opis: string): Promise<void> {
+    const s = await this.prisma.kreatorStrona.findFirst({ where: { id: z.stronaId, status: KreatorStatus.GENEROWANIE }, select: { model: true } });
+    if (!s) return;
+    const maModel = walidujStrone(migrujModel(s.model)).ok;
     const r = await this.prisma.kreatorStrona.updateMany({
       where: { id: z.stronaId, status: KreatorStatus.GENEROWANIE },
-      data: { status: KreatorStatus.BLAD, bladOpis: opis },
+      data: maModel ? { status: KreatorStatus.GOTOWA, bladOpis: BLAD_PONOWNEJ_GENERACJI } : { status: KreatorStatus.BLAD, bladOpis: opis },
     });
     // Zwrot tylko raz: drugi przebieg (np. strażnik przerwanych) nie znajdzie już statusu GENEROWANIE.
     if (r.count) await this.zwolnij(z.userId, z.miesiac, 'generacje');
   }
 
-  /** Generacje bez końca (restart API w trakcie zadania) → BLAD i zwrot rezerwacji z miesiąca utworzenia. */
+  /** Generacje bez końca (restart API w trakcie zadania) → BLAD (albo poprzedni projekt) i zwrot rezerwacji. */
   private async oznaczPrzerwane(userId: string): Promise<void> {
     const stare = await this.prisma.kreatorStrona.findMany({
       where: { userId, status: KreatorStatus.GENEROWANIE, updatedAt: { lt: new Date(Date.now() - GENEROWANIE_PRZERWANE_MS) } },
-      select: { id: true, createdAt: true },
+      select: { id: true, updatedAt: true },
     });
     for (const s of stare) {
+      // Miesiąc rezerwacji = chwila przejścia w GENEROWANIE (utworzenie albo ponowna generacja – paczka 123).
       await this.zakonczBledem(
-        { stronaId: s.id, userId, miesiac: miesiacUtc(s.createdAt), actorUserId: userId, brief: { opis: '', typ: 'inna' }, wersja: 'proba' },
+        { stronaId: s.id, userId, miesiac: miesiacUtc(s.updatedAt), actorUserId: userId, brief: { opis: '', typ: 'inna' }, wersja: 'proba' },
         BLAD_PRZERWANE,
       );
     }

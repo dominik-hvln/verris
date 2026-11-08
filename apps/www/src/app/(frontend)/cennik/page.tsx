@@ -25,6 +25,7 @@ const W_CENIE: [string, string, string][] = [
   ["Certyfikaty SSL Let's Encrypt", 'tak, dla każdej domeny', '0 zł'],
   ['Kopie zapasowe z przywracaniem', 'tak, z ostatnich 30 dni', '0 zł'],
   ['Statystyki odwiedzin bez cookies', 'tak', '0 zł'],
+  ['Kreator stron z AI (3 strony)', 'tak', '0 zł; więcej daje dodatek Kreator Pro'],
   ['Moc ponad pakiet w szczycie', 'opcjonalnie', 'za czas użycia, do Twojego limitu'],
   ['Domena', 'nie', 'według cennika domen w panelu'],
 ];
@@ -86,6 +87,14 @@ export default async function Page() {
               <Link href="/vps">Plany VPS →</Link>
             </Card>
           )}
+          <Card>
+            <h2 className="a-h3">Kreator Pro</h2>
+            <p>
+              Dodatek do kreatora stron: {zl(ceny.kreatorPro.miesiecznie)}/mies. albo {zl(ceny.kreatorPro.rocznie)}/rok brutto (
+              {zl(netto(ceny.kreatorPro.miesiecznie))} albo {zl(netto(ceny.kreatorPro.rocznie))} netto).
+            </p>
+            <Link href="/kreator-stron">Kreator stron →</Link>
+          </Card>
           <Card>
             <h2 className="a-h3">Jak zapłacisz</h2>
             <p>Kartą, BLIK-iem, szybkim przelewem albo Kredytami Verris z portfela w panelu.</p>

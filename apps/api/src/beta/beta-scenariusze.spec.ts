@@ -1,5 +1,6 @@
 import {
   KROKI_BETA_IDS,
+  KROKI_BETA_WYMAGANE,
   LICZBA_KROKOW_BETA,
   SCENARIUSZE_BETA,
   SCENARIUSZE_BETA_IDS,
@@ -44,6 +45,21 @@ describe('Scenariusze testów (beta)', () => {
     const opcjonalne = SCENARIUSZE_BETA.filter((s) => s.opcjonalny).map((s) => s.id);
     expect(opcjonalne).toEqual(['s15', 's16']);
     expect(SCENARIUSZE_BETA.at(-1)?.id).toBe('s16');
+  });
+
+  it('paczka 123: obowiązkowy scenariusz „Kreator stron” po domenie – tworzenie, tekst, zdjęcie, publikacja i wycofanie', () => {
+    const ids = SCENARIUSZE_BETA.map((s) => s.id);
+    const s17 = SCENARIUSZE_BETA.find((s) => s.id === 's17')!;
+    expect(s17.tytul).toBe('Kreator stron');
+    expect(s17.opcjonalny).toBeFalsy();
+    expect(s17.poczta).toBeFalsy();
+    expect(ids.indexOf('s17')).toBe(ids.indexOf('s04') + 1);
+    const kroki = s17.kroki.map((k) => k.tekst).join(' ');
+    for (const r of [/Nowa strona/, /Edycję na stronie/, /zdjęcie/, /Publikuj/, /Wycofaj publikację/]) expect(kroki).toMatch(r);
+    expect(KROKI_BETA_WYMAGANE.has('s17.k5')).toBe(true);
+    expect(SCENARIUSZE_BETA_POCZTA.map((s) => s.id)).not.toContain('s17');
+    // Nie obiecujemy tego, czego publikacja jeszcze nie ma.
+    expect(JSON.stringify(s17)).not.toMatch(/WordPress|językow/);
   });
 
   it('kroki opcjonalnych scenariuszy da się zapisać, ale nie wliczają się do postępu', () => {

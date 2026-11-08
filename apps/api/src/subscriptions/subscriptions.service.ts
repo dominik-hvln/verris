@@ -37,10 +37,12 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { MailerService } from '../mail/mailer.service.js';
 import {
+  kreatorProBezHostinguTemplate,
   subscriptionSuspendedTemplate,
   subscriptionCancelledTemplate,
 } from '../mail/templates/billing-lifecycle-notifications.js';
 import { accountSuspendedPaymentTemplate } from '../mail/templates/hosting-notifications.js';
+import { getSubscriptionPeriod } from '../billing/stripe/stripe.client.js';
 import { orderReceivedTemplate } from '../mail/templates/order-notifications.js';
 import { EcoPointsService, ECO_POINT_DELTAS } from '../eco/eco-points.service.js';
 import { KOD_U_PARTNERA, klientAktywnegoResellera, narzutResellera, zNarzutem } from '../reseller/narzut-resellera.js';
@@ -662,8 +664,14 @@ export class SubscriptionsService {
   async cancel(
     userId: string,
     subscriptionId: string,
-    opts: { atPeriodEnd?: boolean } = {},
+    /**
+     * `system` (paczka 123) – rezygnację składa system, nie klient (np. Kreator Pro bez płatnego hostingu):
+     * zdarzenie i audyt bez aktora-klienta, z powodem.
+     */
+    opts: { atPeriodEnd?: boolean; system?: { powod: string } } = {},
   ) {
+    const aktor = opts.system ? null : userId;
+    const zrodlo = opts.system ? ('SYSTEM' as const) : ('CUSTOMER' as const);
     const subscription = await this.prisma.subscription.findFirst({
       where: { id: subscriptionId, userId },
       include: { account: true },
@@ -747,14 +755,14 @@ export class SubscriptionsService {
         data: {
           subscriptionId: subscription.id,
           type: 'CANCEL_SCHEDULED',
-          details: { actor: userId, source: 'CUSTOMER', effectiveAt: periodEnd!.toISOString() },
+          details: { actor: aktor, source: zrodlo, effectiveAt: periodEnd!.toISOString(), ...(opts.system ? { reason: opts.system.powod } : {}) },
         },
       });
       await this.audit.record({
         action: 'SUBSCRIPTION_CANCEL_SCHEDULED',
         userId,
-        actorUserId: userId,
-        details: { subscriptionId, effectiveAt: periodEnd!.toISOString() },
+        actorUserId: aktor,
+        details: { subscriptionId, effectiveAt: periodEnd!.toISOString(), ...(opts.system ? { reason: opts.system.powod } : {}) },
       });
       return updated;
     }
@@ -762,8 +770,8 @@ export class SubscriptionsService {
     // 2b) Immediate cancel: tear down now.
     const updated = await this.tearDownCanceledSubscription(subscription, {
       account: subscription.account,
-      source: 'CUSTOMER',
-      actorUserId: userId,
+      source: zrodlo,
+      actorUserId: aktor ?? undefined,
     });
     // Nieopłacone zamówienie (np. porzucona płatność Paynow): zarezerwowany kod rabatowy wraca do klienta —
     // tak samo jak przy braku środków w portfelu w chwili zamówienia.
@@ -777,10 +785,91 @@ export class SubscriptionsService {
     await this.audit.record({
       action: 'SUBSCRIPTION_CANCELED',
       userId,
-      actorUserId: userId,
-      details: { subscriptionId, immediate: true },
+      actorUserId: aktor,
+      details: { subscriptionId, immediate: true, ...(opts.system ? { reason: opts.system.powod } : {}) },
     });
     return updated;
+  }
+
+  /**
+   * Paczka 123 — Kreator Pro działa tylko z płatnym hostingiem. Gdy konto go już nie ma (hosting anulowany albo
+   * wygasły; wywołuje RenewalScheduler.runKreatorProBezHostingu), wyłączamy odnowienie abonamentu jak „Anuluj
+   * odnowienie” klienta: aktywny – do końca opłaconego okresu (kartą także `cancel_at_period_end` w Stripe), bez zwrotu
+   * za bieżący okres (decyzja koordynatora); zaległy (PAST_DUE) – kończy się od razu, zaległości nie pobieramy.
+   * Klient dostaje mail. Zwraca true, gdy odnowienie wyłączono w tym wywołaniu.
+   */
+  async wylaczOdnowienieKreatoraProBezHostingu(subscriptionId: string): Promise<boolean> {
+    const sub = await this.prisma.subscription.findUnique({
+      where: { id: subscriptionId },
+      select: { id: true, userId: true, status: true, cancelAt: true, plan: { select: { productKind: true } } },
+    });
+    if (!sub || (sub.plan.productKind as string) !== 'KREATOR_PRO' || sub.cancelAt != null) return false;
+    if (sub.status !== SubscriptionStatus.ACTIVE && sub.status !== SubscriptionStatus.PAST_DUE) return false;
+    const po = await this.cancel(sub.userId, sub.id, { atPeriodEnd: true, system: { powod: 'KREATOR_PRO_BEZ_HOSTINGU' } });
+    void this.mailKreatorProBezHostingu(sub.userId, po.status === SubscriptionStatus.CANCELED ? null : (po.cancelAt ?? null)).catch((err) =>
+      this.logger.warn(`Mail Kreator Pro bez hostingu sub=${sub.id}: ${(err as Error).message}`),
+    );
+    return true;
+  }
+
+  private async mailKreatorProBezHostingu(userId: string, aktywnyDo: Date | null): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { email: true, firstName: true, anonymizedAt: true } });
+    if (!user || user.anonymizedAt) return;
+    const panelUrl = this.config.get<string>('CLIENT_PANEL_URL') ?? 'https://panel.verris.pl';
+    await this.mailer.send({
+      ...kreatorProBezHostinguTemplate({ to: user.email, firstName: user.firstName, aktywnyDo, panelUrl }),
+      category: 'TRANSACTIONAL',
+      fromRole: 'BILLING',
+    });
+  }
+
+  /**
+   * Paczka 123 — zmiana okresu abonamentu (miesiąc ↔ rok) od następnego odnowienia przy płatności kartą (Stripe).
+   * Stripe przy zmianie ceny na inny okres rozliczenia przestawia początek cyklu na chwilę zmiany i od razu wystawia
+   * fakturę za nowy okres (dlatego plan-change.service.ts robi zmianę okresu „od teraz”). Zmiana „od następnego
+   * odnowienia” = ta sama operacja (`updateSubscriptionPrice`, istniejący klient Stripe) wykonana tuż przed końcem
+   * opłaconego okresu – RenewalScheduler woła ją w ostatnich 2 h okresu, bez proraty (`proration_behavior=none`).
+   * Faktura nowego okresu i przedłużenie przychodzą zwykłą drogą (invoice.paid → activateAfterStripePayment,
+   * nazwa pozycji z nowego `interval`). Do sprawdzenia z dokumentacją Stripe przy wdrożeniu (zachowanie
+   * billing_cycle_anchor przy zmianie interwału ceny). Zwraca true, gdy zmieniono okres.
+   */
+  async zmienOkresKartyPrzedOdnowieniem(subscriptionId: string): Promise<boolean> {
+    const sub = await this.prisma.subscription.findUnique({
+      where: { id: subscriptionId },
+      include: { plan: { select: { priceMonthly: true, priceYearly: true, stripePriceMonthlyId: true, stripePriceYearlyId: true } } },
+    });
+    if (!sub?.nastepnyInterwal || sub.nastepnyInterwal === sub.interval || !sub.stripeSubscriptionId) return false;
+    if (sub.status !== SubscriptionStatus.ACTIVE || sub.cancelAt != null || sub.paymentSource !== SubscriptionPaymentSource.STRIPE_CARD) return false;
+    const nowy = sub.nastepnyInterwal;
+    const cenaStripe = nowy === BillingInterval.YEAR ? sub.plan.stripePriceYearlyId : sub.plan.stripePriceMonthlyId;
+    if (!cenaStripe) throw new ConflictException('Plan nie ma ceny Stripe dla nowego okresu – zmiana okresu wstrzymana.');
+    const stripeSub = await this.stripe.retrieveSubscription(sub.stripeSubscriptionId);
+    const pozycja = stripeSub.items?.data?.[0]?.id;
+    if (!pozycja) throw new ConflictException('Nie można odczytać pozycji subskrypcji Stripe.');
+    const po = await this.stripe.updateSubscriptionPrice({
+      subscriptionId: sub.stripeSubscriptionId,
+      subscriptionItemId: pozycja,
+      newPriceId: cenaStripe,
+      prorationBehavior: 'none',
+    });
+    const okres = getSubscriptionPeriod(po);
+    const cena = nowy === BillingInterval.YEAR ? sub.plan.priceYearly : sub.plan.priceMonthly;
+    await this.prisma.subscription.update({
+      where: { id: sub.id },
+      data: {
+        interval: nowy,
+        nastepnyInterwal: null,
+        priceAmount: cena,
+        listPriceAmount: cena,
+        currentPeriodStart: new Date(okres.start * 1000),
+        currentPeriodEnd: new Date(okres.end * 1000),
+      },
+    });
+    await this.prisma.subscriptionEvent.create({
+      // Typ jak zmiana okresu w plan-change.service.ts (PLAN_CHANGED z intervalChange) – etykieta w historii usługi już jest.
+      data: { subscriptionId: sub.id, type: 'PLAN_CHANGED', details: { fromInterval: sub.interval, toInterval: nowy, intervalChange: true, przyOdnowieniu: true, source: 'STRIPE' } },
+    });
+    return true;
   }
 
   /**
@@ -793,7 +882,7 @@ export class SubscriptionsService {
     subscription: { id: string },
     ctx: {
       account: { id: string; serverId: string; daUsername: string; status: AccountStatus } | null;
-      source: 'CUSTOMER' | 'SCHEDULED' | 'ADMIN';
+      source: 'CUSTOMER' | 'SCHEDULED' | 'ADMIN' | 'SYSTEM';
       actorUserId?: string;
     },
   ) {

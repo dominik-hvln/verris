@@ -20,14 +20,21 @@ import { prisma, rozlacz, ustawModelFakturowania, utworzPlan, wyczyscBaze } from
 const stripe = {
   createCustomer: async () => ({ id: 'cus_k121' }),
   createSubscriptionCheckoutSession: async () => ({ id: `cs_${Math.random().toString(36).slice(2)}`, url: 'https://checkout.stripe.test/k121' }),
-  cancelSubscription: async () => ({}),
+  cancelSubscription: vi.fn(async (_id: string, _o: { atPeriodEnd?: boolean }) => ({})),
+  retrieveSubscription: vi.fn(async () => ({ items: { data: [{ id: 'si_k123' }] } })),
+  updateSubscriptionPrice: vi.fn(async (_i: { subscriptionId: string; subscriptionItemId: string; newPriceId: string; prorationBehavior?: string }) => ({
+    current_period_start: Math.floor(Date.now() / 1000),
+    current_period_end: Math.floor(Date.now() / 1000) + 365 * 86400,
+    items: { data: [{ id: 'si_k123', current_period_start: Math.floor(Date.now() / 1000), current_period_end: Math.floor(Date.now() / 1000) + 365 * 86400 }] },
+  })),
 };
+const maile: Array<{ subject: string; to: string; text?: string }> = [];
 
 function uslugi() {
   const p = prisma() as never;
   const ledger = new WalletLedgerService(p);
   const audit = new AuditService(p);
-  const mailer = { send: async () => ({}) };
+  const mailer = { send: async (m: { subject: string; to: string; text?: string }) => void maile.push(m) };
   const promo = new PromoService(p, ledger, audit, mailer as never, { get: () => undefined } as never);
   const kolejka = { isAsync: () => true, enqueueWalletProvision: async () => { throw new Error('Kreator Pro nie zakłada konta'); } };
   const subs = new SubscriptionsService(
@@ -223,5 +230,114 @@ describe('Paczka 121 – abonament Kreator Pro (baza)', () => {
     expect(s.currentPeriodEnd!.toISOString()).toBe(dwaLata.toISOString());
     expect(await prisma().subscriptionEvent.count({ where: { subscriptionId: s.id, type: 'RENEWED' } })).toBe(1);
     expect(await saldo(k.id)).toBe(0);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Paczka 123
+  // ---------------------------------------------------------------------------
+
+  const hostingKlienta = (userId: string) =>
+    prisma().subscription.findFirstOrThrow({ where: { userId, plan: { productKind: 'HOSTING' } } });
+
+  it('paczka 123 – hosting anulowany: odnowienie Pro wyłączone (do końca okresu, bez zwrotu i bez obciążenia), mail, powód w stanie', async () => {
+    const plan = await planPro();
+    const k = await klient(30);
+    const { subs, odnowienia } = uslugi();
+    const { subscription } = await subs.create(k.id, zamowienie(plan.id));
+    const koniec = new Date(Date.now() + 6 * 3600000);
+    await prisma().subscription.update({ where: { id: subscription.id }, data: { currentPeriodEnd: koniec } });
+    // Hosting działa – przebieg nic nie zmienia.
+    expect(await odnowienia.runKreatorProBezHostingu()).toBe(0);
+    await prisma().subscription.update({ where: { id: (await hostingKlienta(k.id)).id }, data: { status: 'CANCELED', canceledAt: new Date() } });
+    maile.length = 0;
+    await odnowienia.handleHourlyTick();
+    const po = await sub(subscription.id);
+    expect(po.status).toBe(SubscriptionStatus.ACTIVE);
+    expect(po.cancelAt?.toISOString()).toBe(koniec.toISOString());
+    // Okno odnowień w tym samym przebiegu nie pobrało opłaty (Pro zostaje opłacony do końca okresu, bez zwrotu).
+    expect(await saldo(k.id)).toBeCloseTo(20.1, 2);
+    const zdarzenie = await prisma().subscriptionEvent.findFirstOrThrow({ where: { subscriptionId: subscription.id, type: 'CANCEL_SCHEDULED' } });
+    expect(zdarzenie.details).toMatchObject({ actor: null, source: 'SYSTEM', reason: 'KREATOR_PRO_BEZ_HOSTINGU' });
+    await vi.waitFor(() => expect(maile.map((m) => m.subject)).toContain('[Verris] Kreator Pro nie odnowi się – brak hostingu'));
+    const { stanKreatoraPro } = await import('../../src/kreator/kreator-pro.js');
+    expect((await stanKreatoraPro(prisma() as never, k.id)).abonament).toMatchObject({ bezOdnowienia: true, powodBezOdnowienia: 'brak-hostingu' });
+    // Drugi przebieg – nic nowego (bez drugiego maila).
+    maile.length = 0;
+    expect(await odnowienia.runKreatorProBezHostingu()).toBe(0);
+    expect(maile).toHaveLength(0);
+  });
+
+  it('paczka 123 – hosting zawieszony nie wyłącza odnowienia; karta: rezygnacja na koniec okresu także w Stripe', async () => {
+    const plan = await planPro();
+    const k = await klient(0);
+    const { subs, odnowienia } = uslugi();
+    const wynik = await subs.create(k.id, zamowienie(plan.id, { paymentSource: 'STRIPE_CARD' }));
+    await subs.powiazSubskrypcjeZCheckout({ verrisSubscriptionId: wynik.subscription.id, stripeSubscriptionId: 'sub_k123_bez', sessionId: 'cs_y' });
+    const koniec = new Date(Date.now() + 20 * 86400000);
+    await subs.activateAfterStripePayment({ stripeSubscriptionId: 'sub_k123_bez', periodStart: new Date(), periodEnd: koniec, stripeInvoiceId: 'in_k123' });
+    const hosting = await hostingKlienta(k.id);
+    await prisma().subscription.update({ where: { id: hosting.id }, data: { status: 'SUSPENDED' } });
+    expect(await odnowienia.runKreatorProBezHostingu()).toBe(0);
+    await prisma().subscription.update({ where: { id: hosting.id }, data: { status: 'EXPIRED' } });
+    stripe.cancelSubscription.mockClear();
+    expect(await odnowienia.runKreatorProBezHostingu()).toBe(1);
+    expect(stripe.cancelSubscription).toHaveBeenCalledWith('sub_k123_bez', { atPeriodEnd: true });
+    expect((await sub(wynik.subscription.id)).cancelAt?.toISOString()).toBe(koniec.toISOString());
+  });
+
+  it('paczka 123 – zmiana na rok od następnego odnowienia (portfel): obciążenie 99 zł, faktura „abonament roczny”, okres +1 rok', async () => {
+    const plan = await planPro();
+    const k = await klient(120);
+    const { subs, odnowienia } = uslugi();
+    const { subscription } = await subs.create(k.id, zamowienie(plan.id));
+    const { zaplanujOkresPro, stanKreatoraPro } = await import('../../src/kreator/kreator-pro.js');
+    expect(await zaplanujOkresPro(prisma() as never, k.id, 'YEAR')).toEqual({ nastepnyOkres: 'YEAR' });
+    expect((await stanKreatoraPro(prisma() as never, k.id)).abonament).toMatchObject({ interval: 'MONTH', nastepnyOkres: 'YEAR' });
+    const koniec = new Date(Date.now() + 6 * 3600000);
+    await prisma().subscription.update({ where: { id: subscription.id }, data: { currentPeriodEnd: koniec } });
+    await odnowienia.handleHourlyTick();
+    expect(await saldo(k.id)).toBeCloseTo(120 - 9.9 - 99, 2);
+    const po = await sub(subscription.id);
+    expect([po.interval, po.nastepnyInterwal, po.priceAmount.toFixed(2), po.listPriceAmount?.toFixed(2)]).toEqual(['YEAR', null, '99.00', '99.00']);
+    const rok = new Date(koniec);
+    rok.setUTCFullYear(rok.getUTCFullYear() + 1);
+    expect(po.currentPeriodEnd?.toISOString()).toBe(rok.toISOString());
+    const odnowienie = await prisma().walletTransaction.findFirstOrThrow({
+      where: { userId: k.id, type: WalletTxType.CHARGE_SUBSCRIPTION, idempotencyKey: { contains: '-renew-' } },
+      include: { invoice: true },
+    });
+    expect(odnowienie.description).toMatch(/^Verris Kreator Pro – abonament roczny, okres /);
+    expect(odnowienie.invoice!.amount.toFixed(2)).toBe('99.00');
+    expect((odnowienie.invoice!.lineItems as Array<{ name: string }>)[0].name).toBe(odnowienie.description);
+    expect(odnowienie.invoice!.netAmount?.toFixed(2)).toBe('80.49');
+    // Rok → miesiąc wraca do 9,90 zł przy kolejnym odnowieniu; ten sam okres = rezygnacja z planu zmiany.
+    expect(await zaplanujOkresPro(prisma() as never, k.id, 'MONTH')).toEqual({ nastepnyOkres: 'MONTH' });
+    expect(await zaplanujOkresPro(prisma() as never, k.id, 'YEAR')).toEqual({ nastepnyOkres: null });
+    expect((await sub(subscription.id)).nastepnyInterwal).toBeNull();
+  });
+
+  it('paczka 123 – zmiana okresu kartą: cena Stripe zmieniana tuż przed końcem okresu (bez proraty), lokalnie nowy okres i cena', async () => {
+    const plan = await planPro();
+    const k = await klient(0);
+    const { subs, odnowienia } = uslugi();
+    const wynik = await subs.create(k.id, zamowienie(plan.id, { paymentSource: 'STRIPE_CARD' }));
+    await subs.powiazSubskrypcjeZCheckout({ verrisSubscriptionId: wynik.subscription.id, stripeSubscriptionId: 'sub_k123_okres', sessionId: 'cs_z' });
+    const daleko = new Date(Date.now() + 10 * 86400000);
+    await subs.activateAfterStripePayment({ stripeSubscriptionId: 'sub_k123_okres', periodStart: new Date(), periodEnd: daleko, stripeInvoiceId: 'in_k123_o' });
+    const { zaplanujOkresPro } = await import('../../src/kreator/kreator-pro.js');
+    await zaplanujOkresPro(prisma() as never, k.id, 'YEAR');
+    stripe.updateSubscriptionPrice.mockClear();
+    // Daleko od końca okresu – nic.
+    expect(await odnowienia.runZmianyOkresuKarta()).toBe(0);
+    await prisma().subscription.update({ where: { id: wynik.subscription.id }, data: { currentPeriodEnd: new Date(Date.now() + 90 * 60000) } });
+    expect(await odnowienia.runZmianyOkresuKarta()).toBe(1);
+    expect(stripe.updateSubscriptionPrice).toHaveBeenCalledWith({
+      subscriptionId: 'sub_k123_okres', subscriptionItemId: 'si_k123', newPriceId: 'price_k121_y', prorationBehavior: 'none',
+    });
+    const po = await sub(wynik.subscription.id);
+    expect([po.interval, po.nastepnyInterwal, po.priceAmount.toFixed(2)]).toEqual(['YEAR', null, '99.00']);
+    expect(po.currentPeriodEnd!.getTime()).toBeGreaterThan(Date.now() + 360 * 86400000);
+    // Drugi przebieg – zmiana już zastosowana.
+    expect(await odnowienia.runZmianyOkresuKarta()).toBe(0);
   });
 });

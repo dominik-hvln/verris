@@ -1,5 +1,6 @@
 import { netto, stawka, zl, zlGrosze } from '@/lib/ceny';
 import { pobierzCeny } from '@/lib/ceny-api';
+import { LIMITY_KREATORA } from '@/lib/kreator';
 import { kredytyNaStart } from '@/lib/kredyty-startowe';
 import { pobierzKredytyStartowe } from '@/lib/kredyty-startowe-api';
 
@@ -14,6 +15,8 @@ export async function GET() {
   const h = c.hosting;
   const p = c.poczta;
   const s = c.stawki;
+  const kh = LIMITY_KREATORA.hosting;
+  const kp = LIMITY_KREATORA.pro;
   const body = `# Cennik Verris (PLN, ceny brutto i netto)
 
 Źródło: https://verris.pl/cennik · Ceny pobierane z cennika w panelu, aktualizowane co kilka minut.
@@ -34,6 +37,13 @@ export async function GET() {
 
 ## Poczta bez hostingu strony
 - ${zl(p.miesiecznie)}/mies. brutto (${zl(netto(p.miesiecznie))} netto) albo ${zl(p.rocznie)}/rok brutto (${zl(netto(p.rocznie))} netto)
+
+## Verris Kreator (kreator stron z AI)
+- W cenie hostingu: ${kh.stron} strony na koncie, do ${kh.podstron} podstron w stronie, ${kh.generacjiMies} generacje i ${kh.zmianAiMies} zmian AI miesięcznie,
+  publikacja na własnej domenie, pobranie ZIP
+- Kreator Pro (dodatek, wymaga opłaconego hostingu): ${zl(c.kreatorPro.miesiecznie)}/mies. brutto (${zl(netto(c.kreatorPro.miesiecznie))} netto) albo ${zl(c.kreatorPro.rocznie)}/rok brutto (${zl(netto(c.kreatorPro.rocznie))} netto);
+  ${kp.stron} stron, podstrony bez limitu, ${kp.generacjiMies} generacji i ${kp.zmianAiMies} zmian AI miesięcznie, ${kp.wariantyGeneracji} propozycje projektu, katalog produktów, blog, pełne SEO
+- Szczegóły: https://verris.pl/kreator-stron
 
 ## Domeny
 - Rejestracja, transfer i utrzymanie. Dostępność i ceny w panelu. Bez cichych auto-odnowień

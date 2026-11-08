@@ -9,6 +9,7 @@ import { potwierdz } from '@/components/panel/potwierdz';
 import { UnpaidServiceBanner } from '@/components/hosting/UnpaidServiceBanner';
 import { cancelSubscriptionAction } from '@/app/dashboard/services/subscription-payment-actions';
 import { opisAbonamentuPro, oszczednoscRoczna, SKUTKI_KONCA_PRO, zl, type AbonamentKreatoraPro, type StanKreatoraPro } from '@/lib/kreator';
+import { zmienOkresPro } from './akcje';
 import { klasaPrzyciskuDrugiego, klasaPrzyciskuGlownego } from './wspolne';
 
 /**
@@ -82,12 +83,51 @@ export function ZakupPro({ pro }: { pro: StanKreatoraPro }) {
   );
 }
 
-export function AbonamentPro({ abonament }: { abonament: AbonamentKreatoraPro }) {
+/**
+ * Paczka 123 – „Zmień na rozliczenie roczne/miesięczne od następnego odnowienia”: tekst przycisku i potwierdzenia.
+ * Gdy zmiana już zaplanowana – przycisk ją cofa (zostaje bieżący okres).
+ */
+export function zmianaOkresuPro(a: AbonamentKreatoraPro, cena: StanKreatoraPro['cena'] | null) {
+  const zaplanowana = !!a.nastepnyOkres && a.nastepnyOkres !== a.interval;
+  if (zaplanowana) {
+    return {
+      okres: a.interval,
+      przycisk: `Zostań przy rozliczeniu ${a.interval === 'YEAR' ? 'rocznym' : 'miesięcznym'}`,
+      tytul: 'Anulować zmianę okresu?',
+      tresc: `Abonament odnowi się jak dotąd – ${a.interval === 'YEAR' ? 'na rok' : 'na miesiąc'}.`,
+    };
+  }
+  const nowy = a.interval === 'YEAR' ? 'MONTH' : 'YEAR';
+  const kwota = cena ? (nowy === 'YEAR' ? `${zl(cena.rokBrutto)} brutto za rok` : `${zl(cena.miesiacBrutto)} brutto za miesiąc`) : null;
+  return {
+    okres: nowy,
+    przycisk: `Zmień na rozliczenie ${nowy === 'YEAR' ? 'roczne' : 'miesięczne'} od następnego odnowienia`,
+    tytul: `Rozliczenie ${nowy === 'YEAR' ? 'roczne' : 'miesięczne'} od następnego odnowienia?`,
+    tresc: `Bieżący okres zostaje bez zmian. Przy następnym odnowieniu pobierzemy ${kwota ?? 'cenę nowego okresu'} i wystawimy fakturę za nowy okres.`,
+  } as const;
+}
+
+export function AbonamentPro({ abonament, cena = null }: { abonament: AbonamentKreatoraPro; cena?: StanKreatoraPro['cena'] | null }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [blad, setBlad] = useState<string | null>(null);
   const { naglowek, odnawianie } = opisAbonamentuPro(abonament);
   const moznaAnulowac = abonament.status === 'ACTIVE' && !abonament.bezOdnowienia && abonament.odnowienie !== 'reczne';
+  const okres = moznaAnulowac ? zmianaOkresuPro(abonament, cena) : null;
+
+  const zmienOkres = async () => {
+    if (!okres) return;
+    if (!(await potwierdz(okres.tresc, { tytul: okres.tytul, akcja: 'Potwierdź' }))) return;
+    setBlad(null);
+    startTransition(async () => {
+      const wynik = await zmienOkresPro(okres.okres);
+      if (!wynik.ok) {
+        setBlad(wynik.blad);
+        return;
+      }
+      router.refresh();
+    });
+  };
 
   const anuluj = async () => {
     const ok = await potwierdz(
@@ -128,6 +168,12 @@ export function AbonamentPro({ abonament }: { abonament: AbonamentKreatoraPro })
         </p>
       ) : null}
       <div className="flex flex-wrap gap-2">
+        {okres ? (
+          <button type="button" onClick={() => void zmienOkres()} disabled={pending} className={klasaPrzyciskuDrugiego}>
+            {pending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+            {okres.przycisk}
+          </button>
+        ) : null}
         {moznaAnulowac ? (
           <button type="button" onClick={() => void anuluj()} disabled={pending} className={klasaPrzyciskuDrugiego}>
             {pending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
@@ -140,11 +186,6 @@ export function AbonamentPro({ abonament }: { abonament: AbonamentKreatoraPro })
           </Link>
         ) : null}
       </div>
-      {moznaAnulowac ? (
-        <p className="text-[12px] text-muted-foreground">
-          Zmiana okresu (miesiąc ↔ rok): anuluj odnowienie, a po końcu okresu kup abonament z nowym okresem.
-        </p>
-      ) : null}
     </div>
   );
 }

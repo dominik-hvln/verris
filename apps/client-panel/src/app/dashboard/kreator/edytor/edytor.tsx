@@ -2,14 +2,15 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import { toast } from 'sonner';
-import { AlertCircle, Check, CloudOff, Eye, History, ListTree, Loader2, Menu, Monitor, MoreHorizontal, Pencil, Rocket, Smartphone, Sparkles, X } from 'lucide-react';
+import { AlertCircle, Check, CloudOff, Eye, History, ListTree, Loader2, Menu, Monitor, MoreHorizontal, Pencil, Rocket, RotateCcw, Smartphone, Sparkles, X } from 'lucide-react';
 import { KATALOG_STYLOW, podzielSciezke, poleObrazu, poleTekstowe, wartoscPod, zastosujTekst, type Motyw, type Obraz, type Strona } from '@verris/kreator/klient';
 import { Switch } from '@/components/panel/v2';
+import { potwierdz } from '@/components/panel/potwierdz';
 import { cx } from '@/components/panel/cx';
 import { klasaPrzyciskuPaska, PasekSkupienia, useSkupienie } from '@/components/panel/tryb-skupienia';
 import { plForm } from '@/lib/pl';
 import { pozostalo, type StanKreatora, type WidokStronyKreatora } from '@/lib/kreator';
-import { polecenieAi, przywrocWersje, wybierzPropozycje, zapiszModel, zmienNazweStrony } from '../akcje';
+import { generujPonownie, polecenieAi, przywrocWersje, wybierzPropozycje, zapiszModel, zmienNazweStrony } from '../akcje';
 import { klasaPrzyciskuGlownego } from '../wspolne';
 import { Struktura } from './struktura';
 import { PanelSekcji } from './panel-sekcji';
@@ -48,6 +49,14 @@ export function celBledu(sciezka: string): { zakladka: Zakladka; podstrona?: num
   if (m) return { zakladka: 'seo', podstrona: Number(m[1]) };
   if (sciezka.startsWith('motyw')) return { zakladka: 'motyw' };
   return { zakladka: 'seo' };
+}
+
+/**
+ * Paczka 123 – dane firmy klikane w podglądzie (data-k-formularz z renderera: telefon, e-mail, adres, nazwa w linii ©)
+ * otwierają pole w zakładce „Firma i SEO”. Tylko te ścieżki – reszta modelu ma własne miejsca w formularzu sekcji.
+ */
+export function polaFirmyZPodgladu(sciezka: string): boolean {
+  return ['firma.nazwa', 'firma.telefon', 'firma.email', 'firma.adres.ulica'].includes(sciezka);
 }
 
 /** Pole, w którym Ctrl+Z należy do przeglądarki (cofanie wpisywanego tekstu), a nie do edytora. */
@@ -92,7 +101,20 @@ function OpisZapisu({ stan, bledow }: { stan: StanZapisu; bledow: number }) {
   );
 }
 
-export function Edytor({ widok: widokPoczatkowy, stan }: { widok: WidokStronyKreatora; stan: StanKreatora }) {
+/** Treść potwierdzenia „Wygeneruj od nowa” (paczka 123). */
+export const POTWIERDZENIE_OD_NOWA =
+  'AI zbuduje stronę od nowa z opisu firmy podanego przy jej tworzeniu. Obecny projekt zapiszemy w historii wersji – wrócisz do niego w „Historii wersji”. Zużywa jedną generację z miesięcznego limitu.';
+
+export function Edytor({
+  widok: widokPoczatkowy,
+  stan,
+  onGeneruj,
+}: {
+  widok: WidokStronyKreatora;
+  stan: StanKreatora;
+  /** Paczka 123 – strona przeszła w generowanie od nowa (StronaKreatora pokazuje ekran postępu). */
+  onGeneruj?: (w: WidokStronyKreatora) => void;
+}) {
   const plan = stan.plan!;
   const funkcjePro = plan.funkcjePro;
   const id = widokPoczatkowy.id;
@@ -479,7 +501,7 @@ export function Edytor({ widok: widokPoczatkowy, stan }: { widok: WidokStronyKre
       setZaznaczona(sekcjaId);
       setZakladka('ai');
       pokazEdycje();
-    } else if (sciezka && sciezka.startsWith(`strony.${ip}.sekcje.${i}.`)) {
+    } else if (sciezka && (sciezka.startsWith(`strony.${ip}.sekcje.${i}.`) || polaFirmyZPodgladu(sciezka))) {
       otworzPole(sciezka);
     } else {
       setZaznaczona(sekcjaId);
@@ -510,6 +532,10 @@ export function Edytor({ widok: widokPoczatkowy, stan }: { widok: WidokStronyKre
       case 'polecenie':
         if (naStronie(w.sekcja)) polecenieSekcji(w.sekcja, w.polecenie, w.sciezka);
         return;
+      case 'pole':
+        // Dane firmy z nagłówka i stopki (telefon, e-mail, adres, linia ©) – zakładka „Firma i SEO” z fokusem na polu.
+        if (polaFirmyZPodgladu(w.sciezka)) otworzPole(w.sciezka);
+        return;
       case 'skrot':
         if (w.skrot === 'cofnij') przejdzWStosie('cofnij');
         else if (w.skrot === 'ponow') przejdzWStosie('ponow');
@@ -520,6 +546,34 @@ export function Edytor({ widok: widokPoczatkowy, stan }: { widok: WidokStronyKre
   };
 
   const trybEdycji: TrybEdycji = !edycjaNaStronie ? 'brak' : uklad === 'telefon' ? 'zaznacz' : 'edycja';
+
+  // Ponowna generacja gotowej strony nie wyszła – API zostawiło poprzedni projekt i opis błędu (paczka 123).
+  useEffect(() => {
+    if (widokPoczatkowy.status === 'GOTOWA' && widokPoczatkowy.bladOpis) toast.error(widokPoczatkowy.bladOpis);
+  }, [widokPoczatkowy.status, widokPoczatkowy.bladOpis]);
+
+  /**
+   * „Wygeneruj od nowa” (paczka 123, menu „Więcej”): po potwierdzeniu zapis bieżących zmian, potem ta sama strona
+   * generowana od nowa z zapisanego opisu firmy (bieżący projekt trafia do historii wersji w API).
+   */
+  const [generuje, setGeneruje] = useState(false);
+  const generujOdNowa = async () => {
+    przyciskWiecej.current?.focus();
+    setWiecej(false);
+    if (!(await potwierdz(POTWIERDZENIE_OD_NOWA, { tytul: 'Wygenerować stronę od nowa?', akcja: 'Wygeneruj od nowa' }))) return;
+    if (!(await zapiszTeraz()) && refy.current.rewizja !== refy.current.zapisana) {
+      toast.error('Popraw zaznaczone pola, zanim wygenerujesz stronę od nowa – inaczej stracisz zmiany.');
+      return;
+    }
+    setGeneruje(true);
+    const r = await generujPonownie(id);
+    setGeneruje(false);
+    if (!r.ok) {
+      toast.error(r.blad);
+      return;
+    }
+    onGeneruj?.(r.dane);
+  };
 
   const zmienNazwe = async () => {
     const nowa = nazwa.trim();
@@ -732,7 +786,7 @@ export function Edytor({ widok: widokPoczatkowy, stan }: { widok: WidokStronyKre
           <button type="button" className={cx(klasaPrzyciskuGlownego, 'min-h-11 px-3 md:min-h-9')} onClick={() => setPublikacja(true)}>
             <Rocket className="h-4 w-4" aria-hidden /> Publikuj
           </button>
-          <div className="relative xl:hidden">
+          <div className="relative">
             <button
               ref={przyciskWiecej}
               type="button"
@@ -752,7 +806,7 @@ export function Edytor({ widok: widokPoczatkowy, stan }: { widok: WidokStronyKre
               >
                 <button
                   type="button"
-                  className="flex min-h-11 items-center gap-2 rounded-[7px] px-2.5 text-left text-sm text-foreground hover:bg-raised md:min-h-9"
+                  className="flex min-h-11 items-center gap-2 rounded-[7px] px-2.5 text-left text-sm text-foreground hover:bg-raised md:min-h-9 xl:hidden"
                   onClick={() => {
                     // Fokus na „Więcej” przed otwarciem okna – po jego zamknięciu wróci tutaj, a nie na zniknięty element menu.
                     przyciskWiecej.current?.focus();
@@ -762,8 +816,16 @@ export function Edytor({ widok: widokPoczatkowy, stan }: { widok: WidokStronyKre
                 >
                   <History className="h-4 w-4" aria-hidden /> Historia wersji
                 </button>
-                <div className="flex min-h-11 items-center px-2.5 max-md:hidden md:min-h-9">{edycjaSwitch}</div>
-                {proSwitch ? <div className="flex min-h-11 items-center px-2.5 md:min-h-9">{proSwitch}</div> : null}
+                <div className="flex min-h-11 items-center px-2.5 max-md:hidden md:min-h-9 xl:hidden">{edycjaSwitch}</div>
+                {proSwitch ? <div className="flex min-h-11 items-center px-2.5 md:min-h-9 xl:hidden">{proSwitch}</div> : null}
+                <button
+                  type="button"
+                  disabled={generuje}
+                  className="flex min-h-11 items-center gap-2 rounded-[7px] px-2.5 text-left text-sm text-foreground hover:bg-raised disabled:opacity-50 md:min-h-9"
+                  onClick={() => void generujOdNowa()}
+                >
+                  {generuje ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <RotateCcw className="h-4 w-4" aria-hidden />} Wygeneruj od nowa
+                </button>
                 {skupienie ? (
                   <button
                     type="button"

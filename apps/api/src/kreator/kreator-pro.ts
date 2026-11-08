@@ -1,4 +1,4 @@
-import { ConflictException, ForbiddenException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Prisma, ProductKind, SubscriptionStatus } from '@verris/database';
 import { CENA_KREATORA_PRO } from '@verris/kreator';
 import { rozbicieVat } from '../billing/faktura-za-portfel.js';
@@ -48,6 +48,20 @@ export async function stanHostingu(db: DbSubskrypcji, userId: string): Promise<{
   return { jest: uslugi.length > 0, platny: uslugi.some((u) => !wProbie(u)) };
 }
 
+/**
+ * Paczka 123 – czy konto ma jeszcze płatny hosting, przy którym Kreator Pro ma sens. Liczy się także hosting
+ * zawieszony (wraca po zapłacie) – odnowienie Pro wyłączamy dopiero, gdy hostingu nie ma (anulowany, wygasły)
+ * albo został sam okres próbny.
+ */
+export const HOSTING_ISTNIEJE: SubscriptionStatus[] = [...HOSTING_DZIALA, SubscriptionStatus.SUSPENDED];
+export async function maPlatnyHosting(db: DbSubskrypcji, userId: string): Promise<boolean> {
+  const uslugi = await db.subscription.findMany({
+    where: { userId, status: { in: HOSTING_ISTNIEJE }, plan: { productKind: ProductKind.HOSTING } },
+    select: { isTrial: true, trialConvertedAt: true },
+  });
+  return uslugi.some((u) => !wProbie(u));
+}
+
 /** Abonament Pro konta zajmujący miejsce (najnowszy), albo null. */
 export function abonamentPro(db: DbSubskrypcji, userId: string) {
   return db.subscription.findFirst({
@@ -60,6 +74,7 @@ export function abonamentPro(db: DbSubskrypcji, userId: string) {
       paymentSource: true,
       currentPeriodEnd: true,
       cancelAt: true,
+      nastepnyInterwal: true,
       priceAmount: true,
       listPriceAmount: true,
       stripeSubscriptionId: true,
@@ -115,6 +130,13 @@ export interface StanKreatoraPro {
     odnowienie: 'portfel' | 'karta' | 'reczne';
     /** Rezygnacja z odnowienia złożona – abonament kończy się z `aktywnyDo`. */
     bezOdnowienia: boolean;
+    /**
+     * Paczka 123 – dlaczego odnowienie jest wyłączone: 'brak-hostingu' = konto nie ma już płatnego hostingu
+     * (odnowienie wyłączył system, KreatorProBezHostingu w renewal.scheduler.ts); null = rezygnacja klienta albo brak.
+     */
+    powodBezOdnowienia: 'brak-hostingu' | null;
+    /** Paczka 123 – okres od następnego odnowienia (zmiana miesiąc ↔ rok); null = bez zmiany. */
+    nastepnyOkres: 'MONTH' | 'YEAR' | null;
     /** Kwota zapisana na abonamencie (brutto, zł). */
     cena: string;
   } | null;
@@ -122,7 +144,7 @@ export interface StanKreatoraPro {
 
 /** GET /kreator/stan → `pro`: cennik z planu w bazie, możliwość zakupu i bieżący abonament. */
 export async function stanKreatoraPro(db: DbSubskrypcji & DbPlanu, userId: string): Promise<StanKreatoraPro> {
-  const [plan, pro, blokada] = await Promise.all([
+  const [plan, pro, blokada, hosting] = await Promise.all([
     db.plan.findFirst({
       where: { productKind: ProductKind.KREATOR_PRO, isActive: true, isPublic: true },
       orderBy: { sortOrder: 'asc' },
@@ -130,6 +152,7 @@ export async function stanKreatoraPro(db: DbSubskrypcji & DbPlanu, userId: strin
     }),
     abonamentPro(db, userId),
     powodBlokadyZakupuPro(db, userId),
+    maPlatnyHosting(db, userId),
   ]);
   const powod = blokada?.powod ?? (plan ? null : POWOD_BRAK_PLANU);
   return {
@@ -145,8 +168,47 @@ export async function stanKreatoraPro(db: DbSubskrypcji & DbPlanu, userId: strin
           aktywnyDo: pro.currentPeriodEnd?.toISOString() ?? null,
           odnowienie: pro.paymentSource === 'STRIPE_CARD' ? 'karta' : pro.paymentSource === 'MANUAL' ? 'reczne' : 'portfel',
           bezOdnowienia: pro.cancelAt != null,
+          powodBezOdnowienia: pro.cancelAt != null && !hosting ? 'brak-hostingu' : null,
+          nastepnyOkres: pro.nastepnyInterwal && pro.nastepnyInterwal !== pro.interval ? pro.nastepnyInterwal : null,
           cena: new Prisma.Decimal(pro.listPriceAmount ?? pro.priceAmount).toFixed(2),
         }
       : null,
   };
+}
+
+export const POWOD_ZMIANY_BEZ_ABONAMENTU = 'Nie masz aktywnego abonamentu Kreator Pro – okres wybierzesz przy zakupie.';
+export const POWOD_ZMIANY_PO_REZYGNACJI = 'Odnowienie abonamentu jest wyłączone – okresu nie zmienisz, bo abonament się nie przedłuży.';
+export const POWOD_ZMIANY_RECZNE = 'Ten abonament rozliczasz z opiekunem – o zmianę okresu poproś w Centrum pomocy.';
+export const POWOD_ZMIANY_BEZ_CENY_KARTY = 'Zmiana okresu przy płatności kartą jest chwilowo niedostępna – spróbuj później albo napisz do nas.';
+
+type DbZmianyOkresu = {
+  subscription: Pick<Prisma.TransactionClient['subscription'], 'findFirst' | 'updateMany'>;
+};
+
+/**
+ * POST /kreator/pro/okres (paczka 123) – „Zmień na rozliczenie roczne/miesięczne od następnego odnowienia”. Zapisuje
+ * docelowy okres w abonamencie (`Subscription.nastepnyInterwal`); zamiana i kwota nowego okresu przy odnowieniu:
+ * portfel – RenewalScheduler.attemptRenewal, karta (Stripe) – SubscriptionsService.zmienOkresKartyPrzedOdnowieniem.
+ * Okres równy bieżącemu = rezygnacja z zaplanowanej zmiany. Działa tylko na aktywnym abonamencie z odnowieniem.
+ */
+export async function zaplanujOkresPro(
+  db: DbZmianyOkresu,
+  userId: string,
+  okres: 'MONTH' | 'YEAR',
+): Promise<{ nastepnyOkres: 'MONTH' | 'YEAR' | null }> {
+  const pro = await db.subscription.findFirst({
+    where: { userId, status: SubscriptionStatus.ACTIVE, plan: { productKind: ProductKind.KREATOR_PRO } },
+    orderBy: { createdAt: 'desc' },
+    select: { id: true, interval: true, cancelAt: true, paymentSource: true, stripeSubscriptionId: true, plan: { select: { stripePriceMonthlyId: true, stripePriceYearlyId: true } } },
+  });
+  if (!pro) throw new NotFoundException(POWOD_ZMIANY_BEZ_ABONAMENTU);
+  if (pro.cancelAt) throw new ConflictException(POWOD_ZMIANY_PO_REZYGNACJI);
+  if (pro.paymentSource === 'MANUAL') throw new ConflictException(POWOD_ZMIANY_RECZNE);
+  const nastepny = okres === pro.interval ? null : okres;
+  if (nastepny && pro.paymentSource === 'STRIPE_CARD' && pro.stripeSubscriptionId) {
+    const cena = nastepny === 'YEAR' ? pro.plan.stripePriceYearlyId : pro.plan.stripePriceMonthlyId;
+    if (!cena) throw new ConflictException(POWOD_ZMIANY_BEZ_CENY_KARTY);
+  }
+  await db.subscription.updateMany({ where: { id: pro.id, cancelAt: null }, data: { nastepnyInterwal: nastepny } });
+  return { nastepnyOkres: nastepny };
 }

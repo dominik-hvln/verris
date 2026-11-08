@@ -32,7 +32,7 @@ export const PLAN_KREATOR_PRO: DefinicjaPlanuKreatoraPro = {
   name: 'Verris Kreator Pro',
   description:
     'Rozszerzona wersja Verris Kreatora: 3 propozycje projektu z każdej generacji, sekcje sklepu i bloga, ' +
-    'interakcje i animacje, pełne SEO, wersje językowe i wyższe limity. Wymaga płatnego hostingu Verris.',
+    'interakcje i animacje, pełne SEO i wyższe limity. Wymaga płatnego hostingu Verris.',
   priceMonthly: '9.90',
   priceYearly: '99.00',
   sortOrder: 30,

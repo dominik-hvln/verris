@@ -144,6 +144,51 @@ describe('edycja na stronie: atrybuty w HTML', () => {
     }
   });
 
+  it('paczka 123: etykiety menu (wMenu sekcji strony głównej, tytuł podstrony) pisane w miejscu – także na podstronach', () => {
+    const wej = PRZYKLADY.salon!;
+    const m = model(wej);
+    const wynik = render(wej, 'hosting', { tryb: 'podglad', edycja: true });
+    const uslugi = m.strony[0]!.sekcje.findIndex((x) => x.id === 'uslugi');
+    for (const { sciezka, tresc } of htmle(wynik)) {
+      if (sciezka === '404.html') continue;
+      const nav = /<nav class="nav"[\s\S]*?<\/nav>/.exec(tresc)?.[0] ?? '';
+      const pola = polaHtml(nav);
+      expect({ sciezka, menu: pola.some((p) => p.sciezka === `strony.0.sekcje.${uslugi}.wMenu` && p.tekst === 'Usługi i ceny') }).toEqual({ sciezka, menu: true });
+      m.strony.forEach((p, i) => {
+        if (p.slug && !p.slug.includes('/')) expect(pola.map((x) => x.sciezka)).toContain(`strony.${i}.tytul`);
+      });
+    }
+  });
+
+  it('paczka 123: dane firmy (telefon, e-mail, adres, linia ©) otwierają formularz „Firma”, nie są pisane w miejscu', () => {
+    const wej = PRZYKLADY.salon!;
+    const html = htmle(render(wej, 'hosting', { tryb: 'podglad', edycja: true })).find((h) => h.sciezka === 'index.html')!.tresc;
+    expect(html).toMatch(/<a class="nag-tel"[^>]*data-k-formularz="firma\.telefon" data-k-etykieta="Zmień telefon w danych firmy"/);
+    expect(html).toMatch(/<p class="stopka-prawa" data-k-formularz="firma\.nazwa"[^>]*>©/);
+    const stopka = /<footer[\s\S]*<\/footer>/.exec(html)![0];
+    expect(stopka).toContain('data-k-formularz="firma.email"');
+    expect(stopka).toContain('data-k-formularz="firma.adres.ulica"');
+    const kontakt = /<section[^>]*id="kontakt"[\s\S]*?<\/section>/.exec(html)![0];
+    expect(kontakt).toContain('data-k-formularz="firma.telefon"');
+    expect(html).not.toMatch(/data-k="firma\.(telefon|email|adres)/);
+  });
+
+  it('paczka 123: cecha w wierszu tabeli cennika otwiera formularz pierwszego pakietu, który ją ma', () => {
+    const wej = wszystkieWarianty();
+    const m = model(wej);
+    const html = htmle(render(wej, 'pro', { tryb: 'podglad', edycja: true })).map((h) => h.tresc).join('\n');
+    let tabel = 0;
+    m.strony.forEach((p, i) =>
+      p.sekcje.forEach((x, j) => {
+        if (x.typ !== 'cennik' || x.wariant !== 'cennik-tabela' || x.ukryta) return;
+        tabel++;
+        const c = x.dane.pakiety[0]!.cechy[0]!;
+        expect(html).toContain(`<th scope="row" data-k-formularz="strony.${i}.sekcje.${j}.dane.pakiety.0.cechy.0" data-k-etykieta="Zmień cechę w formularzu pakietu">${c}`);
+      }),
+    );
+    expect(tabel).toBeGreaterThan(0);
+  });
+
   it('nagłówek z wyróżnieniem: jeden element data-k, tekst całego nagłówka', () => {
     const m = model(PRZYKLADY.salon!);
     const hero = m.strony[0]!.sekcje[0]!;
@@ -256,5 +301,12 @@ describe('mostek – kod', () => {
       const html = dodatkiMostu({ tryb });
       expect(html.match(/<\/script>/g)?.length).toBe(1);
     }
+  });
+
+  it('paczka 123: element z data-k-formularz poza sekcją (stopka, nagłówek) wysyła { typ: pole }, etykieta z data-k-etykieta', () => {
+    const kod = kodMostu({ tryb: 'edycja' });
+    expect(kod).toContain("wyslij({ typ: 'pole', sciezka: sciezka })");
+    expect(kod).toContain("atr(e, 'data-k-etykieta') || 'Zmień cenę w formularzu sekcji'");
+    expect(kod).not.toContain('if (f && s)');
   });
 });

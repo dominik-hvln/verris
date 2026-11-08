@@ -1,10 +1,11 @@
 import { KATALOG_EFEKTOW, KATALOG_WARIANTOW, SEKCJE_PRO } from './katalog.ts';
 import type { Strona } from './model.ts';
+import { KATALOG_STYLOW } from './style/katalog-stylow.ts';
 
 /**
  * Wersje kreatora (decyzja właściciela 2026-11-07):
- *  - proba   – okres próbny hostingu: podgląd bez własnej domeny, noindex, bez ZIP i WordPressa;
- *  - hosting – kreator w cenie hostingu: własna domena, ZIP, przejście na WordPressa;
+ *  - proba   – okres próbny hostingu: podgląd bez własnej domeny, noindex, bez ZIP;
+ *  - hosting – kreator w cenie hostingu: własna domena, ZIP (przejście na WordPressa – etap 3, jeszcze niedostępne; flaga `wordpress` nic dziś nie włącza);
  *  - pro     – dodatek Kreator Pro: 9,90 zł brutto/mies. (8,05 netto) albo 99 zł brutto/rok (80,49 netto).
  * „Mała dawka” w wersjach bez Pro: lżejszy master prompt (prompt 'lite'), podstawowe efekty i warianty,
  * podstawowe SEO. Funkcje Pro widać w edytorze jako podgląd z oznaczeniem, publikacja je zastępuje.
@@ -31,22 +32,32 @@ export interface PlanKreatora {
   publikacja: 'podglad' | 'domena';
   zip: boolean;
   wordpress: boolean;
+  /**
+   * Wersje językowe strony. Paczka 123: renderer nie tworzy podstron w innych językach (model ma tylko
+   * `jezykiDodatkowe`, bez treści tłumaczeń), więc żadna wersja ich nie obiecuje – false wszędzie, a KORZYSCI_PRO
+   * nie wymieniają języków. Włączyć dopiero razem z tłumaczeniem podstron (`en/…`) i przełącznikiem języka.
+   */
   wielojezycznosc: boolean;
   znakMinimalny: boolean;
+  /** Miejsce na zdjęcia w bibliotece konta (suma oryginałów i wariantów w magazynie), MB. */
+  miejsceZdjecMb: number;
 }
 
 export const PLANY_KREATORA: Record<WersjaKreatora, PlanKreatora> = {
   proba: {
     nazwa: 'Okres próbny', stron: 1, podstron: 5, generacjiMies: 1, zmianAiMies: 20, wariantyGeneracji: 1, prompt: 'lite',
     funkcjePro: false, seo: 'podstawowe', publikacja: 'podglad', zip: false, wordpress: false, wielojezycznosc: false, znakMinimalny: false,
+    miejsceZdjecMb: 50,
   },
   hosting: {
     nazwa: 'W cenie hostingu', stron: 3, podstron: 5, generacjiMies: 3, zmianAiMies: 200, wariantyGeneracji: 1, prompt: 'lite',
     funkcjePro: false, seo: 'podstawowe', publikacja: 'domena', zip: true, wordpress: true, wielojezycznosc: false, znakMinimalny: false,
+    miejsceZdjecMb: 500,
   },
   pro: {
     nazwa: 'Kreator Pro', stron: 10, podstron: null, generacjiMies: 10, zmianAiMies: 1000, wariantyGeneracji: 3, prompt: 'pro',
-    funkcjePro: true, seo: 'pelne', publikacja: 'domena', zip: true, wordpress: true, wielojezycznosc: true, znakMinimalny: true,
+    funkcjePro: true, seo: 'pelne', publikacja: 'domena', zip: true, wordpress: true, wielojezycznosc: false, znakMinimalny: true,
+    miejsceZdjecMb: 2048,
   },
 };
 
@@ -61,7 +72,6 @@ export const KORZYSCI_PRO: { id: string; nazwa: string; opis: string }[] = [
   { id: 'sklep', nazwa: 'Katalog produktów', opis: 'Produkty z cenami i przyciskiem zakupu, dane produktowe dla Google.' },
   { id: 'blog', nazwa: 'Blog', opis: 'Wpisy z datą i czasem czytania, dane artykułów dla Google.' },
   { id: 'seo', nazwa: 'Pełne SEO', opis: 'Dane strukturalne FAQ, produktów, artykułów i nawigacji okruszkowej, przegląd SEO przez AI.' },
-  { id: 'jezyki', nazwa: 'Wersje językowe', opis: 'Do trzech dodatkowych języków z poprawnym hreflang.' },
   { id: 'limity', nazwa: 'Wyższe limity', opis: '10 stron, podstrony bez limitu, 10 generacji i 1000 zmian AI miesięcznie.' },
   { id: 'znak', nazwa: 'Dyskretny znak w stopce', opis: 'Minimalna wersja znaku „Stworzone w Verris Kreator”.' },
 ];
@@ -73,6 +83,7 @@ const WARIANTY_PRO = new Map(
     .map((w) => [w.id, w.zastepczy ?? null] as const),
 );
 const EFEKTY_PRO = new Set(KATALOG_EFEKTOW.filter((e) => e.pro).map((e) => e.id));
+const STYLE = new Map(KATALOG_STYLOW.map((s) => [s.id, s] as const));
 
 export interface Dopasowanie {
   strona: Strona;
@@ -111,6 +122,13 @@ export function dopasujDoPlanu(strona: Strona, wersja: WersjaKreatora): Dopasowa
   if (plan.podstron !== null && kopia.strony.length > plan.podstron) {
     zmiany.push(`Opublikowane tylko ${plan.podstron} pierwszych podstron`);
     kopia.strony = kopia.strony.slice(0, plan.podstron);
+  }
+  // Styl Pro → darmowy odpowiednik z katalogu. Zmienia się tylko identyfikator stylu (klasa w CSS strony);
+  // paleta i fonty wybrane w projekcie zostają.
+  const styl = STYLE.get(kopia.motyw.styl);
+  if (styl?.pro && styl.zastepczy && STYLE.has(styl.zastepczy)) {
+    zmiany.push(`Styl „${styl.nazwa}” zamieniony na „${STYLE.get(styl.zastepczy)!.nazwa}” (kolory i fonty zostają)`);
+    kopia.motyw.styl = styl.zastepczy;
   }
   const efekty = kopia.motyw.efekty.filter((e) => !EFEKTY_PRO.has(e));
   if (efekty.length < kopia.motyw.efekty.length) zmiany.push('Efekty Pro wyłączone (karuzele, powiększanie, paralaksa itp.)');

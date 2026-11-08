@@ -1,5 +1,9 @@
-import { ConflictException, ForbiddenException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import {
+  maPlatnyHosting,
+  POWOD_ZMIANY_BEZ_CENY_KARTY,
+  POWOD_ZMIANY_PO_REZYGNACJI,
+  zaplanujOkresPro,
   POWOD_BEZ_HOSTINGU,
   POWOD_BEZ_PLATNEGO_HOSTINGU,
   POWOD_DRUGI_ABONAMENT,
@@ -78,5 +82,42 @@ describe('Kreator Pro – wersja kreatora (paczka 121)', () => {
     expect(await wersjaKreatora(baza([hosting('ACTIVE', true), pro()]), 'u1')).toBe('proba');
     expect(await wersjaKreatora(baza([hosting('SUSPENDED'), pro()]), 'u1')).toBeNull();
     expect(await wersjaKreatora(baza([pro()]), 'u1')).toBeNull();
+  });
+});
+
+describe('Kreator Pro – płatny hosting i zmiana okresu (paczka 123)', () => {
+  it('maPlatnyHosting: działający albo zawieszony płatny hosting – tak; anulowany, wygasły, sama próba, brak – nie', async () => {
+    expect(await maPlatnyHosting(baza([hosting()]), 'u1')).toBe(true);
+    expect(await maPlatnyHosting(baza([hosting('SUSPENDED')]), 'u1')).toBe(true);
+    expect(await maPlatnyHosting(baza([hosting('CANCELED'), hosting('EXPIRED')]), 'u1')).toBe(false);
+    expect(await maPlatnyHosting(baza([hosting('ACTIVE', true)]), 'u1')).toBe(false);
+    expect(await maPlatnyHosting(baza([pro()]), 'u1')).toBe(false);
+  });
+
+  function abonament(x: Record<string, unknown> = {}) {
+    const wiersz = {
+      id: 'sub-pro', interval: 'MONTH', cancelAt: null, paymentSource: 'WALLET', stripeSubscriptionId: null,
+      plan: { stripePriceMonthlyId: 'price_m', stripePriceYearlyId: 'price_y' }, ...x,
+    };
+    const updateMany = vi.fn(async () => ({ count: 1 }));
+    return { db: { subscription: { findFirst: vi.fn(async () => wiersz), updateMany } } as never, updateMany };
+  }
+
+  it('zapis docelowego okresu; ten sam okres = rezygnacja ze zmiany', async () => {
+    const a = abonament();
+    expect(await zaplanujOkresPro(a.db, 'u1', 'YEAR')).toEqual({ nastepnyOkres: 'YEAR' });
+    expect(a.updateMany).toHaveBeenLastCalledWith({ where: { id: 'sub-pro', cancelAt: null }, data: { nastepnyInterwal: 'YEAR' } });
+    expect(await zaplanujOkresPro(a.db, 'u1', 'MONTH')).toEqual({ nastepnyOkres: null });
+    expect(a.updateMany).toHaveBeenLastCalledWith({ where: { id: 'sub-pro', cancelAt: null }, data: { nastepnyInterwal: null } });
+  });
+
+  it('odmowy: brak aktywnego abonamentu 404, wyłączone odnowienie 409, rozliczenie ręczne 409, karta bez ceny Stripe 409', async () => {
+    const brak = { subscription: { findFirst: async () => null, updateMany: vi.fn() } } as never;
+    await expect(zaplanujOkresPro(brak, 'u1', 'YEAR')).rejects.toBeInstanceOf(NotFoundException);
+    await expect(zaplanujOkresPro(abonament({ cancelAt: new Date() }).db, 'u1', 'YEAR')).rejects.toThrow(POWOD_ZMIANY_PO_REZYGNACJI);
+    await expect(zaplanujOkresPro(abonament({ paymentSource: 'MANUAL' }).db, 'u1', 'YEAR')).rejects.toBeInstanceOf(ConflictException);
+    const karta = abonament({ paymentSource: 'STRIPE_CARD', stripeSubscriptionId: 'sub_1', plan: { stripePriceMonthlyId: 'price_m', stripePriceYearlyId: null } });
+    await expect(zaplanujOkresPro(karta.db, 'u1', 'YEAR')).rejects.toThrow(POWOD_ZMIANY_BEZ_CENY_KARTY);
+    expect(karta.updateMany).not.toHaveBeenCalled();
   });
 });

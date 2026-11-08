@@ -1,7 +1,7 @@
 /**
- * Złożenie podglądu kreatora w JEDEN dokument (CSS i JS inline) – minimalna kopia logiki API
- * (apps/api/src/kreator/podglad.ts: zlozPodglad, naglowkiPodgladu). Kopia zamiast wspólnej funkcji w libs/kreator,
- * bo w paczce 120 API zmienia równolegle drugi agent; przy następnej paczce warto przenieść obie do biblioteki.
+ * Dodatki podglądu kreatora w panelu: skrypt i styl edytora, strona komunikatu, limit ciała formularza i zdjęcia
+ * z modelu. Samo złożenie dokumentu (CSS i JS inline) i nagłówki CSP są wspólne z API – `zlozPodglad`
+ * i `naglowkiPodgladu` z @verris/kreator (libs/kreator/src/render/podglad-jeden-plik.ts, paczka 123).
  *
  * Do dokumentu dochodzi mały skrypt edytora: kliknięcie w sekcję zaznacza ją w edytorze, link do podstrony
  * przełącza podstronę w edytorze (zamiast nawigacji ramki pod nieistniejący adres), a pozycja przewinięcia
@@ -9,71 +9,12 @@
  * z panelem wyłącznie przez postMessage, a panel sprawdza, że wiadomość przyszła z jego ramki.
  */
 
-import { dodatkiMostu, type OpcjeMostu } from '@verris/kreator';
+import { dodatkiMostu, naglowkiPodgladu as naglowkiWspolne, type OpcjeMostu } from '@verris/kreator';
+
+export { zlozPodglad } from '@verris/kreator';
 
 /** Najwięcej tyle bajtów formularza podglądu (model z 30 sekcjami na kilku podstronach to ~60–150 KB). */
 export const LIMIT_CIALA = 512 * 1024;
-
-export interface PlikPodgladu {
-  sciezka: string;
-  tresc: string;
-}
-
-/** Pliki HTML podstrony w kolejności prób: '' → index.html; 'o-nas' → o-nas/index.html albo o-nas.html. */
-function sciezkiHtml(podstrona: string): string[] {
-  return podstrona === '' ? ['index.html'] : [`${podstrona}/index.html`, `${podstrona}.html`];
-}
-
-/** Ścieżka zasobu względem katalogu pliku HTML (bez wychodzenia ponad katalog strony); null = adres zewnętrzny. */
-function rozwiazSciezke(katalogHtml: string, ref: string): string | null {
-  if (/^[a-z][a-z0-9+.-]*:|^\/\//i.test(ref)) return null;
-  const bez = ref.split(/[?#]/)[0] ?? '';
-  const czesci = bez.startsWith('/') ? [] : katalogHtml.split('/').filter(Boolean);
-  for (const c of bez.split('/')) {
-    if (!c || c === '.') continue;
-    if (c === '..') {
-      if (!czesci.length) return null;
-      czesci.pop();
-    } else czesci.push(c);
-  }
-  return czesci.join('/');
-}
-
-const atrybut = (tag: string, nazwa: string) => new RegExp(`\\b${nazwa}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`, 'i').exec(tag);
-const wartosc = (m: RegExpExecArray | null) => (m ? (m[1] ?? m[2] ?? '') : null);
-
-/** Treść do osadzenia w <style>/<script>: sekwencja zamykająca znacznik nie może wyjść z elementu. */
-const bezpiecznyCss = (css: string) => css.replace(/<\/(style)/gi, '<\\/$1');
-const bezpiecznyJs = (js: string) => js.replace(/<\/(script)/gi, '<\\/$1').replace(/<!--/g, '<\\!--');
-
-/** <link rel=stylesheet> i <script src> wskazujące pliki renderu → treść inline. null = brak HTML tej podstrony. */
-export function zlozPodglad(pliki: PlikPodgladu[], podstrona: string): string | null {
-  const mapa = new Map(pliki.map((p) => [p.sciezka.replace(/^\.?\/+/, ''), p.tresc]));
-  const sciezka = sciezkiHtml(podstrona).find((s) => mapa.has(s));
-  if (!sciezka) return null;
-  const katalog = sciezka.includes('/') ? sciezka.slice(0, sciezka.lastIndexOf('/')) : '';
-  const plik = (ref: string) => {
-    const s = rozwiazSciezke(katalog, ref);
-    return s !== null ? mapa.get(s) : undefined;
-  };
-  return (mapa.get(sciezka) as string)
-    .replace(/<link\b[^>]*>/gi, (tag) => {
-      const rel = wartosc(atrybut(tag, 'rel'));
-      const href = wartosc(atrybut(tag, 'href'));
-      if (!rel || !/\bstylesheet\b/i.test(rel) || href === null) return tag;
-      const css = plik(href);
-      return css === undefined ? tag : `<style>${bezpiecznyCss(css)}</style>`;
-    })
-    .replace(/<script\b([^>]*)>\s*<\/script>/gi, (tag, atrybuty: string) => {
-      const src = wartosc(atrybut(atrybuty, 'src'));
-      if (src === null) return tag;
-      const js = plik(src);
-      if (js === undefined) return tag;
-      // `defer` nie działa na skryptach inline – kod z <head> nie znalazłby elementów strony.
-      const tresc = /\bdefer\b/i.test(atrybuty) ? `document.addEventListener('DOMContentLoaded',function(){\n${js}\n});` : js;
-      return `<script>${bezpiecznyJs(tresc)}</script>`;
-    });
-}
 
 export interface OpcjeDodatkow {
   podstrona: string;
@@ -118,36 +59,9 @@ export function zDodatkamiEdytora(html: string, opcje: OpcjeDodatkow): string {
   return i === -1 ? html + dodatki : html.slice(0, i) + dodatki + html.slice(i);
 }
 
-/**
- * Nagłówki odpowiedzi podglądu: CSP `sandbox allow-scripts` BEZ allow-same-origin (skrypty strony w nieprzezroczystym
- * originie – bez dostępu do panelu, ciasteczek i API), żadnych połączeń poza fontami z API i obrazami https.
- * `frame-ancestors 'self'`: ramkę osadza tylko panel. Ta dyrektywa jest tu konieczna – Caddy dodaje do odpowiedzi
- * panelu `X-Frame-Options: DENY` (ops/caddy/Caddyfile, panel_headers), a przeglądarka ignoruje X-Frame-Options,
- * gdy CSP ma frame-ancestors (https://www.w3.org/TR/CSP3/#frame-ancestors-and-frame-options).
- */
+/** Nagłówki podglądu w panelu: wspólne z API + `frame-ancestors 'self'` (ramkę osadza tylko panel). */
 export function naglowkiPodgladu(bazaFontow: string): Record<string, string> {
-  const fonty = URL.canParse(bazaFontow) ? new URL(bazaFontow).origin : '';
-  const csp = [
-    'sandbox allow-scripts',
-    "default-src 'none'",
-    "script-src 'unsafe-inline'",
-    `style-src 'unsafe-inline'${fonty ? ` ${fonty}` : ''}`,
-    `font-src data:${fonty ? ` ${fonty}` : ''}`,
-    // Zdjęcia z biblioteki konta – pliki wariantów z API (podpisany adres); w produkcji API jest i tak na https.
-    `img-src data: https:${fonty ? ` ${fonty}` : ''}`,
-    "connect-src 'none'",
-    "form-action 'none'",
-    "base-uri 'none'",
-    "frame-ancestors 'self'",
-  ].join('; ');
-  return {
-    'Content-Type': 'text/html; charset=utf-8',
-    'Content-Security-Policy': csp,
-    'X-Robots-Tag': 'noindex, nofollow',
-    'Cache-Control': 'no-store',
-    'X-Content-Type-Options': 'nosniff',
-    'Referrer-Policy': 'no-referrer',
-  };
+  return naglowkiWspolne(bazaFontow, { ramkaTegoOriginu: true });
 }
 
 /** Prosta strona komunikatu w ramce (błąd modelu, brak dostępu) – w stylu panelu, bez skryptów. */

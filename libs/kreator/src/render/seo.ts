@@ -63,9 +63,12 @@ export function glowaHtml(k: KontekstPodstrony, o: OpcjeGlowy): string {
   ];
   if (o.noindex) w.push('<meta name="robots" content="noindex, nofollow">');
   if (url) w.push(`<link rel="canonical" href="${esc(url)}">`);
-  if (url && s.seoPelne && s.strona.jezykiDodatkowe.length) {
+  // hreflang tylko do wersji, które naprawdę istnieją w modelu (podstrona `<język>` albo `<język>/<slug>`). Paczka 123:
+  // renderer nie tłumaczy podstron, a sam wpis w `jezykiDodatkowe` dawał linki alternate do adresów 404.
+  const alternatywne = url && s.seoPelne ? s.strona.jezykiDodatkowe.filter((j) => s.strona.strony.some((x) => x.slug === (p.slug ? `${j}/${p.slug}` : j))) : [];
+  if (url && alternatywne.length) {
     w.push(`<link rel="alternate" hreflang="${s.strona.jezyk}" href="${esc(url)}">`);
-    for (const j of s.strona.jezykiDodatkowe) w.push(`<link rel="alternate" hreflang="${j}" href="${esc(`${s.adres}/${j}/${p.slug ? p.slug + '/' : ''}`)}">`);
+    for (const j of alternatywne) w.push(`<link rel="alternate" hreflang="${j}" href="${esc(`${s.adres}/${j}/${p.slug ? p.slug + '/' : ''}`)}">`);
     w.push(`<link rel="alternate" hreflang="x-default" href="${esc(url)}">`);
   }
   w.push(

@@ -726,6 +726,57 @@ export function subscriptionCancelledTemplate(ctx: SubscriptionCancelledContext)
 }
 
 // ---------------------------------------------------------------------------
+// Paczka 123 — Kreator Pro bez płatnego hostingu: odnowienie wyłączone automatycznie
+// ---------------------------------------------------------------------------
+
+export interface KreatorProBezHostinguContext {
+  to: string;
+  firstName: string | null;
+  /** Koniec opłaconego okresu (abonament nie odnowi się); null = abonament zakończony od razu (zaległa płatność). */
+  aktywnyDo: Date | null;
+  panelUrl: string;
+}
+
+/**
+ * Wysyła SubscriptionsService.wylaczOdnowienieKreatoraProBezHostingu (przebieg RenewalScheduler), gdy konto nie ma już
+ * płatnego hostingu. Decyzja koordynatora 8.11.2026: odnowienie wyłączone, bez zwrotu za bieżący okres.
+ */
+export function kreatorProBezHostinguTemplate(ctx: KreatorProBezHostinguContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
+  const okres = ctx.aktywnyDo
+    ? `Opłacony okres kończy się **${escapeMarkdown(formatDate(ctx.aktywnyDo))}** – po tej dacie abonament się nie przedłuży i nie pobierzemy kolejnej opłaty.`
+    : 'Abonament zakończyliśmy – zaległej opłaty za kolejny okres nie pobierzemy.';
+  const { html, text } = renderEmailShell({
+    title: 'Kreator Pro nie odnowi się – brak hostingu',
+    preheader: 'Kreator Pro działa razem z płatnym hostingiem Verris – wyłączyliśmy odnowienie abonamentu.',
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Kreator Pro działa razem z płatnym hostingiem Verris, a na Twoim koncie nie ma już takiego hostingu. Dlatego **wyłączyliśmy automatyczne odnowienie** abonamentu Kreator Pro.`,
+      ``,
+      okres,
+      ``,
+      `## Twoje strony`,
+      ``,
+      `- Strony w Verris Kreatorze **zostają** na koncie,`,
+      `- Gdy znów zamówisz hosting, wrócisz do nich w panelu: Kreator stron, a Kreator Pro kupisz ponownie.`,
+    ].join('\n'),
+    cta: { label: 'Otwórz Kreator stron', url: `${ctx.panelUrl}/dashboard/kreator` },
+    footnote: 'Jeśli hosting zakończył się przez pomyłkę – napisz do nas w Centrum pomocy w panelu.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return {
+    to: ctx.to,
+    tag: 'kreator-pro.bez-hostingu',
+    subject: '[Verris] Kreator Pro nie odnowi się – brak hostingu',
+    text,
+    html,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // O-1 — free trial lifecycle
 // ---------------------------------------------------------------------------
 

@@ -163,7 +163,7 @@ Notacja: \`pole?\` – opcjonalne; \`= wartość\` – domyślna (pole można po
 ${opisModeluStrony()}
 
 Uwagi do pól:
-- \`wersjaModelu\`: zawsze 1. \`jezyk\`: 'pl'. \`jezykiDodatkowe\`: [] (wersje językowe dodaje panel).
+- \`wersjaModelu\`: zawsze 1. \`jezyk\`: 'pl'. \`jezykiDodatkowe\`: [] (wersje językowe nie są obsługiwane).
 - \`strony[0]\` to strona główna (slug ""). Sekcje w kolejności wyświetlania.
 - \`wariant\` sekcji: wyłącznie identyfikator z katalogu wariantów dla typu tej sekcji.
 - \`hero.dane.wyroznienie\`: dokładny fragment \`naglowek\` (te same znaki), 1–4 słowa; pomiń, jeśli nic nie zasługuje na wyróżnienie.

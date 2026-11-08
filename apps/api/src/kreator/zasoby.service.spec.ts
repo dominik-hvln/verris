@@ -2,7 +2,7 @@ import { Readable } from 'node:stream';
 import { ConflictException, ForbiddenException, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import sharp from 'sharp';
 import { PRZYKLAD_SALON, walidujStrone, type Strona } from '@verris/kreator';
-import { KreatorZasobyService, LIMIT_MIEJSCA_ZDJEC, creditsTxt } from './zasoby.service.js';
+import { KreatorZasobyService, limitMiejscaZdjec, creditsTxt } from './zasoby.service.js';
 import { sprawdzTokenMiniatury, sprawdzTokenZasobu, utworzTokenMiniatury, utworzTokenZasobu } from './zasoby-token.js';
 import { BLAD_CUDZEGO_ZASOBU, idZasobow, uzupelnijWymiary } from './zasoby-model.js';
 import { BibliotekaZdjec } from './biblioteka/biblioteka.js';
@@ -42,8 +42,7 @@ function srodowisko(opcje: { wersja?: 'proba' | 'hosting' | 'pro'; strony?: { id
     },
     kreatorStrona: {
       findFirst: async ({ where }: { where: { id: string; userId: string } }) => strony.find((s) => s.id === where.id && s.userId === where.userId) ?? null,
-      findMany: async ({ where }: { where: { userId: string } }) =>
-        strony.filter((s) => s.userId === where.userId && (s.opublikowanaAt || (s.podgladDo && s.podgladDo.getTime() > Date.now()))),
+      findMany: async ({ where }: { where: { userId: string } }) => strony.filter((s) => s.userId === where.userId),
     },
   };
   const storage = {
@@ -100,7 +99,7 @@ describe('KreatorZasobyService', () => {
   });
 
   it('limit miejsca per wersja kreatora: próba 50 MB – przekroczenie → 403', async () => {
-    expect(LIMIT_MIEJSCA_ZDJEC).toEqual({ proba: 50 * 1048576, hosting: 500 * 1048576, pro: 2 * 1024 ** 3 });
+    expect([limitMiejscaZdjec('proba'), limitMiejscaZdjec('hosting'), limitMiejscaZdjec('pro')]).toEqual([50 * 1048576, 500 * 1048576, 2 * 1024 ** 3]);
     const { s, zasoby } = srodowisko({ wersja: 'proba' });
     zasoby.push({ id: 'x', userId: JA, stronaId: null, zrodlo: 'WLASNE', autor: null, licencja: null, licencjaUrl: null, zrodloUrl: null, szerokosc: 1, wysokosc: 1, bajty: 50 * 1048576 - 100, sha256: 'a', alt: null, createdAt: new Date() });
     await expect(s.wgraj(JA, await jpeg(), {})).rejects.toThrow(ForbiddenException);
@@ -108,13 +107,21 @@ describe('KreatorZasobyService', () => {
   });
 
   it('usunięcie: cudzy → 404; użyty na opublikowanej stronie → 409; nieużyty – usuwa wiersz i pliki', async () => {
-    const strony = [{ id: 's1', userId: JA, nazwa: 'Salon', model: {}, opublikowanaAt: new Date() }];
+    const strony = [{ id: 's1', userId: JA, nazwa: 'Salon', model: {} as unknown, opublikowanaAt: new Date() as Date | null, podgladDo: null as Date | null }];
     const { s, obiekty } = srodowisko({ strony });
     const { zasob } = await s.wgraj(JA, await jpeg(), {});
     await expect(s.usun(OBCY, zasob.id)).rejects.toBeInstanceOf(NotFoundException);
     strony[0]!.model = salonZeZdjeciem(zasob.id);
     await expect(s.usun(JA, zasob.id)).rejects.toBeInstanceOf(ConflictException);
+    await expect(s.usun(JA, zasob.id)).rejects.toThrow('To zdjęcie jest na opublikowanej stronie „Salon”.');
+    // Lista „Twoje zdjęcia” mówi, gdzie zdjęcie jest użyte (paczka 123).
+    expect((await s.lista(JA)).zasoby[0]!.uzyte).toEqual([{ stronaId: 's1', nazwa: 'Salon', opublikowana: true }]);
     strony[0]!.opublikowanaAt = null as never;
+    expect((await s.lista(JA)).zasoby[0]!.uzyte).toEqual([{ stronaId: 's1', nazwa: 'Salon', opublikowana: false }]);
+    // Ważny link próbny = opublikowana.
+    strony[0]!.podgladDo = new Date(Date.now() + 60_000);
+    await expect(s.usun(JA, zasob.id)).rejects.toBeInstanceOf(ConflictException);
+    strony[0]!.podgladDo = null;
     await expect(s.usun(JA, zasob.id)).resolves.toEqual({ ok: true });
     expect(obiekty.size).toBe(0);
   });

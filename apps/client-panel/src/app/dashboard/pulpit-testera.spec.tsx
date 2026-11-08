@@ -51,7 +51,8 @@ describe('pulpit testera – kafelek „Testy (beta)” (decyzja 06.11)', () => 
     const html = renderToString(<DashboardHome snapshot={pusty} postepBety={tester()} />);
     expect(html).toContain('data-kafelek-testow="w-toku"');
     expect(tekst(html)).toContain(`0 z ${LICZBA_KROKOW_BETA} kroków`);
-    expect(LICZBA_KROKOW_BETA).toBe(56);
+    // Paczka 123: +5 kroków scenariusza s17 „Kreator stron” (56 → 61).
+    expect(LICZBA_KROKOW_BETA).toBe(61);
     expect(html).toContain('href="/dashboard/beta"');
     expect(html).toContain('href="/dashboard/beta#s01"');
     expect(tekst(html)).toContain(`Następny scenariusz: ${SCENARIUSZE_BETA[0]!.tytul}`);

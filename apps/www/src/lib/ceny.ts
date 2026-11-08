@@ -5,6 +5,7 @@
  *
  * Źródła w API: GET /plans (Plan.priceMonthly / priceYearly — kwoty BRUTTO, trialDays) i GET /autoscaling/pricing
  * (AutoscalingPriceRule.pricePerUnit — stawki BRUTTO za godzinę: CPU za 1%, RAM i dysk za 1 GB).
+ * Paczka 123: z GET /plans także abonament Verris Kreator Pro (plan `kreator-pro`, productKind KREATOR_PRO).
  */
 
 /** Stawka VAT dla cen na stronie. Netto liczymy tylko tutaj. */
@@ -30,6 +31,8 @@ export type Ceny = {
   hosting: CenaPakietu & { trialDays: number };
   /** Sama poczta (plan poczta-standard). */
   poczta: CenaPakietu;
+  /** Abonament Verris Kreator Pro (plan kreator-pro) – dodatek do hostingu, /kreator-stron. */
+  kreatorPro: CenaPakietu;
   stawki: StawkiAutoskalowania;
   /** 'api' — wszystko z API; 'zapas' — przynajmniej część z CENY_ZAPASOWE (API nie odpowiedziało). */
   zrodlo: 'api' | 'zapas';
@@ -43,6 +46,8 @@ export type Ceny = {
 export const CENY_ZAPASOWE: Ceny = {
   hosting: { miesiecznie: 45, rocznie: 449, trialDays: 0 },
   poczta: { miesiecznie: 9.99, rocznie: 99.99 },
+  // Migracja 20261108140100_plan_kreator_pro (apps/api/src/plans/plan-kreator-pro.ts) – stan na 8.11.2026.
+  kreatorPro: { miesiecznie: 9.9, rocznie: 99 },
   stawki: { cpu: 0.001323, ram: 0.0882, dysk: 0.0008 },
   zrodlo: 'zapas',
 };
@@ -179,16 +184,25 @@ function pakiet(p: PlanApi | undefined): CenaPakietu | null {
   return m !== null && r !== null && m > 0 && r > 0 ? { miesiecznie: m, rocznie: r } : null;
 }
 
-/** GET /plans → hosting (slug verris-hosting, albo pierwszy HOSTING) i poczta (poczta-standard, albo pierwszy EMAIL). */
-export function parsujPlany(dane: unknown): { hosting: (CenaPakietu & { trialDays: number }) | null; poczta: CenaPakietu | null } {
+/**
+ * GET /plans → hosting (slug verris-hosting, albo pierwszy HOSTING), poczta (poczta-standard, albo pierwszy EMAIL)
+ * i Kreator Pro (kreator-pro, albo pierwszy KREATOR_PRO).
+ */
+export function parsujPlany(dane: unknown): {
+  hosting: (CenaPakietu & { trialDays: number }) | null;
+  poczta: CenaPakietu | null;
+  kreatorPro: CenaPakietu | null;
+} {
   const lista = Array.isArray(dane) ? (dane as PlanApi[]) : [];
   const hostingPlan = lista.find((p) => p.slug === 'verris-hosting') ?? lista.find((p) => p.productKind === 'HOSTING');
   const pocztaPlan = lista.find((p) => p.slug === 'poczta-standard') ?? lista.find((p) => p.productKind === 'EMAIL');
+  const kreatorPlan = lista.find((p) => p.slug === 'kreator-pro') ?? lista.find((p) => p.productKind === 'KREATOR_PRO');
   const h = pakiet(hostingPlan);
   const trial = liczba(hostingPlan?.trialDays);
   return {
     hosting: h ? { ...h, trialDays: trial !== null ? Math.floor(trial) : 0 } : null,
     poczta: pakiet(pocztaPlan),
+    kreatorPro: pakiet(kreatorPlan),
   };
 }
 
@@ -212,7 +226,8 @@ export function zlozCeny(plany: unknown, stawki: unknown): Ceny {
   return {
     hosting: p.hosting ?? CENY_ZAPASOWE.hosting,
     poczta: p.poczta ?? CENY_ZAPASOWE.poczta,
+    kreatorPro: p.kreatorPro ?? CENY_ZAPASOWE.kreatorPro,
     stawki: s ?? CENY_ZAPASOWE.stawki,
-    zrodlo: p.hosting && p.poczta && s ? 'api' : 'zapas',
+    zrodlo: p.hosting && p.poczta && p.kreatorPro && s ? 'api' : 'zapas',
   };
 }
