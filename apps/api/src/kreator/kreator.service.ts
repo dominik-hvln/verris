@@ -46,6 +46,8 @@ import { wersjaKreatora } from './wersja-kreatora.js';
 import { stanKreatoraPro } from './kreator-pro.js';
 import { FUNKCJE_AI_KREATORA, RENDERER_KREATORA, type RendererKreatora } from './zaleznosci.js';
 import { naglowkiPodgladu, zlozPodglad } from './podglad.js';
+import { idZasobow, uzupelnijWymiary } from './zasoby-model.js';
+import { adresBazowyZasobu } from './zasoby-token.js';
 import type { BriefStronyDto } from './dto/kreator.dto.js';
 
 /** Najwyżej tyle wersji na stronę; nadmiar = najstarsze wersje RECZNE (zapisy z edytora). */
@@ -373,7 +375,7 @@ export class KreatorService {
     if (s.status === KreatorStatus.GENEROWANIE) throw new ConflictException('Strona jest jeszcze generowana – poczekaj na koniec.');
     const w = walidujStrone(migrujModel(model));
     if (!w.ok) throw new BadRequestException({ message: 'Strona zawiera błędy – popraw zaznaczone pola.', bledy: w.bledy });
-    await this.zapiszModel(id, w.strona, KreatorZrodloWersji.RECZNA, null);
+    await this.zapiszModel(id, await this.zZasobamiKonta(userId, w.strona), KreatorZrodloWersji.RECZNA, null);
     return this.widok(await this.wlasna(userId, id), wersja);
   }
 
@@ -406,7 +408,7 @@ export class KreatorService {
         w = this.ai.odczytajWynikZmiany(strona, r2.wynik, sekcjaId, wersja);
       }
       if (!w.ok) throw new UnprocessableEntityException('AI nie zdołało wprowadzić tej zmiany – opisz ją inaczej albo popraw sekcję ręcznie.');
-      await this.zapiszModel(id, w.strona, KreatorZrodloWersji.AI_ZMIANA, dto.polecenie.trim().slice(0, 200));
+      await this.zapiszModel(id, await this.zZasobamiKonta(userId, w.strona), KreatorZrodloWersji.AI_ZMIANA, dto.polecenie.trim().slice(0, 200));
       zuzyta = true;
       return this.widok(await this.wlasna(userId, id), wersja);
     } catch (e) {
@@ -452,7 +454,7 @@ export class KreatorService {
     const podstrona = q.podstrona ?? '';
     if (!strona.strony.some((p) => p.slug === podstrona)) throw new NotFoundException('Nie ma takiej podstrony.');
     const bazaFontow = `${this.publicznyAdresApi()}/fonts/kreator`;
-    const pliki = await this.renderer.renderuj(strona, { tryb: 'podglad', wersja, podgladPro: q.pro === '1', bazaFontow });
+    const pliki = await this.renderer.renderuj(strona, { tryb: 'podglad', wersja, podgladPro: q.pro === '1', bazaFontow, ...this.adresZasobu(strona) });
     const html = zlozPodglad(pliki, podstrona);
     if (html === null) throw new NotFoundException('Nie ma takiej podstrony.');
     return { html, naglowki: naglowkiPodgladu(bazaFontow) };
@@ -641,6 +643,25 @@ export class KreatorService {
       ...(dto.styl ? { styl: dto.styl } : {}),
       ...(dto.inspiracje?.trim() ? { inspiracje: dto.inspiracje.trim() } : {}),
     };
+  }
+
+  /**
+   * Paczka 122 – zdjęcia z biblioteki w modelu (Obraz.zasobId) muszą należeć do konta strony: cudzy albo usunięty
+   * zasób = 400 (także po zmianie AI). Wymiary oryginałów wpisujemy z bazy – renderer liczy z nich srcset.
+   */
+  async zZasobamiKonta(userId: string, strona: Strona): Promise<Strona> {
+    const ids = idZasobow(strona);
+    if (!ids.length) return strona;
+    const zasoby = await this.prisma.kreatorZasob.findMany({ where: { userId, id: { in: ids } }, select: { id: true, szerokosc: true, wysokosc: true } });
+    return uzupelnijWymiary(strona, zasoby);
+  }
+
+  /** Podgląd: podpisane adresy plików zdjęć w API (ramka bez ciasteczek); bez klucza aplikacji – ramki zastępcze. */
+  private adresZasobu(strona: Strona): { adresZasobu?: (id: string, s: number, f: 'webp' | 'jpg') => string } {
+    const klucz = this.config.get<string>('appKmsKey');
+    if (!klucz || !idZasobow(strona).length) return {};
+    const api = this.publicznyAdresApi();
+    return { adresZasobu: (id, s, f) => `${adresBazowyZasobu(api, klucz, id)}${s}.${f}` };
   }
 
   private publicznyAdresApi(): string {

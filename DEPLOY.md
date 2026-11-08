@@ -544,7 +544,13 @@ S3_BUCKET_TICKET_ATTACHMENTS=verris-ticket-attachments
 S3_BUCKET_DATA_EXPORTS=verris-data-exports
 S3_BUCKET_DPA_PDFS=verris-dpa-pdfs
 S3_BUCKET_INVOICES=verris-invoices
+S3_BUCKET_KREATOR_ZASOBY=verris-kreator-zasoby
 S3_BUCKET_BACKUPS=verris-backups
+
+# Verris Kreator – biblioteki zdjęć (paczka 122). Bez klucza dostawca jest wyłączony; Openverse działa bez klucza.
+# Pixabay: klucz z https://pixabay.com/api/docs/ (po zalogowaniu). Pexels: wydawanie kluczy wstrzymane (11.2026).
+PIXABAY_API_KEY=
+PEXELS_API_KEY=
 
 # MinIO root (tylko do bootstrap-containera; api używa S3_ACCESS_KEY/SECRET)
 MINIO_ROOT_USER=verris-root

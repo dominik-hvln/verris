@@ -4,6 +4,7 @@ import { esc } from '../esc.ts';
 import type { KontekstPodstrony } from '../kontekst.ts';
 import { atrLinku, celDostepny, hrefPodstrony, przycisk } from '../linki.ts';
 import { obraz } from '../obraz.ts';
+import { atrFormularza, edytowalne, zeSciezkaObrazu } from '../edycja.ts';
 import { formularz, glowa, klasaPojawiania, sekcja, zl } from './wspolne.ts';
 
 type Kontakt = SekcjaTypu<'kontakt'>;
@@ -28,7 +29,7 @@ export function renderKontakt(k: KontekstPodstrony, sek: Kontakt): string {
   const f = k.s.strona.firma;
   const poj = klasaPojawiania(k);
   const form = (styl: 'karta' | 'linia' = 'karta') => (d.formularz ? formularz(k, sek, { pola: d.pola, przycisk: przyciskFormularza(sek), styl }) : '');
-  const g = glowa(sek, { naglowek: d.naglowek, wstep: d.wstep });
+  const g = glowa(sek, { naglowek: d.naglowek, wstep: d.wstep }, k);
 
   if (sek.wariant === 'kontakt-minimalny') {
     const duze = [f.email ? emailLink(f, 'duzy-link') : '', f.telefon ? telefonLink(f, 'duzy-link') : ''].filter(Boolean).join('');
@@ -76,17 +77,22 @@ function celZamowienia(k: KontekstPodstrony, nazwa: string): string {
 export function renderProdukty(k: KontekstPodstrony, sek: SekcjaTypu<'produkty'>): string {
   const d = sek.dane;
   const poj = klasaPojawiania(k);
-  const g = glowa(sek, { naglowek: d.naglowek, wstep: d.wstep, klasa: 'glowa-rzad' });
+  const g = glowa(sek, { naglowek: d.naglowek, wstep: d.wstep, klasa: 'glowa-rzad' }, k);
   const lista = sek.wariant === 'produkty-lista';
+  const ak = edytowalne(k, sek);
   const el = d.produkty
-    .map((p) => {
-      const ob = obraz(k, p.obraz ?? { alt: p.nazwa, zrodlo: 'placeholder', proporcje: lista ? '4:3' : '4:3', podpis: `Zdjęcie produktu: ${p.nazwa}` }, { klasa: 'produkt-ob' });
+    .map((p, i) => {
+      const ob = obraz(
+        k,
+        p.obraz ?? { alt: p.nazwa, zrodlo: 'placeholder', proporcje: lista ? '4:3' : '4:3', podpis: `Zdjęcie produktu: ${p.nazwa}` },
+        zeSciezkaObrazu(k, sek, `dane.produkty.${i}.obraz`, { klasa: 'produkt-ob' }),
+      );
       const odznaka = p.dostepnosc !== 'dostepny' ? `<span class="odznaka odznaka-${p.dostepnosc}">${DOSTEPNOSC[p.dostepnosc]}</span>` : '';
       const cel = celZamowienia(k, p.nazwa);
       const btn = cel && p.dostepnosc !== 'niedostepny' ? przycisk(k, { etykieta: 'Zamów', cel, styl: 'drugi' }) : '';
       return (
         `<li class="produkt"${p.sku ? ` data-sku="${esc(p.sku)}"` : ''}><div class="produkt-media">${ob}${odznaka}</div>` +
-        `<div class="produkt-tekst"><div class="produkt-glowa"><h3>${esc(p.nazwa)}</h3><p class="produkt-cena">${zl(p.cenaBrutto)}</p></div>${p.opis ? `<p class="produkt-opis">${esc(p.opis)}</p>` : ''}${btn}</div></li>`
+        `<div class="produkt-tekst"><div class="produkt-glowa"><h3${ak(`dane.produkty.${i}.nazwa`)}>${esc(p.nazwa)}</h3><p class="produkt-cena"${atrFormularza(k, sek, `dane.produkty.${i}.cenaBrutto`)}>${zl(p.cenaBrutto)}</p></div>${p.opis ? `<p class="produkt-opis"${ak(`dane.produkty.${i}.opis`)}>${esc(p.opis)}</p>` : ''}${btn}</div></li>`
       );
     })
     .join('');
@@ -107,19 +113,23 @@ export function metaWpisu(w: { data: string; czasCzytania?: number }): string {
 export function renderBlog(k: KontekstPodstrony, sek: SekcjaTypu<'blog'>): string {
   const d = sek.dane;
   const poj = klasaPojawiania(k);
-  const g = glowa(sek, { naglowek: d.naglowek, klasa: 'glowa-rzad' });
+  const g = glowa(sek, { naglowek: d.naglowek, klasa: 'glowa-rzad' }, k);
   if (!d.wpisy.length) {
     return sekcja(k, sek, `<div class="kontener${poj}">${g}<div class="opinie-puste"><p class="opinie-puste-tytul">Tu pojawią się wpisy Twojego bloga</p><p>Dodaj pierwszy wpis w edytorze – zajawka pojawi się tu automatycznie.</p></div></div>`, { klasa: 'sek-podglad' });
   }
   const strony = new Set(k.s.strona.strony.map((p) => p.slug));
+  const ak = edytowalne(k, sek);
   const wpisy = d.wpisy
-    .map((w) => {
+    .map((w, i) => {
       const slug = `blog/${w.slug}`;
       const href = strony.has(slug) ? hrefPodstrony(k, slug) : null;
       const tytul = href ? `<a href="${esc(href)}">${esc(w.tytul)}</a>` : esc(w.tytul);
       const wiecej = href ? `<a class="wiecej" href="${esc(href)}" aria-hidden="true" tabindex="-1">Czytaj wpis</a>` : '';
-      const ob = sek.wariant === 'blog-karty' ? obraz(k, w.obraz ?? { alt: w.tytul, zrodlo: 'placeholder', proporcje: '3:2', podpis: 'Zdjęcie do wpisu' }) : '';
-      return `<li class="wpis">${ob}${metaWpisu(w)}<h3>${tytul}</h3><p class="wpis-lead">${esc(w.lead)}</p>${wiecej}</li>`;
+      const ob =
+        sek.wariant === 'blog-karty'
+          ? obraz(k, w.obraz ?? { alt: w.tytul, zrodlo: 'placeholder', proporcje: '3:2', podpis: 'Zdjęcie do wpisu' }, zeSciezkaObrazu(k, sek, `dane.wpisy.${i}.obraz`, {}))
+          : '';
+      return `<li class="wpis">${ob}${metaWpisu(w)}<h3${ak(`dane.wpisy.${i}.tytul`)}>${tytul}</h3><p class="wpis-lead"${ak(`dane.wpisy.${i}.lead`)}>${esc(w.lead)}</p>${wiecej}</li>`;
     })
     .join('');
   const klasa = sek.wariant === 'blog-karty' ? 'wpisy-karty' : 'wpisy-edytorskie';

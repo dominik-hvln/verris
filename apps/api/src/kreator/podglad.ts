@@ -78,7 +78,8 @@ export function naglowkiPodgladu(bazaFontow: string): Record<string, string> {
     "script-src 'unsafe-inline'",
     `style-src 'unsafe-inline'${fonty ? ` ${fonty}` : ''}`,
     `font-src data:${fonty ? ` ${fonty}` : ''}`,
-    'img-src data: https:',
+    // Zdjęcia z biblioteki: podpisane adresy API (…/kreator/z/…); API po http tylko w środowisku deweloperskim.
+    `img-src data: https:${fonty.startsWith('http:') ? ` ${fonty}` : ''}`,
     "connect-src 'none'",
     "form-action 'none'",
     "base-uri 'none'",

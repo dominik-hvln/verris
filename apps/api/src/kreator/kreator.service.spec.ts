@@ -62,6 +62,8 @@ function bazaAtrapa() {
     strony,
     wersje,
     zuzycie,
+    /** Paczka 122 – zdjęcia z biblioteki kont (KreatorZasob). */
+    zasoby: [] as Rek[],
     subs: [{ userId: 'u1', isTrial: false, trialConvertedAt: null }] as Rek[],
     /** Plan KREATOR_PRO w sprzedaży (paczka 121) – null = przed migracją danych. */
     planPro: null as Rek | null,
@@ -77,6 +79,11 @@ function bazaAtrapa() {
       findFirst: vi.fn(async ({ where }: { where: Rek }) => db.subs.filter((x) => pasujeUsluga(x, where)).map(usluga).at(-1) ?? null),
     },
     plan: { findFirst: vi.fn(async () => db.planPro) },
+    kreatorZasob: {
+      findMany: vi.fn(async ({ where }: { where: { userId: string; id: { in: string[] } } }) =>
+        db.zasoby.filter((z) => z.userId === where.userId && where.id.in.includes(z.id as string)),
+      ),
+    },
     kreatorStrona: {
       count: vi.fn(async ({ where }: { where: Rek }) => strony.filter((s) => pasuje(s, where)).length),
       create: vi.fn(async ({ data }: { data: Rek }) => {
@@ -469,5 +476,47 @@ describe('KreatorService – edycja, wersje, podgląd', () => {
     expect(naglowki['Content-Security-Policy']).not.toMatch(/allow-same-origin/);
     expect(naglowki).toMatchObject({ 'X-Robots-Tag': 'noindex, nofollow', 'Cache-Control': 'no-store' });
     await expect(svc.podglad('u1', 's1', { podstrona: 'nie-ma' })).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  describe('paczka 122 – zdjęcia z biblioteki w modelu (Obraz.zasobId)', () => {
+    const ZASOB = '3f2a9c4e-8b1d-4f6a-9c2e-1a2b3c4d5e6f';
+    const zeZdjeciem = (): Strona => {
+      const m = structuredClone(SALON);
+      const hero = m.strony[0]!.sekcje.find((x) => x.typ === 'hero')!;
+      if (hero.typ !== 'hero') throw new Error('hero');
+      hero.dane.obraz = { alt: 'Wnętrze', zrodlo: 'wlasne', zasobId: ZASOB, proporcje: '4:3', szerokosc: 5000 };
+      return m;
+    };
+
+    it('zapis ręczny z cudzym zdjęciem → 400 bez nowej wersji; z własnym – wymiary z bazy', async () => {
+      const { svc, db } = zbuduj([]);
+      db.strony.push({ id: 's1', userId: 'u1', status: 'GOTOWA', model: SALON, propozycje: null });
+      db.zasoby.push({ id: ZASOB, userId: 'obcy', szerokosc: 800, wysokosc: 600 });
+      await expect(svc.zapiszRecznie('u1', 's1', zeZdjeciem())).rejects.toBeInstanceOf(BadRequestException);
+      expect(db.wersje).toHaveLength(0);
+      db.zasoby[0]!.userId = 'u1';
+      const r = await svc.zapiszRecznie('u1', 's1', zeZdjeciem());
+      const hero = r.model!.strony[0]!.sekcje.find((x) => x.typ === 'hero')!;
+      expect(hero.typ === 'hero' && hero.dane.obraz).toMatchObject({ zasobId: ZASOB, szerokosc: 800, wysokosc: 600 });
+    });
+
+    it('zmiana AI wstawiająca cudze zdjęcie → odrzucona, limit zmian zwrócony', async () => {
+      const { svc, db } = zbuduj([JSON.stringify(zeZdjeciem())]);
+      db.strony.push({ id: 's1', userId: 'u1', status: 'GOTOWA', model: SALON, propozycje: null });
+      await expect(svc.zmienAi('u1', 'u1', 's1', { polecenie: 'Dodaj zdjęcie' })).rejects.toBeInstanceOf(BadRequestException);
+      expect(db.wersje).toHaveLength(0);
+      expect(zuzycie(db)?.zmiany).toBe(0);
+    });
+
+    it('podgląd: zdjęcia z biblioteki dostają podpisany adres API (adresZasobu)', async () => {
+      const { svc, db, renderer } = zbuduj([]);
+      (svc as unknown as { config: { get: (k: string) => string | undefined } }).config = {
+        get: (k: string) => (k === 'PUBLIC_API_URL' ? 'https://api.verris.test/' : k === 'appKmsKey' ? 'k'.repeat(48) : undefined),
+      };
+      db.strony.push({ id: 's1', userId: 'u1', status: 'GOTOWA', model: zeZdjeciem(), propozycje: null });
+      await svc.podglad('u1', 's1', {});
+      const opcje = vi.mocked(renderer.renderuj).mock.calls[0]![1] as { adresZasobu?: (id: string, s: number, f: 'webp' | 'jpg') => string };
+      expect(opcje.adresZasobu!(ZASOB, 960, 'webp')).toMatch(/^https:\/\/api\.verris\.test\/kreator\/z\/[0-9a-f]{64}\/960\.webp$/);
+    });
   });
 });

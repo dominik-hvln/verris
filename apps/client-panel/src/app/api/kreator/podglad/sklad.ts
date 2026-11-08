@@ -9,6 +9,8 @@
  * z panelem wyłącznie przez postMessage, a panel sprawdza, że wiadomość przyszła z jego ramki.
  */
 
+import { dodatkiMostu, type OpcjeMostu } from '@verris/kreator';
+
 /** Najwięcej tyle bajtów formularza podglądu (model z 30 sekcjami na kilku podstronach to ~60–150 KB). */
 export const LIMIT_CIALA = 512 * 1024;
 
@@ -73,9 +75,20 @@ export function zlozPodglad(pliki: PlikPodgladu[], podstrona: string): string | 
     });
 }
 
+export interface OpcjeDodatkow {
+  podstrona: string;
+  przewin: number;
+  zaznaczona: string | null;
+  /**
+   * Edycja na stronie (paczka 122): mostek z @verris/kreator przejmuje kliknięcia (tekst, sekcje, linki); skrypt
+   * edytora zostaje tylko przy przewijaniu i blokadzie wysyłki formularzy.
+   */
+  edycja?: OpcjeMostu['tryb'] | null;
+}
+
 /** Skrypt edytora w ramce podglądu (bez danych klienta poza liczbą i identyfikatorem sekcji). */
-export function skryptEdytora(opcje: { podstrona: string; przewin: number; zaznaczona: string | null }): string {
-  const dane = JSON.stringify({ p: opcje.podstrona, y: Math.max(0, Math.round(opcje.przewin)), z: opcje.zaznaczona })
+export function skryptEdytora(opcje: OpcjeDodatkow): string {
+  const dane = JSON.stringify({ p: opcje.podstrona, y: Math.max(0, Math.round(opcje.przewin)), z: opcje.zaznaczona, e: opcje.edycja ? 1 : 0 })
     .replace(/</g, '\\u003c');
   return `<script>(function(){var D=${dane};var Z='verris-podglad';
 function wyslij(m){m.zrodlo=Z;try{parent.postMessage(m,'*')}catch(e){}}
@@ -83,7 +96,7 @@ if(D.z){var s=document.getElementById(D.z);if(s)s.setAttribute('data-kreator-zaz
 function przewin(){if(!location.hash&&D.y>0)window.scrollTo(0,D.y)}
 if(document.readyState!=='loading')przewin();else document.addEventListener('DOMContentLoaded',przewin);
 var t=0;window.addEventListener('scroll',function(){clearTimeout(t);t=setTimeout(function(){wyslij({typ:'przewin',y:Math.round(window.scrollY)})},120)},{passive:true});
-document.addEventListener('click',function(e){var el=e.target;if(!el||!el.closest)return;var a=el.closest('a[href]');
+if(!D.e)document.addEventListener('click',function(e){var el=e.target;if(!el||!el.closest)return;var a=el.closest('a[href]');
 if(a){var h=a.getAttribute('href')||'';if(h.charAt(0)==='#'){return}e.preventDefault();
 var baza='https://podglad.invalid/'+(D.p?D.p+'/':'');var u;try{u=new URL(h,baza)}catch(x){return}
 if(u.host==='podglad.invalid'){var slug=u.pathname.replace(/index\\.html$/,'').replace(/\\.html$/,'').replace(/^\\/+|\\/+$/g,'');wyslij({typ:'podstrona',slug:slug,kotwica:u.hash.slice(1)})}
@@ -98,9 +111,9 @@ const STYL_EDYTORA =
   '<style>section[id]{cursor:pointer}[data-kreator-zaznaczona]{outline:3px solid #1fa871;outline-offset:-3px}' +
   'section[id]:hover:not([data-kreator-zaznaczona]){outline:2px dashed rgba(31,168,113,.6);outline-offset:-2px}</style>';
 
-/** Dokleja styl i skrypt edytora przed </body> (albo na koniec, gdy renderer go nie zamknął). */
-export function zDodatkamiEdytora(html: string, opcje: Parameters<typeof skryptEdytora>[0]): string {
-  const dodatki = STYL_EDYTORA + skryptEdytora(opcje);
+/** Dokleja styl i skrypt edytora (w trybie edycji także mostek) przed </body> (albo na koniec, gdy renderer go nie zamknął). */
+export function zDodatkamiEdytora(html: string, opcje: OpcjeDodatkow): string {
+  const dodatki = STYL_EDYTORA + skryptEdytora(opcje) + (opcje.edycja ? dodatkiMostu({ tryb: opcje.edycja }) : '');
   const i = html.lastIndexOf('</body>');
   return i === -1 ? html + dodatki : html.slice(0, i) + dodatki + html.slice(i);
 }
@@ -120,7 +133,8 @@ export function naglowkiPodgladu(bazaFontow: string): Record<string, string> {
     "script-src 'unsafe-inline'",
     `style-src 'unsafe-inline'${fonty ? ` ${fonty}` : ''}`,
     `font-src data:${fonty ? ` ${fonty}` : ''}`,
-    'img-src data: https:',
+    // Zdjęcia z biblioteki konta – pliki wariantów z API (podpisany adres); w produkcji API jest i tak na https.
+    `img-src data: https:${fonty ? ` ${fonty}` : ''}`,
     "connect-src 'none'",
     "form-action 'none'",
     "base-uri 'none'",
@@ -147,4 +161,18 @@ export function stronaKomunikatu(tytul: string, tresc: string, lista: string[] =
     `p{color:#34413a;margin:0 0 12px}ul{margin:0;padding-left:18px;color:#34413a;font-size:13px}</style></head>` +
     `<body><main><h1>${esc(tytul)}</h1><p>${esc(tresc)}</p>${li}</main></body></html>`
   );
+}
+
+/** Id zdjęć z biblioteki konta użytych w modelu (`zasobId` w obiektach Obraz). */
+export function zasobyModelu(model: unknown): string[] {
+  const ids = new Set<string>();
+  const odwiedz = (x: unknown, glebokosc: number): void => {
+    if (glebokosc > 20 || !x || typeof x !== 'object') return;
+    if (Array.isArray(x)) return x.forEach((e) => odwiedz(e, glebokosc + 1));
+    const o = x as Record<string, unknown>;
+    if (typeof o.zasobId === 'string') ids.add(o.zasobId);
+    for (const v of Object.values(o)) odwiedz(v, glebokosc + 1);
+  };
+  odwiedz(model, 0);
+  return [...ids];
 }

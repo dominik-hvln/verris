@@ -37,9 +37,10 @@ export function atrLinku(href: string): string {
   return `href="${esc(href)}"${czyZewnetrzny(href) ? ' rel="noopener"' : ''}`;
 }
 
-export function przycisk(k: KontekstPodstrony, p: Przycisk, dodatkowaKlasa = ''): string {
+/** `atrEdycji` – atrybuty trybu edycji na stronie (etykieta przycisku jako pole modelu), poza edycją ''. */
+export function przycisk(k: KontekstPodstrony, p: Przycisk, dodatkowaKlasa = '', atrEdycji = ''): string {
   const klasa = `btn ${p.styl === 'drugi' ? 'btn-2' : 'btn-1'}${dodatkowaKlasa ? ' ' + dodatkowaKlasa : ''}`;
-  return `<a class="${klasa}" ${atrLinku(hrefCelu(k, p.cel))}>${esc(p.etykieta)}</a>`;
+  return `<a class="${klasa}" ${atrLinku(hrefCelu(k, p.cel))}${atrEdycji}>${esc(p.etykieta)}</a>`;
 }
 
 /**
@@ -52,15 +53,18 @@ export function celDostepny(k: KontekstPodstrony, cel: string): boolean {
   return k.idTutaj.has(id) || k.s.idGlownej.has(id);
 }
 
-/** Przyciski z modelu; prowadzące do niewidocznej sekcji są pomijane (z ostrzeżeniem dla klienta). */
-export function przyciski(k: KontekstPodstrony, lista: Przycisk[]): string {
+/**
+ * Przyciski z modelu; prowadzące do niewidocznej sekcji są pomijane (z ostrzeżeniem dla klienta).
+ * `atrEdycji(p)` – atrybuty edycji na stronie dla przycisku (indeks w modelu liczy wołający).
+ */
+export function przyciski(k: KontekstPodstrony, lista: Przycisk[], atrEdycji?: (p: Przycisk) => string): string {
   const dostepne = lista.filter((p) => {
     if (celDostepny(k, p.cel)) return true;
     k.s.ostrzezenia.push(`Przycisk „${p.etykieta}” prowadzi do sekcji, której nie ma na stronie – pominięto go.`);
     return false;
   });
   if (!dostepne.length) return '';
-  return `<div class="akcje">${dostepne.map((p) => przycisk(k, p)).join('')}</div>`;
+  return `<div class="akcje">${dostepne.map((p) => przycisk(k, p, '', atrEdycji ? atrEdycji(p) : '')).join('')}</div>`;
 }
 
 export function telHref(tel: string): string {

@@ -3,6 +3,7 @@ import type { Sekcja } from '../../model.ts';
 import { wszystkieSekcje } from '../../model.ts';
 import { esc } from '../esc.ts';
 import type { KontekstPodstrony } from '../kontekst.ts';
+import { edytowalne } from '../edycja.ts';
 import { atrLinku, hrefCelu } from '../linki.ts';
 
 export type Tlo = Sekcja['tlo'];
@@ -58,7 +59,8 @@ export function sekcja(k: KontekstPodstrony, sek: Sekcja, srodek: string, o: Opc
   const klasy = ['sek', `sek-${sek.typ}`, sek.wariant, `tlo-${tlo}`, o.klasa ?? '', pro ? 'jest-pro' : ''].filter(Boolean).join(' ');
   const etykieta = o.bezEtykiety ? '' : ` aria-labelledby="${esc(sek.id)}-tytul"`;
   const wstega = pro ? '<span class="wstega-pro" title="Element Kreatora Pro – widoczny po włączeniu Pro">Pro</span>' : '';
-  return `<section id="${esc(sek.id)}" class="${klasy}"${etykieta}>${wstega}${srodek}</section>`;
+  const edycja = k.s.edycja ? ` data-k-sekcja="${esc(sek.id)}"` : '';
+  return `<section id="${esc(sek.id)}" class="${klasy}"${etykieta}${edycja}>${wstega}${srodek}</section>`;
 }
 
 export function klasaPojawiania(k: KontekstPodstrony): string {
@@ -78,13 +80,18 @@ export interface Glowa {
   dodatek?: string;
 }
 
-export function glowa(sek: Sekcja, g: Glowa): string {
+/**
+ * Głowa sekcji. Z `k` w trybie edycji: nadtytuł (etykieta w menu), nagłówek i wstęp dostają ścieżki pól
+ * (`naglowek` i `wstep` to zawsze `dane.naglowek` / `dane.wstep` sekcji).
+ */
+export function glowa(sek: Sekcja, g: Glowa, k?: KontekstPodstrony): string {
   const nad = g.nad ?? sek.wMenu;
+  const ak = k ? edytowalne(k, sek) : () => '';
   return (
     `<header class="glowa${g.klasa ? ' ' + g.klasa : ''}">` +
-    (nad ? `<p class="nad">${esc(nad)}</p>` : '') +
-    `<h2 id="${esc(sek.id)}-tytul">${esc(sierotki(g.naglowek))}</h2>` +
-    (g.wstep ? `<p class="wstep">${esc(sierotki(g.wstep))}</p>` : '') +
+    (nad ? `<p class="nad"${nad === sek.wMenu ? ak('wMenu') : ''}>${esc(nad)}</p>` : '') +
+    `<h2 id="${esc(sek.id)}-tytul"${ak('dane.naglowek')}>${esc(sierotki(g.naglowek))}</h2>` +
+    (g.wstep ? `<p class="wstep"${ak('dane.wstep')}>${esc(sierotki(g.wstep))}</p>` : '') +
     (g.dodatek ?? '') +
     `</header>`
   );

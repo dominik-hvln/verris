@@ -91,7 +91,7 @@ export function PanelSekcji({
         </div>
         <Pole etykieta="Nazwa w menu (opcjonalnie)" podpowiedz="Puste = sekcji nie ma w menu." blad={k.bledy.get([...sciezka, 'wMenu'].join('.'))}>
           {(a) => (
-            <input {...a} className={klasaPola} value={sekcja.wMenu ?? ''} maxLength={30} onChange={(e) => k.onZmiana([...sciezka, 'wMenu'], e.target.value || undefined)} />
+            <input {...a} data-sciezka={[...sciezka, 'wMenu'].join('.')} className={klasaPola} value={sekcja.wMenu ?? ''} maxLength={30} onChange={(e) => k.onZmiana([...sciezka, 'wMenu'], e.target.value || undefined)} />
           )}
         </Pole>
       </div>

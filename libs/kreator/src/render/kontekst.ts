@@ -23,6 +23,17 @@ export interface OpcjeRenderu {
   adresFormularza?: string;
   /** ISO – deterministyczne testy (rok w stopce, lastmod). */
   dataGeneracji?: string;
+  /**
+   * Edycja na stronie (tylko tryb 'podglad'): teksty dostają `data-k` (ścieżka w modelu) i `data-k-max` (limit ze
+   * schematu), sekcje `data-k-sekcja`. Publikacja nigdy – renderer ignoruje tę opcję poza podglądem.
+   */
+  edycja?: boolean;
+  /**
+   * Paczka 122 – adres pliku wariantu zdjęcia z biblioteki (`Obraz.zasobId`): podgląd – podpisany adres API
+   * (…/kreator/z/<token>/<szer>.<format>), publikacja – 'assets/img/<zasobId>-<szer>.<format>' (względnie).
+   * Brak w publikacji przy obrazie z `zasobId` = błąd renderu (nie cicha ramka zastępcza).
+   */
+  adresZasobu?: (zasobId: string, szerokosc: number, format: 'webp' | 'jpg') => string;
 }
 
 export interface PlikStrony {
@@ -35,6 +46,12 @@ export interface WynikRenderu {
   pliki: PlikStrony[];
   fonty: { rodzina: string; wagi: number[]; kursywa: boolean }[];
   ostrzezenia: string[];
+}
+
+/** Indeksy podstron i sekcji w modelu z edytora (slug → indeks podstrony, id sekcji → indeks sekcji). */
+export interface EdycjaStrony {
+  model: Strona;
+  strony: Map<string, { i: number; sekcje: Map<string, number> }>;
 }
 
 /** Stan wspólny dla całego renderu (wszystkie podstrony). */
@@ -56,6 +73,8 @@ export interface KontekstStrony {
   /** Id sekcji strony głównej, które faktycznie się renderują (do linków z podstron). */
   idGlownej: Set<string>;
   adres: string | null;
+  /** Edycja na stronie: model z edytora (ścieżki wskazują jego pola, nie kopię po dopasowaniu do planu). */
+  edycja: EdycjaStrony | null;
   rok: number;
   dataIso: string;
 }

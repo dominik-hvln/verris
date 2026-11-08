@@ -3,6 +3,7 @@
  * renderer statycznego HTML i master prompt. Współdzielone przez API i panel klienta.
  */
 export * from './model.ts';
+export * from './edycja.ts';
 export * from './katalog.ts';
 export * from './plany.ts';
 export * from './przyklady/salon.ts';

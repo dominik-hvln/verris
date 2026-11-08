@@ -324,6 +324,8 @@ model User {
   // Paczka 119 — Verris Kreator: strony klienta i miesięczne zużycie AI kreatora
   kreatorStrony             KreatorStrona[]
   kreatorZuzycie            KreatorZuzycie[]
+  // Paczka 122 — zdjęcia kreatora (biblioteka konta)
+  kreatorZasoby             KreatorZasob[]
   @@index([role, createdAt])
   @@index([referredByUserId])
 }
@@ -4879,6 +4881,7 @@ model KreatorStrona {
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   wersje         KreatorWersja[]
+  zasoby         KreatorZasob[]
 
   @@index([userId])
   @@index([branza, createdAt])
@@ -4913,4 +4916,43 @@ model KreatorZuzycie {
   updatedAt   DateTime @updatedAt
 
   @@id([userId, miesiac])
+}
+
+enum KreatorZrodloZasobu {
+  WLASNE
+  PIXABAY
+  OPENVERSE
+  PEXELS
+  AI
+}
+
+/// Paczka 122 — zdjęcie w bibliotece konta kreatora. Pliki w magazynie obiektów (bucket KREATOR_ZASOBY):
+/// `<userId>/<id>/oryginal.webp` (znormalizowany: autoorientacja, bez EXIF/GPS, sRGB) i warianty
+/// `<userId>/<id>/<szer>.webp|jpg` (480/960/1600/2400, tylko ≤ szerokości oryginału). Model strony wskazuje
+/// zdjęcie przez `Obraz.zasobId`; publikacja kopiuje warianty do assets/img strony.
+model KreatorZasob {
+  id          String              @id @default(uuid())
+  userId      String
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Strona, przy której wgrano zdjęcie (informacyjnie; zdjęcie należy do konta i zostaje po usunięciu strony).
+  stronaId    String?
+  strona      KreatorStrona?      @relation(fields: [stronaId], references: [id], onDelete: SetNull)
+  zrodlo      KreatorZrodloZasobu
+  autor       String?
+  /// Kod licencji: 'pixabay', 'pexels', 'cc0', 'pdm', … (null = zdjęcie własne klienta).
+  licencja    String?
+  licencjaUrl String?
+  /// Strona zdjęcia u dostawcy (biblioteki zewnętrzne).
+  zrodloUrl   String?
+  /// Wymiary oryginału po normalizacji (px).
+  szerokosc   Int
+  wysokosc    Int
+  /// Suma bajtów wszystkich plików zdjęcia w magazynie (oryginał + warianty) — limit miejsca na konto.
+  bajty       Int
+  sha256      String
+  alt         String?
+  createdAt   DateTime            @default(now())
+
+  @@index([userId, createdAt])
+  @@index([stronaId])
 }

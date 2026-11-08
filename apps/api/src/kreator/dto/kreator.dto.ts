@@ -14,6 +14,7 @@ import {
 import { Type } from 'class-transformer';
 import { TYPY_STRON, type TypStrony } from '@verris/kreator';
 import { MODEL_KREATORA_RE } from '../konfiguracja.js';
+import { DOSTAWCY_ZDJEC, type NazwaDostawcy } from '../biblioteka/dostawca.js';
 
 /** Brief „opisz firmę” (BriefStrony z @verris/kreator). `firma` sprawdza dodatkowo schemat zod w serwisie. */
 export class BriefStronyDto {
@@ -114,4 +115,11 @@ export class KonfiguracjaKreatoraDto {
   @IsString({ each: true })
   @MaxLength(120, { each: true })
   kontaTestowe?: string[];
+
+  /** Paczka 122 – biblioteki zdjęć w edytorze (kolejność = kolejność przełącznika). */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(DOSTAWCY_ZDJEC.length)
+  @IsIn(DOSTAWCY_ZDJEC as unknown as string[], { each: true, message: 'Nieznana biblioteka zdjęć.' })
+  bibliotekiZdjec?: NazwaDostawcy[];
 }

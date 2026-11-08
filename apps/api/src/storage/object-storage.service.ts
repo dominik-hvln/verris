@@ -127,6 +127,13 @@ export class ObjectStorageService implements OnApplicationBootstrap {
           name: this.config.get<string>('S3_BUCKET_INVOICES') ?? 'verris-invoices',
         },
       ],
+      [
+        ObjectBuckets.KREATOR_ZASOBY,
+        {
+          logical: ObjectBuckets.KREATOR_ZASOBY,
+          name: this.config.get<string>('S3_BUCKET_KREATOR_ZASOBY') ?? 'verris-kreator-zasoby',
+        },
+      ],
     ]);
   }
 

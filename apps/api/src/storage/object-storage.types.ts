@@ -12,6 +12,8 @@ export const ObjectBuckets = {
   DATA_EXPORTS: 'DATA_EXPORTS',
   DPA_PDFS: 'DPA_PDFS',
   INVOICES: 'INVOICES',
+  /** Paczka 122 – zdjęcia biblioteki Verris Kreatora (oryginał znormalizowany + warianty webp/jpg). */
+  KREATOR_ZASOBY: 'KREATOR_ZASOBY',
 } as const;
 
 export type ObjectBucket = (typeof ObjectBuckets)[keyof typeof ObjectBuckets];

@@ -21,6 +21,8 @@ export interface OpcjeRenderuKreatora {
   podgladPro: boolean;
   /** Publiczny adres proxy fontów API (…/fonts) – odwiedzający nie łączy się z Google. */
   bazaFontow: string;
+  /** Paczka 122 – podpisany adres pliku wariantu zdjęcia z biblioteki (…/kreator/z/<token>/<szer>.<format>). */
+  adresZasobu?: (zasobId: string, szerokosc: number, format: 'webp' | 'jpg') => string;
 }
 
 /** Strona API renderera: model → pliki statycznej strony. Adapter do `renderujStrone` z @verris/kreator. */

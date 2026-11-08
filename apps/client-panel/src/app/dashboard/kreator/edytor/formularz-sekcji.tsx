@@ -8,6 +8,7 @@ import { Switch } from '@/components/panel/v2';
 import { nettoZBrutto, zl } from '@/lib/kreator';
 import { ETYKIETY, ETYKIETY_WYBOROW, POZYCJA_LISTY, pobierz, przesun, wartoscDomyslna, type OpisPola, type PoleObiektu, type Sciezka } from './schemat';
 import { Pole, klasaPola, klasaPrzyciskuDrugiego, klasaPrzyciskuIkony } from '../wspolne';
+import { PoleZdjecia } from './zdjecia/pole-zdjecia';
 
 /**
  * Formularz danych sekcji wygenerowany z opisu schematu (schemat.ts → polaSekcji). Każde pole zna swoją ścieżkę
@@ -133,9 +134,9 @@ function PoleTekstu({
     <Pole etykieta={nazwa} blad={blad(k, sciezka)} licznik={licznik} podpowiedz={PODPOWIEDZI[klucz]}>
       {(a) =>
         opis.dlugi ? (
-          <textarea {...a} className={`${klasaPola} min-h-[84px] resize-y`} value={tekst} onChange={(e) => zmien(e.target.value)} maxLength={opis.max ?? undefined} />
+          <textarea {...a} data-sciezka={sciezka.join('.')} className={`${klasaPola} min-h-[84px] resize-y`} value={tekst} onChange={(e) => zmien(e.target.value)} maxLength={opis.max ?? undefined} />
         ) : (
-          <input {...a} type={opis.data ? 'date' : 'text'} className={klasaPola} value={tekst} onChange={(e) => zmien(e.target.value)} maxLength={opis.max ?? undefined} />
+          <input {...a} data-sciezka={sciezka.join('.')} type={opis.data ? 'date' : 'text'} className={klasaPola} value={tekst} onChange={(e) => zmien(e.target.value)} maxLength={opis.max ?? undefined} />
         )
       }
     </Pole>
@@ -246,7 +247,7 @@ function Ramka({ nazwa, bezRamki, children }: { nazwa: string; bezRamki: boolean
 const PROPORCJE = ['16:9', '4:3', '3:2', '1:1', '3:4', '4:5'];
 
 function PoleObrazu({ nazwa, opcjonalne, sciezka, k, bezRamki = false }: { nazwa: string; opcjonalne: boolean; sciezka: Sciezka; k: KontekstFormularza; bezRamki?: boolean }) {
-  const obraz = pobierz(k.model, sciezka) as { alt?: string; podpis?: string; proporcje?: string; zrodlo?: string } | undefined;
+  const obraz = pobierz(k.model, sciezka) as (Parameters<typeof PoleZdjecia>[0]['obraz'] & { alt?: string }) | undefined;
   if (!obraz) {
     return (
       <div className="flex flex-col gap-2 rounded-[8px] border border-dashed border-line-strong p-3">
@@ -259,12 +260,8 @@ function PoleObrazu({ nazwa, opcjonalne, sciezka, k, bezRamki = false }: { nazwa
   }
   return (
     <Ramka nazwa={nazwa} bezRamki={bezRamki}>
-      <p className="flex items-start gap-2 rounded-[6px] bg-raised px-2.5 py-2 text-[12px] text-muted-foreground">
-        <ImageIcon className="mt-0.5 h-3.5 w-3.5 flex-none" aria-hidden />
-        {obraz.zrodlo && obraz.zrodlo !== 'placeholder'
-          ? 'Zdjęcie jest już na stronie. Wymiana zdjęć – wkrótce z biblioteki.'
-          : 'Na stronie jest elegancka ramka z podpisem. Zdjęcia dodasz po publikacji – wkrótce z biblioteki.'}
-      </p>
+      {/* Paczka 122 – wybór zdjęcia (wgranie, biblioteka konta, biblioteki zewnętrzne): zdjecia/wybor-zdjecia.tsx. */}
+      <PoleZdjecia obraz={obraz} sciezka={sciezka.join('.')} onWybierz={(o) => k.onZmiana(sciezka, o)} />
       <Pole etykieta={ETYKIETY.alt!} podpowiedz={PODPOWIEDZI.alt} blad={blad(k, [...sciezka, 'alt'])} licznik={{ ile: (obraz.alt ?? '').length, max: 200 }}>
         {(a) => <input {...a} className={klasaPola} value={obraz.alt ?? ''} maxLength={200} onChange={(e) => k.onZmiana([...sciezka, 'alt'], e.target.value)} />}
       </Pole>
@@ -293,7 +290,7 @@ function PolePrzycisku({ nazwa, opcjonalne, sciezka, k, bezRamki = false }: { na
   return (
     <Ramka nazwa={nazwa} bezRamki={bezRamki}>
       <Pole etykieta="Napis na przycisku" blad={blad(k, [...sciezka, 'etykieta'])} licznik={{ ile: (p.etykieta ?? '').length, max: 40 }}>
-        {(a) => <input {...a} className={klasaPola} value={p.etykieta ?? ''} maxLength={40} onChange={(e) => k.onZmiana([...sciezka, 'etykieta'], e.target.value)} />}
+        {(a) => <input {...a} data-sciezka={[...sciezka, 'etykieta'].join('.')} className={klasaPola} value={p.etykieta ?? ''} maxLength={40} onChange={(e) => k.onZmiana([...sciezka, 'etykieta'], e.target.value)} />}
       </Pole>
       <Pole etykieta={ETYKIETY.cel!} podpowiedz={PODPOWIEDZI.cel} blad={blad(k, [...sciezka, 'cel'])}>
         {(a) => <input {...a} className={klasaPola} value={p.cel ?? ''} maxLength={500} onChange={(e) => k.onZmiana([...sciezka, 'cel'], e.target.value)} />}
@@ -331,6 +328,7 @@ function PoleCeny({ pole, sciezka, k }: { pole: PoleObiektu; sciezka: Sciezka; k
         {(a) => (
           <input
             {...a}
+            data-sciezka={s.join('.')}
             type="number"
             inputMode="decimal"
             min={0}

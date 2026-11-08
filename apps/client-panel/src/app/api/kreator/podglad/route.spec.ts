@@ -112,6 +112,59 @@ describe('POST /api/kreator/podglad', () => {
     expect(podgladPro).toContain('wstega-pro');
   });
 
+  it('edycja=1: teksty z data-k, mostek w trybie edycji, skrypt edytora bez obsługi kliknięć; CSP bez zmian', async () => {
+    mockApi.mockResolvedValue(stan('hosting'));
+    const zwykly = await POST(zadanie({ model: JSON.stringify(PRZYKLAD_SALON), podstrona: '' }));
+    const r = await POST(zadanie({ model: JSON.stringify(PRZYKLAD_SALON), podstrona: '', edycja: '1' }));
+    expect(r.status).toBe(200);
+    expect(r.headers.get('content-security-policy')).toBe(zwykly.headers.get('content-security-policy'));
+    const html = await r.text();
+    expect(html).toContain('data-k="strony.0.sekcje.0.dane.naglowek"');
+    expect(html).toContain('data-k-sekcja="');
+    expect(html).toContain('"tryb":"edycja"');
+    expect(html).toContain('<script data-k-most>');
+    expect(html).toContain('"e":1');
+    const bezEdycji = await zwykly.text();
+    expect(bezEdycji).not.toMatch(/\sdata-k(-[a-z]+)?="/);
+    expect(bezEdycji).not.toContain('data-k-most');
+    expect(bezEdycji).toContain('"e":0');
+  });
+
+  it('edycja=zaznacz (telefon): mostek w trybie zaznaczania; inna wartość = zwykły podgląd', async () => {
+    mockApi.mockResolvedValue(stan('hosting'));
+    const tel = await (await POST(zadanie({ model: JSON.stringify(PRZYKLAD_SALON), edycja: 'zaznacz' }))).text();
+    expect(tel).toContain('"tryb":"zaznacz"');
+    expect(tel).toContain('data-k="');
+    const zle = await (await POST(zadanie({ model: JSON.stringify(PRZYKLAD_SALON), edycja: 'tak' }))).text();
+    expect(zle).not.toContain('data-k-most');
+    expect(zle).not.toContain('data-k="');
+  });
+
+  it('zdjęcia z biblioteki: adresy z API tylko dla zasobów z modelu, CSP dopuszcza obrazy z API; błąd API = ramka zastępcza', async () => {
+    const ZASOB = '0b6f6c1e-9a4b-4c1d-8e2f-3a4b5c6d7e8f';
+    const m = salon() as unknown as { strony: { sekcje: { dane: Record<string, unknown> }[] }[] };
+    m.strony[0]!.sekcje[0]!.dane.obraz = { alt: 'Wnętrze salonu', zrodlo: 'wlasne', zasobId: ZASOB, proporcje: '4:3', szerokosc: 2400, wysokosc: 1800 };
+    mockApi.mockImplementation(async (sciezka: string) =>
+      sciezka.startsWith('/kreator/zasoby/adresy') ? { adresy: { [ZASOB]: 'https://api.verris.pl/kreator/z/token-abc/' } } : stan('hosting'),
+    );
+    const r = await POST(zadanie({ model: JSON.stringify(m), edycja: '1' }));
+    expect(mockApi).toHaveBeenCalledWith(`/kreator/zasoby/adresy?ids=${ZASOB}`, expect.anything());
+    const html = await r.text();
+    expect(html).toContain('https://api.verris.pl/kreator/z/token-abc/960.webp 960w');
+    expect(html).toContain('data-k-obraz="strony.0.sekcje.0.dane.obraz"');
+    expect(r.headers.get('content-security-policy')).toMatch(/img-src data: https: https:\/\/api\.verris\.pl(;|$)/);
+
+    mockApi.mockImplementation(async (sciezka: string) => {
+      if (sciezka.startsWith('/kreator/zasoby/adresy')) throw new ApiError('Błąd', 500, null);
+      return stan('hosting');
+    });
+    const bezAdresow = await POST(zadanie({ model: JSON.stringify(m) }));
+    expect(bezAdresow.status).toBe(200);
+    const h2 = await bezAdresow.text();
+    expect(h2).not.toContain('/kreator/z/');
+    expect(h2).toContain('class="ph ');
+  });
+
   it('brak dostępu do kreatora → 403 z powodem z API', async () => {
     mockApi.mockResolvedValue(stan('hosting', false));
     const r = await POST(zadanie({ model: JSON.stringify(PRZYKLAD_SALON) }));

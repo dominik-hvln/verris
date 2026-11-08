@@ -55,9 +55,18 @@ describe('podgląd kreatora – składanie HTML', () => {
 
 describe('konfiguracja kreatora', () => {
   it('domyślnie wyłączony, Sonnet 5.5; tylko modele Anthropic; konta testowe małymi literami bez duplikatów', () => {
-    expect(odczytajKonfiguracjeKreatora(null)).toEqual({ modelGeneracji: 'claude-sonnet-5-5', modelZmian: 'claude-sonnet-5-5', wlaczony: false, kontaTestowe: [] });
+    expect(odczytajKonfiguracjeKreatora(null)).toEqual({
+      modelGeneracji: 'claude-sonnet-5-5',
+      modelZmian: 'claude-sonnet-5-5',
+      wlaczony: false,
+      kontaTestowe: [],
+      bibliotekiZdjec: ['pixabay', 'openverse', 'pexels'],
+    });
     const k = odczytajKonfiguracjeKreatora(JSON.stringify({ modelGeneracji: 'gpt-6-luna', modelZmian: 'claude-opus-5-5', wlaczony: 'tak', kontaTestowe: ['A@b.pl', 'a@b.pl ', 7, ''] }));
-    expect(k).toEqual({ modelGeneracji: 'claude-sonnet-5-5', modelZmian: 'claude-opus-5-5', wlaczony: false, kontaTestowe: ['a@b.pl'] });
+    expect(k).toEqual({ modelGeneracji: 'claude-sonnet-5-5', modelZmian: 'claude-opus-5-5', wlaczony: false, kontaTestowe: ['a@b.pl'], bibliotekiZdjec: ['pixabay', 'openverse', 'pexels'] });
+    // Paczka 122: biblioteki zdjęć – tylko znani dostawcy, bez powtórzeń, kolejność z konfiguracji; pusta lista = wyłączone.
+    expect(odczytajKonfiguracjeKreatora(JSON.stringify({ bibliotekiZdjec: ['openverse', 'unsplash', 'openverse', 'pixabay'] })).bibliotekiZdjec).toEqual(['openverse', 'pixabay']);
+    expect(odczytajKonfiguracjeKreatora(JSON.stringify({ bibliotekiZdjec: [] })).bibliotekiZdjec).toEqual([]);
     expect(odczytajKonfiguracjeKreatora('[1,2]')).toEqual(odczytajKonfiguracjeKreatora(null));
     expect(odczytajKonfiguracjeKreatora('{zepsute')).toEqual(odczytajKonfiguracjeKreatora(null));
   });

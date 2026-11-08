@@ -9,7 +9,7 @@ import { KreatorPublikacjaService } from './publikacja.service.js';
 type WynikPublikacji = Awaited<ReturnType<KreatorPublikacjaService['publikuj']>>;
 /** Wynik publikacji na domenę (hosting/pro). */
 const naDomene = async (w: Promise<WynikPublikacji>) => (await w) as Extract<WynikPublikacji, { tryb: 'domena' }>;
-import { PASEK_PROBY, PLIK_ZNACZNIKA, odczytajZnacznik } from './publikacja.js';
+import { LIMIT_BAJTOW, PASEK_PROBY, PLIK_ZNACZNIKA, odczytajZnacznik } from './publikacja.js';
 import { utworzTokenLinku } from './publikacja-token.js';
 import { utworzTokenFormularza } from './formularz-token.js';
 import { fabrykaRendereraPublikacji, type RendererPublikacji } from './renderer-publikacji.js';
@@ -137,7 +137,7 @@ function pasuje(r: Rek, where: Rek): boolean {
   });
 }
 
-function zbuduj(opcje: { wersja?: WersjaKreatora; renderer?: RendererPublikacji; model?: Strona } = {}) {
+function zbuduj(opcje: { wersja?: WersjaKreatora; renderer?: RendererPublikacji; model?: Strona; zasoby?: unknown } = {}) {
   const strony: Rek[] = [
     {
       id: ID, userId: 'u1', nazwa: 'Salon Ąłka', model: opcje.model ?? SALON_Z_PODSTRONA, status: 'GOTOWA',
@@ -179,6 +179,7 @@ function zbuduj(opcje: { wersja?: WersjaKreatora; renderer?: RendererPublikacji;
   const config = { get: (k: string) => (k === 'appKmsKey' ? KLUCZ : k === 'PUBLIC_API_URL' ? 'https://api.verris.test/' : undefined) };
   const svc = new KreatorPublikacjaService(
     prisma as never, config as never, kreator as never, audit as never, fonty as never, hosting, opcje.renderer ?? fabrykaRendereraPublikacji(),
+    opcje.zasoby as never,
   );
   return { svc, strony, prisma, fs, hosting, fonty, audit, kreator };
 }
@@ -353,7 +354,7 @@ describe('Kreator – publikacja na domenę (hosting/pro)', () => {
 
   it('render ponad limit rozmiaru → 422 bez operacji na koncie', async () => {
     const renderer: RendererPublikacji = {
-      renderuj: () => ({ pliki: [{ sciezka: 'index.html', tresc: 'x'.repeat(21 * 1024 * 1024), typ: 'text/html' }], fonty: [], ostrzezenia: [] }),
+      renderuj: () => ({ pliki: [{ sciezka: 'index.html', tresc: 'x'.repeat(LIMIT_BAJTOW + 1), typ: 'text/html' }], fonty: [], ostrzezenia: [] }),
     };
     const t = zbuduj({ renderer });
     await expect(t.svc.publikuj('u1', 'u1', ID, { domena: 'x.pl' })).rejects.toThrow(/za duża/);
@@ -527,5 +528,57 @@ describe('Kreator – ZIP strony', () => {
     } finally {
       rmSync(kat, { recursive: true, force: true });
     }
+  });
+});
+
+describe('Kreator – zdjęcia z biblioteki w publikacji (paczka 122)', () => {
+  const ZASOB = '3f2a9c4e-8b1d-4f6a-9c2e-1a2b3c4d5e6f';
+  const zeZdjeciem = (): Strona => {
+    const m = structuredClone(SALON_Z_PODSTRONA);
+    const hero = m.strony[0]!.sekcje.find((x) => x.typ === 'hero')!;
+    if (hero.typ !== 'hero') throw new Error('hero');
+    hero.dane.obraz = { alt: 'Wnętrze', zrodlo: 'pixabay', zasobId: ZASOB, proporcje: '4:3', autor: 'Jan', licencja: 'pixabay' };
+    return m;
+  };
+  /** Atrapa KreatorZasobyService.doPublikacji: wymiary z „bazy” (1200 px → warianty 480 i 960) i pliki wariantów. */
+  const zasoby = () => ({
+    doPublikacji: vi.fn(async (_u: string, strona: Strona, tryb: 'pliki' | 'adresy') => {
+      const m = structuredClone(strona);
+      const hero = m.strony[0]!.sekcje.find((x) => x.typ === 'hero')!;
+      if (hero.typ === 'hero' && hero.dane.obraz) Object.assign(hero.dane.obraz, { szerokosc: 1200, wysokosc: 800 });
+      if (tryb === 'adresy') return { strona: m, adresZasobu: (id: string, sz: number, f: string) => `https://api.verris.test/kreator/z/t${id}/${sz}.${f}`, pliki: [] };
+      const pliki = [480, 960].flatMap((sz) => (['webp', 'jpg'] as const).map((f) => ({ sciezka: `assets/img/${ZASOB}-${sz}.${f}`, dane: Buffer.from(`${sz}.${f}`), tekst: false })));
+      return { strona: m, adresZasobu: (id: string, sz: number, f: string) => `assets/img/${id}-${sz}.${f}`, pliki };
+    }),
+  });
+
+  it('domena: warianty wgrane do assets/img, HTML z <picture>; ponowna publikacja bez zdjęcia usuwa osierocone pliki', async () => {
+    const t = zbuduj({ model: zeZdjeciem(), zasoby: zasoby() });
+    await naDomene(t.svc.publikuj('u1', 'u1', ID, { domena: 'x.pl' }));
+    expect(t.fs.log).toContain(`wgraj:${PUB}/assets/img/${ZASOB}-960.webp`);
+    expect(t.fs.log).toContain(`wgraj:${PUB}/assets/img/${ZASOB}-480.jpg`);
+    const html = t.fs.tekst(`${PUB}/index.html`)!;
+    expect(html).toContain(`<source type="image/webp" srcset="assets/img/${ZASOB}-480.webp 480w, assets/img/${ZASOB}-960.webp 960w"`);
+    expect(znacznik(t.fs)!.pliki).toContain(`assets/img/${ZASOB}-960.jpg`);
+
+    t.strony[0]!.model = SALON_Z_PODSTRONA;
+    await naDomene(t.svc.publikuj('u1', 'u1', ID, { domena: 'x.pl' }));
+    expect(t.fs.wpisy.has(`${PUB}/assets/img/${ZASOB}-960.webp`)).toBe(false);
+    expect(t.fs.wpisy.has(`${PUB}/assets/img`)).toBe(false);
+  });
+
+  it('link próbny: adresy plików w API (bez kopiowania); model ze zdjęciem bez serwisu zdjęć → 503 przed hostingiem', async () => {
+    const z = zasoby();
+    const t = zbuduj({ wersja: 'proba', model: zeZdjeciem(), zasoby: z });
+    const { adres } = (await t.svc.publikuj('u1', 'u1', ID, {})) as { adres: string };
+    const token = adres.split('/kreator/p/')[1]!.replace(/\/$/, '');
+    const strona = await t.svc.stronaLinku(token, '');
+    expect(strona.status).toBe(200);
+    expect(strona.html).toContain(`https://api.verris.test/kreator/z/t${ZASOB}/960.jpg`);
+    expect(z.doPublikacji).toHaveBeenCalledWith('u1', expect.anything(), 'adresy');
+
+    const bez = zbuduj({ model: zeZdjeciem() });
+    await expect(bez.svc.publikuj('u1', 'u1', ID, { domena: 'x.pl' })).rejects.toBeInstanceOf(ServiceUnavailableException);
+    expect(bez.hosting.sesja).not.toHaveBeenCalled();
   });
 });

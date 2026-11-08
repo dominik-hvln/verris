@@ -12,8 +12,12 @@ export const PREFIKS_KOPII = '.verris-kopia-';
 /** Katalog fontów strony (względem korzenia strony) – ten sam co `bazaFontow` renderu publikacji. */
 export const KATALOG_FONTOW = 'assets/fonty';
 
-export const LIMIT_PLIKOW = 400;
-export const LIMIT_BAJTOW = 20 * 1024 * 1024;
+/**
+ * Paczka 122 – zdjęcia z biblioteki: każde to do 8 plików (4 szerokości × webp/jpg, razem zwykle 1–2 MB), stąd
+ * limity podniesione z 400 plików / 20 MB do 800 / 60 MB (galeria 24 zdjęć + hero i sekcje ≈ 40 zdjęć).
+ */
+export const LIMIT_PLIKOW = 800;
+export const LIMIT_BAJTOW = 60 * 1024 * 1024;
 /** Równoległe zapisy na koncie hostingu (menedżer plików węzła) i równoległe pobrania fontów. */
 export const ROWNOLEGLOSC = 4;
 
@@ -86,7 +90,7 @@ export function sprawdzPliki(pliki: PlikPublikacji[]): void {
       if (widziane.has(czesci.slice(0, i).join('/'))) throw new BladPlikowPublikacji('Plik i katalog o tej samej nazwie w renderze.');
     }
   }
-  if (bajty > LIMIT_BAJTOW) throw new BladPlikowPublikacji(`Strona jest za duża (${(bajty / 1048576).toFixed(1)} MB, limit 20 MB).`);
+  if (bajty > LIMIT_BAJTOW) throw new BladPlikowPublikacji(`Strona jest za duża (${(bajty / 1048576).toFixed(1)} MB, limit ${LIMIT_BAJTOW / 1048576} MB).`);
 }
 
 /** Katalogi do utworzenia (rodzice przed dziećmi) dla listy plików. */
@@ -247,7 +251,7 @@ export function naglowkiLinkuPodgladu(html: string | null, bazaFontow: string): 
     `script-src ${skroty.length ? skroty.join(' ') : "'none'"}`,
     "style-src 'unsafe-inline'",
     `font-src data:${fonty ? ` ${fonty}` : ''}`,
-    'img-src https: data:',
+    `img-src https: data:${fonty.startsWith('http:') ? ` ${fonty}` : ''}`,
     "connect-src 'none'",
     "form-action 'none'",
     "base-uri 'none'",

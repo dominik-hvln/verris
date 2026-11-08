@@ -1,6 +1,8 @@
 import { NotFoundException } from '@nestjs/common';
 import {
   BladPlikowPublikacji,
+  LIMIT_BAJTOW,
+  LIMIT_PLIKOW,
   bladSciezki,
   katalogiPlikow,
   nazwaKopii,
@@ -38,8 +40,12 @@ describe('publikacja – ścieżki z renderu', () => {
   it('komplet: duplikaty, plik i katalog o tej samej nazwie, limit liczby i rozmiaru', () => {
     expect(() => sprawdzPliki([plik('index.html'), plik('index.html')])).toThrow(BladPlikowPublikacji);
     expect(() => sprawdzPliki([plik('o-nas'), plik('o-nas/index.html')])).toThrow(/tej samej nazwie/);
-    expect(() => sprawdzPliki(Array.from({ length: 401 }, (_, i) => plik(`p${i}.html`)))).toThrow(/za dużo plików/);
-    expect(() => sprawdzPliki([plik('a.html', 20 * 1024 * 1024 + 1)])).toThrow(/za duża/);
+    // Paczka 122: zdjęcia z biblioteki (do 8 plików na zdjęcie) – limity 800 plików i 60 MB.
+    expect(LIMIT_PLIKOW).toBe(800);
+    expect(LIMIT_BAJTOW).toBe(60 * 1024 * 1024);
+    expect(() => sprawdzPliki(Array.from({ length: LIMIT_PLIKOW + 1 }, (_, i) => plik(`p${i}.html`)))).toThrow(/za dużo plików/);
+    expect(() => sprawdzPliki([plik('a.html', LIMIT_BAJTOW + 1)])).toThrow(/za duża.*limit 60 MB/);
+    expect(() => sprawdzPliki([plik('a.html', 20 * 1024 * 1024 + 1)])).not.toThrow();
     expect(() => sprawdzPliki([plik('index.html'), plik('assets/styl.css')])).not.toThrow();
   });
 

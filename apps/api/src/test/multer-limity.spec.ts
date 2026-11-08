@@ -89,7 +89,7 @@ describe('SEC-07 – multipart nie kładzie procesu', () => {
   it('żaden interceptor nie omija wspólnych limitów', () => {
     // Asercja o treści STOI OBOK zachowaniowej, nie zamiast niej (lekcja z X-34):
     // tamta sprawdza, co robi funkcja, ta — że wszyscy z niej korzystają.
-    const zrodla = ['apps/api/src/tickets/tickets.controller.ts', 'apps/api/src/files/files.controller.ts'];
+    const zrodla = ['apps/api/src/tickets/tickets.controller.ts', 'apps/api/src/files/files.controller.ts', 'apps/api/src/kreator/zasoby.controller.ts'];
     const omijajace = zrodla.filter((p) => {
       const t = readFileSync(resolve(KORZEN, p), 'utf-8');
       return /memoryStorage\(\)/.test(t) || !/opcjeUploaduDoPamieci\(/.test(t);

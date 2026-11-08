@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { AlertCircle, Check, CloudOff, Eye, History, ListTree, Loader2, Menu, Monitor, MoreHorizontal, Pencil, Rocket, Smartphone, Sparkles, X } from 'lucide-react';
-import { KATALOG_STYLOW, type Motyw, type Strona } from '@verris/kreator/klient';
+import { KATALOG_STYLOW, podzielSciezke, poleObrazu, poleTekstowe, wartoscPod, zastosujTekst, type Motyw, type Obraz, type Strona } from '@verris/kreator/klient';
 import { Switch } from '@/components/panel/v2';
 import { cx } from '@/components/panel/cx';
 import { klasaPrzyciskuPaska, PasekSkupienia, useSkupienie } from '@/components/panel/tryb-skupienia';
@@ -18,8 +18,10 @@ import { PanelSeo } from './panel-seo';
 import { PanelAi } from './panel-ai';
 import { Historia } from './historia';
 import { Publikacja } from './publikacja';
-import { Podglad, type WiadomoscPodgladu } from './podglad';
-import { NAZWY_SEKCJI, ustaw, walidujWEdytorze, type Sciezka } from './schemat';
+import { Podglad, type TrybEdycji, type WiadomoscDoRamki, type WiadomoscEdycji, type WiadomoscPodgladu } from './podglad';
+import { NAZWY_SEKCJI, przesun, ustaw, walidujWEdytorze, type Sciezka } from './schemat';
+import { StosZmian } from './cofanie';
+import { WyborZdjecia } from './zdjecia/wybor-zdjecia';
 import type { KontekstFormularza } from './formularz-sekcji';
 import { useOknoModalne, useUkladEdytora } from './uklad';
 
@@ -46,6 +48,13 @@ export function celBledu(sciezka: string): { zakladka: Zakladka; podstrona?: num
   if (m) return { zakladka: 'seo', podstrona: Number(m[1]) };
   if (sciezka.startsWith('motyw')) return { zakladka: 'motyw' };
   return { zakladka: 'seo' };
+}
+
+/** Pole, w którym Ctrl+Z należy do przeglądarki (cofanie wpisywanego tekstu), a nie do edytora. */
+export function wPoluTekstowym(cel: EventTarget | null): boolean {
+  if (!(cel instanceof HTMLElement)) return false;
+  if (cel.isContentEditable || cel.tagName === 'TEXTAREA') return true;
+  return cel.tagName === 'INPUT' && !['checkbox', 'radio', 'button', 'submit', 'range', 'color', 'file'].includes((cel as HTMLInputElement).type);
 }
 
 function OpisZapisu({ stan, bledow }: { stan: StanZapisu; bledow: number }) {
@@ -109,6 +118,13 @@ export function Edytor({ widok: widokPoczatkowy, stan }: { widok: WidokStronyKre
   const [nazwa, setNazwa] = useState(widokPoczatkowy.nazwa);
   const [ogloszenie, setOgloszenie] = useState('');
   const [propozycjaW, setPropozycjaW] = useState<number | null>(null);
+  // Edycja na stronie (paczka 122): tekst w ramce podglądu, pasek sekcji, wybór zdjęcia, cofanie lokalne.
+  const [edycjaNaStronie, setEdycjaNaStronie] = useState(true);
+  const [zRamki, setZRamki] = useState<{ przed: Strona; po: Strona } | null>(null);
+  const [fokusPola, setFokusPola] = useState<{ sciezka: string; nr: number } | null>(null);
+  const [wyborZdjecia, setWyborZdjecia] = useState<string | null>(null);
+  const kanalRef = useRef<((m: WiadomoscDoRamki) => void) | null>(null);
+  const stos = useRef(new StosZmian<Strona>());
 
   // Układ responsywny (paczka 121): wygląd z klas CSS, tu tylko zachowanie szuflad i zakładek telefonu.
   const uklad = useUkladEdytora();
@@ -175,13 +191,46 @@ export function Edytor({ widok: widokPoczatkowy, stan }: { widok: WidokStronyKre
     toast.message(t);
   };
 
-  const zmienModel = useCallback((fn: (m: Strona) => Strona) => {
-    setModel((m) => fn(m));
+  /** Cofnięcie / ponowienie lokalnej zmiany (stos w pamięci; historia wersji w API – osobno, w „Historii”). */
+  const przejdzWStosie = (kierunek: 'cofnij' | 'ponow') => {
+    const nowy = kierunek === 'cofnij' ? stos.current.cofnij(refy.current.model) : stos.current.ponow(refy.current.model);
+    if (!nowy) {
+      oglos(kierunek === 'cofnij' ? 'Nie ma zmian do cofnięcia.' : 'Nie ma zmian do ponowienia.');
+      return;
+    }
+    refy.current.model = nowy;
+    setModel(nowy);
+    setZRamki(null);
     setRewizja((r) => r + 1);
+    setKlucz((x) => x + 1);
+    setIp((i) => Math.min(i, nowy.strony.length - 1));
+    setZaznaczona((z) => (z && nowy.strony.some((p) => p.sekcje.some((x) => x.id === z)) ? z : (nowy.strony[0]?.sekcje[0]?.id ?? null)));
+    oglos(kierunek === 'cofnij' ? 'Cofnięto zmianę.' : 'Przywrócono zmianę.');
+  };
+  const akcje = useRef({ cofnij: () => undefined as void, ponow: () => undefined as void });
+  useLayoutEffect(() => {
+    akcje.current = { cofnij: () => przejdzWStosie('cofnij'), ponow: () => przejdzWStosie('ponow') };
+  });
+
+  /**
+   * Każda lokalna zmiana modelu (formularz, struktura, motyw, ramka) idzie tędy: bieżący model z refy (kolejne zmiany
+   * w jednym zdarzeniu składają się poprawnie) i wpis na stosie cofania. `klucz` – ścieżka pola: szybkie pisanie
+   * w jednym polu to jeden krok cofania.
+   */
+  const zmienModel = useCallback((fn: (m: Strona) => Strona, klucz?: string) => {
+    const przed = refy.current.model;
+    const po = fn(przed);
+    if (po === przed) return;
+    stos.current.zapisz(przed, klucz);
+    refy.current.model = po;
+    setModel(po);
+    setRewizja((r) => r + 1);
+    // Ramka pokazuje model z ramki tylko do następnej zmiany spoza niej (przyjmijTekst ustawia to po tej funkcji).
+    setZRamki(null);
   }, []);
 
   const k: KontekstFormularza = useMemo(
-    () => ({ model, bledy: walidacja.bledy, onZmiana: (s: Sciezka, w: unknown) => zmienModel((m) => ustaw(m, s, w)) }),
+    () => ({ model, bledy: walidacja.bledy, onZmiana: (s: Sciezka, w: unknown) => zmienModel((m) => ustaw(m, s, w), s.join('.')) }),
     [model, walidacja.bledy, zmienModel],
   );
 
@@ -190,7 +239,11 @@ export function Edytor({ widok: widokPoczatkowy, stan }: { widok: WidokStronyKre
     setWidok(w);
     if (!w.model) return;
     const nowy = w.model;
+    // Model z serwera (AI, przywrócona wersja, propozycja) – lokalny stos cofania zaczyna się od nowa.
+    stos.current.wyczysc();
+    refy.current.model = nowy;
     setModel(nowy);
+    setZRamki(null);
     const r = refy.current.rewizja + 1;
     setRewizja(r);
     setZapisana(r);
@@ -249,7 +302,16 @@ export function Edytor({ widok: widokPoczatkowy, stan }: { widok: WidokStronyKre
   // Ctrl/Cmd+S – zapis od razu; ostrzeżenie przeglądarki przy zamykaniu karty z niezapisanymi zmianami.
   useEffect(() => {
     const klawisz = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+      const mod = (e.ctrlKey || e.metaKey) && !e.altKey;
+      const litera = e.key.toLowerCase();
+      // Ctrl/Cmd+Z, Shift+Ctrl/Cmd+Z, Ctrl+Y – cofanie lokalne; w polu tekstowym zostaje cofanie przeglądarki.
+      if (mod && (litera === 'z' || litera === 'y') && !wPoluTekstowym(e.target)) {
+        e.preventDefault();
+        if (litera === 'y' || e.shiftKey) akcje.current.ponow();
+        else akcje.current.cofnij();
+        return;
+      }
+      if (mod && litera === 's') {
         e.preventDefault();
         if (!refy.current.walidacja.ok) {
           oglos('Popraw zaznaczone pola – strona z błędami nie zapisze się.');
@@ -343,6 +405,122 @@ export function Edytor({ widok: widokPoczatkowy, stan }: { widok: WidokStronyKre
     else oglos('Formularz kontaktowy zadziała na opublikowanej stronie.');
   };
 
+  /** Pole formularza po ścieżce modelu: zakładka, podstrona i sekcja jak przy błędzie, panel edycji, fokus na polu. */
+  const otworzPole = (sciezka: string) => {
+    const cel = celBledu(sciezka);
+    if (cel.podstrona !== undefined && model.strony[cel.podstrona]) setIp(cel.podstrona);
+    if (cel.podstrona !== undefined && cel.sekcja !== undefined) {
+      const s = model.strony[cel.podstrona]?.sekcje[cel.sekcja];
+      if (s) setZaznaczona(s.id);
+    }
+    setZakladka(cel.zakladka);
+    pokazEdycje();
+    setFokusPola((f) => ({ sciezka, nr: (f?.nr ?? 0) + 1 }));
+  };
+
+  // Fokus na polu po ścieżce (`data-sciezka` w formularzu) – po wyrenderowaniu zakładki; kilka klatek zapasu.
+  useEffect(() => {
+    if (!fokusPola) return;
+    let proby = 0;
+    let klatka = 0;
+    const szukaj = () => {
+      const panel = document.getElementById('kr-panel');
+      const pole = [...(panel?.querySelectorAll<HTMLElement>('[data-sciezka]') ?? [])].find((e) => e.dataset.sciezka === fokusPola.sciezka);
+      if (pole && !(pole as HTMLInputElement).disabled) {
+        pole.focus({ preventScroll: true });
+        pole.scrollIntoView?.({ block: 'center' });
+        return;
+      }
+      if (++proby < 12) klatka = requestAnimationFrame(szukaj);
+      else panel?.focus();
+    };
+    klatka = requestAnimationFrame(szukaj);
+    return () => cancelAnimationFrame(klatka);
+  }, [fokusPola]);
+
+  /** Tekst wpisany w ramce: walidacja ścieżki i limitu (@verris/kreator), zmiana modelu bez przeładowania ramki. */
+  const przyjmijTekst = (sciezka: string, wartosc: string) => {
+    const przed = refy.current.model;
+    const w = zastosujTekst(przed, sciezka, wartosc);
+    if (!w.ok) {
+      if (w.powod === 'pusty') {
+        const stary = wartoscPod(przed, sciezka);
+        if (typeof stary === 'string') kanalRef.current?.({ typ: 'tekst-z-zewnatrz', sciezka, wartosc: stary });
+        oglos('To pole nie może być puste – przywróciliśmy poprzedni tekst.');
+      }
+      return;
+    }
+    // Ramka pokazuje tekst przed oczyszczeniem/przycięciem – wyrównujemy go z modelem.
+    if (w.wartosc !== wartosc) kanalRef.current?.({ typ: 'tekst-z-zewnatrz', sciezka, wartosc: w.wartosc });
+    if (!w.zmiana) return;
+    zmienModel(() => w.model, sciezka);
+    if (!w.przerysuj) setZRamki({ przed, po: w.model });
+    if (w.przycieto) oglos('Tekst przycięty do limitu znaków tego pola.');
+  };
+
+  /** Przyciski paska sekcji w ramce → te same akcje co w panelu (lista sekcji, zakładki). */
+  const polecenieSekcji = (sekcjaId: string, polecenie: 'w-gore' | 'w-dol' | 'ukryj' | 'ai' | 'opcje', sciezka?: string) => {
+    const strona = refy.current.model.strony[ip];
+    const i = strona?.sekcje.findIndex((s) => s.id === sekcjaId) ?? -1;
+    if (!strona || i < 0) return;
+    const nazwaSek = NAZWY_SEKCJI[strona.sekcje[i]!.typ];
+    const zmienSekcje = (fn: (l: Strona['strony'][number]['sekcje']) => Strona['strony'][number]['sekcje']) =>
+      zmienModel((m) => ({ ...m, strony: m.strony.map((p, j) => (j === ip ? { ...p, sekcje: fn(p.sekcje) } : p)) }));
+    if (polecenie === 'w-gore' || polecenie === 'w-dol') {
+      const na = polecenie === 'w-gore' ? i - 1 : i + 1;
+      if (na < 0 || na >= strona.sekcje.length) return;
+      zmienSekcje((l) => przesun(l, i, na));
+      setZaznaczona(sekcjaId);
+      oglos(`Przeniesiono sekcję „${nazwaSek}” ${polecenie === 'w-gore' ? 'wyżej' : 'niżej'}.`);
+    } else if (polecenie === 'ukryj') {
+      zmienSekcje((l) => l.map((s, j) => (j === i ? { ...s, ukryta: true } : s)));
+      oglos(`Ukryto sekcję „${nazwaSek}”. Przywrócisz ją na liście sekcji (ikona oka) albo skrótem Ctrl+Z.`);
+    } else if (polecenie === 'ai') {
+      setZaznaczona(sekcjaId);
+      setZakladka('ai');
+      pokazEdycje();
+    } else if (sciezka && sciezka.startsWith(`strony.${ip}.sekcje.${i}.`)) {
+      otworzPole(sciezka);
+    } else {
+      setZaznaczona(sekcjaId);
+      setZakladka('sekcja');
+      pokazEdycje();
+    }
+  };
+
+  /** Wiadomości mostka z ramki (kształt sprawdził już podgląd: v:1, źródło = nasza ramka). */
+  const wiadomoscEdycji = (w: WiadomoscEdycji) => {
+    const naStronie = (sid: string) => !!podstrona.sekcje.some((s) => s.id === sid);
+    switch (w.typ) {
+      case 'zaznacz':
+        if (!naStronie(w.sekcja)) return;
+        // Telefon: stuknięcie w tekst otwiera zakładkę „Edytuj” z fokusem na tym polu.
+        if (w.sciezka && uklad === 'telefon' && poleTekstowe(refy.current.model, w.sciezka)) {
+          otworzPole(w.sciezka);
+          return;
+        }
+        zaznacz(w.sekcja, false);
+        return;
+      case 'tekst':
+        przyjmijTekst(w.sciezka, w.wartosc);
+        return;
+      case 'obraz':
+        if (poleObrazu(refy.current.model, w.sciezka)) setWyborZdjecia(w.sciezka);
+        return;
+      case 'polecenie':
+        if (naStronie(w.sekcja)) polecenieSekcji(w.sekcja, w.polecenie, w.sciezka);
+        return;
+      case 'skrot':
+        if (w.skrot === 'cofnij') przejdzWStosie('cofnij');
+        else if (w.skrot === 'ponow') przejdzWStosie('ponow');
+        else if (refy.current.walidacja.ok) void zapiszTeraz();
+        else oglos('Popraw zaznaczone pola – strona z błędami nie zapisze się.');
+        return;
+    }
+  };
+
+  const trybEdycji: TrybEdycji = !edycjaNaStronie ? 'brak' : uklad === 'telefon' ? 'zaznacz' : 'edycja';
+
   const zmienNazwe = async () => {
     const nowa = nazwa.trim();
     if (!nowa || nowa === widok.nazwa) {
@@ -430,6 +608,13 @@ export function Edytor({ widok: widokPoczatkowy, stan }: { widok: WidokStronyKre
   const pozostaloAi = pozostalo(plan.zmianAiMies, zmianyAi);
   const sciezkaSekcji: Sciezka = ['strony', ip, 'sekcje', indeksSekcji];
   const propozycje = widok.propozycje.filter((p): p is Strona => !!p && typeof p === 'object' && 'motyw' in (p as object));
+
+  const edycjaSwitch = (
+    <span className="flex items-center gap-2 text-[12.5px] text-foreground">
+      <Switch label="Edycja na stronie – kliknij tekst w podglądzie, żeby go zmienić" checked={edycjaNaStronie} onChange={setEdycjaNaStronie} />
+      <span aria-hidden>Edycja na stronie</span>
+    </span>
+  );
 
   const proSwitch = !funkcjePro ? (
     <span className="flex items-center gap-2 text-[12.5px] text-foreground">
@@ -521,6 +706,7 @@ export function Edytor({ widok: widokPoczatkowy, stan }: { widok: WidokStronyKre
               </button>
             ))}
           </div>
+          <span className="max-xl:hidden">{edycjaSwitch}</span>
           <span className="max-xl:hidden">{proSwitch}</span>
           <button type="button" className={cx(klasaPrzyciskuPaska, 'border border-line-strong px-3 max-xl:hidden')} onClick={() => setHistoria(true)}>
             <History className="h-4 w-4" aria-hidden /> Historia
@@ -576,6 +762,7 @@ export function Edytor({ widok: widokPoczatkowy, stan }: { widok: WidokStronyKre
                 >
                   <History className="h-4 w-4" aria-hidden /> Historia wersji
                 </button>
+                <div className="flex min-h-11 items-center px-2.5 max-md:hidden md:min-h-9">{edycjaSwitch}</div>
                 {proSwitch ? <div className="flex min-h-11 items-center px-2.5 md:min-h-9">{proSwitch}</div> : null}
                 {skupienie ? (
                   <button
@@ -698,6 +885,10 @@ export function Edytor({ widok: widokPoczatkowy, stan }: { widok: WidokStronyKre
             poprawny={walidacja.ok}
             onPelnyEkran={() => setPelnyEkran(true)}
             onWiadomosc={wiadomosc}
+            edycja={trybEdycji}
+            zRamki={zRamki}
+            kanalRef={kanalRef}
+            onEdycja={wiadomoscEdycji}
           />
         </section>
 
@@ -751,7 +942,7 @@ export function Edytor({ widok: widokPoczatkowy, stan }: { widok: WidokStronyKre
                 key={klucz}
                 model={model}
                 funkcjePro={funkcjePro}
-                onMotyw={(fn: (m: Motyw) => Motyw) => zmienModel((m) => ({ ...m, motyw: fn(m.motyw) }))}
+                onMotyw={(fn: (m: Motyw) => Motyw) => zmienModel((m) => ({ ...m, motyw: fn(m.motyw) }), 'motyw')}
                 onZnak={(z) => zmienModel((m) => ({ ...m, stopka: { ...m.stopka, znakKreatora: z } }))}
                 onWybranoPro={wybranoPro}
               />
@@ -814,6 +1005,21 @@ export function Edytor({ widok: widokPoczatkowy, stan }: { widok: WidokStronyKre
             onWiadomosc={(w) => (w.typ === 'sekcja' ? zaznacz(w.id, false) : wiadomosc(w))}
           />
         </PelnyPodglad>
+      ) : null}
+
+      {wyborZdjecia ? (
+        <WyborZdjecia
+          obraz={wartoscPod(model, wyborZdjecia) as Obraz | undefined}
+          sciezka={wyborZdjecia}
+          stronaId={id}
+          otwarty
+          onWybierz={(obraz: Obraz) => {
+            const seg = podzielSciezke(wyborZdjecia);
+            if (seg) zmienModel((m) => ustaw(m, seg, obraz), wyborZdjecia);
+            setWyborZdjecia(null);
+          }}
+          onZamknij={() => setWyborZdjecia(null)}
+        />
       ) : null}
 
       <Historia id={id} otwarta={historia} onZamknij={() => setHistoria(false)} onPrzywroc={przywroc} />

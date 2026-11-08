@@ -123,12 +123,14 @@ services:
         mc mb -p verris/verris-dpa-pdfs;
         mc mb -p verris/verris-invoices;
         mc mb -p verris/verris-www-media;
+        mc mb -p verris/verris-kreator-zasoby;
         mc mb -p verris/$$S3_BUCKET_BACKUPS;
         mc anonymous set none verris/verris-ticket-attachments;
         mc anonymous set none verris/verris-www-media;
         mc anonymous set none verris/verris-data-exports;
         mc anonymous set none verris/verris-dpa-pdfs;
         mc anonymous set none verris/verris-invoices;
+        mc anonymous set none verris/verris-kreator-zasoby;
         mc anonymous set none verris/$$S3_BUCKET_BACKUPS;
         mc ilm rule add --expire-days 7 verris/verris-data-exports || true;
         mc ilm rule add --expire-days 14 verris/$$S3_BUCKET_BACKUPS || true;
@@ -232,6 +234,7 @@ services:
       S3_BUCKET_DATA_EXPORTS: ${S3_BUCKET_DATA_EXPORTS:-verris-data-exports}
       S3_BUCKET_DPA_PDFS: ${S3_BUCKET_DPA_PDFS:-verris-dpa-pdfs}
       S3_BUCKET_INVOICES: ${S3_BUCKET_INVOICES:-verris-invoices}
+      S3_BUCKET_KREATOR_ZASOBY: ${S3_BUCKET_KREATOR_ZASOBY:-verris-kreator-zasoby}
       S3_BUCKET_BACKUPS: ${S3_BUCKET_BACKUPS:-verris-backups}
       DATA_EXPORT_TEMP_DIR: /tmp/verris-data-exports
       SMTP_HOST: ${SMTP_HOST:-host.docker.internal}
@@ -286,6 +289,9 @@ services:
       AI_TYLKO_KONTA: ${AI_TYLKO_KONTA:-}
       # I-07 — baza podatności WordPressa (Wordfence Intelligence)
       WORDFENCE_API_KEY: ${WORDFENCE_API_KEY:-}
+      # Paczka 122 — biblioteki zdjęć Verris Kreatora (bez klucza dostawca jest wyłączony; Openverse działa bez klucza).
+      PIXABAY_API_KEY: ${PIXABAY_API_KEY:-}
+      PEXELS_API_KEY: ${PEXELS_API_KEY:-}
       # W6 — partner sadzenia drzew (posadzimy.pl): token produkcyjny i testowy (RC); wybór API w adminie → Program EKO i drzewa.
       POSADZIMY_API_TOKEN: ${POSADZIMY_API_TOKEN:-}
       POSADZIMY_API_TOKEN_TEST: ${POSADZIMY_API_TOKEN_TEST:-}

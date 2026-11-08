@@ -6,6 +6,7 @@
  * poza samymi typami kontraktu).
  */
 export * from './model.ts';
+export * from './edycja.ts';
 export * from './katalog.ts';
 export * from './plany.ts';
 export { TYPY_STRON, type BriefStrony, type KierunekProjektu, type TypStrony } from './ai/kontrakt.ts';

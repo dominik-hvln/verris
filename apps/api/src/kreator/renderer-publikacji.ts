@@ -15,6 +15,8 @@ export interface OpcjePublikacji {
   noindex?: boolean;
   /** Adres POST formularza kontaktowego (…/kreator/formularz/<token>); brak = formularz wyłączony. */
   adresFormularza?: string;
+  /** Paczka 122 – zdjęcia z biblioteki: 'assets/img/<id>-<szer>.<format>' (domena, ZIP) albo podpisany adres API. */
+  adresZasobu?: (zasobId: string, szerokosc: number, format: 'webp' | 'jpg') => string;
 }
 
 export interface RendererPublikacji {

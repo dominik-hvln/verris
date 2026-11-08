@@ -1,5 +1,6 @@
 import type { Podstrona, Sekcja } from '../model.ts';
 import { adresHtml, emailLink, listaGodzin, telefonLink } from './dane.ts';
+import { atrTekstu, sciezkaPodstrony } from './edycja.ts';
 import { esc } from './esc.ts';
 import { ikona, NAZWY_SOCIAL } from './ikony.ts';
 import type { KontekstPodstrony } from './kontekst.ts';
@@ -35,7 +36,8 @@ export function menu(k: KontekstPodstrony): PozycjaMenu[] {
 function logo(k: KontekstPodstrony): string {
   const nazwa = k.s.strona.firma.nazwa;
   const inicjal = (nazwa.trim().match(/\p{L}|\p{N}/u)?.[0] ?? '').toUpperCase();
-  return `<a class="logo" href="${esc(hrefPodstrony(k, ''))}"><span class="logo-znak" aria-hidden="true">${esc(inicjal)}</span><span class="logo-nazwa">${esc(nazwa)}</span></a>`;
+  const atr = atrTekstu(k, k.s.edycja ? 'firma.nazwa' : null);
+  return `<a class="logo" href="${esc(hrefPodstrony(k, ''))}"><span class="logo-znak" aria-hidden="true">${esc(inicjal)}</span><span class="logo-nazwa"${atr}>${esc(nazwa)}</span></a>`;
 }
 
 /** Główny CTA nagłówka: pierwszy główny przycisk z hero albo kotwica sekcji kontakt. */
@@ -76,7 +78,8 @@ export function stopka(k: KontekstPodstrony): string {
   const st = s.strona.stopka;
   const pozycje = menu(k);
   const kol: string[] = [];
-  kol.push(`<div class="stopka-firma">${logo(k)}<p>${esc(st.tekst ?? f.opisKrotki)}</p></div>`);
+  const atrOpisu = atrTekstu(k, k.s.edycja ? (st.tekst !== undefined ? 'stopka.tekst' : 'firma.opisKrotki') : null);
+  kol.push(`<div class="stopka-firma">${logo(k)}<p${atrOpisu}>${esc(st.tekst ?? f.opisKrotki)}</p></div>`);
   const kontakt = [adresHtml(f), telefonLink(f) ? `<p>${telefonLink(f)}</p>` : '', emailLink(f) ? `<p>${emailLink(f)}</p>` : ''].join('');
   if (kontakt) kol.push(`<div><h2 class="stopka-tytul">Kontakt</h2>${kontakt}</div>`);
   const godziny = listaGodzin(f, 'godziny-lista godziny-stopka');
@@ -137,7 +140,8 @@ export function trescStrony(k: KontekstPodstrony): string {
     const okruszki = p.slug
       ? `<nav class="okruszki" aria-label="Okruszki"><ol><li><a href="${esc(hrefPodstrony(k, ''))}">${esc(s.strona.strony.find((x) => x.slug === '')?.tytul ?? 'Start')}</a></li><li aria-current="page">${esc(p.tytul)}</li></ol></nav>`
       : '';
-    czesci.push(`<header class="naglowek-strony"><div class="kontener kontener-waski">${okruszki}${meta}<h1>${esc(sierotki(p.tytul))}</h1>${lead}</div></header>`);
+    const sp = sciezkaPodstrony(k);
+    czesci.push(`<header class="naglowek-strony"><div class="kontener kontener-waski">${okruszki}${meta}<h1${atrTekstu(k, sp && `${sp}.tytul`)}>${esc(sierotki(p.tytul))}</h1>${lead}</div></header>`);
   }
   sekcje.forEach((sek, i) => {
     czesci.push(renderSekcji(k, sek));

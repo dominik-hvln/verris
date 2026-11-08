@@ -3,14 +3,16 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { renderujStrone, walidujStrone, migrujModel, type WersjaKreatora } from '@verris/kreator';
 import { apiFetch, ApiError } from '@/lib/api';
 import type { StanKreatora } from '@/lib/kreator';
-import { LIMIT_CIALA, naglowkiPodgladu, stronaKomunikatu, zDodatkamiEdytora, zlozPodglad } from './sklad';
+import { adresZasobuDlaPodgladu } from '@/app/dashboard/kreator/edytor/zdjecia/adresy-podgladu';
+import { LIMIT_CIALA, naglowkiPodgladu, stronaKomunikatu, zasobyModelu, zDodatkamiEdytora, zlozPodglad } from './sklad';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * Podgląd na żywo w edytorze kreatora. Edytor wysyła formularz POST (application/x-www-form-urlencoded) do ramki
  * `target="podglad"`: pole `model` (JSON modelu z edytora, także niezapisanego), `podstrona` (slug), `pro` ('1' =
- * pokaż elementy Pro ze wstęgą), `przewin` (px), `zaznaczona` (id sekcji). Pole `wersja` z formularza jest
+ * pokaż elementy Pro ze wstęgą), `przewin` (px), `zaznaczona` (id sekcji), `edycja` ('1' = edycja tekstu na stronie,
+ * 'zaznacz' = telefon: stuknięcie w tekst otwiera pole w formularzu edytora; brak = zwykły podgląd). Pole `wersja` z formularza jest
  * IGNOROWANE – wersję kreatora (próba/hosting/Pro) bierze trasa z API (GET /kreator/stan) dla sesji z ciasteczka.
  * Render po stronie serwera Next: przeglądarka nie dostaje renderera ani master promptu.
  */
@@ -69,6 +71,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const podstrona = pola.get('podstrona') ?? '';
   if (!/^([a-z0-9-]{1,60}(\/[a-z0-9-]{1,60})?)?$/.test(podstrona)) return odpowiedz(400, 'Nieprawidłowa podstrona', 'Wybierz podstronę z listy w edytorze.');
   const zaznaczona = pola.get('zaznaczona');
+  const edycjaPole = pola.get('edycja');
+  const edycja = edycjaPole === '1' ? 'edycja' : edycjaPole === 'zaznacz' ? 'zaznacz' : null;
   const przewin = Number(pola.get('przewin') ?? '0');
 
   let dane: unknown;
@@ -88,18 +92,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!w.strona.strony.some((p) => p.slug === podstrona)) return odpowiedz(404, 'Nie ma takiej podstrony', 'Wybierz podstronę z listy w edytorze.');
 
   const baza = bazaFontow();
+  // Zdjęcia z biblioteki: podpisane adresy API (tylko zasoby konta z sesji); błąd API = ramki zastępcze.
+  const adresZasobu = await adresZasobuDlaPodgladu(zasobyModelu(w.strona));
   const render = renderujStrone(w.strona, {
     tryb: 'podglad',
     wersja: wersja.wersja,
     podgladPro: pola.get('pro') === '1',
     bazaFontow: baza,
     noindex: true,
+    edycja: edycja !== null,
+    ...(adresZasobu ? { adresZasobu } : {}),
   });
   const html = zlozPodglad(render.pliki, podstrona);
   if (html === null) return odpowiedz(404, 'Nie ma takiej podstrony', 'Wybierz podstronę z listy w edytorze.');
 
   const zId = zaznaczona && /^[a-z][a-z0-9-]{0,39}$/.test(zaznaczona) ? zaznaczona : null;
-  const wynik = zDodatkamiEdytora(html, { podstrona, przewin: Number.isFinite(przewin) ? przewin : 0, zaznaczona: zId });
+  const wynik = zDodatkamiEdytora(html, { podstrona, przewin: Number.isFinite(przewin) ? przewin : 0, zaznaczona: zId, edycja });
   return new NextResponse(wynik, { status: 200, headers: naglowkiPodgladu(baza) });
 }
 

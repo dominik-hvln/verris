@@ -30,11 +30,20 @@ export type Przycisk = z.infer<typeof Przycisk>;
 
 /**
  * Obraz. `placeholder` = renderer rysuje elegancką ramkę z palety (kształt z SVG) i podpis, co w nią wstawić.
- * `pexels` / `ai` / `wlasne` = plik skopiowany na hosting klienta (nigdy hotlink), `url` względny.
+ * `wlasne` / `pixabay` / `openverse` / `pexels` / `ai` = plik skopiowany na hosting klienta (nigdy hotlink).
+ * Paczka 122: zdjęcie z biblioteki konta wskazuje `zasobId` (KreatorZasob w magazynie Verris) – renderer składa
+ * <picture> z wariantów webp/jpg przez `OpcjeRenderu.adresZasobu`; `url` zostaje dla obrazów sprzed biblioteki.
  */
 export const Obraz = z.object({
   alt: z.string().trim().max(200),
-  zrodlo: z.enum(['placeholder', 'pexels', 'ai', 'wlasne']).default('placeholder'),
+  zrodlo: z.enum(['placeholder', 'pexels', 'ai', 'wlasne', 'pixabay', 'openverse']).default('placeholder'),
+  /** Zdjęcie w bibliotece konta (KreatorZasob); serwer sprawdza przy zapisie, że należy do konta strony. */
+  zasobId: z.uuid().optional(),
+  /** Punkt, który zostaje w kadrze przy przycinaniu (0..1 od lewej/góry) → object-position. */
+  ogniskowa: z.object({ x: z.number().min(0).max(1), y: z.number().min(0).max(1) }).optional(),
+  /** Wymiary oryginału w px (z biblioteki) – renderer wybiera z nich szerokości wariantów. */
+  szerokosc: z.number().int().min(1).max(20000).optional(),
+  wysokosc: z.number().int().min(1).max(20000).optional(),
   url: z
     .string()
     .trim()
@@ -46,6 +55,8 @@ export const Obraz = z.object({
   /** Podpis widoczny na placeholderze, np. „Zdjęcie: wnętrze salonu”. */
   podpis: tekstOpc(120),
   autor: tekstOpc(120),
+  /** Kod licencji ('cc0', 'pdm', 'pixabay', 'pexels', 'cc-by', …) – podpis autora tylko, gdy licencja go wymaga. */
+  licencja: z.string().trim().max(40).regex(/^[a-z0-9.-]*$/).optional(),
   licencjaUrl: z.string().trim().max(500).optional(),
   proporcje: z.enum(['16:9', '4:3', '3:2', '1:1', '3:4', '4:5']).default('4:3'),
 });

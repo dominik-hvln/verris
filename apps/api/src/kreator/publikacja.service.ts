@@ -7,6 +7,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
   ServiceUnavailableException,
   UnprocessableEntityException,
 } from '@nestjs/common';
@@ -59,6 +60,8 @@ import { adresFormularza } from './formularz-token.js';
 import { PLIKI_HOSTINGU_KREATORA, type KatalogDomeny, type PlikiHostingu, type SesjaPlikow } from './pliki-hostingu.js';
 import { RENDERER_PUBLIKACJI, type RendererPublikacji } from './renderer-publikacji.js';
 import { readmeZip, zbudujZip } from './zip-strony.js';
+import { KreatorZasobyService } from './zasoby.service.js';
+import { idZasobow } from './zasoby-model.js';
 
 /** Link podglądu wersji próbnej – 7 dni, odnawiany kolejną „publikacją”. */
 export const WAZNOSC_LINKU_MS = 7 * 24 * 60 * 60 * 1000;
@@ -98,6 +101,8 @@ export class KreatorPublikacjaService {
     private readonly fonty: FontsProxyService,
     @Inject(PLIKI_HOSTINGU_KREATORA) private readonly hosting: PlikiHostingu,
     @Inject(RENDERER_PUBLIKACJI) private readonly renderer: RendererPublikacji,
+    // Paczka 122 – zdjęcia z biblioteki. Opcjonalny tylko dla testów stron bez zdjęć (model ze zdjęciem bez serwisu = błąd).
+    @Optional() private readonly zasoby?: KreatorZasobyService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -178,9 +183,10 @@ export class KreatorPublikacjaService {
     }
 
     return this.zBlokada(id, async () => {
-      // Render i fonty przed pierwszą operacją na koncie – zły render (ścieżki, limity) nie dotyka hostingu.
-      const wynik = this.renderer.renderuj(strona, { wersja, adresStrony: `https://${domena}`, bazaFontow: KATALOG_FONTOW, ...this.formularz(id) });
-      const { pliki, ostrzezenia } = await this.plikiPublikacji(wynik);
+      // Render, fonty i zdjęcia przed pierwszą operacją na koncie – zły render (ścieżki, limity) nie dotyka hostingu.
+      const z = await this.zdjecia(userId, strona, 'pliki');
+      const wynik = this.renderer.renderuj(z.strona, { wersja, adresStrony: `https://${domena}`, bazaFontow: KATALOG_FONTOW, ...this.formularz(id), ...z.opcje });
+      const { pliki, ostrzezenia } = await this.plikiPublikacji(wynik, z.pliki);
       const nowe = pliki.map((p) => p.sciezka);
       const se = await this.hostingu(() => this.hosting.sesja(userId, d.subskrypcjaId));
       const k = await this.hostingu(() => se.katalogDomeny(domena));
@@ -310,8 +316,9 @@ export class KreatorPublikacjaService {
     const strona = this.gotowy(s);
     // Formularz w ZIP wysyła do Verris (token strony) – tylko gdy strona jest opublikowana na domenie; inaczej wyłączony.
     const formularz = s.opublikowanaAt && s.domena ? this.formularz(id) : {};
-    const wynik = this.renderer.renderuj(strona, { wersja, ...(s.domena ? { adresStrony: `https://${s.domena}` } : {}), bazaFontow: KATALOG_FONTOW, ...formularz });
-    const { pliki } = await this.plikiPublikacji(wynik);
+    const z = await this.zdjecia(userId, strona, 'pliki');
+    const wynik = this.renderer.renderuj(z.strona, { wersja, ...(s.domena ? { adresStrony: `https://${s.domena}` } : {}), bazaFontow: KATALOG_FONTOW, ...formularz, ...z.opcje });
+    const { pliki } = await this.plikiPublikacji(wynik, z.pliki);
     pliki.push({ sciezka: 'README.txt', dane: Buffer.from(readmeZip(!!formularz.adresFormularza), 'utf8'), tekst: true });
     return { nazwa: s.nazwa, dane: await zbudujZip(pliki) };
   }
@@ -337,7 +344,13 @@ export class KreatorPublikacjaService {
     if (t.stan === 'wygasl') return komunikat(410, 'Link wygasł', 'Link podglądu był ważny 7 dni. Poproś autora strony o nowy link.');
     const strona = this.model(s);
     if (!strona || podstrona === null || !strona.strony.some((p) => p.slug === podstrona)) return komunikat(404, 'Nie znaleziono strony', 'Ta podstrona nie istnieje.');
-    const wynik = this.renderer.renderuj(strona, { wersja: 'proba', bazaFontow, noindex: true });
+    let z: Awaited<ReturnType<KreatorPublikacjaService['zdjecia']>>;
+    try {
+      z = await this.zdjecia(s.userId, strona, 'adresy');
+    } catch {
+      return komunikat(404, 'Nie znaleziono strony', 'Ta strona jest chwilowo niedostępna. Poproś autora strony o nowy link.');
+    }
+    const wynik = this.renderer.renderuj(z.strona, { wersja: 'proba', bazaFontow, noindex: true, ...z.opcje });
     const zlozony = zlozPodglad(wynik.pliki, podstrona);
     if (zlozony === null) return komunikat(404, 'Nie znaleziono strony', 'Ta podstrona nie istnieje.');
     const html = wstawPasekProby(zlozony);
@@ -348,10 +361,21 @@ export class KreatorPublikacjaService {
   // Pliki
   // ---------------------------------------------------------------------------
 
-  /** Render → pliki do zapisu (HTML/CSS/JS…) + fonty z proxy; ścieżki i limity sprawdzone. */
-  async plikiPublikacji(wynik: WynikRenderu): Promise<{ pliki: PlikPublikacji[]; ostrzezenia: string[] }> {
+  /**
+   * Zdjęcia z biblioteki w modelu (paczka 122): wymiary z bazy, adresZasobu dla renderu i – przy publikacji na domenę
+   * i ZIP – warianty do assets/img. Bez zdjęć w modelu nic nie robi.
+   */
+  private async zdjecia(userId: string, strona: Strona, tryb: 'pliki' | 'adresy') {
+    if (!idZasobow(strona).length) return { strona, opcje: {}, pliki: [] as PlikPublikacji[] };
+    if (!this.zasoby) throw new ServiceUnavailableException('Zdjęcia są chwilowo niedostępne – spróbuj za chwilę.');
+    const z = await this.zasoby.doPublikacji(userId, strona, tryb);
+    return { strona: z.strona, opcje: z.adresZasobu ? { adresZasobu: z.adresZasobu } : {}, pliki: z.pliki };
+  }
+
+  /** Render → pliki do zapisu (HTML/CSS/JS…) + fonty z proxy + zdjęcia; ścieżki i limity sprawdzone. */
+  async plikiPublikacji(wynik: WynikRenderu, zdjecia: PlikPublikacji[] = []): Promise<{ pliki: PlikPublikacji[]; ostrzezenia: string[] }> {
     const ostrzezenia = [...wynik.ostrzezenia];
-    const pliki: PlikPublikacji[] = wynik.pliki.map((p) => ({ sciezka: p.sciezka, dane: Buffer.from(p.tresc, 'utf8'), tekst: true }));
+    const pliki: PlikPublikacji[] = [...wynik.pliki.map((p) => ({ sciezka: p.sciezka, dane: Buffer.from(p.tresc, 'utf8'), tekst: true })), ...zdjecia];
     // Ścieżki z renderu sprawdzamy przed pobieraniem fontów – złośliwy render nie wywoła żadnej operacji.
     this.sprawdz(pliki);
     const nazwy = new Set<string>();
@@ -441,7 +465,7 @@ export class KreatorPublikacjaService {
     const zapisz = async (p: PlikPublikacji) => {
       const kat = polacz(katalog, rodzic(p.sciezka));
       if (p.tekst) return se.zapiszTekst(kat, nazwa(p.sciezka), p.dane.toString('utf8'));
-      // Fonty: nazwa = rodzina + waga + zakres, treść stała – już wgrany przy poprzedniej publikacji zostaje.
+      // Fonty i zdjęcia (assets/img/<id>-<szer>.<format>): nazwa wyznacza treść – plik z poprzedniej publikacji zostaje.
       if (poprzednie.has(p.sciezka)) return;
       return se.wgraj(kat, nazwa(p.sciezka), p.dane);
     };

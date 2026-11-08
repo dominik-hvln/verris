@@ -4,6 +4,7 @@ import { dopasujDoPlanu, PLANY_KREATORA } from '../plany.ts';
 import { budujCss } from './css.ts';
 import { plikFontu, ustawFonty } from './fonty.ts';
 import type { KontekstPodstrony, KontekstStrony, OpcjeRenderu, PlikStrony, WynikRenderu } from './kontekst.ts';
+import { przygotujEdycje } from './edycja.ts';
 import { budujKolory } from './paleta.ts';
 import { czyWidoczna } from './sekcje/index.ts';
 import { glowaHtml, robots, sitemap, wpisDlaPodstrony } from './seo.ts';
@@ -17,6 +18,8 @@ export { budujKolory } from './paleta.ts';
 export { znakKreatora, logoKreatora } from './znak.ts';
 export { plikFontu, slugRodziny, ZAKRESY_FONTOW, type ZakresFontu } from './fonty.ts';
 export { MAKS_POL_FORMULARZA } from './sekcje/wspolne.ts';
+export { dodatkiMostu, kodMostu, STYL_MOSTU, type OpcjeMostu } from './edycja-most.ts';
+export { SZEROKOSCI_ZDJEC, szerokosciWariantow, wymagaAtrybucji } from './obraz.ts';
 
 const ZNACZNIK_GLOWY = '<!--glowa-->';
 const EFEKTY_ZNANE = new Set(KATALOG_EFEKTOW.map((e) => e.id));
@@ -72,6 +75,7 @@ export function renderujStrone(wejscie: Strona, opcje: OpcjeRenderu): WynikRende
     ostrzezenia,
     idGlownej: new Set((strona.strony.find((p) => p.slug === '')?.sekcje ?? []).filter((x) => czyWidoczna({ podglad }, x)).map((x) => x.id)),
     adres: opcje.adresStrony ? opcje.adresStrony.trim().replace(/\/+$/, '') : null,
+    edycja: podglad && opcje.edycja ? przygotujEdycje(wejscie) : null,
     rok: data.getUTCFullYear(),
     dataIso: data.toISOString(),
   };

@@ -13,7 +13,9 @@
 import { resolve } from 'node:path';
 import nodeExternals from 'webpack-node-externals';
 
-export const NATYWNE = ['bcrypt', 'ssh2'];
+// sharp (paczka 122, zdjęcia kreatora): dodatek natywny ładowany z @img/sharp-<platforma> dynamicznym require –
+// bundler nie może go rozwiązać; poza paczką Node bierze binarkę z node_modules obrazu (glibc, Debian trixie).
+export const NATYWNE = ['bcrypt', 'ssh2', 'sharp'];
 
 export default function (options) {
   // Obraz Dockera instaluje zależności z nodeLinker: hoisted — wszystko leży w /workspace/node_modules,

@@ -89,20 +89,98 @@ export interface OpcjeObrazu {
   klasa?: string;
   /** Link do pełnego zdjęcia (lightbox). */
   lightbox?: boolean;
+  /** Atrybut `sizes` dla srcset (domyślnie pół szerokości na dużym ekranie, cały ekran na telefonie). */
+  sizes?: string;
+  /**
+   * Ścieżka kropkowa do obiektu Obraz w modelu Strona (np. `strony.0.sekcje.1.dane.obraz`) – w trybie edycji
+   * (opcje.edycja w podglądzie) opakowanie dostaje `data-k-obraz`, a edytor otwiera wybór zdjęcia.
+   */
+  sciezka?: string;
 }
 
+/** Szerokości wariantów zdjęć z biblioteki (px) – te same generuje API przy wgraniu i imporcie. */
+export const SZEROKOSCI_ZDJEC = [480, 960, 1600, 2400] as const;
+
+/**
+ * Warianty dla oryginału o szerokości `szer`: tylko ≤ oryginału (bez powiększania). Oryginał węższy niż 480 px
+ * ma jeden wariant „480” w swojej szerokości (API nie powiększa) – nazwy plików zostają stałe.
+ */
+export function szerokosciWariantow(szer: number | undefined): number[] {
+  const w = szer && szer > 0 ? szer : SZEROKOSCI_ZDJEC[SZEROKOSCI_ZDJEC.length - 1];
+  const r = SZEROKOSCI_ZDJEC.filter((s) => s <= w);
+  return r.length ? [...r] : [SZEROKOSCI_ZDJEC[0]];
+}
+
+/** Licencje bez obowiązku podpisu autora (CC0, domena publiczna, licencje Pixabay i Pexels). */
+const BEZ_ATRYBUCJI = new Set(['cc0', 'pdm', 'pixabay', 'pexels']);
+
+/** Czy licencja wymaga podpisu autora przy zdjęciu (np. CC BY). Brak licencji (zdjęcie własne) = nie. */
+export function wymagaAtrybucji(licencja: string | undefined): boolean {
+  return !!licencja && !BEZ_ATRYBUCJI.has(licencja.toLowerCase());
+}
+
+const ZRODLA_ZEWNETRZNE = new Set(['pixabay', 'openverse', 'pexels']);
+
 function srcObrazu(k: KontekstPodstrony, url: string): string {
-  if (/^https:\/\//i.test(url)) return url;
+  if (/^https?:\/\//i.test(url)) return url;
   return k.prefix + url.replace(/^\/+/, '');
+}
+
+const procent = (v: number) => `${Math.round(v * 1000) / 10}%`;
+
+/** Atrybut trybu edycji (tylko podgląd z opcją edycja – nigdy w publikacji). */
+function atrybutEdycji(k: KontekstPodstrony, sciezka: string | undefined): string {
+  return sciezka && k.s.podglad && k.s.opcje.edycja ? ` data-k-obraz="${esc(sciezka)}"` : '';
+}
+
+/**
+ * Zdjęcie z biblioteki konta: <picture> z wariantami webp (srcset) i jpg (img src + srcset), wymiary z proporcji
+ * (ramka bez przesunięć układu), object-position z ogniskowej.
+ */
+function obrazZasobu(k: KontekstPodstrony, ob: Obraz & { zasobId: string }, opcje: OpcjeObrazu, klasa: string, edycja: string): string {
+  const adres = k.s.opcje.adresZasobu;
+  if (!adres) {
+    if (!k.s.podglad) throw new Error(`Render publikacji bez adresZasobu – zdjęcie ${ob.zasobId} nie ma adresu pliku.`);
+    return `<div class="${klasa}"${edycja}>${placeholder(k, ob)}</div>`;
+  }
+  const szer = szerokosciWariantow(ob.szerokosc);
+  const url = (s: number, f: 'webp' | 'jpg') => esc(srcObrazu(k, adres(ob.zasobId, s, f)));
+  const srcset = (f: 'webp' | 'jpg') => szer.map((s) => `${url(s, f)} ${s}w`).join(', ');
+  const domyslna = [...szer].reverse().find((s) => s <= 960) ?? szer[0];
+  const sizes = esc(opcje.sizes ?? (opcje.priorytet ? '100vw' : '(min-width: 960px) 50vw, 100vw'));
+  const [w, h] = wymiary(ob.proporcje);
+  const pierwszy = opcje.priorytet && k.licznikObrazow === 0;
+  k.licznikObrazow++;
+  const pozycja = ob.ogniskowa ? ` style="object-position:${procent(ob.ogniskowa.x)} ${procent(ob.ogniskowa.y)}"` : '';
+  const img =
+    `<img src="${url(domyslna, 'jpg')}" srcset="${srcset('jpg')}" sizes="${sizes}" alt="${esc(ob.alt)}" width="${w}" height="${h}"` +
+    `${pierwszy ? ' fetchpriority="high"' : ' loading="lazy"'} decoding="async"${pozycja}>`;
+  // <picture> bez własnego pudełka (css.ts: .ob picture{display:contents}) – reguły `.ob img` działają jak dla <img>.
+  let tresc = `<picture><source type="image/webp" srcset="${srcset('webp')}" sizes="${sizes}">${img}</picture>`;
+  if (opcje.lightbox && k.s.efekty.has('lightbox')) {
+    k.s.js.add('lightbox');
+    k.s.css.add('ef:lightbox');
+    tresc = `<a class="lb" href="${url(szer[szer.length - 1], 'jpg')}" data-podpis="${esc(ob.alt)}">${tresc}</a>`;
+  }
+  if (ZRODLA_ZEWNETRZNE.has(ob.zrodlo) && ob.autor && wymagaAtrybucji(ob.licencja)) {
+    const lic = ob.licencjaUrl && /^https:\/\//i.test(ob.licencjaUrl) ? ` (<a href="${esc(ob.licencjaUrl)}" rel="license noopener">${esc(ob.licencja ?? 'licencja')}</a>)` : '';
+    const podpis =
+      `<figcaption class="ob-atr">Fot. ${esc(ob.autor)}${lic}</figcaption>`;
+    // Wygląd podpisu: css.ts (.ob-atr); margines <figure> zeruje reset arkusza.
+    return `<figure class="${klasa}"${edycja}>${tresc}${podpis}</figure>`;
+  }
+  return `<div class="${klasa}"${edycja}>${tresc}</div>`;
 }
 
 /** Obraz albo placeholder w ramce o stałych proporcjach (bez przesunięć układu – CLS 0). */
 export function obraz(k: KontekstPodstrony, o: Obraz | undefined, opcje: OpcjeObrazu = {}): string {
   const ob: Obraz = o ?? { alt: '', zrodlo: 'placeholder', proporcje: '4:3' };
   const klasa = `ob ${klasaProporcji(ob.proporcje)}${opcje.klasa ? ' ' + opcje.klasa : ''}`;
+  const edycja = atrybutEdycji(k, opcje.sciezka);
+  if (ob.zasobId && ob.zrodlo !== 'placeholder') return obrazZasobu(k, ob as Obraz & { zasobId: string }, opcje, klasa, edycja);
   if (ob.zrodlo === 'placeholder' || !ob.url) {
     if (!k.s.podglad && ob.zrodlo !== 'placeholder') k.s.ostrzezenia.push(`Obraz „${ob.alt || ob.podpis || 'bez opisu'}” nie ma pliku – pokazano ramkę zastępczą.`);
-    return `<div class="${klasa}">${placeholder(k, ob)}</div>`;
+    return `<div class="${klasa}"${edycja}>${placeholder(k, ob)}</div>`;
   }
   const [w, h] = wymiary(ob.proporcje);
   const pierwszy = opcje.priorytet && k.licznikObrazow === 0;
@@ -112,7 +190,7 @@ export function obraz(k: KontekstPodstrony, o: Obraz | undefined, opcje: OpcjeOb
   if (opcje.lightbox && k.s.efekty.has('lightbox')) {
     k.s.js.add('lightbox');
     k.s.css.add('ef:lightbox');
-    return `<div class="${klasa}"><a class="lb" href="${esc(src)}" data-podpis="${esc(ob.alt)}">${img}</a></div>`;
+    return `<div class="${klasa}"${edycja}><a class="lb" href="${esc(src)}" data-podpis="${esc(ob.alt)}">${img}</a></div>`;
   }
-  return `<div class="${klasa}">${img}</div>`;
+  return `<div class="${klasa}"${edycja}>${img}</div>`;
 }

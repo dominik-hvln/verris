@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { AiModule } from '../ai/ai.module.js';
 import { ServersModule } from '../servers/servers.module.js';
@@ -14,6 +14,12 @@ import { KreatorService } from './kreator.service.js';
 import { KreatorPublikacjaService } from './publikacja.service.js';
 import { PLIKI_HOSTINGU_KREATORA, PlikiHostinguDa } from './pliki-hostingu.js';
 import { RENDERER_PUBLIKACJI, fabrykaRendereraPublikacji } from './renderer-publikacji.js';
+import { KreatorMiniaturaController, KreatorZasobPlikController, KreatorZasobyController } from './zasoby.controller.js';
+import { BIBLIOTEKA_ZDJEC, KreatorZasobyService } from './zasoby.service.js';
+import { BibliotekaZdjec } from './biblioteka/biblioteka.js';
+import { DostawcaPixabay } from './biblioteka/pixabay.js';
+import { DostawcaOpenverse } from './biblioteka/openverse.js';
+import { DostawcaPexels } from './biblioteka/pexels.js';
 import { FUNKCJE_AI_KREATORA, RENDERER_KREATORA, fabrykaFunkcjiAiKreatora, fabrykaRendereraKreatora } from './zaleznosci.js';
 
 /**
@@ -23,14 +29,33 @@ import { FUNKCJE_AI_KREATORA, RENDERER_KREATORA, fabrykaFunkcjiAiKreatora, fabry
  * fonty z proxy fontów, publiczny link podglądu wersji próbnej (KreatorLinkController).
  * Formularz kontaktowy opublikowanych stron: KreatorFormularzController (POST /kreator/formularz/:token, mail przez
  * MailerService – MailModule jest globalny).
+ * Paczka 122 – zdjęcia: biblioteka konta (KreatorZasob + magazyn obiektów, ObjectStorageModule jest globalny),
+ * biblioteki zewnętrzne (Pixabay, Openverse, Pexels – klucze PIXABAY_API_KEY / PEXELS_API_KEY), publiczne pliki
+ * wariantów (/kreator/z) i miniatury przez proxy (/kreator/biblioteka/m).
  */
 @Module({
   imports: [ConfigModule, PrismaModule, AiModule, ServersModule, FontsProxyModule],
-  controllers: [KreatorController, KreatorAdminController, KreatorPublikacjaController, KreatorLinkController, KreatorFormularzController],
+  controllers: [
+    KreatorController,
+    KreatorAdminController,
+    KreatorPublikacjaController,
+    KreatorLinkController,
+    KreatorFormularzController,
+    KreatorZasobyController,
+    KreatorZasobPlikController,
+    KreatorMiniaturaController,
+  ],
   providers: [
     KreatorService,
     KreatorPublikacjaService,
     KreatorFormularzService,
+    KreatorZasobyService,
+    {
+      provide: BIBLIOTEKA_ZDJEC,
+      inject: [ConfigService],
+      useFactory: (c: ConfigService) =>
+        new BibliotekaZdjec([new DostawcaPixabay(c.get<string>('PIXABAY_API_KEY') || undefined), new DostawcaOpenverse(), new DostawcaPexels(c.get<string>('PEXELS_API_KEY') || undefined)]),
+    },
     { provide: FUNKCJE_AI_KREATORA, useFactory: fabrykaFunkcjiAiKreatora },
     { provide: RENDERER_KREATORA, useFactory: fabrykaRendereraKreatora },
     { provide: RENDERER_PUBLIKACJI, useFactory: fabrykaRendereraPublikacji },

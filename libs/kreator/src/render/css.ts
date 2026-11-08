@@ -154,6 +154,9 @@ p a,.zgoda a,address a{text-decoration-thickness:1px}
 .ob img,.ob .ph,.ob .lb{width:100%;height:100%}
 .ob img{object-fit:cover}
 .ob .lb{display:block;cursor:zoom-in}
+/* zdjęcia z biblioteki: <picture> bez własnego pudełka (reguły .ob img jak dla samego <img>), podpis autora (licencje CC BY) */
+.ob picture{display:contents}
+.ob-atr{position:absolute;right:0;bottom:0;margin:0;padding:2px 6px;font-size:11px;line-height:1.3;background:rgba(0,0,0,.55);color:#fff}
 .pr-16-9{aspect-ratio:16/9}.pr-4-3{aspect-ratio:4/3}.pr-3-2{aspect-ratio:3/2}.pr-1-1{aspect-ratio:1/1}.pr-3-4{aspect-ratio:3/4}.pr-4-5{aspect-ratio:4/5}
 .ph{position:relative;display:block}
 .ph svg{position:absolute;inset:0;width:100%;height:100%}

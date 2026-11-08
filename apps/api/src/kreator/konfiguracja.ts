@@ -4,6 +4,8 @@
  * Claude Sonnet 5.5 do generacji i zmian. Domyślnie WYŁĄCZONY dla wszystkich – przed włączeniem kreator mają
  * wyłącznie konta z listy `kontaTestowe` (e-maile albo identyfikatory kont).
  */
+import { DOSTAWCY_ZDJEC, type NazwaDostawcy } from './biblioteka/dostawca.js';
+
 export const KLUCZ_KONFIGURACJI_KREATORA = 'kreator.konfiguracja';
 
 /** Funkcja w AiInteractionLog – koszt kreatora w raporcie kosztów AI i w budżecie platformy. */
@@ -15,6 +17,11 @@ export interface KonfiguracjaKreatora {
   wlaczony: boolean;
   /** E-maile (małe litery) albo identyfikatory kont z dostępem przed włączeniem dla wszystkich. */
   kontaTestowe: string[];
+  /**
+   * Paczka 122 – biblioteki zdjęć w edytorze, w tej kolejności. Faktycznie włączone = te z listy, które mają klucz
+   * API (PIXABAY_API_KEY, PEXELS_API_KEY); Openverse działa bez klucza.
+   */
+  bibliotekiZdjec: NazwaDostawcy[];
 }
 
 export const DOMYSLNA_KONFIGURACJA_KREATORA: KonfiguracjaKreatora = {
@@ -22,6 +29,7 @@ export const DOMYSLNA_KONFIGURACJA_KREATORA: KonfiguracjaKreatora = {
   modelZmian: 'claude-sonnet-5-5',
   wlaczony: false,
   kontaTestowe: [],
+  bibliotekiZdjec: [...DOSTAWCY_ZDJEC],
 };
 
 /** Tylko modele Anthropic (prefiks claude-) – kreator wysyła prompt caching w formacie Messages API. */
@@ -49,11 +57,15 @@ export function odczytajKonfiguracjeKreatora(surowe: string | null | undefined):
         ),
       ].slice(0, MAKS_KONT_TESTOWYCH)
     : [];
+  const biblioteki = Array.isArray(v.bibliotekiZdjec)
+    ? [...new Set(v.bibliotekiZdjec.filter((b): b is NazwaDostawcy => (DOSTAWCY_ZDJEC as readonly unknown[]).includes(b)))]
+    : [...d.bibliotekiZdjec];
   return {
     modelGeneracji: model(v.modelGeneracji, d.modelGeneracji),
     modelZmian: model(v.modelZmian, d.modelZmian),
     wlaczony: v.wlaczony === true,
     kontaTestowe: konta,
+    bibliotekiZdjec: biblioteki,
   };
 }
 
