@@ -16,7 +16,7 @@ import {
   Firma,
   KATALOG_EFEKTOW,
   KATALOG_WARIANTOW,
-  KORZYSCI_PRO,
+  korzysciPro,
   MAX_PODSTRON_TLUMACZENIA,
   NAZWY_JEZYKOW_PL,
   PLANY_KREATORA,
@@ -175,7 +175,8 @@ export class KreatorService {
         /** Paczka 123 – miejsce zajęte przez zdjęcia biblioteki konta (bajty); limit: plan.miejsceZdjecMb. */
         zdjeciaBajty: zdjecia._sum.bajty ?? 0,
       },
-      korzysciPro: KORZYSCI_PRO,
+      // Paczka 126 – „Zdjęcia AI” tylko przy włączonym generowaniu (Regulamin §13a ust. 9: zakres opisany w Panelu).
+      korzysciPro: korzysciPro({ zdjeciaAi: d.konf.obrazyAi.wlaczone }),
       // Paczka 121 – cennik z planu KREATOR_PRO w bazie (netto jak na fakturze), zakup i bieżący abonament.
       cenaPro: pro.cena,
       pro,

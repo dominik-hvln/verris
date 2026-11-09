@@ -251,6 +251,48 @@ describe('X-04 usunięcie konta (RODO)', () => {
     expect([...magazyn.keys()]).toEqual(['poczta/inny/plik.pdf']);
   });
 
+  it('paczka 126 – dane Verris Kreatora znikają: strony z wersjami i CMS, zdjęcia z plikami, liczniki, hasła WordPressa w zadaniach', async () => {
+    const k = await zWnioskiem();
+    const inny = await zWnioskiem();
+    const p = prisma();
+    const strona = await p.kreatorStrona.create({
+      data: {
+        userId: k.user.id, nazwa: 'Salon Anny', model: { firma: { nazwa: 'Salon Anny', telefon: '600 100 200' } }, wersjaModelu: 1, odcisk: 'o', status: 'GOTOWA',
+        brief: { opis: 'Salon fryzjerski Anny Nowak' }, propozycje: [{ x: 1 }],
+        wersje: { create: { numer: 1, model: { firma: { nazwa: 'Salon Anny' } }, zrodlo: 'AI_GENERACJA' } },
+        cms: { create: { userId: k.user.id, cel: 'wordpress', stan: 'PODGLAD', domena: 'x.pl', subskrypcjaId: k.subscription.id, katalog: '/domains/x.pl/public_html', klucz: 'a'.repeat(24), adminLogin: 'admin_abc123' } },
+      },
+    });
+    const zdjecie = await p.kreatorZasob.create({ data: { userId: k.user.id, stronaId: strona.id, zrodlo: 'WLASNE', szerokosc: 1000, wysokosc: 800, bajty: 10, sha256: 'x' } });
+    const cudze = await p.kreatorZasob.create({ data: { userId: inny.user.id, zrodlo: 'WLASNE', szerokosc: 500, wysokosc: 500, bajty: 10, sha256: 'y' } });
+    for (const klucz of [`${k.user.id}/${zdjecie.id}/oryginal.webp`, `${k.user.id}/${zdjecie.id}/480.webp`, `${k.user.id}/${zdjecie.id}/480.jpg`, `${k.user.id}/${zdjecie.id}/960.webp`, `${k.user.id}/${zdjecie.id}/960.jpg`]) {
+      magazyn.set(klucz, Buffer.from('z'));
+    }
+    magazyn.set(`${inny.user.id}/${cudze.id}/oryginal.webp`, Buffer.from('c'));
+    await p.kreatorZuzycie.create({ data: { userId: k.user.id, miesiac: '2026-11', generacje: 2, zmiany: 5 } });
+    await p.kreatorZuzycie.create({ data: { userId: inny.user.id, miesiac: '2026-11', generacje: 1 } });
+    const wp = await p.nodeTask.create({
+      data: {
+        serverId: k.wezel.id, accountId: k.account.id, kind: 'KREATOR_WP', status: 'COMPLETED',
+        payload: { tryb: 'podglad', daUser: 'jan1', domain: 'x.pl', dbName: 'jan1_wp', dbPass: 'tajne-db', adminUser: 'admin_abc123', adminPass: 'tajne-wp', adminEmail: k.user.email },
+      },
+    });
+
+    await serwis().executeAnonymization(k.user.id, null);
+
+    expect(await p.kreatorStrona.count({ where: { userId: k.user.id } })).toBe(0);
+    expect(await p.kreatorWersja.count({ where: { stronaId: strona.id } })).toBe(0);
+    expect(await p.kreatorCms.count({ where: { userId: k.user.id } })).toBe(0);
+    expect(await p.kreatorZasob.count({ where: { userId: k.user.id } })).toBe(0);
+    expect(await p.kreatorZuzycie.count({ where: { userId: k.user.id } })).toBe(0);
+    expect([...magazyn.keys()].filter((x) => x.startsWith(`${k.user.id}/`))).toEqual([]);
+    // Dane innego konta nietknięte.
+    expect(await p.kreatorZasob.count({ where: { userId: inny.user.id } })).toBe(1);
+    expect(await p.kreatorZuzycie.count({ where: { userId: inny.user.id } })).toBe(1);
+    expect(magazyn.has(`${inny.user.id}/${cudze.id}/oryginal.webp`)).toBe(true);
+    expect((await p.nodeTask.findUniqueOrThrow({ where: { id: wp.id } })).payload).toEqual({ tryb: 'podglad', daUser: 'jan1', domain: 'x.pl', dbName: 'jan1_wp', adminUser: 'admin_abc123' });
+  });
+
   it('klient cofnął wniosek po wybraniu listy do anonimizacji: dane zostają nietknięte', async () => {
     const k = await zWnioskiem();
     const s = serwis();

@@ -11,6 +11,9 @@ import { RETENCJA_LEADOW_DNI } from '../leads/leads-retencja.js';
  * cookies z nieistniejącymi `refresh_token`/`csrf_token`, brak opisu Consent Mode i formularzy www.
  * Decyzje z 4.11.2026: 19 — publikacja od razu (bez 30 dni), 20 — telefon tylko w dokumentach, 21 — oświadczenie
  * domenowe przy każdym zamówieniu, 22 — Consent Mode v2 w trybie podstawowym.
+ * Od wersji 1.3.0 (Verris Kreator, 9.11.2026) numer bieżącej wersji sprawdza `dokumenty-prawne-1-3-0.spec.ts`; tutaj
+ * zostaje sens historyczny: zmiany z 1.2.x są dalej w treści, a numerów już opublikowanych (1.1.0, 1.2.0, 1.2.1) nie
+ * używamy ponownie w nagłówku ani stopce.
  */
 const KORZEN = join(__dirname, '../../../..');
 const czytaj = (p: string) => readFileSync(join(KORZEN, p), 'utf8');
@@ -35,12 +38,12 @@ function zrodla(dir: string): string {
 }
 
 describe('Dokumenty prawne 1.2.0 – gotowe do jednej publikacji', () => {
-  it.each(DOKUMENTY)('%s: wersja 1.2.0 z datą do podstawienia, bez miejsc do uzupełnienia i notatek roboczych', (d) => {
+  it.each(DOKUMENTY)('%s: wersja z datą do podstawienia, bez miejsc do uzupełnienia i notatek roboczych', (d) => {
     const t = tresc[d];
-    expect(t).toContain('**Wersja 1.2.1 · obowiązuje od [DATA PUBLIKACJI]**');
-    expect(t).toContain('**Wersja 1.2.1 – data publikacji i wejścia w życie: [DATA PUBLIKACJI]**');
-    // 1.2.0 jest opublikowana na produkcji (6.11.2026) — tego numeru nie wolno użyć ponownie z inną treścią.
-    expect(t).not.toMatch(/\*\*Wersja 1\.2\.0/);
+    expect(t).toMatch(/\*\*Wersja \d+\.\d+\.\d+ · obowiązuje od \[DATA PUBLIKACJI\]\*\*/);
+    expect(t).toMatch(/\*\*Wersja \d+\.\d+\.\d+ – data publikacji i wejścia w życie: \[DATA PUBLIKACJI\]\*\*/);
+    // 1.2.0 i 1.2.1 są opublikowane na produkcji (6.11.2026) — tych numerów nie wolno użyć ponownie z inną treścią.
+    expect(t).not.toMatch(/\*\*Wersja 1\.2\.[01]/);
     // 1.1.0 jest opublikowana na produkcji (6.10.2026) — ten numer nie może wrócić w nagłówku ani stopce.
     expect(t).not.toMatch(/\*\*Wersja 1\.1\.0/);
     expect(t).not.toMatch(/\[(UZUPEŁNIĆ|TODO|DO UZUPEŁNIENIA)/i);
@@ -158,10 +161,12 @@ describe('Dokumenty prawne 1.2.0 – gotowe do jednej publikacji', () => {
   });
 
   it('1.2.0 zastępuje opublikowaną 1.1.0, a instrukcja publikuje 1.2.0 i sprawdza akceptacje wszystkich wersji', () => {
+    // Od 1.3.0 nagłówek wskazuje 1.2.1 jako poprzednią wersję; informacje dla konsumenta idą razem z bieżącym Regulaminem.
+    const biezaca = /\*\*Wersja (\d+\.\d+\.\d+) · /.exec(tresc.terms)?.[1];
     for (const d of ['terms', 'privacy'] as const) {
-      expect(tresc[d]).toContain('Wersja 1.2.1 zastępuje wersję 1.2.0 z 6 listopada 2026 r.');
+      expect(tresc[d]).toMatch(/> Wersja \d+\.\d+\.\d+ zastępuje wersję \d+\.\d+\.\d+ z \d{1,2} \p{L}+ \d{4} r\./u);
     }
-    expect(konsument).toContain('(razem z Regulaminem 1.2.1)');
+    expect(konsument).toContain(`(razem z Regulaminem ${biezaca})`);
     expect(zmiany).toContain('LEGAL_LIVE_VERSION=1.2.1');
     expect(zmiany).toContain('LEGAL_LIVE_VERSION=1.2.0');
     expect(zmiany).not.toContain('LEGAL_LIVE_VERSION=1.1.0');

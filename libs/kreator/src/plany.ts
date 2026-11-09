@@ -82,6 +82,15 @@ export const KORZYSCI_PRO: { id: string; nazwa: string; opis: string }[] = [
   { id: 'zdjecia-ai', nazwa: 'Zdjęcia AI', opis: '100 zdjęć AI miesięcznie, 4 warianty do wyboru przy każdym generowaniu.' },
 ];
 
+/**
+ * Paczka 126 – lista korzyści Pro pokazywana w Panelu (GET /kreator/stan). Zdjęcia AI tylko, gdy generowanie jest
+ * włączone w konfiguracji kreatora: Regulamin §13a ust. 9 odsyła do zakresu „opisanego w Panelu przed zakupem”,
+ * więc Panel nie może obiecywać funkcji wyłączonej.
+ */
+export function korzysciPro(o: { zdjeciaAi: boolean }): { id: string; nazwa: string; opis: string }[] {
+  return KORZYSCI_PRO.filter((k) => o.zdjeciaAi || k.id !== 'zdjecia-ai');
+}
+
 const WARIANTY_PRO = new Map(
   Object.values(KATALOG_WARIANTOW)
     .flat()

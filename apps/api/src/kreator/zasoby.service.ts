@@ -20,7 +20,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { ObjectStorageService } from '../storage/object-storage.service.js';
 import { ObjectBuckets } from '../storage/object-storage.types.js';
 import { KreatorService } from './kreator.service.js';
-import { BladObrazu, MAKS_BAJTOW_WEJSCIA, XMP_AI, kluczOryginalu, kluczWariantu, przetworzObraz, type PrzetworzonyObraz } from './zasoby-obraz.js';
+import { BladObrazu, MAKS_BAJTOW_WEJSCIA, XMP_AI, kluczOryginalu, kluczWariantu, kluczePlikowZasobu, przetworzObraz, type PrzetworzonyObraz } from './zasoby-obraz.js';
 import { adresBazowyZasobu, sprawdzTokenMiniatury, sprawdzTokenZasobu, utworzTokenMiniatury } from './zasoby-token.js';
 import { idZasobow, uzupelnijWymiary } from './zasoby-model.js';
 import { BibliotekaZdjec, CZAS_CACHE_MS, MAKS_STRONA, NA_STRONE } from './biblioteka/biblioteka.js';
@@ -239,7 +239,7 @@ export class KreatorZasobyService {
       );
     }
     await this.prisma.kreatorZasob.delete({ where: { id: z.id } });
-    await this.usunPliki([kluczOryginalu(userId, z.id), ...szerokosciWariantow(z.szerokosc).flatMap((s) => [kluczWariantu(userId, z.id, s, 'webp'), kluczWariantu(userId, z.id, s, 'jpg')])]);
+    await this.usunPliki(kluczePlikowZasobu(userId, z));
     return { ok: true };
   }
 

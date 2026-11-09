@@ -158,3 +158,8 @@ export function przetworzObraz(wejscie: Buffer, opcjeZapisu: { xmp?: string } = 
 /** Klucze obiektów zasobu w magazynie (bucket KREATOR_ZASOBY). */
 export const kluczOryginalu = (userId: string, id: string) => `${userId}/${id}/oryginal.webp`;
 export const kluczWariantu = (userId: string, id: string, szer: number, format: 'webp' | 'jpg') => `${userId}/${id}/${szer}.${format}`;
+/** Wszystkie pliki zasobu w magazynie: oryginał i warianty webp + jpg (te same szerokości co przy wgraniu). */
+export const kluczePlikowZasobu = (userId: string, z: { id: string; szerokosc: number }): string[] => [
+  kluczOryginalu(userId, z.id),
+  ...szerokosciWariantow(z.szerokosc).flatMap((s) => [kluczWariantu(userId, z.id, s, 'webp'), kluczWariantu(userId, z.id, s, 'jpg')]),
+];

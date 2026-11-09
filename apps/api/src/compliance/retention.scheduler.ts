@@ -6,8 +6,12 @@ import { DataExportService } from './data-export.service.js';
 import { RodoActions } from '../common/audit/audit.actions.js';
 import { NodeTaskKind } from '@verris/database';
 import { KLUCZE_OSOBOWE_PARAMETROW, RETENCJA_WYNIKOW_ZADAN_DNI } from '../servers/dane-zadan-wezla.js';
+import { TAGI_BEZ_ADRESU_ODPOWIEDZI } from '../mail/mailer.service.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+/** Paczka 126 — dziennik wysyłek usuwany partiami (jedno DELETE nie blokuje tabeli na długo). */
+export const PARTIA_DZIENNIKA_POCZTY = 5000;
+const MAKS_PARTII_DZIENNIKA_POCZTY = 200;
 /** Audyt Fali 3 — wpisy F3.2 z adresem IP w szczegółach: pole → akcje. */
 const IP_W_SZCZEGOLACH_DZIENNIKA: ReadonlyArray<readonly [string, readonly string[]]> = [
   ['ip', ['OPERATOR_ACCOUNT_VIEWED', 'OPERATOR_ACCOUNT_CHANGED', 'NODE_IP_UNBLOCK_QUEUED', 'NODE_IP_ALLOWLIST_CHANGED']],
@@ -35,6 +39,14 @@ const IP_W_SZCZEGOLACH_DZIENNIKA: ReadonlyArray<readonly [string, readonly strin
  *    w parametrach. 30 dni — wariant zachowawczy do decyzji właściciela; zadanie (kto, kiedy, co) zostaje.
  *  - Audyt Fali 3 — adresy IP w szczegółach wpisów dziennika (odblokowanie i sprawdzenie IP, F3.2) po ~24 mies.,
  *    tak jak kolumna `ipAddress`.
+ *  - Paczka 126 — `EmailLog` (dziennik wysyłek: adres odbiorcy, temat, status) starszy niż 12 miesięcy → DELETE partiami
+ *    (Polityka prywatności: logi doręczeń 12 miesięcy; DPA §2 ust. 4). Starszych wpisów nic nie potrzebuje: limit
+ *    formularza kreatora liczy dobę, kondycja poczty i metryki – minuty i dobę, lista na karcie klienta – ostatnie 50,
+ *    liczniki kampanii są w MarketingCampaign. Wyjątek: wpisy kampanii w toku (SENDING) – po nich worker wznawia paczkę
+ *    i pomija już obsłużonych (idempotencja). Odwołania `emailLogId` (komunikaty serwisowe, dziennik) nie są kluczami
+ *    obcymi – po usunięciu wpisu podgląd mówi „nie ma takiego wpisu”.
+ *  - Paczka 126 — adres nadawcy formularza (`metadata.replyTo`) w wpisach `kreator.formularz` sprzed poprawki
+ *    w mailer.service.ts → usunięty z metadanych.
  * Konto DA usuwa ścieżka art. 17 (account-deletion.scheduler), nie ten sweeper.
  */
 @Injectable()
@@ -46,6 +58,7 @@ export class RetentionScheduler {
   private readonly aiLogRetentionDays = 365;
   private readonly mailQueueHeadersRetentionMs = DAY_MS;
   private readonly nodeTaskPersonalDataRetentionDays = RETENCJA_WYNIKOW_ZADAN_DNI;
+  private readonly emailLogRetentionDays = 365;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -57,7 +70,7 @@ export class RetentionScheduler {
   async run(): Promise<void> {
     const now = new Date();
 
-    const [loginPurged, auditAnonymized, exportsExpired, webhookEventsPurged, aiLogsPurged, mailQueueHeadersPurged, nodeTaskOutputsPurged] =
+    const [loginPurged, auditAnonymized, exportsExpired, webhookEventsPurged, aiLogsPurged, mailQueueHeadersPurged, nodeTaskOutputsPurged, emailLogsPurged] =
       await Promise.all([
         this.purgeLoginAttempts(now),
         this.anonymizeOldAuditLogIps(now),
@@ -66,9 +79,10 @@ export class RetentionScheduler {
         this.purgeAiLogs(now),
         this.purgeMailQueueHeaders(now),
         this.purgeNodeTaskPersonalData(now),
+        this.purgeEmailLogs(now),
       ]);
 
-    if (loginPurged + auditAnonymized + exportsExpired + webhookEventsPurged + aiLogsPurged + mailQueueHeadersPurged + nodeTaskOutputsPurged > 0) {
+    if (loginPurged + auditAnonymized + exportsExpired + webhookEventsPurged + aiLogsPurged + mailQueueHeadersPurged + nodeTaskOutputsPurged + emailLogsPurged > 0) {
       await this.audit.record({
         action: RodoActions.RETENTION_PURGE,
         details: {
@@ -80,10 +94,11 @@ export class RetentionScheduler {
           aiLogsPurged,
           mailQueueHeadersPurged,
           nodeTaskOutputsPurged,
+          emailLogsPurged,
         },
       });
       this.logger.log(
-        `Retention sweep: login=${loginPurged} auditIp=${auditAnonymized} exports=${exportsExpired} stripeEvents=${webhookEventsPurged} ai=${aiLogsPurged} mailQueue=${mailQueueHeadersPurged} nodeTasks=${nodeTaskOutputsPurged}`,
+        `Retention sweep: login=${loginPurged} auditIp=${auditAnonymized} exports=${exportsExpired} stripeEvents=${webhookEventsPurged} ai=${aiLogsPurged} mailQueue=${mailQueueHeadersPurged} nodeTasks=${nodeTaskOutputsPurged} emailLog=${emailLogsPurged}`,
       );
     } else {
       this.logger.debug('Retention sweep: nothing to do');
@@ -140,6 +155,32 @@ export class RetentionScheduler {
           OR ("kind"::text = 'NODE_SERVICES' AND "payload" ->> 'mode' = 'log')
         )
         AND ("outputLog" IS NOT NULL OR (jsonb_typeof("payload") = 'object' AND jsonb_exists_any("payload", ${klucze}::text[])))`;
+  }
+
+  /**
+   * Paczka 126 — dziennik wysyłek po 12 miesiącach, partiami po PARTIA_DZIENNIKA_POCZTY (bez wpisów kampanii w toku),
+   * oraz adres nadawcy formularza kreatora w starszych wpisach (zapisywany przed poprawką mailer.service.ts).
+   */
+  private async purgeEmailLogs(now: Date): Promise<number> {
+    const cutoff = new Date(now.getTime() - this.emailLogRetentionDays * DAY_MS);
+    let razem = 0;
+    for (let i = 0; i < MAKS_PARTII_DZIENNIKA_POCZTY; i++) {
+      const n = await this.prisma.$executeRaw`
+        DELETE FROM "EmailLog"
+        WHERE "id" IN (
+          SELECT e."id" FROM "EmailLog" e
+          WHERE e."createdAt" < ${cutoff}
+            AND (e."campaignId" IS NULL OR NOT EXISTS (
+              SELECT 1 FROM "MarketingCampaign" c WHERE c."id" = e."campaignId" AND c."status"::text = 'SENDING'))
+          LIMIT ${PARTIA_DZIENNIKA_POCZTY}
+        )`;
+      razem += n;
+      if (n < PARTIA_DZIENNIKA_POCZTY) break;
+    }
+    await this.prisma.$executeRaw`
+      UPDATE "EmailLog" SET "metadata" = "metadata" - 'replyTo'
+      WHERE "tag" = ANY(${[...TAGI_BEZ_ADRESU_ODPOWIEDZI]}::text[]) AND jsonb_typeof("metadata") = 'object' AND jsonb_exists("metadata", 'replyTo')`;
+    return razem;
   }
 
   // ---------------------------------------------------------------------------

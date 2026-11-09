@@ -166,6 +166,24 @@ function zbuduj(opts: { brakujacyZalacznik?: boolean } = {}) {
         return [sel ? Object.fromEntries(Object.entries(wiersz).filter(([k]) => sel[k])) : wiersz];
       }),
     },
+    // Paczka 126 — Verris Kreator. Mock oddaje tylko pola z `select` (sekrety i ścieżki są w wierszu, eksport ich nie wybiera).
+    kreatorStrona: {
+      findMany: vi.fn(async (args: { select?: Record<string, unknown> }) => {
+        const wiersz: Record<string, unknown> = {
+          id: 's1', nazwa: 'Salon Anny', status: 'GOTOWA', model: { firma: { nazwa: 'Salon Anny' } }, brief: { opis: 'Salon fryzjerski' }, odcisk: 'o',
+          podgladDo: null, katalog: '/domains/x.pl/public_html', kopia: '.verris-kopia-1',
+          wersje: [{ numer: 1, zrodlo: 'AI_GENERACJA', opis: null, model: { firma: { nazwa: 'Salon Anny' } }, createdAt: new Date('2026-11-01T10:00:00Z') }],
+          cms: { cel: 'wordpress', stan: 'PODGLAD', adminLogin: 'admin_abc123', klucz: 'f'.repeat(24), zadanieId: 'zad-1' },
+        };
+        const sel = args?.select ?? {};
+        return [Object.fromEntries(Object.entries(wiersz).filter(([k]) => sel[k]).map(([k, v]) => {
+          const pod = sel[k] as { select?: Record<string, boolean> } | true;
+          return [k, pod !== true && pod.select && v && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).filter(([x]) => pod.select![x])) : v];
+        }))];
+      }),
+    },
+    kreatorZasob: { findMany: lista([{ id: 'zd1', zrodlo: 'PIXABAY', autor: 'Autor', licencja: 'pixabay', szerokosc: 1200, wysokosc: 800, alt: 'Fotel' }]) },
+    kreatorZuzycie: { findMany: lista([{ miesiac: '2026-11', generacje: 2, zmiany: 5, obrazyAi: 0 }]) },
     server: { findMany: lista([{ name: 't1', hostname: 't1.verris.pl', daHost: 'da-t1.wezly.example', ipAddress: '203.0.113.50', ipv6Address: null }]) },
     $transaction: vi.fn(async (ops: Array<Promise<unknown>>) => Promise.all(ops)),
   };
@@ -347,6 +365,25 @@ describe('X-22 – eksport RODO buduje prawdziwe archiwum', () => {
     expect(pliki.get('incoming-mail.json')).not.toContain('poczta/p1');
     expect(z.prisma.pocztaPrzychodzaca.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { userId: 'u1', NOT: { rodzaj: 'ABUSE', wynik: 'PRZYPISANY' } } }));
     expect(pliki.get('README.txt')).toContain('incoming-mail.json');
+  });
+
+  it('paczka 126 – dane Verris Kreatora w eksporcie: strony z wersjami, zdjęcia (metadane), liczniki; bez klucza podglądu i ścieżek', async () => {
+    const z = zbuduj();
+    const pliki = await zbudujZip(z.svc);
+    const strony = JSON.parse(pliki.get('kreator-sites.json')!);
+    expect(strony).toEqual([
+      expect.objectContaining({
+        id: 's1', nazwa: 'Salon Anny', model: { firma: { nazwa: 'Salon Anny' } }, brief: { opis: 'Salon fryzjerski' },
+        wersje: [expect.objectContaining({ numer: 1, model: { firma: { nazwa: 'Salon Anny' } } })],
+        cms: { cel: 'wordpress', stan: 'PODGLAD', adminLogin: 'admin_abc123' },
+      }),
+    ]);
+    for (const k of ['odcisk', 'katalog', 'kopia', 'podgladDo']) expect(strony[0]).not.toHaveProperty(k);
+    expect(pliki.get('kreator-sites.json')).not.toContain('f'.repeat(24));
+    expect(JSON.parse(pliki.get('kreator-photos.json')!)).toEqual([expect.objectContaining({ id: 'zd1', autor: 'Autor', licencja: 'pixabay' })]);
+    expect(JSON.parse(pliki.get('kreator-usage.json')!)).toEqual([{ miesiac: '2026-11', generacje: 2, zmiany: 5, obrazyAi: 0 }]);
+    expect(z.prisma.kreatorZuzycie.findMany).toHaveBeenCalledWith(expect.objectContaining({ select: { miesiac: true, generacje: true, zmiany: true, obrazyAi: true } }));
+    for (const n of ['kreator-sites.json', 'kreator-photos.json', 'kreator-usage.json']) expect(pliki.get('README.txt')).toContain(n);
   });
 
   it('nazwa załącznika nie wychodzi poza katalog attachments/ (zip slip)', async () => {

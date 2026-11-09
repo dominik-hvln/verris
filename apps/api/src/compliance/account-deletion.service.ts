@@ -12,7 +12,8 @@ import * as bcrypt from 'bcrypt';
 import { AccountStatus, DomainStatus, Prisma, SubscriptionStatus, WalletTxStatus } from '@verris/database';
 import { TERMIN_ZWROTU_DNI, maskaRachunku, normalizujRachunek, saldoDoZwrotu } from '../users/zwrot-salda.js';
 import { ObjectStorageService } from '../storage/object-storage.service.js';
-import { ObjectBuckets } from '../storage/object-storage.types.js';
+import { ObjectBuckets, type ObjectBucket } from '../storage/object-storage.types.js';
+import { kluczePlikowZasobu } from '../kreator/zasoby-obraz.js';
 import { KLUCZE_OSOBOWE_PARAMETROW, ZADANIA_KONTA_Z_DANYMI_OSOBOWYMI } from '../servers/dane-zadan-wezla.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
@@ -424,6 +425,7 @@ export class AccountDeletionService {
 
     const now = new Date();
     let plikiPoczty: string[] = [];
+    let plikiKreatora: string[] = [];
 
     await this.prisma.$transaction(async (tx) => {
       // 0) Zajęcie wniosku jako pierwsze w transakcji: lista do anonimizacji powstaje o 03:30,
@@ -545,7 +547,22 @@ export class AccountDeletionService {
           data: { outputLog: null },
         });
         await tx.$executeRaw`UPDATE "NodeTask" SET "payload" = "payload" - ${[...KLUCZE_OSOBOWE_PARAMETROW]}::text[] WHERE "accountId" = ANY(${ids}::text[]) AND "kind"::text = ANY(${[...ZADANIA_KONTA_Z_DANYMI_OSOBOWYMI]}::text[]) AND jsonb_typeof("payload") = 'object' AND jsonb_exists_any("payload", ${[...KLUCZE_OSOBOWE_PARAMETROW]}::text[])`;
+        // Paczka 126 — dane logowania w parametrach zadań instalacji (WordPress z kreatora – KREATOR_WP – i z instalatora,
+        //     aplikacje, kopia strony): hasła bazy i administratora oraz e-mail administratora. Zadania zostają.
+        await tx.$executeRaw`UPDATE "NodeTask" SET "payload" = "payload" - ${[...DANE_LOGOWANIA_PARAMETROW]}::text[] WHERE "accountId" = ANY(${ids}::text[]) AND jsonb_typeof("payload") = 'object' AND jsonb_exists_any("payload", ${[...DANE_LOGOWANIA_PARAMETROW]}::text[])`;
       }
+
+      // 3e') Paczka 126 — Verris Kreator (Polityka pkt 7, DPA §10). Wiersz User zostaje, więc kaskady od User nie działają:
+      //     strony (model, wersje, brief, propozycje; KreatorCms z loginem WordPressa – kaskadą od strony), zdjęcia biblioteki
+      //     (pliki w magazynie po zapisie, jak poczta) i liczniki zużycia (tylko limity i statystyka kosztów miesiąca
+      //     w adminie – nic rozliczeniowego; dziennik kosztów AI bez treści zostaje do retencji 12 mies.). Tokeny podglądu,
+      //     formularza i plików zdjęć bez wiersza tracą ważność. Pliki opublikowane na hostingu usuwa konto hostingowe:
+      //     zawieszenie (krok 7) i usunięcie z węzła po DA_PURGE_AFTER_DAYS (purgeAccountOnDa).
+      const zasobyKreatora = await tx.kreatorZasob.findMany({ where: { userId }, select: { id: true, szerokosc: true } });
+      plikiKreatora = zasobyKreatora.flatMap((z) => kluczePlikowZasobu(userId, z));
+      await tx.kreatorZasob.deleteMany({ where: { userId } });
+      await tx.kreatorStrona.deleteMany({ where: { userId } });
+      await tx.kreatorZuzycie.deleteMany({ where: { userId } });
 
       // 3f) Audyt Fal 2 — dane o osobie z nowych modułów zespołu:
       //     - notatki wewnętrzne w wątkach zgłoszeń i tagi zgłoszeń — jak notatki obsługi (3c); same zgłoszenia
@@ -628,7 +645,9 @@ export class AccountDeletionService {
     });
 
     // 6b) Audyt Fali 3 — pliki poczty przychodzącej konta (po zapisie: wycofana transakcja ich nie rusza).
-    await this.usunPlikiPoczty(userId, plikiPoczty);
+    await this.usunPliki(userId, ObjectBuckets.TICKET_ATTACHMENTS, plikiPoczty, 'poczty (poczta/…)');
+    // 6c) Paczka 126 — zdjęcia Verris Kreatora (oryginał i warianty). Błąd magazynu nie cofa usunięcia konta.
+    await this.usunPliki(userId, ObjectBuckets.KREATOR_ZASOBY, plikiKreatora, 'zdjęć kreatora (<userId>/…)');
 
     // 7) Provider-side DA suspend (after commit). One failure must not block
     //    others — log and continue. The `purgeDueDaAccounts` sweeper will
@@ -665,23 +684,26 @@ export class AccountDeletionService {
     });
   }
 
-  /** Best-effort po zapisie: brak obiektu = nic do usunięcia; inny błąd — log z liczbą (do ręcznego sprzątnięcia). */
-  private async usunPlikiPoczty(userId: string, klucze: string[]) {
+  /**
+   * Best-effort po zapisie: brak obiektu = nic do usunięcia; inny błąd — log z kluczem i liczbą (do ręcznego sprzątnięcia;
+   * kolejki ponowień usuwania plików nie ma – wiersze już zniknęły, więc retencja ich nie znajdzie).
+   */
+  private async usunPliki(userId: string, bucket: ObjectBucket, klucze: string[], opis: string) {
     if (!klucze.length) return;
     if (!this.storage) {
-      this.logger.error(`Anonimizacja ${userId}: brak magazynu – ${klucze.length} plików poczty (poczta/…) zostało.`);
+      this.logger.error(`Anonimizacja ${userId}: brak magazynu – ${klucze.length} plików ${opis} zostało.`);
       return;
     }
     let bledy = 0;
     for (const k of klucze) {
       try {
-        await this.storage.removeObject(ObjectBuckets.TICKET_ATTACHMENTS, k);
+        await this.storage.removeObject(bucket, k);
       } catch (e) {
         bledy += 1;
-        this.logger.error(`Anonimizacja ${userId}: pliku poczty nie usunięto (${k}): ${(e as Error).message}`);
+        this.logger.error(`Anonimizacja ${userId}: pliku ${opis} nie usunięto (${k}): ${(e as Error).message}`);
       }
     }
-    if (bledy) this.logger.error(`Anonimizacja ${userId}: ${bledy} z ${klucze.length} plików poczty do usunięcia ręcznie.`);
+    if (bledy) this.logger.error(`Anonimizacja ${userId}: ${bledy} z ${klucze.length} plików ${opis} do usunięcia ręcznie.`);
   }
 
   // ---------------------------------------------------------------------------
@@ -905,6 +927,11 @@ export class AccountDeletionService {
 
 /** Audyt Fal 2 — znacznik w miejscu treści usuniętych przy anonimizacji (art. 17). */
 const ZANONIMIZOWANO = '[zanonimizowano]';
+/**
+ * Paczka 126 — klucze parametrów zadań węzła z danymi logowania (KREATOR_WP, instalator WordPressa i aplikacji, kopia
+ * strony – node-tasks-agent.install.ts): hasła bazy i administratora oraz e-mail administratora (adres klienta).
+ */
+export const DANE_LOGOWANIA_PARAMETROW: readonly string[] = ['dbPass', 'adminPass', 'adminEmail'];
 
 /**
  * Audyt Fali 3 — pola wolnego tekstu operatora w szczegółach wpisów dziennika z userId klienta (pole → akcje).

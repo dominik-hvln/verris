@@ -6,9 +6,14 @@ import { JwtStrategy } from '../auth/strategies/jwt.strategy.js';
  * P-02 — anonimizacja konta (art. 17): operacja nieodwracalna. Pilnujemy, co znika, co zostaje
  * (faktury), że subkonta tracą dostęp razem z właścicielem i że w dzienniku nie zostaje jawny e-mail.
  */
-function stanowisko(opts: { juzZanonimizowany?: boolean; subkonta?: string[] } = {}) {
+function stanowisko(opts: { juzZanonimizowany?: boolean; subkonta?: string[]; zasobyKreatora?: { id: string; szerokosc: number }[]; bladMagazynu?: boolean } = {}) {
   const kolejnosc: string[] = [];
-  const magazyn = { removeObject: vi.fn(async (_b: string, k: string) => void kolejnosc.push(`magazyn:${k}`)) };
+  const magazyn = {
+    removeObject: vi.fn(async (_b: string, k: string) => {
+      if (opts.bladMagazynu && k.startsWith('u1/')) throw new Error('magazyn niedostępny');
+      kolejnosc.push(`magazyn:${k}`);
+    }),
+  };
   const tx = {
     subscription: { update: vi.fn(async () => kolejnosc.push('sub')) },
     subscriptionEvent: { create: vi.fn(async () => ({})) },
@@ -21,6 +26,10 @@ function stanowisko(opts: { juzZanonimizowany?: boolean; subkonta?: string[] } =
     paymentMethod: { deleteMany: vi.fn(async () => ({})) },
     walletAutoTopup: { deleteMany: vi.fn(async () => ({})) },
     clientWebhookEndpoint: { deleteMany: vi.fn(async () => ({})) },
+    // Paczka 126 — Verris Kreator: strony (kaskada wersji i CMS), zdjęcia biblioteki i liczniki.
+    kreatorZasob: { findMany: vi.fn(async () => opts.zasobyKreatora ?? []), deleteMany: vi.fn(async () => kolejnosc.push('kreator-zasoby')) },
+    kreatorStrona: { deleteMany: vi.fn(async () => kolejnosc.push('kreator-strony')) },
+    kreatorZuzycie: { deleteMany: vi.fn(async () => kolejnosc.push('kreator-zuzycie')) },
     apiToken: { updateMany: vi.fn(async () => ({})) },
     customerNote: { deleteMany: vi.fn(async () => ({})) },
     migracjaKontakt: { deleteMany: vi.fn(async () => ({})) },
@@ -127,6 +136,34 @@ describe('AccountDeletionService.executeAnonymization (P-02)', () => {
     expect(s.magazyn.removeObject).toHaveBeenCalledTimes(1);
     expect(s.magazyn.removeObject).toHaveBeenCalledWith('TICKET_ATTACHMENTS', 'poczta/p1/zrzut.jpg');
     expect(s.kolejnosc.indexOf('commit')).toBeLessThan(s.kolejnosc.indexOf('magazyn:poczta/p1/zrzut.jpg'));
+  });
+
+  it('paczka 126 – dane Verris Kreatora znikają (strony z wersjami i CMS, zdjęcia z plikami, liczniki); pliki po zapisie', async () => {
+    const s = stanowisko({ zasobyKreatora: [{ id: 'z1', szerokosc: 1000 }] });
+    await s.svc.executeAnonymization('u1');
+    expect(s.tx.kreatorStrona.deleteMany).toHaveBeenCalledWith({ where: { userId: 'u1' } });
+    expect(s.tx.kreatorZasob.deleteMany).toHaveBeenCalledWith({ where: { userId: 'u1' } });
+    expect(s.tx.kreatorZuzycie.deleteMany).toHaveBeenCalledWith({ where: { userId: 'u1' } });
+    // Wszystkie pliki zdjęcia: oryginał i warianty webp + jpg (szerokości jak przy wgraniu – szerokosciWariantow).
+    const pliki = (s.magazyn.removeObject.mock.calls as unknown as [string, string][]).filter(([b]) => b === 'KREATOR_ZASOBY').map(([, k]) => k);
+    expect(pliki).toContain('u1/z1/oryginal.webp');
+    expect(pliki).toEqual(expect.arrayContaining(['u1/z1/480.webp', 'u1/z1/480.jpg']));
+    expect(pliki.length).toBeGreaterThan(3);
+    expect(pliki.every((k) => k.startsWith('u1/z1/'))).toBe(true);
+    expect(s.kolejnosc.indexOf('commit')).toBeLessThan(s.kolejnosc.indexOf('magazyn:u1/z1/oryginal.webp'));
+    // Dane logowania WordPressa z parametrów zadań węzła kont klienta (KREATOR_WP, instalatory).
+    const sql = (s.tx.$executeRaw.mock.calls as unknown as [TemplateStringsArray, ...unknown[]][]).map(([t, ...v]) => ({ t: t.join('?'), v }));
+    expect(sql.find((q) => q.t.includes('UPDATE "NodeTask"') && !q.t.includes('"kind"'))?.v).toEqual([
+      ['dbPass', 'adminPass', 'adminEmail'], ['a1', 'a2'], ['dbPass', 'adminPass', 'adminEmail'],
+    ]);
+  });
+
+  it('paczka 126 – błąd magazynu przy zdjęciach kreatora nie blokuje usunięcia konta (log, reszta kroków idzie)', async () => {
+    const s = stanowisko({ zasobyKreatora: [{ id: 'z1', szerokosc: 800 }], bladMagazynu: true });
+    await expect(s.svc.executeAnonymization('u1')).resolves.toBeUndefined();
+    expect(s.kolejnosc).toContain('kreator-strony');
+    expect(s.kolejnosc).toContain('da-suspend');
+    expect(s.audit.record).toHaveBeenCalled();
   });
 
   it('audyt Fal 2 – notatki w wątkach, tagi zgłoszeń, powód blokady wysyłki i treści wniosków o operację znikają', async () => {

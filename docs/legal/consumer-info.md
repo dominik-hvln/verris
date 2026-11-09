@@ -1,6 +1,6 @@
 # Informacje dla konsumenta – umowa zawierana na odległość
 
-**Wersja 1.2.1 · obowiązuje od [DATA PUBLIKACJI]** (razem z Regulaminem 1.2.1)
+**Wersja 1.3.0 · obowiązuje od [DATA PUBLIKACJI]** (razem z Regulaminem 1.3.0)
 
 Dokument przekazywany Konsumentom i Przedsiębiorcom na prawach Konsumenta przed zawarciem umowy (proces zakupowy w panelu) oraz – wraz z Regulaminem – w potwierdzeniu zawarcia umowy na trwałym nośniku (e-mail), stosownie do art. 12 i art. 21 ustawy z dnia 30 maja 2014 r. o prawach konsumenta.
 
@@ -11,7 +11,7 @@ Kontakt: e-mail `kontakt@verris.pl`, telefon +48 511 589 465 (dni robocze 9–17
 
 ## 2. Główne cechy świadczenia
 
-Usługi świadczone drogą elektroniczną pod marką Verris: hosting współdzielony (konto hostingowe, strony WWW, bazy danych, poczta, certyfikaty TLS, kopie zapasowe konta), serwery VPS (niezarządzane, pełny dostęp administracyjny), rejestracja i utrzymanie domen internetowych, usługa e-mail marketingu oraz program resellerski. Dokładne parametry wybranego planu (zasoby, limity, funkcje) są prezentowane w specyfikacji planu przed zakupem i w podsumowaniu zamówienia. Warunki świadczenia określa Regulamin świadczenia usług Verris (`https://panel.verris.pl/legal/terms`).
+Usługi świadczone drogą elektroniczną pod marką Verris: hosting współdzielony (konto hostingowe, strony WWW, bazy danych, poczta, certyfikaty TLS, kopie zapasowe konta, kreator stron Verris Kreator w cenie hostingu), abonament Verris Kreator Pro (rozszerzenie kreatora stron, kupowany do opłaconego hostingu; zmiana okresu rozliczeniowego od następnego odnowienia; po zakończeniu abonamentu strony zostają, a opublikowane działają dalej), serwery VPS (niezarządzane, pełny dostęp administracyjny), rejestracja i utrzymanie domen internetowych, usługa e-mail marketingu oraz program resellerski. Dokładne parametry wybranego planu (zasoby, limity, funkcje) są prezentowane w specyfikacji planu przed zakupem i w podsumowaniu zamówienia. Warunki świadczenia określa Regulamin świadczenia usług Verris (`https://panel.verris.pl/legal/terms`).
 
 ## 3. Cena i płatności
 

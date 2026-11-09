@@ -1,6 +1,6 @@
 # Polityka plików cookies Verris
 
-**Wersja 1.2.1 · obowiązuje od [DATA PUBLIKACJI]**
+**Wersja 1.3.0 · obowiązuje od [DATA PUBLIKACJI]**
 
 Niniejsza Polityka realizuje obowiązki wynikające z art. 399–402 ustawy z dnia 12 lipca 2024 r. – Prawo komunikacji elektronicznej (PKE) oraz dyrektywy 2002/58/WE (ePrivacy). Dotyczy strony `verris.pl` i panelu klienta `panel.verris.pl`.
 
@@ -101,4 +101,4 @@ Aktualizacje publikujemy w panelu i komunikujemy e-mailem. Wprowadzenie nowej ka
 
 ---
 
-**Wersja 1.2.1 – data publikacji i wejścia w życie: [DATA PUBLIKACJI]**
+**Wersja 1.3.0 – data publikacji i wejścia w życie: [DATA PUBLIKACJI]**

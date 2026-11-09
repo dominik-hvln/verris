@@ -1,4 +1,6 @@
-# Dokumenty prawne Verris — wersja 1.2.0 (do publikacji)
+# Dokumenty prawne Verris — wersja 1.3.0 (do publikacji)
+
+> **1.3.0 (9.11.2026):** Verris Kreator i abonament Kreator Pro – lista zmian, instrukcja publikacji i blokery: `ZMIANY_1.2.1-1.3.0.md`. Historia 1.2.x poniżej.
 
 > **Status: DO PUBLIKACJI jako 1.2.0 — jedna publikacja wszystkich zmian (decyzja Dominika 3.11.2026, przed 7.12.2026), zastąpi 1.1.0 z 6.10.2026 obowiązującą na produkcji.** Lista zmian dla klientów, instrukcja publikacji i punkty „DO SPRAWDZENIA”: `ZMIANY_1.1.0-1.2.0.md`. Projekty `DO_ZATWIERDZENIA_beta-zgloszenia.md`, `…_okres-probny-ograniczenia.md` i `…_asystent-ai.md` są już wbudowane w `terms.md`/`privacy.md`. Historia robocza (1.0.0 z 7.07.2026): komplet dokumentów pod stan faktyczny — hosting współdzielony, VPS, domeny (Openprovider), e-mail marketing, program resellerski; płatności Stripe i Paynow + Portfel; infrastruktura Hetzner (UE); poczta Amazon SES (region UE); anty-bot Cloudflare Turnstile; faktury KSeF 2.0.
 

@@ -528,11 +528,19 @@ export class MailerService {
 
   private buildMetadata(message: MailMessage): Prisma.JsonObject {
     const meta: Prisma.JsonObject = {};
-    if (message.replyTo) meta.replyTo = message.replyTo;
+    if (message.replyTo && !TAGI_BEZ_ADRESU_ODPOWIEDZI.has(message.tag ?? '')) meta.replyTo = message.replyTo;
     if (message.listUnsubscribeUrl) meta.listUnsubscribeUrl = message.listUnsubscribeUrl;
     return meta;
   }
 }
+
+/**
+ * Paczka 126 — maile, w których „Odpowiedz do” to adres osoby trzeciej (formularz strony z Verris Kreatora: kreator.formularz,
+ * kreator/formularz.service.ts – TAG_MAILA). Verris jest tu podmiotem przetwarzającym (DPA §2 ust. 4) i nie zapisuje
+ * w dzienniku wysyłek adresu nadawcy formularza; treści maili dziennik nie trzyma w ogóle. Limit 50 maili na dobę ze strony
+ * liczy się z tagu, konta, tematu i daty – te pola zostają.
+ */
+export const TAGI_BEZ_ADRESU_ODPOWIEDZI: ReadonlySet<string> = new Set(['kreator.formularz']);
 
 export function buildMailerProvider(config: ConfigService): MailerProvider {
   const host = config.get<string>('SMTP_HOST') || process.env.SMTP_HOST || 'localhost';

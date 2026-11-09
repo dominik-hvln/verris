@@ -1,6 +1,6 @@
 # Umowa powierzenia przetwarzania danych osobowych (DPA)
 
-**Wersja 1.2.1 · obowiązuje od [DATA PUBLIKACJI]**
+**Wersja 1.3.0 · obowiązuje od [DATA PUBLIKACJI]**
 
 Umowa zawierana drogą elektroniczną między Klientem (administratorem danych przetwarzanych w ramach jego usług utrzymywanych w Verris) a Verris (podmiotem przetwarzającym), stosownie do art. 28 ust. 3 RODO. Stanowi integralną część stosunku umownego opartego na Regulaminie świadczenia usług Verris.
 
@@ -15,8 +15,10 @@ Jeżeli Klient sam działa jako podmiot przetwarzający dla osób trzecich (np. 
 ## §2. Przedmiot, charakter i cel powierzenia
 
 1. Klient powierza Verris przetwarzanie danych osobowych wyłącznie w celu i w zakresie niezbędnym do świadczenia Usług zgodnie z Regulaminem i wybranymi Planami.
-2. Charakter przetwarzania jest wyłącznie techniczny: przechowywanie, utrwalanie, porządkowanie, transmisja, wykonywanie kopii zapasowych i usuwanie danych w ramach udostępnianej infrastruktury (hosting, VPS, poczta, wysyłka kampanii e-mail). Verris nie analizuje treści powierzonych danych i nie wykorzystuje ich do własnych celów.
+2. Charakter przetwarzania jest wyłącznie techniczny: przechowywanie, utrwalanie, porządkowanie, transmisja, wykonywanie kopii zapasowych i usuwanie danych w ramach udostępnianej infrastruktury (hosting, VPS, poczta, wysyłka kampanii e-mail), a w Verris Kreatorze także przygotowywanie i zmiany treści stron z pomocą AI na polecenie Klienta oraz przekazywanie wiadomości z formularzy kontaktowych (ust. 4–5). Verris nie analizuje treści powierzonych danych w innym zakresie niż polecony przez Klienta i nie wykorzystuje ich do własnych celów.
 3. Jeżeli Klient włączy dla swojej strony statystyki odwiedzin Verris, Verris w imieniu Klienta zlicza odsłony strony: z adresu IP i przeglądarki odwiedzającego tworzy jednokierunkowy skrót z solą zmienianą co dobę (sam adres IP ani przeglądarka nie są zapisywane), zapisuje kraj, ścieżkę odwiedzonej strony, domenę strony odsyłającej i rodzaj urządzenia; statystyki nie używają plików cookies i respektują ustawienie „Do Not Track”. Zdarzenia są usuwane po 90 dniach. Ocena, czy i jak Klient informuje o statystykach odwiedzających swoją stronę (w tym w polityce prywatności strony Klienta), należy do Klienta jako administratora.
+4. Jeżeli strona opublikowana z Verris Kreatora zawiera formularz kontaktowy, Verris w imieniu Klienta przyjmuje wiadomości wysłane formularzem i przekazuje je e-mailem na adres wskazany w ustawieniach strony, a gdy go brak – na adres e-mail Konta. Wiadomość obejmuje dane podane przez wysyłającego: imię, adres e-mail, numer telefonu, nazwę firmy, preferowany termin, wybraną usługę i treść wiadomości, a także adres strony, z której ją wysłano. Verris nie zapisuje treści wiadomości w swojej bazie danych; w dzienniku wysyłek zapisuje adres odbiorcy (Klienta), temat ze wskazaniem domeny strony, czas i status doręczenia – na potrzeby limitów wysyłki i wyjaśniania problemów z doręczeniem, przez okres przechowywania dziennika wysyłek (12 miesięcy); adresu e-mail wysyłającego w dzienniku nie zapisuje. Adres IP wysyłającego służy wyłącznie do ograniczania liczby wiadomości (liczniki wygasają po 10 minutach) i nie jest zapisywany w bazie danych ani w dzienniku wysyłek. Wiadomości rozpoznane jako spam nie są przekazywane.
+5. W Verris Kreatorze Verris w imieniu Klienta przechowuje treść stron wraz z historią wersji i zdjęcia z biblioteki Konta (przy wgraniu usuwa z plików metadane, m.in. dane aparatu i lokalizację), przygotowuje i zmienia treści stron oraz ich tłumaczenia z pomocą modelu AI dalszego podmiotu przetwarzającego wskazanego w Załączniku 2 oraz publikuje stronę na Hostingu Klienta. W zakresie, w jakim te treści zawierają dane osobowe osób trzecich (np. imiona i zdjęcia pracowników albo klientów Klienta), stosuje się niniejszą Umowę.
 
 ## §3. Czas trwania
 
@@ -24,8 +26,8 @@ Umowa obowiązuje od chwili rozpoczęcia korzystania z Usług i trwa przez okres
 
 ## §4. Rodzaje danych i kategorie osób
 
-1. Zakres powierzonych danych określa samodzielnie Klient poprzez treści, które umieszcza w ramach Usług. Typowo obejmuje: dane identyfikacyjne i kontaktowe (imię, nazwisko, e-mail, telefon, adres), dane rozliczeniowe klientów Klienta, dane logowania użytkowników serwisów Klienta, treści generowane przez użytkowników, adresy IP w logach serwisów Klienta, listy odbiorców kampanii e-mail oraz – jeżeli Klient włączy statystyki odwiedzin – dane odwiedzających opisane w §2 ust. 3.
-2. Kategorie osób: klienci i kontrahenci Klienta, użytkownicy i odwiedzający jego serwisy, pracownicy i współpracownicy Klienta, odbiorcy jego kampanii e-mail.
+1. Zakres powierzonych danych określa samodzielnie Klient poprzez treści, które umieszcza w ramach Usług. Typowo obejmuje: dane identyfikacyjne i kontaktowe (imię, nazwisko, e-mail, telefon, adres), dane rozliczeniowe klientów Klienta, dane logowania użytkowników serwisów Klienta, treści generowane przez użytkowników, adresy IP w logach serwisów Klienta, listy odbiorców kampanii e-mail, dane osób trzecich w treściach i zdjęciach stron tworzonych w Verris Kreatorze (§2 ust. 5), dane osób wysyłających wiadomości przez formularz kontaktowy strony z Verris Kreatora (§2 ust. 4) oraz – jeżeli Klient włączy statystyki odwiedzin – dane odwiedzających opisane w §2 ust. 3.
+2. Kategorie osób: klienci i kontrahenci Klienta, użytkownicy i odwiedzający jego serwisy, osoby kontaktujące się z Klientem przez formularz kontaktowy jego strony, pracownicy i współpracownicy Klienta, odbiorcy jego kampanii e-mail.
 3. Klient nie powierza Verris szczególnych kategorii danych (art. 9 RODO) ani danych dotyczących wyroków skazujących (art. 10 RODO), chyba że zapewni we własnym zakresie zgodność takiego przetwarzania z prawem i poinformuje Verris przed rozpoczęciem przetwarzania na `rodo@verris.pl`.
 4. Powierzenie nie obejmuje danych Klienta i osób go reprezentujących związanych z prowadzeniem Konta i rozliczeniami – te Verris przetwarza jako odrębny administrator (Polityka prywatności).
 
@@ -95,12 +97,13 @@ Strony odpowiadają zgodnie z art. 82 RODO. W relacjach między stronami odpowie
 
 | Podmiot | Siedziba / lokalizacja danych | Zakres | Transfer poza EOG |
 | --- | --- | --- | --- |
-| Hetzner Online GmbH | Niemcy (centra danych w Niemczech i Finlandii, UE) | serwery: hosting, serwery VPS, panel i baza danych Verris, zaszyfrowane kopie zapasowe przechowywane poza podstawową lokalizacją | nie |
-| Amazon Web Services EMEA SARL | Luksemburg (region UE: Frankfurt/Irlandia) | wysyłka e-mail (Amazon SES) – powiadomienia i kampanie e-mail marketingu Klienta | możliwy dostęp wspierający z USA – SCC / Data Privacy Framework |
+| Hetzner Online GmbH | Niemcy (centra danych w Niemczech i Finlandii, UE) | serwery: hosting, serwery VPS, panel i baza danych Verris, magazyn plików (zdjęcia z Verris Kreatora), zaszyfrowane kopie zapasowe przechowywane poza podstawową lokalizacją | nie |
+| Amazon Web Services EMEA SARL | Luksemburg (region UE: Frankfurt/Irlandia) | wysyłka e-mail (Amazon SES) – powiadomienia, kampanie e-mail marketingu Klienta i wiadomości z formularzy kontaktowych stron z Verris Kreatora | możliwy dostęp wspierający z USA – SCC / Data Privacy Framework |
 | Stripe Payments Europe, Ltd. | Irlandia | obsługa płatności (dotyczy wyłącznie danych rozliczeniowych; wskazana dla kompletności) | możliwy transfer wspierający do USA – SCC / Data Privacy Framework |
 | Cloudflare, Inc. | USA (punkty obecności w EOG) | ochrona przed botami formularzy rejestracji i logowania (Turnstile; dotyczy danych Klienta i jego współpracowników, wskazana dla kompletności) | tak – SCC / Data Privacy Framework |
 | Hosting Concepts B.V. (Openprovider) | Holandia | rejestracja i obsługa domen (dane abonentów domen) | zależnie od rejestru domeny |
+| Anthropic Ireland, Limited | Irlandia (Dublin); przetwarzanie także w USA | Verris Kreator – przygotowywanie i zmiany treści stron oraz ich tłumaczenia przez model AI (treści i polecenia wprowadzone przez Klienta, bez zdjęć); dostawca nie trenuje modeli na tych danych | tak – SCC |
 
 ---
 
-**Wersja 1.2.1 – data publikacji i wejścia w życie: [DATA PUBLIKACJI]**
+**Wersja 1.3.0 – data publikacji i wejścia w życie: [DATA PUBLIKACJI]**

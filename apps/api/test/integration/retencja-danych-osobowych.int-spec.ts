@@ -56,6 +56,31 @@ describe('audyt Fali 3 – retencja danych osobowych', () => {
     expect(stanBlokad(zadania).lista).toBeNull();
   });
 
+  it('paczka 126: dziennik wysyłek po 12 mies. znika (bez kampanii w toku); adres nadawcy formularza kreatora usunięty z metadanych', async () => {
+    const p = prisma();
+    const kampania = (status: string) => p.marketingCampaign.create({ data: { name: status, subject: 's', bodyMarkdown: 'b', status: status as never } });
+    const wTrakcie = await kampania('SENDING');
+    const wyslana = await kampania('SENT');
+    const wpis = (dni: number, extra: Record<string, unknown> = {}) =>
+      p.emailLog.create({ data: { toEmail: 'jan@firma.pl', category: 'TRANSACTIONAL', subject: 's', status: 'SENT', createdAt: temu(dni), ...extra } as never });
+    const stary = await wpis(366);
+    const staryKampanii = await wpis(400, { category: 'MARKETING', campaignId: wyslana.id });
+    const kampaniaWToku = await wpis(400, { category: 'MARKETING', campaignId: wTrakcie.id });
+    const mlodszy = await wpis(364);
+    const formularz = await wpis(10, { tag: 'kreator.formularz', metadata: { replyTo: 'anna@nadawca.test' } });
+    const obsluga = await wpis(10, { tag: 'ticket.reply', metadata: { replyTo: 'support@verris.pl' } });
+
+    await przebieg();
+
+    const zostaly = new Set((await p.emailLog.findMany({ select: { id: true } })).map((w) => w.id));
+    expect(zostaly.has(stary.id)).toBe(false);
+    expect(zostaly.has(staryKampanii.id)).toBe(false);
+    expect([kampaniaWToku.id, mlodszy.id, formularz.id, obsluga.id].every((id) => zostaly.has(id))).toBe(true);
+    expect((await p.emailLog.findUniqueOrThrow({ where: { id: formularz.id } })).metadata).toEqual({});
+    expect((await p.emailLog.findUniqueOrThrow({ where: { id: obsluga.id } })).metadata).toEqual({ replyTo: 'support@verris.pl' });
+    expect(await p.auditLog.findFirstOrThrow({ where: { action: 'RETENTION_PURGE' } })).toMatchObject({ details: expect.objectContaining({ emailLogsPurged: 2 }) });
+  });
+
   it('dziennik: IP w szczegółach wpisów F3.2 znika po ~24 mies.; inne pola i młodsze wpisy zostają', async () => {
     const wpis = (action: string, details: Record<string, unknown>, dni: number) => prisma().auditLog.create({ data: { action, details: details as never, createdAt: temu(dni) } });
     const a = await wpis('OPERATOR_ACCOUNT_VIEWED', { sekcja: 'blokady-ip', ip: '198.51.100.23' }, 800);

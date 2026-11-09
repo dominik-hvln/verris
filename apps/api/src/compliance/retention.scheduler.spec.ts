@@ -1,12 +1,13 @@
 import type { Mock } from 'vitest';
-import { RetentionScheduler } from './retention.scheduler.js';
+import { PARTIA_DZIENNIKA_POCZTY, RetentionScheduler } from './retention.scheduler.js';
 
 /**
  * P-08 — retencja: co i po ilu dniach znika albo traci IP. Dotąd zero testów.
  */
 const DAY = 24 * 60 * 60 * 1000;
 
-function zbuduj(liczby: { login?: number; audit?: number; eksporty?: number; stripe?: number; ai?: number; kolejka?: number; zadania?: number } = {}) {
+function zbuduj(liczby: { login?: number; audit?: number; eksporty?: number; stripe?: number; ai?: number; kolejka?: number; zadania?: number; dziennikPoczty?: number[] } = {}) {
+  const partie = [...(liczby.dziennikPoczty ?? [])];
   const prisma = {
     loginAttempt: { deleteMany: vi.fn(async () => ({ count: liczby.login ?? 0 })) },
     auditLog: { updateMany: vi.fn(async () => ({ count: liczby.audit ?? 0 })) },
@@ -14,7 +15,13 @@ function zbuduj(liczby: { login?: number; audit?: number; eksporty?: number; str
     aiInteractionLog: { deleteMany: vi.fn(async () => ({ count: liczby.ai ?? 0 })) },
     nodeTask: { updateMany: vi.fn(async () => ({ count: liczby.kolejka ?? 0 })) },
     // Audyt Fali 3 — wyniki zadań węzła (30 dni) i IP w szczegółach dziennika (~24 mies.).
-    $executeRaw: vi.fn(async (t: TemplateStringsArray) => (t.join('?').includes('"NodeTask"') ? (liczby.zadania ?? 0) : 0)),
+    $executeRaw: vi.fn(async (t: TemplateStringsArray) => {
+      const sql = t.join('?');
+      if (sql.includes('"NodeTask"')) return liczby.zadania ?? 0;
+      // Paczka 126 — kolejne partie usuwania dziennika wysyłek.
+      if (sql.includes('DELETE FROM "EmailLog"')) return partie.shift() ?? 0;
+      return 0;
+    }),
   };
   const audit = { record: vi.fn(async () => undefined) };
   const dataExport = { expireDueExports: vi.fn(async () => liczby.eksporty ?? 0) };
@@ -97,5 +104,23 @@ describe('RetentionScheduler (P-08)', () => {
       ['target', ['HOSTING_IP_UNBLOCK_QUEUED']],
     ]);
     for (const w of dziennik) expect(Math.round((Date.now() - (w.v[1] as Date).getTime()) / DAY)).toBe(720);
+  });
+
+  it('paczka 126: dziennik wysyłek (EmailLog) usuwany po 12 mies. partiami, bez kampanii w toku; adres nadawcy formularza kreatora znika', async () => {
+    const t = zbuduj({ dziennikPoczty: [PARTIA_DZIENNIKA_POCZTY, 3] });
+    await t.s.run();
+    const wywolania = (t.prisma.$executeRaw.mock.calls as unknown as [TemplateStringsArray, ...unknown[]][]).map(([sz, ...v]) => ({ sql: sz.join('?'), v }));
+    const usuniecia = wywolania.filter((w) => w.sql.includes('DELETE FROM "EmailLog"'));
+    expect(usuniecia).toHaveLength(2);
+    for (const u of usuniecia) {
+      expect(u.sql).toMatch(/c\."status"::text = 'SENDING'/);
+      expect(u.v).toContain(PARTIA_DZIENNIKA_POCZTY);
+      const granica = u.v.find((x): x is Date => x instanceof Date)!;
+      expect(Math.round((Date.now() - granica.getTime()) / DAY)).toBe(365);
+    }
+    const replyTo = wywolania.find((w) => w.sql.includes('UPDATE "EmailLog"'))!;
+    expect(replyTo.sql).toMatch(/"metadata" - 'replyTo'/);
+    expect(replyTo.v).toContainEqual(['kreator.formularz']);
+    expect((t.audit.record.mock.calls as unknown[][])[0]).toEqual([expect.objectContaining({ details: expect.objectContaining({ emailLogsPurged: PARTIA_DZIENNIKA_POCZTY + 3 }) })]);
   });
 });

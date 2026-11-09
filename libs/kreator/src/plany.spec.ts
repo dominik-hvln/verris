@@ -1,5 +1,5 @@
 import { walidujStrone, type Strona } from './model.ts';
-import { dopasujDoPlanu, PLANY_KREATORA, CENA_KREATORA_PRO, KORZYSCI_PRO } from './plany.ts';
+import { dopasujDoPlanu, PLANY_KREATORA, CENA_KREATORA_PRO, KORZYSCI_PRO, korzysciPro } from './plany.ts';
 import { KATALOG_STYLOW } from './style/katalog-stylow.ts';
 import { PRZYKLAD_SALON } from './przyklady/salon.ts';
 
@@ -90,6 +90,14 @@ describe('dopasujDoPlanu', () => {
     const k = KORZYSCI_PRO.find((x) => x.id === 'zdjecia-ai');
     expect(k?.opis).toContain(`${p.pro.obrazowAiMies} zdjęć AI miesięcznie`);
     expect(k?.opis).toContain(`${p.pro.wariantowObrazuAi} warianty`);
+  });
+
+  it('paczka 126: korzyść „Zdjęcia AI” tylko przy włączonym generowaniu; reszta listy bez zmian', () => {
+    const bez = korzysciPro({ zdjeciaAi: false });
+    expect(bez.map((k) => k.id)).not.toContain('zdjecia-ai');
+    expect(bez).toHaveLength(KORZYSCI_PRO.length - 1);
+    expect(JSON.stringify(bez)).not.toMatch(/zdjęć AI|Zdjęcia AI/);
+    expect(korzysciPro({ zdjeciaAi: true })).toEqual(KORZYSCI_PRO);
   });
 
   it('wersje językowe (paczka 124): tylko Pro, korzyść wymienia trzy języki', () => {

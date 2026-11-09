@@ -1,6 +1,10 @@
 # Verris Kreator i abonament Kreator Pro w Regulaminie (projekt do zatwierdzenia)
 
-> **Status: PROJEKT · 2026-11-08 (paczka 121). Nie wbudowane w `terms.md`, nic nie opublikowano.** Po akceptacji
+> **Status: WBUDOWANE w 1.3.0 · 2026-11-09.** Brzmienie §1 pkt 6 i §13a (zaktualizowane do stanu paczek 122–125:
+> 14 ustępów zamiast 6, dopisek w §7 ust. 3 i zdanie w §7 ust. 4) jest w `terms.md` 1.3.0; lista zmian i blokery:
+> `ZMIANY_1.2.1-1.3.0.md`. Poniżej – projekt z paczki 121, zostawiony jako historia decyzji.
+>
+> Pierwotny status: PROJEKT · 2026-11-08 (paczka 121). Nie wbudowane w `terms.md`, nic nie opublikowano. Po akceptacji
 > właściciela brzmienie z pkt 3 trafia do `terms.md` w najbliższej wersji Regulaminu (re-consent, §24 ust. 1 –
 > „wprowadzenie nowych Usług lub funkcji”). Do tego czasu sprzedaż Kreatora Pro powinna czekać – patrz pkt 5.
 

@@ -220,6 +220,15 @@ describe('KreatorService – dostęp i wersje', () => {
     expect(stan.powod).toMatch(/hostingiem/);
   });
 
+  it('paczka 126: korzyść „Zdjęcia AI” w /stan tylko przy włączonym generowaniu zdjęć AI w konfiguracji', async () => {
+    const { svc, db } = zbuduj([]);
+    const ids = async () => (await svc.stan('u1')).korzysciPro.map((k) => k.id);
+    expect(await ids()).not.toContain('zdjecia-ai');
+    expect(await ids()).toContain('warianty');
+    db.ustawienia[KLUCZ_KONFIGURACJI_KREATORA] = JSON.stringify({ wlaczony: true, obrazyAi: { wlaczone: true, dostawca: 'bfl' } });
+    expect(await ids()).toContain('zdjecia-ai');
+  });
+
   it('kreator wyłączony: tylko konta testowe (po e-mailu albo ID)', async () => {
     const { svc, db } = zbuduj([]);
     db.ustawienia[KLUCZ_KONFIGURACJI_KREATORA] = JSON.stringify({ wlaczony: false, kontaTestowe: ['U2@example.com'] });

@@ -465,7 +465,7 @@ export class DataExportService implements OnApplicationBootstrap {
 
   private async collectSections(userId: string): Promise<Record<string, unknown>> {
     const [user, accounts, subscriptions, walletTxs, invoices, tickets, ticketAttachments,
-      ticketReplies, consents, prefs, exports, deletions, auditLogs, customerNotes, migracje, poczta] =
+      ticketReplies, consents, prefs, exports, deletions, auditLogs, customerNotes, migracje, poczta, kreatorStrony, kreatorZdjecia, kreatorZuzycie] =
       await this.prisma.$transaction([
         this.prisma.user.findUniqueOrThrow({ where: { id: userId } }),
         this.prisma.account.findMany({ where: { userId } }),
@@ -535,6 +535,29 @@ export class DataExportService implements OnApplicationBootstrap {
           orderBy: { otrzymano: 'asc' },
           select: { otrzymano: true, nadawca: true, nadawcaNazwa: true, temat: true, rodzaj: true, wynik: true, tresc: true, zalaczniki: true, ticketId: true },
         }),
+        // Paczka 126 — Verris Kreator: strony (model JSON, brief, propozycje, historia wersji, publikacja, przejście na
+        // WordPress – login administratora, bez klucza katalogu podglądu i ścieżek kopii), metadane zdjęć biblioteki (bez
+        // plików – do 2 GB na konto w Pro; użyte zdjęcia są w plikach i ZIP strony) i liczniki użycia w miesiącu (bez kosztów Verris).
+        this.prisma.kreatorStrona.findMany({
+          where: { userId },
+          orderBy: { createdAt: 'asc' },
+          select: {
+            id: true, nazwa: true, status: true, branza: true, wersjaModelu: true, model: true, brief: true, propozycje: true,
+            opublikowanaAt: true, domena: true, adres: true, createdAt: true, updatedAt: true,
+            wersje: { orderBy: { numer: 'asc' }, select: { numer: true, zrodlo: true, opis: true, model: true, createdAt: true } },
+            cms: { select: { cel: true, stan: true, domena: true, adminLogin: true, bazaNazwa: true, bazaUzytkownik: true, podgladAt: true, przeniesionaAt: true, cofnietaAt: true, createdAt: true } },
+          },
+        }),
+        this.prisma.kreatorZasob.findMany({
+          where: { userId },
+          orderBy: { createdAt: 'asc' },
+          select: { id: true, stronaId: true, zrodlo: true, autor: true, licencja: true, licencjaUrl: true, zrodloUrl: true, szerokosc: true, wysokosc: true, bajty: true, alt: true, createdAt: true },
+        }),
+        this.prisma.kreatorZuzycie.findMany({
+          where: { userId },
+          orderBy: { miesiac: 'asc' },
+          select: { miesiac: true, generacje: true, zmiany: true, obrazyAi: true },
+        }),
       ]);
 
     // P5-07 (paczka 109) — allowlista zamiast „cały wiersz minus sekrety”: nowe kolumny wewnętrzne (flagi zespołu,
@@ -592,6 +615,9 @@ export class DataExportService implements OnApplicationBootstrap {
         ),
         kontakty: kontakty.map((k) => ({ ...k, autor: 'Obsługa Verris' })),
       })),
+      'kreator-sites': kreatorStrony,
+      'kreator-photos': kreatorZdjecia,
+      'kreator-usage': kreatorZuzycie,
     });
   }
 
@@ -851,6 +877,11 @@ function buildReadme(userId: string): string {
     '  customer-notes.json              – notatki obsługi o koncie (treść i daty, autor jako „Obsługa Verris”).',
     '  incoming-mail.json               – maile do obsługi, które nie trafiły od razu do zgłoszenia (nadawca, temat, treść, nazwy plików).',
     '  migrations.json                  – migracje: etap obsługi, terminy, checklista i log kontaktów (autor jako „Obsługa Verris”), bez haseł.',
+    '  kreator-sites.json               – strony z Verris Kreatora: model strony (JSON), opis z formularza, propozycje, historia',
+    '                                     wersji, publikacja i przejście na WordPress (login administratora, bez haseł).',
+    '  kreator-photos.json              – zdjęcia z biblioteki kreatora: źródło, autor, licencja, wymiary i opis; same pliki',
+    '                                     zdjęć nie są częścią archiwum (opublikowana strona i jej ZIP zawierają użyte zdjęcia).',
+    '  kreator-usage.json               – liczniki użycia kreatora w miesiącach (generacje, zmiany AI).',
     '  data-export-requests.json        – historia żądań eksportu danych.',
     '  account-deletion-requests.json   – historia żądań usunięcia konta.',
     '  attachments/<plik>               – fizyczne kopie załączników z ticketów.',
