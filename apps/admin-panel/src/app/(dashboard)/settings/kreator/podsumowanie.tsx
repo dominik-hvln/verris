@@ -153,6 +153,22 @@ export function PodsumowanieKreatoraPanel({ dane }: { dane: PodsumowanieKreatora
           </p>
         </div>
 
+        {dane.obrazyAi ? (
+          <div data-obrazy-ai className="space-y-1 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-xs text-neutral-300">
+            <p>
+              <strong className="text-white">Zdjęcia AI:</strong> {liczba(dane.obrazyAi.udane)}{' '}
+              {plForm(dane.obrazyAi.udane, 'zdjęcie dostarczone', 'zdjęcia dostarczone', 'zdjęć dostarczonych')} z {liczba(dane.obrazyAi.obrazy)}{' '}
+              {plForm(dane.obrazyAi.obrazy, 'rozliczonego', 'rozliczonych', 'rozliczonych')} przez dostawcę ({liczba(dane.obrazyAi.wywolania)}{' '}
+              {plForm(dane.obrazyAi.wywolania, 'generowanie', 'generowania', 'generowań')}
+              {dane.obrazyAi.moderowane ? `, ${liczba(dane.obrazyAi.moderowane)} odrzucone przez moderację` : ''}), koszt{' '}
+              <strong className="text-white">{usd(dane.obrazyAi.kosztUsd)}</strong>.
+            </p>
+            <p className="text-[11px] text-neutral-400">
+              Poza tabelą wyżej (tokeny): koszt obrazów = obrazy rozliczone × cena za obraz z ustawień. Tłumaczenie opisu na prompt liczy się do kosztu AI kreatora.
+            </p>
+          </div>
+        ) : null}
+
         <div className="space-y-2">
           <h3 className="text-xs font-bold uppercase tracking-widest text-neutral-300">Koszt AI dziennie – 30 dni</h3>
           <WykresDni dni={dane.dni} />

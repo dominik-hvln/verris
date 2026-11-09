@@ -62,6 +62,7 @@ import { RENDERER_PUBLIKACJI, type RendererPublikacji } from './renderer-publika
 import { readmeZip, zbudujZip } from './zip-strony.js';
 import { KreatorZasobyService } from './zasoby.service.js';
 import { idZasobow } from './zasoby-model.js';
+import { POWOD_PRZENIESIONA, STANY_BLOKUJACE_PUBLIKACJE } from './wordpress/stan-cms.js';
 
 /** Link podglądu wersji próbnej – 7 dni, odnawiany kolejną „publikacją”. */
 export const WAZNOSC_LINKU_MS = 7 * 24 * 60 * 60 * 1000;
@@ -119,6 +120,10 @@ export class KreatorPublikacjaService {
     const link = s.podgladDo && s.podgladDo.getTime() > Date.now() ? { adres: this.adresLinku(s.id, s.podgladDo), wazneDo: s.podgladDo } : undefined;
     const niegotowa = model ? null : 'Strona nie jest jeszcze gotowa – poczekaj na koniec generowania albo popraw błędy.';
 
+    // Paczka 124 – strona przeniesiona do WordPressa: kreator nie publikuje na jej domenę (dopóki klient nie cofnie przejścia).
+    if (await this.przeniesionaDoCms(id)) {
+      return { wersja, mozliwa: false, powod: POWOD_PRZENIESIONA, domeny: [], zmianyPlanu, ...(opublikowana ? { opublikowana } : {}) };
+    }
     if (plan.publikacja === 'podglad') {
       return { wersja, mozliwa: !niegotowa, ...(niegotowa ? { powod: niegotowa } : {}), domeny: [], zmianyPlanu, ...(opublikowana ? { opublikowana } : {}), ...(link ? { linkPodgladu: link } : {}) };
     }
@@ -173,6 +178,7 @@ export class KreatorPublikacjaService {
       return this.utworzLink(s);
     }
 
+    if (await this.przeniesionaDoCms(id)) throw new ConflictException(POWOD_PRZENIESIONA);
     const domena = (dto.domena ?? '').trim().toLowerCase().replace(/\.$/, '');
     if (!domena) throw new BadRequestException('Wybierz domenę, na której ma się pojawić strona.');
     if (!DOMENA_RE.test(domena)) throw new BadRequestException('Nieprawidłowa domena.');
@@ -258,6 +264,8 @@ export class KreatorPublikacjaService {
 
   async wycofaj(userId: string, actorUserId: string, id: string) {
     const s = await this.wlasna(userId, id);
+    // Katalog strony należy teraz do WordPressa – wycofanie publikacji usunęłoby pliki, których kreator już nie ma.
+    if (await this.przeniesionaDoCms(id)) throw new ConflictException(POWOD_PRZENIESIONA);
     if (!s.katalog || !s.subskrypcjaId) {
       if (!s.podgladDo && !s.opublikowanaAt) throw new ConflictException('Strona nie jest opublikowana.');
       await this.prisma.kreatorStrona.update({ where: { id }, data: { podgladDo: null, opublikowanaAt: null, adres: null } });
@@ -528,6 +536,11 @@ export class KreatorPublikacjaService {
   // ---------------------------------------------------------------------------
   // Pomocnicze
   // ---------------------------------------------------------------------------
+
+  private async przeniesionaDoCms(stronaId: string): Promise<boolean> {
+    const c = await this.prisma.kreatorCms.findUnique({ where: { stronaId }, select: { stan: true } });
+    return !!c && STANY_BLOKUJACE_PUBLIKACJE.includes(c.stan);
+  }
 
   private async wersja(userId: string): Promise<WersjaKreatora> {
     const d = await this.kreator.dostep(userId);

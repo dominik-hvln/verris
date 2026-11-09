@@ -840,6 +840,7 @@ enum NodeTaskKind {
   IP_BLOCKS         // F3.2 — blokady IP fail2ban węzła: lista, odblokowanie, biała lista (node-ip-blocks.sh)
   WAF_HITS          // F3.2 — ostatnie trafienia reguł WAF dla domen konta, tylko odczyt (node-waf-hits.sh)
   NODE_SERVICES     // F3.4 — usługi węzła z białej listy: stan, restart, ogon logu (node-services.sh)
+  KREATOR_WP        // Paczka 124 — strona z Verris Kreatora na WordPressa: podgląd, zamiana, cofnięcie (node-kreator-wp.sh)
 }
 
 enum WafMode {
@@ -4886,6 +4887,8 @@ model KreatorStrona {
   updatedAt      DateTime        @updatedAt
   wersje         KreatorWersja[]
   zasoby         KreatorZasob[]
+  /// Paczka 124 – przejście strony na CMS (WordPress) na hostingu klienta; null = nigdy nie zaczęte.
+  cms            KreatorCms?
 
   @@index([userId])
   @@index([branza, createdAt])
@@ -4912,6 +4915,8 @@ model KreatorZuzycie {
   miesiac     String
   generacje   Int      @default(0)
   zmiany      Int      @default(0)
+  /// Paczka 124 – zdjęcia wygenerowane przez AI w miesiącu (limit: PLANY_KREATORA[wersja].obrazowAiMies).
+  obrazyAi    Int      @default(0)
   wejTokeny   Int      @default(0)
   wyjTokeny   Int      @default(0)
   cacheZapis  Int      @default(0)
@@ -4959,4 +4964,52 @@ model KreatorZasob {
 
   @@index([userId, createdAt])
   @@index([stronaId])
+}
+
+/// Paczka 124 – stan przejścia strony z Verris Kreatora na CMS (dziś WordPress). Etapy: instalacja podglądu
+/// (WordPress w <katalog strony>/.verris-wp-podglad/<klucz>, zadanie węzła KREATOR_WP), zamiana (strona z kreatora
+/// do kopii `kopia` w katalogu domeny, WordPress do katalogu strony), cofnięcie (WordPress do `kopiaWp`, kopia wraca).
+enum KreatorCmsStan {
+  PODGLAD_W_TOKU
+  PODGLAD
+  ZAMIANA_W_TOKU
+  PRZENIESIONA
+  COFANIE_W_TOKU
+  COFNIETA
+  BLAD
+}
+
+model KreatorCms {
+  id             String         @id @default(uuid())
+  stronaId       String         @unique
+  strona         KreatorStrona  @relation(fields: [stronaId], references: [id], onDelete: Cascade)
+  userId         String
+  /// Cel eksportu (CelCms z @verris/kreator): 'wordpress'.
+  cel            String
+  stan           KreatorCmsStan
+  domena         String
+  subskrypcjaId  String
+  /// Katalog strony względem katalogu domowego (jak KreatorStrona.katalog), np. /domains/x.pl/public_html.
+  katalog        String
+  /// Katalog podglądu (24 znaki hex) – „hasło w linku”.
+  klucz          String
+  /// Ostatnie zadanie węzła (KREATOR_WP) – stan odczytywany przy odpytywaniu.
+  zadanieId      String?
+  bazaNazwa      String?
+  bazaUzytkownik String?
+  adminLogin     String?
+  /// Katalog kopii strony z kreatora w katalogu domeny (po zamianie), np. .verris-kopia-20261109-1130.
+  kopia          String?
+  /// Katalog, do którego trafił WordPress po cofnięciu.
+  kopiaWp        String?
+  /// Błąd ostatniego etapu dla klienta (po polsku) i etap: 'podglad' | 'zamiana' | 'cofniecie'.
+  blad           String?
+  bladEtap       String?
+  podgladAt      DateTime?
+  przeniesionaAt DateTime?
+  cofnietaAt     DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([userId])
 }

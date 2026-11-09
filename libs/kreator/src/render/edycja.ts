@@ -88,7 +88,7 @@ export function sciezkaMenu(k: KontekstPodstrony, cel: { sekcja: string } | { po
     const p = e.strony.get(cel.podstrona);
     return p ? `strony.${p.i}.tytul` : null;
   }
-  const g = e.strony.get('');
+  const g = e.strony.get(k.glowna);
   const j = g?.sekcje.get(cel.sekcja);
   return g && j !== undefined ? `strony.${g.i}.sekcje.${j}.wMenu` : null;
 }

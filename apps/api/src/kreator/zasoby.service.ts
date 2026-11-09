@@ -20,7 +20,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { ObjectStorageService } from '../storage/object-storage.service.js';
 import { ObjectBuckets } from '../storage/object-storage.types.js';
 import { KreatorService } from './kreator.service.js';
-import { BladObrazu, MAKS_BAJTOW_WEJSCIA, kluczOryginalu, kluczWariantu, przetworzObraz, type PrzetworzonyObraz } from './zasoby-obraz.js';
+import { BladObrazu, MAKS_BAJTOW_WEJSCIA, XMP_AI, kluczOryginalu, kluczWariantu, przetworzObraz, type PrzetworzonyObraz } from './zasoby-obraz.js';
 import { adresBazowyZasobu, sprawdzTokenMiniatury, sprawdzTokenZasobu, utworzTokenMiniatury } from './zasoby-token.js';
 import { idZasobow, uzupelnijWymiary } from './zasoby-model.js';
 import { BibliotekaZdjec, CZAS_CACHE_MS, MAKS_STRONA, NA_STRONE } from './biblioteka/biblioteka.js';
@@ -35,6 +35,9 @@ export const MAKS_ADRESOW = 100;
 export const KATALOG_ZDJEC = 'assets/img';
 
 export const BIBLIOTEKA_ZDJEC = Symbol('BIBLIOTEKA_ZDJEC');
+/** Paczka 124 – autor i kod licencji zdjęć wygenerowanych przez AI (w panelu: „Wygenerowane przez AI”). */
+export const AUTOR_AI = 'Verris Kreator AI';
+export const LICENCJA_AI = 'wygenerowane-ai';
 
 const NIE_MA = 'Nie znaleziono zdjęcia.';
 const BLAD_MAGAZYNU = 'Nie udało się zapisać zdjęcia – spróbuj ponownie za chwilę.';
@@ -111,9 +114,20 @@ export class KreatorZasobyService {
     return { zasob: await this.zapisz(userId, wersja, obraz, meta, dto) };
   }
 
-  private async przetworz(plik: Buffer): Promise<PrzetworzonyObraz> {
+  /**
+   * Paczka 124 – zapis zdjęcia wygenerowanego przez AI (generowanie/obrazy-ai.service.ts): to samo przetwarzanie co
+   * wgranie (sharp, warianty, limit miejsca), metadane XMP „trainedAlgorithmicMedia” w każdym pliku, źródło AI,
+   * licencja „wygenerowane-ai”, autor „Verris Kreator AI”, alt podpowiedziany z opisu. Wersja i strona sprawdzone
+   * przez wołającego.
+   */
+  async zapiszWygenerowany(userId: string, wersja: WersjaKreatora, dane: Buffer, dto: { stronaId?: string; alt?: string }) {
+    const obraz = await this.przetworz(dane, { xmp: XMP_AI });
+    return this.zapisz(userId, wersja, obraz, { zrodlo: KreatorZrodloZasobu.AI, autor: AUTOR_AI, licencja: LICENCJA_AI }, dto);
+  }
+
+  private async przetworz(plik: Buffer, opcje: { xmp?: string } = {}): Promise<PrzetworzonyObraz> {
     try {
-      return await przetworzObraz(plik);
+      return await przetworzObraz(plik, opcje);
     } catch (e) {
       if (e instanceof BladObrazu) throw new UnprocessableEntityException(e.message);
       throw e;

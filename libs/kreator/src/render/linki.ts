@@ -1,3 +1,4 @@
+import { jezykPodstrony, kluczPodstrony } from '../jezyki.ts';
 import type { Przycisk } from '../model.ts';
 import { esc } from './esc.ts';
 import type { KontekstPodstrony } from './kontekst.ts';
@@ -16,13 +17,19 @@ export function hrefCelu(k: KontekstPodstrony, cel: string): string {
   if (cel.startsWith('#')) {
     const id = cel.slice(1);
     if (k.idTutaj.has(id)) return cel;
-    if (k.s.idGlownej.has(id)) return `${k.prefix || './'}${cel}`;
+    if (k.idGlownej.has(id)) return `${hrefPodstrony(k, k.glowna)}${cel}`;
     return cel;
   }
   if (cel.startsWith('/')) {
     const sciezka = cel.replace(/^\/+/, '');
     const bezSlasha = sciezka.replace(/\/$/, '');
-    if (k.s.strona.strony.some((p) => p.slug === bezSlasha)) return hrefPodstrony(k, bezSlasha);
+    // Wersja językowa (paczka 124): „/cennik” z angielskiej podstrony prowadzi do angielskiej wersji cennika, jeśli jest.
+    const s = k.s.strona;
+    if (k.jezyk !== s.jezyk) {
+      const tlum = s.strony.find((p) => jezykPodstrony(s, p) === k.jezyk && kluczPodstrony(s, p) === bezSlasha);
+      if (tlum) return hrefPodstrony(k, tlum.slug);
+    }
+    if (s.strony.some((p) => p.slug === bezSlasha)) return hrefPodstrony(k, bezSlasha);
     return `${k.prefix}${sciezka}` || './';
   }
   return cel;
@@ -50,7 +57,7 @@ export function przycisk(k: KontekstPodstrony, p: Przycisk, dodatkowaKlasa = '',
 export function celDostepny(k: KontekstPodstrony, cel: string): boolean {
   if (!cel.startsWith('#')) return true;
   const id = cel.slice(1);
-  return k.idTutaj.has(id) || k.s.idGlownej.has(id);
+  return k.idTutaj.has(id) || k.idGlownej.has(id);
 }
 
 /**

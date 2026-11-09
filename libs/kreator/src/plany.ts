@@ -1,4 +1,5 @@
 import { KATALOG_EFEKTOW, KATALOG_WARIANTOW, SEKCJE_PRO } from './katalog.ts';
+import { jezykPodstrony } from './jezyki.ts';
 import type { Strona } from './model.ts';
 import { KATALOG_STYLOW } from './style/katalog-stylow.ts';
 
@@ -33,31 +34,34 @@ export interface PlanKreatora {
   zip: boolean;
   wordpress: boolean;
   /**
-   * Wersje językowe strony. Paczka 123: renderer nie tworzy podstron w innych językach (model ma tylko
-   * `jezykiDodatkowe`, bez treści tłumaczeń), więc żadna wersja ich nie obiecuje – false wszędzie, a KORZYSCI_PRO
-   * nie wymieniają języków. Włączyć dopiero razem z tłumaczeniem podstron (`en/…`) i przełącznikiem języka.
+   * Wersje językowe strony (paczka 124): podstrony `<język>/…` z tłumaczeniem AI, hreflang, przełącznik języka.
+   * Tylko Pro – bez Pro podstrony w językach dodatkowych nie są publikowane (`dopasujDoPlanu`).
    */
   wielojezycznosc: boolean;
   znakMinimalny: boolean;
   /** Miejsce na zdjęcia w bibliotece konta (suma oryginałów i wariantów w magazynie), MB. */
   miejsceZdjecMb: number;
+  /** Paczka 124 – zdjęcia generowane przez AI w miesiącu (każdy wariant = jedno zdjęcie). */
+  obrazowAiMies: number;
+  /** Paczka 124 – ile wariantów daje jedno „Wygeneruj” (najwyżej tyle, ile zostało w limicie miesiąca). */
+  wariantowObrazuAi: number;
 }
 
 export const PLANY_KREATORA: Record<WersjaKreatora, PlanKreatora> = {
   proba: {
     nazwa: 'Okres próbny', stron: 1, podstron: 5, generacjiMies: 1, zmianAiMies: 20, wariantyGeneracji: 1, prompt: 'lite',
     funkcjePro: false, seo: 'podstawowe', publikacja: 'podglad', zip: false, wordpress: false, wielojezycznosc: false, znakMinimalny: false,
-    miejsceZdjecMb: 50,
+    miejsceZdjecMb: 50, obrazowAiMies: 3, wariantowObrazuAi: 1,
   },
   hosting: {
     nazwa: 'W cenie hostingu', stron: 3, podstron: 5, generacjiMies: 3, zmianAiMies: 200, wariantyGeneracji: 1, prompt: 'lite',
     funkcjePro: false, seo: 'podstawowe', publikacja: 'domena', zip: true, wordpress: true, wielojezycznosc: false, znakMinimalny: false,
-    miejsceZdjecMb: 500,
+    miejsceZdjecMb: 500, obrazowAiMies: 20, wariantowObrazuAi: 2,
   },
   pro: {
     nazwa: 'Kreator Pro', stron: 10, podstron: null, generacjiMies: 10, zmianAiMies: 1000, wariantyGeneracji: 3, prompt: 'pro',
-    funkcjePro: true, seo: 'pelne', publikacja: 'domena', zip: true, wordpress: true, wielojezycznosc: false, znakMinimalny: true,
-    miejsceZdjecMb: 2048,
+    funkcjePro: true, seo: 'pelne', publikacja: 'domena', zip: true, wordpress: true, wielojezycznosc: true, znakMinimalny: true,
+    miejsceZdjecMb: 2048, obrazowAiMies: 100, wariantowObrazuAi: 4,
   },
 };
 
@@ -71,9 +75,11 @@ export const KORZYSCI_PRO: { id: string; nazwa: string; opis: string }[] = [
   { id: 'efekty', nazwa: 'Interakcje i animacje', opis: 'Karuzele, powiększanie zdjęć, paralaksa, przełącznik cen, animowany nagłówek.' },
   { id: 'sklep', nazwa: 'Katalog produktów', opis: 'Produkty z cenami i przyciskiem zakupu, dane produktowe dla Google.' },
   { id: 'blog', nazwa: 'Blog', opis: 'Wpisy z datą i czasem czytania, dane artykułów dla Google.' },
+  { id: 'jezyki', nazwa: 'Wersje językowe', opis: 'Do 3 dodatkowych języków: angielski, niemiecki, ukraiński – tłumaczenie AI i przełącznik języka na stronie.' },
   { id: 'seo', nazwa: 'Pełne SEO', opis: 'Dane strukturalne FAQ, produktów, artykułów i nawigacji okruszkowej, przegląd SEO przez AI.' },
   { id: 'limity', nazwa: 'Wyższe limity', opis: '10 stron, podstrony bez limitu, 10 generacji i 1000 zmian AI miesięcznie.' },
   { id: 'znak', nazwa: 'Dyskretny znak w stopce', opis: 'Minimalna wersja znaku „Stworzone w Verris Kreator”.' },
+  { id: 'zdjecia-ai', nazwa: 'Zdjęcia AI', opis: '100 zdjęć AI miesięcznie, 4 warianty do wyboru przy każdym generowaniu.' },
 ];
 
 const WARIANTY_PRO = new Map(
@@ -100,6 +106,15 @@ export function dopasujDoPlanu(strona: Strona, wersja: WersjaKreatora): Dopasowa
   const kopia = structuredClone(strona);
   if (plan.funkcjePro) return { strona: kopia, zmiany: [] };
   const zmiany: string[] = [];
+
+  // Wersje językowe (Pro) – najpierw, zanim limit podstron policzy podstrony w innych językach.
+  if (!plan.wielojezycznosc) {
+    const wJezykuGlownym = kopia.strony.filter((p) => jezykPodstrony(kopia, p) === kopia.jezyk);
+    if (wJezykuGlownym.length < kopia.strony.length || kopia.jezykiDodatkowe.length) zmiany.push('Wersje językowe nieopublikowane (Kreator Pro)');
+    kopia.strony = wJezykuGlownym;
+    kopia.jezykiDodatkowe = [];
+    delete kopia.stopka.tlumaczenia;
+  }
 
   for (const p of kopia.strony) {
     const przed = p.sekcje.length;
@@ -136,10 +151,6 @@ export function dopasujDoPlanu(strona: Strona, wersja: WersjaKreatora): Dopasowa
   if (kopia.motyw.animacje === 'wyraziste') {
     kopia.motyw.animacje = 'subtelne';
     zmiany.push('Animacje złagodzone do poziomu „subtelne”');
-  }
-  if (kopia.jezykiDodatkowe.length) {
-    zmiany.push('Dodatkowe wersje językowe wyłączone');
-    kopia.jezykiDodatkowe = [];
   }
   if (!plan.znakMinimalny && kopia.stopka.znakKreatora === 'minimalny') kopia.stopka.znakKreatora = 'jasny';
   return { strona: kopia, zmiany: [...new Set(zmiany)] };

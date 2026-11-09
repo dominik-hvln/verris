@@ -1,4 +1,4 @@
-import { MAKS_POL_FORMULARZA } from '@verris/kreator';
+import { JEZYKI, MAKS_POL_FORMULARZA, NAZWY_JEZYKOW_PL, type Jezyk } from '@verris/kreator';
 
 /**
  * Formularz kontaktowy opublikowanych stron z kreatora – czyste funkcje (odczyt pól, ocena spamu, adres powrotu,
@@ -19,7 +19,7 @@ const ETYKIETY: Record<PoleTresci, string> = {
 };
 
 /** Pola techniczne formularza (ukryte, honeypot, zgoda) – też z limitem długości. */
-const MAKS_TECHNICZNYCH: Record<string, number> = { formularz: 60, powrot: 2048, czas: 20, strona_www: 500, zgoda: 10 };
+const MAKS_TECHNICZNYCH: Record<string, number> = { formularz: 60, powrot: 2048, czas: 20, strona_www: 500, zgoda: 10, jezyk: 5 };
 
 /** Wysyłka szybsza niż tyle od załadowania strony (czas mierzy skrypt strony) = bot. */
 export const MIN_CZAS_MS = 3000;
@@ -36,6 +36,8 @@ export interface DaneFormularza {
   /** Czas od załadowania strony do wysyłki (ms, z przeglądarki) albo null, gdy skrypt go nie wpisał. */
   czas: number | null;
   honeypot: string;
+  /** Paczka 124 – język podstrony z formularzem (ukryte pole `jezyk`); brak albo nieznany = null (strona sprzed wersji językowych). */
+  jezyk: Jezyk | null;
 }
 
 export type OdczytFormularza = { ok: true; dane: DaneFormularza } | { ok: false; powod: string };
@@ -90,6 +92,7 @@ export function odczytajFormularz(body: unknown): OdczytFormularza {
       powrot: tech.powrot.trim(),
       czas,
       honeypot: tech.strona_www.trim(),
+      jezyk: (JEZYKI as readonly string[]).includes(tech.jezyk.trim()) ? (tech.jezyk.trim() as Jezyk) : null,
     },
   };
 }
@@ -140,6 +143,8 @@ export function adresPowrotu(powrot: string, domena: string, sekcja: string | nu
 /** Mail do właściciela strony: tylko tekst (bez części HTML), wartości pól oczyszczone z sterujących znaków. */
 export function mailFormularza(d: DaneFormularza, o: { domena: string; adresStrony: string }): { subject: string; text: string; replyTo?: string } {
   const linie: string[] = [`Nowa wiadomość z formularza kontaktowego na stronie ${o.adresStrony}`, ''];
+  // Mail do firmy zawsze po polsku; przy wersji językowej strony – informacja, w jakim języku pisał nadawca.
+  if (d.jezyk && d.jezyk !== 'pl') linie.push(`Język strony: ${NAZWY_JEZYKOW_PL[d.jezyk]} (${d.jezyk.toUpperCase()}) – nadawca korzystał z tej wersji strony, odpowiedz najlepiej w tym języku.`, '');
   for (const p of POLA_TRESCI) {
     const v = d.pola[p];
     if (!v || p === 'wiadomosc') continue;

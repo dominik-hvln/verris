@@ -19,3 +19,4 @@ export {
   type KorektaPalety,
   type Oklch,
 } from '../style/kolory.ts';
+export * from './tlumaczenie.ts';

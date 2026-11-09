@@ -1,4 +1,6 @@
+import { slugWJezyku } from '../../jezyki.ts';
 import type { SekcjaTypu } from '../../model.ts';
+import { dataWJezyku, teksty } from '../teksty.ts';
 import { adresHtml, daneKontaktowe, emailLink, linkMapy, listaGodzin, telefonLink } from '../dane.ts';
 import { esc } from '../esc.ts';
 import type { KontekstPodstrony } from '../kontekst.ts';
@@ -16,33 +18,33 @@ function mapa(k: KontekstPodstrony): string {
   if (!href) return '';
   return (
     `<div class="mapa"><div class="mapa-rys" aria-hidden="true"><span class="mapa-ulica"></span><span class="mapa-ulica mapa-ulica-2"></span><span class="mapa-park"></span><span class="mapa-pin"></span><span class="mapa-etykieta">${esc(f.nazwa)}</span></div>` +
-    `<a class="mapa-link" ${atrLinku(href)}>Otwórz w mapach<span class="sr"> (${esc(f.adres?.ulica ?? '')})</span></a></div>`
+    `<a class="mapa-link" ${atrLinku(href)}>${esc(k.t.otworzWMapach)}<span class="sr"> (${esc(f.adres?.ulica ?? '')})</span></a></div>`
   );
 }
 
-function przyciskFormularza(sek: Kontakt): string {
-  return sek.dane.pola.includes('termin') ? 'Wyślij prośbę o termin' : 'Wyślij wiadomość';
+function przyciskFormularza(k: KontekstPodstrony, sek: Kontakt): string {
+  return sek.dane.pola.includes('termin') ? k.t.wyslijTermin : k.t.wyslijWiadomosc;
 }
 
 export function renderKontakt(k: KontekstPodstrony, sek: Kontakt): string {
   const d = sek.dane;
   const f = k.s.strona.firma;
   const poj = klasaPojawiania(k);
-  const form = (styl: 'karta' | 'linia' = 'karta') => (d.formularz ? formularz(k, sek, { pola: d.pola, przycisk: przyciskFormularza(sek), styl }) : '');
+  const form = (styl: 'karta' | 'linia' = 'karta') => (d.formularz ? formularz(k, sek, { pola: d.pola, przycisk: przyciskFormularza(k, sek), styl }) : '');
   const g = glowa(sek, { naglowek: d.naglowek, wstep: d.wstep }, k);
   // Dane firmy w edycji na stronie otwierają pole w formularzu „Firma i SEO” (paczka 123).
   const af = (pole: 'telefon' | 'email' | 'adres.ulica') => atrFirmy(k, pole);
 
   if (sek.wariant === 'kontakt-minimalny') {
     const duze = [f.email ? emailLink(f, 'duzy-link', af) : '', f.telefon ? telefonLink(f, 'duzy-link', af) : ''].filter(Boolean).join('');
-    const male = [f.adres ? `<div><p class="et">Adres</p>${adresHtml(f, af)}</div>` : '', f.godziny.length ? `<div><p class="et">Godziny</p>${listaGodzin(f)}</div>` : '']
+    const male = [f.adres ? `<div><p class="et">${esc(k.t.adres)}</p>${adresHtml(f, af)}</div>` : '', f.godziny.length ? `<div><p class="et">${esc(k.t.godziny)}</p>${listaGodzin(f, 'godziny-lista', k.jezyk)}</div>` : '']
       .filter(Boolean)
       .join('');
     const href = linkMapy(f);
     return sekcja(
       k,
       sek,
-      `<div class="kontener kontakt-min${poj}"><div class="kontakt-min-lewa">${g}${duze ? `<div class="duze-linki">${duze}</div>` : ''}${male ? `<div class="kontakt-male">${male}${href && d.mapa ? `<div><p class="et">Dojazd</p><a ${atrLinku(href)}>Otwórz w mapach</a></div>` : ''}</div>` : ''}</div>` +
+      `<div class="kontener kontakt-min${poj}"><div class="kontakt-min-lewa">${g}${duze ? `<div class="duze-linki">${duze}</div>` : ''}${male ? `<div class="kontakt-male">${male}${href && d.mapa ? `<div><p class="et">${esc(k.t.dojazd)}</p><a ${atrLinku(href)}>${esc(k.t.otworzWMapach)}</a></div>` : ''}</div>` : ''}</div>` +
         (d.formularz ? `<div class="kontakt-min-prawa">${form('linia')}</div>` : '') +
         `</div>`,
     );
@@ -51,8 +53,8 @@ export function renderKontakt(k: KontekstPodstrony, sek: Kontakt): string {
     return sekcja(
       k,
       sek,
-      `<div class="kontener kontakt-siatka${poj}"><div class="kontakt-lewa">${g}${daneKontaktowe(f, af)}</div>` +
-        (d.formularz ? `<div class="karta-form tlo-domyslne"><p class="karta-tytul">Napisz do nas</p>${form()}</div>` : d.mapa ? mapa(k) : '') +
+      `<div class="kontener kontakt-siatka${poj}"><div class="kontakt-lewa">${g}${daneKontaktowe(f, af, k.jezyk)}</div>` +
+        (d.formularz ? `<div class="karta-form tlo-domyslne"><p class="karta-tytul">${esc(k.t.napiszDoNas)}</p>${form()}</div>` : d.mapa ? mapa(k) : '') +
         `</div>`,
       { tloWariantu: 'akcent' },
     );
@@ -61,19 +63,19 @@ export function renderKontakt(k: KontekstPodstrony, sek: Kontakt): string {
   return sekcja(
     k,
     sek,
-    `<div class="kontener kontakt-siatka${poj}"><div class="kontakt-lewa">${g}${d.mapa ? mapa(k) : ''}${daneKontaktowe(f, af)}</div>` +
-      (d.formularz ? `<div class="karta-form"><p class="karta-tytul">Napisz do nas</p><p class="karta-opis">Odpowiemy najszybciej, jak to możliwe.</p>${form()}</div>` : '') +
+    `<div class="kontener kontakt-siatka${poj}"><div class="kontakt-lewa">${g}${d.mapa ? mapa(k) : ''}${daneKontaktowe(f, af, k.jezyk)}</div>` +
+      (d.formularz ? `<div class="karta-form"><p class="karta-tytul">${esc(k.t.napiszDoNas)}</p><p class="karta-opis">${esc(k.t.odpowiemy)}</p>${form()}</div>` : '') +
       `</div>`,
   );
 }
 
-const DOSTEPNOSC: Record<string, string> = { dostepny: 'Dostępny', ostatnie: 'Ostatnie sztuki', niedostepny: 'Chwilowo niedostępny', 'na-zamowienie': 'Na zamówienie' };
+const DOSTEPNOSC = (k: KontekstPodstrony): Record<string, string> => ({ dostepny: k.t.dostepny, ostatnie: k.t.ostatnie, niedostepny: k.t.niedostepny, 'na-zamowienie': k.t.naZamowienie });
 
 function celZamowienia(k: KontekstPodstrony, nazwa: string): string {
-  const kontakt = [...k.podstrona.sekcje, ...(k.s.strona.strony.find((p) => p.slug === '')?.sekcje ?? [])].find((s) => s.typ === 'kontakt' && celDostepny(k, `#${s.id}`));
+  const kontakt = [...k.podstrona.sekcje, ...(k.s.strona.strony.find((p) => p.slug === k.glowna)?.sekcje ?? [])].find((s) => s.typ === 'kontakt' && celDostepny(k, `#${s.id}`));
   if (kontakt) return `#${kontakt.id}`;
   const e = k.s.strona.firma.email;
-  return e ? `mailto:${e}?subject=${encodeURIComponent(`Zamówienie: ${nazwa}`)}` : '';
+  return e ? `mailto:${e}?subject=${encodeURIComponent(`${k.t.zamowienie}: ${nazwa}`)}` : '';
 }
 
 export function renderProdukty(k: KontekstPodstrony, sek: SekcjaTypu<'produkty'>): string {
@@ -89,12 +91,12 @@ export function renderProdukty(k: KontekstPodstrony, sek: SekcjaTypu<'produkty'>
         p.obraz ?? { alt: p.nazwa, zrodlo: 'placeholder', proporcje: lista ? '4:3' : '4:3', podpis: `Zdjęcie produktu: ${p.nazwa}` },
         zeSciezkaObrazu(k, sek, `dane.produkty.${i}.obraz`, { klasa: 'produkt-ob' }),
       );
-      const odznaka = p.dostepnosc !== 'dostepny' ? `<span class="odznaka odznaka-${p.dostepnosc}">${DOSTEPNOSC[p.dostepnosc]}</span>` : '';
+      const odznaka = p.dostepnosc !== 'dostepny' ? `<span class="odznaka odznaka-${p.dostepnosc}">${esc(DOSTEPNOSC(k)[p.dostepnosc] ?? '')}</span>` : '';
       const cel = celZamowienia(k, p.nazwa);
-      const btn = cel && p.dostepnosc !== 'niedostepny' ? przycisk(k, { etykieta: 'Zamów', cel, styl: 'drugi' }) : '';
+      const btn = cel && p.dostepnosc !== 'niedostepny' ? przycisk(k, { etykieta: k.t.zamow, cel, styl: 'drugi' }) : '';
       return (
         `<li class="produkt"${p.sku ? ` data-sku="${esc(p.sku)}"` : ''}><div class="produkt-media">${ob}${odznaka}</div>` +
-        `<div class="produkt-tekst"><div class="produkt-glowa"><h3${ak(`dane.produkty.${i}.nazwa`)}>${esc(p.nazwa)}</h3><p class="produkt-cena"${atrFormularza(k, sek, `dane.produkty.${i}.cenaBrutto`)}>${zl(p.cenaBrutto)}</p></div>${p.opis ? `<p class="produkt-opis"${ak(`dane.produkty.${i}.opis`)}>${esc(p.opis)}</p>` : ''}${btn}</div></li>`
+        `<div class="produkt-tekst"><div class="produkt-glowa"><h3${ak(`dane.produkty.${i}.nazwa`)}>${esc(p.nazwa)}</h3><p class="produkt-cena"${atrFormularza(k, sek, `dane.produkty.${i}.cenaBrutto`)}>${zl(p.cenaBrutto, k.jezyk)}</p></div>${p.opis ? `<p class="produkt-opis"${ak(`dane.produkty.${i}.opis`)}>${esc(p.opis)}</p>` : ''}${btn}</div></li>`
       );
     })
     .join('');
@@ -102,14 +104,14 @@ export function renderProdukty(k: KontekstPodstrony, sek: SekcjaTypu<'produkty'>
   return sekcja(k, sek, `<div class="kontener${poj}">${g}<ul class="${lista ? 'produkty-wiersze' : 'produkty-kafle'}${tor}">${el}</ul></div>`);
 }
 
-const MIESIACE = ['stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca', 'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia'];
+/** Data wpisu po polsku (zgodność wstecz – teksty.ts: `dataWJezyku`). */
 export function dataPl(iso: string): string {
-  const [r, m, d] = iso.split('-').map(Number) as [number, number, number];
-  return `${d} ${MIESIACE[m - 1] ?? ''} ${r}`;
+  return dataWJezyku(iso, 'pl');
 }
 
-export function metaWpisu(w: { data: string; czasCzytania?: number }): string {
-  return `<p class="wpis-meta"><time datetime="${esc(w.data)}">${dataPl(w.data)}</time>${w.czasCzytania ? ` · ${w.czasCzytania} min czytania` : ''}</p>`;
+export function metaWpisu(w: { data: string; czasCzytania?: number }, k?: KontekstPodstrony): string {
+  const jezyk = k?.jezyk ?? 'pl';
+  return `<p class="wpis-meta"><time datetime="${esc(w.data)}">${esc(dataWJezyku(w.data, jezyk))}</time>${w.czasCzytania ? ` · ${w.czasCzytania} ${esc(teksty(jezyk).minCzytania)}` : ''}</p>`;
 }
 
 export function renderBlog(k: KontekstPodstrony, sek: SekcjaTypu<'blog'>): string {
@@ -123,15 +125,15 @@ export function renderBlog(k: KontekstPodstrony, sek: SekcjaTypu<'blog'>): strin
   const ak = edytowalne(k, sek);
   const wpisy = d.wpisy
     .map((w, i) => {
-      const slug = `blog/${w.slug}`;
+      const slug = slugWJezyku(k.s.strona, k.jezyk, `blog/${w.slug}`);
       const href = strony.has(slug) ? hrefPodstrony(k, slug) : null;
       const tytul = href ? `<a href="${esc(href)}">${esc(w.tytul)}</a>` : esc(w.tytul);
-      const wiecej = href ? `<a class="wiecej" href="${esc(href)}" aria-hidden="true" tabindex="-1">Czytaj wpis</a>` : '';
+      const wiecej = href ? `<a class="wiecej" href="${esc(href)}" aria-hidden="true" tabindex="-1">${esc(k.t.czytajWpis)}</a>` : '';
       const ob =
         sek.wariant === 'blog-karty'
           ? obraz(k, w.obraz ?? { alt: w.tytul, zrodlo: 'placeholder', proporcje: '3:2', podpis: 'Zdjęcie do wpisu' }, zeSciezkaObrazu(k, sek, `dane.wpisy.${i}.obraz`, {}))
           : '';
-      return `<li class="wpis">${ob}${metaWpisu(w)}<h3${ak(`dane.wpisy.${i}.tytul`)}>${tytul}</h3><p class="wpis-lead"${ak(`dane.wpisy.${i}.lead`)}>${esc(w.lead)}</p>${wiecej}</li>`;
+      return `<li class="wpis">${ob}${metaWpisu(w, k)}<h3${ak(`dane.wpisy.${i}.tytul`)}>${tytul}</h3><p class="wpis-lead"${ak(`dane.wpisy.${i}.lead`)}>${esc(w.lead)}</p>${wiecej}</li>`;
     })
     .join('');
   const klasa = sek.wariant === 'blog-karty' ? 'wpisy-karty' : 'wpisy-edytorskie';

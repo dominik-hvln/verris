@@ -53,6 +53,7 @@ import { loadMemcachedScript } from './memcached.script.js';
 import { loadSiteStatsScript } from './site-stats.script.js';
 import { loadPhpInfoScript } from './php-info.script.js';
 import { loadFileSearchScript } from './file-search.script.js';
+import { loadKreatorWpScript } from './kreator-wp.script.js';
 import { loadNodeUpdateScript } from './node-update.script.js';
 import { buildOnboardBundle, loadOnboardLiveScript } from './onboard-live.script.js';
 import { BackupOffsiteService } from './backup-offsite.service.js';
@@ -372,6 +373,13 @@ export class NodeTasksAgentController {
   }
 
   /** C-14 — wyszukiwanie plików w katalogu strony (run with FS_* env). */
+  /** Paczka 124 – strona z Verris Kreatora na WordPressa (run with KWP_* env; importer PHP w środku skryptu). */
+  @Get('kreator-wp/script')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  kreatorWpScript() {
+    return loadKreatorWpScript();
+  }
+
   @Get('file-search/script')
   @Header('Content-Type', 'text/plain; charset=utf-8')
   fileSearchScript() {

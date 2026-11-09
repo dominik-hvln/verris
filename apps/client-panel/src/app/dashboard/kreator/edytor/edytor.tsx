@@ -3,16 +3,32 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { AlertCircle, Check, CloudOff, Eye, History, ListTree, Loader2, Menu, Monitor, MoreHorizontal, Pencil, Rocket, RotateCcw, Smartphone, Sparkles, X } from 'lucide-react';
-import { KATALOG_STYLOW, podzielSciezke, poleObrazu, poleTekstowe, wartoscPod, zastosujTekst, type Motyw, type Obraz, type Strona } from '@verris/kreator/klient';
+import {
+  KATALOG_STYLOW,
+  podzielSciezke,
+  poleObrazu,
+  poleTekstowe,
+  podstronyWJezyku,
+  kluczPodstrony,
+  usunWersjeJezykowa,
+  wersjeJezykowe,
+  wartoscPod,
+  zastosujTekst,
+  type JezykDodatkowy,
+  type Motyw,
+  type Obraz,
+  type Strona,
+} from '@verris/kreator/klient';
 import { Switch } from '@/components/panel/v2';
 import { potwierdz } from '@/components/panel/potwierdz';
 import { cx } from '@/components/panel/cx';
 import { klasaPrzyciskuPaska, PasekSkupienia, useSkupienie } from '@/components/panel/tryb-skupienia';
 import { plForm } from '@/lib/pl';
 import { pozostalo, type StanKreatora, type WidokStronyKreatora } from '@/lib/kreator';
-import { generujPonownie, polecenieAi, przywrocWersje, wybierzPropozycje, zapiszModel, zmienNazweStrony } from '../akcje';
+import { generujPonownie, polecenieAi, przywrocWersje, tlumaczStrone, wybierzPropozycje, zapiszModel, zmienNazweStrony } from '../akcje';
 import { klasaPrzyciskuGlownego } from '../wspolne';
 import { Struktura } from './struktura';
+import { kopiaWersjiJezykowej, WERSJA_JEZYKA, WERSJE_JEZYKA, type TrybWersji } from './jezyki';
 import { PanelSekcji } from './panel-sekcji';
 import { PanelMotywu } from './panel-motywu';
 import { PanelSeo } from './panel-seo';
@@ -599,7 +615,8 @@ export function Edytor({
     setPracujeAi(true);
     setOgloszenie('AI wprowadza zmianę…');
     const poprzedni = refy.current.model;
-    const r = await polecenieAi(id, polecenie, calaStrona ? null : zaznaczona);
+    // Paczka 124: sekcja na bieżącej podstronie (wersje językowe mają sekcje o tych samych id co oryginał).
+    const r = await polecenieAi(id, polecenie, calaStrona ? null : zaznaczona, calaStrona ? undefined : (refy.current.model.strony[ip]?.slug ?? undefined));
     setPracujeAi(false);
     if (!r.ok) {
       toast.error(r.blad);
@@ -611,6 +628,80 @@ export function Edytor({
     setZmianyAi((n) => n + 1);
     oglos('Gotowe – zmiana AI zapisana jako nowa wersja.');
     return true;
+  };
+
+  /**
+   * Paczka 124 – wersje językowe. Tłumaczenie AI (Kreator Pro): najpierw zapis, potem podstrona po podstronie (każda to
+   * osobne żądanie i jedna zmiana AI), strona główna pierwsza; model z serwera po każdej podstronie (widać postęp).
+   */
+  const [tlumaczy, setTlumaczy] = useState(false);
+  const przetlumacz = async (jezyk: JezykDodatkowy, klucze: string[]) => {
+    if (!funkcjePro || tlumaczy) return;
+    if (!(await zapiszTeraz())) {
+      toast.error('Najpierw popraw zaznaczone pola – AI tłumaczy zapisaną wersję strony.');
+      return;
+    }
+    const poprzedni = refy.current.model;
+    const biezaca = poprzedni.strony[ip];
+    const nowy = !poprzedni.strony.some((p) => p.slug === jezyk);
+    const kolejka = [...new Set(nowy || klucze.includes('') ? ['', ...klucze] : klucze)];
+    setTlumaczy(true);
+    let ostatni: WidokStronyKreatora | null = null;
+    let nieudane = 0;
+    for (let n = 0; n < kolejka.length; n++) {
+      setOgloszenie(`Tłumaczę podstronę ${n + 1} z ${kolejka.length} – wersja ${WERSJA_JEZYKA[jezyk]}…`);
+      const r = await tlumaczStrone(id, jezyk, [kolejka[n]!]);
+      if (!r.ok) {
+        nieudane++;
+        toast.error(r.blad);
+        // Bez strony głównej nowej wersji dalsze podstrony nie mają sensu; 403 = brak Pro albo limit zmian AI.
+        if ((nowy && n === 0) || r.status === 403) break;
+        continue;
+      }
+      ostatni = r.dane;
+      nieudane += r.dane.nieprzetlumaczone.length;
+      setZmianyAi((x) => x + r.dane.przetlumaczone.length);
+      zastapModel(r.dane);
+    }
+    setTlumaczy(false);
+    if (!ostatni?.model) {
+      setOgloszenie('');
+      return;
+    }
+    setPrzedAi(poprzedni);
+    const m = ostatni.model;
+    const cel = (biezaca && wersjeJezykowe(m, biezaca).find((w) => w.jezyk === jezyk)?.podstrona) ?? m.strony.find((p) => p.slug === jezyk);
+    if (cel) {
+      setIp(m.strony.indexOf(cel));
+      setZaznaczona(cel.sekcje[0]?.id ?? null);
+    }
+    oglos(nieudane ? `Przetłumaczono część podstron – ${nieudane} do ponowienia.` : `Gotowe – wersja ${WERSJA_JEZYKA[jezyk]} zapisana jako nowa wersja strony.`);
+  };
+
+  const dodajWersje = (jezyk: JezykDodatkowy, tryb: TrybWersji) => {
+    if (!funkcjePro) return;
+    if (tryb === 'ai') {
+      void przetlumacz(jezyk, podstronyWJezyku(refy.current.model, refy.current.model.jezyk).map((p) => kluczPodstrony(refy.current.model, p)));
+      return;
+    }
+    const nowy = kopiaWersjiJezykowej(refy.current.model, jezyk);
+    zmienModel(() => nowy);
+    const i = nowy.strony.findIndex((p) => p.slug === jezyk);
+    if (i >= 0) {
+      setIp(i);
+      setZaznaczona(nowy.strony[i]!.sekcje[0]?.id ?? null);
+    }
+    setKlucz((x) => x + 1);
+    oglos(`Dodano wersję ${WERSJE_JEZYKA[jezyk]} – kopia bez tłumaczenia. Przetłumacz teksty w edytorze albo przez AI.`);
+  };
+
+  const usunWersje = async (jezyk: JezykDodatkowy) => {
+    if (!(await potwierdz(`Usunąć wersję ${WERSJE_JEZYKA[jezyk]} strony – wszystkie jej podstrony? Wrócisz do niej w historii wersji.`, { akcja: 'Usuń', niebezpieczne: true, tytul: 'Usunąć wersję językową?' }))) return;
+    zmienModel((m) => usunWersjeJezykowa(m, jezyk));
+    setIp(0);
+    setZaznaczona(refy.current.model.strony[0]?.sekcje[0]?.id ?? null);
+    setKlucz((x) => x + 1);
+    oglos(`Usunięto wersję ${WERSJE_JEZYKA[jezyk]}.`);
   };
 
   const cofnijAi = () => {
@@ -920,6 +1011,10 @@ export function Edytor({
             onZaznacz={(s) => zaznacz(s, true, 'struktura')}
             onZmiana={zmienModel}
             onKomunikat={oglos}
+            onDodajWersje={dodajWersje}
+            onUsunWersje={(j) => void usunWersje(j)}
+            onPrzetlumacz={(j, klucze) => void przetlumacz(j, klucze)}
+            tlumaczy={tlumaczy}
           />
         </aside>
 

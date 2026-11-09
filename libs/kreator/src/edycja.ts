@@ -22,7 +22,7 @@ const ZABRONIONE_KLUCZE = new Set(['zrodloUrl', 'sku', 'licencjaUrl', 'opisDoWys
 /** Pierwszy człon ścieżki, pod którym są teksty widoczne na stronie (bez SEO, motywu i ustawień). */
 const KORZENIE: Record<string, (segmenty: Segment[]) => boolean> = {
   firma: (s) => s.length === 2 && ['nazwa', 'branza', 'obszar', 'opisKrotki'].includes(String(s[1])),
-  stopka: (s) => s.length === 2 && s[1] === 'tekst',
+  stopka: (s) => (s.length === 2 && s[1] === 'tekst') || (s.length === 4 && s[1] === 'tlumaczenia' && s[3] === 'tekst'),
   strony: (s) =>
     typeof s[1] === 'number' &&
     ((s.length === 3 && s[2] === 'tytul') ||

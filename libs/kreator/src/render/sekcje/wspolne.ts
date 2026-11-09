@@ -1,6 +1,7 @@
 import { KATALOG_WARIANTOW, SEKCJE_PRO } from '../../katalog.ts';
+import { podstronyWJezyku, type Jezyk } from '../../jezyki.ts';
 import type { Sekcja } from '../../model.ts';
-import { wszystkieSekcje } from '../../model.ts';
+import { kwota, wstaw } from '../teksty.ts';
 import { esc } from '../esc.ts';
 import type { KontekstPodstrony } from '../kontekst.ts';
 import { edytowalne } from '../edycja.ts';
@@ -8,11 +9,9 @@ import { atrLinku, hrefCelu } from '../linki.ts';
 
 export type Tlo = Sekcja['tlo'];
 
-/** Kwota w złotych po polsku: „1 299 zł”, „306,27 zł” (twarde spacje). */
-export function zl(kwota: number): string {
-  const [c, g] = kwota.toFixed(2).split('.') as [string, string];
-  const calk = c.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-  return g === '00' ? `${calk}\u00a0zł` : `${calk},${g}\u00a0zł`;
+/** Kwota w złotych: po polsku „1 299 zł”, „306,27 zł” (twarde spacje); w innych językach „PLN” (teksty.ts: `kwota`). */
+export function zl(wartosc: number, jezyk: Jezyk = 'pl'): string {
+  return kwota(wartosc, jezyk);
 }
 
 /** Nagłówek z wyróżnionym fragmentem (kursywa w szeryfach, marker w bezszeryfowych). */
@@ -97,20 +96,23 @@ export function glowa(sek: Sekcja, g: Glowa, k?: KontekstPodstrony): string {
   );
 }
 
-/** Lista pozycji oferty z całej strony – do pola „Usługa” w formularzu i taśmy haseł. */
+/** Lista pozycji oferty ze strony (w języku podstrony) – do pola „Usługa” w formularzu i taśmy haseł. */
 export function pozycjeOferty(k: KontekstPodstrony): string[] {
-  const s = wszystkieSekcje(k.s.strona).find((x) => x.typ === 'oferta');
+  const s = podstronyWJezyku(k.s.strona, k.jezyk)
+    .flatMap((p) => p.sekcje)
+    .find((x) => x.typ === 'oferta');
   return s && s.typ === 'oferta' ? s.dane.pozycje.map((p) => p.tytul) : [];
 }
 
-const POLA: Record<string, { etykieta: string; typ: string; auto?: string; tryb?: string; podpowiedz?: string }> = {
-  imie: { etykieta: 'Imię', typ: 'text', auto: 'name' },
-  email: { etykieta: 'E-mail', typ: 'email', auto: 'email' },
-  telefon: { etykieta: 'Telefon', typ: 'tel', auto: 'tel', tryb: 'tel' },
-  firma: { etykieta: 'Firma', typ: 'text', auto: 'organization' },
-  termin: { etykieta: 'Preferowany termin', typ: 'text', podpowiedz: 'np. czwartek po 16:00' },
-  usluga: { etykieta: 'Usługa', typ: 'select' },
-  wiadomosc: { etykieta: 'Wiadomość', typ: 'textarea' },
+type KluczPola = 'imie' | 'email' | 'telefon' | 'firma' | 'termin' | 'usluga' | 'wiadomosc';
+const POLA: Record<string, { etykieta: KluczPola; typ: string; auto?: string; tryb?: string; podpowiedz?: 'terminPodpowiedz' }> = {
+  imie: { etykieta: 'imie', typ: 'text', auto: 'name' },
+  email: { etykieta: 'email', typ: 'email', auto: 'email' },
+  telefon: { etykieta: 'telefon', typ: 'tel', auto: 'tel', tryb: 'tel' },
+  firma: { etykieta: 'firma', typ: 'text', auto: 'organization' },
+  termin: { etykieta: 'termin', typ: 'text', podpowiedz: 'terminPodpowiedz' },
+  usluga: { etykieta: 'usluga', typ: 'select' },
+  wiadomosc: { etykieta: 'wiadomosc', typ: 'textarea' },
 };
 
 /** Limity długości pól (te same sprawdza API – apps/api/src/kreator/formularz.ts). */
@@ -145,27 +147,28 @@ export function formularz(k: KontekstPodstrony, sek: Sekcja, o: OpcjeFormularza)
   if (!pola.includes('email') && !pola.includes('telefon')) pola.splice(1, 0, 'email');
   const wymagany = pola.includes('email') ? 'email' : 'telefon';
   const uslugi = pozycjeOferty(k);
+  const t = k.t;
   const html = pola.map((nazwa) => {
     const p = POLA[nazwa]!;
     const id = `${pid}-${nazwa}`;
     const req = nazwa === 'imie' || nazwa === wymagany ? ' required' : '';
-    const etykieta = `<label for="${id}">${p.etykieta}${req ? '' : ' <span class="opc">(opcjonalnie)</span>'}</label>`;
+    const etykieta = `<label for="${id}">${esc(t[p.etykieta])}${req ? '' : ` <span class="opc">${esc(t.opcjonalnie)}</span>`}</label>`;
     const max = ` maxlength="${MAKS_POL_FORMULARZA[nazwa] ?? 200}"`;
     if (p.typ === 'textarea') return `<div class="pole pole-pelne">${etykieta}<textarea id="${id}" name="${nazwa}" rows="4"${max}${req}></textarea></div>`;
     if (p.typ === 'select' && uslugi.length) {
-      const opcje = ['<option value="">Wybierz usługę</option>', ...uslugi.map((u) => `<option>${esc(u)}</option>`), '<option>Inna / jeszcze nie wiem</option>'].join('');
+      const opcje = [`<option value="">${esc(t.wybierzUsluge)}</option>`, ...uslugi.map((u) => `<option>${esc(u)}</option>`), `<option>${esc(t.innaUsluga)}</option>`].join('');
       return `<div class="pole">${etykieta}<select id="${id}" name="${nazwa}">${opcje}</select></div>`;
     }
     const typ = p.typ === 'select' ? 'text' : p.typ;
-    return `<div class="pole">${etykieta}<input id="${id}" name="${nazwa}" type="${typ}"${p.auto ? ` autocomplete="${p.auto}"` : ''}${p.tryb ? ` inputmode="${p.tryb}"` : ''}${p.podpowiedz ? ` placeholder="${esc(p.podpowiedz)}"` : ''}${max}${req}></div>`;
+    return `<div class="pole">${etykieta}<input id="${id}" name="${nazwa}" type="${typ}"${p.auto ? ` autocomplete="${p.auto}"` : ''}${p.tryb ? ` inputmode="${p.tryb}"` : ''}${p.podpowiedz ? ` placeholder="${esc(t[p.podpowiedz])}"` : ''}${max}${req}></div>`;
   });
   const polityka = k.s.strona.stopka.politykaPrywatnosci;
   if (!polityka) k.s.ostrzezenia.push('Formularz bez linku do polityki prywatności – dodaj politykę w ustawieniach stopki.');
-  const linkPolityki = polityka ? ` Szczegóły w <a ${atrLinku(hrefCelu(k, polityka))}>polityce prywatności</a>.` : '';
+  const linkPolityki = polityka ? ` ${wstaw(esc(t.szczegolyPolityki), { link: `<a ${atrLinku(hrefCelu(k, polityka))}>${esc(t.politykiLink)}</a>` })}` : '';
   const zgoda =
     `<div class="zgoda"><input id="${pid}-zgoda" name="zgoda" type="checkbox" value="tak" required>` +
-    `<label for="${pid}-zgoda">Wyrażam zgodę na przetwarzanie podanych danych w celu odpowiedzi na moją wiadomość. Administratorem danych jest ${esc(k.s.strona.firma.nazwa)}.${linkPolityki}</label></div>`;
-  const hp = `<div class="hp" aria-hidden="true"><label for="${pid}-www">Zostaw to pole puste</label><input id="${pid}-www" name="strona_www" type="text" tabindex="-1" autocomplete="off"></div>`;
+    `<label for="${pid}-zgoda">${wstaw(esc(t.zgoda), { firma: esc(k.s.strona.firma.nazwa) })}${linkPolityki}</label></div>`;
+  const hp = `<div class="hp" aria-hidden="true"><label for="${pid}-www">${esc(t.zostawPuste)}</label><input id="${pid}-www" name="strona_www" type="text" tabindex="-1" autocomplete="off"></div>`;
   const klasa = `formularz form-${o.styl ?? 'karta'}`;
   const adres = k.s.opcje.adresFormularza?.trim();
   if (!adres) {
@@ -173,15 +176,16 @@ export function formularz(k: KontekstPodstrony, sek: Sekcja, o: OpcjeFormularza)
       `<form class="${klasa} form-wylaczony" aria-describedby="${esc(pid)}-info">` +
       `<div class="pola">${html.join('')}</div>${hp}${zgoda}` +
       `<button class="btn btn-1" type="submit" disabled>${esc(o.przycisk)}</button>` +
-      `<p class="form-info" id="${esc(pid)}-info">Formularz zadziała po publikacji strony.</p>` +
+      `<p class="form-info" id="${esc(pid)}-info">${esc(t.formPoPublikacji)}</p>` +
       `</form>`
     );
   }
   k.s.js.add('formularz');
   return (
-    `<form class="${klasa}" action="${esc(adres)}" method="post" accept-charset="utf-8" data-formularz>` +
+    `<form class="${klasa}" action="${esc(adres)}" method="post" accept-charset="utf-8" data-formularz data-ok="${esc(t.formOk)}" data-blad="${esc(t.formBlad)}">` +
     `<p class="form-status" role="status" tabindex="-1"></p>` +
     `<input type="hidden" name="formularz" value="${esc(pid)}">` +
+    `<input type="hidden" name="jezyk" value="${k.jezyk}">` +
     `<input type="hidden" name="powrot" value="${esc(adresPodstrony(k))}">` +
     `<input type="hidden" name="czas" value="">` +
     `<div class="pola">${html.join('')}</div>${hp}${zgoda}` +

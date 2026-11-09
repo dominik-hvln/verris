@@ -2,7 +2,24 @@
 
 import { useState } from 'react';
 import { ArrowDown, ArrowUp, Eye, EyeOff, FileText, Home, Pencil, Plus, Trash2 } from 'lucide-react';
-import { KATALOG_WARIANTOW, SEKCJE_PRO, TYPY_SEKCJI, type PlanKreatora, type Strona, type TypSekcji } from '@verris/kreator/klient';
+import {
+  jezykGlowny,
+  jezykPodstrony,
+  KATALOG_WARIANTOW,
+  kluczPodstrony,
+  SEKCJE_PRO,
+  slugBezJezyka,
+  slugGlownej,
+  slugWJezyku,
+  tlumaczenieNieaktualne,
+  TYPY_SEKCJI,
+  wersjeJezykowe,
+  type Jezyk,
+  type JezykDodatkowy,
+  type PlanKreatora,
+  type Strona,
+  type TypSekcji,
+} from '@verris/kreator/klient';
 import { PanelModal } from '@/components/panel/panel-modal';
 import { potwierdz, zapytaj } from '@/components/panel/potwierdz';
 import { cx } from '@/components/panel/cx';
@@ -10,6 +27,7 @@ import { moznaDodacPodstrone, podstron } from '@/lib/kreator';
 import { bladPod, NAZWY_SEKCJI, nowaSekcja, OPISY_SEKCJI, przesun } from './schemat';
 import { klasaPrzyciskuDrugiego, klasaPrzyciskuIkony, ZnakPro } from '../wspolne';
 import { nazwaWariantu } from './panel-sekcji';
+import { brakujacePodstrony, PrzelacznikJezyka, StatusTlumaczenia, WERSJA_JEZYKA, type TrybWersji } from './jezyki';
 
 /** Na telefonie (< 768 px) cele dotykowe ≥ 44 px, na komputerze zwarte. */
 const klasaIkonyListy = `${klasaPrzyciskuIkony} max-md:h-11 max-md:w-11`;
@@ -44,6 +62,15 @@ export interface PropsStruktury {
   onZaznacz: (id: string | null) => void;
   onZmiana: (fn: (m: Strona) => Strona) => void;
   onKomunikat: (tekst: string) => void;
+  /**
+   * Paczka 124 – wersje językowe: dodanie (tłumaczenie AI albo kopia), usunięcie, tłumaczenie podstron (klucze) na język.
+   * Bez tych funkcji (testy starszych widoków) przełącznik języka się nie pokazuje.
+   */
+  onDodajWersje?: (j: JezykDodatkowy, tryb: TrybWersji) => void;
+  onUsunWersje?: (j: JezykDodatkowy) => void;
+  onPrzetlumacz?: (j: JezykDodatkowy, klucze: string[]) => void;
+  /** Trwa tłumaczenie AI (przyciski języków nieaktywne). */
+  tlumaczy?: boolean;
 }
 
 export function Struktura(p: PropsStruktury) {
@@ -51,13 +78,24 @@ export function Struktura(p: PropsStruktury) {
   const [dodawanie, setDodawanie] = useState(false);
   const biezaca = model.strony[ip] ?? model.strony[0]!;
   const limitOsiagniety = !moznaDodacPodstrone(plan, model.strony.length);
+  // Paczka 124 – lista podstron w języku bieżącej podstrony; przełącznik języka nad listą.
+  const jezyk: Jezyk = jezykPodstrony(model, biezaca);
+  const wJezykuGlownym = jezyk === jezykGlowny(model);
+  const podstronyJezyka = model.strony.map((s, i) => ({ s, i })).filter(({ s }) => jezykPodstrony(model, s) === jezyk);
+  const brakujace = wJezykuGlownym ? [] : brakujacePodstrony(model, jezyk as JezykDodatkowy);
+  const zmienJezyk = (j: Jezyk) => {
+    const wersja = wersjeJezykowe(model, biezaca).find((w) => w.jezyk === j)?.podstrona;
+    const cel = wersja ?? model.strony.find((x) => x.slug === slugGlownej(model, j));
+    const i = cel ? model.strony.indexOf(cel) : -1;
+    if (i >= 0) p.onPodstrona(i);
+  };
 
   const dodajPodstrone = async () => {
     if (limitOsiagniety) return;
     const tytul = (await zapytaj('Jak ma się nazywać podstrona w menu?', { tytul: 'Nowa podstrona', akcja: 'Dodaj', placeholder: 'Np. Cennik, O nas, Realizacje' }))?.trim();
     if (!tytul) return;
     p.onZmiana((m) => {
-      const slug = slugZTytulu(tytul, new Set(m.strony.map((s) => s.slug)));
+      const slug = slugZTytulu(tytul, new Set([...m.strony.map((s) => s.slug), ...(m.jezykiDodatkowe ?? [])]));
       const sekcja = nowaSekcja('onas', KATALOG_WARIANTOW.onas[0]!.id, new Set());
       (sekcja.dane as { naglowek: string }).naglowek = tytul.slice(0, 120);
       return { ...m, strony: [...m.strony, { slug, tytul: tytul.slice(0, 80), seo: {}, sekcje: [sekcja] }] };
@@ -70,22 +108,44 @@ export function Struktura(p: PropsStruktury) {
     const s = model.strony[i]!;
     const tytul = (await zapytaj('Nazwa podstrony w menu:', { tytul: 'Zmień nazwę podstrony', akcja: 'Zapisz', domyslna: s.tytul }))?.trim();
     if (!tytul) return;
+    // Wersja językowa (paczka 124): adres bez prefiksu języka w polu, prefiks dokłada edytor; klucz tłumaczeń zostaje.
+    const j = jezykPodstrony(model, s);
+    const wzgl = slugBezJezyka(model, s);
     let slug = s.slug;
-    if (s.slug !== '') {
-      const nowy = (await zapytaj('Adres podstrony (małe litery, cyfry i myślniki):', { tytul: 'Adres podstrony', akcja: 'Zapisz', domyslna: s.slug }))?.trim();
-      if (nowy && nowy !== s.slug) {
+    if (wzgl !== '' && !wzgl.includes('/')) {
+      const nowy = (await zapytaj('Adres podstrony (małe litery, cyfry i myślniki):', { tytul: 'Adres podstrony', akcja: 'Zapisz', domyslna: wzgl }))?.trim();
+      const pelny = nowy ? slugWJezyku(model, j, nowy) : s.slug;
+      if (nowy && pelny !== s.slug) {
         if (!SLUG.test(nowy)) p.onKomunikat('Adres może mieć tylko małe litery, cyfry i myślniki – zostawiamy poprzedni.');
-        else if (model.strony.some((x, j) => j !== i && x.slug === nowy)) p.onKomunikat('Taki adres ma już inna podstrona – zostawiamy poprzedni.');
-        else slug = nowy;
+        else if (model.strony.some((x, k) => k !== i && x.slug === pelny)) p.onKomunikat('Taki adres ma już inna podstrona – zostawiamy poprzedni.');
+        else if (j === jezykGlowny(model) && (model.jezykiDodatkowe ?? []).includes(nowy as JezykDodatkowy)) p.onKomunikat('Ten adres jest zarezerwowany dla wersji językowej – zostawiamy poprzedni.');
+        else slug = pelny;
       }
     }
-    p.onZmiana((m) => ({ ...m, strony: m.strony.map((x, j) => (j === i ? { ...x, tytul: tytul.slice(0, 80), slug } : x)) }));
+    p.onZmiana((m) => {
+      const staryKlucz = kluczPodstrony(m, m.strony[i]!);
+      const glowny = jezykPodstrony(m, m.strony[i]!) === jezykGlowny(m);
+      return {
+        ...m,
+        strony: m.strony.map((x, k) => {
+          if (k === i) return { ...x, tytul: tytul.slice(0, 80), slug };
+          // Nowy adres podstrony w języku głównym = nowy klucz – tłumaczenia idą za nim (zostają połączone).
+          if (glowny && slug !== s.slug && jezykPodstrony(m, x) !== jezykGlowny(m) && kluczPodstrony(m, x) === staryKlucz) return { ...x, klucz: slug };
+          return x;
+        }),
+      };
+    });
   };
 
   const usunPodstrone = async (i: number) => {
     const s = model.strony[i]!;
-    if (!(await potwierdz(`Usunąć podstronę „${s.tytul}” razem z jej sekcjami? Wrócisz do niej w historii wersji.`, { akcja: 'Usuń', niebezpieczne: true, tytul: 'Usunąć podstronę?' }))) return;
-    p.onZmiana((m) => ({ ...m, strony: m.strony.filter((_, j) => j !== i) }));
+    const tlumaczenia = jezykPodstrony(model, s) === jezykGlowny(model) ? wersjeJezykowe(model, s).filter((w) => w.podstrona !== s) : [];
+    const tekst = tlumaczenia.length
+      ? `Usunąć podstronę „${s.tytul}” razem z jej sekcjami i wersjami językowymi (${tlumaczenia.map((w) => w.jezyk.toUpperCase()).join(', ')})? Wrócisz do niej w historii wersji.`
+      : `Usunąć podstronę „${s.tytul}” razem z jej sekcjami? Wrócisz do niej w historii wersji.`;
+    if (!(await potwierdz(tekst, { akcja: 'Usuń', niebezpieczne: true, tytul: 'Usunąć podstronę?' }))) return;
+    const usuwane = new Set([s, ...tlumaczenia.map((w) => w.podstrona)]);
+    p.onZmiana((m) => ({ ...m, strony: m.strony.filter((x, k) => k !== i && !usuwane.has(x)) }));
     p.onPodstrona(0);
   };
 
@@ -121,9 +181,20 @@ export function Struktura(p: PropsStruktury) {
   return (
     <div className="flex flex-col gap-5">
       <section aria-labelledby="kr-podstrony" className="flex flex-col gap-2">
+        {p.onDodajWersje ? (
+          <PrzelacznikJezyka
+            model={model}
+            jezyk={jezyk}
+            funkcjePro={funkcjePro}
+            pracuje={!!p.tlumaczy}
+            onJezyk={zmienJezyk}
+            onDodaj={p.onDodajWersje}
+            onUsun={(j) => p.onUsunWersje?.(j)}
+          />
+        ) : null}
         <div className="flex items-center justify-between gap-2">
           <h2 id="kr-podstrony" className="m-0 font-mono text-[12px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-            Podstrony
+            Podstrony{wJezykuGlownym ? '' : ` – wersja ${WERSJA_JEZYKA[jezyk]}`}
           </h2>
           <span className="font-mono text-[11.5px] text-muted-foreground">
             {model.strony.length}
@@ -131,7 +202,7 @@ export function Struktura(p: PropsStruktury) {
           </span>
         </div>
         <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
-          {model.strony.map((s, i) => (
+          {podstronyJezyka.map(({ s, i }) => (
             <li key={`${s.slug}-${i}`} className={cx('group flex items-center gap-1 rounded-[6px] pr-1', i === ip ? 'bg-data-soft' : 'hover:bg-raised')}>
               <button
                 type="button"
@@ -139,14 +210,15 @@ export function Struktura(p: PropsStruktury) {
                 aria-current={i === ip ? 'page' : undefined}
                 className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1.5 text-left text-[13.5px] text-foreground max-md:min-h-11"
               >
-                {s.slug === '' ? <Home className="h-3.5 w-3.5 flex-none text-muted-foreground" aria-hidden /> : <FileText className="h-3.5 w-3.5 flex-none text-muted-foreground" aria-hidden />}
+                {s.slug === slugGlownej(model, jezyk) ? <Home className="h-3.5 w-3.5 flex-none text-muted-foreground" aria-hidden /> : <FileText className="h-3.5 w-3.5 flex-none text-muted-foreground" aria-hidden />}
                 <span className="min-w-0 break-words">{s.tytul}</span>
+                {tlumaczenieNieaktualne(model, s) ? <span className="ml-1 flex-none rounded-full bg-warn-soft px-1.5 text-[10.5px] text-warn">nieaktualna</span> : null}
                 {bladPod(p.bledy, `strony.${i}`) ? <span className="ml-auto h-2 w-2 flex-none rounded-full bg-crit" aria-label="Są pola do poprawienia" role="img" /> : null}
               </button>
               <button type="button" className={klasaIkonyListy} aria-label={`Zmień nazwę podstrony ${s.tytul}`} onClick={() => void zmienPodstrone(i)}>
                 <Pencil className="h-3.5 w-3.5" aria-hidden />
               </button>
-              {s.slug !== '' ? (
+              {s.slug !== slugGlownej(model, jezyk) ? (
                 <button type="button" className={klasaIkonyListy} aria-label={`Usuń podstronę ${s.tytul}`} onClick={() => void usunPodstrone(i)}>
                   <Trash2 className="h-3.5 w-3.5" aria-hidden />
                 </button>
@@ -154,10 +226,23 @@ export function Struktura(p: PropsStruktury) {
             </li>
           ))}
         </ul>
-        <button type="button" className={`${klasaPrzyciskuDrugiego} w-full max-md:min-h-11`} onClick={() => void dodajPodstrone()} disabled={limitOsiagniety} aria-describedby={limitOsiagniety ? 'kr-limit-podstron' : undefined}>
-          <Plus className="h-3.5 w-3.5" aria-hidden /> Dodaj podstronę
-        </button>
-        {limitOsiagniety ? (
+        {wJezykuGlownym ? (
+          <button type="button" className={`${klasaPrzyciskuDrugiego} w-full max-md:min-h-11`} onClick={() => void dodajPodstrone()} disabled={limitOsiagniety} aria-describedby={limitOsiagniety ? 'kr-limit-podstron' : undefined}>
+            <Plus className="h-3.5 w-3.5" aria-hidden /> Dodaj podstronę
+          </button>
+        ) : brakujace.length ? (
+          <div className="flex flex-col gap-1.5 rounded-[8px] bg-raised px-3 py-2 text-[12px] text-muted-foreground">
+            <p className="m-0">
+              Bez wersji {jezyk.toUpperCase()}: {brakujace.map((k) => model.strony.find((x) => jezykPodstrony(model, x) === jezykGlowny(model) && kluczPodstrony(model, x) === k)?.tytul ?? k).join(', ')}. Nowe podstrony dodajesz w wersji głównej.
+            </p>
+            {p.onPrzetlumacz ? (
+              <button type="button" className={`${klasaPrzyciskuDrugiego} self-start max-md:min-h-11`} disabled={!funkcjePro || !!p.tlumaczy} onClick={() => p.onPrzetlumacz?.(jezyk as JezykDodatkowy, brakujace)}>
+                Przetłumacz brakujące
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+        {wJezykuGlownym && limitOsiagniety ? (
           <p id="kr-limit-podstron" className="text-[12px] text-muted-foreground">
             W tej wersji strona może mieć najwyżej {podstron(plan.podstron ?? 0)}. W Kreatorze Pro – bez limitu.
           </p>
@@ -168,6 +253,15 @@ export function Struktura(p: PropsStruktury) {
         <h2 id="kr-sekcje" className="m-0 font-mono text-[12px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
           Sekcje: {biezaca.tytul}
         </h2>
+        {!wJezykuGlownym && p.onPrzetlumacz ? (
+          <StatusTlumaczenia
+            model={model}
+            podstrona={biezaca}
+            funkcjePro={funkcjePro}
+            pracuje={!!p.tlumaczy}
+            onPrzetlumacz={() => p.onPrzetlumacz?.(jezyk as JezykDodatkowy, [kluczPodstrony(model, biezaca)])}
+          />
+        ) : null}
         <ol className="m-0 flex list-none flex-col gap-1 p-0">
           {biezaca.sekcje.map((s, i) => {
             const zazn = s.id === p.zaznaczona;

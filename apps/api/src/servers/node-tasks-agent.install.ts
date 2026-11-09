@@ -370,6 +370,11 @@ elif [ "$TASK_KIND" = "FILE_SEARCH" ]; then
   RUN_BIN="/usr/local/bin/verris-file-search.sh"
   fetch_task_script "/agent/tasks/file-search/script" "$RUN_BIN"
   payload_env "FS" "{'daUser':'DA_USER','domain':'DOMAIN','name':'NAME','text':'TEXT'}"
+elif [ "$TASK_KIND" = "KREATOR_WP" ]; then
+  # Paczka 124 — strona z Verris Kreatora na WordPressa (podgląd, zamiana, cofnięcie).
+  RUN_BIN="/usr/local/bin/verris-kreator-wp.sh"
+  fetch_task_script "/agent/tasks/kreator-wp/script" "$RUN_BIN"
+  payload_env "KWP" "{'tryb':'TRYB','daUser':'DA_USER','domain':'DOMAIN','dir':'DIR','klucz':'KLUCZ','paczka':'PACZKA','dbName':'DB_NAME','dbUser':'DB_USER','dbPass':'DB_PASS','adminUser':'ADMIN_USER','adminPass':'ADMIN_PASS','adminEmail':'ADMIN_EMAIL','locale':'LOCALE','pliki':'PLIKI','kopia':'KOPIA','kopiaWp':'KOPIA_WP'}"
 elif [ "$TASK_KIND" = "HOSTING_PROFILE" ]; then
   flags="-y"
   [ "$SKIP_BUILD" = "1" ] && flags="$flags --skip-build"
@@ -578,7 +583,7 @@ dispatch_generic() {
 
 case "$KIND" in
   HOSTING_PROFILE) dispatch_hosting_profile ;;
-  WP_INSTALL|WAF_APPLY|STAGING_SYNC|PHP_APPLY|APP_INSTALL|OFFSITE_RESTORE|DB_UPGRADE|FLEET_UPDATE|DB_TRANSFER|FILE_RESTORE|SSH_ACCESS|WP_UPDATE|DISK_USAGE|MALWARE_SCAN|REDIS_ACCESS|MAIL_LOG|GIT_DEPLOY|SITE_CLONE|HTACCESS|PHP_INFO|FILE_SEARCH|APP_SELECTOR|SLOW_SQL|MEMCACHED_ACCESS|SITE_STATS|PGSQL|IMAGE_OPTIMIZE|ONBOARD_LIVE|MAIL_QUEUE|IP_BLOCKS|WAF_HITS|NODE_SERVICES) dispatch_generic ;;
+  WP_INSTALL|WAF_APPLY|STAGING_SYNC|PHP_APPLY|APP_INSTALL|OFFSITE_RESTORE|DB_UPGRADE|FLEET_UPDATE|DB_TRANSFER|FILE_RESTORE|SSH_ACCESS|WP_UPDATE|DISK_USAGE|MALWARE_SCAN|REDIS_ACCESS|MAIL_LOG|GIT_DEPLOY|SITE_CLONE|HTACCESS|PHP_INFO|FILE_SEARCH|APP_SELECTOR|SLOW_SQL|MEMCACHED_ACCESS|SITE_STATS|PGSQL|IMAGE_OPTIMIZE|ONBOARD_LIVE|MAIL_QUEUE|IP_BLOCKS|WAF_HITS|NODE_SERVICES|KREATOR_WP) dispatch_generic ;;
   *)
     report_task_fail "Unknown task kind: $KIND"
     exit 1

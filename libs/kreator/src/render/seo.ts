@@ -1,3 +1,4 @@
+import { jezykiStrony, jezykPodstrony, slugBezJezyka, slugWJezyku, wersjeJezykowe, type Jezyk } from '../jezyki.ts';
 import type { Podstrona, Sekcja, SekcjaTypu } from '../model.ts';
 import { SCHEMA_DNI } from './dane.ts';
 import { esc, jsonBezpieczny } from './esc.ts';
@@ -47,6 +48,21 @@ export interface OpcjeGlowy {
   bezAdresu?: boolean;
 }
 
+/**
+ * Alternatywne wersje językowe podstrony do hreflang i sitemap: każda istniejąca wersja (ten sam klucz) + x-default
+ * (wersja w języku głównym, a gdy jej nie ma – pierwsza). Jedna wersja = pusta lista (hreflang bez sensu).
+ */
+export function alternatywy(s: KontekstStrony, p: Podstrona): { hreflang: Jezyk | 'x-default'; url: string }[] {
+  if (!s.adres) return [];
+  const opublikowane = new Set(s.strona.strony.map((x) => x.slug));
+  const wersje = wersjeJezykowe(s.strona, p).filter((w) => opublikowane.has(w.podstrona.slug));
+  if (wersje.length < 2) return [];
+  const lista = wersje.map((w) => ({ hreflang: w.jezyk as Jezyk | 'x-default', url: urlPodstrony(s, w.podstrona.slug)! }));
+  const domyslna = wersje.find((w) => w.jezyk === s.strona.jezyk) ?? wersje[0]!;
+  lista.push({ hreflang: 'x-default', url: urlPodstrony(s, domyslna.podstrona.slug)! });
+  return lista;
+}
+
 export function glowaHtml(k: KontekstPodstrony, o: OpcjeGlowy): string {
   const s = k.s;
   const p = k.podstrona;
@@ -63,20 +79,15 @@ export function glowaHtml(k: KontekstPodstrony, o: OpcjeGlowy): string {
   ];
   if (o.noindex) w.push('<meta name="robots" content="noindex, nofollow">');
   if (url) w.push(`<link rel="canonical" href="${esc(url)}">`);
-  // hreflang tylko do wersji, które naprawdę istnieją w modelu (podstrona `<język>` albo `<język>/<slug>`). Paczka 123:
-  // renderer nie tłumaczy podstron, a sam wpis w `jezykiDodatkowe` dawał linki alternate do adresów 404.
-  const alternatywne = url && s.seoPelne ? s.strona.jezykiDodatkowe.filter((j) => s.strona.strony.some((x) => x.slug === (p.slug ? `${j}/${p.slug}` : j))) : [];
-  if (url && alternatywne.length) {
-    w.push(`<link rel="alternate" hreflang="${s.strona.jezyk}" href="${esc(url)}">`);
-    for (const j of alternatywne) w.push(`<link rel="alternate" hreflang="${j}" href="${esc(`${s.adres}/${j}/${p.slug ? p.slug + '/' : ''}`)}">`);
-    w.push(`<link rel="alternate" hreflang="x-default" href="${esc(url)}">`);
-  }
+  // hreflang (paczka 124) – tylko między podstronami o tym samym kluczu, które naprawdę istnieją (bez linków do 404),
+  // z x-default = wersja w języku głównym strony. Bez adresu strony (podgląd) albo bez SEO pełnego – bez hreflang.
+  for (const a of url && s.seoPelne ? alternatywy(s, p) : []) w.push(`<link rel="alternate" hreflang="${a.hreflang}" href="${esc(a.url)}">`);
   w.push(
     `<meta property="og:type" content="${o.artykul ? 'article' : 'website'}">`,
     `<meta property="og:title" content="${esc(tytul)}">`,
     `<meta property="og:description" content="${esc(opis)}">`,
     `<meta property="og:site_name" content="${esc(s.strona.firma.nazwa)}">`,
-    `<meta property="og:locale" content="${lokalizacja[s.strona.jezyk] ?? 'pl_PL'}">`,
+    `<meta property="og:locale" content="${lokalizacja[k.jezyk] ?? 'pl_PL'}">`,
   );
   if (url) w.push(`<meta property="og:url" content="${esc(url)}">`);
   if (og) w.push(`<meta property="og:image" content="${esc(og)}">`);
@@ -128,9 +139,15 @@ export function jsonLd(k: KontekstPodstrony): Record<string, unknown> {
   const s = k.s;
   const p = k.podstrona;
   const graf: Record<string, unknown>[] = [];
-  const witryna: Record<string, unknown> = { '@type': 'WebSite', name: s.strona.firma.nazwa, inLanguage: s.strona.jezyk, publisher: { '@id': `${s.adres ?? ''}/#firma` } };
+  // inLanguage: języki całej witryny (WebSite) i język tej podstrony (WebPage) – paczka 124.
+  const jezyki = jezykiStrony(s.strona).filter((j) => s.strona.strony.some((x) => jezykPodstrony(s.strona, x) === j));
+  const witryna: Record<string, unknown> = { '@type': 'WebSite', name: s.strona.firma.nazwa, inLanguage: jezyki.length > 1 ? jezyki : s.strona.jezyk, publisher: { '@id': `${s.adres ?? ''}/#firma` } };
   if (s.adres) witryna.url = `${s.adres}/`;
   graf.push(witryna, firmaLd(s));
+  const strona: Record<string, unknown> = { '@type': 'WebPage', name: tytulStrony(s, p), inLanguage: k.jezyk };
+  const url = urlPodstrony(s, p.slug);
+  if (url) strona.url = url;
+  graf.push(strona);
   if (s.seoPelne) {
     const sekcje = p.sekcje.filter((x) => czyWidoczna(s, x));
     const faq = sekcje.filter((x): x is SekcjaTypu<'faq'> => x.typ === 'faq').flatMap((x) => x.dane.pytania);
@@ -152,31 +169,34 @@ export function jsonLd(k: KontekstPodstrony): Record<string, unknown> {
       }
     }
     for (const sek of sekcje.filter((x): x is SekcjaTypu<'blog'> => x.typ === 'blog')) {
-      for (const w of sek.dane.wpisy) graf.push(blogPosting(s, w));
+      for (const w of sek.dane.wpisy) graf.push(blogPosting(s, w, k.jezyk));
     }
     const wpis = wpisDlaPodstrony(s, p);
-    if (wpis) graf.push({ ...blogPosting(s, wpis), mainEntityOfPage: urlPodstrony(s, p.slug) ?? undefined });
-    if (p.slug) graf.push(okruszki(s, p));
+    if (wpis) graf.push({ ...blogPosting(s, wpis, k.jezyk), mainEntityOfPage: urlPodstrony(s, p.slug) ?? undefined });
+    if (p.slug !== slugWJezyku(s.strona, k.jezyk, '')) graf.push(okruszki(s, p, k.jezyk));
   }
   return { '@context': 'https://schema.org', '@graph': graf };
 }
 
 type Wpis = SekcjaTypu<'blog'>['dane']['wpisy'][number];
 
-function blogPosting(s: KontekstStrony, w: Wpis): Record<string, unknown> {
-  const ld: Record<string, unknown> = { '@type': 'BlogPosting', headline: w.tytul, description: w.lead, datePublished: w.data, author: { '@id': `${s.adres ?? ''}/#firma` } };
-  const url = urlPodstrony(s, `blog/${w.slug}`);
-  if (url && s.strona.strony.some((x) => x.slug === `blog/${w.slug}`)) ld.url = url;
+function blogPosting(s: KontekstStrony, w: Wpis, jezyk: Jezyk): Record<string, unknown> {
+  const ld: Record<string, unknown> = { '@type': 'BlogPosting', headline: w.tytul, description: w.lead, datePublished: w.data, inLanguage: jezyk, author: { '@id': `${s.adres ?? ''}/#firma` } };
+  const slug = slugWJezyku(s.strona, jezyk, `blog/${w.slug}`);
+  const url = urlPodstrony(s, slug);
+  if (url && s.strona.strony.some((x) => x.slug === slug)) ld.url = url;
   const img = bezwzgl(s, w.obraz?.url);
   if (img) ld.image = img;
   return ld;
 }
 
-/** Wpis bloga odpowiadający podstronie `blog/<slug>` (zajawka z sekcji blog). */
+/** Wpis bloga odpowiadający podstronie `blog/<slug>` (`en/blog/<slug>` w wersji językowej) – zajawka z sekcji blog tego języka. */
 export function wpisDlaPodstrony(s: KontekstStrony, p: Podstrona): Wpis | null {
-  if (!p.slug.startsWith('blog/')) return null;
-  const slug = p.slug.slice(5);
-  for (const sek of s.strona.strony.flatMap((x) => x.sekcje)) {
+  const wzgl = slugBezJezyka(s.strona, p);
+  if (!wzgl.startsWith('blog/')) return null;
+  const slug = wzgl.slice(5);
+  const jezyk = jezykPodstrony(s.strona, p);
+  for (const sek of s.strona.strony.filter((x) => jezykPodstrony(s.strona, x) === jezyk).flatMap((x) => x.sekcje)) {
     if (sek.typ === 'blog') {
       const w = sek.dane.wpisy.find((x) => x.slug === slug);
       if (w) return w;
@@ -185,11 +205,12 @@ export function wpisDlaPodstrony(s: KontekstStrony, p: Podstrona): Wpis | null {
   return null;
 }
 
-function okruszki(s: KontekstStrony, p: Podstrona): Record<string, unknown> {
-  const czesci = p.slug.split('/');
-  const elementy: { name: string; slug: string }[] = [{ name: s.strona.strony.find((x) => x.slug === '')?.tytul ?? 'Start', slug: '' }];
+function okruszki(s: KontekstStrony, p: Podstrona, jezyk: Jezyk): Record<string, unknown> {
+  const czesci = slugBezJezyka(s.strona, p).split('/');
+  const glowna = slugWJezyku(s.strona, jezyk, '');
+  const elementy: { name: string; slug: string }[] = [{ name: s.strona.strony.find((x) => x.slug === glowna)?.tytul ?? 'Start', slug: glowna }];
   if (czesci.length > 1) {
-    const rodzic = s.strona.strony.find((x) => x.slug === czesci[0]);
+    const rodzic = s.strona.strony.find((x) => x.slug === slugWJezyku(s.strona, jezyk, czesci[0]!));
     if (rodzic) elementy.push({ name: rodzic.tytul, slug: rodzic.slug });
   }
   elementy.push({ name: p.tytul, slug: p.slug });
@@ -199,11 +220,24 @@ function okruszki(s: KontekstStrony, p: Podstrona): Record<string, unknown> {
   };
 }
 
+/**
+ * sitemap.xml; wersje językowe (paczka 124) – każdy adres z `xhtml:link rel="alternate"` do wszystkich istniejących
+ * wersji (także do siebie) i x-default, jak w hreflang nagłówka (Google: sitemap z alternates).
+ */
 export function sitemap(s: KontekstStrony, strony: Podstrona[]): string {
   const data = s.dataIso.slice(0, 10);
-  const wpisy = s.adres ? strony.map((p) => `<url><loc>${esc(urlPodstrony(s, p.slug) ?? '')}</loc><lastmod>${data}</lastmod></url>`) : [];
+  let zAlternatywami = false;
+  const wpisy = s.adres
+    ? strony.map((p) => {
+        const alt = s.seoPelne ? alternatywy(s, p) : [];
+        if (alt.length) zAlternatywami = true;
+        const linki = alt.map((a) => `<xhtml:link rel="alternate" hreflang="${a.hreflang}" href="${esc(a.url)}"/>`).join('');
+        return `<url><loc>${esc(urlPodstrony(s, p.slug) ?? '')}</loc><lastmod>${data}</lastmod>${linki}</url>`;
+      })
+    : [];
   if (!s.adres) s.ostrzezenia.push('Brak adresu strony – sitemap.xml bez adresów (uzupełni się po podpięciu domeny).');
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${wpisy.join('\n')}${wpisy.length ? '\n' : ''}</urlset>\n`;
+  const xhtml = zAlternatywami ? ' xmlns:xhtml="http://www.w3.org/1999/xhtml"' : '';
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"${xhtml}>\n${wpisy.join('\n')}${wpisy.length ? '\n' : ''}</urlset>\n`;
 }
 
 export function robots(s: KontekstStrony, noindex: boolean): string {

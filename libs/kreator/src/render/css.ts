@@ -731,6 +731,21 @@ body.z-paskiem{padding-bottom:4.75rem}
 @keyframes postep{to{transform:scaleX(1)}}
 @supports (animation-timeline:scroll()){.postep span{animation:postep linear both;animation-timeline:scroll(root)}}
 `,
+  // Przełącznik języka (paczka 124): skróty w nagłówku; na telefonie z menu (JS) – pełne nazwy w rozwijanym menu.
+  jezyki: `
+.jez-nag{display:flex;align-items:center;gap:.125rem}
+.jez-nag a{display:inline-grid;place-items:center;min-width:2.75rem;min-height:2.75rem;padding-inline:.5rem;border-radius:var(--r-btn);font-size:.8125rem;font-weight:var(--w-b);letter-spacing:.06em;text-decoration:none}
+.jez-nag a:hover{text-decoration:underline;text-underline-offset:.3em}
+.jez-nag a[aria-current]{box-shadow:inset 0 0 0 1.5px var(--s-linia)}
+.jez-menu{display:none}
+.js .z-menu .jez-nag{display:none}
+.js .nav .jez-menu{display:block;margin-top:.5rem;border-top:1.5px solid var(--s-linia)}
+.js .nav .jez-menu a[aria-current]{font-weight:var(--w-b)}
+@media (min-width:960px){
+  .js .z-menu .jez-nag{display:flex}
+  .js .nav .jez-menu{display:none}
+}
+`,
   'ef:lightbox': `
 .lightbox{max-width:min(94vw,82rem);max-height:94vh;width:auto;padding:0;border:0;background:transparent;color:#fff;overflow:visible}
 .lightbox::backdrop{background:rgba(8,10,12,.88)}

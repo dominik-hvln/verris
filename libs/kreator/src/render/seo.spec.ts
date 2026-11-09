@@ -119,10 +119,10 @@ describe('indeksowanie', () => {
     expect(wynik.ostrzezenia.join(' ')).toContain('Brak adresu strony');
   });
 
-  it('hreflang tylko do istniejących wersji językowych (paczka 123: sam wpis w jezykiDodatkowe nie daje linków do 404)', () => {
+  it('hreflang tylko do istniejących wersji językowych (paczka 124: wersja bez strony głównej jest błędem modelu)', () => {
     const w = structuredClone(PRZYKLADY.ksiegowa!) as { jezykiDodatkowe?: string[]; strony: { slug: string; tytul: string }[] };
     w.jezykiDodatkowe = ['en'];
-    expect(plik(render(w as never, 'pro'), 'index.html')).not.toContain('hreflang');
+    expect(() => render(w as never, 'pro')).toThrow(/nie ma strony głównej/);
     w.strony.push({ ...structuredClone(w.strony[0]!), slug: 'en', tytul: 'Home' });
     const html = plik(render(w as never, 'pro'), 'index.html');
     expect(html).toContain(`<link rel="alternate" hreflang="en" href="${ADRES}/en/">`);

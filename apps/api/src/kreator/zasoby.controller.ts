@@ -7,7 +7,8 @@ import { RateLimit } from '../common/guards/rate-limit.guard.js';
 import { opcjeUploaduDoPamieci } from '../common/upload/multer-limity.js';
 import { MAKS_BAJTOW_WEJSCIA } from './zasoby-obraz.js';
 import { KreatorZasobyService } from './zasoby.service.js';
-import { AdresyZasobowDto, ImportZasobuDto, ListaZasobowDto, SzukajZdjecDto, WgrajZasobDto } from './dto/zasoby.dto.js';
+import { AdresyZasobowDto, GenerujObrazDto, ImportZasobuDto, ListaZasobowDto, SzukajZdjecDto, WgrajZasobDto } from './dto/zasoby.dto.js';
+import { KreatorObrazyAiService } from './generowanie/obrazy-ai.service.js';
 
 type Uzytkownik = { userId: string; principalUserId?: string };
 
@@ -31,7 +32,10 @@ function naglowkiPliku(res: Response, typ: string, cacheSekund: number): void {
 @Controller('kreator')
 @UseGuards(JwtAuthGuard)
 export class KreatorZasobyController {
-  constructor(private readonly zasoby: KreatorZasobyService) {}
+  constructor(
+    private readonly zasoby: KreatorZasobyService,
+    private readonly obrazyAi: KreatorObrazyAiService,
+  ) {}
 
   @Get('zasoby')
   lista(@CurrentUser() u: Uzytkownik, @Query() q: ListaZasobowDto) {
@@ -49,6 +53,23 @@ export class KreatorZasobyController {
   @UseInterceptors(FileInterceptor('plik', opcjeUploaduDoPamieci(LIMIT_MULTIPART)))
   wgraj(@CurrentUser() u: Uzytkownik, @Body() dto: WgrajZasobDto, @UploadedFile() plik: Express.Multer.File | undefined) {
     return this.zasoby.wgraj(u.userId, plik?.buffer, dto);
+  }
+
+  /** Paczka 124 – zakładka „Wygeneruj”: czy generowanie działa, ile zdjęć AI zostało w miesiącu, ile wariantów. */
+  @Get('zasoby/generuj')
+  stanGenerowania(@CurrentUser() u: Uzytkownik) {
+    return this.obrazyAi.stan(u.userId);
+  }
+
+  /**
+   * Paczka 124 – zdjęcie generowane przez AI (synchronicznie, do ok. 2 min: prompt + dostawca obrazów). Uprawnienia
+   * subkonta jak wgranie (reguła /kreator: FILES_MANAGE). Limit częstotliwości obok limitu miesięcznego planu.
+   */
+  @Post('zasoby/generuj')
+  @HttpCode(200)
+  @RateLimit({ limit: 10, windowMs: 10 * 60 * 1000, scope: 'kreator:obraz-ai', perKonto: true })
+  generuj(@CurrentUser() u: Uzytkownik, @Body() dto: GenerujObrazDto) {
+    return this.obrazyAi.generuj(u.userId, u.principalUserId ?? u.userId, dto);
   }
 
   @Delete('zasoby/:id')

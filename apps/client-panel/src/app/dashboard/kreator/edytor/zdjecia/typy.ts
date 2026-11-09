@@ -56,6 +56,29 @@ export interface OdpowiedzBiblioteki {
   naStrone: number;
 }
 
+/** Paczka 124 – GET /kreator/zasoby/generuj (apps/api/src/kreator/generowanie/obrazy-ai.service.ts). */
+export interface StanGenerowania {
+  dostepne: boolean;
+  powod: string | null;
+  limit: number;
+  zuzyte: number;
+  pozostalo: number;
+  /** Ile wariantów da następne „Wygeneruj” (≤ pozostalo). */
+  warianty: number;
+}
+
+/** Paczka 124 – POST /kreator/zasoby/generuj. */
+export interface WynikGenerowania {
+  zasoby: ZasobKreatora[];
+  alt: string;
+  moderowane: number;
+  limit: number;
+  pozostalo: number;
+}
+
+export type ProporcjeObrazu = '16:9' | '4:3' | '3:2' | '1:1' | '3:4' | '4:5';
+export const MAKS_OPISU_OBRAZU = 400;
+
 /** Limity wgrywania – te same co w API (zasoby-obraz.ts); w panelu tylko szybka odmowa przed wysłaniem. */
 export const MAKS_BAJTOW_ZDJECIA = 15 * 1024 * 1024;
 export const TYPY_ZDJEC = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'] as const;
@@ -71,6 +94,8 @@ export function nazwaLicencji(kod: string | null | undefined): string {
       return 'Licencja Pixabay';
     case 'pexels':
       return 'Licencja Pexels';
+    case 'wygenerowane-ai':
+      return 'Wygenerowane przez AI';
     case '':
       return 'Twoje zdjęcie';
     default:

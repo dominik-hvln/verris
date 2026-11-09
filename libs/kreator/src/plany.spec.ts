@@ -83,9 +83,37 @@ describe('dopasujDoPlanu', () => {
     expect([PLANY_KREATORA.proba.miejsceZdjecMb, PLANY_KREATORA.hosting.miejsceZdjecMb, PLANY_KREATORA.pro.miejsceZdjecMb]).toEqual([50, 500, 2048]);
   });
 
-  it('bez obietnicy wersji językowych, której renderer nie spełnia (paczka 123)', () => {
-    expect(KORZYSCI_PRO.some((k) => k.id === 'jezyki' || /języ/i.test(k.nazwa + k.opis))).toBe(false);
-    expect(Object.values(PLANY_KREATORA).some((p) => p.wielojezycznosc)).toBe(false);
+  it('zdjęcia AI (paczka 124): limit miesięczny 3/20/100, warianty 1/2/4, korzyść Pro zgodna z planem', () => {
+    const p = PLANY_KREATORA;
+    expect([p.proba.obrazowAiMies, p.hosting.obrazowAiMies, p.pro.obrazowAiMies]).toEqual([3, 20, 100]);
+    expect([p.proba.wariantowObrazuAi, p.hosting.wariantowObrazuAi, p.pro.wariantowObrazuAi]).toEqual([1, 2, 4]);
+    const k = KORZYSCI_PRO.find((x) => x.id === 'zdjecia-ai');
+    expect(k?.opis).toContain(`${p.pro.obrazowAiMies} zdjęć AI miesięcznie`);
+    expect(k?.opis).toContain(`${p.pro.wariantowObrazuAi} warianty`);
+  });
+
+  it('wersje językowe (paczka 124): tylko Pro, korzyść wymienia trzy języki', () => {
+    expect([PLANY_KREATORA.proba.wielojezycznosc, PLANY_KREATORA.hosting.wielojezycznosc, PLANY_KREATORA.pro.wielojezycznosc]).toEqual([false, false, true]);
+    const k = KORZYSCI_PRO.find((x) => x.id === 'jezyki');
+    expect(k?.nazwa).toBe('Wersje językowe');
+    expect(k?.opis).toContain('angielski, niemiecki, ukraiński');
+  });
+
+  it('bez Pro podstrony w językach dodatkowych nie publikują się i nie zabierają limitu podstron', () => {
+    const s = salon();
+    s.jezykiDodatkowe = ['en'];
+    s.stopka.tlumaczenia = { en: { tekst: 'Hair salon in Poznan' } };
+    s.strony.push({ ...structuredClone(s.strony[0]!), slug: 'en', tytul: 'Home' }, { ...structuredClone(s.strony[0]!), slug: 'en/prices', klucz: 'cennik', tytul: 'Prices' });
+    s.strony.splice(1, 0, { ...structuredClone(s.strony[0]!), slug: 'cennik', tytul: 'Cennik' });
+    expect(walidujStrone(s).ok).toBe(true);
+    const h = dopasujDoPlanu(s, 'hosting');
+    expect(h.strona.strony.map((p) => p.slug)).toEqual(['', 'cennik']);
+    expect(h.strona.jezykiDodatkowe).toEqual([]);
+    expect(h.strona.stopka.tlumaczenia).toBeUndefined();
+    expect(h.zmiany).toContain('Wersje językowe nieopublikowane (Kreator Pro)');
+    expect(walidujStrone(h.strona).ok).toBe(true);
+    const p = dopasujDoPlanu(s, 'pro');
+    expect(p.strona.strony.map((x) => x.slug)).toEqual(['', 'cennik', 'en', 'en/prices']);
   });
 
   it('cena Pro: netto = brutto / 1,23', () => {

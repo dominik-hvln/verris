@@ -4,7 +4,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { RateLimit } from '../common/guards/rate-limit.guard.js';
 import { KreatorService } from './kreator.service.js';
-import { OkresProDto, PodgladQueryDto, UtworzStroneDto, ZapiszModelDto, ZmianaAiDto, ZmienNazweDto } from './dto/kreator.dto.js';
+import { OkresProDto, PodgladQueryDto, TlumaczenieDto, UtworzStroneDto, ZapiszModelDto, ZmianaAiDto, ZmienNazweDto } from './dto/kreator.dto.js';
 
 /** Tożsamość z JWT: `userId` = konto (właściciel), `principalUserId` = człowiek za subkontem albo impersonacją. */
 type Uzytkownik = { userId: string; principalUserId?: string };
@@ -84,6 +84,17 @@ export class KreatorController {
   @RateLimit({ limit: 30, windowMs: 10 * 60 * 1000, scope: 'kreator:zmiana', perKonto: true })
   zmienAi(@CurrentUser() u: Uzytkownik, @Param('id', ParseUUIDPipe) id: string, @Body() dto: ZmianaAiDto) {
     return this.kreator.zmienAi(u.userId, u.principalUserId ?? u.userId, id, dto);
+  }
+
+  /**
+   * Paczka 124 – wersje językowe (Kreator Pro): tłumaczenie podstron AI na język dodatkowy. Synchronicznie, podstrona
+   * po podstronie (każda to osobne wywołanie AI i jedna zmiana AI z limitu); panel wysyła po jednej podstronie.
+   */
+  @Post('strony/:id/tlumacz')
+  @HttpCode(200)
+  @RateLimit({ limit: 60, windowMs: 10 * 60 * 1000, scope: 'kreator:tlumaczenie', perKonto: true })
+  tlumacz(@CurrentUser() u: Uzytkownik, @Param('id', ParseUUIDPipe) id: string, @Body() dto: TlumaczenieDto) {
+    return this.kreator.tlumacz(u.userId, u.principalUserId ?? u.userId, id, dto);
   }
 
   @Get('strony/:id/wersje')

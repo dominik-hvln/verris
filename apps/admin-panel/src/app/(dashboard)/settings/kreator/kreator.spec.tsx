@@ -35,6 +35,7 @@ const ustawienia = (z: Partial<UstawieniaKreatora> = {}, konf: Partial<Ustawieni
     wlaczony: false,
     kontaTestowe: ["ola@przyklad.pl", "stary@przyklad.pl"],
     bibliotekiZdjec: ["pixabay", "openverse", "pexels"],
+    obrazyAi: { wlaczone: false, dostawca: "bfl", model: "flux-pro-1.1", cenaZaObrazUsd: 0.04 },
     ...konf,
   },
   kluczAnthropic: true,
@@ -53,7 +54,11 @@ const ustawienia = (z: Partial<UstawieniaKreatora> = {}, konf: Partial<Ustawieni
     { id: "openverse", nazwa: "Openverse", wymagaKlucza: false, gotowa: true },
     { id: "pexels", nazwa: "Pexels", wymagaKlucza: true, gotowa: false },
   ],
-  miesiac: { miesiac: "2026-11", generacje: 4, zmiany: 31, kosztUsd: 1.2345, cacheZapis: 12000, cacheOdczyt: 90000 },
+  dostawcyObrazowAi: [
+    { id: "bfl", nazwa: "Black Forest Labs FLUX", zmienna: "BFL_API_KEY", klucz: false, modelDomyslny: "flux-pro-1.1", cenaDomyslnaUsd: 0.04 },
+    { id: "openai", nazwa: "OpenAI Images", zmienna: "AI_API_KEY", klucz: true, modelDomyslny: "gpt-image-1", cenaDomyslnaUsd: 0.06 },
+  ],
+  miesiac: { miesiac: "2026-11", generacje: 4, zmiany: 31, kosztUsd: 1.2345, cacheZapis: 12000, cacheOdczyt: 90000, obrazyAi: 7 },
   ...z,
 });
 
@@ -86,6 +91,7 @@ const PODSUMOWANIE: PodsumowanieKreatora = {
   pro: { aktywne: 2, miesieczne: 1, roczne: 1, miesiecznieBrutto: 18.15, miesiecznieNetto: 14.76 },
   dni,
   magazyn: { zdjecia: 12, bajty: 3_500_000 },
+  obrazyAi: { wywolania: 3, obrazy: 7, udane: 6, moderowane: 1, kosztUsd: 0.28 },
   bledy: [{ id: "s1", at: "2026-11-08T10:00:00.000Z", email: "jan@przyklad.pl", opis: "Nie udało się wygenerować strony – spróbuj ponownie." }],
 };
 
@@ -108,7 +114,7 @@ describe("strona Admin → Kreator stron", () => {
     apiStrony();
     const h = renderToStaticMarkup(await Strona());
     expect(h).toContain("Kreator stron");
-    for (const s of ["dostep", "ai", "zdjecia", "zuzycie", "bledy"]) expect(h).toContain(`data-sekcja="${s}"`);
+    for (const s of ["dostep", "ai", "zdjecia", "zdjecia-ai", "zuzycie", "bledy"]) expect(h).toContain(`data-sekcja="${s}"`);
     // Dostęp
     expect(h).toContain('data-ostrzezenie="regulamin"');
     expect(h).toContain("DO_ZATWIERDZENIA_kreator-pro.md");
@@ -134,6 +140,16 @@ describe("strona Admin → Kreator stron", () => {
     expect(h).toContain("$0.0560");
     expect(h).toContain("2 abonamenty");
     expect(h).toContain("14,76 zł netto / 18,15 zł brutto miesięcznie");
+    // Paczka 124 – zdjęcia AI: status klucza tak/nie (nigdy wartość), cena do ustawienia, koszt w podsumowaniu
+    expect(h).toContain("Generowanie zdjęć AI");
+    expect(h).toContain("klucz: nie (BFL_API_KEY)");
+    expect(h).toContain("klucz: tak");
+    expect(h).toContain("Cenę za obraz ustaw wg cennika dostawcy");
+    expect(h).toContain("7 zdjęć AI w limitach kont");
+    expect(h).toContain('data-obrazy-ai');
+    expect(h).toContain("6 zdjęć dostarczonych z 7 rozliczonych");
+    expect(h).toContain("1 odrzucone przez moderację");
+    expect(h).toContain("$0.2800");
     // Błędy generacji – e-mail i komunikat, bez treści stron
     expect(h).toContain("jan@przyklad.pl");
     expect(h).toContain("Nie udało się wygenerować strony");
@@ -202,11 +218,42 @@ describe("KreatorForm – zapis i konta testowe", () => {
     await act(async () => przycisk("Zapisz ustawienia kreatora").click());
     expect(api).toHaveBeenCalledWith("/admin/kreator/konfiguracja", {
       method: "PUT",
-      body: { wlaczony: true, modelGeneracji: "claude-sonnet-5-5", modelZmian: "claude-sonnet-5-5", bibliotekiZdjec: ["openverse", "pixabay"] },
+      body: {
+        wlaczony: true,
+        modelGeneracji: "claude-sonnet-5-5",
+        modelZmian: "claude-sonnet-5-5",
+        bibliotekiZdjec: ["openverse", "pixabay"],
+        obrazyAi: { wlaczone: false, dostawca: "bfl", model: "flux-pro-1.1", cenaZaObrazUsd: 0.04 },
+      },
     });
     expect(revalidatePath).toHaveBeenCalledWith("/settings/kreator");
     expect(k.textContent).toContain("Zapisano – działa od razu.");
     expect(k.textContent).not.toContain("Niezapisane zmiany");
+  });
+
+  it("zdjęcia AI: włączenie z ostrzeżeniem o Polityce prywatności, zmiana dostawcy ustawia jego model, cena → PUT obrazyAi", async () => {
+    (potwierdz as jest.Mock).mockResolvedValue(true);
+    api.mockImplementation(async (_s: string, o: { body: Partial<UstawieniaKreatora["konfiguracja"]> }) => ustawienia({}, o.body));
+    render();
+    const sekcja = () => k.querySelector<HTMLElement>('[data-sekcja="zdjecia-ai"]')!;
+    await act(async () => sekcja().querySelector<HTMLInputElement>("input[type=checkbox]")!.click());
+    expect(potwierdz).toHaveBeenCalledWith(expect.stringContaining("DO_ZATWIERDZENIA_zdjecia-ai.md"), expect.anything());
+    expect(k.textContent).toContain("Niezapisane zmiany");
+
+    // Select (bez natywnego <select>) – przycisk listy i opcja; jsdom nie ma scrollIntoView.
+    Element.prototype.scrollIntoView ??= () => undefined;
+    const lista = sekcja().querySelector<HTMLButtonElement>("button")!;
+    await act(async () => lista.click());
+    const opcja = Array.from(document.querySelectorAll<HTMLElement>('[role="option"]')).find((o) => (o.textContent ?? "").includes("OpenAI Images"))!;
+    await act(async () => opcja.click());
+    expect(sekcja().querySelector<HTMLInputElement>('input[maxlength="60"]')!.value).toBe("gpt-image-1");
+    act(() => wpisz(sekcja().querySelector<HTMLInputElement>('input[type="number"]')!, "0.07"));
+
+    await act(async () => przycisk("Zapisz ustawienia kreatora").click());
+    expect(api).toHaveBeenCalledWith("/admin/kreator/konfiguracja", {
+      method: "PUT",
+      body: expect.objectContaining({ obrazyAi: { wlaczone: true, dostawca: "openai", model: "gpt-image-1", cenaZaObrazUsd: 0.07 } }),
+    });
   });
 
   it("odmowa w potwierdzeniu – przełącznik zostaje wyłączony; Regulamin z kreatorem – bez pytania", async () => {

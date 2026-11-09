@@ -25,6 +25,7 @@ const ZADANIA_KLIENTA = new Set<string>([
   NodeTaskKind.WAF_APPLY, NodeTaskKind.DB_TRANSFER, NodeTaskKind.FILE_RESTORE, NodeTaskKind.OFFSITE_RESTORE, NodeTaskKind.SSH_ACCESS,
   NodeTaskKind.DISK_USAGE, NodeTaskKind.MALWARE_SCAN, NodeTaskKind.REDIS_ACCESS, NodeTaskKind.MEMCACHED_ACCESS, NodeTaskKind.MAIL_LOG, NodeTaskKind.GIT_DEPLOY,
   NodeTaskKind.SITE_CLONE, NodeTaskKind.HTACCESS, NodeTaskKind.PHP_INFO, NodeTaskKind.FILE_SEARCH, NodeTaskKind.APP_SELECTOR, NodeTaskKind.PGSQL, NodeTaskKind.IMAGE_OPTIMIZE,
+  NodeTaskKind.KREATOR_WP,
 ]);
 
 @Injectable()

@@ -2,6 +2,7 @@
 
 import { unstable_rethrow } from 'next/navigation';
 import { apiFetch, ApiError } from '@/lib/api';
+import type { JezykDodatkowy } from '@verris/kreator/klient';
 import type {
   NowaStronaKreatora,
   PozycjaListyKreatora,
@@ -59,6 +60,8 @@ function sprawdzId(id: string): void {
 
 /** Generacja i zmiana AI trwają dłużej niż domyślny budżet apiFetch (20 s); zmiana AI w API ma 90 s × 2 próby. */
 const CZAS_ZMIANY_AI_MS = 200_000;
+/** Tłumaczenie jednej podstrony (paczka 124): w API 120 s × 2 próby, plus strona główna przy nowym języku. */
+const CZAS_TLUMACZENIA_MS = 500_000;
 
 export async function stanKreatora(): Promise<WynikKreatora<StanKreatora>> {
   return wynik(() => apiFetch<StanKreatora>('/kreator/stan'));
@@ -121,13 +124,33 @@ export async function zmienNazweStrony(id: string, nazwa: string): Promise<Wynik
   });
 }
 
-export async function polecenieAi(id: string, polecenie: string, sekcjaId: string | null): Promise<WynikKreatora<WidokStronyKreatora>> {
+/** `podstrona` (paczka 124) – adres podstrony sekcji: wersje językowe mają sekcje o tych samych id co oryginał. */
+export async function polecenieAi(id: string, polecenie: string, sekcjaId: string | null, podstrona?: string): Promise<WynikKreatora<WidokStronyKreatora>> {
   return wynik(async () => {
     sprawdzId(id);
     return apiFetch<WidokStronyKreatora>(`/kreator/strony/${id}/ai`, {
       method: 'POST',
-      body: JSON.stringify({ polecenie: polecenie.trim(), ...(sekcjaId ? { sekcjaId } : {}) }),
+      body: JSON.stringify({ polecenie: polecenie.trim(), ...(sekcjaId ? { sekcjaId, ...(podstrona !== undefined ? { podstrona } : {}) } : {}) }),
       timeoutMs: CZAS_ZMIANY_AI_MS,
+    });
+  });
+}
+
+/**
+ * Paczka 124 – tłumaczenie podstron AI (Kreator Pro). `podstrony` – klucze podstron języka głównego (edytor wysyła po
+ * jednej, żeby pokazać postęp i nie trzymać jednego żądania przez kilka minut). API: 2 próby × 120 s na podstronę.
+ */
+export async function tlumaczStrone(
+  id: string,
+  jezyk: JezykDodatkowy,
+  podstrony: string[],
+): Promise<WynikKreatora<WidokStronyKreatora & { przetlumaczone: string[]; nieprzetlumaczone: string[] }>> {
+  return wynik(async () => {
+    sprawdzId(id);
+    return apiFetch<WidokStronyKreatora & { przetlumaczone: string[]; nieprzetlumaczone: string[] }>(`/kreator/strony/${id}/tlumacz`, {
+      method: 'POST',
+      body: JSON.stringify({ jezyk, podstrony }),
+      timeoutMs: CZAS_TLUMACZENIA_MS,
     });
   });
 }

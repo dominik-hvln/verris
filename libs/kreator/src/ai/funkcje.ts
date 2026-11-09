@@ -2,6 +2,7 @@ import { odciskStrony, wybierzKierunki } from './kierunki.ts';
 import type { FunkcjeAiKreatora } from './kontrakt.ts';
 import { budujZapytanieGeneracji, budujZapytanieZmiany } from './master-prompt.ts';
 import { odczytajWynikGeneracji, odczytajWynikZmiany, wiadomosciNaprawy } from './odczyt.ts';
+import { budujZapytanieTlumaczenia, odczytajWynikTlumaczenia } from './tlumaczenie.ts';
 
 /** Implementacja kontraktu AI kreatora – jedyny punkt, przez który API składa zapytania i czyta odpowiedzi. */
 export const funkcjeAiKreatora: FunkcjeAiKreatora = {
@@ -12,4 +13,6 @@ export const funkcjeAiKreatora: FunkcjeAiKreatora = {
   odczytajWynikZmiany,
   wybierzKierunki,
   odciskStrony,
+  budujZapytanieTlumaczenia,
+  odczytajWynikTlumaczenia,
 };

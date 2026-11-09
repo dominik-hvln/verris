@@ -40,6 +40,7 @@ export const ZADANIA: Record<string, string> = {
   IP_BLOCKS: 'Blokady IP',
   WAF_HITS: 'Trafienia WAF',
   NODE_SERVICES: 'Usługi i logi',
+  KREATOR_WP: 'Kreator – przejście na WordPressa',
 };
 
 type Stan = 'ok' | 'warn' | 'crit' | 'brak';

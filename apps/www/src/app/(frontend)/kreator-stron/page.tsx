@@ -5,7 +5,7 @@ import { MobilnyPasek } from '../components/MobilnyPasek';
 import { pobierzCeny } from '@/lib/ceny-api';
 import { cenaPakietu, netto, odCeny, zl, type Ceny } from '@/lib/ceny';
 import { ctaProby, pasekHostingu } from '@/lib/proba';
-import { DNI_LINKU_PODGLADU, ileLubBezLimitu, LIMITY_KREATORA, PRZYKLADY_STRON } from '@/lib/kreator';
+import { DNI_LINKU_PODGLADU, ileLubBezLimitu, JEZYKI_KREATORA_PRO, LIMITY_KREATORA, PRZYKLADY_STRON } from '@/lib/kreator';
 import { faqSchema, graph, serviceSchema } from '@/lib/schema';
 
 /*
@@ -15,7 +15,8 @@ import { faqSchema, graph, serviceSchema } from '@/lib/schema';
  *  - publikacja, kopia cudzych plików, wycofanie, ZIP, link podglądu 7 dni: apps/api/src/kreator/publikacja.service.ts,
  *  - koniec Pro: apps/client-panel/src/lib/kreator.ts (SKUTKI_KONCA_PRO),
  *  - zdjęcia: wgrywanie (JPEG, PNG, WebP, AVIF) i biblioteki Openverse / Pixabay (apps/api/src/kreator/biblioteka).
- * Celowo bez: przejścia na WordPressa i wersji językowych (nie ma ich jeszcze w publikacji).
+ *  - wersje językowe (Pro, paczka 124): libs/kreator/src/jezyki.ts, render (hreflang, przełącznik), ai/tlumaczenie.ts.
+ * Celowo bez: przejścia na WordPressa (nie ma go jeszcze w publikacji).
  * Ceny wyłącznie z lib/ceny (GET /plans: verris-hosting i kreator-pro) – bez kwot wpisanych na sztywno.
  */
 export const metadata: Metadata = {
@@ -71,6 +72,11 @@ function wiersze(): [string, string, string][] {
     ['Katalog produktów z cenami', 'nie', 'tak'],
     ['Blog', 'nie', 'tak'],
     ['SEO', 'podstawowe', 'pełne: dane strukturalne FAQ, produktów i artykułów, przegląd SEO przez AI'],
+    [
+      'Wersje językowe',
+      H.wielojezycznosc ? 'tak' : 'nie',
+      P.wielojezycznosc ? `do ${JEZYKI_KREATORA_PRO.length} dodatkowych: ${JEZYKI_KREATORA_PRO.join(', ')} – tłumaczenie AI i przełącznik języka` : 'nie',
+    ],
     ['Znak „Stworzone w Verris Kreator” w stopce', 'standardowy', 'dyskretny'],
   ];
 }

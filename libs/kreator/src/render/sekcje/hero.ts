@@ -57,9 +57,9 @@ function tekst(k: KontekstPodstrony, sek: Hero, zFaktami = true, zrodlo: Hero = 
 }
 
 function kartaGodzin(k: KontekstPodstrony): string {
-  const lista = listaGodzin(k.s.strona.firma);
+  const lista = listaGodzin(k.s.strona.firma, 'godziny-lista', k.jezyk);
   if (!lista) return '';
-  return `<div class="karta-plywajaca"><p class="karta-tytul">Godziny otwarcia</p>${lista}</div>`;
+  return `<div class="karta-plywajaca"><p class="karta-tytul">${esc(k.t.godzinyOtwarcia)}</p>${lista}</div>`;
 }
 
 export function renderHero(k: KontekstPodstrony, sek: Hero): string {
@@ -100,7 +100,7 @@ export function renderHero(k: KontekstPodstrony, sek: Hero): string {
     case 'hero-z-formularzem': {
       const kontakt = wszystkieSekcje(k.s.strona).find((s) => s.typ === 'kontakt');
       const pola = kontakt && kontakt.typ === 'kontakt' ? kontakt.dane.pola.filter((p) => p !== 'wiadomosc').slice(0, 4) : ['imie', 'email', 'telefon'];
-      const etykieta = d.przyciski.find((p) => p.styl === 'glowny')?.etykieta ?? 'Wyślij';
+      const etykieta = d.przyciski.find((p) => p.styl === 'glowny')?.etykieta ?? k.t.wyslij;
       const lista = d.fakty.length
         ? `<ul class="lista-check">${d.fakty
             .map((f, i) => {
@@ -114,7 +114,7 @@ export function renderHero(k: KontekstPodstrony, sek: Hero): string {
         k,
         sek,
         `<div class="kontener hero-siatka${poj}"><div class="hero-tekst">${tekst(k, bezPrzyciskow, false, sek)}${lista}</div>` +
-          `<div class="karta-form"><p class="karta-tytul">Napisz do nas</p><p class="karta-opis">Odpowiemy najszybciej, jak to możliwe.</p>${formularz(k, sek, { pola, przycisk: etykieta })}</div></div>`,
+          `<div class="karta-form"><p class="karta-tytul">${esc(k.t.napiszDoNas)}</p><p class="karta-opis">${esc(k.t.odpowiemy)}</p>${formularz(k, sek, { pola, przycisk: etykieta })}</div></div>`,
       );
     }
     case 'hero-mozaika': {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useId, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
-import { ExternalLink, ImageIcon, Loader2, Search, Trash2, Upload } from 'lucide-react';
+import { ExternalLink, ImageIcon, Loader2, Search, Sparkles, Trash2, Upload } from 'lucide-react';
 import type { Obraz } from '@verris/kreator/klient';
 import { PanelModal } from '@/components/panel/panel-modal';
 import { Checkbox } from '@/components/panel/checkbox';
@@ -9,8 +9,19 @@ import { cx } from '@/components/panel/cx';
 import { potwierdz } from '@/components/panel/potwierdz';
 import { plForm } from '@/lib/pl';
 import { Kafelki, Komunikat, Pole, klasaPola, klasaPrzyciskuDrugiego, klasaPrzyciskuGlownego } from '../../wspolne';
-import { importujZdjecie, listaZasobow, szukajZdjec, usunZasob } from './akcje';
-import { MAKS_BAJTOW_ZDJECIA, TYPY_ZDJEC, nazwaLicencji, type DostawcaZdjec, type OdpowiedzBiblioteki, type WynikBiblioteki, type ZasobKreatora } from './typy';
+import { generujZdjecie, importujZdjecie, listaZasobow, stanGenerowania, szukajZdjec, usunZasob } from './akcje';
+import {
+  MAKS_BAJTOW_ZDJECIA,
+  MAKS_OPISU_OBRAZU,
+  TYPY_ZDJEC,
+  nazwaLicencji,
+  type DostawcaZdjec,
+  type OdpowiedzBiblioteki,
+  type ProporcjeObrazu,
+  type StanGenerowania,
+  type WynikBiblioteki,
+  type ZasobKreatora,
+} from './typy';
 
 /**
  * Paczka 122 – wybór zdjęcia do obrazu na stronie z kreatora (kontrakt kreator-wspolne-122.md, pkt 5).
@@ -29,11 +40,13 @@ export interface WyborZdjeciaProps {
   onZamknij: () => void;
 }
 
-type Zakladka = 'wgraj' | 'twoje' | 'biblioteka';
+type Zakladka = 'wgraj' | 'twoje' | 'biblioteka' | 'wygeneruj';
 const ZAKLADKI: { id: Zakladka; nazwa: string }[] = [
   { id: 'wgraj', nazwa: 'Wgraj' },
   { id: 'twoje', nazwa: 'Twoje zdjęcia' },
   { id: 'biblioteka', nazwa: 'Biblioteka' },
+  // Paczka 124 – zdjęcie generowane przez AI.
+  { id: 'wygeneruj', nazwa: 'Wygeneruj' },
 ];
 
 const PROPORCJE: Record<string, string> = { '16:9': '16 / 9', '4:3': '4 / 3', '3:2': '3 / 2', '1:1': '1 / 1', '3:4': '3 / 4', '4:5': '4 / 5' };
@@ -64,7 +77,7 @@ export function WyborZdjecia({ otwarty, onZamknij, ...reszta }: WyborZdjeciaProp
   );
 }
 
-function Tresc({ obraz, stronaId, onWybierz, onZamknij }: Omit<WyborZdjeciaProps, 'otwarty' | 'sciezka'>) {
+function Tresc({ obraz, sciezka, stronaId, onWybierz, onZamknij }: Omit<WyborZdjeciaProps, 'otwarty'>) {
   const [zakladka, setZakladka] = useState<Zakladka>('wgraj');
   const [wybrany, setWybrany] = useState<ZasobKreatora | null>(null);
   const id = useId();
@@ -113,6 +126,7 @@ function Tresc({ obraz, stronaId, onWybierz, onZamknij }: Omit<WyborZdjeciaProps
         {zakladka === 'wgraj' ? <Wgraj stronaId={stronaId} onWgrane={setWybrany} /> : null}
         {zakladka === 'twoje' ? <TwojeZdjecia stronaId={stronaId} onWybierz={setWybrany} /> : null}
         {zakladka === 'biblioteka' ? <Biblioteka podpowiedz={obraz?.opisDoWyszukania ?? ''} stronaId={stronaId} onZaimportowane={setWybrany} /> : null}
+        {zakladka === 'wygeneruj' ? <Wygeneruj obraz={obraz} sciezka={sciezka} stronaId={stronaId} onWybierz={setWybrany} /> : null}
       </div>
     </div>
   );
@@ -545,6 +559,166 @@ function Biblioteka({ podpowiedz, stronaId, onZaimportowane }: { podpowiedz: str
   );
 }
 
+// ---------------------------------------------------------------------------------------------------------------
+// Wygeneruj (paczka 124 – zdjęcia AI)
+// ---------------------------------------------------------------------------------------------------------------
+
+const PROPORCJE_OPCJE: { wartosc: ProporcjeObrazu; nazwa: string }[] = [
+  { wartosc: '16:9', nazwa: '16:9' },
+  { wartosc: '3:2', nazwa: '3:2' },
+  { wartosc: '4:3', nazwa: '4:3' },
+  { wartosc: '1:1', nazwa: '1:1' },
+  { wartosc: '4:5', nazwa: '4:5' },
+  { wartosc: '3:4', nazwa: '3:4' },
+];
+
+/** Przykład w polu opisu: z podpisu ramki w projekcie („Zdjęcie: wnętrze salonu”) albo ogólny. */
+export function przykladOpisu(obraz?: Pick<Obraz, 'podpis'>): string {
+  const z = (obraz?.podpis ?? '').replace(/^\s*(zdjęcie|fotografia|obraz)\s*[:–-]\s*/i, '').trim();
+  return z ? `np. ${z.charAt(0).toLowerCase()}${z.slice(1)} – jasne światło, spokojne kolory` : 'np. jasne wnętrze salonu fryzjerskiego z roślinami, poranne światło';
+}
+
+/** „Zostało 1 zdjęcie AI”, „Zostały 3 zdjęcia AI”, „Zostało 20 zdjęć AI” – w tym miesiącu. */
+export function pozostaloZdjec(n: number): string {
+  return `${plForm(n, 'Zostało', 'Zostały', 'Zostało')} ${n} ${plForm(n, 'zdjęcie', 'zdjęcia', 'zdjęć')} AI w tym miesiącu`;
+}
+
+function Wygeneruj({ obraz, sciezka, stronaId, onWybierz }: { obraz?: Obraz; sciezka: string; stronaId?: string; onWybierz: (z: ZasobKreatora) => void }) {
+  const [stan, setStan] = useState<StanGenerowania | null>(null);
+  const [bladStanu, setBladStanu] = useState<string | null>(null);
+  const [opis, setOpis] = useState('');
+  const [proporcje, setProporcje] = useState<ProporcjeObrazu>(obraz?.proporcje ?? '4:3');
+  const [trwa, setTrwa] = useState(false);
+  const [sekundy, setSekundy] = useState(0);
+  const [blad, setBlad] = useState<string | null>(null);
+  const [wyniki, setWyniki] = useState<ZasobKreatora[]>([]);
+  const [moderowane, setModerowane] = useState(0);
+  const [zaznaczony, setZaznaczony] = useState<string | null>(null);
+
+  useEffect(() => {
+    let aktualny = true;
+    void stanGenerowania().then((w) => {
+      if (!aktualny) return;
+      if (w.ok) setStan(w.dane);
+      else setBladStanu(w.blad);
+    });
+    return () => {
+      aktualny = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!trwa) return;
+    const t = setInterval(() => setSekundy((s) => s + 1), 1000);
+    return () => clearInterval(t);
+  }, [trwa]);
+
+  if (bladStanu) return <Komunikat rodzaj="blad">{bladStanu}</Komunikat>;
+  if (!stan) return <Ladowanie tekst="Sprawdzamy generowanie zdjęć…" />;
+  if (!stan.dostepne) {
+    return (
+      <div data-wygeneruj="wkrotce" className="flex flex-col items-center gap-2 py-8 text-center">
+        <Sparkles className="h-6 w-6 text-muted-foreground" aria-hidden />
+        <p className="text-sm font-medium text-foreground">Generowanie zdjęć wkrótce</p>
+        <p className="max-w-sm text-[12px] text-muted-foreground">Na razie wgraj własne zdjęcie albo wybierz je z biblioteki.</p>
+      </div>
+    );
+  }
+  if (!stronaId) return <Komunikat>Zapisz stronę, żeby generować do niej zdjęcia.</Komunikat>;
+
+  const ile = Math.min(stan.warianty, stan.pozostalo);
+  const zaKrotki = opis.trim().length < 3;
+  const wygeneruj = async () => {
+    setBlad(null);
+    setTrwa(true);
+    setSekundy(0);
+    const w = await generujZdjecie({ opis, stronaId, proporcje, sciezkaObrazu: sciezka });
+    setTrwa(false);
+    if (!w.ok) {
+      setBlad(w.blad);
+      // Limit mógł się zmienić (inna karta, inne urządzenie) – odśwież licznik.
+      if (w.status === 403) void stanGenerowania().then((s) => s.ok && setStan(s.dane));
+      return;
+    }
+    setWyniki(w.dane.zasoby);
+    setModerowane(w.dane.moderowane);
+    setZaznaczony(w.dane.zasoby[0]?.id ?? null);
+    setStan((s) => (s ? { ...s, pozostalo: w.dane.pozostalo, zuzyte: w.dane.limit - w.dane.pozostalo, warianty: Math.min(s.warianty, w.dane.pozostalo) } : s));
+  };
+  const wybrany = wyniki.find((z) => z.id === zaznaczony) ?? null;
+
+  return (
+    <div data-wygeneruj="formularz" className="flex flex-col gap-3">
+      <Pole
+        etykieta="Opisz zdjęcie"
+        podpowiedz="Co ma być na zdjęciu: miejsce, ludzie, przedmioty, nastrój. Kolory i styl dobierzemy do Twojej strony."
+        licznik={{ ile: opis.length, max: MAKS_OPISU_OBRAZU }}
+      >
+        {(a) => (
+          <textarea
+            {...a}
+            className={cx(klasaPola, 'min-h-[84px] resize-y')}
+            value={opis}
+            maxLength={MAKS_OPISU_OBRAZU}
+            placeholder={przykladOpisu(obraz)}
+            disabled={trwa}
+            onChange={(e) => {
+              setOpis(e.target.value);
+              setBlad(null);
+            }}
+          />
+        )}
+      </Pole>
+      <Komunikat rodzaj="ostrzezenie">Nie wpisuj danych osobowych w opisie zdjęcia (imion, nazwisk, adresów, telefonów).</Komunikat>
+      <Kafelki
+        etykieta={`Proporcje zdjęcia (na stronie: ${obraz?.proporcje ?? '4:3'})`}
+        kolumny="grid-cols-3 sm:grid-cols-6"
+        wartosc={proporcje}
+        opcje={PROPORCJE_OPCJE.map((o) => ({ ...o, wylaczona: trwa }))}
+        onZmiana={setProporcje}
+      />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span data-pozostalo className="text-[12px] text-muted-foreground">
+          {pozostaloZdjec(stan.pozostalo)} (limit {stan.limit}).
+        </span>
+        <button type="button" className={klasaPrzyciskuGlownego} disabled={trwa || zaKrotki || ile < 1} onClick={() => void wygeneruj()}>
+          {trwa ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <Sparkles className="h-3.5 w-3.5" aria-hidden />}
+          {ile > 1 ? `Wygeneruj ${ile} ${plForm(ile, 'wariant', 'warianty', 'wariantów')}` : 'Wygeneruj'}
+        </button>
+      </div>
+      <p role="status" aria-live="polite" className="min-h-[1.25rem] text-[12px] text-muted-foreground">
+        {trwa
+          ? `Generujemy ${ile > 1 ? `${ile} ${plForm(ile, 'wariant', 'warianty', 'wariantów')}` : 'zdjęcie'}… zwykle trwa to kilkanaście sekund (${sekundy} s).`
+          : wyniki.length
+            ? `Gotowe: ${wyniki.length} ${plForm(wyniki.length, 'wariant', 'warianty', 'wariantów')}${moderowane ? ` (${moderowane} odrzucone przez zasady generowania)` : ''}. Wybierz jeden i kliknij „Użyj”.`
+            : ''}
+      </p>
+      {ile < 1 && !trwa ? <Komunikat>Wykorzystano limit zdjęć AI w tym miesiącu. Odnowi się 1. dnia miesiąca – do tego czasu wgraj zdjęcie albo wybierz je z biblioteki.</Komunikat> : null}
+      {blad ? <Komunikat rodzaj="blad">{blad}</Komunikat> : null}
+      {wyniki.length ? (
+        <>
+          <Siatka
+            etykieta="Wygenerowane warianty"
+            kafle={wyniki.map((z, i) => ({ id: z.id, src: z.miniatura, alt: z.alt ?? '', podpis: `Wariant ${i + 1}` }))}
+            zaznaczony={zaznaczony}
+            onZaznacz={setZaznaczony}
+            onWybierz={(id) => onWybierz(wyniki.find((z) => z.id === id)!)}
+          />
+          <div className="flex justify-end">
+            <button type="button" className={klasaPrzyciskuGlownego} disabled={!wybrany} onClick={() => wybrany && onWybierz(wybrany)}>
+              Użyj
+            </button>
+          </div>
+        </>
+      ) : null}
+      <p className="text-[12px] text-muted-foreground">
+        Zdjęcie wygenerowane przez AI. W pliku zapisujemy informację, że powstało dzięki AI (metadane) – na stronie nie widać żadnego znaku.
+        Nie generujemy znanych osób, logotypów, marek ani napisów. Wszystkie warianty trafiają do „Twoich zdjęć”.
+      </p>
+    </div>
+  );
+}
+
 function Ladowanie({ tekst }: { tekst: string }) {
   return (
     <p className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground" aria-live="polite">
@@ -653,6 +827,8 @@ function Kadr({ zasob, obraz, onWroc, onGotowe }: { zasob: ZasobKreatora; obraz?
                 </>
               ) : null}
             </span>
+          ) : zasob.zrodlo === 'ai' ? (
+            <span className="text-[12px] text-muted-foreground">Zdjęcie wygenerowane przez AI – opis niżej podpowiedzieliśmy z Twojego opisu, popraw go w razie potrzeby.</span>
           ) : null}
         </div>
       </div>

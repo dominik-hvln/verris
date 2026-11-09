@@ -84,14 +84,16 @@ const MODULY: Record<string, string> = {
     if (!linki.length || typeof HTMLDialogElement !== 'function') return;
     var dlg = d.createElement('dialog'), img = d.createElement('img'), opis = d.createElement('p');
     dlg.className = 'lightbox';
-    dlg.setAttribute('aria-label', 'Powiększone zdjęcie');
+    // Etykiety w języku podstrony: body[data-lb] = „zamknij|poprzednie|następne|powiększone” (renderer, uklad.ts).
+    var t = (d.body.getAttribute('data-lb') || '').split('|');
+    dlg.setAttribute('aria-label', t[3] || '');
     var przycisk = function (klasa, etykieta, znak) {
       var b = d.createElement('button'); b.type = 'button'; b.className = klasa; b.setAttribute('aria-label', etykieta); b.textContent = znak; dlg.appendChild(b); return b;
     };
     dlg.appendChild(img); dlg.appendChild(opis);
-    var zamknij = przycisk('lb-zamknij', 'Zamknij', '\\u00d7');
-    var wstecz = przycisk('lb-wstecz', 'Poprzednie zdjęcie', '\\u2039');
-    var dalej = przycisk('lb-dalej', 'Następne zdjęcie', '\\u203a');
+    var zamknij = przycisk('lb-zamknij', t[0] || '', '\\u00d7');
+    var wstecz = przycisk('lb-wstecz', t[1] || '', '\\u2039');
+    var dalej = przycisk('lb-dalej', t[2] || '', '\\u203a');
     d.body.appendChild(dlg);
     var i = 0, zrodlo = null;
     var pokaz = function (n) {
@@ -148,9 +150,9 @@ const MODULY: Record<string, string> = {
     if (!st) return;
     var ok = m[1] === 'wyslano';
     st.classList.add(ok ? 'form-ok' : 'form-blad');
-    st.textContent = ok
-      ? 'Dziękujemy, wiadomość została wysłana. Odpowiemy najszybciej, jak to możliwe.'
-      : 'Nie udało się wysłać wiadomości. Spróbuj ponownie za chwilę albo skontaktuj się z nami telefonicznie lub mailowo.';
+    // Komunikat w języku podstrony – renderer wpisuje go w atrybuty formularza (data-ok, data-blad).
+    var form = st.closest('form');
+    st.textContent = (form && form.getAttribute(ok ? 'data-ok' : 'data-blad')) || '';
     st.focus();
     if (history.replaceState) history.replaceState(null, '', location.pathname + location.hash);
   });

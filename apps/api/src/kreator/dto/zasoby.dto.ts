@@ -1,6 +1,9 @@
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsString, IsUUID, Matches, Max, MaxLength, Min } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, IsUUID, Matches, Max, MaxLength, Min, MinLength } from 'class-validator';
 import { DOSTAWCY_ZDJEC } from '../biblioteka/dostawca.js';
+import { MAKS_OPISU_OBRAZU } from '../generowanie/prompt-obrazu.js';
+
+const PROPORCJE_OBRAZU = ['16:9', '4:3', '3:2', '1:1', '3:4', '4:5'] as const;
 
 /** POST /kreator/zasoby (multipart: `plik` + pola tekstowe). */
 export class WgrajZasobDto {
@@ -60,4 +63,26 @@ export class SzukajZdjecDto {
   @Min(1)
   @Max(20)
   strona?: number;
+}
+
+/** POST /kreator/zasoby/generuj (paczka 124) – zdjęcie generowane przez AI. */
+export class GenerujObrazDto {
+  @IsString()
+  @MinLength(3, { message: 'Opisz zdjęcie – co najmniej kilka słów.' })
+  @MaxLength(MAKS_OPISU_OBRAZU, { message: `Opis zdjęcia: najwyżej ${MAKS_OPISU_OBRAZU} znaków.` })
+  opis!: string;
+
+  @IsUUID('all', { message: 'Nieprawidłowy identyfikator strony.' })
+  stronaId!: string;
+
+  @IsOptional()
+  @IsIn([...PROPORCJE_OBRAZU], { message: 'Nieznane proporcje zdjęcia.' })
+  proporcje?: (typeof PROPORCJE_OBRAZU)[number];
+
+  /** Ścieżka obiektu Obraz w modelu (proporcje, gdy panel ich nie podał). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  @Matches(/^[a-zA-Z0-9]+(\.[a-zA-Z0-9]+){0,12}$/, { message: 'Nieprawidłowa ścieżka obrazu.' })
+  sciezkaObrazu?: string;
 }

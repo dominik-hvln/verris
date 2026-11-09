@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { JEZYKI, JEZYKI_DODATKOWE, jezykPodstrony, kluczPodstrony, prefiksJezyka, slugGlownej } from './jezyki.ts';
 
 /**
  * Model strony kreatora Verris – jedno źródło prawdy dla AI (wynik generacji), edytora (panel klienta)
@@ -301,12 +302,24 @@ export const Motyw = z.object({
 });
 export type Motyw = z.infer<typeof Motyw>;
 
+/** Adres podstrony bez prefiksu języka: '' (główna), 'o-nas', 'blog/wpis'. */
+const SLUG_BEZ_JEZYKA = /^([a-z0-9-]{1,60}(\/[a-z0-9-]{1,60})?)?$/;
+
 export const Podstrona = z.object({
-  /** '' = strona główna. */
-  slug: z.string().regex(/^([a-z0-9-]{1,60}(\/[a-z0-9-]{1,60})?)?$/),
+  /**
+   * '' = strona główna. Wersje językowe (paczka 124): prefiks języka – 'en' (główna angielska), 'en/oferta',
+   * 'en/blog/wpis' (trzy człony tylko z prefiksem języka – pilnuje sprawdzSpojnosc).
+   */
+  slug: z.string().regex(/^([a-z0-9-]{1,60}(\/[a-z0-9-]{1,60}){0,2})?$/),
+  /** Język podstrony; brak = z prefiksu adresu (język z `jezykiDodatkowe`), inaczej język strony (jezyki.ts). */
+  jezyk: z.enum(JEZYKI).optional(),
+  /** Wspólny identyfikator tłumaczeń tej samej podstrony; brak = adres bez prefiksu języka. */
+  klucz: z.string().regex(SLUG_BEZ_JEZYKA).optional(),
   tytul: tekst(80),
   seo: z.object({ tytul: tekstOpc(70), opis: tekstOpc(170) }).default({}),
   sekcje: z.array(Sekcja).min(1).max(30),
+  /** Tłumaczenie: skrót treści oryginału w chwili tłumaczenia (`skrotTresci`) – inny skrót = tłumaczenie nieaktualne. */
+  tlumaczenie: z.object({ zrodlo: z.string().regex(/^[0-9a-f]{16}$/), data: z.string().max(40).optional() }).optional(),
 });
 export type Podstrona = z.infer<typeof Podstrona>;
 
@@ -338,11 +351,13 @@ export type Firma = z.infer<typeof Firma>;
 
 export const ZNAKI_KREATORA = ['jasny', 'ciemny', 'minimalny'] as const;
 
+const TekstStopki = z.object({ tekst: tekstOpc(300) });
+
 export const Strona = z.object({
   wersjaModelu: z.literal(WERSJA_MODELU),
-  jezyk: z.enum(['pl', 'en', 'de', 'uk']).default('pl'),
-  /** Kreator Pro: dodatkowe wersje językowe (hreflang). */
-  jezykiDodatkowe: z.array(z.enum(['en', 'de', 'uk'])).max(3).default([]),
+  jezyk: z.enum(JEZYKI).default('pl'),
+  /** Kreator Pro: dodatkowe wersje językowe – podstrony `<język>/…` (jezyki.ts), hreflang, przełącznik języka. */
+  jezykiDodatkowe: z.array(z.enum(JEZYKI_DODATKOWE)).max(3).default([]),
   firma: Firma,
   seo: z.object({
     tytul: tekst(70),
@@ -358,6 +373,10 @@ export const Strona = z.object({
     regulamin: CelLinku.optional(),
     /** Znak „Stworzone w Verris Kreator” – zawsze widoczny; w Pro można wybrać wariant minimalny. */
     znakKreatora: z.enum(ZNAKI_KREATORA).default('jasny'),
+    /** Tekst stopki w językach dodatkowych (brak = tekst główny). Obiekt, nie rekord – edycja na stronie zna jego pola. */
+    tlumaczenia: z
+      .object({ en: TekstStopki.optional(), de: TekstStopki.optional(), uk: TekstStopki.optional() })
+      .optional(),
   }),
 });
 export type Strona = z.infer<typeof Strona>;
@@ -393,6 +412,31 @@ export function sprawdzSpojnosc(s: Strona): string[] {
     });
   });
   if (!slugi.has('')) bledy.push('strony: brak strony głównej (slug "")');
+  bledy.push(...sprawdzJezyki(s));
+  return bledy;
+}
+
+/** Wersje językowe: każdy język dodatkowy ma stronę główną, adresy z prefiksem języka, klucz – jedna podstrona na język. */
+function sprawdzJezyki(s: Strona): string[] {
+  const bledy: string[] = [];
+  if (new Set(s.jezykiDodatkowe).size < s.jezykiDodatkowe.length) bledy.push('jezykiDodatkowe: powtórzony język');
+  if ((s.jezykiDodatkowe as string[]).includes(s.jezyk)) bledy.push(`jezykiDodatkowe: „${s.jezyk}” to język główny strony`);
+  const klucze = new Set<string>();
+  s.strony.forEach((p, i) => {
+    const j = jezykPodstrony(s, p);
+    const prefiks = prefiksJezyka(s, p.slug);
+    if (j !== s.jezyk && !(s.jezykiDodatkowe as string[]).includes(j)) bledy.push(`strony.${i}.jezyk: język „${j}” nie jest włączony w wersjach językowych`);
+    else if (j !== s.jezyk && prefiks !== j) bledy.push(`strony.${i}.slug: adres podstrony w języku „${j}” musi zaczynać się od „${j}”`);
+    else if (j === s.jezyk && prefiks) bledy.push(`strony.${i}.slug: adres „${p.slug}” jest zarezerwowany dla wersji „${prefiks}”`);
+    if (p.slug.split('/').length > (j === s.jezyk ? 2 : 3)) bledy.push(`strony.${i}.slug: za dużo członów adresu`);
+    if (p.klucz !== undefined && j === s.jezyk && p.klucz !== p.slug) bledy.push(`strony.${i}.klucz: w języku głównym klucz to adres podstrony`);
+    const k = `${j}|${kluczPodstrony(s, p)}`;
+    if (klucze.has(k)) bledy.push(`strony.${i}.klucz: ta podstrona ma już wersję w języku „${j}”`);
+    klucze.add(k);
+  });
+  for (const j of s.jezykiDodatkowe) {
+    if (!s.strony.some((p) => p.slug === slugGlownej(s, j))) bledy.push(`jezykiDodatkowe: wersja „${j}” nie ma strony głównej (adres „${j}”)`);
+  }
   return bledy;
 }
 

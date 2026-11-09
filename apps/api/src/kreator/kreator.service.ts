@@ -17,7 +17,12 @@ import {
   KATALOG_EFEKTOW,
   KATALOG_WARIANTOW,
   KORZYSCI_PRO,
+  MAX_PODSTRON_TLUMACZENIA,
+  NAZWY_JEZYKOW_PL,
   PLANY_KREATORA,
+  kluczPodstrony,
+  podstronyWJezyku,
+  slugGlownej,
   SEKCJE_PRO,
   WERSJA_MODELU,
   dopasujDoPlanu,
@@ -28,6 +33,7 @@ import {
   wszystkieSekcje,
   type BriefStrony,
   type FunkcjeAiKreatora,
+  type JezykDodatkowy,
   type KierunekProjektu,
   type Strona,
   type WersjaKreatora,
@@ -55,6 +61,8 @@ import type { BriefStronyDto } from './dto/kreator.dto.js';
 export const LIMIT_WERSJI = 200;
 /** Zmiana sekcji przez AI jest krótka – dłużej niż tyle nie trzymamy żądania klienta. */
 export const TIMEOUT_ZMIANY_MS = 90_000;
+/** Tłumaczenie jednej podstrony (paczka 124) – odpowiedź jak przy zmianie całej strony, ale tylko jedna podstrona. */
+export const TIMEOUT_TLUMACZENIA_MS = 120_000;
 /** Jedno wywołanie generacji (cała strona) – limit czasu żądania do Anthropic. */
 export const TIMEOUT_GENERACJI_MS = 180_000;
 /**
@@ -459,12 +467,15 @@ export class KreatorService {
   }
 
   /** POST /kreator/strony/:id/ai – zmiana całej strony albo jednej sekcji poleceniem (synchronicznie, ≤ 90 s). */
-  async zmienAi(userId: string, actorUserId: string, id: string, dto: { polecenie: string; sekcjaId?: string }) {
+  async zmienAi(userId: string, actorUserId: string, id: string, dto: { polecenie: string; sekcjaId?: string; podstrona?: string }) {
     const { wersja, konf } = await this.wymagajDostepu(userId);
     const s = await this.wlasna(userId, id);
     const strona = this.gotowyModel(s);
     const sekcjaId = dto.sekcjaId ?? null;
-    if (sekcjaId && !wszystkieSekcje(strona).some((x) => x.id === sekcjaId)) throw new BadRequestException('Nie ma takiej sekcji na stronie.');
+    // Paczka 124: sekcja szukana na wskazanej podstronie (wersje językowe mają sekcje o tych samych id).
+    const slug = sekcjaId ? dto.podstrona : undefined;
+    const sekcjeMiejsca = slug !== undefined ? (strona.strony.find((p) => p.slug === slug)?.sekcje ?? []) : wszystkieSekcje(strona);
+    if (sekcjaId && !sekcjeMiejsca.some((x) => x.id === sekcjaId)) throw new BadRequestException('Nie ma takiej sekcji na stronie.');
     const plan = PLANY_KREATORA[wersja];
     const miesiac = await this.rezerwuj(userId, 'zmiany', plan.zmianAiMies);
     if (!miesiac) {
@@ -474,17 +485,17 @@ export class KreatorService {
     const kto = { userId, actorUserId };
     let zuzyta = false;
     try {
-      const zap = this.ai.budujZapytanieZmiany(strona, dto.polecenie.trim(), sekcjaId, wersja);
+      const zap = this.ai.budujZapytanieZmiany(strona, dto.polecenie.trim(), sekcjaId, wersja, slug);
       const r = await this.wywolaj(zap, zap.wiadomosci, konf.modelZmian, kto, licznik, TIMEOUT_ZMIANY_MS).catch((e: unknown) => {
         throw this.bladAi(e);
       });
-      let w = this.ai.odczytajWynikZmiany(strona, r.wynik, sekcjaId, wersja);
+      let w = this.ai.odczytajWynikZmiany(strona, r.wynik, sekcjaId, wersja, slug);
       if (!w.ok) {
         const wiad = [...zap.wiadomosci, ...this.ai.wiadomosciNaprawy(r.wynik, w.bledy)];
         const r2 = await this.wywolaj(zap, wiad, konf.modelZmian, kto, licznik, TIMEOUT_ZMIANY_MS).catch((e: unknown) => {
           throw this.bladAi(e);
         });
-        w = this.ai.odczytajWynikZmiany(strona, r2.wynik, sekcjaId, wersja);
+        w = this.ai.odczytajWynikZmiany(strona, r2.wynik, sekcjaId, wersja, slug);
       }
       if (!w.ok) throw new UnprocessableEntityException('AI nie zdołało wprowadzić tej zmiany – opisz ją inaczej albo popraw sekcję ręcznie.');
       await this.zapiszModel(id, await this.zZasobamiKonta(userId, w.strona), KreatorZrodloWersji.AI_ZMIANA, dto.polecenie.trim().slice(0, 200));
@@ -494,6 +505,87 @@ export class KreatorService {
       throw e instanceof HttpException ? e : this.bladAi(e);
     } finally {
       if (!zuzyta) await this.zwolnij(userId, miesiac, 'zmiany').catch(() => undefined);
+      await this.dolicz(userId, licznik).catch((e: unknown) => this.logger.error(`Zużycie kreatora: ${String(e)}`));
+    }
+  }
+
+  /**
+   * POST /kreator/strony/:id/tlumacz (paczka 124) – wersja językowa podstron przez AI, tylko Kreator Pro.
+   * Decyzje: każda podstrona to osobne wywołanie AI (jedna runda naprawy) i JEDNA zmiana AI z limitu – rezerwacja przed
+   * wywołaniem, zwrot, gdy tłumaczenie się nie uda. Pierwsze tłumaczenie języka zawsze obejmuje stronę główną (bez niej
+   * wersja językowa jest niepoprawna) razem z tekstem stopki. Udane podstrony trafiają do modelu jedną wersją w historii;
+   * nieudane zwracamy w `nieprzetlumaczone`, a gdy nie udała się żadna – 422.
+   */
+  async tlumacz(userId: string, actorUserId: string, id: string, dto: { jezyk: JezykDodatkowy; podstrony?: string[] }) {
+    const { wersja, konf } = await this.wymagajDostepu(userId);
+    const plan = PLANY_KREATORA[wersja];
+    if (!plan.wielojezycznosc) throw new ForbiddenException('Wersje językowe strony są dostępne w Kreatorze Pro.');
+    const s = await this.wlasna(userId, id);
+    let strona = this.gotowyModel(s);
+    if (dto.jezyk === strona.jezyk) throw new BadRequestException('To język główny strony – wybierz inny język.');
+    const oryginaly = podstronyWJezyku(strona, strona.jezyk).map((p) => kluczPodstrony(strona, p));
+    const nowyJezyk = !strona.strony.some((p) => p.slug === slugGlownej(strona, dto.jezyk));
+    let klucze = [...new Set(dto.podstrony ?? oryginaly)];
+    if (klucze.some((k) => !oryginaly.includes(k))) throw new BadRequestException('Nie ma takiej podstrony na stronie.');
+    if (nowyJezyk && !klucze.includes('')) klucze = ['', ...klucze];
+    // Jedno żądanie trwa najwyżej kilka wywołań AI (panel wysyła po jednej podstronie); +1 = dołożona strona główna.
+    if (klucze.length > MAX_PODSTRON_TLUMACZENIA + 1) {
+      throw new BadRequestException(`Przetłumacz najwyżej ${MAX_PODSTRON_TLUMACZENIA} podstron naraz – wybierz je po kolei.`);
+    }
+    const licznik = nowyLicznik();
+    const kto = { userId, actorUserId };
+    const przetlumaczone: string[] = [];
+    const nieprzetlumaczone: string[] = [];
+    const data = new Date().toISOString().slice(0, 10);
+    try {
+      for (const klucz of klucze) {
+        const miesiac = await this.rezerwuj(userId, 'zmiany', plan.zmianAiMies);
+        if (!miesiac) {
+          if (!przetlumaczone.length) {
+            throw new ForbiddenException(`Wykorzystano miesięczny limit zmian AI (${plan.zmianAiMies}). Odnowi się 1. dnia miesiąca – do tego czasu możesz skopiować podstrony bez tłumaczenia i przetłumaczyć je ręcznie.`);
+          }
+          nieprzetlumaczone.push(...klucze.slice(klucze.indexOf(klucz)));
+          break;
+        }
+        let zuzyta = false;
+        try {
+          const zStopka = klucz === '';
+          const zap = this.ai.budujZapytanieTlumaczenia(strona, dto.jezyk, [klucz], wersja, zStopka);
+          const r = await this.wywolaj(zap, zap.wiadomosci, konf.modelZmian, kto, licznik, TIMEOUT_TLUMACZENIA_MS);
+          let w = this.ai.odczytajWynikTlumaczenia(strona, r.wynik, dto.jezyk, [klucz], { data, zStopka });
+          if (!w.ok) {
+            const r2 = await this.wywolaj(zap, [...zap.wiadomosci, ...this.ai.wiadomosciNaprawy(r.wynik, w.bledy)], konf.modelZmian, kto, licznik, TIMEOUT_TLUMACZENIA_MS);
+            w = this.ai.odczytajWynikTlumaczenia(strona, r2.wynik, dto.jezyk, [klucz], { data, zStopka });
+          }
+          if (w.ok) {
+            strona = w.strona;
+            przetlumaczone.push(klucz);
+            zuzyta = true;
+          } else {
+            this.logger.warn(`Tłumaczenie ${id} (${dto.jezyk}, „${klucz}”): ${w.bledy.slice(0, 5).join('; ')}`);
+            nieprzetlumaczone.push(klucz);
+          }
+        } catch (e) {
+          this.logger.warn(`Tłumaczenie ${id} (${dto.jezyk}, „${klucz}”): ${e instanceof Error ? e.message : String(e)}`);
+          nieprzetlumaczone.push(klucz);
+        } finally {
+          if (!zuzyta) await this.zwolnij(userId, miesiac, 'zmiany').catch(() => undefined);
+        }
+        // Bez strony głównej nowa wersja językowa jest niepoprawna – dalsze podstrony nie mają sensu.
+        if (nowyJezyk && klucz === '' && !zuzyta) {
+          nieprzetlumaczone.push(...klucze.slice(1));
+          break;
+        }
+      }
+      if (!przetlumaczone.length) {
+        throw new UnprocessableEntityException('Nie udało się przetłumaczyć strony – spróbuj ponownie za chwilę albo skopiuj podstrony bez tłumaczenia.');
+      }
+      const tytuly = przetlumaczone.map((k) => podstronyWJezyku(strona, strona.jezyk).find((p) => kluczPodstrony(strona, p) === k)?.tytul ?? k);
+      await this.zapiszModel(id, await this.zZasobamiKonta(userId, strona), KreatorZrodloWersji.AI_ZMIANA, `Tłumaczenie (${NAZWY_JEZYKOW_PL[dto.jezyk]}): ${tytuly.join(', ')}`.slice(0, 200));
+      return { ...this.widok(await this.wlasna(userId, id), wersja), przetlumaczone, nieprzetlumaczone };
+    } catch (e) {
+      throw e instanceof HttpException ? e : this.bladAi(e);
+    } finally {
       await this.dolicz(userId, licznik).catch((e: unknown) => this.logger.error(`Zużycie kreatora: ${String(e)}`));
     }
   }

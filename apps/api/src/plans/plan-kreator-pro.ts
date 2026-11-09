@@ -26,13 +26,23 @@ export interface DefinicjaPlanuKreatoraPro {
   sortOrder: number;
 }
 
+/** Opis z migracji 20261108140100_plan_kreator_pro (paczka 121) – warunek migracji danych, która go aktualizuje. */
+export const OPIS_KREATOR_PRO_121 =
+  'Rozszerzona wersja Verris Kreatora: 3 propozycje projektu z każdej generacji, sekcje sklepu i bloga, ' +
+  'interakcje i animacje, pełne SEO i wyższe limity. Wymaga płatnego hostingu Verris.';
+
+/**
+ * Paczka 124 – wersje językowe działają (renderer, tłumaczenie AI), więc opis planu je wymienia. W bazie zmienia go
+ * migracja 20261109124100_opis_kreator_pro_jezyki (tylko gdy opis nie był zmieniony ręcznie w panelu admina).
+ */
 export const PLAN_KREATOR_PRO: DefinicjaPlanuKreatoraPro = {
   id: 'e0b2ca4c-8c80-4fd5-a740-40d5693ecf14',
   slug: 'kreator-pro',
   name: 'Verris Kreator Pro',
   description:
     'Rozszerzona wersja Verris Kreatora: 3 propozycje projektu z każdej generacji, sekcje sklepu i bloga, ' +
-    'interakcje i animacje, pełne SEO i wyższe limity. Wymaga płatnego hostingu Verris.',
+    'interakcje i animacje, pełne SEO, wersje językowe (angielski, niemiecki, ukraiński) i wyższe limity. ' +
+    'Wymaga płatnego hostingu Verris.',
   priceMonthly: '9.90',
   priceYearly: '99.00',
   sortOrder: 30,

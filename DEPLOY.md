@@ -552,6 +552,12 @@ S3_BUCKET_BACKUPS=verris-backups
 PIXABAY_API_KEY=
 PEXELS_API_KEY=
 
+# Verris Kreator – zdjęcia generowane przez AI (paczka 124). Bez klucza zakładka „Wygeneruj” pokazuje „wkrótce”.
+# Black Forest Labs FLUX: klucz z https://dashboard.bfl.ai (konto firmowe + akceptacja umowy powierzenia BFL).
+# Alternatywa: OpenAI Images – bez nowej zmiennej, używa AI_API_KEY (dostawcę wybiera admin → Kreator stron).
+# Generowanie włącza admin dopiero po publikacji zmiany Polityki prywatności (docs/legal/drafts/DO_ZATWIERDZENIA_zdjecia-ai.md).
+BFL_API_KEY=
+
 # MinIO root (tylko do bootstrap-containera; api używa S3_ACCESS_KEY/SECRET)
 MINIO_ROOT_USER=verris-root
 MINIO_ROOT_PASSWORD=<openssl rand -base64 32>

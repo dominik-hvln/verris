@@ -144,7 +144,9 @@ function zbuduj(opcje: { wersja?: WersjaKreatora; renderer?: RendererPublikacji;
       opublikowanaAt: null, domena: null, adres: null, katalog: null, subskrypcjaId: null, kopia: null, podgladDo: null, publikacjaOd: null,
     },
   ];
+  const cms: Rek[] = [];
   const prisma = {
+    kreatorCms: { findUnique: vi.fn(async ({ where }: { where: Rek }) => cms.find((c) => c.stronaId === where.stronaId) ?? null) },
     kreatorStrona: {
       findFirst: vi.fn(async ({ where }: { where: Rek }) => strony.find((s) => pasuje(s, where)) ?? null),
       findUnique: vi.fn(async ({ where }: { where: Rek }) => strony.find((s) => s.id === where.id) ?? null),
@@ -181,7 +183,7 @@ function zbuduj(opcje: { wersja?: WersjaKreatora; renderer?: RendererPublikacji;
     prisma as never, config as never, kreator as never, audit as never, fonty as never, hosting, opcje.renderer ?? fabrykaRendereraPublikacji(),
     opcje.zasoby as never,
   );
-  return { svc, strony, prisma, fs, hosting, fonty, audit, kreator };
+  return { svc, strony, prisma, fs, hosting, fonty, audit, kreator, cms };
 }
 
 const znacznik = (fs: FsAtrapa) => odczytajZnacznik(fs.tekst(`${PUB}/${PLIK_ZNACZNIKA}`));
@@ -324,6 +326,25 @@ describe('Kreator – publikacja na domenę (hosting/pro)', () => {
     await expect(t.svc.publikuj('u1', 'u1', ID, { domena: 'x.pl' })).rejects.toBeInstanceOf(ConflictException);
     await expect(t.svc.publikuj('u1', 'u1', ID, {})).rejects.toBeInstanceOf(BadRequestException);
     await expect(t.svc.publikuj('u1', 'u1', ID, { domena: '../../etc' })).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('paczka 124: strona przeniesiona do WordPressa – publikacja i wycofanie zablokowane z wyjaśnieniem, bez operacji na plikach', async () => {
+    const t = zbuduj();
+    await t.svc.publikuj('u1', 'u1', ID, { domena: 'x.pl' });
+    t.hosting.sesja.mockClear();
+    for (const stan of ['ZAMIANA_W_TOKU', 'PRZENIESIONA', 'COFANIE_W_TOKU']) {
+      t.cms.splice(0, t.cms.length, { stronaId: ID, stan });
+      await expect(t.svc.publikuj('u1', 'u1', ID, { domena: 'x.pl' })).rejects.toThrow(/działa już w WordPressie/);
+      await expect(t.svc.wycofaj('u1', 'u1', ID)).rejects.toBeInstanceOf(ConflictException);
+      const st = await t.svc.stan('u1', ID);
+      expect(st).toMatchObject({ mozliwa: false, powod: expect.stringMatching(/WordPressie/) });
+    }
+    expect(t.hosting.sesja).not.toHaveBeenCalled();
+    // Podgląd WordPressa obok strony albo cofnięte przejście – kreator dalej publikuje.
+    for (const stan of ['PODGLAD', 'COFNIETA']) {
+      t.cms.splice(0, t.cms.length, { stronaId: ID, stan });
+      await expect(t.svc.publikuj('u1', 'u1', ID, { domena: 'x.pl' })).resolves.toMatchObject({ tryb: 'domena' });
+    }
   });
 
   it('cudza strona → 404', async () => {

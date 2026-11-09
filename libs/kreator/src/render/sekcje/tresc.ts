@@ -31,7 +31,7 @@ export function renderFaq(k: KontekstPodstrony, sek: SekcjaTypu<'faq'>): string 
   if (sek.wariant === 'faq-dwie-kolumny') {
     const f = k.s.strona.firma;
     const kontakt = f.email || f.telefon
-      ? `<p class="wstep">Nie ma tu Twojego pytania? ${f.email ? `Napisz na ${emailLink(f)}` : ''}${f.email && f.telefon ? ' albo zadzwoń: ' : f.telefon ? 'Zadzwoń: ' : ''}${telefonLink(f)}.</p>`
+      ? `<p class="wstep">${esc(k.t.nieMaPytania)} ${f.email ? `${esc(k.t.napiszNa)} ${emailLink(f)}` : ''}${f.email && f.telefon ? ` ${esc(k.t.alboZadzwon)} ` : f.telefon ? `${esc(k.t.zadzwonDwukropek)} ` : ''}${telefonLink(f)}.</p>`
       : '';
     const g = glowa(sek, { naglowek: d.naglowek, dodatek: kontakt }, k);
     return sekcja(k, sek, `<div class="kontener uklad-bok${poj}">${g}<div class="faq-lista">${lista}</div></div>`);

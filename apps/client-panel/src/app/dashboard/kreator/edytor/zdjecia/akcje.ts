@@ -2,7 +2,7 @@
 
 import { unstable_rethrow } from 'next/navigation';
 import { apiFetch, ApiError } from '@/lib/api';
-import type { DostawcaZdjec, ListaZasobow, OdpowiedzBiblioteki, ZasobKreatora } from './typy';
+import type { DostawcaZdjec, ListaZasobow, OdpowiedzBiblioteki, ProporcjeObrazu, StanGenerowania, WynikGenerowania, ZasobKreatora } from './typy';
 
 /**
  * Paczka 122 – akcje serwera biblioteki zdjęć kreatora (apiFetch z tokenem z ciasteczka, wynik zamiast wyjątku).
@@ -62,4 +62,28 @@ export async function adresyZasobow(ids: string[]): Promise<WynikZdjec<{ adresy:
   const czyste = [...new Set(ids.filter((i) => UUID.test(i)))].slice(0, 100);
   if (!czyste.length) return { ok: true, dane: { adresy: {} } };
   return wynik(() => apiFetch<{ adresy: Record<string, string> }>(`/kreator/zasoby/adresy?ids=${czyste.join(',')}`));
+}
+
+/** Paczka 124 – czy generowanie zdjęć AI działa i ile zdjęć zostało w miesiącu. */
+export async function stanGenerowania(): Promise<WynikZdjec<StanGenerowania>> {
+  return wynik(() => apiFetch<StanGenerowania>('/kreator/zasoby/generuj', { timeoutMs: 10_000 }));
+}
+
+/** Generowanie trwa: prompt (do 30 s) + dostawca obrazów (do 90 s) + zapis wariantów – zapas ponad limit API. */
+const CZAS_GENEROWANIA_MS = 150_000;
+
+export async function generujZdjecie(p: { opis: string; stronaId: string; proporcje: ProporcjeObrazu; sciezkaObrazu?: string }): Promise<WynikZdjec<WynikGenerowania>> {
+  return wynik(async () => {
+    if (!UUID.test(p.stronaId)) throw new ApiError('Nie znaleziono strony.', 404, null);
+    return apiFetch<WynikGenerowania>('/kreator/zasoby/generuj', {
+      method: 'POST',
+      body: JSON.stringify({
+        opis: p.opis.trim().slice(0, 400),
+        stronaId: p.stronaId,
+        proporcje: p.proporcje,
+        ...(p.sciezkaObrazu && /^[a-zA-Z0-9]+(\.[a-zA-Z0-9]+){0,12}$/.test(p.sciezkaObrazu) ? { sciezkaObrazu: p.sciezkaObrazu } : {}),
+      }),
+      timeoutMs: CZAS_GENEROWANIA_MS,
+    });
+  });
 }

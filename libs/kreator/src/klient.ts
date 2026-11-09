@@ -6,6 +6,7 @@
  * poza samymi typami kontraktu).
  */
 export * from './model.ts';
+export * from './jezyki.ts';
 export * from './edycja.ts';
 export * from './katalog.ts';
 export * from './plany.ts';

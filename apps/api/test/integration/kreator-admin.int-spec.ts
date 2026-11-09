@@ -39,6 +39,12 @@ describe('Paczka 123 – podsumowanie kreatora (baza)', () => {
     // Nieudane wywołanie (bez tokenów) i inna funkcja AI – nie zmieniają kosztu kreatora.
     await p.aiInteractionLog.create({ data: { feature: 'kreator', provider: 'anthropic', model: 'claude-sonnet-5-5', status: 'FAILED', promptHash: 'h', inputSummary: { rodzaj: 'generacja-lite' } } });
     await p.aiInteractionLog.create({ data: { feature: 'chatbot_client', provider: 'openai', model: 'gpt-6-luna', status: 'COMPLETED', promptHash: 'h', costUsd: new Prisma.Decimal('5') } });
+    // Paczka 124 – zdjęcia AI: osobna funkcja, poza kosztem tokenów; suma z inputSummary.
+    const obraz = (s: Record<string, number>, koszt: string, status: 'COMPLETED' | 'FAILED' = 'COMPLETED') =>
+      p.aiInteractionLog.create({ data: { feature: 'kreator-obraz', provider: 'bfl', model: 'flux-pro-1.1', status, promptHash: 'h', userId: a.id, costUsd: new Prisma.Decimal(koszt), inputSummary: { ...s, proporcje: '4:3' } } });
+    await obraz({ obrazy: 2, udane: 2, moderowane: 0 }, '0.08');
+    await obraz({ obrazy: 4, udane: 3, moderowane: 1 }, '0.16');
+    await obraz({ obrazy: 1, udane: 0, moderowane: 0 }, '0.04', 'FAILED');
 
     const pro = await utworzPlan({ productKind: 'KREATOR_PRO', slug: 'kreator-pro-k123', priceMonthly: 9.9, priceYearly: 99 });
     const sub = (userId: string, d: Partial<Prisma.SubscriptionUncheckedCreateInput>) =>
@@ -61,6 +67,7 @@ describe('Paczka 123 – podsumowanie kreatora (baza)', () => {
     expect(r.koszt.zapisanyUsd).toBeCloseTo(0.051, 9);
     expect(r.pro).toEqual({ aktywne: 2, miesieczne: 1, roczne: 1, miesiecznieBrutto: 18.15, miesiecznieNetto: 14.76 });
     expect(r.magazyn).toEqual({ zdjecia: 1, bajty: 2048 });
+    expect(r.obrazyAi).toEqual({ wywolania: 3, obrazy: 7, udane: 5, moderowane: 1, kosztUsd: 0.28 });
     const dzis = r.dni[r.dni.length - 1];
     expect(dzis).toMatchObject({ dzien: teraz.toISOString().slice(0, 10), wywolania: 3, generacje: 2, zmiany: 1 });
     expect(dzis.kosztUsd).toBeCloseTo(0.051, 9);

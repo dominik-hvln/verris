@@ -2,7 +2,7 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { Prisma } from '@verris/database';
 import { CENA_KREATORA_PRO } from '@verris/kreator';
-import { PLAN_KREATOR_PRO } from './plan-kreator-pro.js';
+import { OPIS_KREATOR_PRO_121, PLAN_KREATOR_PRO } from './plan-kreator-pro.js';
 import { ZASOBY_APLIKACYJNE } from './plany-newsletter.js';
 import { rozbicieVat } from '../billing/faktura-za-portfel.js';
 
@@ -47,7 +47,7 @@ describe('Paczka 121 – plan Verris Kreator Pro', () => {
     const p = PLAN_KREATOR_PRO;
     const w = krotka(p.id);
     expect(w).toEqual(
-      expect.arrayContaining([`'${p.slug}'`, `'${p.name}'`, `'${p.description}'`, p.priceMonthly, p.priceYearly, String(p.sortOrder), "'KREATOR_PRO'", 'NULL']),
+      expect.arrayContaining([`'${p.slug}'`, `'${p.name}'`, `'${OPIS_KREATOR_PRO_121}'`, p.priceMonthly, p.priceYearly, String(p.sortOrder), "'KREATOR_PRO'", 'NULL']),
     );
     const z = ZASOBY_APLIKACYJNE;
     expect(w.slice(4, 11).map(Number)).toEqual([z.cpuLimit, z.ramLimitMb, z.diskLimitMb, z.ioLimitKbps, z.iopsLimit, z.entryProcesses, z.nprocLimit]);
@@ -61,5 +61,14 @@ describe('Paczka 121 – plan Verris Kreator Pro', () => {
     expect(enumSql).toContain(`ALTER TYPE "ProductKind" ADD VALUE IF NOT EXISTS 'KREATOR_PRO'`);
     expect(enumSql).not.toContain('INSERT');
     expect('20261108140000_kreator_pro_enum' < '20261108140100_plan_kreator_pro').toBe(true);
+  });
+
+  it('paczka 124: migracja danych zmienia opis na ten z wersjami językowymi – tylko nietknięty opis z paczki 121', () => {
+    const upd = readFileSync(resolve(MIGRACJE, '20261109124100_opis_kreator_pro_jezyki/migration.sql'), 'utf-8');
+    expect(upd).toContain(`SET "description" = '${PLAN_KREATOR_PRO.description}'`);
+    expect(upd).toContain(`WHERE "id" = '${PLAN_KREATOR_PRO.id}' AND "description" = '${OPIS_KREATOR_PRO_121}';`);
+    expect(PLAN_KREATOR_PRO.description).toContain('wersje językowe (angielski, niemiecki, ukraiński)');
+    expect(upd).not.toMatch(/INSERT|DELETE|ALTER/);
+    expect('20261108140100_plan_kreator_pro' < '20261109124100_opis_kreator_pro_jezyki').toBe(true);
   });
 });

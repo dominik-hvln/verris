@@ -1,3 +1,5 @@
+import { TEKSTY, type TekstyStrony } from './teksty.ts';
+
 /**
  * Znak „Stworzone w Verris Kreator” do stopki każdej strony z kreatora.
  *
@@ -49,14 +51,14 @@ export function logoKreatora(wariant: 'jasny' | 'ciemny'): string {
  * Link-znak do stopki. `tloCiemne` – rzeczywiste tło stopki; wariant jasny/ciemny dobieramy do tła,
  * żeby znak był zawsze czytelny (wybór klienta w modelu liczy się tylko jako „minimalny”).
  */
-export function znakKreatora(wariant: WariantZnaku, tloCiemne: boolean): string {
-  const atr = 'href="https://verris.pl/kreator" rel="noopener" aria-label="Stworzone w Verris Kreator"';
+export function znakKreatora(wariant: WariantZnaku, tloCiemne: boolean, t: Pick<TekstyStrony, 'stworzoneW' | 'stworzoneWKreator'> = TEKSTY.pl): string {
+  const atr = `href="https://verris.pl/kreator" rel="noopener" aria-label="${t.stworzoneWKreator}"`;
   if (wariant === 'minimalny') {
     return (
       `<a class="znak-kreatora znak-minimalny" ${atr}>` +
       `<svg class="znak-emblemat" viewBox="0 2 80 80" width="20" height="20" aria-hidden="true" focusable="false">${emblemat(tloCiemne ? KOLORY.ciemny.ramka : '')}</svg>` +
-      `<span>Stworzone w Verris Kreator</span></a>`
+      `<span>${t.stworzoneWKreator}</span></a>`
     );
   }
-  return `<a class="znak-kreatora" ${atr}><span class="znak-tekst">Stworzone w</span>${logoKreatora(tloCiemne ? 'ciemny' : 'jasny')}</a>`;
+  return `<a class="znak-kreatora" ${atr}><span class="znak-tekst">${t.stworzoneW}</span>${logoKreatora(tloCiemne ? 'ciemny' : 'jasny')}</a>`;
 }

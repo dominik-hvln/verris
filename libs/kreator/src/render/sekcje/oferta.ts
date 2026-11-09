@@ -1,5 +1,4 @@
 import type { SekcjaTypu } from '../../model.ts';
-import { wszystkieSekcje } from '../../model.ts';
 import { esc } from '../esc.ts';
 import { czyIkona, ikona } from '../ikony.ts';
 import type { KontekstPodstrony } from '../kontekst.ts';
@@ -70,27 +69,26 @@ export function renderOferta(k: KontekstPodstrony, sek: Oferta): string {
 }
 
 type Pakiet = Cennik['dane']['pakiety'][number];
-const OKRES: Record<Pakiet['okres'], string> = { jednorazowo: '', miesiac: '/ mies.', rok: '/ rok', od: '' };
-
 /** Cena liczbowa – w edycji na stronie nie piszemy jej w miejscu: `atr` (data-k-formularz) otwiera pole w formularzu. */
-function cena(p: Pakiet, atr = ''): string {
-  if (p.cenaBrutto === null) return `<p class="cena"${atr}><span class="kwota kwota-tekst">Wycena indywidualna</span></p>`;
-  const od = p.okres === 'od' ? '<span class="cena-od">od</span> ' : '';
-  const okres = OKRES[p.okres];
+function cena(k: KontekstPodstrony, p: Pakiet, atr = ''): string {
+  const t = k.t;
+  if (p.cenaBrutto === null) return `<p class="cena"${atr}><span class="kwota kwota-tekst">${esc(t.wycenaIndywidualna)}</span></p>`;
+  const od = p.okres === 'od' ? `<span class="cena-od">${esc(t.od)}</span> ` : '';
+  const okres = p.okres === 'miesiac' ? t.naMiesiac : p.okres === 'rok' ? t.naRok : '';
   if (p.cenaNetto !== undefined) {
     return (
-      `<p class="cena"${atr}>${od}<span class="kwota">${zl(p.cenaNetto)}</span> <span class="cena-okres">netto${okres ? ' ' + okres : ''}</span></p>` +
-      `<p class="cena-druga"${atr}>${zl(p.cenaBrutto)} brutto${okres ? ' ' + okres : ''}</p>`
+      `<p class="cena"${atr}>${od}<span class="kwota">${zl(p.cenaNetto, k.jezyk)}</span> <span class="cena-okres">${esc(t.netto)}${okres ? ' ' + esc(okres) : ''}</span></p>` +
+      `<p class="cena-druga"${atr}>${zl(p.cenaBrutto, k.jezyk)} ${esc(t.brutto)}${okres ? ' ' + esc(okres) : ''}</p>`
     );
   }
-  return `<p class="cena"${atr}>${od}<span class="kwota">${zl(p.cenaBrutto)}</span>${okres ? ` <span class="cena-okres">${okres}</span>` : ''}</p>`;
+  return `<p class="cena"${atr}>${od}<span class="kwota">${zl(p.cenaBrutto, k.jezyk)}</span>${okres ? ` <span class="cena-okres">${esc(okres)}</span>` : ''}</p>`;
 }
 
 function przyciskPakietu(k: KontekstPodstrony, p: Pakiet, atr = ''): string {
   if (p.przycisk && celDostepny(k, p.przycisk.cel)) return przycisk(k, { ...p.przycisk, styl: p.wyrozniony ? 'glowny' : p.przycisk.styl }, 'btn-pelny', atr);
-  const kontakt = wszystkieSekcje(k.s.strona).find((s) => s.typ === 'kontakt');
+  const kontakt = [...k.podstrona.sekcje, ...(k.s.strona.strony.find((x) => x.slug === k.glowna)?.sekcje ?? [])].find((s) => s.typ === 'kontakt');
   if (!kontakt || !celDostepny(k, `#${kontakt.id}`)) return '';
-  return przycisk(k, { etykieta: 'Zapytaj o pakiet', cel: `#${kontakt.id}`, styl: p.wyrozniony ? 'glowny' : 'drugi' }, 'btn-pelny');
+  return przycisk(k, { etykieta: k.t.zapytajOPakiet, cel: `#${kontakt.id}`, styl: p.wyrozniony ? 'glowny' : 'drugi' }, 'btn-pelny');
 }
 
 function cechy(p: Pakiet, ak: (i: number) => string = () => ''): string {
@@ -104,7 +102,7 @@ export function renderCennik(k: KontekstPodstrony, sek: Cennik): string {
   const przelacznik = k.s.efekty.has('przelacznik-cen') && okresy.has('miesiac') && okresy.has('rok');
   if (przelacznik) k.s.js.add('przelacznik');
   const prz = przelacznik
-    ? `<div class="przelacznik" role="group" aria-label="Okres rozliczenia"><button type="button" data-okres="miesiac" aria-pressed="true">Miesięcznie</button><button type="button" data-okres="rok" aria-pressed="false">Rocznie</button></div>`
+    ? `<div class="przelacznik" role="group" aria-label="${esc(k.t.okresRozliczenia)}"><button type="button" data-okres="miesiac" aria-pressed="true">${esc(k.t.miesiecznie)}</button><button type="button" data-okres="rok" aria-pressed="false">${esc(k.t.rocznie)}</button></div>`
     : '';
   const g = glowa(sek, { naglowek: d.naglowek, wstep: d.wstep, dodatek: prz }, k);
   const ak = edytowalne(k, sek);
@@ -121,8 +119,8 @@ export function renderCennik(k: KontekstPodstrony, sek: Cennik): string {
     const wiersze = d.pakiety
       .map(
         (p, i) =>
-          `<li class="pas${p.wyrozniony ? ' wyrozniony' : ''}"${atrOkresu(p)}><div class="pas-nazwa"><h3${aN(i)}>${esc(p.nazwa)}</h3>${p.opis ? `<p${aO(i)}>${esc(p.opis)}</p>` : ''}${p.wyrozniony ? '<span class="odznaka">Polecany</span>' : ''}</div>` +
-          `<div class="pas-cechy">${cechy(p, aC(i))}</div><div class="pas-cena">${cena(p, aCena(i))}${przyciskPakietu(k, p, aP(i))}</div></li>`,
+          `<li class="pas${p.wyrozniony ? ' wyrozniony' : ''}"${atrOkresu(p)}><div class="pas-nazwa"><h3${aN(i)}>${esc(p.nazwa)}</h3>${p.opis ? `<p${aO(i)}>${esc(p.opis)}</p>` : ''}${p.wyrozniony ? `<span class="odznaka">${esc(k.t.polecany)}</span>` : ''}</div>` +
+          `<div class="pas-cechy">${cechy(p, aC(i))}</div><div class="pas-cena">${cena(k, p, aCena(i))}${przyciskPakietu(k, p, aP(i))}</div></li>`,
       )
       .join('');
     return sekcja(k, sek, `<div class="kontener${poj}">${g}<ul class="pasy">${wiersze}</ul>${uwaga}</div>`);
@@ -131,7 +129,7 @@ export function renderCennik(k: KontekstPodstrony, sek: Cennik): string {
   if (sek.wariant === 'cennik-tabela') {
     const wszystkie = [...new Set(d.pakiety.flatMap((p) => p.cechy))];
     const naglowki = d.pakiety
-      .map((p, i) => `<th scope="col"${p.wyrozniony ? ' class="wyrozniony"' : ''}${atrOkresu(p)}><span class="tab-nazwa"${aN(i)}>${esc(p.nazwa)}</span>${cena(p, aCena(i))}</th>`)
+      .map((p, i) => `<th scope="col"${p.wyrozniony ? ' class="wyrozniony"' : ''}${atrOkresu(p)}><span class="tab-nazwa"${aN(i)}>${esc(p.nazwa)}</span>${cena(k, p, aCena(i))}</th>`)
       .join('');
     // Wiersz cechy łączy cechy wielu pakietów – klik otwiera tę cechę w formularzu pierwszego pakietu, który ją ma (paczka 123).
     const atrCechy = (c: string) => {
@@ -142,7 +140,7 @@ export function renderCennik(k: KontekstPodstrony, sek: Cennik): string {
       .map(
         (c) =>
           `<tr><th scope="row"${atrCechy(c)}>${esc(c)}</th>${d.pakiety
-            .map((p) => `<td${p.wyrozniony ? ' class="wyrozniony"' : ''}${atrOkresu(p)}>${p.cechy.includes(c) ? `${ikona('check')}<span class="sr">Tak</span>` : '<span class="brak" aria-hidden="true"></span><span class="sr">Nie</span>'}</td>`)
+            .map((p) => `<td${p.wyrozniony ? ' class="wyrozniony"' : ''}${atrOkresu(p)}>${p.cechy.includes(c) ? `${ikona('check')}<span class="sr">${esc(k.t.tak)}</span>` : `<span class="brak" aria-hidden="true"></span><span class="sr">${esc(k.t.nie)}</span>`}</td>`)
             .join('')}</tr>`,
       )
       .join('');
@@ -159,8 +157,8 @@ export function renderCennik(k: KontekstPodstrony, sek: Cennik): string {
   const karty = d.pakiety
     .map(
       (p, i) =>
-        `<li class="pakiet${p.wyrozniony ? ` wyrozniony ${odwr}` : ''}"${atrOkresu(p)}>${p.wyrozniony ? '<span class="odznaka">Polecany</span>' : ''}<h3${aN(i)}>${esc(p.nazwa)}</h3>${p.opis ? `<p class="pakiet-opis"${aO(i)}>${esc(p.opis)}</p>` : ''}` +
-        `${cena(p, aCena(i))}${cechy(p, aC(i))}<div class="pakiet-akcja">${przyciskPakietu(k, p, aP(i))}</div></li>`,
+        `<li class="pakiet${p.wyrozniony ? ` wyrozniony ${odwr}` : ''}"${atrOkresu(p)}>${p.wyrozniony ? `<span class="odznaka">${esc(k.t.polecany)}</span>` : ''}<h3${aN(i)}>${esc(p.nazwa)}</h3>${p.opis ? `<p class="pakiet-opis"${aO(i)}>${esc(p.opis)}</p>` : ''}` +
+        `${cena(k, p, aCena(i))}${cechy(p, aC(i))}<div class="pakiet-akcja">${przyciskPakietu(k, p, aP(i))}</div></li>`,
     )
     .join('');
   return sekcja(k, sek, `<div class="kontener${poj}">${g}<ul class="pakiety pakiety-${Math.min(d.pakiety.length, 4)}">${karty}</ul>${uwaga}</div>`);

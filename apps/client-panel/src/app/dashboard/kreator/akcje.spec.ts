@@ -9,7 +9,7 @@ jest.mock('@/lib/api', () => {
 });
 
 import { ApiError } from '@/lib/api';
-import { generujPonownie, opublikuj, polecenieAi, przywrocWersje, stanPublikacji, usunStrone, utworzStrone, zapiszModel, zmienNazweStrony, zmienOkresPro } from './akcje';
+import { generujPonownie, opublikuj, polecenieAi, przywrocWersje, stanPublikacji, tlumaczStrone, usunStrone, utworzStrone, zapiszModel, zmienNazweStrony, zmienOkresPro } from './akcje';
 
 const ID = '0b8f6a52-5f0e-4b39-9a51-6a1f3c2d4e5f';
 
@@ -50,6 +50,20 @@ it('polecenie AI: sekcja opcjonalna, dłuższy budżet czasu niż domyślne 20 s
   expect((mockApi.mock.calls[0]![1] as { timeoutMs: number }).timeoutMs).toBeGreaterThan(90_000);
   await polecenieAi(ID, 'Krócej', null);
   expect(mockApi).toHaveBeenLastCalledWith(`/kreator/strony/${ID}/ai`, expect.objectContaining({ body: JSON.stringify({ polecenie: 'Krócej' }) }));
+});
+
+it('paczka 124: polecenie AI z podstroną sekcji (wersje językowe); tłumaczenie POST /tlumacz z językiem i kluczami', async () => {
+  mockApi.mockResolvedValue({});
+  await polecenieAi(ID, 'Shorter', 'start', 'en');
+  expect(mockApi).toHaveBeenLastCalledWith(`/kreator/strony/${ID}/ai`, expect.objectContaining({ body: JSON.stringify({ polecenie: 'Shorter', sekcjaId: 'start', podstrona: 'en' }) }));
+  await polecenieAi(ID, 'Krócej', null, 'en');
+  expect(mockApi).toHaveBeenLastCalledWith(`/kreator/strony/${ID}/ai`, expect.objectContaining({ body: JSON.stringify({ polecenie: 'Krócej' }) }));
+  await tlumaczStrone(ID, 'en', ['cennik']);
+  expect(mockApi).toHaveBeenLastCalledWith(`/kreator/strony/${ID}/tlumacz`, expect.objectContaining({ method: 'POST', body: JSON.stringify({ jezyk: 'en', podstrony: ['cennik'] }) }));
+  expect((mockApi.mock.calls.at(-1)![1] as { timeoutMs: number }).timeoutMs).toBeGreaterThan(240_000);
+  mockApi.mockReset();
+  expect(await tlumaczStrone('../x', 'en', [''])).toMatchObject({ ok: false, status: 404 });
+  expect(mockApi).not.toHaveBeenCalled();
 });
 
 it('publikacja: 409 KATALOG_ZAJETY → kod i lista plików (obiekt wyjątku wprost albo w `message`)', async () => {

@@ -1,7 +1,9 @@
+import type { Jezyk } from '../jezyki.ts';
 import type { Podstrona, Strona } from '../model.ts';
 import type { WersjaKreatora } from '../plany.ts';
 import type { UstawieniaFontow } from './fonty.ts';
 import type { KoloryStrony } from './paleta.ts';
+import type { TekstyStrony } from './teksty.ts';
 
 export interface OpcjeRenderu {
   /** Decyduje o SEO podstawowe/pełne i noindex w próbie. */
@@ -70,8 +72,8 @@ export interface KontekstStrony {
   /** Moduły JS do dołączenia. */
   js: Set<string>;
   ostrzezenia: string[];
-  /** Id sekcji strony głównej, które faktycznie się renderują (do linków z podstron). */
-  idGlownej: Set<string>;
+  /** Id sekcji stron głównych (adres strony głównej języka → id), które faktycznie się renderują (do linków z podstron). */
+  idGlownych: Map<string, Set<string>>;
   adres: string | null;
   /** Edycja na stronie: model z edytora (ścieżki wskazują jego pola, nie kopię po dopasowaniu do planu). */
   edycja: EdycjaStrony | null;
@@ -86,6 +88,11 @@ export interface KontekstPodstrony {
   /** Ścieżka do korzenia strony z tej podstrony ('' albo '../' albo '../../'). */
   prefix: string;
   idTutaj: Set<string>;
+  /** Paczka 124 – język podstrony, jego teksty systemowe, adres jego strony głównej ('' albo 'en') i jej sekcje. */
+  jezyk: Jezyk;
+  t: TekstyStrony;
+  glowna: string;
+  idGlownej: Set<string>;
   licznikObrazow: number;
   licznikPh: number;
   bylH1: boolean;

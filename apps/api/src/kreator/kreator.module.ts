@@ -20,7 +20,12 @@ import { BibliotekaZdjec } from './biblioteka/biblioteka.js';
 import { DostawcaPixabay } from './biblioteka/pixabay.js';
 import { DostawcaOpenverse } from './biblioteka/openverse.js';
 import { DostawcaPexels } from './biblioteka/pexels.js';
+import { KreatorWordpressController } from './wordpress/kreator-wordpress.controller.js';
+import { KreatorWordpressService } from './wordpress/kreator-wordpress.service.js';
 import { FUNKCJE_AI_KREATORA, RENDERER_KREATORA, fabrykaFunkcjiAiKreatora, fabrykaRendereraKreatora } from './zaleznosci.js';
+import { GENERATORY_OBRAZOW, KreatorObrazyAiService } from './generowanie/obrazy-ai.service.js';
+import { GeneratorBfl } from './generowanie/bfl.js';
+import { GeneratorOpenAi } from './generowanie/openai-obrazy.js';
 
 /**
  * Verris Kreator (paczka 119). Funkcje AI (`funkcjeAiKreatora`) i renderer (`renderujStrone`) z @verris/kreator
@@ -44,17 +49,30 @@ import { FUNKCJE_AI_KREATORA, RENDERER_KREATORA, fabrykaFunkcjiAiKreatora, fabry
     KreatorZasobyController,
     KreatorZasobPlikController,
     KreatorMiniaturaController,
+    KreatorWordpressController,
   ],
   providers: [
     KreatorService,
     KreatorPublikacjaService,
     KreatorFormularzService,
     KreatorZasobyService,
+    KreatorWordpressService,
     {
       provide: BIBLIOTEKA_ZDJEC,
       inject: [ConfigService],
       useFactory: (c: ConfigService) =>
         new BibliotekaZdjec([new DostawcaPixabay(c.get<string>('PIXABAY_API_KEY') || undefined), new DostawcaOpenverse(), new DostawcaPexels(c.get<string>('PEXELS_API_KEY') || undefined)]),
+    },
+    // Paczka 124 – zdjęcia AI: BFL (BFL_API_KEY) i OpenAI Images (ten sam klucz i adres co asystent AI: AI_API_KEY,
+    // AI_API_BASE_URL). Bez klucza dostawca jest wyłączony; włącznik i wybór dostawcy – admin (kreator.konfiguracja).
+    KreatorObrazyAiService,
+    {
+      provide: GENERATORY_OBRAZOW,
+      inject: [ConfigService],
+      useFactory: (c: ConfigService) => [
+        new GeneratorBfl(c.get<string>('BFL_API_KEY') || undefined),
+        new GeneratorOpenAi(c.get<string>('AI_API_KEY') || undefined, fetch, c.get<string>('AI_API_BASE_URL') || undefined),
+      ],
     },
     { provide: FUNKCJE_AI_KREATORA, useFactory: fabrykaFunkcjiAiKreatora },
     { provide: RENDERER_KREATORA, useFactory: fabrykaRendereraKreatora },

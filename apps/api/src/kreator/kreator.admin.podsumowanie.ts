@@ -8,7 +8,7 @@ import { Prisma, ProductKind, KreatorStatus } from '@verris/database';
 import type { PrismaService } from '../prisma/prisma.service.js';
 import { MNOZNIK_ZAPISU_CACHE, mnoznikOdczytuCache } from '../ai/ai-modele.js';
 import { rozbicieVat } from '../billing/faktura-za-portfel.js';
-import { FUNKCJA_AI_KREATORA, miesiacUtc } from './konfiguracja.js';
+import { FUNKCJA_AI_KREATORA, FUNKCJA_AI_OBRAZU, miesiacUtc } from './konfiguracja.js';
 import { PRO_DZIALA } from './kreator-pro.js';
 
 /** Suma wywołań AI kreatora jednego modelu (AiInteractionLog, `inputSummary` z anthropicZBlokami). */
@@ -154,7 +154,7 @@ export async function podsumowanieKreatora(prisma: PrismaService, ceny: Ceny, te
   const poczatekMies = new Date(Date.UTC(teraz.getUTCFullYear(), teraz.getUTCMonth(), 1));
   const od30 = new Date(Date.UTC(teraz.getUTCFullYear(), teraz.getUTCMonth(), teraz.getUTCDate()) - 29 * 86_400_000);
 
-  const [strony, zuzycie, aktywne, modele, dni, pro, magazyn, bledy] = await Promise.all([
+  const [strony, zuzycie, aktywne, modele, dni, pro, magazyn, bledy, obrazy] = await Promise.all([
     prisma.$queryRaw<{ razem: number; konta: number; opublikowane: number; generowane: number; bledne: number }[]>`
       SELECT COUNT(*)::int AS "razem", COUNT(DISTINCT "userId")::int AS "konta",
              COUNT(*) FILTER (WHERE "opublikowanaAt" IS NOT NULL)::int AS "opublikowane",
@@ -193,7 +193,17 @@ export async function podsumowanieKreatora(prisma: PrismaService, ceny: Ceny, te
       take: ILE_BLEDOW,
       select: { id: true, updatedAt: true, bladOpis: true, user: { select: { email: true } } },
     }),
+    // Paczka 124 – zdjęcia AI w miesiącu (koszt = obrazy rozliczone przez dostawcę × cena z konfiguracji w chwili wywołania).
+    prisma.$queryRaw<{ wywolania: number; obrazy: number; udane: number; moderowane: number; kosztUsd: number }[]>`
+      SELECT COUNT(*)::int AS "wywolania",
+             COALESCE(SUM(("inputSummary"->>'obrazy')::int), 0)::int AS "obrazy",
+             COALESCE(SUM(("inputSummary"->>'udane')::int), 0)::int AS "udane",
+             COALESCE(SUM(("inputSummary"->>'moderowane')::int), 0)::int AS "moderowane",
+             COALESCE(SUM("costUsd"), 0)::float8 AS "kosztUsd"
+      FROM "AiInteractionLog"
+      WHERE "feature" = ${FUNKCJA_AI_OBRAZU} AND "createdAt" >= ${poczatekMies}`,
   ]);
+  const o = obrazy[0];
   const s = strony[0];
   return {
     miesiac,
@@ -220,6 +230,13 @@ export async function podsumowanieKreatora(prisma: PrismaService, ceny: Ceny, te
       teraz,
     ),
     magazyn: { zdjecia: magazyn._count._all, bajty: magazyn._sum.bajty ?? 0 },
+    obrazyAi: {
+      wywolania: liczba(o?.wywolania),
+      obrazy: liczba(o?.obrazy),
+      udane: liczba(o?.udane),
+      moderowane: liczba(o?.moderowane),
+      kosztUsd: zaokr(liczba(o?.kosztUsd)),
+    },
     bledy: bledy.map((b) => ({ id: b.id, at: b.updatedAt.toISOString(), email: b.user?.email ?? '–', opis: skroc(b.bladOpis) || 'Bez opisu błędu.' })),
   };
 }

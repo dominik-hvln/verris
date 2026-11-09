@@ -305,6 +305,11 @@ elif [ "$TASK_KIND" = "FILE_SEARCH" ]; then
   RUN_BIN="/usr/local/bin/verris-file-search.sh"
   fetch_task_script "/agent/tasks/file-search/script" "$RUN_BIN"
   payload_env "FS" "{'daUser':'DA_USER','domain':'DOMAIN','name':'NAME','text':'TEXT'}"
+elif [ "$TASK_KIND" = "KREATOR_WP" ]; then
+  # Paczka 124 — strona z Verris Kreatora na WordPressa (podgląd, zamiana, cofnięcie).
+  RUN_BIN="/usr/local/bin/verris-kreator-wp.sh"
+  fetch_task_script "/agent/tasks/kreator-wp/script" "$RUN_BIN"
+  payload_env "KWP" "{'tryb':'TRYB','daUser':'DA_USER','domain':'DOMAIN','dir':'DIR','klucz':'KLUCZ','paczka':'PACZKA','dbName':'DB_NAME','dbUser':'DB_USER','dbPass':'DB_PASS','adminUser':'ADMIN_USER','adminPass':'ADMIN_PASS','adminEmail':'ADMIN_EMAIL','locale':'LOCALE','pliki':'PLIKI','kopia':'KOPIA','kopiaWp':'KOPIA_WP'}"
 elif [ "$TASK_KIND" = "HOSTING_PROFILE" ]; then
   flags="-y"
   [ "$SKIP_BUILD" = "1" ] && flags="$flags --skip-build"

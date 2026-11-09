@@ -6,12 +6,17 @@ import { adminApi, AdminApiError } from '@/lib/api';
 /** Paczka 123 — Admin → Kreator stron. Kształty jak w apps/api/src/kreator/kreator.admin.controller.ts. */
 export type BibliotekaZdjec = 'pixabay' | 'openverse' | 'pexels';
 
+/** Paczka 124 – generowanie zdjęć AI (dostawca obrazów; włączać po publikacji zmiany Polityki prywatności). */
+export type DostawcaObrazowAi = 'bfl' | 'openai';
+export type KonfiguracjaObrazowAi = { wlaczone: boolean; dostawca: DostawcaObrazowAi; model: string; cenaZaObrazUsd: number };
+
 export type KonfiguracjaKreatora = {
   modelGeneracji: string;
   modelZmian: string;
   wlaczony: boolean;
   kontaTestowe: string[];
   bibliotekiZdjec: BibliotekaZdjec[];
+  obrazyAi: KonfiguracjaObrazowAi;
 };
 
 export type UstawieniaKreatora = {
@@ -23,7 +28,9 @@ export type UstawieniaKreatora = {
   konta: { wpis: string; email: string | null; istnieje: boolean }[];
   /** `gotowa` = klucz na serwerze (Openverse bez klucza); wartości klucza API nie zwraca. */
   biblioteki: { id: BibliotekaZdjec; nazwa: string; wymagaKlucza: boolean; gotowa: boolean }[];
-  miesiac: { miesiac: string; generacje: number; zmiany: number; kosztUsd: number; cacheZapis: number; cacheOdczyt: number };
+  /** `klucz` = klucz dostawcy na serwerze (tak/nie) – wartości klucza API nie zwraca. */
+  dostawcyObrazowAi: { id: DostawcaObrazowAi; nazwa: string; zmienna: string; klucz: boolean; modelDomyslny: string; cenaDomyslnaUsd: number }[];
+  miesiac: { miesiac: string; generacje: number; zmiany: number; kosztUsd: number; cacheZapis: number; cacheOdczyt: number; obrazyAi: number };
 };
 
 export type PodsumowanieKreatora = {
@@ -47,6 +54,8 @@ export type PodsumowanieKreatora = {
   pro: { aktywne: number; miesieczne: number; roczne: number; miesiecznieBrutto: number; miesiecznieNetto: number };
   dni: { dzien: string; wywolania: number; generacje: number; zmiany: number; kosztUsd: number }[];
   magazyn: { zdjecia: number; bajty: number };
+  /** Paczka 124 – zdjęcia AI w miesiącu: zlecenia, obrazy rozliczone przez dostawcę, dostarczone, odrzucone przez moderację. */
+  obrazyAi?: { wywolania: number; obrazy: number; udane: number; moderowane: number; kosztUsd: number };
   bledy: { id: string; at: string; email: string; opis: string }[];
 };
 
@@ -70,7 +79,7 @@ export async function fetchPodsumowanieKreatora(): Promise<PodsumowanieKreatora 
 
 /** Zapis bez listy kont testowych – tę zmieniają osobne akcje (konto musi istnieć). */
 export async function zapiszKreator(
-  konf: Pick<KonfiguracjaKreatora, 'wlaczony' | 'modelGeneracji' | 'modelZmian' | 'bibliotekiZdjec'>,
+  konf: Pick<KonfiguracjaKreatora, 'wlaczony' | 'modelGeneracji' | 'modelZmian' | 'bibliotekiZdjec' | 'obrazyAi'>,
 ): Promise<Wynik<UstawieniaKreatora>> {
   try {
     const body = {
@@ -78,6 +87,7 @@ export async function zapiszKreator(
       modelGeneracji: konf.modelGeneracji,
       modelZmian: konf.modelZmian,
       bibliotekiZdjec: konf.bibliotekiZdjec,
+      obrazyAi: konf.obrazyAi,
     };
     const dane = await adminApi<UstawieniaKreatora>('/admin/kreator/konfiguracja', { method: 'PUT', body });
     revalidatePath('/settings/kreator');

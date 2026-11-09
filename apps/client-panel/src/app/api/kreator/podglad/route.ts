@@ -69,7 +69,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const pola = new URLSearchParams(surowe);
   const podstrona = pola.get('podstrona') ?? '';
-  if (!/^([a-z0-9-]{1,60}(\/[a-z0-9-]{1,60})?)?$/.test(podstrona)) return odpowiedz(400, 'Nieprawidłowa podstrona', 'Wybierz podstronę z listy w edytorze.');
+  if (!/^([a-z0-9-]{1,60}(\/[a-z0-9-]{1,60}){0,2})?$/.test(podstrona)) return odpowiedz(400, 'Nieprawidłowa podstrona', 'Wybierz podstronę z listy w edytorze.');
   const zaznaczona = pola.get('zaznaczona');
   const edycjaPole = pola.get('edycja');
   const edycja = edycjaPole === '1' ? 'edycja' : edycjaPole === 'zaznacz' ? 'zaznacz' : null;

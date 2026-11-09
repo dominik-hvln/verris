@@ -4,7 +4,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { DNI_LINKU_PODGLADU, ileLubBezLimitu, LIMITY_KREATORA } from './kreator';
+import { DNI_LINKU_PODGLADU, ileLubBezLimitu, JEZYKI_KREATORA_PRO, LIMITY_KREATORA } from './kreator';
 
 const KORZEN = join(__dirname, '../../../..');
 const PLANY = readFileSync(join(KORZEN, 'libs/kreator/src/plany.ts'), 'utf8');
@@ -24,12 +24,24 @@ function wersja(nazwa: 'proba' | 'hosting' | 'pro') {
     generacjiMies: pole('generacjiMies'),
     zmianAiMies: pole('zmianAiMies'),
     wariantyGeneracji: pole('wariantyGeneracji'),
+    wielojezycznosc: (() => {
+      const v = /\bwielojezycznosc: (true|false)/.exec(blok)?.[1];
+      if (v === undefined) throw new Error(`brak pola wielojezycznosc w wersji ${nazwa}`);
+      return v === 'true';
+    })(),
   };
 }
 
 describe('Verris Kreator – liczby na www zgodne z kodem produktu', () => {
   it.each(['proba', 'hosting', 'pro'] as const)('limity wersji „%s” = PLANY_KREATORA w libs/kreator/src/plany.ts', (w) => {
     expect(LIMITY_KREATORA[w]).toEqual(wersja(w));
+  });
+
+  it('języki Kreatora Pro (paczka 124) = JEZYKI_DODATKOWE w libs/kreator/src/jezyki.ts', () => {
+    const zrodlo = readFileSync(join(KORZEN, 'libs/kreator/src/jezyki.ts'), 'utf8');
+    expect(/JEZYKI_DODATKOWE = \[([^\]]*)\]/.exec(zrodlo)?.[1]).toBe("'en', 'de', 'uk'");
+    expect(/NAZWY_JEZYKOW_PL[^{]*\{([^}]*)\}/.exec(zrodlo)?.[1]).toContain("en: 'angielski', de: 'niemiecki', uk: 'ukraiński'");
+    expect([...JEZYKI_KREATORA_PRO]).toEqual(['angielski', 'niemiecki', 'ukraiński']);
   });
 
   it('link podglądu w okresie próbnym: tyle dni, ile WAZNOSC_LINKU_MS w publikacji', () => {

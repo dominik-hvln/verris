@@ -6,7 +6,8 @@
  * przepisane – test kreator.spec.ts czyta oba pliki i czerwieni się przy każdym rozjeździe.
  * Ceny Kreatora Pro NIE są tutaj: idą z API (lib/ceny – plan kreator-pro), jak wszystkie ceny na stronie.
  *
- * Czego tu celowo nie ma (stan kodu 8.11.2026): przejścia na WordPressa i wersji językowych – nie obiecujemy ich na www.
+ * Czego tu celowo nie ma (stan kodu 9.11.2026): przejścia na WordPressa – nie obiecujemy go na www.
+ * Paczka 124: wersje językowe działają w Kreatorze Pro (PlanKreatora.wielojezycznosc, języki z modelu: en, de, uk).
  */
 
 import { plForm } from './pl';
@@ -22,12 +23,17 @@ export type LimityKreatora = {
   zmianAiMies: number;
   /** Propozycje projektu z jednej generacji. */
   wariantyGeneracji: number;
+  /** Wersje językowe strony (podstrony w innych językach, przełącznik języka) – PlanKreatora.wielojezycznosc. */
+  wielojezycznosc: boolean;
 };
 
+/** Języki dodatkowe w Kreatorze Pro – libs/kreator/src/jezyki.ts (JEZYKI_DODATKOWE: en, de, uk), nazwy po polsku. */
+export const JEZYKI_KREATORA_PRO = ['angielski', 'niemiecki', 'ukraiński'] as const;
+
 export const LIMITY_KREATORA: Record<'proba' | 'hosting' | 'pro', LimityKreatora> = {
-  proba: { stron: 1, podstron: 5, generacjiMies: 1, zmianAiMies: 20, wariantyGeneracji: 1 },
-  hosting: { stron: 3, podstron: 5, generacjiMies: 3, zmianAiMies: 200, wariantyGeneracji: 1 },
-  pro: { stron: 10, podstron: null, generacjiMies: 10, zmianAiMies: 1000, wariantyGeneracji: 3 },
+  proba: { stron: 1, podstron: 5, generacjiMies: 1, zmianAiMies: 20, wariantyGeneracji: 1, wielojezycznosc: false },
+  hosting: { stron: 3, podstron: 5, generacjiMies: 3, zmianAiMies: 200, wariantyGeneracji: 1, wielojezycznosc: false },
+  pro: { stron: 10, podstron: null, generacjiMies: 10, zmianAiMies: 1000, wariantyGeneracji: 3, wielojezycznosc: true },
 };
 
 /** Link podglądu w okresie próbnym: ważny tyle dni, odnawiany, niewidoczny dla wyszukiwarek. */

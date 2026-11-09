@@ -292,6 +292,8 @@ services:
       # Paczka 122 — biblioteki zdjęć Verris Kreatora (bez klucza dostawca jest wyłączony; Openverse działa bez klucza).
       PIXABAY_API_KEY: ${PIXABAY_API_KEY:-}
       PEXELS_API_KEY: ${PEXELS_API_KEY:-}
+      # Paczka 124 — zdjęcia AI w kreatorze: Black Forest Labs FLUX (bez klucza generowanie stoi; OpenAI Images bierze AI_API_KEY).
+      BFL_API_KEY: ${BFL_API_KEY:-}
       # W6 — partner sadzenia drzew (posadzimy.pl): token produkcyjny i testowy (RC); wybór API w adminie → Program EKO i drzewa.
       POSADZIMY_API_TOKEN: ${POSADZIMY_API_TOKEN:-}
       POSADZIMY_API_TOKEN_TEST: ${POSADZIMY_API_TOKEN_TEST:-}

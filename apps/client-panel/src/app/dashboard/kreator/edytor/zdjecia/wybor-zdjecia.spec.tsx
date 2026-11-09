@@ -4,8 +4,8 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import type { Obraz } from '@verris/kreator/klient';
-import { WyborZdjecia, bladPliku, opisUsunieciaZdjecia } from './wybor-zdjecia';
-import { importujZdjecie, listaZasobow, szukajZdjec, usunZasob } from './akcje';
+import { WyborZdjecia, bladPliku, opisUsunieciaZdjecia, pozostaloZdjec, przykladOpisu } from './wybor-zdjecia';
+import { generujZdjecie, importujZdjecie, listaZasobow, stanGenerowania, szukajZdjec, usunZasob } from './akcje';
 import { potwierdz } from '@/components/panel/potwierdz';
 import type { ZasobKreatora } from './typy';
 
@@ -22,6 +22,8 @@ jest.mock('./akcje', () => ({
   importujZdjecie: jest.fn(),
   adresyZasobow: jest.fn(),
   usunZasob: jest.fn(),
+  stanGenerowania: jest.fn(),
+  generujZdjecie: jest.fn(),
 }));
 
 const ZASOB: ZasobKreatora = {
@@ -235,5 +237,101 @@ describe('Twoje zdjęcia – usuwanie (paczka 123)', () => {
     await act(async () => przycisk('Usuń zdjęcie').click());
     expect(document.body.textContent).toContain('To zdjęcie jest na opublikowanej stronie „Nowa”.');
     expect(document.querySelector('[role="listbox"] [role="option"]')).not.toBeNull();
+  });
+});
+
+describe('Wygeneruj – zdjęcia AI (paczka 124)', () => {
+  const STRONA = '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d';
+  const STAN = { dostepne: true, powod: null, limit: 20, zuzyte: 0, pozostalo: 20, warianty: 2 };
+  const AI: ZasobKreatora = { ...ZASOB, id: '1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f', zrodlo: 'ai', autor: 'Verris Kreator AI', licencja: 'wygenerowane-ai', alt: 'Jasne wnętrze salonu', miniatura: 'https://api.verris.test/kreator/z/ai/480.webp' };
+
+  function wpiszOpis(tekst: string) {
+    const pole = document.querySelector<HTMLTextAreaElement>('[data-wygeneruj] textarea')!;
+    act(() => {
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(pole, tekst);
+      pole.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  }
+
+  it('bez klucza / wyłączone: „Generowanie zdjęć wkrótce”, zakładki zostają', async () => {
+    jest.mocked(stanGenerowania).mockResolvedValue({ ok: true, dane: { ...STAN, dostepne: false, powod: 'Generowanie zdjęć będzie dostępne wkrótce.' } });
+    await otworz({ stronaId: STRONA });
+    await act(async () => zakladka('Wygeneruj').click());
+    await czekaj();
+    expect(document.querySelector('[data-wygeneruj="wkrotce"]')!.textContent).toContain('Generowanie zdjęć wkrótce');
+    expect([...document.querySelectorAll('[role="tab"]')].map((t) => t.textContent)).toEqual(['Wgraj', 'Twoje zdjęcia', 'Biblioteka', 'Wygeneruj']);
+    expect(document.querySelector('textarea')).toBeNull();
+  });
+
+  it('opis, proporcje z modelu, ostrzeżenie o danych osobowych, postęp aria-live, warianty, „Użyj” → kadr z altem z AI', async () => {
+    jest.mocked(stanGenerowania).mockResolvedValue({ ok: true, dane: STAN });
+    let zakoncz!: () => void;
+    jest.mocked(generujZdjecie).mockImplementation(
+      () =>
+        new Promise((r) => {
+          zakoncz = () => r({ ok: true, dane: { zasoby: [AI, { ...AI, id: '2c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f' }], alt: AI.alt!, moderowane: 0, limit: 20, pozostalo: 18 } });
+        }),
+    );
+    const { onWybierz } = await otworz({ stronaId: STRONA });
+    await act(async () => zakladka('Wygeneruj').click());
+    await czekaj();
+    expect(document.body.textContent).toContain('Nie wpisuj danych osobowych w opisie zdjęcia');
+    expect(document.querySelector('[data-pozostalo]')!.textContent).toContain('Zostało 20 zdjęć AI w tym miesiącu');
+    expect(document.querySelector<HTMLTextAreaElement>('textarea')!.placeholder).toBe('np. wnętrze – jasne światło, spokojne kolory');
+    // Proporcje: domyślnie z modelu obrazu (3:2), wybór kafelkami.
+    expect(document.querySelector('[role="radio"][aria-checked="true"]')!.textContent).toBe('3:2');
+    expect(przycisk('Wygeneruj 2 warianty').disabled).toBe(true);
+    wpiszOpis('Fryzjerka strzyże klientkę przy oknie');
+    await act(async () => [...document.querySelectorAll<HTMLElement>('[role="radio"]')].find((r) => r.textContent === '16:9')!.click());
+    await act(async () => przycisk('Wygeneruj 2 warianty').click());
+    expect(generujZdjecie).toHaveBeenCalledWith({ opis: 'Fryzjerka strzyże klientkę przy oknie', stronaId: STRONA, proporcje: '16:9', sciezkaObrazu: 'strony.0.sekcje.0.dane.obraz' });
+    const status = document.querySelector('[role="status"][aria-live="polite"]')!;
+    expect(status.textContent).toContain('Generujemy 2 warianty');
+    await act(async () => zakoncz());
+    await czekaj();
+    expect(status.textContent).toContain('Gotowe: 2 warianty');
+    expect(document.querySelectorAll('[aria-label="Wygenerowane warianty"] [role="option"]')).toHaveLength(2);
+    expect(document.querySelector('[data-pozostalo]')!.textContent).toContain('Zostało 18 zdjęć AI');
+    await act(async () => przycisk('Użyj').click());
+    // Kadr: alt podpowiedziany z AI, informacja o AI; wynik w modelu ze źródłem 'ai' bez autora i licencji.
+    expect(document.body.textContent).toContain('Zdjęcie wygenerowane przez AI');
+    expect(document.querySelector<HTMLInputElement>('input:not([type])')!.value).toBe('Jasne wnętrze salonu');
+    await act(async () => przycisk('Użyj zdjęcia').click());
+    expect(onWybierz.mock.calls[0]![0]).toMatchObject({ zrodlo: 'ai', zasobId: AI.id, alt: 'Jasne wnętrze salonu', proporcje: '3:2' });
+    expect((onWybierz.mock.calls[0]![0] as Obraz).licencja).toBeUndefined();
+  });
+
+  it('odmowa (zasady albo limit): komunikat po polsku z API; limit 0 → przycisk nieaktywny z informacją', async () => {
+    jest.mocked(stanGenerowania).mockResolvedValue({ ok: true, dane: STAN });
+    jest.mocked(generujZdjecie).mockResolvedValue({ ok: false, status: 422, blad: 'Nie generujemy zdjęć znanych osób – opisz anonimową osobę.' });
+    await otworz({ stronaId: STRONA });
+    await act(async () => zakladka('Wygeneruj').click());
+    await czekaj();
+    wpiszOpis('Prezydent w moim salonie');
+    await act(async () => przycisk('Wygeneruj 2 warianty').click());
+    await czekaj();
+    expect(document.querySelector('[role="alert"]')!.textContent).toContain('Nie generujemy zdjęć znanych osób');
+
+    act(() => root.unmount());
+    root = createRoot(el);
+    jest.mocked(stanGenerowania).mockResolvedValue({ ok: true, dane: { ...STAN, zuzyte: 20, pozostalo: 0, warianty: 0 } });
+    await otworz({ stronaId: STRONA });
+    await act(async () => zakladka('Wygeneruj').click());
+    await czekaj();
+    wpiszOpis('Jasne wnętrze');
+    const generuj = [...document.querySelectorAll<HTMLButtonElement>('[data-wygeneruj] button')].find((b) => b.textContent?.trim() === 'Wygeneruj')!;
+    expect(generuj.disabled).toBe(true);
+    expect(document.body.textContent).toContain('Wykorzystano limit zdjęć AI w tym miesiącu');
+  });
+
+  it('teksty: licznik z odmianą, przykład z podpisu ramki', () => {
+    expect([pozostaloZdjec(1), pozostaloZdjec(3), pozostaloZdjec(5), pozostaloZdjec(22)]).toEqual([
+      'Zostało 1 zdjęcie AI w tym miesiącu',
+      'Zostały 3 zdjęcia AI w tym miesiącu',
+      'Zostało 5 zdjęć AI w tym miesiącu',
+      'Zostały 22 zdjęcia AI w tym miesiącu',
+    ]);
+    expect(przykladOpisu({ podpis: 'Zdjęcie: Wnętrze salonu przy oknie' })).toBe('np. wnętrze salonu przy oknie – jasne światło, spokojne kolory');
+    expect(przykladOpisu(undefined)).toContain('np. jasne wnętrze');
   });
 });

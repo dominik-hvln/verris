@@ -258,7 +258,7 @@ export function odczytajWynikGeneracji(tekst: string, wersja: WersjaKreatora, br
   return dokoncz(w.strona, wersja, { tryb: 'generacja', brief });
 }
 
-export function odczytajWynikZmiany(strona: Strona, tekst: string, sekcjaId: string | null, wersja: WersjaKreatora): WynikWalidacji {
+export function odczytajWynikZmiany(strona: Strona, tekst: string, sekcjaId: string | null, wersja: WersjaKreatora, slug?: string): WynikWalidacji {
   const json = wyciagnijJson(tekst);
   if (!json.ok) return { ok: false, bledy: [json.blad] };
   const dane = oczyscTeksty(json.dane);
@@ -272,7 +272,7 @@ export function odczytajWynikZmiany(strona: Strona, tekst: string, sekcjaId: str
     const sek = Sekcja.safeParse(obiekt && typeof obiekt === 'object' ? { ...obiekt, id: sekcjaId } : obiekt);
     if (!sek.success) return { ok: false, bledy: sek.error.issues.slice(0, 40).map((i) => `${i.path.join('.') || '(korzeń)'}: ${i.message}`) };
     nowa = structuredClone(strona);
-    const podstrona = nowa.strony.find((p) => p.sekcje.some((s) => s.id === sekcjaId));
+    const podstrona = nowa.strony.find((p) => (slug === undefined || p.slug === slug) && p.sekcje.some((s) => s.id === sekcjaId));
     if (!podstrona) return { ok: false, bledy: [`(korzeń): brak sekcji o id „${sekcjaId}”`] };
     podstrona.sekcje = podstrona.sekcje.map((s) => (s.id === sekcjaId ? sek.data : s));
     const w = walidujStrone(nowa);

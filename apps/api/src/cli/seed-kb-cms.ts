@@ -1012,7 +1012,8 @@ Zamawianie i opłacanie usług, rejestracja domen i zakładanie skrzynek pocztow
       ], related: ['dwuskladnikowe-logowanie-passkey'] }),
   // ---------------- Kreator stron (paczka 123 – Verris Kreator). Liczby i ceny: libs/kreator/src/plany.ts
   // i apps/api/src/plans/plan-kreator-pro.ts – zgodność pilnuje src/test/baza-wiedzy-kreator.spec.ts.
-  // Bez przejścia na WordPressa i wersji językowych – tego nie ma jeszcze w publikacji.
+  // Bez przejścia na WordPressa – tego nie ma jeszcze w publikacji. Wersje językowe (Pro) – od paczki 124 (renderer
+  // z hreflang i przełącznikiem języka, tłumaczenie AI: POST /kreator/strony/:id/tlumacz).
   A('kreator-stron', 'jak-stworzyc-strone-w-kreatorze', 'Jak stworzyć stronę w Verris Kreatorze',
     'Opisz firmę, a AI przygotuje gotową stronę – krok po kroku od opisu do pierwszej wersji.',
     `## Czym jest Verris Kreator
@@ -1104,7 +1105,7 @@ W okresie próbnym hostingu publikujesz stronę jako podgląd: dostajesz link wa
       ], related: ['jak-podpiac-domene', 'edycja-tekstu-i-zdjec-w-kreatorze', 'kreator-pro'] }),
 
   A('kreator-stron', 'kreator-pro', 'Kreator Pro – co daje i jak kupić',
-    'Dodatek do Verris Kreatora: wyższe limity, 3 propozycje projektu, katalog produktów, blog i pełne SEO.',
+    'Dodatek do Verris Kreatora: wyższe limity, 3 propozycje projektu, katalog produktów, blog, pełne SEO i wersje językowe.',
     `## Co daje Kreator Pro
 Kreator Pro to dodatek do Verris Kreatora, który działa na wszystkich stronach Twojego konta:
 - **3 propozycje projektu** z każdej generacji zamiast jednej.
@@ -1112,10 +1113,14 @@ Kreator Pro to dodatek do Verris Kreatora, który działa na wszystkich stronach
 - **Interakcje i animacje** – karuzele, powiększanie zdjęć, paralaksa, przełącznik cen, animowany nagłówek.
 - **Katalog produktów** z cenami i przyciskiem zakupu oraz **blog** z wpisami.
 - **Pełne SEO** – dane strukturalne FAQ, produktów, artykułów i nawigacji okruszkowej, przegląd SEO przez AI.
+- **Wersje językowe** – do 3 dodatkowych języków: angielski, niemiecki, ukraiński. AI tłumaczy podstrony (każda podstrona to jedna zmiana AI), a strona dostaje przełącznik języka i oznaczenia dla wyszukiwarek, że to te same treści w innych językach.
 - **Wyższe limity** – 10 stron, podstrony bez limitu, 10 generacji i 1000 zmian AI miesięcznie.
 - **Dyskretny znak** „Stworzone w Verris Kreator” w stopce.
 
 Bez Kreatora Pro funkcje Pro widzisz w edytorze jako podgląd z oznaczeniem – przy publikacji zastępujemy je wersją podstawową.
+
+## Wersje językowe
+W edytorze nad listą podstron kliknij **Dodaj wersję językową**, wybierz język i **Przetłumacz przez AI** albo **Skopiuj bez tłumaczenia** (tekst przetłumaczysz sam). Tłumaczenie zachowuje nazwę firmy, ceny i dane kontaktowe, a tytuły i opisy dla wyszukiwarek pisze w języku docelowym. Gdy zmienisz polską podstronę, edytor oznaczy jej tłumaczenie jako możliwie nieaktualne – możesz przetłumaczyć ją ponownie jednym kliknięciem. Wersja angielska ma adresy z /en/ (np. twojadomena.pl/en/).
 
 ## Ile kosztuje
 - **Miesięcznie:** 9,90 zł brutto (8,05 zł netto).
@@ -1129,8 +1134,9 @@ Abonament odnawia się automatycznie z portfela albo kartą. Odnowienie anulujes
 
 ## Co po zakończeniu Pro
 Opublikowane strony działają dalej. Elementy Pro znikną przy następnej publikacji – okno publikacji pokaże wcześniej, co się zmieni.`,
-    { t: 'Kreator Pro – co daje, ile kosztuje i jak go kupić', d: 'Kreator Pro w Verris: 3 propozycje projektu, katalog produktów, blog, pełne SEO i wyższe limity. 9,90 zł/mies. albo 99 zł/rok brutto (8,05 albo 80,49 zł netto).',
+    { t: 'Kreator Pro – co daje, ile kosztuje i jak go kupić', d: 'Kreator Pro w Verris: 3 propozycje projektu, katalog produktów, blog, pełne SEO, wersje językowe i wyższe limity. 9,90 zł/mies. albo 99 zł/rok brutto (8,05 albo 80,49 zł netto).',
       faq: [
+        { q: 'W jakich językach może być moja strona?', a: 'Z Kreatorem Pro dodasz do 3 wersji językowych: angielską, niemiecką i ukraińską. AI tłumaczy podstrony, a każda przetłumaczona podstrona to jedna zmiana AI z miesięcznego limitu.' },
         { q: 'Ile kosztuje Kreator Pro?', a: '9,90 zł brutto miesięcznie (8,05 zł netto) albo 99 zł brutto za rok (80,49 zł netto).' },
         { q: 'Czy mogę kupić Kreator Pro w okresie próbnym?', a: 'Nie. Kreator Pro kupisz po opłaceniu hostingu – w okresie próbnym korzystasz z kreatora w wersji próbnej.' },
         { q: 'Co się stanie z moją stroną, gdy zrezygnuję z Pro?', a: 'Opublikowana strona działa dalej. Elementy Pro znikną dopiero przy następnej publikacji, a okno publikacji pokaże wcześniej listę zmian.' },

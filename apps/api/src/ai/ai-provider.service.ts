@@ -250,6 +250,14 @@ export class AiProviderService {
     return true;
   }
 
+  /**
+   * Paczka 124 – ten sam bezpiecznik dla kosztów spoza wywołań tekstowych (zdjęcia AI kreatora, koszt zapisywany
+   * w AiInteractionLog przez wołającego): true = budżet platformy w tym miesiącu wyczerpany.
+   */
+  async budzetPlatformyWyczerpanyTeraz(): Promise<boolean> {
+    return this.budzetPlatformyWyczerpany(await this.konfiguracja());
+  }
+
   /** Swobodna odpowiedź (czat). Domyślnie poziom SZYBKI. */
   async chat(
     input: { system: string; messages: Wiadomosc[]; maxTokens?: number },

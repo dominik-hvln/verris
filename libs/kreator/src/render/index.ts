@@ -1,4 +1,5 @@
 import { EFEKTY_ZAWSZE, KATALOG_EFEKTOW } from '../katalog.ts';
+import { jezykiStrony, jezykPodstrony, slugGlownej } from '../jezyki.ts';
 import type { Podstrona, Strona } from '../model.ts';
 import { dopasujDoPlanu, PLANY_KREATORA } from '../plany.ts';
 import { budujCss } from './css.ts';
@@ -9,6 +10,7 @@ import { budujKolory } from './paleta.ts';
 import { czyWidoczna } from './sekcje/index.ts';
 import { glowaHtml, robots, sitemap, wpisDlaPodstrony } from './seo.ts';
 import { budujSkrypt } from './skrypt.ts';
+import { teksty } from './teksty.ts';
 import { dokument, trescStrony } from './uklad.ts';
 
 export type { OpcjeRenderu, PlikStrony, WynikRenderu } from './kontekst.ts';
@@ -83,7 +85,12 @@ export function renderujStrone(wejscie: Strona, opcje: OpcjeRenderu): WynikRende
     css: new Set(),
     js: new Set(),
     ostrzezenia,
-    idGlownej: new Set((strona.strony.find((p) => p.slug === '')?.sekcje ?? []).filter((x) => czyWidoczna({ podglad }, x)).map((x) => x.id)),
+    idGlownych: new Map(
+      jezykiStrony(strona).map((j) => {
+        const g = slugGlownej(strona, j);
+        return [g, new Set((strona.strony.find((p) => p.slug === g)?.sekcje ?? []).filter((x) => czyWidoczna({ podglad }, x)).map((x) => x.id))] as const;
+      }),
+    ),
     adres: opcje.adresStrony ? opcje.adresStrony.trim().replace(/\/+$/, '') : null,
     edycja: podglad && opcje.edycja ? przygotujEdycje(wejscie) : null,
     rok: data.getUTCFullYear(),
@@ -107,11 +114,15 @@ export function renderujStrone(wejscie: Strona, opcje: OpcjeRenderu): WynikRende
   const bazaAbs = czyBezwzgledny(baza);
   const plikNaglowka = plikFontu(s.fonty.naglowki, s.fonty.wagaNaglowka, false);
 
-  const kontekst = (p: Podstrona, prefix: string): KontekstPodstrony => ({
+  const kontekst = (p: Podstrona, prefix: string, jezyk = jezykPodstrony(strona, p)): KontekstPodstrony => ({
     s,
     podstrona: p,
     prefix,
     idTutaj: new Set(p.sekcje.filter((x) => czyWidoczna(s, x)).map((x) => x.id)),
+    jezyk,
+    t: teksty(jezyk),
+    glowna: slugGlownej(strona, jezyk),
+    idGlownej: s.idGlownych.get(slugGlownej(strona, jezyk)) ?? new Set(),
     licznikObrazow: 0,
     licznikPh: 0,
     bylH1: false,
@@ -133,7 +144,7 @@ export function renderujStrone(wejscie: Strona, opcje: OpcjeRenderu): WynikRende
     seo: { tytul: `Nie znaleziono strony – ${strona.firma.nazwa}` },
     sekcje: [],
   } as Podstrona;
-  const k404 = kontekst(strona404, '/');
+  const k404 = kontekst(strona404, '/', strona.jezyk);
   const tresc404 =
     `<header class="naglowek-strony"><div class="kontener kontener-waski"><p class="nad">Błąd 404</p><h1>Nie znaleziono strony</h1>` +
     `<p class="lead">Ta strona nie istnieje albo zmieniła adres. Zacznij od strony głównej.</p><div class="akcje"><a class="btn btn-1" href="/">Wróć na stronę główną</a></div></div></header>`;

@@ -4,16 +4,19 @@ import {
   IsBoolean,
   IsIn,
   IsObject,
+  IsNumber,
   IsOptional,
   IsString,
   Length,
   Matches,
+  Max,
   MaxLength,
+  Min,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { TYPY_STRON, type TypStrony } from '@verris/kreator';
-import { MODEL_KREATORA_RE } from '../konfiguracja.js';
+import { JEZYKI_DODATKOWE, MAX_PODSTRON_TLUMACZENIA, TYPY_STRON, type JezykDodatkowy, type TypStrony } from '@verris/kreator';
+import { DOSTAWCY_OBRAZOW_AI, MAKS_CENY_OBRAZU_USD, MODEL_KREATORA_RE, type DostawcaObrazowAi } from '../konfiguracja.js';
 import { DOSTAWCY_ZDJEC, type NazwaDostawcy } from '../biblioteka/dostawca.js';
 
 /** Brief „opisz firmę” (BriefStrony z @verris/kreator). `firma` sprawdza dodatkowo schemat zod w serwisie. */
@@ -82,12 +85,33 @@ export class ZmianaAiDto {
   @IsString()
   @Matches(/^[a-z][a-z0-9-]{0,39}$/, { message: 'Nieprawidłowy identyfikator sekcji.' })
   sekcjaId?: string;
+
+  /** Paczka 124 – adres podstrony zmienianej sekcji (wersje językowe mają sekcje o tych samych id co oryginał). */
+  @IsOptional()
+  @IsString()
+  @Matches(/^([a-z0-9-]{1,60}(\/[a-z0-9-]{1,60}){0,2})?$/, { message: 'Nieprawidłowy adres podstrony.' })
+  podstrona?: string;
+}
+
+/** POST /kreator/strony/:id/tlumacz (paczka 124, Kreator Pro) – tłumaczenie podstron na język dodatkowy. */
+export class TlumaczenieDto {
+  @IsIn(JEZYKI_DODATKOWE, { message: 'Wybierz język: angielski, niemiecki albo ukraiński.' })
+  jezyk!: JezykDodatkowy;
+
+  /** Klucze podstron języka głównego (adres bez prefiksu języka; '' = strona główna); brak = wszystkie. */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(MAX_PODSTRON_TLUMACZENIA, { message: `Przetłumacz najwyżej ${MAX_PODSTRON_TLUMACZENIA} podstron naraz.` })
+  @IsString({ each: true })
+  @Matches(/^([a-z0-9-]{1,60}(\/[a-z0-9-]{1,60})?)?$/, { each: true, message: 'Nieprawidłowy adres podstrony.' })
+  podstrony?: string[];
 }
 
 export class PodgladQueryDto {
   @IsOptional()
   @IsString()
-  @Matches(/^([a-z0-9-]{1,60}(\/[a-z0-9-]{1,60})?)?$/, { message: 'Nieprawidłowy adres podstrony.' })
+  // Paczka 124: wersje językowe – do trzech członów (`en/blog/wpis`).
+  @Matches(/^([a-z0-9-]{1,60}(\/[a-z0-9-]{1,60}){0,2})?$/, { message: 'Nieprawidłowy adres podstrony.' })
   podstrona?: string;
 
   @IsOptional()
@@ -96,6 +120,28 @@ export class PodgladQueryDto {
 }
 
 /** Admin: konfiguracja kreatora (zapis przez odczytajKonfiguracjeKreatora – ta sama walidacja co przy odczycie). */
+/** Paczka 124 – ustawienia generowania zdjęć AI (model sprawdza wzorzec dostawcy w odczytajObrazyAi). */
+export class ObrazyAiDto {
+  @IsOptional()
+  @IsBoolean()
+  wlaczone?: boolean;
+
+  @IsOptional()
+  @IsIn([...DOSTAWCY_OBRAZOW_AI], { message: 'Nieznany dostawca zdjęć AI.' })
+  dostawca?: DostawcaObrazowAi;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^[a-z0-9.-]{2,60}$/, { message: 'Nieprawidłowa nazwa modelu.' })
+  model?: string;
+
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 4 }, { message: 'Cena za obraz: liczba (USD), najwyżej 4 miejsca po przecinku.' })
+  @Min(0)
+  @Max(MAKS_CENY_OBRAZU_USD, { message: `Cena za obraz: najwyżej ${MAKS_CENY_OBRAZU_USD} USD.` })
+  cenaZaObrazUsd?: number;
+}
+
 export class KonfiguracjaKreatoraDto {
   @IsOptional()
   @Matches(MODEL_KREATORA_RE, { message: 'Kreator obsługuje tylko modele Anthropic (claude-…).' })
@@ -122,6 +168,12 @@ export class KonfiguracjaKreatoraDto {
   @ArrayMaxSize(DOSTAWCY_ZDJEC.length)
   @IsIn(DOSTAWCY_ZDJEC as unknown as string[], { each: true, message: 'Nieznana biblioteka zdjęć.' })
   bibliotekiZdjec?: NazwaDostawcy[];
+
+  /** Paczka 124 – zdjęcia AI; pola pominięte zostają bez zmian (scalanie w kontrolerze admina). */
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ObrazyAiDto)
+  obrazyAi?: ObrazyAiDto;
 }
 
 /** POST /kreator/pro/okres – okres abonamentu Kreator Pro od następnego odnowienia (paczka 123). */

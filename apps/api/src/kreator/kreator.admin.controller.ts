@@ -17,6 +17,14 @@ import { BIBLIOTEKA_ZDJEC } from './zasoby.service.js';
 import { BibliotekaZdjec } from './biblioteka/biblioteka.js';
 import { DOSTAWCY_ZDJEC, type NazwaDostawcy } from './biblioteka/dostawca.js';
 import { podsumowanieKreatora } from './kreator.admin.podsumowanie.js';
+import { KreatorObrazyAiService } from './generowanie/obrazy-ai.service.js';
+import { DOMYSLNE_OBRAZY_AI, DOSTAWCY_OBRAZOW_AI, type DostawcaObrazowAi } from './konfiguracja.js';
+
+/** Paczka 124 – dostawcy zdjęć AI w adminie: nazwa i zmienna z kluczem (status klucza tylko tak/nie). */
+const DOSTAWCY_AI: Record<DostawcaObrazowAi, { nazwa: string; zmienna: string }> = {
+  bfl: { nazwa: 'Black Forest Labs FLUX', zmienna: 'BFL_API_KEY' },
+  openai: { nazwa: 'OpenAI Images', zmienna: 'AI_API_KEY' },
+};
 
 /** Nazwy bibliotek zdjęć w adminie; Openverse działa bez klucza (tylko CC0 i domena publiczna). */
 const BIBLIOTEKI: Record<NazwaDostawcy, { nazwa: string; wymagaKlucza: boolean }> = {
@@ -46,6 +54,7 @@ export class KreatorAdminController {
     private readonly audit: AuditService,
     private readonly kreator: KreatorService,
     @Inject(BIBLIOTEKA_ZDJEC) private readonly biblioteka: BibliotekaZdjec,
+    private readonly obrazyAi: KreatorObrazyAiService,
   ) {}
 
   /** Modele do wyboru: znane modele Anthropic + modele claude-* dopisane z cenami w ustawieniach AI. */
@@ -98,7 +107,7 @@ export class KreatorAdminController {
     const [suma, modele, konta, regulamin] = await Promise.all([
       this.prisma.kreatorZuzycie.aggregate({
         where: { miesiac },
-        _sum: { generacje: true, zmiany: true, kosztUsd: true, cacheZapis: true, cacheOdczyt: true },
+        _sum: { generacje: true, zmiany: true, kosztUsd: true, cacheZapis: true, cacheOdczyt: true, obrazyAi: true },
       }),
       this.modele(),
       this.konta(konfiguracja),
@@ -118,6 +127,14 @@ export class KreatorAdminController {
       konta,
       /** Stan bibliotek zdjęć: tylko informacja, czy klucz jest na serwerze – nigdy wartość klucza. */
       biblioteki: DOSTAWCY_ZDJEC.map((id) => ({ id, ...BIBLIOTEKI[id], gotowa: zKluczem.has(id) })),
+      /** Paczka 124 – dostawcy zdjęć AI: klucz tylko jako tak/nie, model i cena domyślna (do sprawdzenia z cennikiem). */
+      dostawcyObrazowAi: DOSTAWCY_OBRAZOW_AI.map((id) => ({
+        id,
+        ...DOSTAWCY_AI[id],
+        klucz: this.obrazyAi.maKlucz(id),
+        modelDomyslny: DOMYSLNE_OBRAZY_AI[id].model,
+        cenaDomyslnaUsd: DOMYSLNE_OBRAZY_AI[id].cenaZaObrazUsd,
+      })),
       miesiac: {
         miesiac,
         generacje: suma._sum.generacje ?? 0,
@@ -125,6 +142,7 @@ export class KreatorAdminController {
         kosztUsd: Number(suma._sum.kosztUsd ?? 0),
         cacheZapis: suma._sum.cacheZapis ?? 0,
         cacheOdczyt: suma._sum.cacheOdczyt ?? 0,
+        obrazyAi: suma._sum.obrazyAi ?? 0,
       },
     };
   }
@@ -138,7 +156,12 @@ export class KreatorAdminController {
   async zapisz(@Body() body: KonfiguracjaKreatoraDto, @CurrentUser() actor: { userId: string }) {
     const dozwolone = new Set((await this.modele()).map((m) => m.model));
     for (const m of [body.modelGeneracji, body.modelZmian]) if (m !== undefined && !dozwolone.has(m)) throw new BadRequestException(BLAD_MODELU);
-    const konf = odczytajKonfiguracjeKreatora(JSON.stringify({ ...(await this.kreator.konfiguracja()), ...body }));
+    const obecna = await this.kreator.konfiguracja();
+    // Zdjęcia AI scalane polami (zmiana samej ceny nie wyłącza generowania); zmiana dostawcy bez modelu → model domyślny.
+    const zmiany = Object.fromEntries(Object.entries(body.obrazyAi ?? {}).filter(([, v]) => v !== undefined)) as Partial<typeof obecna.obrazyAi>;
+    const innyDostawca = !!zmiany.dostawca && zmiany.dostawca !== obecna.obrazyAi.dostawca;
+    const obrazyAi = { ...obecna.obrazyAi, ...(innyDostawca && !zmiany.model ? { model: '' } : {}), ...zmiany };
+    const konf = odczytajKonfiguracjeKreatora(JSON.stringify({ ...obecna, ...body, obrazyAi }));
     await this.zapiszKonfiguracje(konf, actor.userId, {});
     return this.konfiguracja();
   }

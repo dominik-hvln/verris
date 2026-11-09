@@ -1,5 +1,5 @@
 import sharp from 'sharp';
-import { BladObrazu, MAKS_BAJTOW_WEJSCIA, przetworzObraz, rozpoznajTyp } from './zasoby-obraz.js';
+import { BladObrazu, MAKS_BAJTOW_WEJSCIA, XMP_AI, przetworzObraz, rozpoznajTyp } from './zasoby-obraz.js';
 
 /** Paczka 122 – przetwarzanie zdjęć biblioteki kreatora (sharp): typ po zawartości, EXIF/GPS, warianty, limity. */
 const plotno = (w: number, h: number) => sharp({ create: { width: w, height: h, channels: 3, background: '#c86432' } });
@@ -79,5 +79,16 @@ describe('przetworzObraz', () => {
     const duzy = await plotno(8000, 6000).png({ compressionLevel: 9 }).toBuffer();
     expect(duzy.length).toBeLessThan(MAKS_BAJTOW_WEJSCIA);
     await expect(przetworzObraz(duzy)).rejects.toThrow(/rozdzielczość/);
+  });
+
+  it('paczka 124: zdjęcie AI – XMP IPTC „trainedAlgorithmicMedia” w oryginale i każdym wariancie; zwykłe wgranie bez XMP', async () => {
+    const wejscie = await plotno(1200, 900).jpeg().toBuffer();
+    const ai = await przetworzObraz(wejscie, { xmp: XMP_AI });
+    for (const plik of [ai.oryginal, ...ai.warianty.map((w) => w.dane)]) {
+      const m = await sharp(plik).metadata();
+      expect(m.xmp?.toString()).toContain('http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia');
+    }
+    const zwykle = await przetworzObraz(wejscie);
+    for (const plik of [zwykle.oryginal, ...zwykle.warianty.map((w) => w.dane)]) expect((await sharp(plik).metadata()).xmp).toBeUndefined();
   });
 });

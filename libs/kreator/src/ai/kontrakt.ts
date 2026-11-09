@@ -1,4 +1,5 @@
 import type { Firma, Strona, TypSekcji, WynikWalidacji } from '../model.ts';
+import type { JezykDodatkowy } from '../jezyki.ts';
 import type { WersjaKreatora } from '../plany.ts';
 
 /**
@@ -60,7 +61,7 @@ export interface KierunekProjektu {
 export interface FunkcjeAiKreatora {
   budujZapytanieGeneracji(brief: BriefStrony, wersja: WersjaKreatora, kierunek: KierunekProjektu): ZapytanieAi;
   /** Zmiana całej strony (sekcjaId = null) albo jednej sekcji poleceniem klienta. */
-  budujZapytanieZmiany(strona: Strona, polecenie: string, sekcjaId: string | null, wersja: WersjaKreatora): ZapytanieAi;
+  budujZapytanieZmiany(strona: Strona, polecenie: string, sekcjaId: string | null, wersja: WersjaKreatora, slug?: string): ZapytanieAi;
   /** Jedna runda naprawy po błędach walidacji (dokleja się do rozmowy). */
   wiadomosciNaprawy(odpowiedz: string, bledy: string[]): WiadomoscAi[];
   /**
@@ -68,7 +69,8 @@ export interface FunkcjeAiKreatora {
    * nie podał. Bez briefu te dwie kontrole są pomijane.
    */
   odczytajWynikGeneracji(tekst: string, wersja: WersjaKreatora, brief?: BriefStrony): WynikWalidacji;
-  odczytajWynikZmiany(strona: Strona, tekst: string, sekcjaId: string | null, wersja: WersjaKreatora): WynikWalidacji;
+  /** `slug` (paczka 124) – podstrona zmienianej sekcji (wersje językowe mają sekcje o tych samych id). */
+  odczytajWynikZmiany(strona: Strona, tekst: string, sekcjaId: string | null, wersja: WersjaKreatora, slug?: string): WynikWalidacji;
   /**
    * `odciskiNiedawne` – odciski ostatnich stron tej branży; `los` – wstrzykiwalne źródło losowości (testy);
    * `wersja` – bez Kreatora Pro tylko style `pro: false` (domyślnie wersja bez Pro).
@@ -76,4 +78,11 @@ export interface FunkcjeAiKreatora {
   wybierzKierunki(brief: BriefStrony, ile: number, odciskiNiedawne: string[], los?: () => number, wersja?: WersjaKreatora): KierunekProjektu[];
   /** Odcisk projektu (styl + fonty + kluczowe warianty) do unikania powtórek. */
   odciskStrony(strona: Strona): string;
+  /**
+   * Paczka 124 – tłumaczenie podstron języka głównego (klucze) na język dodatkowy; `zStopka` – z tekstem stopki.
+   * Bloki systemu jak przy zmianie (1 h + 1 h + strona 5 min).
+   */
+  budujZapytanieTlumaczenia(strona: Strona, jezyk: JezykDodatkowy, klucze: string[], wersja: WersjaKreatora, zStopka?: boolean): ZapytanieAi;
+  /** Cała strona z wstawioną wersją językową podstron albo błędy (jedna runda naprawy jak przy zmianie). */
+  odczytajWynikTlumaczenia(strona: Strona, tekst: string, jezyk: JezykDodatkowy, klucze: string[], opcje?: { data?: string; zStopka?: boolean }): WynikWalidacji;
 }

@@ -38,7 +38,7 @@ describe('formularz kontaktowy – adres wysyłki', () => {
     expect(f.atr.action).toBe(ADRES_FORMULARZA);
     expect(f.atr.method).toBe('post');
     const ukryte = Object.fromEntries(tagi.filter((t) => t.atr.type === 'hidden').map((t) => [t.atr.name, t.atr.value]));
-    expect(ukryte).toEqual({ formularz: 'kontakt', powrot: 'https://www.przyklad.pl/', czas: '' });
+    expect(ukryte).toEqual({ formularz: 'kontakt', jezyk: 'pl', powrot: 'https://www.przyklad.pl/', czas: '' });
     const hp = tagi.find((t) => t.atr.name === 'strona_www')!;
     expect(hp.atr.tabindex).toBe('-1');
     expect(hp.atr.autocomplete).toBe('off');

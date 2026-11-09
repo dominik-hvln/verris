@@ -97,11 +97,16 @@ describe('/kreator-stron', () => {
     expect(html).toMatch(/data-conv="checkout_intent"/);
   });
 
-  it('bez obietnic spoza kodu: WordPress, wersje językowe, zmyślone liczby; bez pauzy i białej etykiety', () => {
-    expect(tekst).not.toMatch(/WordPress|wersj\p{L}* językow|wielojęzycz|hreflang|tłumacz/iu);
+  it('bez obietnic spoza kodu: WordPress, zmyślone liczby; bez pauzy i białej etykiety', () => {
+    expect(tekst).not.toMatch(/WordPress/iu);
     expect(tekst).not.toMatch(/\d+\s?% klientów|tysiące|najlepsz|nr 1|lider/i);
     expect(tekst).not.toContain('—');
     expect(tekst).not.toMatch(/DirectAdmin|CloudLinux|LiteSpeed|2222/);
+  });
+
+  it('wersje językowe (paczka 124): wiersz porównania – nie w cenie hostingu, w Pro trzy języki z modelu', () => {
+    expect(html).toMatch(/<th scope="row">Wersje językowe<\/th><td data-label="W cenie hostingu">nie<\/td><td data-label="Kreator Pro"[^>]*>(<[^>]+>)*do 3 dodatkowych: angielski, niemiecki, ukraiński – tłumaczenie AI i przełącznik języka/);
+    expect(tekst).not.toMatch(/francusk|hiszpańsk|czesk|rosyjsk|wielojęzycz/iu);
   });
 
   it('zrzuty przykładów są w public/kreator (WebP 640 i 1280), bez plików PNG', () => {

@@ -11,8 +11,8 @@ import { glowa, klasaPojawiania, sekcja } from './wspolne.ts';
 export function nawigacjaKaruzeli(k: KontekstPodstrony, etykieta: string): string {
   k.s.js.add('karuzela');
   return (
-    `<div class="karuzela-nav"><button type="button" class="karuzela-btn" data-kierunek="-1" aria-label="${esc(etykieta)}: poprzednie">${ikona('strzalka-l')}</button>` +
-    `<button type="button" class="karuzela-btn" data-kierunek="1" aria-label="${esc(etykieta)}: następne">${ikona('strzalka')}</button></div>`
+    `<div class="karuzela-nav"><button type="button" class="karuzela-btn" data-kierunek="-1" aria-label="${esc(etykieta)}: ${esc(k.t.poprzednie)}">${ikona('strzalka-l')}</button>` +
+    `<button type="button" class="karuzela-btn" data-kierunek="1" aria-label="${esc(etykieta)}: ${esc(k.t.nastepne)}">${ikona('strzalka')}</button></div>`
   );
 }
 
@@ -25,7 +25,7 @@ export function renderGaleria(k: KontekstPodstrony, sek: SekcjaTypu<'galeria'>):
     return sekcja(
       k,
       sek,
-      `<div class="kontener${poj}"><div class="karuzela-glowa">${g}${nawigacjaKaruzeli(k, 'Galeria')}</div></div><div class="karuzela"><ul class="karuzela-tor galeria-tor" tabindex="0" aria-label="${esc(d.naglowek)}">${d.obrazy.map((o) => el(o)).join('')}</ul></div>`,
+      `<div class="kontener${poj}"><div class="karuzela-glowa">${g}${nawigacjaKaruzeli(k, k.t.galeria)}</div></div><div class="karuzela"><ul class="karuzela-tor galeria-tor" tabindex="0" aria-label="${esc(d.naglowek)}">${d.obrazy.map((o) => el(o)).join('')}</ul></div>`,
     );
   }
   const g = glowa(sek, { naglowek: d.naglowek, wstep: d.wstep, klasa: 'glowa-rzad' }, k);
@@ -67,8 +67,8 @@ export function opinieDoPokazania(k: { podglad: boolean }, sek: Opinie): boolean
 }
 
 /** `ak(pole)` – atrybuty edycji na stronie dla pola tego wpisu (poza edycją ''). */
-function opinia(w: Opinie['dane']['wpisy'][number], klasa: string, ak: (pole: string) => string = () => ''): string {
-  const zrodlo = w.zrodloUrl && /^https:\/\/[^\s"<>]+$/i.test(w.zrodloUrl) ? ` <a class="opinia-zrodlo" ${atrLinku(w.zrodloUrl)}>Źródło</a>` : '';
+function opinia(w: Opinie['dane']['wpisy'][number], klasa: string, ak: (pole: string) => string = () => '', etZrodla = 'Źródło'): string {
+  const zrodlo = w.zrodloUrl && /^https:\/\/[^\s"<>]+$/i.test(w.zrodloUrl) ? ` <a class="opinia-zrodlo" ${atrLinku(w.zrodloUrl)}>${esc(etZrodla)}</a>` : '';
   return (
     `<figure class="${klasa}"><blockquote><p${ak('tresc')}>${esc(w.tresc)}</p></blockquote>` +
     `<figcaption><span class="opinia-autor"${ak('autor')}>${esc(w.autor)}</span>${w.data ? ` <span class="opinia-data"${ak('data')}>${esc(w.data)}</span>` : ''}${zrodlo}</figcaption></figure>`
@@ -78,11 +78,11 @@ function opinia(w: Opinie['dane']['wpisy'][number], klasa: string, ak: (pole: st
 export function renderOpinie(k: KontekstPodstrony, sek: Opinie): string {
   const d = sek.dane;
   const poj = klasaPojawiania(k);
-  const nad = d.zrodlo === 'google' ? 'Opinie z Google' : sek.wMenu;
+  const nad = d.zrodlo === 'google' ? k.t.opinieZGoogle : sek.wMenu;
   const ak = edytowalne(k, sek);
   const op = (w: Opinie['dane']['wpisy'][number], klasa: string) => {
     const i = d.wpisy.indexOf(w);
-    return opinia(w, klasa, (pole) => ak(`dane.wpisy.${i}.${pole}`));
+    return opinia(w, klasa, (pole) => ak(`dane.wpisy.${i}.${pole}`), k.t.zrodloOpinii);
   };
   if (!d.wpisy.length) {
     const g = glowa(sek, { naglowek: d.naglowek, nad }, k);
@@ -98,7 +98,7 @@ export function renderOpinie(k: KontekstPodstrony, sek: Opinie): string {
     return sekcja(k, sek, `<div class="kontener${poj}">${g}<div class="opinie-kolumny">${d.wpisy.map((w) => op(w, 'opinia karta-opinii')).join('')}</div></div>`);
   }
   const wiele = d.wpisy.length > 1;
-  const nav = wiele ? nawigacjaKaruzeli(k, 'Opinie') : '';
+  const nav = wiele ? nawigacjaKaruzeli(k, k.t.opinie) : '';
   const g = glowa(sek, { naglowek: d.naglowek, nad }, k);
   if (sek.wariant === 'opinie-karuzela') {
     return sekcja(

@@ -177,6 +177,22 @@ describe('formularz – funkcje pomocnicze', () => {
     expect(m).not.toHaveProperty('html');
   });
 
+  it('wersja językowa (paczka 124): pole jezyk z formularza, mail do firmy po polsku z informacją o języku strony', () => {
+    const en = odczytajFormularz({ ...POPRAWNY, jezyk: 'en' });
+    if (!en.ok) throw new Error(en.powod);
+    expect(en.dane.jezyk).toBe('en');
+    const m = mailFormularza(en.dane, { domena: 'x.pl', adresStrony: 'https://x.pl/en/' });
+    expect(m.text).toContain('Język strony: angielski (EN)');
+    expect(m.text).toContain('Nowa wiadomość z formularza kontaktowego');
+    const pl = odczytajFormularz({ ...POPRAWNY, jezyk: 'pl' });
+    if (!pl.ok) throw new Error(pl.powod);
+    expect(mailFormularza(pl.dane, { domena: 'x.pl', adresStrony: 'https://x.pl/' }).text).not.toContain('Język strony');
+    // Brak pola (strony opublikowane przed paczką 124) i wartość spoza listy – bez języka, bez błędu.
+    expect((odczytajFormularz(POPRAWNY) as { dane: { jezyk: unknown } }).dane.jezyk).toBeNull();
+    expect((odczytajFormularz({ ...POPRAWNY, jezyk: 'xx' }) as { dane: { jezyk: unknown } }).dane.jezyk).toBeNull();
+    expect(odczytajFormularz({ ...POPRAWNY, jezyk: 'x'.repeat(6) })).toEqual({ ok: false, powod: 'pole-jezyk' });
+  });
+
   it('odczyt: wymagane imię i e-mail albo telefon, poprawny e-mail; ocena spamu', () => {
     expect(odczytajFormularz({ ...POPRAWNY, imie: '  ' })).toEqual({ ok: false, powod: 'imie' });
     expect(odczytajFormularz({ ...POPRAWNY, email: '', telefon: '' })).toEqual({ ok: false, powod: 'kontakt' });

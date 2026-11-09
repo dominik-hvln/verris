@@ -13,6 +13,7 @@ import { DostawcaPixabay } from './biblioteka/pixabay.js';
 import { DostawcaOpenverse } from './biblioteka/openverse.js';
 import { DostawcaPexels } from './biblioteka/pexels.js';
 import { KontoTestoweDto } from './dto/kreator-admin.dto.js';
+import { KonfiguracjaKreatoraDto } from './dto/kreator.dto.js';
 
 /**
  * Paczka 123 – ekran „Kreator stron” w adminie: konfiguracja (modele tylko Anthropic z listy, biblioteki zdjęć
@@ -51,6 +52,7 @@ function stanowisko(konf: Partial<KonfiguracjaKreatora> = {}, uzytkownicy: { id:
         return [{ model: 'claude-sonnet-5-5', wywolania: 5, wej: 1000, wyj: 500, zapis5m: 0, zapis1h: 10_000, odczyt: 40_000, kosztUsd: 0.051 }];
       }
       if (s.includes('GROUP BY 1')) return [{ dzien: '2026-11-08', wywolania: 5, generacje: 3, zmiany: 2, kosztUsd: 0.051 }];
+      if (s.includes("'obrazy'")) return [{ wywolania: 3, obrazy: 7, udane: 6, moderowane: 1, kosztUsd: 0.28 }];
       throw new Error(`nieoczekiwane zapytanie: ${s}`);
     }),
     subscription: { findMany: vi.fn(async () => [{ priceAmount: new Prisma.Decimal('9.90'), interval: 'MONTH' }, { priceAmount: new Prisma.Decimal('99.00'), interval: 'YEAR' }]) },
@@ -65,7 +67,9 @@ function stanowisko(konf: Partial<KonfiguracjaKreatora> = {}, uzytkownicy: { id:
   const provider = { konfiguracja: vi.fn(async () => ({ ...DOMYSLNA_KONFIGURACJA_AI })), klucz: vi.fn(() => 'sk-ant') };
   const kreator = { konfiguracja: vi.fn(async () => zapisana) };
   const biblioteka = new BibliotekaZdjec([new DostawcaPixabay(KLUCZ_PIXABAY), new DostawcaOpenverse(), new DostawcaPexels(undefined)]);
-  const c = new KreatorAdminController(prisma as never, provider as never, audit as never, kreator as never, biblioteka);
+  // Paczka 124 – stan kluczy dostawców zdjęć AI (BFL z kluczem, OpenAI bez).
+  const obrazyAi = { maKlucz: vi.fn((d: string) => d === 'bfl') };
+  const c = new KreatorAdminController(prisma as never, provider as never, audit as never, kreator as never, biblioteka, obrazyAi as never);
   return { c, prisma, audit, zapisana: () => zapisana };
 }
 
@@ -119,8 +123,42 @@ describe('KreatorAdminController – konfiguracja', () => {
     const { c, prisma, audit, zapisana } = stanowisko({ kontaTestowe: ['a@b.pl'] });
     await c.zapisz({ wlaczony: true, modelGeneracji: 'claude-opus-5-5', modelZmian: 'claude-haiku-4-5-20251001', bibliotekiZdjec: ['openverse', 'pixabay'] }, ADMIN);
     expect(prisma.platformSetting.upsert).toHaveBeenCalledWith(expect.objectContaining({ where: { key: KLUCZ_KONFIGURACJI_KREATORA } }));
-    expect(zapisana()).toEqual({ wlaczony: true, modelGeneracji: 'claude-opus-5-5', modelZmian: 'claude-haiku-4-5-20251001', bibliotekiZdjec: ['openverse', 'pixabay'], kontaTestowe: ['a@b.pl'] });
+    expect(zapisana()).toEqual({
+      wlaczony: true,
+      modelGeneracji: 'claude-opus-5-5',
+      modelZmian: 'claude-haiku-4-5-20251001',
+      bibliotekiZdjec: ['openverse', 'pixabay'],
+      kontaTestowe: ['a@b.pl'],
+      obrazyAi: DOMYSLNA_KONFIGURACJA_KREATORA.obrazyAi,
+    });
     expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'ADMIN_AI_SETTINGS_UPDATED', actorUserId: 'admin-1', details: { kreator: expect.objectContaining({ wlaczony: true, kontaTestowe: 1 }) } }));
+  });
+
+  it('zdjęcia AI (paczka 124): stan klucza tylko tak/nie, zapis scala pola, zmiana dostawcy bez modelu → model domyślny', async () => {
+    const { c, zapisana } = stanowisko();
+    const r = await c.konfiguracja();
+    expect(r.dostawcyObrazowAi).toEqual([
+      { id: 'bfl', nazwa: 'Black Forest Labs FLUX', zmienna: 'BFL_API_KEY', klucz: true, modelDomyslny: 'flux-pro-1.1', cenaDomyslnaUsd: 0.04 },
+      { id: 'openai', nazwa: 'OpenAI Images', zmienna: 'AI_API_KEY', klucz: false, modelDomyslny: 'gpt-image-1', cenaDomyslnaUsd: 0.06 },
+    ]);
+    expect(r.konfiguracja.obrazyAi).toEqual({ wlaczone: false, dostawca: 'bfl', model: 'flux-pro-1.1', cenaZaObrazUsd: 0.04 });
+    // Sama cena nie wyłącza generowania ani nie zmienia modelu.
+    await c.zapisz({ obrazyAi: { wlaczone: true, model: 'flux-pro-1.1-ultra' } }, ADMIN);
+    await c.zapisz({ obrazyAi: { cenaZaObrazUsd: 0.06, model: undefined } }, ADMIN);
+    expect(zapisana().obrazyAi).toEqual({ wlaczone: true, dostawca: 'bfl', model: 'flux-pro-1.1-ultra', cenaZaObrazUsd: 0.06 });
+    await c.zapisz({ obrazyAi: { dostawca: 'openai' } }, ADMIN);
+    expect(zapisana().obrazyAi).toMatchObject({ dostawca: 'openai', model: 'gpt-image-1', wlaczone: true });
+    // Model niepasujący do dostawcy → domyślny dostawcy.
+    await c.zapisz({ obrazyAi: { model: 'flux-dev' } }, ADMIN);
+    expect(zapisana().obrazyAi.model).toBe('gpt-image-1');
+  });
+
+  it('DTO zdjęć AI: cena 0–5 USD, nieznany dostawca → komunikaty po polsku', () => {
+    const bledy = validateSync(plainToInstance(KonfiguracjaKreatoraDto, { obrazyAi: { dostawca: 'midjourney', cenaZaObrazUsd: 9 } }), { whitelist: true, forbidNonWhitelisted: true });
+    const tekst = JSON.stringify(bledy);
+    expect(tekst).toContain('Nieznany dostawca zdjęć AI.');
+    expect(tekst).toContain('Cena za obraz: najwyżej 5 USD.');
+    expect(validateSync(plainToInstance(KonfiguracjaKreatoraDto, { obrazyAi: { dostawca: 'bfl', cenaZaObrazUsd: 0.04, wlaczone: true } }), { whitelist: true, forbidNonWhitelisted: true })).toEqual([]);
   });
 
   it('zapis: model spoza listy (także claude-… bez ceny) → 400 po polsku, bez zapisu', async () => {
@@ -223,6 +261,7 @@ describe('Podsumowanie miesiąca', () => {
     expect(r.koszt).toMatchObject({ cacheZapisUsd: 0.04, cacheOdczytUsd: 0.004, razemUsd: 0.051, oszczednoscUsd: 0.056 });
     expect(r.pro).toEqual({ aktywne: 2, miesieczne: 1, roczne: 1, miesiecznieBrutto: 18.15, miesiecznieNetto: 14.76 });
     expect(r.magazyn).toEqual({ zdjecia: 12, bajty: 3_500_000 });
+    expect(r.obrazyAi).toEqual({ wywolania: 3, obrazy: 7, udane: 6, moderowane: 1, kosztUsd: 0.28 });
     expect(r.dni).toHaveLength(30);
     expect(r.bledy).toHaveLength(1);
     expect(r.bledy[0]).toMatchObject({ id: 's1', email: 'jan@przyklad.pl', at: '2026-11-08T10:00:00.000Z' });

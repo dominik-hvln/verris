@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useId, useState, useTransition } from 'react';
-import { AlertTriangle, ArrowDown, ArrowUp, Bot, Image as Zdjecie, Loader2, Plus, Save, Trash2, Users } from 'lucide-react';
+import { AlertTriangle, ArrowDown, ArrowUp, Bot, Image as Zdjecie, Loader2, Plus, Save, Sparkles, Trash2, Users } from 'lucide-react';
 import { Select, type SelectOption } from '@/components/select';
 import { Checkbox } from '@/components/checkbox';
 import { potwierdz } from '@/components/potwierdz';
@@ -12,7 +12,9 @@ import {
   usunKontoTestowe,
   zapiszKreator,
   type BibliotekaZdjec,
+  type DostawcaObrazowAi,
   type KonfiguracjaKreatora,
+  type KonfiguracjaObrazowAi,
   type UstawieniaKreatora,
 } from './actions';
 
@@ -128,7 +130,20 @@ export function KreatorForm({ initial, magazyn }: { initial: UstawieniaKreatora;
     konf.wlaczony !== dane.konfiguracja.wlaczony ||
     konf.modelGeneracji !== dane.konfiguracja.modelGeneracji ||
     konf.modelZmian !== dane.konfiguracja.modelZmian ||
-    konf.bibliotekiZdjec.join() !== dane.konfiguracja.bibliotekiZdjec.join();
+    konf.bibliotekiZdjec.join() !== dane.konfiguracja.bibliotekiZdjec.join() ||
+    JSON.stringify(konf.obrazyAi) !== JSON.stringify(dane.konfiguracja.obrazyAi);
+  const ustawObrazy = (z: Partial<KonfiguracjaObrazowAi>) => ustaw({ obrazyAi: { ...konf.obrazyAi, ...z } });
+  const dostawcaAi = dane.dostawcyObrazowAi.find((d) => d.id === konf.obrazyAi.dostawca);
+  const wlaczObrazy = async (on: boolean) => {
+    if (on) {
+      const ok = await potwierdz(
+        'Dostawca obrazów to nowy podprocesor. Włącz generowanie zdjęć dopiero po publikacji zmiany Polityki prywatności (projekt: docs/legal/drafts/DO_ZATWIERDZENIA_zdjecia-ai.md). Włączyć mimo to? Zmiana zadziała po zapisie.',
+        { akcja: 'Włącz generowanie zdjęć', tytul: 'Generowanie zdjęć AI' },
+      );
+      if (!ok) return;
+    }
+    ustawObrazy({ wlaczone: on });
+  };
 
   return (
     <div className="space-y-8">
@@ -348,6 +363,82 @@ export function KreatorForm({ initial, magazyn }: { initial: UstawieniaKreatora;
         ) : null}
       </section>
 
+      <section data-sekcja="zdjecia-ai" className={SEKCJA}>
+        <h2 className={NAGLOWEK}>
+          <Sparkles className="h-4 w-4" aria-hidden /> Generowanie zdjęć AI
+        </h2>
+        <p className="text-[11px] text-neutral-400">
+          Zakładka „Wygeneruj” w wyborze zdjęcia. Opis klienta tłumaczy na prompt model zmian AI (wyżej), obraz tworzy dostawca poniżej.
+          Bez klucza albo wyłączone – klient widzi „Generowanie zdjęć wkrótce”. Limity miesięczne: próba 3, hosting 20, Pro 100.
+        </p>
+        <label className="flex items-start gap-3 text-sm text-white">
+          <Checkbox id={`${id}-obrazy`} checked={konf.obrazyAi.wlaczone} onChange={(e) => void wlaczObrazy(e.target.checked)} className="mt-0.5" />
+          <span>
+            Generowanie zdjęć włączone
+            <span className="block text-[11px] text-neutral-400">Dla wszystkich kont z dostępem do kreatora (także testowych). Działa od zapisu.</span>
+          </span>
+        </label>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="space-y-1">
+            <label htmlFor={`${id}-dostawca-ai`} className="text-xs font-medium text-neutral-300">
+              Dostawca
+            </label>
+            <Select
+              id={`${id}-dostawca-ai`}
+              value={konf.obrazyAi.dostawca}
+              options={dane.dostawcyObrazowAi.map((d) => ({ value: d.id, label: d.nazwa }))}
+              onChange={(v) => {
+                const d = dane.dostawcyObrazowAi.find((x) => x.id === v);
+                ustawObrazy({ dostawca: v as DostawcaObrazowAi, ...(d ? { model: d.modelDomyslny } : {}) });
+              }}
+            />
+          </div>
+          <label htmlFor={`${id}-model-ai`} className="block space-y-1">
+            <span className="text-xs font-medium text-neutral-300">Model</span>
+            <input
+              id={`${id}-model-ai`}
+              value={konf.obrazyAi.model}
+              onChange={(e) => ustawObrazy({ model: e.target.value.trim().toLowerCase() })}
+              maxLength={60}
+              autoComplete="off"
+              className={POLE}
+            />
+          </label>
+          <label htmlFor={`${id}-cena-ai`} className="block space-y-1">
+            <span className="text-xs font-medium text-neutral-300">Cena za obraz (USD)</span>
+            <input
+              id={`${id}-cena-ai`}
+              type="number"
+              min={0}
+              max={5}
+              step={0.001}
+              value={konf.obrazyAi.cenaZaObrazUsd}
+              onChange={(e) => ustawObrazy({ cenaZaObrazUsd: Number(e.target.value) })}
+              className={POLE}
+            />
+          </label>
+        </div>
+        <p className="text-[11px] text-neutral-400">
+          Cenę za obraz ustaw wg cennika dostawcy – liczy z niej koszt w podsumowaniu i budżet AI platformy
+          {dostawcaAi ? ` (domyślnie ${usd(dostawcaAi.cenaDomyslnaUsd)} dla ${dostawcaAi.modelDomyslny} – do sprawdzenia z cennikiem)` : ''}.
+        </p>
+        <ul className="divide-y divide-white/5 rounded-xl border border-white/10" aria-label="Klucze dostawców zdjęć AI">
+          {dane.dostawcyObrazowAi.map((d) => (
+            <li key={d.id} data-dostawca-ai={d.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-sm text-white">
+              <span>{d.nazwa}</span>
+              {d.klucz ? (
+                <span className="rounded-full border border-emerald-400/30 px-2 py-0.5 text-[11px] text-emerald-200">klucz: tak</span>
+              ) : (
+                <span className="rounded-full border border-amber-400/40 px-2 py-0.5 text-[11px] text-amber-200">klucz: nie ({d.zmienna})</span>
+              )}
+            </li>
+          ))}
+        </ul>
+        <p className="text-[11px] text-neutral-400">
+          W tym miesiącu: {dane.miesiac.obrazyAi.toLocaleString('pl-PL')} {plForm(dane.miesiac.obrazyAi, 'zdjęcie AI', 'zdjęcia AI', 'zdjęć AI')} w limitach kont. Koszt – w podsumowaniu niżej.
+        </p>
+      </section>
+
       <div className="flex max-w-3xl flex-wrap items-center gap-3">
         <button
           type="button"
@@ -361,7 +452,7 @@ export function KreatorForm({ initial, magazyn }: { initial: UstawieniaKreatora;
         <span role="status" className="text-xs">
           {stan.ok && !zmieniono ? <span className="text-emerald-300">Zapisano – działa od razu.</span> : null}
           {stan.error ? <span className="text-rose-300">{stan.error}</span> : null}
-          {zmieniono && !stan.error ? <span className="text-amber-200">Niezapisane zmiany (dostęp, modele albo biblioteki).</span> : null}
+          {zmieniono && !stan.error ? <span className="text-amber-200">Niezapisane zmiany (dostęp, modele, biblioteki albo zdjęcia AI).</span> : null}
         </span>
       </div>
     </div>

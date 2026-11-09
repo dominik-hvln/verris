@@ -11,6 +11,7 @@ import { files } from '@/lib/pl';
 import type { StanDomenyPublikacji, StanPublikacji, WynikPublikacji } from '@/lib/kreator';
 import { opublikuj, stanPublikacji, wycofajPublikacje } from '../akcje';
 import { Komunikat, klasaPrzyciskuDrugiego, klasaPrzyciskuGlownego } from '../wspolne';
+import { PrzejscieNaCms } from '../cms/przejscie-na-cms';
 
 const OPIS_STANU: Record<StanDomenyPublikacji, string> = {
   pusta: 'katalog pusty',
@@ -280,6 +281,9 @@ function OknoPublikacji({ id, otwarta, onZamknij, przedPublikacja, onOpublikowan
             Anuluj
           </button>
         </div>
+
+        {/* Paczka 124 – przejście na WordPressa (i kolejne CMS-y) po opłaceniu hostingu. */}
+        {!proba ? <PrzejscieNaCms id={id} /> : null}
       </>
     );
   }

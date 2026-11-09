@@ -1,11 +1,11 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { BadRequestException, ForbiddenException, NotFoundException, ServiceUnavailableException, UnprocessableEntityException } from '@nestjs/common';
-import { PRZYKLAD_SALON, walidujStrone, type FunkcjeAiKreatora, type Strona } from '@verris/kreator';
+import { funkcjeAiKreatora, PRZYKLAD_SALON, PRZYKLAD_SALON_EN, skrotTresci, tlumaczenieNieaktualne, walidujStrone, type FunkcjeAiKreatora, type Strona } from '@verris/kreator';
 import { KreatorService, LIMIT_WERSJI } from './kreator.service.js';
 import { KLUCZ_KONFIGURACJI_KREATORA, miesiacUtc } from './konfiguracja.js';
 import type { RendererKreatora } from './zaleznosci.js';
-import { ZmienNazweDto } from './dto/kreator.dto.js';
+import { TlumaczenieDto, ZmienNazweDto } from './dto/kreator.dto.js';
 
 /**
  * Serwis kreatora na atrapie Prismy w pamięci (tabele kreatora + to, z czego liczy się wersja kreatora)
@@ -582,5 +582,97 @@ describe('KreatorService – ponowna generacja (paczka 123)', () => {
     await expect(svc.generujPonownie('u1', 'u1', 's3')).rejects.toBeInstanceOf(ForbiddenException);
     expect(db.strony[2].status).toBe('BLAD');
     await expect(svc.generujPonownie('u1', 'u1', 'obca')).rejects.toBeInstanceOf(NotFoundException);
+  });
+});
+
+describe('KreatorService – wersje językowe (paczka 124)', () => {
+  /** Odpowiedź „modelu” z tłumaczeniem strony głównej salonu na angielski (fikstura salon-en). */
+  const odpEn = (klucz = '', sciezka = '') => {
+    const en = PRZYKLAD_SALON_EN.strony.find((p) => p.slug === 'en')!;
+    return JSON.stringify({ podstrony: [{ klucz, sciezka, tytul: klucz ? 'Prices' : en.tytul, seo: en.seo, sekcje: en.sekcje }], stopka: 'An intimate hair salon in Poznan.' });
+  };
+  const zPro = (db: { subs: Rek[] }) => db.subs.push({ userId: 'u1', isTrial: false, trialConvertedAt: null, plan: { productKind: 'KREATOR_PRO' }, priceAmount: '9.90' });
+  const zbudujT = (odpowiedzi: Array<string | Error>) => {
+    const z = zbuduj(odpowiedzi);
+    z.ai.budujZapytanieTlumaczenia = vi.fn(funkcjeAiKreatora.budujZapytanieTlumaczenia);
+    z.ai.odczytajWynikTlumaczenia = vi.fn(funkcjeAiKreatora.odczytajWynikTlumaczenia);
+    return z;
+  };
+
+  it('tylko Kreator Pro – bez Pro 403 bez wywołania AI i bez zużycia limitu', async () => {
+    const { svc, db, provider } = zbudujT([odpEn()]);
+    db.strony.push({ id: 's1', userId: 'u1', status: 'GOTOWA', model: SALON, propozycje: null });
+    await expect(svc.tlumacz('u1', 'u1', 's1', { jezyk: 'en' })).rejects.toThrow(/dostępne w Kreatorze Pro/);
+    expect(provider.anthropicZBlokami).not.toHaveBeenCalled();
+    expect(zuzycie(db)?.zmiany ?? 0).toBe(0);
+  });
+
+  it('Pro: nowa wersja – strona główna + stopka, jedna zmiana AI na podstronę, wersja w historii, skrót oryginału', async () => {
+    const { svc, db, ai } = zbudujT([odpEn()]);
+    zPro(db);
+    db.strony.push({ id: 's1', userId: 'u1', status: 'GOTOWA', model: SALON, propozycje: null });
+    const r = await svc.tlumacz('u1', 'u1', 's1', { jezyk: 'en' });
+    expect(r.przetlumaczone).toEqual(['']);
+    expect(ai.budujZapytanieTlumaczenia).toHaveBeenCalledWith(expect.anything(), 'en', [''], 'pro', true);
+    const model = r.model!;
+    expect(model.jezykiDodatkowe).toEqual(['en']);
+    const en = model.strony.find((p) => p.slug === 'en')!;
+    expect(en.tlumaczenie?.zrodlo).toBe(skrotTresci(model.strony[0]!));
+    expect(model.stopka.tlumaczenia?.en?.tekst).toBe('An intimate hair salon in Poznan.');
+    expect(zuzycie(db)?.zmiany).toBe(1);
+    expect(db.wersje).toEqual([expect.objectContaining({ zrodlo: 'AI_ZMIANA', opis: 'Tłumaczenie (angielski): Start' })]);
+    // Zmiana oryginału po tłumaczeniu = tłumaczenie nieaktualne (edytor pokazuje ostrzeżenie).
+    const zmieniony = structuredClone(model);
+    zmieniony.strony[0]!.tytul = 'Strona główna';
+    expect(tlumaczenieNieaktualne(zmieniony, zmieniony.strony.find((p) => p.slug === 'en')!)).toBe(true);
+  });
+
+  it('pierwsze tłumaczenie języka zawsze dokłada stronę główną; nieudana strona główna = 422 i zwrot limitu', async () => {
+    const z = structuredClone(SALON);
+    z.strony.push({ ...structuredClone(z.strony[0]!), slug: 'cennik', tytul: 'Cennik' });
+    const { svc, db, ai } = zbudujT(['zła odpowiedź', 'nadal zła']);
+    zPro(db);
+    db.strony.push({ id: 's1', userId: 'u1', status: 'GOTOWA', model: z, propozycje: null });
+    await expect(svc.tlumacz('u1', 'u1', 's1', { jezyk: 'de', podstrony: ['cennik'] })).rejects.toBeInstanceOf(UnprocessableEntityException);
+    expect(ai.budujZapytanieTlumaczenia).toHaveBeenCalledTimes(1);
+    expect(ai.budujZapytanieTlumaczenia).toHaveBeenCalledWith(expect.anything(), 'de', [''], 'pro', true);
+    expect(zuzycie(db)?.zmiany).toBe(0);
+    expect(db.wersje).toEqual([]);
+  });
+
+  it('limit zmian AI: brak miejsca → 403 bez wywołania AI', async () => {
+    const { svc, db, provider } = zbudujT([odpEn()]);
+    zPro(db);
+    db.strony.push({ id: 's1', userId: 'u1', status: 'GOTOWA', model: SALON, propozycje: null });
+    db.zuzycie.push({ userId: 'u1', miesiac: miesiacUtc(), generacje: 0, zmiany: 1000, kosztUsd: 0 });
+    await expect(svc.tlumacz('u1', 'u1', 's1', { jezyk: 'en' })).rejects.toThrow(/limit zmian AI \(1000\)/);
+    expect(provider.anthropicZBlokami).not.toHaveBeenCalled();
+  });
+
+  it('język główny i nieznana podstrona → 400', async () => {
+    const { svc, db } = zbudujT([]);
+    zPro(db);
+    db.strony.push({ id: 's1', userId: 'u1', status: 'GOTOWA', model: SALON, propozycje: null });
+    await expect(svc.tlumacz('u1', 'u1', 's1', { jezyk: 'pl' as never })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(svc.tlumacz('u1', 'u1', 's1', { jezyk: 'en', podstrony: ['nie-ma'] })).rejects.toThrow(/Nie ma takiej podstrony/);
+  });
+
+  it('DTO: tylko en/de/uk, najwyżej 5 podstron naraz', async () => {
+    const bledy = async (x: unknown) => (await validate(plainToInstance(TlumaczenieDto, x))).length;
+    expect(await bledy({ jezyk: 'en' })).toBe(0);
+    expect(await bledy({ jezyk: 'pl' })).toBeGreaterThan(0);
+    expect(await bledy({ jezyk: 'en', podstrony: ['a', 'b', 'c', 'd', 'e', 'f'] })).toBeGreaterThan(0);
+    expect(await bledy({ jezyk: 'en', podstrony: ['', 'blog/wpis'] })).toBe(0);
+  });
+
+  it('zmiana sekcji AI w wersji językowej: podstrona z żądania trafia do zapytania i odczytu', async () => {
+    const { svc, db, ai } = zbuduj(['{}']);
+    zPro(db);
+    const model = walidujStrone(PRZYKLAD_SALON_EN);
+    if (!model.ok) throw new Error(model.bledy.join());
+    db.strony.push({ id: 's1', userId: 'u1', status: 'GOTOWA', model: model.strona, propozycje: null });
+    await svc.zmienAi('u1', 'u1', 's1', { polecenie: 'Shorter', sekcjaId: 'start', podstrona: 'en' }).catch(() => undefined);
+    expect(ai.budujZapytanieZmiany).toHaveBeenCalledWith(expect.anything(), 'Shorter', 'start', 'pro', 'en');
+    await expect(svc.zmienAi('u1', 'u1', 's1', { polecenie: 'Shorter', sekcjaId: 'start', podstrona: 'cennik' })).rejects.toThrow(/Nie ma takiej sekcji/);
   });
 });
