@@ -354,6 +354,55 @@ po jednej instancji). Caddy z dynamicznymi upstreamami (DNS) rozłoży ruch na o
 i zawsze jedna będzie zdrowa. Wymaga drobnej zmiany w Caddyfile (`dynamic a`) —
 opisane w `docs/PLAN_DALSZYCH_PRAC_2026-06.md`.
 
+## Miejsce na dysku (control-plane)
+
+Incydent 10.11.2026: dysk panelu (75 GB) zapełniony w 99%, bez alarmu. Przyczyny: 217 kopii danych
+Grafany z każdego deployu (34 GB), dziennik systemd 3,7 GB, ~3 GB nieużywanych obrazów. Logika
+sprzątania siedzi w jednym miejscu: `ops/scripts/lib/miejsce-na-dysku.sh` (test:
+`apps/api/src/test/miejsce-na-dysku.spec.ts`).
+
+| Co rośnie | Gdzie | Limit / co go pilnuje |
+|---|---|---|
+| Kopie Grafany | `/var/lib/verris/backups/grafana-*.tgz` | kopia tylko przy zmianie obrazu Grafany albo `grafana.ini` (odcisk w `.grafana-odcisk`); zostają **3 najnowsze** (przycinane na końcu każdego deployu `prod-deploy-ghcr.sh`) |
+| Zrzuty z przejść infrastruktury | `/var/lib/verris/backups/infra-*/` | usuwane tylko, gdy są poza **2 najnowszymi i starsze niż 30 dni** (`prod-infra-upgrade.sh`, zrzuty baz przez `shred`) |
+| Dziennik systemd | `/var/log/journal` | `SystemMaxUse=500M` — `ops/systemd/journald-verris-limit.conf` → `/etc/systemd/journald.conf.d/verris-limit.conf` (instaluje deploy) |
+| Logi kontenerów | `/var/lib/docker/containers/*/*-json.log` | `x-logging`: json-file 10 MB × 5 na kontener (`docker-compose.prod.yml`, `ops/docker-compose.sogo-mail.yml`) |
+| Obrazy | `/var/lib/containerd` (containerd image store) albo `/var/lib/docker` | `docker image prune -af` + `builder prune` przed pull (ghcr); po buildzie `image prune -f` (rolling, release) |
+| Prometheus | wolumen `prometheus_data` | 30 dni **albo 6 GB** (`--storage.tsdb.retention.size`) |
+| Loki | wolumen `loki_data` | 7 dni (compactor `retention_enabled`) |
+| MinIO | wolumen `minio_data` | kopie bazy: lifecycle bucketu (14 dni), eksporty RODO 7 dni; reszta to dane klientów — bez automatu |
+| Staging kopii/odtworzeń | `/tmp/verris-backup-staging`, `/tmp/verris-restore-staging` | skrypty sprzątają pułapką `EXIT`; zapas: `ops/systemd/tmpfiles-verris.conf` (3 dni / 1 dzień, 0700) |
+
+**Strażnik w deployu** (`prod-deploy-ghcr.sh`, `-rolling`, `-release`, `prod-infra-upgrade.sh`): przy
+< 5 GB wolnego na `/` przed pobraniem/budowaniem obrazów robi prune, przycięcie kopii i odchudzenie
+dziennika; gdy dalej < 3 GB — przerywa z komunikatem `[dysk] STOP`, zanim cokolwiek zostanie podmienione.
+Progi: `DEPLOY_WOLNE_MIN_GB`, `DEPLOY_WOLNE_STOP_GB`.
+
+**Alarmy** (Grafana, grupa `verris_dysk_panelu`, e-mail jak pozostałe): `VerrisDyskPaneluPonad80`
+(> 80% przez 15 min, warning), `VerrisDyskPaneluPonad90` (> 90% przez 5 min, critical),
+`VerrisDyskPaneluPelnyZa24h` (`predict_linear` z 6 h, warning), `VerrisMetrykiDyskuPaneluNieobecne`
+(node_exporter nie dostarcza danych o `/`). Sprawdzenie: Grafana → Alerting → Alert rules → folder
+Verris; dane: zapytanie
+`100 * (1 - node_filesystem_avail_bytes{job="node",mountpoint="/"} / node_filesystem_size_bytes{job="node",mountpoint="/"})`
+w Explore (powinno zgadzać się z `df -h /`).
+
+Diagnoza (polecenia z incydentu):
+
+```bash
+sudo bash ops/scripts/lib/miejsce-na-dysku.sh stan          # wszystko poniżej naraz
+df -h /
+sudo du -xsh /var/lib/verris/backups /var/lib/containerd /var/lib/docker /var/log/journal /tmp/verris-*
+journalctl --disk-usage
+docker system df -v                                          # obrazy, wolumeny, cache budowania
+docker volume ls -f dangling=true                            # wolumeny bez kontenera — NIE usuwaj hurtem:
+                                                             # postgres_data/redis_data to celowy rollback PB-38
+sudo bash ops/scripts/lib/miejsce-na-dysku.sh przytnij      # retencja kopii lokalnych teraz
+sudo journalctl --vacuum-size=500M
+```
+
+Pliki hosta (limit journald, tmpfiles) instaluje każdy deploy, jeśli działa jako root; inaczej raz ręcznie:
+`sudo bash ops/scripts/lib/miejsce-na-dysku.sh zainstaluj` (idempotentne).
+
 ## Migracje DB
 
 Schemat Prismy (`libs/database/prisma/schema.prisma`) jest źródłem prawdy. Migracje produkcyjne idą przez `prisma migrate deploy`, deweloperskie przez `prisma migrate dev`.

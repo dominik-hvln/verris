@@ -62,6 +62,13 @@ mkdir -p "$KOPIE" && chmod 700 "$(dirname "$KOPIE")" "$KOPIE"
 umask 077
 log "katalog roboczy (0700): $KOPIE"
 
+# Incydent 10.11.2026 (dysk 99%): katalogi infra-* nie miały retencji. Na KAŻDYM wyjściu
+# (także przez fail) przycinamy stare: zostają 2 najnowsze i wszystkie młodsze niż 30 dni —
+# bieżący katalog (zrzuty do powrotu na Postgres 16) jest więc zawsze nietknięty.
+# shellcheck source=lib/miejsce-na-dysku.sh
+. ops/scripts/lib/miejsce-na-dysku.sh
+przytnij_kopie_przy_wyjsciu "$(dirname "$KOPIE")"
+
 pg() { compose exec -T postgres sh -c 'exec psql -U "$POSTGRES_USER" -d "${1:-$POSTGRES_DB}" -v ON_ERROR_STOP=1 -qAt' _ "$@"; }
 czekaj_na_zdrowie() { # usługa, limit sekund
   for _ in $(seq 1 "$2"); do
@@ -84,6 +91,9 @@ glitchtip_dziala() { [ -n "$(compose --profile glitchtip ps -q glitchtip-web 2>/
 # 0. Obrazy — pobierz wszystko PRZED oknem serwisowym (pobieranie nie może wydłużyć przerwy).
 # -----------------------------------------------------------------------------
 INFRA="postgres redis minio minio-bootstrap postgres-exporter redis-exporter node-exporter cadvisor loki alloy prometheus grafana caddy"
+# Zrzuty baz i nowe obrazy potrzebują miejsca — przy < 3 GB po sprzątaniu stop, zanim cokolwiek ruszy.
+zapewnij_miejsce_przed_pobraniem "$(dirname "$KOPIE")" \
+  || fail "za mało miejsca na dysku — nic nie zostało zmienione (DEPLOY.md, sekcja Miejsce na dysku)."
 log "pobieram obrazy infrastruktury…"
 compose pull $INFRA
 GLITCHTIP=0

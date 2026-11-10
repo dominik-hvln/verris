@@ -51,6 +51,24 @@ TIMESTAMP="$(date -u +%Y-%m-%d-%H%M)"
 OBJECT_NAME="verris-${TIMESTAMP}.sql.gz"
 OUT_FILE="${BACKUP_STAGING_DIR}/${OBJECT_NAME}"
 TMP_FILE="${OUT_FILE}.partial"
+PLAINTEXT_FILE="$OUT_FILE"
+
+# Sprzątanie stagingu przy KAŻDYM wyjściu (10.11.2026, przegląd miejsca na dysku): niedokończony
+# plik nie może zostać, a gdy skrypt padnie po zrzucie, a przed szyfrowaniem (brak age, brak
+# odbiorców), niezaszyfrowany zrzut z danymi osobowymi leżał w /tmp do dwóch dni (RODO art. 32).
+# Gdy szyfrowanie jest świadomie wyłączone, plaintext JEST kopią — wtedy zostaje.
+sprzatnij_staging() {
+  local rc=$?
+  rm -f "$TMP_FILE" 2>/dev/null || true
+  if [[ "$rc" -ne 0 && -f "$PLAINTEXT_FILE" ]] && backup_crypto_enabled; then
+    shred -u "$PLAINTEXT_FILE" 2>/dev/null || rm -f "$PLAINTEXT_FILE"
+  fi
+  exit "$rc"
+}
+# Biblioteka ładowana PRZED pułapką: backup_crypto_enabled jest potrzebne już przy pierwszym wyjściu.
+# shellcheck source=ops/lib/backup-crypto.sh
+source "${SCRIPT_DIR}/lib/backup-crypto.sh"
+trap sprzatnij_staging EXIT
 
 log "starting pg_dump → ${OUT_FILE}"
 
@@ -84,8 +102,6 @@ mv "$TMP_FILE" "$OUT_FILE"
 log "staging dump ${OUT_FILE} (${SIZE_BYTES} bytes)"
 
 # --- Szyfrowanie at-rest (age) — OBOWIĄZKOWE, chyba że jawnie wyłączone -------
-# shellcheck source=ops/lib/backup-crypto.sh
-source "${SCRIPT_DIR}/lib/backup-crypto.sh"
 if backup_crypto_enabled; then
   log "szyfrowanie dumpa (age)…"
   # backup_crypto_encrypt_file usuwa plaintext (shred) i zwraca ścieżkę *.age

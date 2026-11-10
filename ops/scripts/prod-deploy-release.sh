@@ -27,6 +27,14 @@ git -c safe.directory="$(pwd)" checkout "${BRANCH}"
 git -c safe.directory="$(pwd)" pull origin "${BRANCH}"
 echo "[deploy] HEAD: $(git -c safe.directory="$(pwd)" log -1 --oneline)"
 
+# Strażnik miejsca (incydent 10.11.2026): < 5 GB → prune + przycięcie kopii; dalej < 3 GB → stop.
+# shellcheck source=lib/miejsce-na-dysku.sh
+. ops/scripts/lib/miejsce-na-dysku.sh
+if ! zapewnij_miejsce_przed_pobraniem; then
+  echo "[deploy] FAIL: za mało miejsca na dysku — przerywam przed budowaniem obrazów."
+  exit 1
+fi
+
 docker compose -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" up -d --build ${SERVICES}
 bash ops/scripts/prod-migrate-deploy.sh
 
@@ -43,6 +51,8 @@ docker compose -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" ps
 if [[ "${DEPLOY_PRUNE_BUILD_CACHE:-1}" != "0" ]]; then
   echo "[deploy] pruning unused docker build cache…"
   docker builder prune -af >/dev/null 2>&1 || true
+  # Poprzedni obraz po przebudowie z tym samym tagiem zostaje bez nazwy (dangling) — usuń.
+  docker image prune -f >/dev/null 2>&1 || true
   df -h / | awk 'NR==2 { print "[deploy] disk:", $3, "used,", $4, "avail,", $5 }'
 fi
 

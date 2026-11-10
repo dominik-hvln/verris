@@ -613,6 +613,9 @@ services:
     depends_on: [loki]
     networks: [verris_internal]
 
+  # Retencja: 30 dni ALBO 6 GB — co nastąpi pierwsze (incydent 10.11.2026: dysk panelu 99%;
+  # wolumen miał wtedy 2,7 GB). Limit rozmiaru obejmuje bloki, WAL i head chunks
+  # (https://prometheus.io/docs/prometheus/latest/storage/#operational-aspects).
   prometheus:
     image: prom/prometheus:v3.15.0
     restart: always
@@ -626,6 +629,7 @@ services:
         --config.file=/tmp/prometheus.yml
         --storage.tsdb.path=/prometheus
         --storage.tsdb.retention.time=30d
+        --storage.tsdb.retention.size=6GB
         --web.enable-lifecycle
     volumes:
       - ./ops/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro

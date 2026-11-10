@@ -48,6 +48,15 @@ git -c safe.directory="$(pwd)" checkout "${BRANCH}"
 git -c safe.directory="$(pwd)" pull origin "${BRANCH}"
 echo "[deploy] HEAD: $(git -c safe.directory="$(pwd)" log -1 --oneline)"
 
+# 0) Strażnik miejsca (incydent 10.11.2026): budowanie na pełnym dysku pada w połowie.
+#    < 5 GB → prune + przycięcie kopii lokalnych; dalej < 3 GB → stop, nic nie zmienione.
+# shellcheck source=lib/miejsce-na-dysku.sh
+. ops/scripts/lib/miejsce-na-dysku.sh
+if ! zapewnij_miejsce_przed_pobraniem; then
+  echo "[deploy] FAIL: za mało miejsca na dysku — przerywam przed budowaniem obrazów."
+  exit 1
+fi
+
 # 1) Zbuduj WSZYSTKIE obrazy zanim cokolwiek ruszymy (stare kontenery żyją).
 echo "[deploy] build wszystkich obrazów (bez przerywania ruchu)…"
 "${DC[@]}" build ${ROLL_SERVICES}
@@ -114,8 +123,11 @@ fi
 "${DC[@]}" ps
 
 if [[ "${DEPLOY_PRUNE_BUILD_CACHE:-1}" != "0" ]]; then
-  echo "[deploy] prune build cache…"
+  echo "[deploy] prune build cache i osieroconych obrazów…"
   docker builder prune -af >/dev/null 2>&1 || true
+  # Każdy build nadaje ten sam tag — poprzedni obraz zostaje bez nazwy (dangling) i do 10.11.2026
+  # nikt go nie usuwał w tej ścieżce. Bez -a: obrazy bazowe zostają (szybszy następny build).
+  docker image prune -f >/dev/null 2>&1 || true
   df -h / | awk 'NR==2 { print "[deploy] disk:", $3, "used,", $4, "avail,", $5 }'
 fi
 

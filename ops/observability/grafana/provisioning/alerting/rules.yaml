@@ -1064,3 +1064,227 @@ groups:
         z niewiedzy, nie ze spokoju. Sprawdź Redis/BullMQ i warn „Failed to
         collect provisioning queue metrics" w logach API.
     isPaused: false
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Dysk serwera panelu (control-plane) — incydent 10.11.2026.
+#
+# Dysk 75 GB zapełnił się w 99%: 217 kopii Grafany (34 GB) z każdego deployu,
+# dziennik systemd 3,7 GB, nieużywane obrazy. Nikt się nie dowiedział, zanim
+# zabrakło miejsca — w całym zestawie reguł nie było ani jednej o dysku hosta,
+# choć node_exporter (job „node", etykieta service=control-plane-host) zbierał
+# node_filesystem_* od początku, a dashboard 00-ops-overview je rysował.
+#
+#   > 80% przez 15 min           → warning  (czas na sprzątanie bez pośpiechu)
+#   > 90% przez 5 min            → critical (deploy i kopie zaraz zaczną padać)
+#   prognoza: pełny w ciągu 24 h → warning  (predict_linear z 6 h; łapie szybki
+#                                            przyrost, zanim przekroczy progi)
+#   brak metryki dysku           → warning  (bez niej trzy powyższe milczą
+#                                            z niewiedzy, nie ze spokoju — X-35)
+#
+# Filtr `fstype!="rootfs"` — ten sam co w dashboardzie 00-ops-overview: przy
+# --path.rootfs node_exporter potrafi zgłosić „/" dwa razy.
+# Odbiorca: polityka domyślna (verris-ops-email), jak pozostałe reguły.
+# Co robić po alarmie: DEPLOY.md → „Miejsce na dysku".
+# ─────────────────────────────────────────────────────────────────────────────
+- orgId: 1
+  name: verris_dysk_panelu
+  folder: Verris
+  interval: 1m
+  rules:
+  - uid: verris-dysk-panelu-80
+    title: VerrisDyskPaneluPonad80
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: Prometheus
+      model:
+        refId: A
+        expr: 100 * (1 - node_filesystem_avail_bytes{job="node",mountpoint="/",fstype!="rootfs"} / node_filesystem_size_bytes{job="node",mountpoint="/",fstype!="rootfs"}) > 80
+        instant: true
+        range: false
+        editorMode: code
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        refId: C
+        type: threshold
+        expression: A
+        conditions:
+        - evaluator:
+            type: gt
+            params:
+            - 0
+          operator:
+            type: and
+          query:
+            params:
+            - A
+          reducer:
+            type: last
+            params: []
+          type: query
+    for: 15m
+    noDataState: OK
+    execErrState: Alerting
+    labels:
+      severity: warning
+    annotations:
+      summary: Dysk serwera panelu zajęty ponad 80%
+      description: >-
+        Zajętość / na control-plane (procent): {{ $value }}. Sprawdź: sudo bash
+        ops/scripts/lib/miejsce-na-dysku.sh stan (kopie w /var/lib/verris/backups,
+        /var/lib/containerd, dziennik systemd). DEPLOY.md → „Miejsce na dysku".
+    isPaused: false
+  - uid: verris-dysk-panelu-90
+    title: VerrisDyskPaneluPonad90
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: Prometheus
+      model:
+        refId: A
+        expr: 100 * (1 - node_filesystem_avail_bytes{job="node",mountpoint="/",fstype!="rootfs"} / node_filesystem_size_bytes{job="node",mountpoint="/",fstype!="rootfs"}) > 90
+        instant: true
+        range: false
+        editorMode: code
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        refId: C
+        type: threshold
+        expression: A
+        conditions:
+        - evaluator:
+            type: gt
+            params:
+            - 0
+          operator:
+            type: and
+          query:
+            params:
+            - A
+          reducer:
+            type: last
+            params: []
+          type: query
+    for: 5m
+    noDataState: OK
+    execErrState: Alerting
+    labels:
+      severity: critical
+    annotations:
+      summary: Dysk serwera panelu zajęty ponad 90% — deploy i kopie zaraz zaczną padać
+      description: >-
+        Zajętość / na control-plane (procent): {{ $value }}. Deploy przerwie się sam przy
+        < 3 GB wolnego. Sprawdź: sudo bash ops/scripts/lib/miejsce-na-dysku.sh stan,
+        potem przytnij: sudo bash ops/scripts/lib/miejsce-na-dysku.sh przytnij.
+    isPaused: false
+  - uid: verris-dysk-panelu-pelny-za-24h
+    title: VerrisDyskPaneluPelnyZa24h
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 21600
+        to: 0
+      datasourceUid: Prometheus
+      model:
+        refId: A
+        expr: predict_linear(node_filesystem_avail_bytes{job="node",mountpoint="/",fstype!="rootfs"}[6h], 86400) < 0
+        instant: true
+        range: false
+        editorMode: code
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        refId: C
+        type: threshold
+        expression: A
+        conditions:
+        - evaluator:
+            type: lt
+            params:
+            - 0
+          operator:
+            type: and
+          query:
+            params:
+            - A
+          reducer:
+            type: last
+            params: []
+          type: query
+    for: 30m
+    noDataState: OK
+    execErrState: Alerting
+    labels:
+      severity: warning
+    annotations:
+      summary: Dysk serwera panelu zapełni się w ciągu 24 h (prognoza z ostatnich 6 h)
+      description: >-
+        Przy obecnym tempie przyrostu wolne miejsce na / control-plane skończy się
+        w ciągu doby. Sprawdź, co rośnie: sudo bash ops/scripts/lib/miejsce-na-dysku.sh stan.
+    isPaused: false
+  - uid: verris-metryki-dysku-panelu-nieobecne
+    title: VerrisMetrykiDyskuPaneluNieobecne
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: Prometheus
+      model:
+        refId: A
+        expr: absent(node_filesystem_avail_bytes{job="node",mountpoint="/"})
+        instant: true
+        range: false
+        editorMode: code
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        refId: C
+        type: threshold
+        expression: A
+        conditions:
+        - evaluator:
+            type: gt
+            params:
+            - 0
+          operator:
+            type: and
+          query:
+            params:
+            - A
+          reducer:
+            type: last
+            params: []
+          type: query
+    for: 15m
+    noDataState: OK
+    execErrState: Alerting
+    labels:
+      severity: warning
+    annotations:
+      summary: Brak metryk dysku serwera panelu — alarmy o dysku oślepły
+      description: >-
+        node_exporter (usługa node-exporter, job „node") nie dostarcza
+        node_filesystem_avail_bytes dla /. Dopóki to trwa, VerrisDyskPanelu*
+        milczą z niewiedzy. Sprawdź: docker compose ps node-exporter i
+        Prometheus → Status → Targets.
+    isPaused: false

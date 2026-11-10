@@ -112,6 +112,19 @@ SQL
 # jest informacją, nie brakiem informacji.
 trap 'zapisz_probe "FAILED" "{}" "Skrypt przerwany w linii ${LINENO}"' ERR
 
+# Sprzątanie przy KAŻDYM wyjściu (10.11.2026, przegląd miejsca na dysku). Do tej pory drill
+# zostawiał w /tmp/verris-restore-staging pobrany szyfrogram, sumę kontrolną i — co gorsze —
+# ODSZYFROWANY zrzut z danymi osobowymi, po każdym przebiegu, także udanym.
+sprzatnij_drill() {
+  local rc=$? f
+  for f in "${RESTORE_INPUT:-}" "${DUMP_FILE:-}" "${DUMP_FILE:+${DUMP_FILE}.sha256}"; do
+    [[ -n "$f" && -f "$f" ]] || continue
+    shred -u "$f" 2>/dev/null || rm -f "$f"
+  done
+  exit "$rc"
+}
+trap sprzatnij_drill EXIT
+
 cd "$REPO_ROOT"
 [[ -f "$ENV_FILE" ]] || fail "missing ${ENV_FILE}"
 

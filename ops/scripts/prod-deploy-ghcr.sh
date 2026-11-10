@@ -32,6 +32,15 @@ compose() { docker compose -f "$COMPOSE_FILE" -f "$GHCR_OVERRIDE" --env-file "$E
 . ops/scripts/lib/bramka-recznego-wdrozenia.sh
 bramka_recznego_wdrozenia "prod-deploy-ghcr.sh" "${IMAGE_TAG}"
 
+# Incydent 10.11.2026 (dysk 99%): retencja kopii lokalnych, strażnik wolnego miejsca
+# i pliki hosta (journald, tmpfiles) — wszystko w jednej bibliotece.
+# shellcheck source=lib/miejsce-na-dysku.sh
+. ops/scripts/lib/miejsce-na-dysku.sh
+KOPIE_LOKALNE="${VERRIS_LOCAL_BACKUP_DIR:-/var/lib/verris/backups}"
+# Przycięcie starych kopii na końcu KAŻDEGO wyjścia (sukces, błąd, rollback) — best effort,
+# kod wyjścia deployu zostaje bez zmian.
+przytnij_kopie_przy_wyjsciu "$KOPIE_LOKALNE"
+
 echo "[deploy] tag=${IMAGE_TAG} prefix=${REGISTRY_PREFIX}"
 
 # Kod (compose/migracje/skrypty) musi być spójny z obrazem — pobierz repo do SHA.
@@ -64,6 +73,17 @@ if [ "${DEPLOY_PRUNE_BEFORE_PULL:-1}" != "0" ]; then
   docker builder prune -af >/dev/null 2>&1 || true
   df -h / 2>/dev/null | awk 'NR==1||/\/$/{print "[deploy] "$0}' || true
 fi
+
+# 0+) Strażnik miejsca (incydent 10.11.2026): < 5 GB wolnego → prune + przycięcie kopii +
+#     odchudzenie dziennika; dalej < 3 GB → STOP, zanim pull zapełni dysk w połowie.
+#     Stara wersja dalej działa — nic nie zostało podmienione.
+if ! zapewnij_miejsce_przed_pobraniem "$KOPIE_LOKALNE"; then
+  echo "[deploy] FAIL: za mało miejsca na dysku — deploy ${IMAGE_TAG} przerwany przed pobraniem obrazów."
+  exit 1
+fi
+# Limit journald i sprzątanie /tmp/verris-*-staging — wersjonowane w ops/systemd, instalowane
+# tutaj idempotentnie (zmiana pliku = restart journald raz). Best effort, bez roota tylko podpowiedź.
+zainstaluj_pliki_hosta_dysku "$(pwd)" || true
 
 # 1) Pobierz nowe obrazy (bez ruszania działających kontenerów).
 REGISTRY_PREFIX="$REGISTRY_PREFIX" IMAGE_TAG="$IMAGE_TAG" compose pull ${APP_SERVICES}
@@ -244,10 +264,26 @@ if [ "$OK" = "1" ]; then
   # PB-38: kopia danych Grafany przed odtworzeniem kontenera — nowa wersja główna (13) przenosi
   # dashboardy do „unified storage” i cofnięcie wymaga przywrócenia bazy Grafany. Tar z tego samego
   # obrazu usługi (bez docker run spoza rejestru). Best-effort: brak kopii nie zatrzymuje deployu.
-  KOPIE_LOKALNE="${VERRIS_LOCAL_BACKUP_DIR:-/var/lib/verris/backups}"
+  # Incydent 10.11.2026: kopia przy KAŻDYM deployu, bez retencji = 217 kopii, 34 GB. Teraz tylko
+  # przy zmianie obrazu Grafany albo grafana.ini (odcisk w $KOPIE_LOKALNE/.grafana-odcisk),
+  # a stare przycina pułapka EXIT (przytnij_kopie_przy_wyjsciu, zostają 3 najnowsze).
   mkdir -p "$KOPIE_LOKALNE" && chmod 700 "$KOPIE_LOKALNE"
-  ( umask 077; compose run --rm --no-deps -T --entrypoint sh grafana -c 'tar czf - -C /var/lib/grafana .' \
-      > "$KOPIE_LOKALNE/grafana-$(date +%Y%m%d-%H%M%S).tgz" 2>/dev/null ) || echo "[deploy] WARN: kopia Grafany nie powstała."
+  GRAFANA_ODCISK="$(odcisk_grafany "$(obraz_uslugi_z_compose "$COMPOSE_FILE" grafana)" \
+    ops/observability/grafana/grafana.ini)"
+  if kopia_grafany_potrzebna "$KOPIE_LOKALNE" "$GRAFANA_ODCISK"; then
+    KOPIA_GRAFANY="$KOPIE_LOKALNE/grafana-$(date +%Y%m%d-%H%M%S).tgz"
+    if ( umask 077; compose run --rm --no-deps -T --entrypoint sh grafana -c 'tar czf - -C /var/lib/grafana .' \
+           > "$KOPIA_GRAFANY.partial" 2>/dev/null ) && [ -s "$KOPIA_GRAFANY.partial" ]; then
+      mv -f "$KOPIA_GRAFANY.partial" "$KOPIA_GRAFANY"
+      zapisz_odcisk_grafany "$KOPIE_LOKALNE" "$GRAFANA_ODCISK" || true
+      echo "[deploy] kopia Grafany: $KOPIA_GRAFANY (${GRAFANA_ODCISK:-odcisk nieznany})"
+    else
+      rm -f "$KOPIA_GRAFANY.partial"
+      echo "[deploy] WARN: kopia Grafany nie powstała."
+    fi
+  else
+    echo "[deploy] kopia Grafany pominięta — obraz i konfiguracja bez zmian od ostatniej kopii (${GRAFANA_ODCISK})."
+  fi
 
   echo "[deploy] restart obserwowalności (${OBS_SERVICES})…"
   compose up -d --no-build --no-deps ${OBS_SERVICES}

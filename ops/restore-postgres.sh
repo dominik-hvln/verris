@@ -63,6 +63,23 @@ done
 
 [[ "$CONFIRM" -eq 1 ]] || fail "Refusing to restore without --confirm. This drops the existing database!"
 
+# Sprzątanie przy KAŻDYM wyjściu (10.11.2026, przegląd miejsca na dysku). Do tej pory odszyfrowany
+# zrzut był usuwany tylko po UDANYM odtworzeniu z MinIO: błąd psql zostawiał plaintext z danymi
+# osobowymi w /tmp/verris-restore-staging, a odtworzenie z lokalnego *.age zostawiało go obok pliku
+# zawsze. Pobrane z MinIO pliki też tu nie zostają — następne odtworzenie pobiera świeże.
+# Plik podany ręcznie (niezaszyfrowany) NIE jest ruszany.
+ODSZYFROWANY=""
+POBRANE=()
+sprzatnij_odtworzenie() {
+  local rc=$? f
+  for f in "$ODSZYFROWANY" "${POBRANE[@]}"; do
+    [[ -n "$f" && -f "$f" ]] || continue
+    shred -u "$f" 2>/dev/null || rm -f "$f"
+  done
+  exit "$rc"
+}
+trap sprzatnij_odtworzenie EXIT
+
 if [[ "$FROM_MINIO" -eq 1 ]]; then
   cd "$REPO_ROOT"
   # shellcheck source=ops/lib/backup-minio.sh
@@ -73,6 +90,7 @@ if [[ "$FROM_MINIO" -eq 1 ]]; then
   OBJECT_NAME="${OBJECT_NAME:-$(backup_crypto_latest_object)}"
   mkdir -p "$RESTORE_STAGING"
   DUMP_FILE="${RESTORE_STAGING}/${OBJECT_NAME}"
+  POBRANE=("$DUMP_FILE" "${DUMP_FILE}.sha256")
   log "downloading MinIO ${S3_BUCKET_BACKUPS}/postgres/${OBJECT_NAME} → ${DUMP_FILE}"
   backup_minio_download_file "$OBJECT_NAME" "$DUMP_FILE"
   # Pobierz też sumę kontrolną (jeśli istnieje) do weryfikacji integralności.
@@ -103,6 +121,7 @@ if [[ "$DUMP_FILE" == *.age ]]; then
   source "${SCRIPT_DIR}/lib/backup-crypto.sh"
   log "deszyfrowanie backupu (age)…"
   DUMP_FILE="$(backup_crypto_decrypt_file "$DUMP_FILE")"
+  ODSZYFROWANY="$DUMP_FILE"
   log "odszyfrowano → ${DUMP_FILE}"
 fi
 
@@ -115,9 +134,6 @@ gunzip -c "$DUMP_FILE" \
       exec -T "$POSTGRES_SERVICE" \
       psql --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" --quiet --single-transaction
 
-# Sprzątanie: usuń odszyfrowany plaintext ze stagingu (dane osobowe!)
-if [[ "$FROM_MINIO" -eq 1 && "$DUMP_FILE" == "${RESTORE_STAGING}/"* && "$DUMP_FILE" != *.age ]]; then
-  shred -u "$DUMP_FILE" 2>/dev/null || rm -f "$DUMP_FILE"
-fi
+# Plaintext i pobrane pliki usuwa pułapka EXIT (sprzatnij_odtworzenie) — także po błędzie.
 
 log "restore complete"

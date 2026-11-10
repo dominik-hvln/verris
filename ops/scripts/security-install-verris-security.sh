@@ -105,6 +105,9 @@ if [ "$ROLE" = "control-plane" ]; then
     run "systemctl daemon-reload"
     run "systemctl enable verris-egress.service"
     run "systemctl enable --now verris-egress-odswiez.timer"
+    # Incydent 10.11.2026 (dysk 99%): limit journald + sprzątanie /tmp/verris-*-staging (systemd-tmpfiles).
+    # To samo instaluje każdy deploy (prod-deploy-ghcr.sh); tu — dla świeżego hosta. Idempotentne.
+    run "bash '$REPO_ROOT/ops/scripts/lib/miejsce-na-dysku.sh' zainstaluj"
     # Domeny klientów nie wchodzą już do allowlisty hosta (decyzja 06.10) — usuń plik zapisany przez
     # dawny security-sync-cp-egress-hosts.sh (nagłówek „# Auto-generated”), żeby nic go nie czytało.
     run "grep -qs '^# Auto-generated' /etc/verris/security/egress-allow-hostnames.local.txt && rm -f /etc/verris/security/egress-allow-hostnames.local.txt || true"

@@ -1,10 +1,22 @@
 # SOGo + MariaDB for control-plane mail (Ubuntu 24.04 — native SOGo packages unavailable).
 # Usage on host: docker compose -f ops/docker-compose.sogo-mail.yml --env-file ops/sogo/.env.sogo up -d
+
+# Limit logów jak w docker-compose.prod.yml (10 MB × 5 plików na kontener). Bez tego Docker
+# pisze json-file bez rotacji, aż do zapełnienia dysku (incydent 10.11.2026: dysk panelu 99%).
+# Pilnuje: apps/api/src/test/miejsce-na-dysku.spec.ts.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: '10m'
+    max-file: '5'
+    tag: '{{.Name}}'
+
 services:
   sogo-db:
     image: mariadb:11.4
     container_name: verris-sogo-db
     restart: unless-stopped
+    logging: *default-logging
     networks:
       - sogo_internal
       - verris_internal
@@ -26,6 +38,7 @@ services:
   sogo:
     image: sonroyaalmerol/docker-sogo:5.12.8-1
     restart: unless-stopped
+    logging: *default-logging
     depends_on:
       sogo-db:
         condition: service_healthy

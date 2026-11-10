@@ -95,6 +95,11 @@ const DOPISANE_POZNIEJ = [
   'VerrisKopieKontNieaktualne',
   // F3.4 — watchdog usług węzła (verris_node_services_down z raportu agenta verris-lve; liczone z bazy jak kopie kont).
   'VerrisUslugaWezlaNieDziala',
+  // Incydent 10.11.2026 — dysk serwera panelu 99% bez żadnego alarmu (grupa verris_dysk_panelu).
+  'VerrisDyskPaneluPonad80',
+  'VerrisDyskPaneluPonad90',
+  'VerrisDyskPaneluPelnyZa24h',
+  'VerrisMetrykiDyskuPaneluNieobecne',
 ] as const;
 
 /** Te pięć musi mieć `severity: critical` — inaczej wyciszy je grupowanie. */
