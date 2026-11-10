@@ -178,14 +178,18 @@ function aiAtrapa() {
   return ai as typeof ai & FunkcjeAiKreatora;
 }
 
-function zbuduj(odpowiedzi: Array<string | Error>) {
+/** Odpowiedź atrapy: tekst (koniec 'end_turn'), błąd albo tekst z innym powodem końca (np. 'max_tokens'). */
+type OdpAtrapy = string | Error | { tekst: string; powodKonca: string };
+
+function zbuduj(odpowiedzi: Array<OdpAtrapy>) {
   const { db, prisma } = bazaAtrapa();
   const ai = aiAtrapa();
   const provider = {
     anthropicZBlokami: vi.fn(async (i: { model: string }) => {
       const o = odpowiedzi.shift();
       if (o === undefined || o instanceof Error) throw o ?? new Error('brak odpowiedzi');
-      return { wynik: o, dostawca: 'anthropic', model: i.model, wej: 100, wyj: 2000, zapis5m: 0, zapis1h: 4000, odczyt: 0, kosztUsd: 0.03, powodKonca: 'end_turn' };
+      const [wynik, powodKonca] = typeof o === 'string' ? [o, 'end_turn'] : [o.tekst, o.powodKonca];
+      return { wynik, dostawca: 'anthropic', model: i.model, wej: 100, wyj: 2000, zapis5m: 0, zapis1h: 4000, odczyt: 0, kosztUsd: 0.03, powodKonca };
     }),
   };
   const renderer: RendererKreatora = {
@@ -373,6 +377,15 @@ describe('KreatorService – zadanie generacji', () => {
     expect(zuzycie(db)).toMatchObject({ generacje: 1, wyjTokeny: 4000 });
   });
 
+  it('paczka 127: odpowiedź ucięta limitem max_tokens → bez rundy naprawy (druga próba w tym samym limicie byłaby stratą)', async () => {
+    const { svc, db, provider, dokonczZadania } = zbuduj([{ tekst: 'ucięte: {"firma":{"nazwa":"Sal', powodKonca: 'max_tokens' }, JSON.stringify(SALON)]);
+    await svc.utworz('u1', 'u1', { nazwa: 'Salon', brief: BRIEF });
+    await dokonczZadania();
+    expect(provider.anthropicZBlokami).toHaveBeenCalledTimes(1);
+    expect(db.strony[0].status).toBe('BLAD');
+    expect(zuzycie(db)).toMatchObject({ generacje: 0, wyjTokeny: 2000 });
+  });
+
   it('błąd AI → status BLAD z polskim opisem, limit generacji zwrócony, koszt nieudanej próby zapisany', async () => {
     const { svc, db, dokonczZadania } = zbuduj([new ServiceUnavailableException('{"type":"overloaded_error"}')]);
     await svc.utworz('u1', 'u1', { nazwa: 'Salon', brief: BRIEF });
@@ -452,6 +465,14 @@ describe('KreatorService – edycja, wersje, podgląd', () => {
     await expect(svc.zmienAi('u1', 'u1', 's1', { polecenie: 'Coś' })).rejects.toBeInstanceOf(UnprocessableEntityException);
     expect(zuzycie(db)?.zmiany).toBe(1);
     await expect(svc.zmienAi('u1', 'u1', 's1', { polecenie: 'Coś', sekcjaId: 'nie-ma' })).rejects.toThrow(/Nie ma takiej sekcji/);
+  });
+
+  it('paczka 127: zmiana AI ucięta limitem max_tokens → 422 po jednym wywołaniu (bez naprawy), zmiana zwrócona', async () => {
+    const { svc, db, provider } = zbuduj([{ tekst: 'ucięte: {"operacje":[{"op":"zmien"', powodKonca: 'max_tokens' }, JSON.stringify(SALON)]);
+    db.strony.push({ id: 's1', userId: 'u1', status: 'GOTOWA', model: SALON, propozycje: null });
+    await expect(svc.zmienAi('u1', 'u1', 's1', { polecenie: 'Cieplejszy ton' })).rejects.toBeInstanceOf(UnprocessableEntityException);
+    expect(provider.anthropicZBlokami).toHaveBeenCalledTimes(1);
+    expect(zuzycie(db)?.zmiany).toBe(0);
   });
 
   it('zmiana AI: błąd dostawcy → 503 po polsku bez treści dostawcy, zmiana zwrócona', async () => {

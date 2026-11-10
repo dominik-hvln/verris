@@ -3,7 +3,7 @@ import { walidujStrone } from '../model.ts';
 import { PRZYKLAD_SALON } from '../przyklady/salon.ts';
 import { KATALOG_STYLOW, stylPoId } from '../style/katalog-stylow.ts';
 import type { BriefStrony } from './kontrakt.ts';
-import { losZZiarna, odciskKierunku, odciskStrony, wagaStylu, wybierzKierunki } from './kierunki.ts';
+import { KATY_KOMUNIKACJI, KOLEJNOSC_AKCENTOW, losZZiarna, MOTYWY_PRZEWODNIE, odciskKierunku, odciskStrony, wagaStylu, wybierzKierunki } from './kierunki.ts';
 
 const fryzjer: BriefStrony = { opis: 'Salon fryzjerski na Jeżycach.', typ: 'wizytowka', firma: { branza: 'salon fryzjerski' }, ton: 'ciepły' };
 const prawnik: BriefStrony = { opis: 'Kancelaria adwokacka, prawo rodzinne.', typ: 'wizytowka', firma: { branza: 'kancelaria adwokacka' }, ton: 'ekspercki' };
@@ -137,5 +137,34 @@ describe('katalog stylów', () => {
         expect(stylPoId(s.zastepczy!)?.pro).toBe(false);
       }
     }
+  });
+});
+
+describe('ziarno kreatywne (paczka 127)', () => {
+  it('każdy kierunek ma ziarno z list; w Pro trzy różne kąty komunikacji; deterministyczne przy tym samym losie', () => {
+    for (let z = 1; z <= 30; z++) {
+      const k = wybierzKierunki(fryzjer, 3, [], losZZiarna(z), 'pro');
+      for (const x of k) {
+        expect(KATY_KOMUNIKACJI.some((p) => p.id === x.ziarno?.kat)).toBe(true);
+        expect(MOTYWY_PRZEWODNIE.some((p) => p.id === x.ziarno?.motyw)).toBe(true);
+        expect(KOLEJNOSC_AKCENTOW.some((p) => p.id === x.ziarno?.akcent)).toBe(true);
+      }
+      expect(new Set(k.map((x) => x.ziarno!.kat)).size).toBe(3);
+    }
+    expect(wybierzKierunki(fryzjer, 1, [], losZZiarna(5)).map((k) => k.ziarno)).toEqual(wybierzKierunki(fryzjer, 1, [], losZZiarna(5)).map((k) => k.ziarno));
+  });
+
+  it('ziarno nie zmienia wyboru stylu, fontów, barw ani wariantów (losowane po kierunkach)', () => {
+    const a = wybierzKierunki(fryzjer, 3, [], losZZiarna(11), 'pro');
+    const bez = a.map(({ ziarno: _z, ...reszta }) => reszta);
+    // Te same kierunki przy tym samym losie, niezależnie od liczby losowań ziarna po nich.
+    const b = wybierzKierunki(fryzjer, 3, [], losZZiarna(11), 'pro').map(({ ziarno: _z, ...reszta }) => reszta);
+    expect(b).toEqual(bez);
+    expect(new Set(a.map(odciskKierunku)).size).toBe(3);
+  });
+
+  it('różne losy dają różne ziarna dla tej samej branży (unikalność przy tym samym stylu)', () => {
+    const ziarna = new Set(Array.from({ length: 20 }, (_, i) => JSON.stringify(wybierzKierunki(fryzjer, 1, [], losZZiarna(100 + i))[0]!.ziarno)));
+    expect(ziarna.size).toBeGreaterThan(10);
   });
 });

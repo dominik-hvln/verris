@@ -3,7 +3,9 @@ import { migrujModel, Sekcja, walidujStrone, type Strona, type WynikWalidacji } 
 import { PLANY_KREATORA, type WersjaKreatora } from '../plany.ts';
 import { czyFontWKatalogu, stylDlaWersji, stylPoId } from '../style/katalog-stylow.ts';
 import { korygujPalete } from '../style/kolory.ts';
+import { uzupelnijSerwerowe } from './kompakt.ts';
 import type { BriefStrony, WiadomoscAi } from './kontrakt.ts';
+import { czyOperacje, zastosujOperacje } from './operacje.ts';
 
 /**
  * Odczyt odpowiedzi modelu: wyciągnięcie JSON, sprzątanie typografii, walidacja schematem, zasady treści
@@ -253,7 +255,8 @@ function dokoncz(strona: Strona, wersja: WersjaKreatora, opcje: OpcjeZasad): Wyn
 export function odczytajWynikGeneracji(tekst: string, wersja: WersjaKreatora, brief?: BriefStrony): WynikWalidacji {
   const json = wyciagnijJson(tekst);
   if (!json.ok) return { ok: false, bledy: [json.blad] };
-  const w = walidujStrone(migrujModel(oczyscTeksty(json.dane)));
+  // Paczka 127: zapis kompaktowy – wersjaModelu uzupełnia serwer, pola domyślne – schemat; `strategia` znika.
+  const w = walidujStrone(migrujModel(uzupelnijSerwerowe(oczyscTeksty(json.dane))));
   if (!w.ok) return w;
   return dokoncz(w.strona, wersja, { tryb: 'generacja', brief });
 }
@@ -264,7 +267,14 @@ export function odczytajWynikZmiany(strona: Strona, tekst: string, sekcjaId: str
   const dane = oczyscTeksty(json.dane);
   let nowa: Strona;
   if (sekcjaId === null) {
-    const w = walidujStrone(migrujModel(dane));
+    // Paczka 127: odpowiedź to lista operacji; pełna Strona (dawny format) nadal przechodzi.
+    let kandydat: unknown;
+    if (czyOperacje(dane)) {
+      const op = zastosujOperacje(strona, dane, slug !== undefined && strona.strony.some((p) => p.slug === slug) ? slug : '');
+      if (!op.ok) return op;
+      kandydat = op.strona;
+    } else kandydat = uzupelnijSerwerowe(dane);
+    const w = walidujStrone(migrujModel(kandydat));
     if (!w.ok) return w;
     nowa = w.strona;
   } else {

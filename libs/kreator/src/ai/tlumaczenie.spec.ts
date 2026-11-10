@@ -2,7 +2,7 @@ import { jezykPodstrony, kluczPodstrony, skrotTresci, tlumaczenieNieaktualne } f
 import { walidujStrone, type Strona } from '../model.ts';
 import { PRZYKLAD_SALON } from '../przyklady/salon.ts';
 import { PRZYKLAD_SALON_EN } from '../przyklady/salon-en.ts';
-import { blokMasterPromptu, blokWersji, budujZapytanieZmiany } from './master-prompt.ts';
+import { blokMasterPromptu, blokWersji, budujZapytanieZmiany, MAX_TOKENS } from './master-prompt.ts';
 import { odczytajWynikZmiany } from './odczyt.ts';
 import { budujZapytanieTlumaczenia, odczytajWynikTlumaczenia } from './tlumaczenie.ts';
 
@@ -30,8 +30,9 @@ describe('tłumaczenie – zapytanie', () => {
     expect(z.system.map((b) => b.cache)).toEqual(['1h', '1h', '5m']);
     expect(z.system[0]!.tekst).toBe(blokMasterPromptu());
     expect(z.system[1]!.tekst).toBe(blokWersji('pro'));
-    // Blok strony identyczny jak przy zmianie – kolejne zapytania o tę samą stronę trafiają w cache 5 min.
-    expect(z.system[2]!.tekst).toBe(budujZapytanieZmiany(s, 'x', null, 'pro').system[2]!.tekst);
+    // Paczka 127: blok 3 = skrót strony, ten sam co przy zmianie sekcji – kolejne zapytania o tę stronę czytają go z cache.
+    expect(z.system[2]!.tekst).toBe(budujZapytanieZmiany(s, 'x', 'start', 'pro').system[2]!.tekst);
+    expect(z.maxTokens).toBe(MAX_TOKENS.tlumaczenie);
     const tresc = z.wiadomosci[0]!.content;
     expect(tresc).toContain('Przetłumacz podstrony strona główna (klucz "") na język angielski (kod en)');
     expect(tresc).toContain('Poznan');

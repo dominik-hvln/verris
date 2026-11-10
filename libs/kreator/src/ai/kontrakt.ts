@@ -45,6 +45,17 @@ export interface BriefStrony {
   inspiracje?: string;
 }
 
+/**
+ * Ziarno kreatywne (paczka 127) – identyfikatory z list w kierunki.ts (KATY_KOMUNIKACJI, MOTYWY_PRZEWODNIE,
+ * KOLEJNOSC_AKCENTOW), losowane przez serwer. Trafia do wiadomości generacji (nie do bloku cache), więc różnicuje
+ * propozycje bez utraty cache master promptu.
+ */
+export interface ZiarnoKreatywne {
+  kat: string;
+  motyw: string;
+  akcent: string;
+}
+
 /** Kierunek projektu wybrany przed generacją przez serwer (unikalność i różnorodność), nie przez AI. */
 export interface KierunekProjektu {
   styl: string;
@@ -56,6 +67,8 @@ export interface KierunekProjektu {
   warianty: Partial<Record<TypSekcji, string>>;
   zaokraglenie: 'ostre' | 'lekkie' | 'miekkie' | 'pelne';
   skalaTypografii: 'spokojna' | 'wyrazista' | 'monumentalna';
+  /** Paczka 127 – kąt komunikacji, motyw przewodni i kolejność akcentów; brak = bez ziarna (stare wywołania). */
+  ziarno?: ZiarnoKreatywne;
 }
 
 export interface FunkcjeAiKreatora {

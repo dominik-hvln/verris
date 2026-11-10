@@ -2,7 +2,7 @@ import { KATALOG_EFEKTOW, KATALOG_WARIANTOW, SEKCJE_PRO } from '../katalog.ts';
 import type { Strona, TypSekcji } from '../model.ts';
 import { PLANY_KREATORA, type WersjaKreatora } from '../plany.ts';
 import { KATALOG_STYLOW, stylPoId, type StylProjektu, type ZakresBarwy } from '../style/katalog-stylow.ts';
-import type { BriefStrony, KierunekProjektu } from './kontrakt.ts';
+import type { BriefStrony, KierunekProjektu, ZiarnoKreatywne } from './kontrakt.ts';
 
 /**
  * Wybór kierunków projektu przed generacją (serwer, nie AI). Cel: dopasowanie do branży, typu strony
@@ -113,6 +113,59 @@ export function efektyDlaWersji(styl: StylProjektu, funkcjePro: boolean): string
 const PROB_NA_KIERUNEK = 16;
 
 /**
+ * Ziarno kreatywne (paczka 127): kąt komunikacji, motyw przewodni i kolejność akcentów. Serwer losuje je dla każdej
+ * propozycji (w Pro – różne kąty w trzech propozycjach) i wpisuje do wiadomości generacji, a nie do bloku z cache:
+ * dwie firmy z tej samej branży i z tym samym stylem dostają inaczej poprowadzone teksty, a master prompt zostaje
+ * bajt w bajt ten sam. Opisy są ogólne i nie dodają faktów – model wypełnia je wyłącznie treścią briefu.
+ */
+export interface PozycjaZiarna {
+  id: string;
+  opis: string;
+}
+
+export const KATY_KOMUNIKACJI: readonly PozycjaZiarna[] = [
+  { id: 'sytuacja', opis: 'od sytuacji klienta – z czym przychodzi i co chce mieć z głowy; firma odpowiada na tę sytuację' },
+  { id: 'sposob-pracy', opis: 'od sposobu pracy – konkretne etapy, narzędzia i kolejność działań z briefu' },
+  { id: 'miejsce', opis: 'od miejsca – okolica, lokal, dojazd, rytm dnia (tylko to, co podaje brief)' },
+  { id: 'efekt', opis: 'od efektu, który klient zobaczy lub poczuje – opisanego konkretnie, bez obietnic i liczb' },
+  { id: 'przewidywalnosc', opis: 'od przewidywalności – cena, czas i zasady jasne z góry, bez niespodzianek' },
+  { id: 'detal', opis: 'od jednego charakterystycznego szczegółu z briefu, który prowadzi przez całą stronę' },
+  { id: 'relacja', opis: 'od relacji – jak wygląda rozmowa i kontakt z firmą przed, w trakcie i po usłudze' },
+  { id: 'codziennosc', opis: 'od codzienności klienta – kiedy i w jakiej chwili korzysta z usługi lub produktu' },
+];
+
+export const MOTYWY_PRZEWODNIE: readonly PozycjaZiarna[] = [
+  { id: 'warsztat', opis: 'warsztat i rzemiosło – słownictwo pracy rąk i narzędzi' },
+  { id: 'droga', opis: 'droga – od pierwszego kroku do celu, etapy jak przystanki' },
+  { id: 'rytm', opis: 'rytm i czas – pory dnia, terminy, tempo' },
+  { id: 'swiatlo', opis: 'światło i jasność – przejrzystość, wyraźne zasady' },
+  { id: 'rozmowa', opis: 'rozmowa – pytania, odpowiedzi, wysłuchanie' },
+  { id: 'porzadek', opis: 'porządek i plan – lista, kolejność, odhaczone sprawy' },
+  { id: 'dom', opis: 'dom i bliskość – swobodnie, jak u siebie' },
+  { id: 'sezon', opis: 'pory roku i natura – zmiana, wzrost, świeżość' },
+];
+
+export const KOLEJNOSC_AKCENTOW: readonly PozycjaZiarna[] = [
+  { id: 'oferta', opis: 'najpierw konkret oferty, potem ludzie i sposób pracy, na końcu wątpliwości' },
+  { id: 'zaufanie', opis: 'najpierw kto i jak pracuje, potem oferta, na końcu działanie' },
+  { id: 'proces', opis: 'najpierw jak wygląda współpraca krok po kroku, potem oferta i odpowiedzi na pytania' },
+  { id: 'pytania', opis: 'najpierw odpowiedź na najczęstsze pytanie klienta (w hero lub zaraz po nim), potem oferta' },
+  { id: 'miejsce', opis: 'najpierw miejsce i atmosfera, potem oferta i kontakt' },
+  { id: 'dzialanie', opis: 'najpierw najprostsza droga do działania (termin, telefon, wycena), potem uzasadnienie' },
+];
+
+/** Ziarna dla kolejnych kierunków: kąty bez powtórek w jednej generacji (o ile lista wystarcza). */
+function losujZiarna(los: () => number, ile: number): ZiarnoKreatywne[] {
+  const katy = [...KATY_KOMUNIKACJI];
+  const wynik: ZiarnoKreatywne[] = [];
+  for (let i = 0; i < ile; i++) {
+    const kat = katy.length ? katy.splice(indeks(los, katy.length), 1)[0] : wybierz(los, KATY_KOMUNIKACJI);
+    wynik.push({ kat: kat.id, motyw: wybierz(los, MOTYWY_PRZEWODNIE).id, akcent: wybierz(los, KOLEJNOSC_AKCENTOW).id });
+  }
+  return wynik;
+}
+
+/**
  * Kierunki projektu dla generacji. `ile` – liczba propozycji (plan: 1 bez Pro, 3 w Pro), `wersja` –
  * wersja kreatora (domyślnie bez Pro: bezpieczniej nie dać stylu Pro niż go dać przez pomyłkę).
  */
@@ -174,5 +227,7 @@ export function wybierzKierunki(
     uzyteOdciski.add(odciskKierunku(wybrany));
     kierunki.push(wybrany);
   }
-  return kierunki;
+  // Ziarna losowane po wyborze wszystkich kierunków – nie zmieniają losowania stylów, fontów i barw.
+  const ziarna = losujZiarna(los, kierunki.length);
+  return kierunki.map((k, i) => ({ ...k, ziarno: ziarna[i] }));
 }

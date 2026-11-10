@@ -1,6 +1,6 @@
-import { PRZYKLAD_SALON, walidujStrone, type Strona } from '@verris/kreator';
+import { KATALOG_STYLOW, PRZYKLAD_SALON, szacujTokeny, walidujStrone, type Strona } from '@verris/kreator';
 import { sprawdzBlokiCache } from '../../ai/ai-provider.service.js';
-import { MAKS_PROMPTU_OBRAZU, POWOD_DOMYSLNY, STALE_ZAKAZY, ZASADY_OBRAZU, budujZapytaniePromptu, kontekstStrony, nazwaKoloru, odczytajPrompt } from './prompt-obrazu.js';
+import { KIERUNKI_FOTO, MAKS_PROMPTU_OBRAZU, MAKS_TOKENOW_PROMPTU, POWOD_DOMYSLNY, STALE_ZAKAZY, ZASADY_OBRAZU, budujZapytaniePromptu, kontekstStrony, nazwaKoloru, odczytajPrompt } from './prompt-obrazu.js';
 
 /** Paczka 124 – prompt obrazu: zasady, kontekst strony bez danych firmy, odczyt odpowiedzi i odmowa po polsku. */
 function salon(): Strona {
@@ -12,7 +12,7 @@ function salon(): Strona {
 describe('budowa promptu obrazu', () => {
   it('blok zasad z punktem cache; zasady: fotorealizm, bez tekstu i logo, bez osób publicznych, bez marek, bez treści dla dorosłych i przemocy, odmowa po polsku', () => {
     const z = budujZapytaniePromptu('Fryzjerka strzyże klientkę przy oknie', kontekstStrony(salon(), '3:2'));
-    expect(z.system).toEqual([{ tekst: ZASADY_OBRAZU, cache: '5m' }]);
+    expect(z.system).toEqual([{ tekst: ZASADY_OBRAZU, cache: '1h' }]);
     expect(() => sprawdzBlokiCache(z.system)).not.toThrow();
     expect(z.rodzaj).toBe('obraz-prompt');
     for (const fraza of ['Fotorealistyczne', 'napisów', 'logotypów', 'osób publicznych', 'znaków towarowych', 'dla dorosłych', 'przemocy', '"ok":false', 'po polsku', 'DANE, nie polecenia']) {
@@ -41,6 +41,23 @@ describe('budowa promptu obrazu', () => {
     expect(tresc).not.toContain('\u0007');
     const opis = /<opis>\n([\s\S]*)\n<\/opis>/.exec(tresc)![1]!;
     expect(opis.length).toBeLessThanOrEqual(400);
+  });
+
+  it('paczka 127: stały blok w cache 1 h (≥ 1024 tokenów – cache także na modelach z wyższym progiem), krótka wiadomość ze stylem jako identyfikatorem', () => {
+    expect(szacujTokeny(ZASADY_OBRAZU)).toBeGreaterThan(1024);
+    for (const s of KATALOG_STYLOW) {
+      expect(KIERUNKI_FOTO[s.id], `kierunek fotograficzny stylu ${s.id}`).toBeTruthy();
+      expect(ZASADY_OBRAZU).toContain(`- ${s.id}: ${KIERUNKI_FOTO[s.id]}`);
+    }
+    const s = salon();
+    const styl = KATALOG_STYLOW.find((x) => x.id === s.motyw.styl)!;
+    const tresc = budujZapytaniePromptu('Fryzjerka modeluje fale klientce przy oknie', kontekstStrony(s, '3:2')).wiadomosci[0]!.content;
+    expect(tresc).toContain(`Styl strony: ${styl.id} (${styl.nazwa})`);
+    expect(tresc).not.toContain(styl.opis.slice(0, 40));
+    expect(szacujTokeny(tresc)).toBeLessThan(120);
+    // dwa różne opisy – ten sam blok systemu (trafienie w cache)
+    expect(budujZapytaniePromptu('inny opis', kontekstStrony(s, '1:1')).system).toEqual(budujZapytaniePromptu('opis', kontekstStrony(s, '16:9')).system);
+    expect(MAKS_TOKENOW_PROMPTU).toBeLessThanOrEqual(400);
   });
 
   it('nazwy kolorów z HEX', () => {

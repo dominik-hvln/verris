@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { CelLinku, Obraz, Przycisk, Strona } from '../model.ts';
+import { POLA_SERWERA } from './kompakt.ts';
 
 /**
  * Zwięzły opis modelu strony dla master promptu, generowany z JSON Schema (`z.toJSONSchema(Strona)`,
@@ -93,6 +94,8 @@ function opisSurowy(w: Wezel, wciecie: string, definicje: Map<string, string>): 
 }
 
 function opisPola(nazwa: string, w: Wezel, wymagane: Set<string>, wciecie: string, definicje: Map<string, string>): string {
+  // Paczka 127: pola uzupełniane przez serwer (wersjaModelu) model pomija – opis mówi to wprost.
+  if ((POLA_SERWERA as readonly string[]).includes(nazwa)) return `${wciecie}${nazwa}?: ${opisWezla(w, wciecie, definicje)}; // pomiń – uzupełnia serwer`;
   const opc = !wymagane.has(nazwa) || w.default !== undefined;
   const dom = w.default !== undefined ? ` = ${JSON.stringify(w.default)}` : '';
   return `${wciecie}${nazwa}${opc ? '?' : ''}: ${opisWezla(w, wciecie, definicje)}${dom};`;

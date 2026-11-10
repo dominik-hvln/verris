@@ -96,6 +96,12 @@ export interface LicznikAi {
 }
 const nowyLicznik = (): LicznikAi => ({ wej: 0, wyj: 0, cacheZapis: 0, cacheOdczyt: 0, kosztUsd: 0 });
 
+/**
+ * Paczka 127: odpowiedź ucięta limitem max_tokens (stop_reason 'max_tokens') nie idzie do rundy naprawy – model musiałby
+ * napisać wszystko jeszcze raz w tym samym limicie, więc druga próba zwykle kończy się tak samo, a kosztuje drugie tyle.
+ */
+const ucieta = (r: WynikAiZCache) => r.powodKonca === 'max_tokens';
+
 export interface ZadanieGeneracji {
   stronaId: string;
   userId: string;
@@ -373,6 +379,10 @@ export class KreatorService {
       const r = await this.wywolaj(zap, zap.wiadomosci, model, z, licznik, TIMEOUT_GENERACJI_MS);
       const w = this.ai.odczytajWynikGeneracji(r.wynik, z.wersja, z.brief);
       if (w.ok) return w.strona;
+      if (ucieta(r)) {
+        this.logger.warn(`Generacja ${z.stronaId} (${k.styl}): odpowiedź ucięta limitem ${zap.maxTokens} tokenów – bez rundy naprawy`);
+        return null;
+      }
       const r2 = await this.wywolaj(zap, [...zap.wiadomosci, ...this.ai.wiadomosciNaprawy(r.wynik, w.bledy)], model, z, licznik, TIMEOUT_GENERACJI_MS);
       const w2 = this.ai.odczytajWynikGeneracji(r2.wynik, z.wersja, z.brief);
       if (w2.ok) return w2.strona;
@@ -491,7 +501,7 @@ export class KreatorService {
         throw this.bladAi(e);
       });
       let w = this.ai.odczytajWynikZmiany(strona, r.wynik, sekcjaId, wersja, slug);
-      if (!w.ok) {
+      if (!w.ok && !ucieta(r)) {
         const wiad = [...zap.wiadomosci, ...this.ai.wiadomosciNaprawy(r.wynik, w.bledy)];
         const r2 = await this.wywolaj(zap, wiad, konf.modelZmian, kto, licznik, TIMEOUT_ZMIANY_MS).catch((e: unknown) => {
           throw this.bladAi(e);
@@ -554,7 +564,7 @@ export class KreatorService {
           const zap = this.ai.budujZapytanieTlumaczenia(strona, dto.jezyk, [klucz], wersja, zStopka);
           const r = await this.wywolaj(zap, zap.wiadomosci, konf.modelZmian, kto, licznik, TIMEOUT_TLUMACZENIA_MS);
           let w = this.ai.odczytajWynikTlumaczenia(strona, r.wynik, dto.jezyk, [klucz], { data, zStopka });
-          if (!w.ok) {
+          if (!w.ok && !ucieta(r)) {
             const r2 = await this.wywolaj(zap, [...zap.wiadomosci, ...this.ai.wiadomosciNaprawy(r.wynik, w.bledy)], konf.modelZmian, kto, licznik, TIMEOUT_TLUMACZENIA_MS);
             w = this.ai.odczytajWynikTlumaczenia(strona, r2.wynik, dto.jezyk, [klucz], { data, zStopka });
           }
