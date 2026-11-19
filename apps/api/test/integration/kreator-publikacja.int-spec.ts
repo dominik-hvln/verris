@@ -1,5 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import { PRZYKLAD_SALON } from '@verris/kreator';
+import { DOMYSLNA_KONFIGURACJA_KREATORA } from '../../src/kreator/konfiguracja.js';
+import { eksportOdblokowany } from '../../src/kreator/eksport-odblokowany.js';
 import { KreatorPublikacjaService } from '../../src/kreator/publikacja.service.js';
 import { PlikiHostinguDa, type PlikiHostingu, type SesjaPlikow } from '../../src/kreator/pliki-hostingu.js';
 import { fabrykaRendereraPublikacji } from '../../src/kreator/renderer-publikacji.js';
@@ -32,7 +34,7 @@ function serwis(hosting: PlikiHostingu, wersja: 'proba' | 'hosting' = 'hosting')
   const config = { get: (k: string) => (k === 'appKmsKey' ? KLUCZ : k === 'PUBLIC_API_URL' ? 'https://api.verris.test' : undefined) };
   const fonty = { plikKreatora: vi.fn(async (n: string) => ({ buf: Buffer.from(n), type: 'font/woff2' })) };
   return new KreatorPublikacjaService(
-    prisma() as never, config as never, { dostep: async () => ({ dostep: true, wersja }) } as never,
+    prisma() as never, config as never, { dostep: async () => ({ dostep: true, wersja, konf: DOMYSLNA_KONFIGURACJA_KREATORA }) } as never,
     { record: vi.fn(async () => undefined) } as never, fonty as never, hosting, fabrykaRendereraPublikacji(),
   );
 }
@@ -43,6 +45,19 @@ describe('Verris Kreator – publikacja (baza)', () => {
     await prisma().$executeRawUnsafe('TRUNCATE TABLE "KreatorStrona", "KreatorWersja" CASCADE;');
   });
   afterAll(rozlacz);
+
+  it('paczka 134: próg eksportu na prawdziwej bazie – karta PAST_DUE liczy do currentPeriodStart, Portfel do currentPeriodEnd', async () => {
+    const k = await usluga({ status: 'ACTIVE' });
+    const d = (x: string) => new Date(`${x}T00:00:00.000Z`);
+    const ustaw = (data: Record<string, unknown>) => prisma().subscription.update({ where: { id: k.subscription.id }, data });
+    // 2 opłacone miesiące (1.08–1.10), odnowienie kartą nieudane – Stripe przesunął okres na 1.10–1.11
+    await ustaw({ createdAt: d('2026-08-01'), interval: 'MONTH', paymentSource: 'STRIPE_CARD', status: 'PAST_DUE', currentPeriodStart: d('2026-10-01'), currentPeriodEnd: d('2026-11-01') });
+    expect(await eksportOdblokowany(prisma() as never, k.user.id)).toBe(false);
+    await ustaw({ paymentSource: 'WALLET' });
+    expect(await eksportOdblokowany(prisma() as never, k.user.id)).toBe(true);
+    await ustaw({ status: 'PENDING_PAYMENT' });
+    expect(await eksportOdblokowany(prisma() as never, k.user.id)).toBe(false);
+  });
 
   it('domeny do publikacji: tylko opłacone, działające usługi hostingu z aktywnym kontem, tylko własne', async () => {
     const platna = await usluga();

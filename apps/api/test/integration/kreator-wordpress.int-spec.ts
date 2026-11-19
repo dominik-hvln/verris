@@ -1,4 +1,5 @@
 import { PRZYKLAD_SALON } from '@verris/kreator';
+import { DOMYSLNA_KONFIGURACJA_KREATORA } from '../../src/kreator/konfiguracja.js';
 import { KreatorPublikacjaService } from '../../src/kreator/publikacja.service.js';
 import { fabrykaRendereraPublikacji } from '../../src/kreator/renderer-publikacji.js';
 import { KreatorWordpressService } from '../../src/kreator/wordpress/kreator-wordpress.service.js';
@@ -48,7 +49,7 @@ async function przygotuj() {
   await se.zapiszTekst('/domains/x.pl/public_html', '.verris-kreator.json', JSON.stringify({ stronaId: strona.id, pliki: ['index.html'], at: '' }));
   const hosting: PlikiHostingu = { domenyKlienta: async () => [{ domena: 'x.pl', subskrypcjaId: k.subscription.id }], sesja: async () => se };
   const config = { get: (n: string) => (n === 'appKmsKey' ? KLUCZ : n === 'PUBLIC_API_URL' ? 'https://api.verris.test' : undefined) };
-  const kreator = { dostep: async () => ({ dostep: true, wersja: 'hosting' }) };
+  const kreator = { dostep: async () => ({ dostep: true, wersja: 'hosting', konf: DOMYSLNA_KONFIGURACJA_KREATORA }) };
   const audit = { record: vi.fn(async () => undefined) };
   const fonty = { plikKreatora: vi.fn(async (n: string) => ({ buf: Buffer.from(n), type: 'font/woff2' })) };
   const da = { getClientForHostingAccount: async () => ({ createMysqlDatabase: async ({ name }: { name: string }) => ({ database: `u_${name}`, username: `u_${name}` }) }) };
