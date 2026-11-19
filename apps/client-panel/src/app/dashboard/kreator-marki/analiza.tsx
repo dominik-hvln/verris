@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { AlertTriangle, Info, Loader2, Sparkles } from 'lucide-react';
 import { hexDoOklch, type StanKreatoraMarki, type WidokMarki } from '@verris/kreator/klient';
@@ -34,10 +34,11 @@ export function Analiza({
   stan: StanKreatoraMarki;
   onWidok: (w: WidokMarki) => void;
   onKrok: (k: KrokMarki) => void;
-  onStan: () => void;
+  onStan: () => Promise<void> | void;
 }) {
   const a = widok.analiza;
   const [trwa, setTrwa] = useState(false);
+  const wToku = useRef(false);
   const [blad, setBlad] = useState<string | null>(null);
   const [polecenie, setPolecenie] = useState('');
   const odswiezenie = widok.zrodlo === 'odswiezenie';
@@ -60,20 +61,24 @@ export function Analiza({
       onKrok('propozycje');
       return;
     }
+    if (wToku.current) return;
+    wToku.current = true;
     setBlad(null);
     setTrwa(true);
     try {
       const w = odswiezenie ? await kierunkiOdswiezenia(widok.id) : await kvPodWgraneLogo(widok.id, polecenie);
+      // Liczniki od nowa także po błędzie (np. 402 – limit zużyty w innej karcie).
+      await onStan();
       if (!w.ok) {
         setBlad(w.blad);
         return;
       }
       onWidok(w.dane);
-      onStan();
       onKrok(odswiezenie ? 'propozycje' : 'materialy');
     } catch {
       setBlad(KOMUNIKAT_PO_AKTUALIZACJI);
     } finally {
+      wToku.current = false;
       setTrwa(false);
     }
   };

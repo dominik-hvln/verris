@@ -38,7 +38,7 @@ export const siatkaKropek: RodzinaSygnetu = {
   nazwa: 'Siatka',
   opis: 'Kropki w siatce z wycięciem – brakujące kropki tworzą kształt. Porządek, dane, technologia.',
   charakter: ['techniczna', 'nowoczesna', 'minimalistyczna', 'ekspercka', 'zabawna'],
-  branze: ['IT', 'informat', 'dane', 'analit', 'drukarn', 'program', 'aplik', 'architekt'],
+  branze: ['it', 'druk', 'informat', 'dane', 'analit', 'drukarn', 'program', 'aplik'],
   monogram: false,
   kanaly: 2,
   parametry: PARAMETRY,

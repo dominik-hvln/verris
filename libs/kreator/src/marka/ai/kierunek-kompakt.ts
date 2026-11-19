@@ -7,7 +7,7 @@ import { walidujSvgSygnetu } from '../walidator-svg.ts';
 import type { RodzinaSygnetu } from '../typy.ts';
 import { krojTekstuDla, krojZKatalogu, wagaKroju } from './kroje.ts';
 import { barwaWZakresie, odlegloscBarwy, type SlotSerii } from './preselekcja.ts';
-import { przygotujSymbolAi } from './symbol-ai.ts';
+import { kontrolaSymbolu, przygotujSymbolAi } from './symbol-ai.ts';
 import { koloryKierunku, literyMonogramu, naruszeniaTekstu, tekstAi, type CharakterPaletyMarki } from './wspolne-marki.ts';
 
 /**
@@ -24,21 +24,27 @@ import { koloryKierunku, literyMonogramu, naruszeniaTekstu, tekstAi, type Charak
 /** Liczba z odpowiedzi (także "205"). */
 const Liczba = z.union([z.number(), z.string().regex(/^-?\d+(?:\.\d+)?$/).transform(Number)]);
 
+/** Tekst od modelu: limit długości tnie (tekstAi), a nie odrzuca całego kierunku. */
+const Tekst = z.string().max(4000);
+
 export const KierunekKompakt = z.object({
-  r: z.string().max(60).optional(),
+  r: Tekst.optional(),
   p: z.record(z.string(), Liczba).optional(),
-  l: z.string().max(8).optional(),
+  l: Tekst.optional(),
   s: z.string().max(12_000).optional(),
-  f: z.string().max(80).optional(),
+  f: Tekst.optional(),
   w: Liczba.optional(),
-  n: z.string().max(20).optional(),
+  n: Tekst.optional(),
   ro: Liczba.optional(),
-  u: z.string().max(20).optional(),
-  b: Liczba,
+  u: Tekst.optional(),
+  /** Barwa akcentu – bez niej środek zakresu slotu (ostrzeżenie), nie odrzucenie kierunku. */
+  b: Liczba.optional(),
   b2: Liczba.optional(),
-  ch: z.string().max(20).optional(),
-  ft: z.string().max(80).optional(),
-  d: z.string().max(600).optional(),
+  ch: Tekst.optional(),
+  ft: Tekst.optional(),
+  d: Tekst.optional(),
+  /** Paczka 134 – koncepcja: co znak przedstawia i z czym z briefu się łączy (≤ 25 słów). */
+  c: Tekst.optional(),
 });
 export type KierunekKompakt = z.infer<typeof KierunekKompakt>;
 
@@ -47,12 +53,21 @@ export type WalidatorSymbolu = (svg: string) => { ok: true; svg: string } | { ok
 
 /**
  * Walidator biblioteki (walidator-svg.ts, tryb 'ai'): ścisły parser XML, biała lista, wynik budowany od nowa z samej
- * geometrii (same `<path>`, kolory currentColor / akcent), limity 8 elementów i 120 węzłów.
+ * geometrii (same `<path>`, kolory currentColor / akcent), limity 12 elementów i 220 węzłów; potem kontrola jakości
+ * (paczka 134): pusty, plama, zbyt cienki, zbyt drobny, zlewające się prześwity – raster 100×100 i 32×32.
  */
 export const walidatorSymboluBiblioteki: WalidatorSymbolu = (svg) => {
   const w = walidujSvgSygnetu(svg, { tryb: 'ai' });
-  return w.ok ? { ok: true, svg: w.svg } : { ok: false, powod: w.bledy.slice(0, 3).join('; ') || 'niepoprawny SVG' };
+  if (!w.ok) return { ok: false, powod: w.bledy.slice(0, 3).join('; ') || 'niepoprawny SVG' };
+  const jakosc = kontrolaSymbolu(w.svg);
+  return jakosc.length ? { ok: false, powod: `jakość: ${jakosc.join('; ')}` } : { ok: true, svg: w.svg };
 };
+
+/** Usuwa pola null (model czasem pisze "s":null zamiast pominąć pole) – null = brak pola, nie błąd kierunku. */
+export function bezNull(v: unknown): unknown {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return v;
+  return Object.fromEntries(Object.entries(v as Record<string, unknown>).filter(([, x]) => x !== null).map(([k, x]) => [k, k === 'p' ? bezNull(x) : x]));
+}
 
 export interface KontekstKierunku {
   brief: Pick<BriefMarki, 'nazwa' | 'rodzaj'> & Partial<Pick<BriefMarki, 'podpis' | 'barwyOdrzucone'>>;
@@ -103,8 +118,9 @@ const NAPISY = new Set<string>(STYLE_NAPISU);
 const UKLADY = new Set<string>(UKLADY_LOGO);
 const CHARAKTERY = new Set<string>(CHARAKTERY_PALET);
 
-/** Krój zastępczy dla slotu: pierwszy z katalogu w kategorii slotu (deterministycznie od ziarna). */
+/** Krój zastępczy dla slotu: pierwszy z krojów slotu (dobranych do briefu), inaczej z kategorii slotu (od ziarna). */
 function krojZastepczy(slot: SlotSerii, ziarno: number): string {
+  if (slot.kroje?.length) return slot.kroje[0];
   const lista = KATALOG_FONTOW.filter((f) => f.kategoria === slot.kategoriaKroju && f.wagi.some((w) => w >= 500));
   const pula = lista.length ? lista : KATALOG_FONTOW.filter((f) => f.kategoria === 'bezszeryfowy');
   return pula[ziarno % pula.length].rodzina;
@@ -113,7 +129,7 @@ function krojZastepczy(slot: SlotSerii, ziarno: number): string {
 /** Rozwinięcie jednego kierunku kompaktowego. */
 export function rozwinKierunek(wejscie: unknown, kontekst: KontekstKierunku): WynikKierunku {
   const { brief, slot } = kontekst;
-  const p = KierunekKompakt.safeParse(wejscie);
+  const p = KierunekKompakt.safeParse(bezNull(wejscie));
   if (!p.success) return { ok: false, powod: `${slot.id}: ${p.error.issues.slice(0, 3).map((i) => `${i.path.join('.') || '(kierunek)'} ${i.message}`).join('; ')}` };
   const k = p.data;
   const ostrzezenia: string[] = [];
@@ -127,6 +143,7 @@ export function rozwinKierunek(wejscie: unknown, kontekst: KontekstKierunku): Wy
   if (brief.rodzaj === 'napis' || (!dozwolone.length && !slot.symbolAi)) {
     sygnet = { typ: 'brak' };
   } else if (k.s && slot.symbolAi) {
+    if (!k.c?.trim() && !k.d?.trim()) return { ok: false, powod: `${slot.id}: symbol bez koncepcji ("c") – znak musi wynikać z briefu` };
     const s = przygotujSymbolAi(k.s);
     if (!s.ok) return { ok: false, powod: `${slot.id}: ${s.powod}` };
     const w = (kontekst.walidujSymbol ?? walidatorSymboluBiblioteki)(s.svg);
@@ -154,6 +171,11 @@ export function rozwinKierunek(wejscie: unknown, kontekst: KontekstKierunku): Wy
     const zast = krojZastepczy(slot, kontekst.ziarno);
     ostrzezenia.push(`${slot.id}: krój „${k.f ?? '–'}” spoza katalogu – użyto „${zast}”`);
     font = krojZKatalogu(zast)!;
+  } else if (slot.kroje?.length && !slot.kroje.includes(font.rodzina)) {
+    // Paczka 134: krój ma pasować do charakteru briefu (sport – mocny bezszeryfowy, nie Playfair dla siłowni).
+    const zast = slot.kroje[0];
+    ostrzezenia.push(`${slot.id}: krój „${font.rodzina}” spoza krojów slotu – użyto „${zast}”`);
+    font = krojZKatalogu(zast) ?? font;
   }
   const waga = wagaKroju(font, k.w === undefined ? undefined : Math.round(k.w));
   let styl = k.n && NAPISY.has(k.n) ? (k.n as KierunekMarki['projekt']['napis']['styl']) : 'jeden';
@@ -161,8 +183,11 @@ export function rozwinKierunek(wejscie: unknown, kontekst: KontekstKierunku): Wy
   const rozstrzelenie = Math.max(-50, Math.min(400, Math.round(k.ro ?? 0)));
 
   // Kolor.
-  const barwa = barwaDoZakresu(k.b, slot.barwy);
-  if (barwa !== zawin(k.b)) ostrzezenia.push(`${slot.id}: barwa ${k.b} poza zakresem ${slot.barwy.join('–')} – ${barwa}`);
+  const srodekZakresu = zawin(slot.barwy[0] + (((slot.barwy[1] - slot.barwy[0]) % 360) + 360) % 360 / 2);
+  if (k.b === undefined) ostrzezenia.push(`${slot.id}: brak barwy – środek zakresu slotu (${srodekZakresu})`);
+  const barwaWej = k.b ?? srodekZakresu;
+  const barwa = barwaDoZakresu(barwaWej, slot.barwy);
+  if (barwa !== zawin(barwaWej)) ostrzezenia.push(`${slot.id}: barwa ${barwaWej} poza zakresem ${slot.barwy.join('–')} – ${barwa}`);
   const charakter: CharakterPaletyMarki = k.ch && CHARAKTERY.has(k.ch) && slot.charaktery.includes(k.ch as CharakterPaletyMarki) ? (k.ch as CharakterPaletyMarki) : slot.charaktery[0];
   let b2 = k.b2 === undefined ? undefined : zawin(k.b2);
   if (b2 !== undefined && (brief.barwyOdrzucone ?? []).some((o) => odlegloscBarwy(o, b2!) < 25)) b2 = undefined;
@@ -184,6 +209,15 @@ export function rozwinKierunek(wejscie: unknown, kontekst: KontekstKierunku): Wy
     }
   }
 
+  // Koncepcja (paczka 134): z "c"; bez niej – uzasadnienie "d"; monogram z biblioteki – litery nazwy (fakt, nie ozdobnik).
+  let koncepcja = dlaczegoAktualne ? tekstAi(k.c ?? k.d, 25, 220) : undefined;
+  if (koncepcja && naruszeniaTekstu(koncepcja).length) {
+    ostrzezenia.push(`${slot.id}: koncepcja usunięta (${naruszeniaTekstu(koncepcja).join('; ')})`);
+    koncepcja = undefined;
+  }
+  if (!koncepcja && sygnet.typ === 'biblioteka' && sygnet.litery) koncepcja = koncepcjaMonogramu(sygnet.litery, brief.nazwa);
+  if (!koncepcja) ostrzezenia.push(`${slot.id}: brak koncepcji ("c")`);
+
   const kierunek = KierunekMarki.safeParse({
     id: slot.id,
     projekt: {
@@ -194,10 +228,16 @@ export function rozwinKierunek(wejscie: unknown, kontekst: KontekstKierunku): Wy
       fonty: { naglowki: font.rodzina, tekst },
     },
     ...(dlaczego ? { dlaczego } : {}),
+    ...(koncepcja ? { koncepcja } : {}),
     zrodloZnaku,
   });
   if (!kierunek.success) return { ok: false, powod: `${slot.id}: ${kierunek.error.issues.slice(0, 3).map((i) => `${i.path.join('.')} ${i.message}`).join('; ')}` };
   return { ok: true, kierunek: kierunek.data, ostrzezenia };
+}
+
+/** Koncepcja monogramu z biblioteki (zamiennik i kierunek bez "c"): litery wzięte z nazwy firmy. */
+export function koncepcjaMonogramu(litery: string, nazwa: string): string {
+  return tekstAi(`Monogram z liter „${litery}” nazwy „${nazwa.trim()}” – znak zbudowany z nazwy firmy`, 25, 220) ?? `Monogram z liter „${litery}”`;
 }
 
 /** Kierunek pełny → kompaktowy (do wiadomości odświeżenia, zmian i testów odwracalności). */
@@ -217,5 +257,6 @@ export function kompaktujKierunek(k: KierunekMarki): Record<string, unknown> {
   w.b = pr.kolory.barwa;
   if (pr.kolory.charakter !== 'jasna') w.ch = pr.kolory.charakter;
   if (k.dlaczego) w.d = k.dlaczego;
+  if (k.koncepcja) w.c = k.koncepcja;
   return w;
 }

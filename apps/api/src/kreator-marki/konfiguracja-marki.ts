@@ -60,8 +60,15 @@ export type KonfiguracjaMarki = {
   drugaMarka: { cenaBrutto: number };
   /** Czy Kreator Pro opłacany rocznie zawiera Pakiet marki (założenie 19.11: nie – do decyzji właściciela). */
   pakietWKreatorzeProRocznym: boolean;
-  /** Symbole od AI (swobodny SVG po walidatorze) obok sygnetów z biblioteki. */
+  /** Symbole od AI (swobodny SVG po walidatorze) obok sygnetów z biblioteki – paczka 134: 4 z 6 kierunków serii. */
   symboleAi: boolean;
+  /**
+   * Paczka 134 – samoocena serii wizją przed pokazaniem klientowi (model zmian, jedna plansza PNG 768×512): kierunki
+   * z oceną < 3 są wymieniane. Pomijana, gdy szacunek kosztu przekracza `samoocenaMaksUsd`.
+   */
+  samoocena: boolean;
+  /** Limit szacunkowego kosztu jednej samooceny (USD). */
+  samoocenaMaksUsd: number;
   /** Model serii propozycji (kierunki marki). Tylko Anthropic – jak Kreator stron (cache promptu w formacie Anthropic). */
   modelGeneracji: string;
   /** Model drobnych zmian AI. */
@@ -80,6 +87,7 @@ export const ZAKRESY_MARKI = {
   aktualizacjeSzablonowMies: { min: 0, max: 60 },
   cenaBrutto: { min: 0, max: 10_000 },
   maksRozmiarWgraniaMb: { min: 1, max: 25 },
+  samoocenaMaksUsd: { min: 0, max: 1 },
 } as const;
 
 export const DOMYSLNA_KONFIGURACJA_MARKI: KonfiguracjaMarki = {
@@ -91,6 +99,8 @@ export const DOMYSLNA_KONFIGURACJA_MARKI: KonfiguracjaMarki = {
   drugaMarka: { cenaBrutto: 49 },
   pakietWKreatorzeProRocznym: false,
   symboleAi: true,
+  samoocena: true,
+  samoocenaMaksUsd: 0.02,
   modelGeneracji: 'claude-sonnet-5-5',
   modelZmian: 'claude-sonnet-5-5',
   maksRozmiarWgraniaMb: 10,
@@ -154,6 +164,11 @@ export function odczytajKonfiguracjeMarki(surowe: string | null | undefined): Ko
     drugaMarka: { cenaBrutto: kwota(obiekt(v.drugaMarka).cenaBrutto, d.drugaMarka.cenaBrutto) },
     pakietWKreatorzeProRocznym: v.pakietWKreatorzeProRocznym === true,
     symboleAi: typeof v.symboleAi === 'boolean' ? v.symboleAi : d.symboleAi,
+    samoocena: typeof v.samoocena === 'boolean' ? v.samoocena : d.samoocena,
+    samoocenaMaksUsd:
+      typeof v.samoocenaMaksUsd === 'number' && Number.isFinite(v.samoocenaMaksUsd) && v.samoocenaMaksUsd >= z.samoocenaMaksUsd.min && v.samoocenaMaksUsd <= z.samoocenaMaksUsd.max
+        ? Math.round(v.samoocenaMaksUsd * 1000) / 1000
+        : d.samoocenaMaksUsd,
     modelGeneracji: model(v.modelGeneracji, d.modelGeneracji),
     modelZmian: model(v.modelZmian, d.modelZmian),
     maksRozmiarWgraniaMb: calkowita(v.maksRozmiarWgraniaMb, z.maksRozmiarWgraniaMb, d.maksRozmiarWgraniaMb),

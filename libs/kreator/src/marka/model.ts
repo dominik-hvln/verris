@@ -126,6 +126,11 @@ export const KierunekMarki = z.object({
   dlaczego: tekstOpc(200),
   /** Pochodzenie znaku – „Symbol od AI – sprawdzony walidatorem” w panelu. */
   zrodloZnaku: z.enum(['biblioteka', 'ai', 'zamiennik']).default('biblioteka'),
+  /**
+   * Paczka 134 – co przedstawia znak i z czym z briefu się łączy (nazwa, branża, skojarzenie), ≤ 25 słów,
+   * np. „Litera L złożona z toru bieżni – Lubuski, sport, ruch”. Pokazywane w panelu przy propozycji.
+   */
+  koncepcja: tekstOpc(220),
 });
 export type KierunekMarki = z.infer<typeof KierunekMarki>;
 

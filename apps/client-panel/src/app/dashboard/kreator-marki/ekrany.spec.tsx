@@ -94,7 +94,7 @@ const przycisk = (t: string) => [...el.querySelectorAll('button')].find((b) => b
 describe('propozycje', () => {
   it('karty: oznaczenie znaku od AI i z biblioteki, ostrzeżenia reguł, licznik serii', async () => {
     await act(async () => root.render(<Propozycje widok={widok()} stan={{ ...STAN }} onWidok={jest.fn()} onKrok={jest.fn()} onStan={jest.fn()} />));
-    expect(el.textContent).toContain('Symbol od AI – sprawdzony walidatorem');
+    expect(el.textContent).toContain('Symbol zaprojektowany przez AI dla Twojej firmy – sprawdzony walidatorem');
     expect(el.textContent).toContain('Szablon kształtu z biblioteki Verris');
     expect(el.textContent).toContain('Prześwity w znaku są wąskie.');
     expect(przycisk('Nowa seria')?.textContent).toContain('zostały 2 z 3 serii');

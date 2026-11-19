@@ -6,7 +6,7 @@ import { KATALOG_SYGNETOW } from '../sygnety/katalog.ts';
 import type { RodzinaSygnetu } from '../typy.ts';
 import { kosztUsd, tokenyObrazu, WYJSCIE_SZACUNEK } from './koszt-marki.ts';
 import { CHARAKTER_KROJOW } from './kroje.ts';
-import { blokiSystemuMarki, blokM1Marki, blokM2Marki, MAX_TOKENS_MARKI, szacujTokenyMarki, tekstM2, zbudujBlokiMarki } from './master-prompt-marki.ts';
+import { blokiSystemuMarki, blokM1Marki, blokM2Marki, MAX_TOKENS_MARKI, szacujTokenyMarki, tekstM2, ZAPAS_NA_MYSLENIE, zbudujBlokiMarki } from './master-prompt-marki.ts';
 import { preselekcjaSerii } from './preselekcja.ts';
 import { budujZapytanieSerii } from './seria.ts';
 import { budujZapytanieDrobnejZmiany } from './drobne.ts';
@@ -91,11 +91,14 @@ describe('bloki M1 i M2 – stabilność bajtowa (cache 1 h)', () => {
 
 /**
  * Szacunek tokenów i kosztu (Sonnet 5.5: 2 / 10 USD za 1 mln, zapis cache 1 h ×2, odczyt ×0,05) – rozdz. 8.3.
- * Wartości z tego testu (znaki / 3,5) przy obecnym katalogu: M1 ≈ 3,0 tys., M2 ≈ 4,7 tys. tokenów.
+ * Wartości z tego testu (znaki / 3,5) przy obecnym katalogu (paczka 134): M1 ≈ 3,7 tys., M2 ≈ 5,7 tys. tokenów.
  *
  * | Operacja                                   | Wejście (cache + wiad.) | Wyjście | Koszt (ciepły cache) |
  * |--------------------------------------------|-------------------------|---------|----------------------|
- * | Seria 6 (4 biblioteka + 2 symbole AI)      | ~7,8 tys. + ~0,5 tys.   | ~1 050  | ≈ 0,012 USD          |
+ * | Seria 6 – do paczki 133 (4 bibl. + 2 AI)   | ~7,8 tys. + ~0,5 tys.   | ~1 050  | ≈ 0,012 USD          |
+ * | Seria 6 – paczka 134 (4 AI + 2 bibl.)      | ~9,3 tys. + ~0,55 tys.  | ~1 420  | ≈ 0,016 USD          |
+ * | + ponowienie 2 slotów (gdy > 1 odrzucony)  | ~9,3 tys. + ~0,3 tys.   | ~540    | ≈ +0,007 USD         |
+ * | + samoocena wizją (tani model, 768×512)    | ~1,3 tys. (bez cache)   | ~150    | ≈ +0,004 USD         |
  * | Odświeżenie (3 kierunki)                   | ~7,8 tys. + ~0,6 tys.   | ~390    | ≈ 0,006 USD          |
  * | Analiza logo (obraz 512 px)                | ~7,8 tys. + ~0,5 tys.   | ~180    | ≈ 0,004 USD          |
  * | Key Visual                                 | ~7,8 tys. + ~0,3 tys.   | ~70     | ≈ 0,002 USD          |
@@ -118,8 +121,12 @@ describe('szacunek tokenów i kosztu', () => {
   it('wiadomość serii jest krótka (< 900 tokenów), a max_tokens ≈ 2–3 × realnego wyjścia', () => {
     const z = budujZapytanieSerii(brief, preselekcjaSerii(brief, [], 7));
     expect(szacujTokenyMarki(z.wiadomosci[0].content)).toBeLessThan(900);
-    expect(MAX_TOKENS_MARKI.seria).toBeGreaterThanOrEqual(WYJSCIE_SZACUNEK.seria * 2);
-    expect(MAX_TOKENS_MARKI.seria).toBeLessThanOrEqual(WYJSCIE_SZACUNEK.seria * 3);
+    // Paczka 134: 2 × realne wyjście + zapas na myślenie modelu (tokeny myślenia liczą się do max_tokens).
+    for (const [op, max] of Object.entries(MAX_TOKENS_MARKI)) {
+      const wyj = WYJSCIE_SZACUNEK[op as keyof typeof WYJSCIE_SZACUNEK];
+      expect(max, op).toBeGreaterThanOrEqual(2 * wyj + ZAPAS_NA_MYSLENIE);
+      expect(max, op).toBeLessThan(2 * wyj + ZAPAS_NA_MYSLENIE + 500);
+    }
   });
 
   it('koszt serii przy ciepłym cache < 0,02 USD, drobnej zmiany < 0,002 USD, zapis cache < 0,05 USD', () => {

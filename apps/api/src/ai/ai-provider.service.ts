@@ -15,6 +15,18 @@ import {
 } from './ai-modele.js';
 
 /** Klucz ustawienia platformy z konfiguracją AI (JSON, edycja: admin → Ustawienia → Asystent AI). */
+
+/**
+ * Paczka 134 – produkcja 19.11: Kreator marki dostawał „empty response”, bo Sonnet 5.x zużył cały `max_tokens` na blok
+ * `thinking` (adaptacyjne myślenie jest domyślne) i nie zwrócił bloku `text` (stop_reason `max_tokens`). To nie jest
+ * błąd dostawcy, tylko ucięcie – wywołujący (np. kreator marki) traktuje je jak ucięcie (bez rundy naprawy, czytelny log).
+ */
+export class OdpowiedzUcietaAiError extends ServiceUnavailableException {
+  constructor(readonly wyjscieTokenow: number, readonly limit: number) {
+    super(`AI: odpowiedź bez tekstu ucięta limitem max_tokens ${limit} (wyjście ${wyjscieTokenow} tokenów, myślenie)`);
+  }
+}
+
 export const KLUCZ_KONFIGURACJI_AI = 'ai.konfiguracja';
 
 /** Funkcje uruchamiane przez klienta — liczą się do jego miesięcznego limitu kosztu AI. */
@@ -459,6 +471,7 @@ export class AiProviderService {
         inputSummary: { rodzaj: input.rodzaj ?? null, wejPozaCache: u.wej, zapis5m: u.zapis5m, zapis1h: u.zapis1h, odczyt: u.odczyt },
         ...(tekst ? {} : { errorMessage: 'Pusta odpowiedź' }),
       });
+      if (!tekst && body?.stop_reason === 'max_tokens') throw new OdpowiedzUcietaAiError(u.wyj, input.maxTokens);
       if (!tekst) throw new ServiceUnavailableException('AI provider returned an empty response.');
       return {
         wynik: tekst,

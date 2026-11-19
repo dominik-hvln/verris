@@ -21,7 +21,7 @@ export const kafelKrzywa: RodzinaSygnetu = {
   nazwa: 'Kafel',
   opis: 'Kafel przecięty płynną krzywą – dwa (albo trzy) pasy w kolorze głównym i akcencie. Wyrazisty awatar.',
   charakter: ['nowoczesna', 'przyjazna', 'energiczna', 'odwazna'],
-  branze: ['aplik', 'studio', 'agencj', 'marketing', 'kawiar', 'sklep'],
+  branze: ['marketing', 'it', 'aplik', 'agencj', 'kawiar'],
   monogram: false,
   kanaly: 2,
   parametry: PARAMETRY,

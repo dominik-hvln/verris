@@ -48,7 +48,7 @@ export const kolumnaLitera: RodzinaSygnetu = {
   nazwa: 'Kolumna',
   opis: 'Litera z kolumną zamiast trzonu (głowica, żłobki, baza) – porządek, zaufanie, tradycja.',
   charakter: ['klasyczna', 'ekspercka', 'elegancka', 'spokojna', 'luksusowa'],
-  branze: ['rachunk', 'księgow', 'kancelar', 'prawn', 'notar', 'finans', 'bank', 'ubezpiecz', 'muzeum', 'uczeln', 'architekt'],
+  branze: ['prawo', 'finanse', 'edukacja', 'kultura', 'rachunk', 'księgow', 'kancelar', 'notar', 'bank', 'ubezpiecz', 'muzeum', 'uczeln', 'architekt'],
   monogram: true,
   kanaly: 2,
   parametry: PARAMETRY,

@@ -69,7 +69,7 @@ export const krysztal: RodzinaSygnetu = {
   nazwa: 'Kryształ',
   opis: 'Romb, brylant albo sześcian z faset rozdzielonych szczelinami – precyzja, wartość, konstrukcja.',
   charakter: ['luksusowa', 'ekspercka', 'nowoczesna', 'techniczna', 'elegancka'],
-  branze: ['jubil', 'finans', 'inwest', 'budow', 'deweloper', 'nieruchom', 'logist', 'magazyn', 'architekt'],
+  branze: ['finanse', 'budownictwo', 'nieruchomosci', 'logistyka', 'jubil', 'inwest', 'deweloper', 'magazyn', 'architekt'],
   monogram: false,
   kanaly: 2,
   parametry: PARAMETRY,

@@ -23,7 +23,7 @@ export const literaRama: RodzinaSygnetu = {
   nazwa: 'Litera w ramie',
   opis: 'Inicjał w obrysie koła, kafla, sześciokąta, tarczy albo łuku – pieczęć, godło, solidność.',
   charakter: ['klasyczna', 'ekspercka', 'elegancka', 'lokalna', 'rzemieslnicza'],
-  branze: ['kancelar', 'prawn', 'notar', 'rachunk', 'księgow', 'browar', 'piekarn', 'rzemieśl', 'stolar'],
+  branze: ['prawo', 'finanse', 'rzemioslo', 'gastronomia', 'kancelar', 'notar', 'rachunk', 'księgow', 'browar', 'piekar', 'stolar'],
   monogram: true,
   kanaly: 2,
   parametry: PARAMETRY,

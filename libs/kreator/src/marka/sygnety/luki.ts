@@ -22,7 +22,7 @@ export const luki: RodzinaSygnetu = {
   nazwa: 'Łuki',
   opis: 'Koncentryczne łuki o stałej grubości – tęcza, wschód słońca, zasięg. Pogodne i rytmiczne.',
   charakter: ['przyjazna', 'energiczna', 'ciepla', 'nowoczesna', 'zabawna'],
-  branze: ['przedszkol', 'eduk', 'energ', 'fotowolt', 'internet', 'radio', 'psycholog', 'dzieci'],
+  branze: ['edukacja', 'dzieci', 'energia', 'przedszkol', 'fotowolt', 'internet', 'radio', 'psycholog'],
   monogram: false,
   kanaly: 2,
   parametry: PARAMETRY,

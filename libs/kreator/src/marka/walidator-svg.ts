@@ -47,7 +47,10 @@ interface Wezel {
 }
 
 const LIMITY: Record<TrybWalidacji, { elementy: number; wezly: number; bajty: number; glebokosc: number }> = {
-  ai: { elementy: 8, wezly: 120, bajty: 20_000, glebokosc: 4 },
+  // Paczka 134: symbol AI zaprojektowany dla firmy (litera + motyw) potrzebuje więcej niż 8 elementów / 120 węzłów –
+  // łuki A i krzywe C/Q po normalizacji to 1–4 segmenty C każdy. Bezpieczeństwo nie zależy od limitu (wynik budowany
+  // od nowa), limit pilnuje prostoty i rozmiaru odpowiedzi.
+  ai: { elementy: 12, wezly: 220, bajty: 20_000, glebokosc: 4 },
   wgrany: { elementy: 400, wezly: 12_000, bajty: 2_000_000, glebokosc: 12 },
 };
 
@@ -263,6 +266,8 @@ function kanalKoloru(v: string, tryb: TrybWalidacji): Kanal | { hex: string } {
   if (t === 'none' || t === 'transparent') return 'brak';
   if (t === 'currentcolor') return 'glowny';
   if (/^var\(\s*--akcent\s*(,\s*currentcolor\s*)?\)$/.test(t)) return 'akcent';
+  // Paczka 134: biel w symbolu AI = wycięcie (model często „zamalowuje” otwór bielą zamiast evenodd) – odejmowana niżej.
+  if (tryb === 'ai' && (t === 'white' || t === '#fff' || t === '#ffffff')) return { hex: '#ffffff' };
   if (tryb === 'ai') throw new BladSvg('Kolory symbolu: tylko currentColor, var(--akcent) albo none.');
   if (/url\s*\(/.test(t)) throw new BladSvg('Gradienty i wzory (url()) są niedozwolone – wypełnienie musi być jednolite.');
   let hex = KOLORY_NAZW[t];
@@ -361,6 +366,23 @@ function geometria(w: Wezel): Segment[] {
   }
 }
 
+/** Granice kształtu z krzywych spłaszczonych (tolerancja 0,05) – dokładne, w odróżnieniu od `graniceSegmentow`. */
+export function granicePrecyzyjne(seg: Segment[]): { x0: number; y0: number; x1: number; y1: number } {
+  const pkt = splaszczPodsciezki(seg, 0.05).flatMap((p) => p.pts);
+  if (!pkt.length) return graniceSegmentow(seg);
+  let x0 = Infinity;
+  let y0 = Infinity;
+  let x1 = -Infinity;
+  let y1 = -Infinity;
+  for (const [x, y] of pkt) {
+    x0 = Math.min(x0, x);
+    y0 = Math.min(y0, y);
+    x1 = Math.max(x1, x);
+    y1 = Math.max(y1, y);
+  }
+  return { x0, y0, x1, y1 };
+}
+
 // ───────────────────────── walidacja ─────────────────────────
 
 interface Element {
@@ -383,8 +405,10 @@ function doKsztaltu(e: Element): Ksztalt {
  * (fill currentColor / var(--akcent, currentColor), fill-rule z wejścia), znak przeskalowany i wyśrodkowany
  * w polu 4–96.
  */
-export function walidujSvgSygnetu(svg: string, o: { tryb: TrybWalidacji }): WynikWalidacjiSvg {
-  const lim = LIMITY[o.tryb];
+export function walidujSvgSygnetu(svg: string, o: { tryb: TrybWalidacji; ponowna?: boolean }): WynikWalidacjiSvg {
+  // `ponowna` – ponowna walidacja WYNIKU tego walidatora (render zapisanego symbolu): obrysy i wycięcia są już
+  // konturami z wielu odcinków, więc limit węzłów wejścia AI (prostota odpowiedzi modelu) nie ma tu sensu.
+  const lim = o.ponowna && o.tryb === 'ai' ? { ...LIMITY.ai, elementy: 40, wezly: 5000, bajty: 60_000 } : LIMITY[o.tryb];
   const nieudany = (bledy: string[]): WynikWalidacjiSvg => ({ ok: false, svg: '', bledy, elementy: 0, wezly: 0 });
   if (typeof svg !== 'string' || !svg.trim()) return nieudany(['Pusty plik SVG.']);
   if (svg.length > lim.bajty) return nieudany(['Plik SVG jest za duży.']);
@@ -534,8 +558,8 @@ export function walidujSvgSygnetu(svg: string, o: { tryb: TrybWalidacji }): Wyni
     if (!elementy.length) throw new BladSvg('Symbol nie zawiera żadnego kształtu.');
     const wezly = wezlyWejscia;
 
-    // biel w pliku wgranym = „wycięcie” (malowana na wcześniejszych kształtach) – odejmujemy ją od nich
-    if (o.tryb === 'wgrany') {
+    // biel w pliku wgranym (i w symbolu AI – paczka 134) = „wycięcie” (malowana na wcześniejszych kształtach) – odejmujemy ją od nich
+    {
       const bialy = (e: Element) => typeof e.kanal === 'object' && hexDoOklch(e.kanal.hex).l > 0.97 && hexDoOklch(e.kanal.hex).c < 0.03;
       if (elementy.some(bialy)) {
         const wyn: Element[] = [];
@@ -558,7 +582,9 @@ export function walidujSvgSygnetu(svg: string, o: { tryb: TrybWalidacji }): Wyni
 
     // granice w układzie viewBox; elementy poza viewBox → błąd (ai) / przycięcie przez skalowanie (wgrany)
     const wsz = elementy.flatMap((e) => e.seg);
-    const g = graniceSegmentow(wsz);
+    // Paczka 134: granice z krzywych spłaszczonych (dokładne), nie z punktów kontrolnych – łuk C z kontrolą poza polem
+    // (typowe u modeli: „M10 70C10 -5 90 -5 90 70”) leży w polu i nie może być odrzucany jako „poza viewBox”.
+    const g = granicePrecyzyjne(wsz);
     if (!Number.isFinite(g.x0) || g.x1 - g.x0 < 1e-6 || g.y1 - g.y0 < 1e-6) throw new BladSvg('Symbol ma zerowy rozmiar.');
     if (o.tryb === 'ai') {
       const tol = 0.5;

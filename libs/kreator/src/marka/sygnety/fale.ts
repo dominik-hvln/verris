@@ -29,7 +29,7 @@ export const fale: RodzinaSygnetu = {
   nazwa: 'Fale',
   opis: 'Kształt wypełniony warstwami fal w dwóch kolorach – głębia, płynność, przepływ.',
   charakter: ['spokojna', 'naturalna', 'nowoczesna', 'przyjazna'],
-  branze: ['woda', 'basen', 'hydraul', 'klimaty', 'mor', 'surf', 'pralni', 'spa', 'rejs'],
+  branze: ['woda', 'turystyka', 'basen', 'hydraul', 'klimaty', 'morsk', 'surf', 'pralni', 'spa$', 'rejs'],
   monogram: false,
   kanaly: 2,
   parametry: PARAMETRY,

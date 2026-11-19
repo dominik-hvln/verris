@@ -24,6 +24,7 @@ export const literaNegatyw: RodzinaSygnetu = {
   nazwa: 'Litera w kształcie',
   opis: 'Inicjał wycięty w pełnym kształcie – litera tworzona przez tło. Mocny, zwarty, świetny jako ikona.',
   charakter: ['nowoczesna', 'odwazna', 'minimalistyczna', 'techniczna', 'ekspercka'],
+  branze: ['sport', 'it', 'budownictwo', 'motoryzacja', 'marketing'],
   monogram: true,
   kanaly: 2,
   parametry: PARAMETRY,

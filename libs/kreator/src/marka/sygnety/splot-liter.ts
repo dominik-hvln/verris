@@ -21,7 +21,7 @@ export const splotLiter: RodzinaSygnetu = {
   nazwa: 'Splecione litery',
   opis: 'Dwie litery splecione jak w sygnecie rodowym – jedna w kolorze głównym, druga w akcencie.',
   charakter: ['elegancka', 'luksusowa', 'klasyczna', 'rzemieslnicza', 'przyjazna'],
-  branze: ['ślub', 'wesel', 'jubil', 'mod', 'hotel', 'winiar', 'restaur', 'rodzin', 'butik'],
+  branze: ['wydarzenia', 'handel', 'gastronomia', 'turystyka', 'ślub', 'wesel', 'jubil', 'butik', 'winiar', 'restaur', 'hotel'],
   monogram: true,
   kanaly: 2,
   parametry: PARAMETRY,

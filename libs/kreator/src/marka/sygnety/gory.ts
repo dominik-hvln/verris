@@ -34,7 +34,7 @@ export const gory: RodzinaSygnetu = {
   nazwa: 'Szczyt',
   opis: 'Szczyty górskie ze śniegiem i słońcem, w ramie albo wolne – cel, wytrwałość, przygoda.',
   charakter: ['odwazna', 'naturalna', 'energiczna', 'ekspercka', 'lokalna'],
-  branze: ['turyst', 'górsk', 'sport', 'trener', 'coach', 'outdoor', 'narty', 'agroturyst', 'schronisk'],
+  branze: ['sport', 'turystyka', 'górsk', 'trener', 'coach', 'outdoor', 'narty', 'agroturyst', 'schronisk', 'wspinac'],
   monogram: false,
   kanaly: 2,
   parametry: PARAMETRY,

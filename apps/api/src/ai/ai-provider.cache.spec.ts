@@ -1,6 +1,6 @@
 import type { Mock } from 'vitest';
 import { ServiceUnavailableException } from '@nestjs/common';
-import { AiProviderService, sprawdzBlokiCache, uzycieZOdpowiedzi } from './ai-provider.service.js';
+import { AiProviderService, OdpowiedzUcietaAiError, sprawdzBlokiCache, uzycieZOdpowiedzi } from './ai-provider.service.js';
 import { DOMYSLNA_KONFIGURACJA_AI, kosztZCacheUsd, mnoznikOdczytuCache } from './ai-modele.js';
 
 /**
@@ -90,6 +90,16 @@ describe('anthropicZBlokami – prompt caching', () => {
         inputSummary: { rodzaj: 'generacja-lite', wejPozaCache: 1000, zapis5m: 1000, zapis1h: 2000, odczyt: 10_000 },
       }),
     });
+  });
+
+  it('paczka 134: sam blok thinking i stop_reason max_tokens = OdpowiedzUcietaAiError (ucięcie, nie „empty response”)', async () => {
+    (global.fetch as Mock).mockResolvedValue(
+      odp({ content: [{ type: 'thinking', thinking: '…' }], usage: { input_tokens: 10, output_tokens: 3000 }, stop_reason: 'max_tokens' }),
+    );
+    const s = new AiProviderService(konfig({ ANTHROPIC_API_KEY: 'sk-ant' }) as never, prismaAtrapa() as never);
+    const p = s.anthropicZBlokami({ model: 'claude-sonnet-5-5', system: BLOKI, wiadomosci: [{ role: 'user', content: 'x' }], maxTokens: 3000, funkcja: 'kreator-marki', userId: 'u1' });
+    await expect(p).rejects.toBeInstanceOf(OdpowiedzUcietaAiError);
+    await expect(p).rejects.toMatchObject({ wyjscieTokenow: 3000, limit: 3000 });
   });
 
   it('bez rozbicia cache_creation: zapis liczony wg TTL bloków (1 h, jeśli jest blok 1 h)', () => {

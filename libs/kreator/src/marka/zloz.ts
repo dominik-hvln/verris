@@ -57,7 +57,7 @@ export function rysujSygnet(sygnet: Sygnet, o: { wariant?: 'pelny' | 'favicon'; 
     return r.rysuj(sygnet.parametry, { litery, ziarno: sygnet.ziarno ?? 0, wariant: o.wariant ?? 'pelny' });
   }
   // symbol od AI / wgrany: zawsze ponowna walidacja (model mógł zostać zapisany starszą wersją walidatora)
-  const w = walidujSvgSygnetu(sygnet.svg, { tryb: sygnet.typ === 'ai' ? 'ai' : 'wgrany' });
+  const w = walidujSvgSygnetu(sygnet.svg, { tryb: sygnet.typ === 'ai' ? 'ai' : 'wgrany', ponowna: true });
   return w.ok ? wnetrzeSvg(w.svg) : '';
 }
 

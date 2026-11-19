@@ -120,6 +120,12 @@ export interface SeriaMarki {
     ostrzezenia: string[];
   })[];
   strategia?: { grupa?: string; cecha?: string; skojarzenie?: string };
+  /**
+   * Paczka 134 – skąd propozycje: 'ai' (seria z AI, limit zużyty) albo 'zapas' (AI niedostępne – propozycje zastępcze
+   * z biblioteki, limit NIE zużyty). Przy 'zapas' panel pokazuje `komunikat` (po polsku, bez szczegółów technicznych).
+   */
+  zrodlo?: 'ai' | 'zapas';
+  komunikat?: string;
 }
 
 export interface AnalizaWgranego {

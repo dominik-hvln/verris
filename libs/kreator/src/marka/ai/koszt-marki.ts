@@ -16,6 +16,9 @@ export interface StawkiModelu {
 
 export const STAWKI_SONNET_55: StawkiModelu = { wejscie: 2, wyjscie: 10, zapisCache1h: 4, odczytCache: 0.1 };
 
+/** Haiku 4.5 (ZNANE_MODELE_AI w API: 1 / 5 USD) – szacunek samooceny, gdy model zmian to Haiku. */
+export const STAWKI_HAIKU_45: StawkiModelu = { wejscie: 1, wyjscie: 5, zapisCache1h: 2, odczytCache: 0.1 };
+
 export interface ZuzycieTokenow {
   /** Tokeny prefiksu odczytane z cache. */
   odczytCache: number;
@@ -37,14 +40,23 @@ export function tokenyObrazu(szer: number, wys: number, maksBok = 512): number {
 }
 
 /**
- * Realne wyjście (tokeny) na operację – szacunek z fikstur testowych w zapisie kompaktowym (polski tekst ≈ 3,5 znaku
- * na token, JSON ≈ 3 znaki na token): kierunek z biblioteki ok. 70–90, symbol AI ok. 250–400, strategia ok. 50.
+ * Realne wyjście (tokeny, bez myślenia) na operację – szacunek z fikstur testowych w zapisie kompaktowym (polski tekst
+ * ≈ 3,5 znaku na token, JSON i SVG ≈ 3 znaki na token). Paczka 134: kierunek z symbolem AI (SVG ≤ 12 elementów
+ * + koncepcja + uzasadnienie) ok. 270, kierunek z biblioteki z koncepcją ok. 140, strategia ok. 60; samoocena wizją
+ * ok. 25 na kierunek. Test operacje-marki.spec.ts mierzy fikstury i pilnuje, że szacunek ich nie zaniża.
  */
 export const WYJSCIE_SZACUNEK = {
-  /** 6 kierunków (4 z biblioteki + 2 symbole AI) + strategia. */
-  seria: 4 * 85 + 2 * 330 + 50,
-  odswiezenie: 3 * 130,
+  /** 6 kierunków (4 symbole AI + 2 z biblioteki) + strategia. */
+  seria: 4 * 270 + 2 * 140 + 60,
+  /** Ponowienie 2 symboli (próg > 1 odrzuconego). */
+  ponowienie: 2 * 270,
+  odswiezenie: 3 * 170,
   analizaLogo: 180,
   kv: 70,
   drobna: 45,
+  /** Samoocena 6 propozycji (tani model, obraz 768×512). */
+  samoocena: 6 * 25,
 } as const;
+
+/** Tokeny wejścia samooceny poza obrazem: system (~350) + brief i koncepcje 6 kierunków (~450). */
+export const WEJSCIE_SAMOOCENY = 800;

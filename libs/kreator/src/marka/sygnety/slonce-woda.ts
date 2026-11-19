@@ -20,7 +20,7 @@ export const slonceWoda: RodzinaSygnetu = {
   nazwa: 'Horyzont',
   opis: 'Słońce nad falami, które skracają się ku dołowi – pogodny, prosty znak wypoczynku i natury.',
   charakter: ['spokojna', 'ciepla', 'przyjazna', 'naturalna', 'lokalna'],
-  branze: ['turyst', 'pensjonat', 'hotel', 'camping', 'żegl', 'mor', 'jezior', 'wakac', 'agroturyst', 'kemping'],
+  branze: ['turystyka', 'woda', 'pensjonat', 'hotel', 'camping', 'żegl', 'morsk', 'jezior', 'wakac', 'kemping'],
   monogram: false,
   kanaly: 2,
   parametry: PARAMETRY,

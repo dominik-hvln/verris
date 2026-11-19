@@ -425,11 +425,20 @@ export function nazwaKierunku(k: Pick<KierunekMarki, 'projekt' | 'zrodloZnaku'>)
   return 'Sam napis';
 }
 
-/** Oznaczenie pochodzenia znaku na karcie propozycji. */
-export function oznaczenieZnaku(k: Pick<KierunekMarki, 'zrodloZnaku' | 'projekt'>): string | null {
-  if (k.projekt.sygnet.typ === 'brak') return null;
-  if (k.zrodloZnaku === 'ai') return 'Symbol od AI – sprawdzony walidatorem';
-  if (k.projekt.sygnet.typ === 'wgrany') return 'Znak z Twojego logo';
+export const OZNACZENIE_ZASTEPCZE = 'Propozycja zastępcza';
+
+/**
+ * Oznaczenie pochodzenia znaku na karcie propozycji (paczka 134). Zamiennik serwera (kierunek z biblioteki wstawiony,
+ * gdy AI nie dało poprawnego) i cała seria zapasowa (`SeriaMarki.zrodlo === 'zapas'`) – „Propozycja zastępcza”, żeby
+ * nie udawać wyniku AI. Symbol AI rozpoznajemy po `zrodloZnaku`, monogram po rodzinie z katalogu (`monogram: true`).
+ */
+export function oznaczenieZnaku(k: Pick<KierunekMarki, 'zrodloZnaku' | 'projekt'>, zapas = false): string | null {
+  if (zapas || k.zrodloZnaku === 'zamiennik') return OZNACZENIE_ZASTEPCZE;
+  const s = k.projekt.sygnet;
+  if (s.typ === 'brak') return null;
+  if (k.zrodloZnaku === 'ai') return 'Symbol zaprojektowany przez AI dla Twojej firmy – sprawdzony walidatorem';
+  if (s.typ === 'wgrany') return 'Znak z Twojego logo';
+  if (s.typ === 'biblioteka' && rodzinaPoId(s.rodzina)?.monogram) return 'Monogram z liter nazwy';
   return 'Szablon kształtu z biblioteki Verris';
 }
 
@@ -473,9 +482,30 @@ export function krokPoczatkowy(w: Pick<WidokMarki, 'zrodlo' | 'serie' | 'marka' 
   return w.zrodlo === 'nowa' ? 'brief' : 'analiza';
 }
 
-/** Najnowsza seria danego rodzaju (API dopisuje serie na końcu). */
+/**
+ * Serie od najstarszej do najnowszej (po `utworzono`). API (KreatorMarkiService.widok) oddaje je od NAJNOWSZEJ
+ * (`orderBy createdAt desc`, ostatnie 20) – panel nie może zakładać kolejności tablicy: przez to „Nowa seria” wybierała
+ * ostatni element, czyli najstarszą serię, i wyglądało, jakby nic się nie zmieniło (paczka 134).
+ */
+export function serieChronologicznie(serie: SeriaMarki[]): SeriaMarki[] {
+  const czas = (s: SeriaMarki) => {
+    const t = Date.parse(s.utworzono);
+    return Number.isFinite(t) ? t : 0;
+  };
+  return [...serie].sort((a, b) => czas(a) - czas(b));
+}
+
+/** Najnowsza seria (po dacie utworzenia, niezależnie od kolejności z API). */
 export function ostatniaSeria(serie: SeriaMarki[]): SeriaMarki | null {
-  return serie.length ? serie[serie.length - 1]! : null;
+  const s = serieChronologicznie(serie);
+  return s.length ? s[s.length - 1]! : null;
+}
+
+/** Seria dodana przez operację AI: pierwsza, której nie było przed nią (inaczej najnowsza). */
+export function seriaDodana(przed: Pick<SeriaMarki, 'id'>[], po: SeriaMarki[]): SeriaMarki | null {
+  const byly = new Set(przed.map((s) => s.id));
+  const nowe = serieChronologicznie(po).filter((s) => !byly.has(s.id));
+  return nowe[nowe.length - 1] ?? ostatniaSeria(po);
 }
 
 // ---------------------------------------------------------------------------------------------------------------

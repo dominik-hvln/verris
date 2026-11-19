@@ -48,7 +48,7 @@ export const gwiazda: RodzinaSygnetu = {
   nazwa: 'Iskra',
   opis: 'Gwiazda, iskra albo rozeta z opcjonalną małą gwiazdą w akcencie – wyróżnienie, jakość, magia.',
   charakter: ['energiczna', 'luksusowa', 'zabawna', 'elegancka', 'odwazna'],
-  branze: ['event', 'kosmet', 'beauty', 'sprząt', 'jubil', 'nagrod', 'szkoł', 'kreatyw'],
+  branze: ['uroda', 'wydarzenia', 'sprzatanie', 'event', 'kosmet', 'jubil', 'nagrod', 'kreatyw'],
   monogram: false,
   kanaly: 2,
   parametry: PARAMETRY,

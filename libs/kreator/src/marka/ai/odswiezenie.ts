@@ -44,7 +44,7 @@ const DOMYSLNA_ROZPOZNAWALNOSC: Record<TypOdswiezenia, 1 | 2 | 3> = { ewolucja: 
  * (z karą za rodziny częste w branży). Symbol AI dozwolony tylko w kierunku „nowy”.
  */
 export function preselekcjaOdswiezenia(brief: Pick<BriefMarki, 'branza' | 'opis' | 'rodzaj' | 'cechy' | 'barwyLubiane' | 'barwyOdrzucone'>, obecne: Pick<ObecneLogo, 'kolory'>, wydane: readonly ZnakWydany[], ziarno: number, katalog?: readonly RodzinaSygnetu[]): PreselekcjaMarki {
-  const p = preselekcjaSerii(brief, wydane, ziarno, { ile: 3, symboleAi: 1, katalog });
+  const p = preselekcjaSerii(brief, wydane, ziarno, { ile: 3, symboleAi: 1, symboleAiNaKoncu: true, katalog });
   const h = barwaLogo(obecne.kolory);
   if (h !== undefined) {
     p.sloty[0].barwy = [(h + 345) % 360, (h + 15) % 360];

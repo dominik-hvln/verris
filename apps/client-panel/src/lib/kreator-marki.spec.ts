@@ -18,7 +18,11 @@ import {
   opisBlokady,
   opisCeny,
   opisPozostalo,
+  ostatniaSeria,
+  oznaczenieZnaku,
   plikFontuPanelu,
+  seriaDodana,
+  serieChronologicznie,
   regulyFontu,
   ZAKRESY_FONTOW_PANELU,
   stylDozwolony,
@@ -221,5 +225,35 @@ describe('brief i plik logo', () => {
     expect(bladPlikuLogo({ name: 'logo.gif', size: 1000, type: 'image/gif' }, 10)).toContain('SVG, PDF, PNG albo JPG');
     expect(bladPlikuLogo({ name: 'logo.png', size: 11 * 1048576, type: 'image/png' }, 10)).toBe('Plik jest za duży (11,0 MB, limit 10 MB).');
     expect(bladPlikuLogo({ name: 'logo.png', size: 0, type: 'image/png' }, 10)).toBe('Plik jest pusty.');
+  });
+});
+
+describe('serie i oznaczenia (paczka 134)', () => {
+  const seria = (id: string, utworzono: string) => ({ id, rodzaj: 'nowa' as const, utworzono, kierunki: [] });
+  // Kolejność jak z API (KreatorMarkiService.widok: orderBy createdAt desc) – najnowsza PIERWSZA.
+  const zApi = [seria('s3', '2026-11-19T12:00:00.000Z'), seria('s2', '2026-11-19T11:00:00.000Z'), seria('s1', '2026-11-19T10:00:00.000Z')];
+
+  it('najnowsza seria po dacie, nie po pozycji w tablicy; numeracja od najstarszej', () => {
+    expect(ostatniaSeria(zApi)?.id).toBe('s3');
+    expect(serieChronologicznie(zApi).map((s) => s.id)).toEqual(['s1', 's2', 's3']);
+    expect(ostatniaSeria([])).toBeNull();
+  });
+
+  it('seria dodana = ta, której nie było przed operacją', () => {
+    expect(seriaDodana(zApi.slice(1), zApi)?.id).toBe('s3');
+    expect(seriaDodana(zApi, zApi)?.id).toBe('s3');
+  });
+
+  it('źródło znaku: AI, monogram z biblioteki, szablon, zamiennik i seria zapasowa', () => {
+    const p = projekt();
+    expect(oznaczenieZnaku({ zrodloZnaku: 'ai', projekt: { ...p, sygnet: { typ: 'ai', svg: '<svg/>' } } as ProjektLogo })).toBe(
+      'Symbol zaprojektowany przez AI dla Twojej firmy – sprawdzony walidatorem',
+    );
+    expect(rodzinaPoId('litera-rama')?.monogram).toBe(true);
+    expect(oznaczenieZnaku({ zrodloZnaku: 'biblioteka', projekt: { ...p, sygnet: { typ: 'biblioteka', rodzina: 'litera-rama', parametry: {}, ziarno: 0 } } })).toBe('Monogram z liter nazwy');
+    expect(oznaczenieZnaku({ zrodloZnaku: 'biblioteka', projekt: p })).toBe('Szablon kształtu z biblioteki Verris');
+    expect(oznaczenieZnaku({ zrodloZnaku: 'zamiennik', projekt: p })).toBe('Propozycja zastępcza');
+    expect(oznaczenieZnaku({ zrodloZnaku: 'biblioteka', projekt: p }, true)).toBe('Propozycja zastępcza');
+    expect(oznaczenieZnaku({ zrodloZnaku: 'biblioteka', projekt: { ...p, sygnet: { typ: 'brak' } } })).toBeNull();
   });
 });

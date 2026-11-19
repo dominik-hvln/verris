@@ -25,6 +25,7 @@ export const monogramLinia: RodzinaSygnetu = {
   nazwa: 'Monogram',
   opis: 'Inicjały z kreski o stałej grubości z kropką, podkreśleniem albo drugą literą w akcencie.',
   charakter: ['nowoczesna', 'minimalistyczna', 'przyjazna', 'ekspercka', 'elegancka'],
+  branze: ['uroda', 'doradztwo', 'it', 'nieruchomosci', 'zdrowie', 'architekt'],
   monogram: true,
   kanaly: 2,
   parametry: PARAMETRY,

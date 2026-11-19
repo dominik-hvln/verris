@@ -19,7 +19,7 @@ export const strzalka: RodzinaSygnetu = {
   nazwa: 'Ruch',
   opis: 'Szewrony albo strzałka z liniami pędu – kierunek, tempo, rozwój. Dynamiczny i prosty.',
   charakter: ['energiczna', 'odwazna', 'nowoczesna', 'techniczna'],
-  branze: ['transport', 'logist', 'kurier', 'przeprowadz', 'sport', 'marketing', 'rozw', 'szkolen', 'finans', 'auto'],
+  branze: ['sport', 'logistyka', 'motoryzacja', 'marketing', 'transport', 'kurier', 'przeprowadz', 'szkolen'],
   monogram: false,
   kanaly: 2,
   parametry: PARAMETRY,

@@ -21,7 +21,11 @@ export interface RodzinaSygnetu {
   opis: string;
   /** Charakter (słownik CECHY_MARKI) – preselekcja serwera. */
   charakter: string[];
-  /** Branże, do których rodzina pasuje szczególnie (słowa kluczowe) – tylko podpowiedź, nie ograniczenie. */
+  /**
+   * Branże, do których rodzina pasuje: kategorie z `KATEGORIE_BRANZ` (ai/branze.ts, np. 'sport', 'finanse') i rdzenie
+   * słów (początek słowa, „x$” – całe słowo). Paczka 134: rodzina ABSTRAKCYJNA trafia do serii tylko z dopasowaniem
+   * do briefu; monogramy (litery nazwy) – zawsze.
+   */
   branze?: string[];
   /** Rodzina buduje znak z liter nazwy (monogram) – wymaga `litery`. */
   monogram: boolean;

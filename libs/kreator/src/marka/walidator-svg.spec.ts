@@ -90,12 +90,25 @@ describe('walidujSvgSygnetu – odrzucenia i limity', () => {
     return w.bledy[0];
   };
 
-  it('limit elementów dla AI (≤ 8) i węzłów (≤ 120)', () => {
-    const dziewiec = Array.from({ length: 9 }, (_, i) => `<circle cx="${10 + i * 9}" cy="50" r="3"/>`).join('');
-    expect(odrzuc(svg(dziewiec))).toMatch(/elementów/);
-    const d = 'M0 0 ' + Array.from({ length: 130 }, (_, i) => `L${(i * 7) % 100} ${(i * 13) % 100}`).join(' ') + 'Z';
+  it('limit elementów dla AI (≤ 12) i węzłów (≤ 220) – paczka 134; ponowna walidacja zapisanego wyniku bez limitu wejścia', () => {
+    const trzynascie = Array.from({ length: 13 }, (_, i) => `<circle cx="${6 + i * 7}" cy="50" r="3"/>`).join('');
+    expect(odrzuc(svg(trzynascie))).toMatch(/elementów/);
+    expect(walidujSvgSygnetu(svg(trzynascie.replace(/<circle[^>]*\/>$/, '')), { tryb: 'ai' }).ok).toBe(true);
+    const d = 'M0 0 ' + Array.from({ length: 230 }, (_, i) => `L${(i * 7) % 100} ${(i * 13) % 100}`).join(' ') + 'Z';
     expect(odrzuc(svg(`<path d="${d}"/>`))).toMatch(/węzłów/);
-    expect(walidujSvgSygnetu(svg(dziewiec), { tryb: 'wgrany' }).ok).toBe(true);
+    expect(walidujSvgSygnetu(svg(`<path d="${d}"/>`), { tryb: 'ai', ponowna: true }).ok).toBe(true);
+    expect(walidujSvgSygnetu(svg(trzynascie), { tryb: 'wgrany' }).ok).toBe(true);
+  });
+
+  it('AI: granice z krzywej, nie z punktów kontrolnych (łuk C z kontrolą poza polem leży w polu) – paczka 134', () => {
+    expect(walidujSvgSygnetu(svg('<path d="M10 70C10 -5 90 -5 90 70Z"/>'), { tryb: 'ai' }).ok).toBe(true);
+    expect(odrzuc(svg('<path d="M10 70C10 -60 90 -60 90 70Z"/>'))).toMatch(/poza viewBox/);
+  });
+
+  it('AI: biel = wycięcie (odejmowana od wcześniejszych kształtów), nie kolor', () => {
+    const z = walidujSvgSygnetu(svg('<rect x="10" y="10" width="80" height="80"/><rect x="40" y="10" width="20" height="80" fill="#fff"/>'), { tryb: 'ai' });
+    expect(z.ok).toBe(true);
+    expect(z.svg).not.toContain('fff');
   });
 
   it('AI: tylko currentColor / akcent / none; viewBox 0 0 100 100; bez tekstu; w polu', () => {

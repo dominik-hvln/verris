@@ -19,8 +19,18 @@ import {
   budujZapytanieDrobnejZmiany,
   budujZapytanieKv,
   budujZapytanieOdswiezenia,
+  budujZapytaniePonowienia,
+  budujZapytanieSamooceny,
   budujZapytanieSerii,
   czyFontWKatalogu,
+  doWymianySamoocena,
+  KAFEL_SAMOOCENY,
+  odczytajPonowienie,
+  odczytajSamoocene,
+  SIATKA_SAMOOCENY,
+  STAWKI_HAIKU_45,
+  STAWKI_SONNET_55,
+  szacujKosztSamooceny,
   hexDoOklch,
   koloryLogoKv,
   krojTekstuDla,
@@ -71,9 +81,12 @@ import {
   type ZgodyBody,
   type ZnakWydany,
   type StopkaEmailWynik,
+  type SlotDoPonowienia,
 } from '@verris/kreator';
+import sharp from 'sharp';
+import { pngZSvg } from './pliki-graficzne.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { AiProviderService, type WiadomoscAnthropic, type WynikAiZCache } from '../ai/ai-provider.service.js';
+import { AiProviderService, OdpowiedzUcietaAiError, type WiadomoscAnthropic, type WynikAiZCache } from '../ai/ai-provider.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { KreatorMarkiActions } from '../common/audit/audit.actions.js';
 import { ObjectStorageService } from '../storage/object-storage.service.js';
@@ -97,7 +110,12 @@ export interface KtoMarki {
   actorUserId: string;
 }
 
-export const TIMEOUT_SERII_MS = 120_000;
+/** Seria z 4 symbolami SVG + myślenie modelu – jak generacja w Kreatorze stron (TIMEOUT_GENERACJI_MS = 180 s). */
+export const TIMEOUT_SERII_MS = 180_000;
+/** Ponowienie slotów i samoocena – krótkie wywołania. */
+export const TIMEOUT_PONOWIENIA_MS = 90_000;
+/** Ponowienie slotów z symbolem AI, gdy odrzuconych jest WIĘCEJ niż 1 (paczka 134); jeden odrzucony – od razu monogram. */
+export const PROG_PONOWIENIA = 2;
 export const TIMEOUT_ZMIANY_MS = 60_000;
 /** Podobieństwo odcisków rastra (pHash), od którego znak uznajemy za zbyt podobny do wydanego w branży [do weryfikacji progów na danych]. */
 export const PROG_PODOBIENSTWA = 0.9;
@@ -113,6 +131,10 @@ export const KOMUNIKATY = {
   bezProjektu: 'Najpierw wybierz kierunek znaku.',
   podobny: 'Ten znak jest bardzo podobny do logo, które już powstało w Kreatorze marki. Wybierz inny kierunek albo zmień parametry znaku.',
   ai: 'Kreator AI jest chwilowo niedostępny – spróbuj ponownie za chwilę.',
+  /** Paczka 134: przy całkowitej awarii AI seria nie powstaje (bez losowych szablonów), limit wraca. */
+  aiSeria: 'Kreator AI jest chwilowo niedostępny – nie pokazujemy propozycji zastępczych i nie pobraliśmy limitu serii. Spróbuj ponownie za chwilę.',
+  /** Seria zapisana przed paczką 134 z samych zamienników (AI nie odpowiedziało) – opis w panelu. */
+  zapas: 'AI jest chwilowo niedostępne – pokazujemy propozycje zastępcze z biblioteki. Ta seria nie zużyła limitu. Spróbuj ponownie za chwilę.',
   proba: 'Pobieranie plików marki jest dostępne po opłaceniu hostingu – w okresie próbnym projektujesz markę i oglądasz podgląd.',
   pakiet: 'Ten plik jest w Pakiecie marki.',
   tmview: 'Przed pobraniem plików do druku potwierdź, że sprawdzono podobne znaki w bazie TMview.',
@@ -181,6 +203,25 @@ type Dostep = {
   /** Bez hostingu i Pakietu, próg eksportu spełniony: sam odczyt, pliki jak przy hostingu (bez KV i druku). */
   plikiJakHosting: boolean;
 };
+
+/**
+ * Seria do widoku (paczka 134): `zrodlo` – 'zapas', gdy wszystkie kierunki to zamienniki serwera (serie zapisane przed
+ * paczką 134 przy awarii AI – limit nie był pobrany), inaczej 'ai'. Przy 'zapas' panel pokazuje `komunikat`.
+ */
+export function seriaWidoku(s: { id: string; rodzaj: string; createdAt: Date; kierunki: unknown; strategia: unknown }): SeriaMarki {
+  const kierunki = (Array.isArray(s.kierunki) ? s.kierunki : []) as SeriaMarki['kierunki'];
+  const zapas = kierunki.length > 0 && kierunki.every((k) => k.zrodloZnaku === 'zamiennik');
+  return {
+    id: s.id,
+    rodzaj: s.rodzaj as SeriaMarki['rodzaj'],
+    utworzono: s.createdAt.toISOString(),
+    kierunki,
+    ...(s.strategia ? { strategia: s.strategia as SeriaMarki['strategia'] } : {}),
+    zrodlo: zapas ? 'zapas' : 'ai',
+    ...(zapas ? { komunikat: KOMUNIKATY.zapas } : {}),
+  };
+}
+
 
 @Injectable()
 export class KreatorMarkiService {
@@ -303,7 +344,7 @@ export class KreatorMarkiService {
       etap: r.etap as WidokMarki['etap'],
       wersja: r.wersja,
       brief: dane.brief,
-      serie: serie.map((s) => ({ id: s.id, rodzaj: s.rodzaj as SeriaMarki['rodzaj'], utworzono: s.createdAt.toISOString(), kierunki: s.kierunki as unknown as SeriaMarki['kierunki'], ...(s.strategia ? { strategia: s.strategia as SeriaMarki['strategia'] } : {}) })),
+      serie: serie.map((s) => seriaWidoku(s)),
       marka: m,
       ocena,
       ...(dane.analiza ? { analiza: await this.analizaWidoku(r.userId, dane.analiza) } : {}),
@@ -441,22 +482,59 @@ export class KreatorMarkiService {
     timeoutMs: number,
     obrazPng?: Buffer,
   ): Promise<T | null> {
+    return (await this.zNaprawaPowod(zap, odczyt, konf, kto, licznik, timeoutMs, obrazPng)).dane;
+  }
+
+  /**
+   * Jak `zNaprawa`, z powodem porażki do logów i decyzji (paczka 134 – diagnoza serii z samych zamienników):
+   * 'wywolanie' (błąd dostawcy: brak klucza, budżet platformy, HTTP 4xx/5xx, limit czasu), 'uciecie' (stop_reason
+   * max_tokens – bez naprawy), 'walidacja' (odpowiedź nie przeszła odczytu po rundzie naprawy). Logi bez danych klienta:
+   * rodzaj operacji, model, tokeny wyjścia, powód i lista błędów walidacji (ścieżki JSON, komunikaty walidatora).
+   */
+  private async zNaprawaPowod<T>(
+    zap: ZapytanieAiMarki,
+    odczyt: (tekst: string) => { ok: true; dane: T } | { ok: false; bledy: string[] },
+    konf: KonfiguracjaMarki,
+    kto: KtoMarki,
+    licznik: LicznikAiMarki,
+    timeoutMs: number,
+    obrazPng?: Buffer,
+    o: { bezNaprawy?: boolean } = {},
+  ): Promise<{ dane: T | null; powod: 'wywolanie' | 'uciecie' | 'walidacja' | null; szczegoly?: string }> {
+    const model = zap.klasaModelu === 'tani' ? konf.modelZmian : konf.modelGeneracji;
+    let etap = 'wywołanie';
     try {
       const r = await this.wywolaj(zap, zap.wiadomosci, konf, kto, licznik, timeoutMs, obrazPng);
       const w = odczyt(r.wynik);
-      if (w.ok) return w.dane;
+      if (w.ok) return { dane: w.dane, powod: null };
       if (ucieta(r)) {
-        this.logger.warn(`Marka ${zap.rodzaj}: odpowiedź ucięta limitem ${zap.maxTokens} tokenów – bez naprawy`);
-        return null;
+        this.logger.warn(`Marka ${zap.rodzaj} (${model}): odrzucono – UCIĘCIE: stop_reason max_tokens przy limicie ${zap.maxTokens} (wyjście ${r.wyj} tokenów, z myśleniem) – bez naprawy`);
+        return { dane: null, powod: 'uciecie', szczegoly: `max_tokens ${zap.maxTokens}` };
       }
+      if (o.bezNaprawy) {
+        this.logger.warn(`Marka ${zap.rodzaj} (${model}): odrzucono – WALIDACJA (bez naprawy): ${w.bledy.slice(0, 8).join('; ')}`);
+        return { dane: null, powod: 'walidacja', szczegoly: w.bledy.slice(0, 8).join('; ') };
+      }
+      this.logger.warn(`Marka ${zap.rodzaj} (${model}): runda naprawy – błędy walidacji: ${w.bledy.slice(0, 8).join('; ')}`);
+      etap = 'naprawa';
       const r2 = await this.wywolaj(zap, [...zap.wiadomosci, ...naprawaMarki(r.wynik, w.bledy)], konf, kto, licznik, timeoutMs, obrazPng);
       const w2 = odczyt(r2.wynik);
-      if (w2.ok) return w2.dane;
-      this.logger.warn(`Marka ${zap.rodzaj} po naprawie nadal z błędami: ${w2.bledy.slice(0, 5).join('; ')}`);
-      return null;
+      if (w2.ok) return { dane: w2.dane, powod: null };
+      if (ucieta(r2)) {
+        this.logger.warn(`Marka ${zap.rodzaj} (${model}): odrzucono – UCIĘCIE w naprawie (wyjście ${r2.wyj} tokenów, limit ${zap.maxTokens})`);
+        return { dane: null, powod: 'uciecie', szczegoly: `naprawa: max_tokens ${zap.maxTokens}` };
+      }
+      this.logger.warn(`Marka ${zap.rodzaj} (${model}): odrzucono – WALIDACJA po naprawie: ${w2.bledy.slice(0, 8).join('; ')}`);
+      return { dane: null, powod: 'walidacja', szczegoly: w2.bledy.slice(0, 8).join('; ') };
     } catch (e) {
-      this.logger.warn(`Marka ${zap.rodzaj}: ${e instanceof Error ? e.message : String(e)}`);
-      return null;
+      if (e instanceof OdpowiedzUcietaAiError) {
+        this.logger.warn(`Marka ${zap.rodzaj} (${model}): odrzucono – UCIĘCIE (${etap}): ${e.message} – bez naprawy`);
+        return { dane: null, powod: 'uciecie', szczegoly: `max_tokens ${zap.maxTokens}` };
+      }
+      const status = e instanceof HttpException ? ` HTTP ${e.getStatus()}` : '';
+      const opis = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
+      this.logger.warn(`Marka ${zap.rodzaj} (${model}): odrzucono – WYWOŁANIE (${etap})${status}: ${opis.slice(0, 300)}`);
+      return { dane: null, powod: 'wywolanie', szczegoly: opis.slice(0, 300) };
     }
   }
 
@@ -488,7 +566,15 @@ export class KreatorMarkiService {
     return { ...k, ...(odswiezenie ? { odswiezenie } : {}), ostrzezenia: ocenProjekt(k.projekt, nazwa).ostrzezenia };
   }
 
-  /** POST /marki/:id/serie – 6 kierunków (AI + zamienniki bez AI). Błąd AI = seria z zamienników i zwrot limitu. */
+  /**
+   * POST /marki/:id/serie – 6 kierunków z briefu (paczka 134): 4 symbole zaprojektowane przez AI + 2 z biblioteki
+   * powiązane z nazwą/branżą. Kolejno: wywołanie (z jedną rundą naprawy) → kontrola jakości (walidator, reguły,
+   * czytelność, podobieństwo do wydanych) → samoocena wizją (opcjonalna) → ponowienie slotów z symbolem, gdy odrzuconych
+   * > 1 → w miejsce pozostałych odrzuconych monogram z liter nazwy.
+   *
+   * Decyzja (paczka 134): całkowita awaria AI = 503 AI_NIEDOSTEPNE, seria NIE powstaje, limit wraca. Seria z samych
+   * losowych szablonów nie ma związku z firmą (feedback właściciela), a pokazana jako „propozycje” udaje wynik AI.
+   */
   async seria(kto: KtoMarki, id: string): Promise<WidokMarki> {
     const { konf, wersjaKreatora: w } = await this.dostep(kto.userId);
     const r = await this.wlasna(kto.userId, id);
@@ -499,27 +585,118 @@ export class KreatorMarkiService {
     const licznik = nowyLicznikMarki();
     let zuzyta = false;
     try {
-      const { znaki, odciski } = await this.wydaneWBranzy(dane.brief.branza, r.id);
-      const pres = preselekcjaSerii(dane.brief, znaki, randomInt(2 ** 31 - 1), { symboleAi: konf.symboleAi ? 2 : 0 });
-      const zap = budujZapytanieSerii(dane.brief, pres);
-      const wynik = await this.zNaprawa<WynikSerii>(zap, (t) => odczytajSerie(t, dane.brief, pres, { walidujSymbol: walidatorSymboluBiblioteki }), konf, kto, licznik, TIMEOUT_SERII_MS);
-      const gotowa = uzupelnijSerie(wynik, dane.brief, pres, this.ocenyKierunku(dane.brief.nazwa, odciski));
-      if (gotowa.zamienione.length) this.logger.log(`Seria marki ${r.id}: zamienniki ${gotowa.zamienione.map((z) => `${z.slot} (${z.powod})`).join('; ')}`);
+      const brief = dane.brief;
+      const { znaki, odciski } = await this.wydaneWBranzy(brief.branza, r.id);
+      const pres = preselekcjaSerii(brief, znaki, randomInt(2 ** 31 - 1), { symboleAi: konf.symboleAi ? 4 : 0 });
+      const zap = budujZapytanieSerii(brief, pres);
+      const odczyt = (t: string) => odczytajSerie(t, brief, pres, { walidujSymbol: walidatorSymboluBiblioteki });
+      const w1 = await this.zNaprawaPowod<WynikSerii>(zap, odczyt, konf, kto, licznik, TIMEOUT_SERII_MS);
+      if (!w1.dane) {
+        this.logger.warn(`Seria marki ${r.id}: AI niedostępne (${w1.powod}) – 503 bez serii, limit zwrócony`);
+        throw blad(HttpStatus.SERVICE_UNAVAILABLE, KOMUNIKATY.aiSeria, 'AI_NIEDOSTEPNE');
+      }
+      const wynik = w1.dane;
+      const oceny = this.ocenyKierunku(brief.nazwa, odciski);
+      // Kontrola jakości: reguły biblioteki i podobieństwo do znaków wydanych w branży (walidator i czytelność symbolu – w odczycie).
+      wynik.kierunki = wynik.kierunki.map((k, i) => {
+        if (!k) return null;
+        const problemy = oceny.ocen(k);
+        if (problemy.length || oceny.podobny(k)) {
+          wynik.odrzucone.push({ slot: pres.sloty[i]!.id, powod: problemy.length ? `reguły: ${problemy.slice(0, 3).join('; ')}` : 'podobny do znaku wydanego w branży' });
+          return null;
+        }
+        return k;
+      });
+      if (konf.samoocena) await this.samoocena(wynik, pres, brief, konf, kto, licznik, r.id);
+      // Ponowienie slotów z symbolem AI (jedna krótka runda), gdy odrzuconych > 1.
+      const symbolowe: SlotDoPonowienia[] = pres.sloty
+        .map((s, i) => ({ s, i }))
+        .filter(({ s, i }) => s.symbolAi && !wynik.kierunki[i])
+        .map(({ s }) => ({ slot: s.id, powod: [...wynik.odrzucone].reverse().find((o) => o.slot === s.id)?.powod ?? 'odrzucony' }));
+      if (symbolowe.length >= PROG_PONOWIENIA) {
+        const zapP = budujZapytaniePonowienia(brief, pres, symbolowe);
+        const wp = await this.zNaprawaPowod(zapP, (t) => odczytajPonowienie(t, brief, pres, symbolowe, { walidujSymbol: walidatorSymboluBiblioteki }), konf, kto, licznik, TIMEOUT_PONOWIENIA_MS, undefined, { bezNaprawy: true });
+        symbolowe.forEach((d, j) => {
+          const k = wp.dane?.kierunki[j] ?? null;
+          const i = pres.sloty.findIndex((s) => s.id === d.slot);
+          if (k && !oceny.ocen(k).length && !oceny.podobny(k)) wynik.kierunki[i] = k;
+        });
+        if (wp.dane?.odrzucone.length) wynik.odrzucone.push(...wp.dane.odrzucone);
+      }
+      const gotowa = uzupelnijSerie(wynik, brief, pres, oceny);
+      if (gotowa.zamienione.length) this.logger.log(`Seria marki ${r.id}: monogram zamiast ${gotowa.zamienione.map((z) => `${z.slot} (${z.powod.slice(0, 160)})`).join('; ')}`);
+      if (gotowa.kierunki.every((k) => k.zrodloZnaku === 'zamiennik')) {
+        this.logger.warn(`Seria marki ${r.id}: wszystkie kierunki odrzucone – 503 bez serii, limit zwrócony`);
+        throw blad(HttpStatus.SERVICE_UNAVAILABLE, KOMUNIKATY.aiSeria, 'AI_NIEDOSTEPNE');
+      }
       await this.prisma.kreatorMarkaSeria.create({
         data: {
           markaId: r.id,
           rodzaj: 'nowa',
-          kierunki: gotowa.kierunki.map((k) => this.kierunekDoSerii(k, dane.brief.nazwa)) as unknown as Prisma.InputJsonValue,
-          ...(wynik?.strategia ? { strategia: wynik.strategia as Prisma.InputJsonValue } : {}),
+          kierunki: gotowa.kierunki.map((k) => this.kierunekDoSerii(k, brief.nazwa)) as unknown as Prisma.InputJsonValue,
+          ...(wynik.strategia ? { strategia: wynik.strategia as Prisma.InputJsonValue } : {}),
         },
       });
-      // Seria bez odpowiedzi AI (sam zamiennik serwera) nie zużywa limitu – to nasz błąd, nie wybór klienta.
-      zuzyta = wynik !== null;
+      zuzyta = true;
       return this.widok(await this.zapisz(r, dane), w);
     } finally {
       if (!zuzyta) await zwolnij(this.prisma, kto.userId, rez).catch(() => undefined);
       await dolicz(this.prisma, kto.userId, licznik).catch((e: unknown) => this.logger.error(`Zużycie marki: ${String(e)}`));
     }
+  }
+
+  /**
+   * Samoocena wizją (paczka 134): propozycje z AI renderowane do jednej planszy PNG (kafle 256 px, 3 × 2), jedno
+   * wywołanie tańszym modelem; kierunki z oceną < 3 (najwyżej 3) – do wymiany (`odrzucone`). Pomijana, gdy szacunek
+   * kosztu > konf.samoocenaMaksUsd. Błąd renderu albo AI = brak samooceny (seria idzie dalej), nigdy błąd klienta.
+   */
+  private async samoocena(wynik: WynikSerii, pres: PreselekcjaMarki, brief: BriefMarki, konf: KonfiguracjaMarki, kto: KtoMarki, licznik: LicznikAiMarki, markaId: string): Promise<void> {
+    const kafle = wynik.kierunki.map((k, i) => ({ k, slot: pres.sloty[i]! })).filter((x): x is { k: KierunekMarki; slot: PreselekcjaMarki['sloty'][number] } => !!x.k);
+    if (kafle.length < 2) return;
+    const stawki = /haiku/i.test(konf.modelZmian) ? STAWKI_HAIKU_45 : STAWKI_SONNET_55;
+    const szacunek = szacujKosztSamooceny(kafle.length, stawki);
+    if (szacunek > konf.samoocenaMaksUsd) {
+      this.logger.log(`Samoocena marki ${markaId}: pominięta – szacunek ${szacunek.toFixed(4)} USD > limit ${konf.samoocenaMaksUsd} USD`);
+      return;
+    }
+    let plansza: Buffer;
+    try {
+      plansza = await this.planszaSamooceny(kafle.map((x) => x.k), brief);
+    } catch (e) {
+      this.logger.warn(`Samoocena marki ${markaId}: render planszy – ${e instanceof Error ? e.message : String(e)}`);
+      return;
+    }
+    const ids = kafle.map((x) => x.k.id);
+    const zap = budujZapytanieSamooceny(brief, kafle.map((x) => ({ id: x.k.id, ...(x.k.koncepcja ? { koncepcja: x.k.koncepcja } : {}) })));
+    const w = await this.zNaprawaPowod(zap, (t) => odczytajSamoocene(t, ids), konf, kto, licznik, TIMEOUT_PONOWIENIA_MS, plansza, { bezNaprawy: true });
+    if (!w.dane) return;
+    const wymiana = doWymianySamoocena(w.dane);
+    for (const d of wymiana) {
+      const i = pres.sloty.findIndex((s) => s.id === d.slot);
+      if (i >= 0 && wynik.kierunki[i]) {
+        wynik.kierunki[i] = null;
+        wynik.odrzucone.push(d);
+      }
+    }
+    this.logger.log(`Samoocena marki ${markaId}: ${w.dane.map((o) => `${o.id} t${o.trafnosc}/c${o.czytelnosc}/k${o.klisze}`).join(', ')}${wymiana.length ? ` – do wymiany ${wymiana.map((d) => d.slot).join(', ')}` : ''}`);
+  }
+
+  /** Plansza samooceny: logo każdego kierunku (układ pionowy, napis na krzywych) w kaflu 256 px, siatka 3 kolumn, białe tło. */
+  private async planszaSamooceny(kierunki: KierunekMarki[], brief: BriefMarki): Promise<Buffer> {
+    const K = KAFEL_SAMOOCENY;
+    const kol = Math.min(SIATKA_SAMOOCENY.kolumny, kierunki.length);
+    const wiersze = Math.ceil(kierunki.length / SIATKA_SAMOOCENY.kolumny);
+    const kafle = await Promise.all(
+      kierunki.map(async (k) => {
+        const m = { wersjaModelu: WERSJA_MODELU_MARKI, zrodlo: 'nowa', brief, projekt: k.projekt, kv: { wzor: 'rzadki', tloCiemne: false }, kontakt: {}, zgody: {} } as Marka;
+        const z = await this.generator.logo(m, k.projekt.sygnet.typ === 'brak' ? 'napis' : 'pionowy', 'kolor', { metadane: false });
+        return pngZSvg(z.svg, { szerokosc: K - 32, wysokosc: K - 32, tlo: '#FFFFFF' });
+      }),
+    );
+    return sharp({ create: { width: K * kol, height: K * wiersze, channels: 3, background: '#FFFFFF' } })
+      .composite(kafle.map((png, i) => ({ input: png, left: (i % kol) * K + 16, top: Math.floor(i / kol) * K + 16 })))
+      .png()
+      .toBuffer();
   }
 
   /** POST /marki/:id/odswiezenie – 3 kierunki (ewolucja / odświeżenie / nowy) dla wgranego logo. */
@@ -547,6 +724,8 @@ export class KreatorMarkiService {
       if (!konf.symboleAi) for (const s of pres.sloty) s.symbolAi = false;
       const zap = budujZapytanieOdswiezenia(dane.brief, obecne, pres);
       const wynik = await this.zNaprawa(zap, (t) => odczytajOdswiezenie(t, dane.brief, obecne, pres, { walidujSymbol: walidatorSymboluBiblioteki }), konf, kto, licznik, TIMEOUT_SERII_MS);
+      // Paczka 134: jak w serii – bez odpowiedzi AI nie składamy trzech losowych kierunków; 503 i zwrot limitu.
+      if (!wynik) throw blad(HttpStatus.SERVICE_UNAVAILABLE, KOMUNIKATY.aiSeria, 'AI_NIEDOSTEPNE');
       const oceny = this.ocenyKierunku(dane.brief.nazwa, odciski);
       const kierunki = TYPY_ODSWIEZENIA.map((typ, i) => {
         const slot = pres.sloty[i]!;
@@ -563,7 +742,7 @@ export class KreatorMarkiService {
         });
       });
       await this.prisma.kreatorMarkaSeria.create({ data: { markaId: r.id, rodzaj: 'odswiezenie', kierunki: kierunki as unknown as Prisma.InputJsonValue } });
-      zuzyta = wynik !== null;
+      zuzyta = true;
       return this.widok(await this.zapisz(r, dane), w);
     } finally {
       if (!zuzyta) await zwolnij(this.prisma, kto.userId, rez).catch(() => undefined);

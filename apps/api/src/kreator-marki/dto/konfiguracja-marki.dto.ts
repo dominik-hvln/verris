@@ -96,6 +96,16 @@ export class KonfiguracjaMarkiDto {
   symboleAi?: boolean;
 
   @IsOptional()
+  @IsBoolean()
+  samoocena?: boolean;
+
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 3 }, { message: `Limit kosztu samooceny: liczba ${Z.samoocenaMaksUsd.min}–${Z.samoocenaMaksUsd.max} USD.` })
+  @Min(Z.samoocenaMaksUsd.min, { message: `Limit kosztu samooceny: liczba ${Z.samoocenaMaksUsd.min}–${Z.samoocenaMaksUsd.max} USD.` })
+  @Max(Z.samoocenaMaksUsd.max, { message: `Limit kosztu samooceny: liczba ${Z.samoocenaMaksUsd.min}–${Z.samoocenaMaksUsd.max} USD.` })
+  samoocenaMaksUsd?: number;
+
+  @IsOptional()
   @Matches(MODEL_MARKI_RE, { message: 'Kreator marki obsługuje tylko modele Anthropic (claude-…).' })
   modelGeneracji?: string;
 

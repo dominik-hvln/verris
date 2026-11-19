@@ -22,7 +22,7 @@ export const promienie: RodzinaSygnetu = {
   nazwa: 'Promienie',
   opis: 'Tarcza słońca z promieniami (pełne albo wschód nad linią horyzontu) – energia, ciepło, optymizm.',
   charakter: ['energiczna', 'ciepla', 'przyjazna', 'odwazna', 'zabawna'],
-  branze: ['fotowolt', 'energ', 'turyst', 'kawiar', 'przedszkol', 'opalan', 'wakac', 'piekarn'],
+  branze: ['energia', 'turystyka', 'fotowolt', 'kawiar', 'przedszkol', 'wakac', 'piekar', 'solar'],
   monogram: false,
   kanaly: 2,
   parametry: PARAMETRY,

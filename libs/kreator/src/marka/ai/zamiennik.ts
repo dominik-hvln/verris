@@ -6,13 +6,16 @@ import type { RodzinaSygnetu } from '../typy.ts';
 import { krojTekstuDla, wagaKroju } from './kroje.ts';
 import type { PreselekcjaMarki, SlotSerii } from './preselekcja.ts';
 import type { WynikSerii } from './seria.ts';
-import { sygnetZRodziny } from './kierunek-kompakt.ts';
+import { koncepcjaMonogramu, sygnetZRodziny } from './kierunek-kompakt.ts';
 import { koloryKierunku } from './wspolne-marki.ts';
 
 /**
  * Zamiennik kierunku BEZ AI (koncepcja 3.2 p. 3 i 8.4 p. 2): gdy kierunek od modelu odpadł (zła struktura, symbol
  * poza limitami, reguły jakości biblioteki, podobieństwo do znaku wydanego w branży), serwer składa nowy w granicach
  * tego samego slotu – deterministycznie z ziarna, kilka prób, pierwsza, która przejdzie oceny.
+ *
+ * Paczka 134: zamiennik to zawsze MONOGRAM z liter nazwy (rodzina monogramowa ze slotu, a gdy slot jej nie ma –
+ * z katalogu), nigdy losowa abstrakcja – znak bez związku z nazwą i branżą to dokładnie to, czego właściciel nie chce.
  *
  * Oceny są wstrzykiwane (API podaje reguły biblioteki – `ocenProjekt` – i porównanie odcisków z rejestrem),
  * więc ten moduł nie zależy od renderu. Bez ocen pierwsza próba jest wynikiem.
@@ -37,14 +40,18 @@ const zakresLos = (los: () => number, [a, b]: [number, number]) => Math.min(Math
 
 /** Kandydat zamiennika dla slotu (próba `proba`). */
 function kandydat(slot: SlotSerii, brief: Pick<BriefMarki, 'nazwa' | 'rodzaj' | 'podpis'>, los: () => number, ziarno: number, katalog: readonly RodzinaSygnetu[]): KierunekMarki {
-  const rodziny = slot.rodziny.map((x) => ({ r: katalog.find((y) => y.id === x.id), zakresy: x.zakresy })).filter((x): x is { r: RodzinaSygnetu; zakresy: Record<string, [number, number]> } => !!x.r);
+  const zSlotu = slot.rodziny.map((x) => ({ r: katalog.find((y) => y.id === x.id), zakresy: x.zakresy })).filter((x): x is { r: RodzinaSygnetu; zakresy: Record<string, [number, number]> } => !!x.r);
+  const monogramySlotu = zSlotu.filter((x) => x.r.monogram);
+  const monogramyKatalogu = katalog.filter((r) => r.monogram).map((r) => ({ r, zakresy: {} as Record<string, [number, number]> }));
+  const rodziny = monogramySlotu.length ? monogramySlotu : monogramyKatalogu.length ? monogramyKatalogu : zSlotu;
   let sygnet: Sygnet = { typ: 'brak' };
   if (brief.rodzaj !== 'napis' && rodziny.length) {
     const w = rodziny[Math.floor(los() * rodziny.length)];
     const p = Object.fromEntries(w.r.parametry.map((d) => [d.klucz, zakresLos(los, w.zakresy[d.klucz] ?? [d.min, d.max])]));
     sygnet = sygnetZRodziny(w.r, w.zakresy, brief.nazwa, ziarno, p);
   }
-  const kroje = KATALOG_FONTOW.filter((f) => f.kategoria === slot.kategoriaKroju && f.wagi.some((x) => x >= 500));
+  const krojeSlotu = KATALOG_FONTOW.filter((f) => slot.kroje?.includes(f.rodzina));
+  const kroje = krojeSlotu.length ? krojeSlotu : KATALOG_FONTOW.filter((f) => f.kategoria === slot.kategoriaKroju && f.wagi.some((x) => x >= 500));
   const pula = kroje.length ? kroje : KATALOG_FONTOW.filter((f) => f.kategoria === 'bezszeryfowy');
   const font = pula[Math.floor(los() * pula.length)];
   let styl: (typeof STYLE_LOSOWANE)[number] | 'dwa' = STYLE_LOSOWANE[Math.floor(los() * STYLE_LOSOWANE.length)];
@@ -63,6 +70,7 @@ function kandydat(slot: SlotSerii, brief: Pick<BriefMarki, 'nazwa' | 'rodzaj' | 
       uklad: sygnet.typ === 'brak' ? 'napis' : 'poziomy',
       fonty: { naglowki: font.rodzina, tekst: krojTekstuDla(font.rodzina) },
     },
+    ...(sygnet.typ === 'biblioteka' && sygnet.litery ? { koncepcja: koncepcjaMonogramu(sygnet.litery, brief.nazwa) } : {}),
     zrodloZnaku: 'zamiennik',
   });
 }
@@ -89,8 +97,8 @@ export interface SeriaGotowa {
 
 /**
  * Seria do pokazania klientowi: kierunki od AI, które przechodzą oceny (jakość, podobieństwo do wydanych), a w miejsce
- * odrzuconych – zamienniki bez AI. Gdy odczyt się nie udał (`wynik` null – także po rundzie naprawy), cała seria
- * z zamienników: klient zawsze dostaje propozycje, a limit serii API zwraca wg własnych zasad.
+ * odrzuconych – zamienniki bez AI (monogram z nazwy). `wynik` null = wszystko z zamienników – API (paczka 134) przy
+ * całkowitej awarii AI nie zapisuje takiej serii, tylko odpowiada 503 i zwraca limit.
  */
 export function uzupelnijSerie(wynik: WynikSerii | null, brief: Pick<BriefMarki, 'nazwa' | 'rodzaj' | 'podpis'>, preselekcja: PreselekcjaMarki, opcje: OpcjeZamiennika = {}): SeriaGotowa {
   const zamienione: SeriaGotowa['zamienione'] = [];

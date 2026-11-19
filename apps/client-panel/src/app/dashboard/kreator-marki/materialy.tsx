@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ImageOff, Loader2, Lock, Sparkles } from 'lucide-react';
 import type { DaneKontaktoweMarki, Marka, MaterialKv, StanKreatoraMarki, UstawieniaKv, WidokMarki } from '@verris/kreator/klient';
 import { Switch } from '@/components/panel/v2';
@@ -126,12 +126,13 @@ export function Materialy({
   marka: Marka;
   stan: StanKreatoraMarki;
   onWidok: (w: WidokMarki) => void;
-  onStan: () => void;
+  onStan: () => Promise<void> | void;
   onKrok: (k: KrokMarki) => void;
 }) {
   const [kv, setKv] = useState<UstawieniaKv>(marka.kv);
   const [kontakt, setKontakt] = useState<DaneKontaktoweMarki>(marka.kontakt);
   const [trwa, setTrwa] = useState<'kv' | 'kontakt' | 'haslo' | null>(null);
+  const wToku = useRef(false);
   const [blad, setBlad] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const zmianKv = JSON.stringify(kv) !== JSON.stringify(marka.kv);
@@ -158,20 +159,23 @@ export function Materialy({
   };
 
   const zaproponujHaslo = async () => {
+    if (wToku.current) return;
+    wToku.current = true;
     setBlad(null);
     setTrwa('haslo');
     try {
       const w = await drobnaZmiana(widok.id, { rodzaj: 'haslo' });
+      await onStan();
       if (!w.ok) setBlad(w.blad);
       else {
         const h = hasloZWyniku(w.dane.wynik);
         if (h) setKv((s) => ({ ...s, haslo: h }));
         onWidok(w.dane.widok);
-        onStan();
       }
     } catch {
       setBlad(KOMUNIKAT_PO_AKTUALIZACJI);
     } finally {
+      wToku.current = false;
       setTrwa(null);
     }
   };

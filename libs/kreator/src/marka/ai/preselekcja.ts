@@ -1,9 +1,10 @@
 import { losZZiarna } from '../../ai/kierunki.ts';
-import type { FontKatalogu } from '../../style/katalog-stylow.ts';
+import { KATALOG_FONTOW, type FontKatalogu } from '../../style/katalog-stylow.ts';
 import { CHARAKTERY_PALET } from '../../style/kolory.ts';
 import type { BriefMarki, ParametrySygnetu } from '../model.ts';
 import { KATALOG_SYGNETOW } from '../sygnety/katalog.ts';
 import type { RodzinaSygnetu } from '../typy.ts';
+import { dopasowanieRodziny, kategorieBriefu, krojeDlaBriefu } from './branze.ts';
 
 /**
  * Preselekcja serii (serwer, nie AI) – koncepcja 8.4. Zamiast prosić model „nie powtarzaj”, serwer dla każdego
@@ -11,7 +12,12 @@ import type { RodzinaSygnetu } from '../typy.ts';
  *  - dozwolone rodziny sygnetów (1–2) i zawężone zakresy parametrów – z karą za rodziny i przedziały parametrów
  *    częste w znakach już wydanych w tej branży (rejestr odcisków) i bez powtórek rodzin w jednej serii;
  *  - rodzaj znaku z briefu: monogram → rodziny monogramowe, „napis” → bez sygnetu (same kroje i kolory);
- *  - do 2 slotów, w których model może narysować własny symbol (SVG, walidowany);
+ *  - sloty, w których model RYSUJE symbol zaprojektowany dla tej firmy (SVG, walidowany) – paczka 134: domyślnie
+ *    4 z 6, każdy z innym podejściem do koncepcji (litera + motyw, motyw branży, skojarzenie z nazwą, litera);
+ *    zapasem slotu jest monogram z liter nazwy, nigdy losowa abstrakcja;
+ *  - pozostałe sloty z biblioteki TYLKO powiązane z briefem: monogramy (litery nazwy) i rodziny abstrakcyjne, których
+ *    `branze` pasują do kategorii briefu (ai/branze.ts) – bez dopasowania abstrakcji nie ma, jest monogram;
+ *  - kroje napisu dopasowane do cech i branży (`krojeDlaBriefu`) – sport nie dostaje Playfair;
  *  - zakres barwy akcentu (barwy lubiane z briefu albo rozłożone po kole, z ominięciem odrzuconych),
  *    dozwolone charaktery palety i kategorię kroju – różne w serii;
  *  - ziarno kreatywne (zasada konstrukcji, kierunek skojarzenia, kontrast form).
@@ -33,7 +39,12 @@ export const KONSTRUKCJE_ZNAKU: readonly PozycjaZiarnaMarki[] = [
   { id: 'modul', opis: 'z modułu – kafel, podział siatki, powtórzenie jednego elementu' },
   { id: 'slad', opis: 'ze śladu pracy – cięcie, ścieg, pociągnięcie narzędzia' },
   { id: 'miejsce', opis: 'z miejsca – horyzont, łuk, mapa (tylko gdy brief podaje miejsce; inaczej z ruchu)' },
+  { id: 'litera-motyw', opis: 'litera nazwy połączona z motywem branży w JEDEN kształt (np. L z toru bieżni, K z nacięcia bochenka)' },
+  { id: 'skojarzenie-nazwy', opis: 'z dosłownego albo przenośnego znaczenia nazwy (np. „Lubuski” – winorośl, Odra; „Kłos” – rytm ziaren), przetworzonego' },
 ];
+
+/** Podejścia do koncepcji symbolu AI (paczka 134) – kolejno dla slotów z symbolem; każdy symbol z innego. */
+export const PODEJSCIA_SYMBOLU = ['litera-motyw', 'ksztalt-branzy', 'skojarzenie-nazwy', 'litera', 'negatyw', 'ruch'] as const;
 
 /** Skąd brać skojarzenie (model wybiera konkret z briefu). */
 export const SKOJARZENIA_ZNAKU: readonly PozycjaZiarnaMarki[] = [
@@ -73,10 +84,15 @@ export interface RodzinaSlotu {
 export interface SlotSerii {
   /** 'k1'…'k6' – identyfikator kierunku. */
   id: string;
-  /** Dozwolone rodziny; pusta lista i `symbolAi: false` = znak sam napis (rodzaj „napis”). */
+  /**
+   * Dozwolone rodziny; pusta lista i `symbolAi: false` = znak sam napis (rodzaj „napis”). W slocie z symbolem AI –
+   * zapas (monogram z liter nazwy), gdy model nie narysuje symbolu.
+   */
   rodziny: RodzinaSlotu[];
-  /** Model może narysować własny symbol (SVG) zamiast rodziny. */
+  /** Model rysuje symbol (SVG) zaprojektowany dla tej firmy zamiast rodziny. */
   symbolAi: boolean;
+  /** Paczka 134 – kroje napisu dopasowane do briefu (1–3, pierwszy = zastępczy); brak = dowolny z kategorii. */
+  kroje?: string[];
   /** Zakres barwy akcentu (OKLCH h): [od, do], od > do = przez 0. */
   barwy: [number, number];
   charaktery: CharakterPaletyMarki[];
@@ -88,6 +104,8 @@ export interface PreselekcjaMarki {
   ziarno: number;
   rodzaj: BriefMarki['rodzaj'];
   sloty: SlotSerii[];
+  /** Paczka 134 – kategorie branży wykryte w briefie (motywy w M2); pusta – brief bez rozpoznanej branży. */
+  kategorie?: string[];
 }
 
 /** Znak wydany w branży (rejestr odcisków) – wystarczy rodzina i parametry. */
@@ -99,14 +117,15 @@ export interface ZnakWydany {
 export interface OpcjePreselekcji {
   /** Liczba kierunków (domyślnie 6, 1–8). */
   ile?: number;
-  /** Maks. slotów z symbolem AI (domyślnie 2; 0 = bez symboli AI). */
+  /** Slotów z symbolem AI (domyślnie 4 = większość z 6; 0 = bez symboli AI). Zawsze ≥ 1 slot z biblioteki. */
   symboleAi?: number;
+  /** Sloty z symbolem AI na końcu serii (odświeżenie – kierunek „nowy”); domyślnie na początku. */
+  symboleAiNaKoncu?: boolean;
   /** Katalog rodzin (domyślnie KATALOG_SYGNETOW) – testy. */
   katalog?: readonly RodzinaSygnetu[];
 }
 
 const indeks = (los: () => number, n: number) => Math.min(n - 1, Math.max(0, Math.floor(los() * n)));
-const malymi = (s: string | undefined) => (s ?? '').toLocaleLowerCase('pl-PL');
 
 export const odlegloscBarwy = (a: number, b: number) => {
   const d = Math.abs(a - b) % 360;
@@ -119,14 +138,12 @@ export function barwaWZakresie(h: number, [od, doo]: [number, number]): boolean 
   return od <= doo ? x >= od && x <= doo : x >= od || x <= doo;
 }
 
-/** Waga rodziny dla briefu: charakter (cechy) i branża; kara 0,5^n za n znaków tej rodziny wydanych w branży. */
-export function wagaRodziny(r: RodzinaSygnetu, brief: Pick<BriefMarki, 'branza' | 'opis' | 'cechy' | 'rodzaj'>, wydane: readonly ZnakWydany[]): number {
+/** Waga rodziny dla briefu: charakter (cechy) i dopasowanie branży; kara 0,5^n za n znaków tej rodziny wydanych w branży. */
+export function wagaRodziny(r: RodzinaSygnetu, brief: Pick<BriefMarki, 'branza' | 'opis' | 'cechy' | 'rodzaj'> & Partial<Pick<BriefMarki, 'nazwa' | 'uwagi'>>, wydane: readonly ZnakWydany[], kategorie?: readonly string[]): number {
   let w = 1;
   const cechy = new Set<string>(brief.cechy ?? []);
   w += r.charakter.filter((c) => cechy.has(c)).length * 2;
-  const tekst = malymi(`${brief.branza} ${brief.opis}`);
-  if (r.branze?.some((b) => tekst.includes(malymi(b)))) w += 1.5;
-  if (brief.rodzaj === 'znak-i-napis' && r.monogram) w *= 0.5;
+  w += Math.min(3, dopasowanieRodziny(r, brief, kategorie)) * 1.5;
   const ile = wydane.filter((z) => z.rodzina === r.id).length;
   return w * Math.max(0.05, 0.5 ** ile);
 }
@@ -223,21 +240,31 @@ function barwySlotow(brief: Pick<BriefMarki, 'barwyLubiane' | 'barwyOdrzucone' |
   return wynik;
 }
 
-/** Ziarna kreatywne serii: konstrukcje bez powtórek (o ile lista wystarcza). */
-function ziarnaSerii(los: () => number, ile: number, rodzaj: BriefMarki['rodzaj']): ZiarnoMarki[] {
-  const konstrukcje = KONSTRUKCJE_ZNAKU.filter((k) => rodzaj !== 'monogram' || ['litera', 'negatyw', 'modul', 'ruch', 'geometria-nazwy'].includes(k.id));
+/**
+ * Ziarna kreatywne serii: sloty z symbolem AI dostają kolejne podejścia z PODEJSCIA_SYMBOLU (przesunięte losowo),
+ * pozostałe – konstrukcje bez powtórek (o ile lista wystarcza). Kontrasty form bez powtórek.
+ */
+function ziarnaSerii(los: () => number, symbol: readonly boolean[], rodzaj: BriefMarki['rodzaj']): ZiarnoMarki[] {
+  const konstrukcje = KONSTRUKCJE_ZNAKU.filter((k) =>
+    rodzaj === 'monogram' ? ['litera', 'negatyw', 'modul', 'ruch', 'geometria-nazwy'].includes(k.id) : !['litera-motyw', 'skojarzenie-nazwy'].includes(k.id),
+  );
   const pula = [...konstrukcje];
   const kontrasty = [...KONTRASTY_FORM];
-  return Array.from({ length: ile }, () => {
-    const k = pula.length ? pula.splice(indeks(los, pula.length), 1)[0] : konstrukcje[indeks(los, konstrukcje.length)];
+  const przes = indeks(los, PODEJSCIA_SYMBOLU.length);
+  let nrSymbolu = 0;
+  return symbol.map((jestSymbol) => {
+    const k = jestSymbol
+      ? PODEJSCIA_SYMBOLU[(przes + nrSymbolu++) % PODEJSCIA_SYMBOLU.length]
+      : (pula.length ? pula.splice(indeks(los, pula.length), 1)[0] : konstrukcje[indeks(los, konstrukcje.length)]).id;
     const c = kontrasty.length ? kontrasty.splice(indeks(los, kontrasty.length), 1)[0] : KONTRASTY_FORM[indeks(los, KONTRASTY_FORM.length)];
-    return { konstrukcja: k.id, skojarzenie: SKOJARZENIA_ZNAKU[indeks(los, SKOJARZENIA_ZNAKU.length)].id, kontrast: c.id };
+    const skoj = k === 'skojarzenie-nazwy' || k === 'litera-motyw' || k === 'litera' ? 'nazwa' : SKOJARZENIA_ZNAKU[indeks(los, SKOJARZENIA_ZNAKU.length)].id;
+    return { konstrukcja: k, skojarzenie: skoj, kontrast: c.id };
   });
 }
 
 /** Preselekcja serii kierunków „Nowa marka” (i odświeżenia – kierunek „nowy”). */
 export function preselekcjaSerii(
-  brief: Pick<BriefMarki, 'branza' | 'opis' | 'rodzaj' | 'cechy' | 'barwyLubiane' | 'barwyOdrzucone'>,
+  brief: Pick<BriefMarki, 'branza' | 'opis' | 'rodzaj' | 'cechy' | 'barwyLubiane' | 'barwyOdrzucone'> & Partial<Pick<BriefMarki, 'nazwa' | 'uwagi' | 'podpis'>>,
   wydaneWBranzy: readonly ZnakWydany[],
   ziarno: number,
   opcje: OpcjePreselekcji = {},
@@ -246,45 +273,71 @@ export function preselekcjaSerii(
   const ile = Math.max(1, Math.min(8, Math.floor(opcje.ile ?? 6)));
   const rodzaj = brief.rodzaj ?? 'znak-i-napis';
   const katalog = opcje.katalog ?? KATALOG_SYGNETOW;
+  const kategorie = kategorieBriefu(brief);
+  // Pula: monogramy zawsze (litery nazwy), abstrakcje tylko z dopasowaniem branży (paczka 134).
   const pula =
     rodzaj === 'napis'
       ? []
-      : katalog.filter((r) => (rodzaj === 'monogram' ? r.monogram : true));
-  const wagi = pula.map((r) => ({ x: r, waga: wagaRodziny(r, brief, wydaneWBranzy) }));
-  const symboleAi = rodzaj === 'znak-i-napis' ? Math.max(0, Math.min(2, opcje.symboleAi ?? 2, ile - 1)) : 0;
+      : katalog.filter((r) => (rodzaj === 'monogram' ? r.monogram : r.monogram || dopasowanieRodziny(r, brief, kategorie) > 0));
+  const wagi = pula.map((r) => ({ x: r, waga: wagaRodziny(r, brief, wydaneWBranzy, kategorie) }));
+  const monogramy = wagi.filter((w) => w.x.monogram);
+  const abstrakcje = wagi.filter((w) => !w.x.monogram);
+  const symboleAi = rodzaj === 'znak-i-napis' ? Math.max(0, Math.min(opcje.symboleAi ?? 4, ile - 1)) : 0;
+  const symbol = Array.from({ length: ile }, (_, i) => (opcje.symboleAiNaKoncu ? i >= ile - symboleAi : i < symboleAi));
   const barwy = barwySlotow(brief, ile, los);
-  const ziarna = ziarnaSerii(los, ile, rodzaj);
+  const ziarna = ziarnaSerii(los, symbol, rodzaj);
   const uzyteRodziny = new Map<string, number>();
   const uzyteZakresy = new Map<string, number>();
   const charaktery = [...CHARAKTERY_PALET];
   const przesuniecieKroju = indeks(los, KATEGORIE_KROJU.length);
+  const kroje = krojeDlaBriefu({ ...brief, cechy: brief.cechy ?? [] }, kategorie);
 
+  /** Losowanie rodziny z listy: najpierw nieużyte w serii, waga × 0,3 za każde użycie. */
+  const losuj = (lista: typeof wagi, bez: readonly string[], mnoznik = 1) =>
+    wybierzWazone(
+      los,
+      lista.filter((w) => !bez.includes(w.x.id)).map((w) => ({ x: w.x, waga: w.waga * 0.3 ** (uzyteRodziny.get(w.x.id) ?? 0) * mnoznik })),
+    );
+  const dodaj = (rodziny: RodzinaSlotu[], r: RodzinaSygnetu | undefined, waga: number) => {
+    if (!r) return;
+    uzyteRodziny.set(r.id, (uzyteRodziny.get(r.id) ?? 0) + waga);
+    rodziny.push({ id: r.id, zakresy: zawezZakresy(r, wydaneWBranzy, uzyteZakresy, los) });
+  };
+
+  let abstrakcjiWSerii = 0;
   const sloty: SlotSerii[] = [];
   for (let i = 0; i < ile; i++) {
     const rodziny: RodzinaSlotu[] = [];
-    // Dwie rodziny na slot (główna + zapasowa): najpierw nieużyte w serii, waga × 0,3 za każde użycie.
-    for (let j = 0; j < Math.min(2, pula.length); j++) {
-      const kandydaci = wagi
-        .filter((w) => !rodziny.some((r) => r.id === w.x.id))
-        .map((w) => ({ x: w.x, waga: w.waga * 0.3 ** (uzyteRodziny.get(w.x.id) ?? 0) * (j === 0 ? 1 : 0.8) }));
-      const r = wybierzWazone(los, kandydaci);
-      if (!r) break;
-      uzyteRodziny.set(r.id, (uzyteRodziny.get(r.id) ?? 0) + (j === 0 ? 1 : 0.5));
-      rodziny.push({ id: r.id, zakresy: zawezZakresy(r, wydaneWBranzy, uzyteZakresy, los) });
+    if (pula.length) {
+      if (symbol[i]) {
+        // Zapas symbolu AI = monogram z liter nazwy (nigdy losowa abstrakcja).
+        dodaj(rodziny, losuj(monogramy.length ? monogramy : wagi, []), 0.5);
+      } else {
+        // Biblioteka: najwyżej połowa slotów z biblioteki to abstrakcje pasujące do branży, reszta – monogramy;
+        // druga rodzina slotu (zapas) – zawsze monogram.
+        const slotowBiblioteki = ile - symboleAi;
+        const abstrakcja = rodzaj !== 'monogram' && abstrakcje.length > 0 && abstrakcjiWSerii < Math.max(1, Math.floor(slotowBiblioteki / 2));
+        const glowna = abstrakcja ? losuj(abstrakcje, []) : losuj(monogramy.length ? monogramy : wagi, []);
+        if (abstrakcja && glowna) abstrakcjiWSerii++;
+        dodaj(rodziny, glowna, 1);
+        if (monogramy.length > 1 || (glowna && !glowna.monogram)) dodaj(rodziny, losuj(monogramy.length ? monogramy : wagi, rodziny.map((r) => r.id), 0.8), 0.5);
+      }
     }
-    // Symbole AI w ostatnich slotach (różnicują serię, a zamiennik z biblioteki jest gotowy w `rodziny`).
-    const symbolAi = i >= ile - symboleAi;
     const ch1 = charaktery[(i * 2) % charaktery.length];
     const ch2 = charaktery[(i * 2 + 1) % charaktery.length];
+    // Kroje slotu: trzy kolejne z listy dopasowanej do briefu (każdy slot zaczyna od innego); bez sygnału – kategoria.
+    const krojeSlotu = kroje.length ? [0, 1, 2].map((d) => kroje[(i + d) % kroje.length]).filter((f, j, a) => a.indexOf(f) === j) : undefined;
+    const kategoria = krojeSlotu ? (KATALOG_FONTOW.find((f) => f.rodzina === krojeSlotu[0])?.kategoria ?? 'bezszeryfowy') : KATEGORIE_KROJU[(przesuniecieKroju + i) % KATEGORIE_KROJU.length];
     sloty.push({
       id: `k${i + 1}`,
       rodziny,
-      symbolAi,
+      symbolAi: symbol[i],
+      ...(krojeSlotu ? { kroje: krojeSlotu } : {}),
       barwy: barwy[i],
       charaktery: ch1 === ch2 ? [ch1] : [ch1, ch2],
-      kategoriaKroju: KATEGORIE_KROJU[(przesuniecieKroju + i) % KATEGORIE_KROJU.length],
+      kategoriaKroju: kategoria,
       ziarno: ziarna[i],
     });
   }
-  return { ziarno: ziarno >>> 0, rodzaj, sloty };
+  return { ziarno: ziarno >>> 0, rodzaj, sloty, kategorie };
 }

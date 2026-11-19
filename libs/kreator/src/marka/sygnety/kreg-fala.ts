@@ -21,7 +21,7 @@ export const kregFala: RodzinaSygnetu = {
   nazwa: 'Toń',
   opis: 'Koło z 1–4 falami wyciętymi w dolnej części; spokojne, wodne, czytelne nawet jako favicon.',
   charakter: ['spokojna', 'naturalna', 'przyjazna', 'minimalistyczna'],
-  branze: ['woda', 'żegl', 'basen', 'spa', 'rejs', 'hydraul', 'jezior', 'mor', 'turyst', 'kajak'],
+  branze: ['woda', 'turystyka', 'żegl', 'basen', 'spa$', 'rejs', 'hydraul', 'jezior', 'morsk', 'kajak'],
   monogram: false,
   kanaly: 2,
   parametry: PARAMETRY,

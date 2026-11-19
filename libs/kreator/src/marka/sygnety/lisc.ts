@@ -37,7 +37,7 @@ export const liscRodzina: RodzinaSygnetu = {
   nazwa: 'Liść',
   opis: 'Liść z nerwami wyciętymi szczeliną, kropla z falą albo kiełek – natura, zdrowie, wzrost.',
   charakter: ['naturalna', 'spokojna', 'przyjazna', 'ciepla', 'lokalna'],
-  branze: ['ogrod', 'eko', 'zdrow', 'diet', 'herbat', 'zioł', 'fizjo', 'kosmet', 'rolnic', 'weteryn'],
+  branze: ['eko', 'zdrowie', 'rolnictwo', 'ogrod', 'diet', 'herbat', 'zioł', 'fizjo', 'kosmet naturaln', 'weteryn'],
   monogram: false,
   kanaly: 2,
   parametry: PARAMETRY,

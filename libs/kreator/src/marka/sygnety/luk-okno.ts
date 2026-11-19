@@ -40,7 +40,7 @@ export const lukOkno: RodzinaSygnetu = {
   nazwa: 'Brama',
   opis: 'Łuk bramy lub okna z zagnieżdżonymi obramowaniami i słońcem w środku – miejsce, gościnność, tradycja.',
   charakter: ['klasyczna', 'elegancka', 'spokojna', 'lokalna', 'luksusowa'],
-  branze: ['hotel', 'pensjonat', 'nieruchom', 'architekt', 'wnętrz', 'kości', 'muzeum', 'galeri', 'restaur', 'winiar'],
+  branze: ['nieruchomosci', 'turystyka', 'gastronomia', 'kultura', 'hotel', 'pensjonat', 'architekt', 'wnętrz', 'piec', 'restaur', 'winiar'],
   monogram: false,
   kanaly: 2,
   parametry: PARAMETRY,

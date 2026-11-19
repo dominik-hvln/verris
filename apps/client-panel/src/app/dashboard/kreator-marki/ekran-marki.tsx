@@ -1,6 +1,7 @@
 'use client';
 
-import { useRef, useState, type KeyboardEvent } from 'react';
+import { startTransition, useCallback, useRef, useState, type KeyboardEvent } from 'react';
+import { useRouter } from 'next/navigation';
 import type { BriefMarki, StanKreatoraMarki, WidokMarki } from '@verris/kreator/klient';
 import { cx } from '@/components/panel/cx';
 import { KOMUNIKAT_PO_AKTUALIZACJI } from '@/lib/akcja';
@@ -21,6 +22,11 @@ import { ZasadyMarki } from './zasady';
  * Paczka 131 – ekran jednej marki: nagłówek (nazwa, wersja i limity, ostrzeżenie prawne), kroki zależne od źródła
  * marki (krokiMarki) i treść kroku. Krok trafia do adresu (`?krok=`) bez przeładowania – odświeżenie strony i link
  * wracają do tego samego miejsca. Akcje zwracają WidokMarki – ekran podmienia go w całości.
+ *
+ * Paczka 134: liczniki (serie, zmiany AI) to osobny stan konta – po każdej operacji AI (`onStan`) pobieramy go od nowa
+ * (akcja serwera, fetch `no-store`) i czekamy na wynik, zanim przycisk przestanie „trwać”; starsza odpowiedź nie
+ * nadpisze nowszej. `router.refresh()` czyści pamięć tras Next – lista marek (karta wersji) po powrocie nie pokaże
+ * starych liczników.
  */
 export function EkranMarki({
   widok: widokPoczatkowy,
@@ -42,6 +48,8 @@ export function EkranMarki({
   const [krok, setKrok] = useState<KrokMarki>(() => krokPoczatkowy(widokPoczatkowy, krokZAdresu));
   const [bladBriefu, setBladBriefu] = useState<string | null>(bladSerii ? 'Brief zapisany, ale nie udało się przygotować propozycji. Spróbuj ponownie za chwilę.' : null);
   const refy = useRef<(HTMLButtonElement | null)[]>([]);
+  const numerStanu = useRef(0);
+  const router = useRouter();
   const kroki = krokiMarki(widok);
   const marka = widok.marka;
   const zSeria = pozostaloZ(stan.limity.serie) > 0;
@@ -55,13 +63,16 @@ export function EkranMarki({
     }
     if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') window.scrollTo({ top: 0 });
   };
-  const odswiezStan = () => {
-    void stanKreatoraMarki()
-      .then((w) => {
-        if (w.ok) setStan(w.dane);
-      })
-      .catch(() => undefined);
-  };
+  const odswiezStan = useCallback(async () => {
+    const nr = ++numerStanu.current;
+    try {
+      const w = await stanKreatoraMarki();
+      if (w.ok && nr === numerStanu.current) setStan(w.dane);
+    } catch {
+      /* liczniki zostają – operacja i tak się udała albo ma własny komunikat */
+    }
+    startTransition(() => router.refresh());
+  }, [router]);
 
   const klawisz = (e: KeyboardEvent, i: number) => {
     const dostepne = kroki.map((k, j) => (k.dostepny ? j : -1)).filter((j) => j >= 0);
@@ -82,7 +93,7 @@ export function EkranMarki({
       setBladBriefu(null);
       if (!zSeria) return null;
       const s = await nowaSeria(widok.id);
-      odswiezStan();
+      await odswiezStan();
       if (!s.ok) return { blad: s.blad };
       setWidok(s.dane);
       przejdz('propozycje');

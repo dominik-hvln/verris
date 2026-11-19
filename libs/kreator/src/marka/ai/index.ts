@@ -6,6 +6,8 @@ export {
   blokM2Marki,
   MAX_TOKENS_MARKI,
   opisRodzinySygnetu,
+  WZORCE_SYMBOLI,
+  ZAPAS_NA_MYSLENIE,
   szacujTokenyMarki,
   zbudujBlokiMarki,
 } from './master-prompt-marki.ts';
@@ -30,6 +32,7 @@ export {
 export {
   KONSTRUKCJE_ZNAKU,
   KONTRASTY_FORM,
+  PODEJSCIA_SYMBOLU,
   preselekcjaSerii,
   SKOJARZENIA_ZNAKU,
   type PreselekcjaMarki,
@@ -38,9 +41,17 @@ export {
   type ZnakWydany,
 } from './preselekcja.ts';
 export { CHARAKTER_KROJOW, krojTekstuDla } from './kroje.ts';
-export { LIMITY_SYMBOLU_AI, przygotujSymbolAi } from './symbol-ai.ts';
-export { kompaktujKierunek, rozwinKierunek, walidatorSymboluBiblioteki, type WalidatorSymbolu } from './kierunek-kompakt.ts';
-export { budujZapytanieSerii, odczytajSerie, type WynikSerii } from './seria.ts';
+export { kontrolaSymbolu, LIMITY_SYMBOLU_AI, PROGI_SYMBOLU_AI, przygotujSymbolAi } from './symbol-ai.ts';
+export { kompaktujKierunek, koncepcjaMonogramu, rozwinKierunek, walidatorSymboluBiblioteki, type WalidatorSymbolu } from './kierunek-kompakt.ts';
+export {
+  budujZapytaniePonowienia,
+  budujZapytanieSerii,
+  odczytajPonowienie,
+  odczytajSerie,
+  type SlotDoPonowienia,
+  type WynikSerii,
+} from './seria.ts';
+export { dopasowanieRodziny, kategorieBriefu, KATEGORIE_BRANZ, krojeDlaBriefu, KROJE_BRANZ, MOTYWY_BRANZ, rodzinaPasuje } from './branze.ts';
 export { uzupelnijSerie, zamiennikKierunku, type OcenyKierunku, type SeriaGotowa } from './zamiennik.ts';
 export {
   budujZapytanieAnalizyLogo,
@@ -67,4 +78,18 @@ export {
   type RodzajDrobnejZmiany,
   type WynikDrobnejZmiany,
 } from './drobne.ts';
-export { kosztUsd, STAWKI_SONNET_55, tokenyObrazu, WYJSCIE_SZACUNEK, type StawkiModelu } from './koszt-marki.ts';
+export { kosztUsd, STAWKI_HAIKU_45, STAWKI_SONNET_55, tokenyObrazu, WEJSCIE_SAMOOCENY, WYJSCIE_SZACUNEK, type StawkiModelu } from './koszt-marki.ts';
+export {
+  budujZapytanieSamooceny,
+  doWymianySamoocena,
+  KAFEL_SAMOOCENY,
+  MAKS_WYMIAN_SAMOOCENY,
+  odczytajSamoocene,
+  PROG_SAMOOCENY,
+  SIATKA_SAMOOCENY,
+  szacujKosztSamooceny,
+  type KafelSamooceny,
+  type OcenaKierunku,
+} from './samoocena.ts';
+// Fikstury realistycznych odpowiedzi serii (testy API i plansze kontrolne) – paczka 134.
+export { FIKSTURY_SERII, odpowiedzFikstury, type FiksturaSerii } from './fikstury-serii.ts';

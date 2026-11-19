@@ -40,7 +40,7 @@ export const pierscienie: RodzinaSygnetu = {
   nazwa: 'Splot',
   opis: 'Splecione pierścienie z przeplotem nad/pod – partnerstwo, wspólnota, łączenie ludzi i usług.',
   charakter: ['elegancka', 'spokojna', 'klasyczna', 'przyjazna', 'ekspercka'],
-  branze: ['ślub', 'wesel', 'doradz', 'ubezpiecz', 'fundacj', 'stowarzysz', 'rodzin', 'mediac', 'konsult'],
+  branze: ['wydarzenia', 'doradztwo', 'ślub', 'wesel', 'ubezpiecz', 'fundacj', 'stowarzysz', 'mediac', 'konsult'],
   monogram: false,
   kanaly: 2,
   parametry: PARAMETRY,

@@ -62,7 +62,7 @@ export const petla: RodzinaSygnetu = {
   nazwa: 'Węzeł',
   opis: 'Taśma w kształcie nieskończoności albo węzła z przeplotem nad/pod – ciągłość, relacje, rzemiosło.',
   charakter: ['elegancka', 'klasyczna', 'rzemieslnicza', 'spokojna', 'ekspercka'],
-  branze: ['doradz', 'terap', 'coach', 'rękodzieł', 'krawiec', 'dziew', 'lin', 'ubezpiecz', 'logist', 'prawn'],
+  branze: ['doradztwo', 'rzemioslo', 'logistyka', 'terap', 'coach', 'rękodzieł', 'krawiec', 'ubezpiecz'],
   monogram: false,
   kanaly: 2,
   parametry: PARAMETRY,

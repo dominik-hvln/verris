@@ -1,7 +1,7 @@
 import { kontrast } from '../../style/kolory.ts';
 import { czyFontWKatalogu } from '../../style/katalog-stylow.ts';
 import { KierunekMarki, type BriefMarki } from '../model.ts';
-import { KATALOG_SYGNETOW, rodzinaPoId } from '../sygnety/katalog.ts';
+import { rodzinaPoId } from '../sygnety/katalog.ts';
 import { budujZapytanieAnalizyLogo, odczytajAnalizeLogo, problemyPomiarow, type PomiaryLogo } from './analiza-logo.ts';
 import { budujZapytanieDrobnejZmiany, odczytajDrobnaZmiane } from './drobne.ts';
 import { kompaktujKierunek, rozwinKierunek } from './kierunek-kompakt.ts';
@@ -9,6 +9,9 @@ import { budujZapytanieKv, odczytajKv } from './kv-ai.ts';
 import { budujZapytanieOdswiezenia, odczytajOdswiezenie, preselekcjaOdswiezenia, type ObecneLogo } from './odswiezenie.ts';
 import { barwaWZakresie, odlegloscBarwy, preselekcjaSerii, type PreselekcjaMarki, type SlotSerii } from './preselekcja.ts';
 import { budujZapytanieSerii, odczytajSerie } from './seria.ts';
+import { walidatorSymboluBiblioteki } from './kierunek-kompakt.ts';
+import { MAX_TOKENS_MARKI } from './master-prompt-marki.ts';
+import { KATALOG_FONTOW } from '../../style/katalog-stylow.ts';
 import { przygotujSymbolAi } from './symbol-ai.ts';
 import { uzupelnijSerie, zamiennikKierunku } from './zamiennik.ts';
 import { naprawaMarki } from './wspolne-marki.ts';
@@ -25,14 +28,14 @@ const brief: BriefMarki = {
 
 const SYMBOL = "<path d='M10 90L50 10L90 90Z'/><circle cx='50' cy='62' r='14' fill='A'/>";
 
-/** Poprawna odpowiedź serii dla preselekcji: pierwsza rodzina slotu, parametr z górnej granicy, symbol w ostatnim slocie. */
+/** Poprawna odpowiedź serii dla preselekcji: pierwsza rodzina slotu, parametr z górnej granicy, symbol w każdym slocie „SYMBOL”. */
 function odpowiedz(p: PreselekcjaMarki, zmien: (k: Record<string, unknown>, s: SlotSerii, i: number) => void = () => {}): string {
   const k = p.sloty.map((s, i) => {
     const r = s.rodziny[0];
-    const w: Record<string, unknown> = { f: 'Fraunces', b: s.barwy[0], d: `Kierunek ${i + 1} – łuk pieca jako cięcie kafla` };
+    const w: Record<string, unknown> = { c: `Kierunek ${i + 1} – łuk pieca chlebowego z briefu`, f: s.kroje?.[0] ?? 'Fraunces', b: s.barwy[0], d: `Kierunek ${i + 1} – łuk pieca jako cięcie kafla` };
     if (r) w.r = r.id;
     if (r) w.p = Object.fromEntries(Object.entries(r.zakresy).map(([k2, z]) => [k2, z[1]]));
-    if (s.symbolAi && i === p.sloty.length - 1) {
+    if (s.symbolAi) {
       delete w.r;
       delete w.p;
       w.s = SYMBOL;
@@ -49,11 +52,11 @@ describe('preselekcja serii', () => {
     expect(preselekcjaSerii(brief, [], 5)).not.toEqual(preselekcjaSerii(brief, [], 6));
   });
 
-  it('6 slotów, główne rodziny bez powtórek, zakresy w granicach katalogu, symbol AI w 2 ostatnich slotach', () => {
+  it('6 slotów, zakresy w granicach katalogu, symbol AI w 4 pierwszych slotach (zapas – monogram), podejścia różne', () => {
     const p = preselekcjaSerii(brief, [], 11);
     expect(p.sloty.map((s) => s.id)).toEqual(['k1', 'k2', 'k3', 'k4', 'k5', 'k6']);
-    const glowne = p.sloty.map((s) => s.rodziny[0].id);
-    expect(new Set(glowne).size).toBe(Math.min(6, KATALOG_SYGNETOW.length));
+    for (const s of p.sloty) expect(s.rodziny.length).toBeGreaterThan(0);
+    for (const s of p.sloty.filter((x) => x.symbolAi)) for (const r of s.rodziny) expect(rodzinaPoId(r.id)!.monogram).toBe(true);
     for (const s of p.sloty) {
       for (const r of s.rodziny) {
         const def = rodzinaPoId(r.id)!;
@@ -65,12 +68,13 @@ describe('preselekcja serii', () => {
         }
       }
     }
-    expect(p.sloty.map((s) => s.symbolAi)).toEqual([false, false, false, false, true, true]);
-    expect(new Set(p.sloty.map((s) => s.ziarno.konstrukcja)).size).toBe(6);
+    expect(p.sloty.map((s) => s.symbolAi)).toEqual([true, true, true, true, false, false]);
+    expect(new Set(p.sloty.filter((s) => s.symbolAi).map((s) => s.ziarno.konstrukcja)).size).toBe(4);
+    expect(preselekcjaSerii(brief, [], 11, { symboleAi: 2 }).sloty.map((s) => s.symbolAi)).toEqual([true, true, false, false, false, false]);
   });
 
   it('kara za rodziny częste w branży: rodzina wydana wielokrotnie rzadziej trafia do serii', () => {
-    const czesta = KATALOG_SYGNETOW[0].id;
+    const czesta = 'litera-negatyw';
     const wydane = Array.from({ length: 6 }, () => ({ rodzina: czesta }));
     let bez = 0;
     let z = 0;
@@ -112,7 +116,9 @@ describe('seria – zapytanie i odczyt', () => {
     expect(t).toContain('&lt;/brief&gt;');
     expect(t.indexOf('k1 – ')).toBeLessThan(t.indexOf('k6 – '));
     expect(t).toContain('Zadanie: SERIA – 6 kierunków');
-    expect(z.maxTokens).toBe(3000);
+    expect(z.maxTokens).toBe(MAX_TOKENS_MARKI.seria);
+    expect(t).toContain('SYMBOL – rysujesz');
+    expect(t).toContain('Kategorie branży z briefu (motywy w M2): gastronomia');
   });
 
   it('poprawna odpowiedź → 6 pełnych kierunków (KierunekMarki), symbol AI złożony do SVG z akcentem', () => {
@@ -123,7 +129,9 @@ describe('seria – zapytanie i odczyt', () => {
     expect(w.dane.odrzucone).toEqual([]);
     expect(w.dane.strategia).toEqual({ grupa: 'Mieszkańcy Swarzędza', cecha: 'rzemiosło', skojarzenie: 'piec chlebowy' });
     for (const k of w.dane.kierunki) expect(KierunekMarki.safeParse(k).success).toBe(true);
-    const ai = w.dane.kierunki[5]!;
+    const ai = w.dane.kierunki[0]!;
+    expect(w.dane.kierunki.filter((k) => k!.zrodloZnaku === 'ai')).toHaveLength(4);
+    expect(w.dane.kierunki.every((k) => !!k!.koncepcja)).toBe(true);
     expect(ai.zrodloZnaku).toBe('ai');
     expect(ai.projekt.sygnet.typ).toBe('ai');
     if (ai.projekt.sygnet.typ === 'ai') {
@@ -141,31 +149,36 @@ describe('seria – zapytanie i odczyt', () => {
   it('walidacja: parametry obcięte do zakresu slotu, rodzina spoza slotu → rodzina slotu, krój spoza katalogu → zastępczy, waga → dostępna, barwa → zakres', () => {
     const w = odczytajSerie(
       odpowiedz(p, (k, s, i) => {
-        if (i === 0) k.p = Object.fromEntries(Object.keys(s.rodziny[0].zakresy).map((x) => [x, 999]));
-        if (i === 1) k.r = 'nie-ma-takiej';
+        if (i === 4) k.p = Object.fromEntries(Object.keys(s.rodziny[0].zakresy).map((x) => [x, 999]));
+        if (i === 5) k.r = 'nie-ma-takiej';
         if (i === 2) k.f = 'Comic Sans MS';
         if (i === 3) {
-          k.f = 'Fraunces';
-          k.w = 500;
+          k.w = 450;
           k.b = (s.barwy[1] + 90) % 360;
         }
+        if (i === 1) k.f = 'Playfair Display';
       }),
       brief,
       p,
     );
     expect(w.ok).toBe(true);
     if (!w.ok) return;
-    const [k1, k2, k3, k4] = w.dane.kierunki;
-    if (k1!.projekt.sygnet.typ === 'biblioteka') {
-      for (const [x, [, max]] of Object.entries(p.sloty[0].rodziny[0].zakresy)) expect(k1!.projekt.sygnet.parametry[x]).toBe(max);
+    const [, k2, k3, k4, k5, k6] = w.dane.kierunki;
+    if (k5!.projekt.sygnet.typ === 'biblioteka') {
+      for (const [x, [, max]] of Object.entries(p.sloty[4].rodziny[0].zakresy)) expect(k5!.projekt.sygnet.parametry[x]).toBe(max);
     }
-    expect(k2!.projekt.sygnet.typ === 'biblioteka' && k2!.projekt.sygnet.rodzina).toBe(p.sloty[1].rodziny[0].id);
-    expect(k2!.zrodloZnaku).toBe('zamiennik');
-    expect(k2!.dlaczego).toBeUndefined();
+    expect(k6!.projekt.sygnet.typ === 'biblioteka' && k6!.projekt.sygnet.rodzina).toBe(p.sloty[5].rodziny[0].id);
+    expect(k6!.zrodloZnaku).toBe('zamiennik');
+    expect(k6!.dlaczego).toBeUndefined();
     expect(czyFontWKatalogu(k3!.projekt.napis.font)).toBe(true);
-    expect(k4!.projekt.napis.waga).toBe(600);
+    expect(p.sloty[2].kroje).toContain(k3!.projekt.napis.font);
+    // Krój spoza krojów slotu (Playfair dla piekarni rzemieślniczej) → krój slotu.
+    expect(k2!.projekt.napis.font).toBe(p.sloty[1].kroje![0]);
+    const font4 = KATALOG_FONTOW.find((f) => f.rodzina === k4!.projekt.napis.font)!;
+    expect(font4.wagi).toContain(k4!.projekt.napis.waga);
     expect(barwaWZakresie(k4!.projekt.kolory.barwa, p.sloty[3].barwy)).toBe(true);
-    expect(w.ostrzezenia.join('\n')).toMatch(/spoza slotu[\s\S]*spoza katalogu[\s\S]*poza zakresem/);
+    const o = w.ostrzezenia.join('\n');
+    for (const fraza of ['spoza krojów slotu', 'spoza katalogu', 'poza zakresem', 'spoza slotu']) expect(o).toContain(fraza);
   });
 
   it('teksty: pauza → półpauza, fraza zakazana usuwa uzasadnienie, „dwa” przy jednym słowie → „jeden”', () => {
@@ -184,27 +197,49 @@ describe('seria – zapytanie i odczyt', () => {
     expect(w.dane.kierunki[2]!.projekt.napis.styl).toBe('jeden');
   });
 
-  it('symbol poza limitami → odrzucony bez naprawy (null + powód); symbol w slocie bez symbolu – ignorowany', () => {
-    const duzo = Array.from({ length: 9 }, (_, i) => `<rect x='${i * 10}' y='0' width='5' height='5'/>`).join('');
+  it('symbol poza limitami → odrzucony bez naprawy (null + powód); symbol w slocie bez symbolu – ignorowany; symbol bez koncepcji – odrzucony', () => {
+    const duzo = Array.from({ length: 13 }, (_, i) => `<rect x='${i * 7}' y='0' width='5' height='5'/>`).join('');
     const w = odczytajSerie(
       odpowiedz(p, (k, _s, i) => {
-        if (i === 5) k.s = duzo;
-        if (i === 0) k.s = SYMBOL;
+        if (i === 0) k.s = duzo;
+        if (i === 1) {
+          delete k.c;
+          delete k.d;
+        }
+        if (i === 4) k.s = SYMBOL;
       }),
       brief,
       p,
     );
     if (!w.ok) throw new Error(w.bledy.join());
-    expect(w.dane.kierunki[5]).toBeNull();
-    expect(w.dane.odrzucone[0]).toEqual({ slot: 'k6', powod: 'k6: symbol: 9 elementów (limit 8)' });
-    expect(w.dane.kierunki[0]!.projekt.sygnet.typ).toBe('biblioteka');
+    expect(w.dane.kierunki[0]).toBeNull();
+    expect(w.dane.odrzucone[0]).toEqual({ slot: 'k1', powod: 'k1: symbol: 13 elementów (limit 12)' });
+    expect(w.dane.kierunki[1]).toBeNull();
+    expect(w.dane.odrzucone[1].powod).toContain('bez koncepcji');
+    expect(w.dane.kierunki[4]!.projekt.sygnet.typ).toBe('biblioteka');
   });
 
   it('walidator biblioteki odrzuca symbol → null', () => {
     const w = odczytajSerie(odpowiedz(p), brief, p, { walidujSymbol: () => ({ ok: false, powod: 'element poza viewBox' }) });
     if (!w.ok) throw new Error(w.bledy.join());
-    expect(w.dane.kierunki[5]).toBeNull();
+    expect(w.dane.kierunki.slice(0, 4).every((k) => k === null)).toBe(true);
     expect(w.dane.odrzucone[0].powod).toContain('element poza viewBox');
+  });
+
+  it('pola null od modelu = brak pola (nie odrzucenie kierunku); brak barwy → środek zakresu slotu', () => {
+    const w = odczytajSerie(
+      odpowiedz(p, (k, s, i) => {
+        Object.assign(k, { b2: null, l: null, ro: null, u: null, ...(s.symbolAi ? { r: null } : { s: null }) });
+        if (i === 2) delete k.b;
+      }).replace('"st":{', '"st":{"x":null,'),
+      brief,
+      p,
+      { walidujSymbol: walidatorSymboluBiblioteki },
+    );
+    if (!w.ok) throw new Error(w.bledy.join());
+    expect(w.dane.odrzucone).toEqual([]);
+    expect(barwaWZakresie(w.dane.kierunki[2]!.projekt.kolory.barwa, p.sloty[2].barwy)).toBe(true);
+    expect(w.ostrzezenia.join()).toContain('brak barwy');
   });
 
   it('zepsuta struktura → błędy do jednej rundy naprawy', () => {
@@ -225,24 +260,26 @@ describe('seria – zapytanie i odczyt', () => {
   it('kompakt ↔ pełny: kierunek z biblioteki po kompaktowaniu i rozwinięciu daje ten sam projekt', () => {
     const w = odczytajSerie(odpowiedz(p), brief, p);
     if (!w.ok) throw new Error();
-    const k = w.dane.kierunki[0]!;
-    const r = rozwinKierunek(kompaktujKierunek(k), { brief, slot: p.sloty[0], ziarno: (p.ziarno + 0) >>> 0 });
+    const k = w.dane.kierunki[4]!;
+    const r = rozwinKierunek(kompaktujKierunek(k), { brief, slot: p.sloty[4], ziarno: (p.ziarno + 4 * 7919) >>> 0 });
     expect(r.ok && r.kierunek.projekt).toEqual(k.projekt);
     // Zapis kompaktowy jest krótki.
-    expect(JSON.stringify(kompaktujKierunek(k)).length).toBeLessThan(260);
+    expect(JSON.stringify(kompaktujKierunek(k)).length).toBeLessThan(320);
   });
 });
 
 describe('zamienniki bez AI', () => {
   const p = preselekcjaSerii(brief, [], 33);
 
-  it('zamiennik: poprawny KierunekMarki w granicach slotu, deterministyczny, oznaczony „zamiennik”', () => {
+  it('zamiennik: monogram z liter nazwy w granicach slotu, deterministyczny, oznaczony „zamiennik”, z koncepcją', () => {
     const a = zamiennikKierunku(p.sloty[2], brief, 100);
     expect(zamiennikKierunku(p.sloty[2], brief, 100)).toEqual(a);
     expect(KierunekMarki.safeParse(a).success).toBe(true);
     expect(a.zrodloZnaku).toBe('zamiennik');
+    expect(a.koncepcja).toContain('Monogram z liter „PZ”');
     expect(barwaWZakresie(a.projekt.kolory.barwa, p.sloty[2].barwy)).toBe(true);
     if (a.projekt.sygnet.typ === 'biblioteka') {
+      expect(rodzinaPoId(a.projekt.sygnet.rodzina)!.monogram).toBe(true);
       const r = p.sloty[2].rodziny.find((x) => x.id === (a.projekt.sygnet as { rodzina: string }).rodzina)!;
       for (const [k, [od, doo]] of Object.entries(r.zakresy)) {
         expect(a.projekt.sygnet.parametry[k]).toBeGreaterThanOrEqual(od);
@@ -271,6 +308,8 @@ describe('zamienniki bez AI', () => {
     expect(g.zamienione.map((z) => z.slot)).toEqual(['k2', 'k3', 'k4']);
     expect(g.zamienione[1].powod).toContain('za cienki');
     expect(g.kierunki.slice(1, 4).every((k) => k.zrodloZnaku === 'zamiennik')).toBe(true);
+    // Zamiennik nigdy nie jest abstrakcją z biblioteki – tylko monogram z liter nazwy.
+    for (const k of g.kierunki.slice(1, 4)) expect(k.projekt.sygnet.typ === 'biblioteka' && rodzinaPoId(k.projekt.sygnet.rodzina)!.monogram).toBe(true);
     // Bez odpowiedzi AI – cała seria z zamienników.
     expect(uzupelnijSerie(null, brief, p).kierunki.every((k) => k.zrodloZnaku === 'zamiennik')).toBe(true);
   });
@@ -294,7 +333,7 @@ describe('symbol AI – limity', () => {
     expect(przygotujSymbolAi("<text x='1'>A</text>")).toEqual({ ok: false, powod: 'symbol: element <text> niedozwolony' });
     expect(przygotujSymbolAi("<image href='x.png'/>")).toMatchObject({ ok: false });
     expect(przygotujSymbolAi("<path d='M0 0L10 10Z'/>ABC")).toEqual({ ok: false, powod: 'symbol: tekst poza elementami' });
-    const dluga = `<path d='M0 0${' l1 1'.repeat(130)}Z'/>`;
+    const dluga = `<path d='M0 0${' l1 1'.repeat(230)}Z'/>`;
     expect(przygotujSymbolAi(dluga)).toMatchObject({ ok: false, powod: expect.stringContaining('węzłów') });
     expect(przygotujSymbolAi('')).toMatchObject({ ok: false });
     expect(przygotujSymbolAi("<path d='M0 0 L 10'/>")).toMatchObject({ ok: false });
@@ -413,7 +452,7 @@ describe('Key Visual pod wgrane logo', () => {
 describe('drobne zmiany (tańszy model)', () => {
   it('hasła: trzy, bez kropki końcowej i duplikatów; fraza zakazana odpada', () => {
     const z = budujZapytanieDrobnejZmiany('haslo', brief);
-    expect(z.maxTokens).toBe(400);
+    expect(z.maxTokens).toBe(MAX_TOKENS_MARKI.drobna);
     expect(z.rodzaj).toBe('marka-haslo');
     const w = odczytajDrobnaZmiane('haslo', '{"t":["Chleb z pieca na drewno.","Chleb z pieca na drewno","Najwyższa jakość od lat","Zakwas — co rano"]}');
     expect(w.ok && w.dane).toEqual({ rodzaj: 'haslo', propozycje: ['Chleb z pieca na drewno', 'Zakwas – co rano'] });

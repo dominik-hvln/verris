@@ -22,7 +22,7 @@ export const spirala: RodzinaSygnetu = {
   nazwa: 'Spirala',
   opis: 'Spirala z taśmy, ze złotych ćwiartek albo słonecznik z kropek – wzrost, rozwój, twórczość.',
   charakter: ['naturalna', 'zabawna', 'nowoczesna', 'ekspercka', 'rzemieslnicza'],
-  branze: ['szkoł', 'eduk', 'psycholog', 'terap', 'studio', 'kreatyw', 'ogrod', 'pszczel', 'miód', 'matemat'],
+  branze: ['edukacja', 'kultura', 'rolnictwo', 'psycholog', 'terap', 'kreatyw', 'pszczel', 'miód', 'matemat'],
   monogram: false,
   kanaly: 2,
   parametry: PARAMETRY,

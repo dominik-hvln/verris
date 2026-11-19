@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { AlertTriangle, Loader2, RefreshCw, Sparkles } from 'lucide-react';
 import type { ProjektLogo, SeriaMarki, StanKreatoraMarki, WidokMarki } from '@verris/kreator/klient';
 import { Select } from '@/components/panel/select';
@@ -12,8 +12,11 @@ import {
   nazwaBarwy,
   nazwaKierunku,
   opisPozostalo,
+  ostatniaSeria,
   oznaczenieZnaku,
   pozostaloZ,
+  seriaDodana,
+  serieChronologicznie,
   type KrokMarki,
 } from '@/lib/kreator-marki';
 import { Komunikat, klasaPrzyciskuDrugiego, klasaPrzyciskuGlownego } from '../kreator/wspolne';
@@ -33,14 +36,18 @@ export function KartaKierunku({
   podpis,
   wybrany,
   onWybierz,
+  zapas = false,
 }: {
   k: Kierunek;
   nazwa: string;
   podpis?: string;
   wybrany: boolean;
   onWybierz: () => void;
+  /** Seria zapasowa (AI niedostępne) – karta oznaczona „Propozycja zastępcza”. */
+  zapas?: boolean;
 }) {
-  const oznaczenie = oznaczenieZnaku(k);
+  const oznaczenie = oznaczenieZnaku(k, zapas);
+  const zastepcza = zapas || k.zrodloZnaku === 'zamiennik';
   const o = k.odswiezenie;
   return (
     <li className="flex">
@@ -61,6 +68,11 @@ export function KartaKierunku({
             <span className="font-display text-[14.5px] font-bold text-foreground">{o ? ETYKIETY_ODSWIEZENIA[o.typ] : nazwaKierunku(k)}</span>
             <span className="break-words text-[11.5px] text-muted-foreground">{k.projekt.napis.font}</span>
           </span>
+          {k.koncepcja ? (
+            <span className="text-[12.5px] leading-snug text-foreground">
+              <b>Znak:</b> {k.koncepcja}
+            </span>
+          ) : null}
           {o ? (
             <span className="flex flex-col gap-1 text-[12px] leading-snug text-foreground">
               <span className="text-[11.5px] text-muted-foreground">Rozpoznawalność: {o.rozpoznawalnosc}</span>
@@ -78,7 +90,7 @@ export function KartaKierunku({
             <span
               className={cx(
                 'mt-auto w-fit rounded-full border px-2 py-0.5 text-[11px]',
-                k.zrodloZnaku === 'ai' ? 'border-warn/50 text-warn' : 'border-line text-muted-foreground',
+                zastepcza ? 'border-line-strong text-foreground' : k.zrodloZnaku === 'ai' ? 'border-warn/50 text-warn' : 'border-line text-muted-foreground',
               )}
             >
               {oznaczenie}
@@ -129,46 +141,75 @@ export function Propozycje({
   stan: StanKreatoraMarki;
   onWidok: (w: WidokMarki) => void;
   onKrok: (k: KrokMarki) => void;
-  onStan: () => void;
+  onStan: () => Promise<void> | void;
 }) {
   const id = useId();
   const panelDopasuj = useRef<HTMLElement | null>(null);
   const odswiezenie = widok.zrodlo === 'odswiezenie';
-  const [seriaId, setSeriaId] = useState(widok.serie[widok.serie.length - 1]?.id ?? '');
-  const seria = widok.serie.find((s) => s.id === seriaId) ?? widok.serie[widok.serie.length - 1] ?? null;
+  // API oddaje serie od najnowszej – wszędzie (numer, lista, „ostatnia”) liczymy po dacie utworzenia.
+  const serie = serieChronologicznie(widok.serie);
+  const [seriaId, setSeriaId] = useState(ostatniaSeria(widok.serie)?.id ?? '');
+  const seria = serie.find((s) => s.id === seriaId) ?? serie[serie.length - 1] ?? null;
   const [wybranyId, setWybranyId] = useState<string | null>(seria?.kierunki[0]?.id ?? null);
   const wybrany: Kierunek | null = seria?.kierunki.find((k) => k.id === wybranyId) ?? null;
   const [edycje, setEdycje] = useState<Record<string, ProjektLogo>>({});
   const projekt = wybrany ? (edycje[`${seria!.id}/${wybrany.id}`] ?? wybrany.projekt) : null;
   const [trwa, setTrwa] = useState<'seria' | 'wybor' | null>(null);
   const [blad, setBlad] = useState<{ tekst: string; rada?: string } | null>(null);
+  /** Wynik „Nowa seria” – przy przycisku (503 = AI chwilowo niedostępne: nic nie dodano, limit bez zmian). */
+  const [bladSerii, setBladSerii] = useState<{ tekst: string; niedostepne: boolean } | null>(null);
+  const wToku = useRef(false);
+  const naglowekSerii = useRef<HTMLHeadingElement | null>(null);
+  const [przewin, setPrzewin] = useState(0);
   const nazwa = widok.brief.nazwa;
   const podpis = widok.brief.podpis;
   const ocena = useOcena(projekt ?? (seria?.kierunki[0]?.projekt as ProjektLogo), nazwa);
   const zostalo = pozostaloZ(stan.limity.serie);
 
+  // Nowa seria: nagłówek serii na ekran i fokus (czytnik ekranu słyszy „… · seria N”).
+  useEffect(() => {
+    if (!przewin) return;
+    const h = naglowekSerii.current;
+    const tylkoRuch = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    h?.scrollIntoView?.({ behavior: tylkoRuch ? 'auto' : 'smooth', block: 'start' });
+    h?.focus({ preventScroll: true });
+  }, [przewin]);
+
   const nowa = async () => {
+    if (wToku.current) return; // podwójne kliknięcie zanim przycisk się wyłączy
+    wToku.current = true;
     setBlad(null);
+    setBladSerii(null);
     setTrwa('seria');
     try {
+      const przed = widok.serie;
       const w = odswiezenie ? await kierunkiOdswiezenia(widok.id) : await nowaSeria(widok.id);
-      if (!w.ok) {
-        setBlad({ tekst: w.blad });
-        return;
+      if (w.ok) {
+        onWidok(w.dane);
+        const dodana = seriaDodana(przed, w.dane.serie);
+        if (dodana) {
+          setSeriaId(dodana.id);
+          setWybranyId(dodana.kierunki[0]?.id ?? null);
+          setPrzewin((n) => n + 1);
+        }
+      } else {
+        setBladSerii({ tekst: w.blad, niedostepne: w.status === 503 });
       }
-      onWidok(w.dane);
-      const ost = w.dane.serie[w.dane.serie.length - 1];
-      if (ost) {
-        setSeriaId(ost.id);
-        setWybranyId(ost.kierunki[0]?.id ?? null);
-      }
-      onStan();
+      // Liczniki od nowa po każdej próbie (także 402/503) – przycisk „trwa”, dopóki ich nie ma.
+      await onStan();
     } catch {
-      setBlad({ tekst: KOMUNIKAT_PO_AKTUALIZACJI });
+      setBladSerii({ tekst: KOMUNIKAT_PO_AKTUALIZACJI, niedostepne: false });
     } finally {
+      wToku.current = false;
       setTrwa(null);
     }
   };
+
+  const komunikatSerii = bladSerii ? (
+    <Komunikat rodzaj={bladSerii.niedostepne ? 'ostrzezenie' : 'blad'} tytul={bladSerii.niedostepne ? 'Nie udało się teraz przygotować nowej serii' : bladSerii.tekst}>
+      {bladSerii.niedostepne ? `${bladSerii.tekst} Limit serii się nie zmienił.` : null}
+    </Komunikat>
+  ) : null;
 
   const wybierz = async () => {
     if (!seria || !wybrany || !projekt) return;
@@ -195,24 +236,25 @@ export function Propozycje({
       <Komunikat rodzaj="info" tytul="Brak propozycji">
         <div className="flex flex-col items-start gap-2">
           <span>{odswiezenie ? 'Pokażemy 3 kierunki odświeżenia Twojego logo.' : 'Asystent ułoży 6 kierunków z Twojego briefu.'}</span>
-          <button type="button" className={klasaPrzyciskuGlownego} disabled={trwa !== null || zostalo <= 0} onClick={() => void nowa()}>
+          <button type="button" className={klasaPrzyciskuGlownego} disabled={trwa !== null || zostalo <= 0} aria-busy={trwa === 'seria'} onClick={() => void nowa()}>
             {trwa === 'seria' ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Sparkles className="h-4 w-4" aria-hidden />}
-            {odswiezenie ? 'Pokaż 3 kierunki' : 'Pokaż 6 propozycji'}
+            {trwa === 'seria' ? 'Asystent układa propozycje…' : odswiezenie ? 'Pokaż 3 kierunki' : 'Pokaż 6 propozycji'}
           </button>
-          {blad ? <span className="text-crit">{blad.tekst}</span> : null}
+          {komunikatSerii}
         </div>
       </Komunikat>
     );
   }
 
-  const numer = widok.serie.indexOf(seria) + 1;
+  const numer = serie.indexOf(seria) + 1;
+  const zapas = seria.zrodlo === 'zapas';
   const dopasowanie = opisDopasowania(widok);
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
       <div className="flex min-w-0 flex-col gap-4">
         <div className="flex flex-col gap-1.5 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
-            <h2 className="m-0 break-words font-display text-[20px] font-bold text-foreground">
+            <h2 ref={naglowekSerii} tabIndex={-1} className="m-0 scroll-mt-4 break-words font-display text-[20px] font-bold text-foreground outline-none">
               {odswiezenie ? 'Trzy kierunki odświeżenia' : `${seria.kierunki.length} propozycji dla „${nazwa}”`} · seria {numer}
             </h2>
             {odswiezenie ? (
@@ -221,7 +263,7 @@ export function Propozycje({
               <p className="text-[12.5px] text-muted-foreground">{dopasowanie}</p>
             ) : null}
           </div>
-          {widok.serie.length > 1 ? (
+          {serie.length > 1 ? (
             <div className="flex flex-none items-center gap-2">
               <label htmlFor={`${id}-seria`} className="text-[12.5px] text-muted-foreground">
                 Seria
@@ -230,21 +272,26 @@ export function Propozycje({
                 id={`${id}-seria`}
                 className="w-40"
                 value={seria.id}
-                options={widok.serie.map((s, i) => ({ value: s.id, label: `Seria ${i + 1}${s.rodzaj === 'odswiezenie' ? ' (odświeżenie)' : ''}` }))}
+                options={serie.map((s, i) => ({ value: s.id, label: `Seria ${i + 1}${s.rodzaj === 'odswiezenie' ? ' (odświeżenie)' : ''}${s.zrodlo === 'zapas' ? ' (zastępcza)' : ''}` }))}
                 onChange={(v) => {
                   setSeriaId(v);
-                  setWybranyId(widok.serie.find((s) => s.id === v)?.kierunki[0]?.id ?? null);
+                  setWybranyId(serie.find((s) => s.id === v)?.kierunki[0]?.id ?? null);
                 }}
               />
             </div>
           ) : null}
         </div>
+        {zapas ? (
+          <Komunikat rodzaj="ostrzezenie" tytul="Propozycje zastępcze – nie z asystenta AI">
+            {seria.komunikat || 'Asystent AI był chwilowo niedostępny, dlatego pokazujemy propozycje z biblioteki Verris. Ta seria nie zużyła limitu – nową serię od AI możesz poprosić za chwilę.'}
+          </Komunikat>
+        ) : null}
         {seria.strategia && (seria.strategia.grupa || seria.strategia.cecha || seria.strategia.skojarzenie) ? (
           <p className="rounded-[8px] border border-line bg-raised px-3 py-2 text-[12.5px] text-foreground">
             <b>Strategia:</b> {[seria.strategia.grupa, seria.strategia.cecha, seria.strategia.skojarzenie].filter(Boolean).join(' · ')}
           </p>
         ) : null}
-        <ul className={cx('m-0 grid list-none gap-3 p-0 sm:grid-cols-2', odswiezenie ? 'lg:grid-cols-4' : 'lg:grid-cols-3')}>
+        <ul key={seria.id} aria-label={`Propozycje – seria ${numer}`} className={cx('m-0 grid list-none gap-3 p-0 sm:grid-cols-2', odswiezenie ? 'lg:grid-cols-4' : 'lg:grid-cols-3')}>
           {odswiezenie && widok.analiza?.oryginal?.startsWith('data:image/') ? (
             <li className="flex flex-col overflow-hidden rounded-[10px] border border-line bg-card">
               <span className="flex h-36 items-center justify-center bg-[#ffffff] p-5">
@@ -258,7 +305,7 @@ export function Propozycje({
             </li>
           ) : null}
           {seria.kierunki.map((k) => (
-            <KartaKierunku key={k.id} k={k} nazwa={nazwa} podpis={podpis} wybrany={k.id === wybranyId} onWybierz={() => {
+            <KartaKierunku key={k.id} k={k} nazwa={nazwa} podpis={podpis} zapas={zapas} wybrany={k.id === wybranyId} onWybierz={() => {
                 setWybranyId(k.id);
                 // po renderze panelu z nowym kierunkiem
                 setTimeout(() => przewinDoDopasuj(panelDopasuj.current), 0);
@@ -267,9 +314,9 @@ export function Propozycje({
           ))}
         </ul>
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" className={klasaPrzyciskuDrugiego} disabled={trwa !== null || zostalo <= 0} onClick={() => void nowa()}>
+          <button type="button" className={klasaPrzyciskuDrugiego} disabled={trwa !== null || zostalo <= 0} aria-busy={trwa === 'seria'} onClick={() => void nowa()}>
             {trwa === 'seria' ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <RefreshCw className="h-4 w-4" aria-hidden />}
-            Nowa seria – {opisPozostalo(stan.limity.serie, 'serie').toLocaleLowerCase('pl-PL')}
+            {trwa === 'seria' ? 'Układamy nową serię…' : `Nowa seria – ${opisPozostalo(stan.limity.serie, 'serie').toLocaleLowerCase('pl-PL')}`}
           </button>
           {widok.zrodlo === 'nowa' ? (
             <button type="button" className={klasaPrzyciskuDrugiego} onClick={() => onKrok('brief')}>
@@ -286,6 +333,7 @@ export function Propozycje({
             </span>
           ) : null}
         </div>
+        {komunikatSerii}
         {odswiezenie ? <p className="text-[12px] text-muted-foreground">Odświeżenie zmienia wygląd, nie prawa: jeśli stary znak jest zarejestrowany, nowy zgłasza się osobno.</p> : null}
       </div>
 

@@ -22,10 +22,17 @@ import { prisma, rozlacz, ustawModelFakturowania, utworzPlan, wyczyscBaze } from
  */
 
 const BRIEF = { nazwa: 'Łódka i Wiosło', podpis: 'Wypożyczalnia kajaków', branza: 'Turystyka wodna', opis: 'Spływy kajakowe dla rodzin.', rodzaj: 'znak-i-napis' };
-/** Odpowiedź serii jak od modelu: dla każdego slotu z wiadomości – pierwsza dozwolona rodzina, barwa z początku zakresu. */
+/**
+ * Odpowiedź serii jak od modelu (paczka 134): slot „SYMBOL” – symbol SVG z koncepcją, slot z biblioteki – pierwsza
+ * dozwolona rodzina; barwa z początku zakresu.
+ */
+const SYMBOL_RZEKI = "<circle cx='50' cy='50' r='44'/><path fill='#fff' d='M10 52Q30 38 50 52T90 52V64Q70 50 50 64T10 64Z'/>";
 const ODP_SERII = (tresc: string) => {
-  const sloty = [...tresc.matchAll(/^k\d – r: ([a-z0-9-]+)\(.*?b: (\d+)/gm)];
-  return JSON.stringify({ st: { g: 'Rodziny z dziećmi', c: 'spokój', s: 'nurt rzeki' }, k: sloty.map((m) => ({ r: m[1], b: Number(m[2]), d: 'Spokojny rytm rzeki w prostym znaku.' })) });
+  const sloty = [...tresc.matchAll(/^k\d – (SYMBOL)?.*?r: ([a-z0-9-]+)\(.*?b: (\d+)/gm)];
+  return JSON.stringify({
+    st: { g: 'Rodziny z dziećmi', c: 'spokój', s: 'nurt rzeki' },
+    k: sloty.map((m) => ({ c: 'Nurt rzeki w kole – spływy z briefu', ...(m[1] ? { s: SYMBOL_RZEKI } : { r: m[2] }), b: Number(m[3]), d: 'Spokojny rytm rzeki w prostym znaku.' })),
+  });
 };
 
 function srodowisko(odpowiedzAi: (tresc: string) => string = ODP_SERII) {
@@ -117,7 +124,7 @@ describe('Paczka 131 – Kreator marki (baza)', () => {
     expect((await svc.stan(bez.userId)).dostepny).toBe(false);
   });
 
-  it('seria z AI zużywa limit miesięczny; po limicie 402 LIMIT_SERII; błąd AI = seria z zamienników bez zużycia limitu', async () => {
+  it('seria z AI zużywa limit miesięczny; po limicie 402 LIMIT_SERII; błąd AI = 503 bez serii i bez zużycia limitu', async () => {
     const s = srodowisko();
     const k = await klient();
     const m = await s.svc.utworz(k, { zrodlo: 'nowa', brief: BRIEF });
@@ -127,17 +134,18 @@ describe('Paczka 131 – Kreator marki (baza)', () => {
     expect(w.serie[0]!.kierunki).toHaveLength(6);
     expect(w.serie[0]!.strategia).toMatchObject({ cecha: 'spokój' });
     expect(w.serie[0]!.kierunki.some((x) => x.dlaczego === 'Spokojny rytm rzeki w prostym znaku.')).toBe(true);
+    expect(w.serie[0]!.kierunki.filter((x) => x.zrodloZnaku === 'ai')).toHaveLength(4);
+    expect(w.serie[0]!.zrodlo).toBe('ai');
     expect(s.provider.anthropicZBlokami).toHaveBeenCalledWith(expect.objectContaining({ funkcja: 'kreator-marki', model: 'claude-sonnet-5-5', userId: k.userId }));
     expect((await s.svc.stan(k.userId)).limity.serie).toEqual({ uzyte: 1, limit: 1 });
     expect(await kod(s.svc.seria(k, m.id))).toEqual({ status: 402, kod: 'LIMIT_SERII' });
-    // dostawca AI niedostępny: propozycje i tak są (zamienniki serwera), limit wraca
+    // dostawca AI niedostępny (paczka 134): 503, seria nie powstaje (bez losowych szablonów), limit wraca
     await konfiguracja({ wCenieHostingu: { marek: 1, seriiMies: 2, zmianAiMies: 5 } });
     const zle = srodowisko(() => {
       throw new Error('503');
     });
-    const w2 = await zle.svc.seria(k, m.id);
-    expect(w2.serie).toHaveLength(2);
-    expect(w2.serie[0]!.kierunki.every((x) => x.zrodloZnaku === 'zamiennik')).toBe(true);
+    expect(await kod(zle.svc.seria(k, m.id))).toEqual({ status: 503, kod: 'AI_NIEDOSTEPNE' });
+    expect((await zle.svc.pobierz(k.userId, m.id)).serie).toHaveLength(1);
     expect((await zle.svc.stan(k.userId)).limity.serie.uzyte).toBe(1);
     const zuz = await prisma().kreatorMarkaZuzycie.findFirstOrThrow({ where: { userId: k.userId } });
     expect(Number(zuz.kosztUsd)).toBeGreaterThan(0);
@@ -148,7 +156,7 @@ describe('Paczka 131 – Kreator marki (baza)', () => {
     const a = await klient();
     const mA = await s.svc.utworz(a, { zrodlo: 'nowa', brief: BRIEF });
     const wA = await s.svc.seria(a, mA.id);
-    const kier = wA.serie[0]!.kierunki[0]!;
+    const kier = wA.serie[0]!.kierunki.find((x) => x.projekt.sygnet.typ === 'biblioteka')!;
     const wybrana = await s.svc.wybierz(a, mA.id, { seriaId: wA.serie[0]!.id, kierunekId: kier.id });
     expect(wybrana.etap).toBe('projekt');
     expect(wybrana.marka?.projekt.sygnet).toEqual(kier.projekt.sygnet);
@@ -160,7 +168,7 @@ describe('Paczka 131 – Kreator marki (baza)', () => {
     const b = await klient();
     const mB = await s.svc.utworz(b, { zrodlo: 'nowa', brief: { ...BRIEF, nazwa: 'Kajaki Nurt', podpis: undefined } });
     const wB = await s.svc.seria(b, mB.id);
-    const kierB = wB.serie[0]!.kierunki[0]!;
+    const kierB = wB.serie[0]!.kierunki.find((x) => x.projekt.sygnet.typ === 'biblioteka')!;
     const kopia = { ...kierB.projekt, sygnet: kier.projekt.sygnet };
     expect(await kod(s.svc.wybierz(b, mB.id, { seriaId: wB.serie[0]!.id, kierunekId: kierB.id, projekt: kopia }))).toEqual({ status: 409, kod: 'PODOBNY_ZNAK' });
 
