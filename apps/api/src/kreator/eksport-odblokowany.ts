@@ -1,4 +1,4 @@
-import { BillingInterval, ProductKind, SubscriptionStatus } from '@verris/database';
+import { BillingInterval, ProductKind, SubscriptionPaymentSource, SubscriptionStatus } from '@verris/database';
 import type { PrismaService } from '../prisma/prisma.service.js';
 import { wProbie } from '../subscriptions/okres-probny.js';
 
@@ -7,10 +7,15 @@ import { wProbie } from '../subscriptions/okres-probny.js';
  * odblokowuje usługa hostingu, która ma 3 opłacone miesiące albo jest na planie rocznym.
  *
  *  - okres próbny się nie liczy; po konwersji liczymy od trialConvertedAt (inaczej od createdAt);
- *  - koniec opłaconego czasu = currentPeriodEnd, a przy anulowaniu wcześniejsza z dat (canceledAt);
- *  - plan roczny odblokowuje od razu, ale nie gdy usługę anulowano w ciągu 14 dni (zwrot);
+ *  - koniec opłaconego czasu = currentPeriodEnd; przy karcie (STRIPE_CARD) w statusie PAST_DUE albo SUSPENDED –
+ *    currentPeriodStart, bo Stripe przesuwa okres przy próbie odnowienia, zanim płatność przejdzie;
+ *  - plan roczny odblokowuje od razu, ale nie gdy usługę anulowano w ciągu 14 dni (zwrot) – tylko tu koniec
+ *    skraca canceledAt;
  *  - plan miesięczny: opłacony czas sięga co najmniej 3 miesięcy kalendarzowych od początku płatności
- *    (z tolerancją 1 dnia);
+ *    (z tolerancją 1 dnia); anulowanie z natychmiastowym skutkiem nie skraca – za miesiąc nie ma zwrotu,
+ *    więc opłacone okresy się liczą;
+ *  - świadoma pobłażliwość: czas przedpłacony przy przeniesieniu usługi (oplaconeDo) i zmiany dat przez operatora
+ *    też liczą się jako opłacony czas (widać je tylko w currentPeriodEnd);
  *  - wygasła albo anulowana usługa, która spełniła warunek, nadal odblokowuje (pliki marki po końcu hostingu).
  */
 export const MIESIECY_DO_EKSPORTU = 3;
@@ -30,14 +35,24 @@ export type UslugaDoEksportu = {
   createdAt: Date;
   currentPeriodEnd: Date | null;
   canceledAt: Date | null;
+  paymentSource: SubscriptionPaymentSource;
+  currentPeriodStart: Date | null;
 };
+
+/** Statusy zaległej płatności: przy karcie Stripe okres jest już przesunięty, choć nieopłacony. */
+const ZALEGLE: readonly SubscriptionStatus[] = [SubscriptionStatus.PAST_DUE, SubscriptionStatus.SUSPENDED];
 
 export function odblokowujeEksport(s: UslugaDoEksportu): boolean {
   if (wProbie(s)) return false;
-  if (!s.currentPeriodEnd) return false;
+  const kartaZalegla = s.paymentSource === SubscriptionPaymentSource.STRIPE_CARD && ZALEGLE.includes(s.status);
+  const oplaconeDo = kartaZalegla ? s.currentPeriodStart : s.currentPeriodEnd;
+  if (!oplaconeDo) return false;
   const platnyOd = s.trialConvertedAt ?? s.createdAt;
-  const koniec = Math.min(s.currentPeriodEnd.getTime(), s.canceledAt?.getTime() ?? Infinity);
-  if (s.interval === BillingInterval.YEAR) return koniec > platnyOd.getTime() + DNI_ZWROTU_ROCZNEGO * DOBA_MS;
+  if (s.interval === BillingInterval.YEAR) {
+    const koniec = Math.min(oplaconeDo.getTime(), s.canceledAt?.getTime() ?? Infinity);
+    return koniec > platnyOd.getTime() + DNI_ZWROTU_ROCZNEGO * DOBA_MS;
+  }
+  const koniec = oplaconeDo.getTime();
   const prog = new Date(platnyOd.getTime());
   prog.setUTCMonth(prog.getUTCMonth() + MIESIECY_DO_EKSPORTU);
   return koniec >= prog.getTime() - DOBA_MS;
@@ -55,6 +70,8 @@ export async function eksportOdblokowany(prisma: Pick<PrismaService, 'subscripti
       createdAt: true,
       currentPeriodEnd: true,
       canceledAt: true,
+      paymentSource: true,
+      currentPeriodStart: true,
     },
   });
   return uslugi.some(odblokowujeEksport);

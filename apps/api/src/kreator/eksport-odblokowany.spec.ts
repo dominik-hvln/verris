@@ -5,7 +5,16 @@ import { eksportOdblokowany, KOMUNIKAT_EKSPORTU, MIESIECY_DO_EKSPORTU, odblokowu
 const d = (s: string) => new Date(`${s}T00:00:00.000Z`);
 
 describe('odblokowujeEksport', () => {
-  const baza = { status: 'ACTIVE', interval: 'MONTH', isTrial: false, trialConvertedAt: null, createdAt: d('2026-08-01'), canceledAt: null } as const;
+  const baza = {
+    status: 'ACTIVE',
+    interval: 'MONTH',
+    isTrial: false,
+    trialConvertedAt: null,
+    createdAt: d('2026-08-01'),
+    canceledAt: null,
+    paymentSource: 'STRIPE_CARD',
+    currentPeriodStart: null,
+  } as const;
 
   it('miesięczny: 2 opłacone okresy – nie; 3 – tak (koniec okresu 1.11)', () => {
     expect(odblokowujeEksport({ ...baza, currentPeriodEnd: d('2026-10-01') })).toBe(false);
@@ -17,8 +26,27 @@ describe('odblokowujeEksport', () => {
     expect(odblokowujeEksport({ ...baza, currentPeriodEnd: d('2026-10-30') })).toBe(false);
   });
 
-  it('miesięczny anulowany przed końcem 3. miesiąca – liczy się data anulowania', () => {
-    expect(odblokowujeEksport({ ...baza, currentPeriodEnd: d('2026-11-01'), canceledAt: d('2026-10-15') })).toBe(false);
+  it('miesięczny anulowany przed końcem 3. miesiąca – opłacone okresy się liczą (bez zwrotu za miesiąc), data anulowania nie skraca', () => {
+    expect(odblokowujeEksport({ ...baza, currentPeriodEnd: d('2026-11-01'), canceledAt: d('2026-10-15') })).toBe(true);
+    expect(odblokowujeEksport({ ...baza, currentPeriodEnd: d('2026-10-01'), canceledAt: d('2026-09-15') })).toBe(false);
+  });
+
+  it('karta (Stripe) PAST_DUE / SUSPENDED: koniec opłaconego czasu = currentPeriodStart (Stripe przesunął okres przed zapłatą)', () => {
+    // opłacone 2 miesiące (1.08–1.10), odnowienie 1.10 nieudane – Stripe ustawił już okres 1.10–1.11
+    const zalegla = { ...baza, currentPeriodStart: d('2026-10-01'), currentPeriodEnd: d('2026-11-01') };
+    expect(odblokowujeEksport({ ...zalegla, status: 'PAST_DUE' })).toBe(false);
+    expect(odblokowujeEksport({ ...zalegla, status: 'SUSPENDED' })).toBe(false);
+    expect(odblokowujeEksport({ ...zalegla, status: 'ACTIVE' })).toBe(true);
+    // 3 opłacone miesiące, zaległe czwarte odnowienie – nadal odblokowuje
+    expect(odblokowujeEksport({ ...baza, status: 'PAST_DUE', currentPeriodStart: d('2026-11-01'), currentPeriodEnd: d('2026-12-01') })).toBe(true);
+    expect(odblokowujeEksport({ ...baza, status: 'PAST_DUE', currentPeriodStart: null, currentPeriodEnd: d('2026-12-01') })).toBe(false);
+  });
+
+  it('Portfel (nie karta) PAST_DUE – bez zmian: liczy się currentPeriodEnd', () => {
+    const zalegla = { ...baza, status: 'PAST_DUE', currentPeriodStart: d('2026-10-01'), currentPeriodEnd: d('2026-11-01') } as const;
+    expect(odblokowujeEksport({ ...zalegla, paymentSource: 'WALLET' })).toBe(true);
+    expect(odblokowujeEksport({ ...zalegla, paymentSource: 'WALLET', currentPeriodEnd: d('2026-10-01') })).toBe(false);
+    expect(odblokowujeEksport({ ...zalegla, paymentSource: 'MANUAL' })).toBe(true);
   });
 
   it('roczny – od razu; roczny anulowany po 5 dniach (zwrot) – nie', () => {
@@ -62,6 +90,8 @@ describe('eksportOdblokowany', () => {
     createdAt: d('2026-08-01'),
     currentPeriodEnd: d('2026-09-01'),
     canceledAt: null,
+    paymentSource: 'STRIPE_CARD',
+    currentPeriodStart: null,
     ...nadpisz,
   });
 
@@ -84,6 +114,8 @@ describe('eksportOdblokowany', () => {
       createdAt: true,
       currentPeriodEnd: true,
       canceledAt: true,
+      paymentSource: true,
+      currentPeriodStart: true,
     });
   });
 
