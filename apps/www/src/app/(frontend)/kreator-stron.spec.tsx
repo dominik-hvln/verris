@@ -104,6 +104,13 @@ describe('/kreator-stron', () => {
     expect(tekst).not.toMatch(/DirectAdmin|CloudLinux|LiteSpeed|2222/);
   });
 
+  it('paczka 134: Pro nie obiecuje danych strukturalnych FAQ (Kreator nie emituje FAQPage); FAQ verris.pl zostaje', async () => {
+    expect(tekst).not.toMatch(/strukturalne FAQ|FAQ, produktów/iu);
+    expect(html).toMatch(/<th scope="row">SEO<\/th><td data-label="W cenie hostingu">podstawowe<\/td><td data-label="Kreator Pro"[^>]*>(<[^>]+>)*pełne: dane strukturalne produktów i artykułów, przegląd SEO przez AI/);
+    const { GET: pricing } = await import('../pricing.md/route');
+    expect(await (await pricing()).text()).not.toMatch(/FAQ/);
+  });
+
   it('wersje językowe (paczka 124): wiersz porównania – nie w cenie hostingu, w Pro trzy języki z modelu', () => {
     expect(html).toMatch(/<th scope="row">Wersje językowe<\/th><td data-label="W cenie hostingu">nie<\/td><td data-label="Kreator Pro"[^>]*>(<[^>]+>)*do 3 dodatkowych: angielski, niemiecki, ukraiński – tłumaczenie AI i przełącznik języka/);
     expect(tekst).not.toMatch(/francusk|hiszpańsk|czesk|rosyjsk|wielojęzycz/iu);

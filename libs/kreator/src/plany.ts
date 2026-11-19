@@ -77,7 +77,7 @@ export const KORZYSCI_PRO: { id: string; nazwa: string; opis: string }[] = [
   { id: 'sklep', nazwa: 'Katalog produktów', opis: 'Produkty z cenami i przyciskiem zakupu, dane produktowe dla Google.' },
   { id: 'blog', nazwa: 'Blog', opis: 'Wpisy z datą i czasem czytania, dane artykułów dla Google.' },
   { id: 'jezyki', nazwa: 'Wersje językowe', opis: 'Do 3 dodatkowych języków: angielski, niemiecki, ukraiński – tłumaczenie AI i przełącznik języka na stronie.' },
-  { id: 'seo', nazwa: 'Pełne SEO', opis: 'Dane strukturalne FAQ, produktów, artykułów i nawigacji okruszkowej, przegląd SEO przez AI.' },
+  { id: 'seo', nazwa: 'Pełne SEO', opis: 'Dane strukturalne: produkty, artykuły i nawigacja okruszkowa, przegląd SEO przez AI.' },
   { id: 'limity', nazwa: 'Wyższe limity', opis: '10 stron, podstrony bez limitu, 10 generacji i 1000 zmian AI miesięcznie.' },
   { id: 'znak', nazwa: 'Dyskretny znak w stopce', opis: 'Minimalna wersja znaku „Stworzone w Verris Kreator”.' },
   { id: 'zdjecia-ai', nazwa: 'Zdjęcia AI', opis: '100 zdjęć AI miesięcznie, 4 warianty do wyboru przy każdym generowaniu.' },

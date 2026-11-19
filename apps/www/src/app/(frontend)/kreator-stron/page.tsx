@@ -71,7 +71,7 @@ function wiersze(): [string, string, string][] {
     ['Interakcje i animacje', 'podstawowe', 'karuzele, powiększanie zdjęć, paralaksa, animowany nagłówek'],
     ['Katalog produktów z cenami', 'nie', 'tak'],
     ['Blog', 'nie', 'tak'],
-    ['SEO', 'podstawowe', 'pełne: dane strukturalne FAQ, produktów i artykułów, przegląd SEO przez AI'],
+    ['SEO', 'podstawowe', 'pełne: dane strukturalne produktów i artykułów, przegląd SEO przez AI'],
     [
       'Wersje językowe',
       H.wielojezycznosc ? 'tak' : 'nie',

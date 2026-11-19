@@ -100,6 +100,12 @@ describe('dopasujDoPlanu', () => {
     expect(korzysciPro({ zdjeciaAi: true })).toEqual(KORZYSCI_PRO);
   });
 
+  it('paczka 134: korzyść „Pełne SEO” bez danych strukturalnych FAQ (render nie emituje FAQPage)', () => {
+    const k = KORZYSCI_PRO.find((x) => x.id === 'seo');
+    expect(k?.opis).not.toMatch(/FAQ/);
+    expect(k?.opis).toBe('Dane strukturalne: produkty, artykuły i nawigacja okruszkowa, przegląd SEO przez AI.');
+  });
+
   it('wersje językowe (paczka 124): tylko Pro, korzyść wymienia trzy języki', () => {
     expect([PLANY_KREATORA.proba.wielojezycznosc, PLANY_KREATORA.hosting.wielojezycznosc, PLANY_KREATORA.pro.wielojezycznosc]).toEqual([false, false, true]);
     const k = KORZYSCI_PRO.find((x) => x.id === 'jezyki');

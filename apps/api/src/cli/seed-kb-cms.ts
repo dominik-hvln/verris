@@ -1117,7 +1117,7 @@ Kreator Pro to dodatek do Verris Kreatora, który działa na wszystkich stronach
 - **Pełny projekt AI** – bogatsze układy i więcej sekcji dopasowanych do branży.
 - **Interakcje i animacje** – karuzele, powiększanie zdjęć, paralaksa, przełącznik cen, animowany nagłówek.
 - **Katalog produktów** z cenami i przyciskiem zakupu oraz **blog** z wpisami.
-- **Pełne SEO** – dane strukturalne FAQ, produktów, artykułów i nawigacji okruszkowej, przegląd SEO przez AI.
+- **Pełne SEO** – dane strukturalne produktów, artykułów i nawigacji okruszkowej, przegląd SEO przez AI.
 - **Wersje językowe** – do 3 dodatkowych języków: angielski, niemiecki, ukraiński. AI tłumaczy podstrony (każda podstrona to jedna zmiana AI), a strona dostaje przełącznik języka i oznaczenia dla wyszukiwarek, że to te same treści w innych językach.
 - **Wyższe limity** – 10 stron, podstrony bez limitu, 10 generacji i 1000 zmian AI miesięcznie.
 - **Dyskretny znak** „Stworzone w Verris Kreator” w stopce.
