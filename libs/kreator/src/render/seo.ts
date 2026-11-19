@@ -3,6 +3,7 @@ import type { Podstrona, Sekcja, SekcjaTypu } from '../model.ts';
 import { SCHEMA_DNI } from './dane.ts';
 import { esc, jsonBezpieczny } from './esc.ts';
 import type { KontekstPodstrony, KontekstStrony } from './kontekst.ts';
+import { PLIKI_MARKI } from './marka.ts';
 import { czyWidoczna } from './sekcje/index.ts';
 
 /** Adres bezwzględny podstrony (gdy znamy adres strony) albo null. */
@@ -31,10 +32,27 @@ export function favicon(s: KontekstStrony): string {
 }
 
 function obrazOg(s: KontekstStrony): string | null {
-  const o = s.strona.seo.obrazOg;
-  if (!o?.url) return null;
-  if (/^https:\/\//i.test(o.url)) return o.url;
-  return s.adres ? `${s.adres}/${o.url.replace(/^\/+/, '')}` : null;
+  // Paczka 130: bez własnego obrazu OG strony – obraz z materiałów marki (gdy strona używa logo marki).
+  const url = s.strona.seo.obrazOg?.url ?? s.marka?.obrazOg ?? null;
+  if (!url) return null;
+  if (/^https:\/\//i.test(url)) return url;
+  return s.adres ? `${s.adres}/${url.replace(/^\/+/, '')}` : null;
+}
+
+/**
+ * Linki favicon. Paczka 130 – favicon marki: w publikacji plik assets/marka/favicon.svg (+ PNG z kreatora marki jako
+ * zapas i apple-touch-icon), w podglądzie SVG inline jako data URI (ramka podglądu nie ma plików strony).
+ * Bez marki – inicjał w kolorach palety (data URI).
+ */
+function linkiFavicon(s: KontekstStrony, prefiks: string): string[] {
+  const m = s.marka;
+  if (!m?.favicon) return [`<link rel="icon" href="${esc(favicon(s))}">`];
+  const w: string[] = [];
+  const png = m.faviconPng ? (/^https:\/\//i.test(m.faviconPng) ? m.faviconPng : s.podglad ? null : `${prefiks}${m.faviconPng}`) : null;
+  if (png) w.push(`<link rel="icon" href="${esc(png)}" type="image/png">`, `<link rel="apple-touch-icon" href="${esc(png)}">`);
+  const svg = s.podglad ? `data:image/svg+xml,${encodeURIComponent(m.favicon)}` : `${prefiks}${PLIKI_MARKI.favicon}`;
+  w.push(`<link rel="icon" href="${esc(svg)}" type="image/svg+xml">`);
+  return w;
 }
 
 export interface OpcjeGlowy {
@@ -46,6 +64,8 @@ export interface OpcjeGlowy {
   artykul: boolean;
   /** Strona 404: bez canonical, og:url, hreflang i danych strukturalnych. */
   bezAdresu?: boolean;
+  /** Ścieżka do korzenia strony z tej podstrony ('' / '../' / '/' dla 404) – pliki marki. */
+  prefiks?: string;
 }
 
 /**
@@ -93,7 +113,8 @@ export function glowaHtml(k: KontekstPodstrony, o: OpcjeGlowy): string {
   if (og) w.push(`<meta property="og:image" content="${esc(og)}">`);
   w.push(`<meta name="twitter:card" content="${og ? 'summary_large_image' : 'summary'}">`, `<meta name="twitter:title" content="${esc(tytul)}">`, `<meta name="twitter:description" content="${esc(opis)}">`);
   if (og) w.push(`<meta name="twitter:image" content="${esc(og)}">`);
-  w.push(`<meta name="theme-color" content="${s.kolory.paleta.tlo}">`, `<link rel="icon" href="${esc(favicon(s))}">`);
+  // Paczka 130: strona z logo marki – kolor przeglądarki z koloru głównego marki.
+  w.push(`<meta name="theme-color" content="${s.marka?.naglowek ? s.marka.kolory.glowny : s.kolory.paleta.tlo}">`, ...linkiFavicon(s, o.prefiks ?? ''));
   if (o.preload) w.push(`<link rel="preload" href="${esc(o.preload)}" as="font" type="font/woff2" crossorigin>`);
   w.push(`<link rel="stylesheet" href="${esc(o.css)}">`);
   if (o.js) w.push(`<script src="${esc(o.js)}" defer></script>`);

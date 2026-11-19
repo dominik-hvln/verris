@@ -31,6 +31,7 @@ import { Struktura } from './struktura';
 import { kopiaWersjiJezykowej, WERSJA_JEZYKA, WERSJE_JEZYKA, type TrybWersji } from './jezyki';
 import { PanelSekcji } from './panel-sekcji';
 import { PanelMotywu } from './panel-motywu';
+import { SekcjaMarki } from './marka';
 import { PanelSeo } from './panel-seo';
 import { PanelAi } from './panel-ai';
 import { Historia } from './historia';
@@ -1093,6 +1094,18 @@ export function Edytor({
           <div id="kr-panel" role="tabpanel" aria-labelledby={`kr-tab-${zakladka}`} className="min-h-0 flex-1 overflow-y-auto p-4" tabIndex={0}>
             {zakladka === 'sekcja' ? (
               <PanelSekcji key={`${klucz}-${zaznaczona}`} sekcja={sekcja} sciezka={sciezkaSekcji} k={k} funkcjePro={funkcjePro} onWybranoPro={wybranoPro} />
+            ) : null}
+            {zakladka === 'motyw' ? (
+              <SekcjaMarki
+                id={id}
+                model={model}
+                markaDostepna={!!stan.markaDostepna}
+                przedZmiana={zapiszTeraz}
+                onZmiana={(w, opis) => {
+                  zastapModel(w);
+                  oglos(opis);
+                }}
+              />
             ) : null}
             {zakladka === 'motyw' ? (
               <PanelMotywu

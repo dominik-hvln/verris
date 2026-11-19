@@ -14,6 +14,9 @@ import type { CharakterPalety } from './katalog-stylow.ts';
 
 export const MIN_KONTRAST_AA = 4.5;
 
+/** Charaktery palet z `generujPalete` (ten sam zbiór co KierunekProjektu.charakterPalety) – lista do zod (kreator marki). */
+export const CHARAKTERY_PALET = ['jasna', 'ciemna', 'kontrastowa', 'pastelowa', 'ziemista'] as const satisfies readonly CharakterPalety[];
+
 type Rgb = [number, number, number];
 export interface Oklch {
   l: number;
@@ -213,4 +216,18 @@ export function generujPalete(barwa: number, charakter: CharakterPalety): Paleta
   const p = przepis(barwa, charakter);
   const surowa = Object.fromEntries(Object.entries(p).map(([k, v]) => [k, oklchDoHex(v)])) as Paleta;
   return korygujPalete(surowa).paleta;
+}
+
+/**
+ * Kreator marki (analiza wgranego logo): sRGB 0–255 ↔ OKLab [L, a, b] – te same macierze co OKLCH wyżej.
+ * k-means kolorów obrazu liczy w OKLab (odległość ≈ różnica postrzegana), wynik wraca jako hex sRGB.
+ */
+export function rgbDoOklab(r: number, g: number, b: number): [number, number, number] {
+  return liniowyDoOklab([zGammy(r / 255), zGammy(g / 255), zGammy(b / 255)]);
+}
+
+/** OKLab → hex sRGB (obcięcie do gamutu – środki skupień z pikseli i tak w nim leżą). */
+export function oklabDoHex(l: number, a: number, b: number): string {
+  const rgb = oklabDoLiniowego(l, a, b);
+  return '#' + rgb.map((x) => Math.round(zakres(doGammy(zakres(x))) * 255).toString(16).padStart(2, '0')).join('').toUpperCase();
 }

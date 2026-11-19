@@ -1,11 +1,12 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { BadRequestException, ForbiddenException, NotFoundException, ServiceUnavailableException, UnprocessableEntityException } from '@nestjs/common';
-import { funkcjeAiKreatora, PRZYKLAD_SALON, PRZYKLAD_SALON_EN, skrotTresci, tlumaczenieNieaktualne, walidujStrone, type FunkcjeAiKreatora, type Strona } from '@verris/kreator';
+import { funkcjeAiKreatora, PRZYKLAD_MIGAWKI_MARKI, PRZYKLAD_SALON, PRZYKLAD_SALON_EN, skrotTresci, tlumaczenieNieaktualne, walidujStrone, type FunkcjeAiKreatora, type Strona } from '@verris/kreator';
 import { KreatorService, LIMIT_WERSJI } from './kreator.service.js';
 import { KLUCZ_KONFIGURACJI_KREATORA, miesiacUtc } from './konfiguracja.js';
 import type { RendererKreatora } from './zaleznosci.js';
-import { TlumaczenieDto, ZmienNazweDto } from './dto/kreator.dto.js';
+import { TlumaczenieDto, ZastosujMarkeDto, ZmienNazweDto } from './dto/kreator.dto.js';
+import { BrakModuluMarki, MARKA_NIEDOSTEPNA, type DostawcaMarki } from './marka-dostawca.js';
 
 /**
  * Serwis kreatora na atrapie Prismy w pamięci (tabele kreatora + to, z czego liczy się wersja kreatora)
@@ -181,7 +182,7 @@ function aiAtrapa() {
 /** Odpowiedź atrapy: tekst (koniec 'end_turn'), błąd albo tekst z innym powodem końca (np. 'max_tokens'). */
 type OdpAtrapy = string | Error | { tekst: string; powodKonca: string };
 
-function zbuduj(odpowiedzi: Array<OdpAtrapy>) {
+function zbuduj(odpowiedzi: Array<OdpAtrapy>, marki?: DostawcaMarki) {
   const { db, prisma } = bazaAtrapa();
   const ai = aiAtrapa();
   const provider = {
@@ -200,7 +201,7 @@ function zbuduj(odpowiedzi: Array<OdpAtrapy>) {
     ]),
   };
   const config = { get: (k: string) => (k === 'PUBLIC_API_URL' ? 'https://api.verris.test/' : undefined) };
-  const svc = new KreatorService(prisma as never, provider as never, config as never, ai, renderer);
+  const svc = new KreatorService(prisma as never, provider as never, config as never, ai, renderer, marki);
   // Zadanie w tle uruchamiamy w teście jawnie (await), a nie w setImmediate.
   const zadania: Array<() => Promise<void>> = [];
   (svc as unknown as { wTle: (f: () => Promise<void>) => void }).wTle = (f) => zadania.push(f);
@@ -704,5 +705,125 @@ describe('KreatorService – wersje językowe (paczka 124)', () => {
     await svc.zmienAi('u1', 'u1', 's1', { polecenie: 'Shorter', sekcjaId: 'start', podstrona: 'en' }).catch(() => undefined);
     expect(ai.budujZapytanieZmiany).toHaveBeenCalledWith(expect.anything(), 'Shorter', 'start', 'pro', 'en');
     await expect(svc.zmienAi('u1', 'u1', 's1', { polecenie: 'Shorter', sekcjaId: 'start', podstrona: 'cennik' })).rejects.toThrow(/Nie ma takiej sekcji/);
+  });
+});
+
+/** Paczka 130 – marka z Kreatora marki na stronie: dostawca marki (atrapa), podgląd zmian, zapis, ochrona migawki. */
+describe('KreatorService – marka (paczka 130)', () => {
+  const MIG = PRZYKLAD_MIGAWKI_MARKI;
+  function dostawca(nadpisz: Partial<DostawcaMarki> = {}): DostawcaMarki & { migawka: ReturnType<typeof vi.fn> } {
+    return {
+      dostepna: vi.fn(async () => true),
+      lista: vi.fn(async () => [{ markaId: MIG.markaId, nazwa: MIG.nazwa, wersja: MIG.wersja }]),
+      migawka: vi.fn(async (_u: string, markaId: string) => (markaId === MIG.markaId ? structuredClone(MIG) : null)),
+      ...nadpisz,
+    } as DostawcaMarki & { migawka: ReturnType<typeof vi.fn> };
+  }
+  const zStrona = (marki?: DostawcaMarki) => {
+    const t = zbuduj([], marki);
+    t.db.strony.push({ id: 's1', userId: 'u1', nazwa: 'Salon', status: 'GOTOWA', model: structuredClone(SALON), propozycje: null, createdAt: new Date(), updatedAt: new Date() });
+    return t;
+  };
+  const model = (db: { strony: Rek[] }) => db.strony[0]!.model as Strona;
+
+  it('bez modułu Kreatora marki: /stan markaDostepna=false, GET marki – niedostępna, zastosowanie – 503 „Kreator marki niedostępny”', async () => {
+    const { svc } = zStrona();
+    expect((await svc.stan('u1')).markaDostepna).toBe(false);
+    expect(await svc.markaStrony('u1', 's1')).toEqual({ dostepna: false, naStronie: null, marki: [] });
+    await expect(svc.zastosujMarke('u1', 's1', { markaId: MIG.markaId })).rejects.toThrow(MARKA_NIEDOSTEPNA);
+    await expect(svc.podgladMarki('u1', 's1', { markaId: MIG.markaId })).rejects.toBeInstanceOf(ServiceUnavailableException);
+    await expect(new BrakModuluMarki().migawka()).rejects.toThrow(MARKA_NIEDOSTEPNA);
+  });
+
+  it('błąd dostawcy przy /stan nie psuje stanu kreatora (marka niedostępna)', async () => {
+    const { svc } = zStrona(dostawca({ dostepna: vi.fn(async () => { throw new Error('baza marek'); }) }));
+    expect((await svc.stan('u1')).markaDostepna).toBe(false);
+  });
+
+  it('podgląd (dry-run): lista zmian i wygląd przed/po, strona i historia bez zmian', async () => {
+    const { svc, db } = zStrona(dostawca());
+    const p = await svc.podgladMarki('u1', 's1', { markaId: MIG.markaId, opcje: { fonty: false } });
+    expect(p.stan).toBe('brak');
+    expect(p.zmiany.map((z) => z.element)).toEqual(['logo', 'favicon', 'obrazOg', 'paleta']);
+    expect(p.przed.logo).toBeNull();
+    expect(p.po.logo).toContain('<svg');
+    expect(model(db).marka).toBeUndefined();
+    expect(db.wersje).toHaveLength(0);
+  });
+
+  it('zastosowanie: nowa wersja w historii, migawka w modelu, ponownie to samo – bez nowej wersji; GET marki pokazuje stan', async () => {
+    const d = dostawca();
+    const { svc, db } = zStrona(d);
+    const w = await svc.zastosujMarke('u1', 's1', { markaId: MIG.markaId });
+    expect(w.zmiany.length).toBeGreaterThan(0);
+    expect(w.model?.marka).toMatchObject({ markaId: MIG.markaId, wersja: 3 });
+    expect(db.wersje.map((v) => [v.zrodlo, v.opis])).toEqual([['RECZNA', 'Marka „Łódka i Wiosło” (wersja 3)']]);
+    await svc.zastosujMarke('u1', 's1', { markaId: MIG.markaId });
+    expect(db.wersje).toHaveLength(1);
+    expect((await svc.markaStrony('u1', 's1')).marki).toEqual([expect.objectContaining({ markaId: MIG.markaId, stan: 'aktualna' })]);
+    // nowsza wersja marki → stan „starsza” (baner w panelu), strona nadal z wersją 3
+    (d.lista as ReturnType<typeof vi.fn>).mockResolvedValue([{ markaId: MIG.markaId, nazwa: MIG.nazwa, wersja: 4 }]);
+    expect((await svc.markaStrony('u1', 's1')).marki[0]).toMatchObject({ stan: 'starsza' });
+    expect(model(db).marka?.wersja).toBe(3);
+  });
+
+  it('cudza marka / brak marki → 404; nic nie zaznaczone → 400; migawka spoza schematu (złe SVG) → 503 bez zapisu', async () => {
+    const { svc, db } = zStrona(dostawca());
+    await expect(svc.zastosujMarke('u1', 's1', { markaId: 'cudza' })).rejects.toBeInstanceOf(NotFoundException);
+    await expect(svc.zastosujMarke('u1', 's1', { markaId: MIG.markaId, opcje: { logo: false, paleta: false, fonty: false, favicon: false } })).rejects.toBeInstanceOf(BadRequestException);
+    const zla = zStrona(dostawca({ migawka: vi.fn(async () => ({ ...MIG, logoPoziome: '<svg viewBox="0 0 1 1" onload="alert(1)"></svg>' })) }));
+    await expect(zla.svc.zastosujMarke('u1', 's1', { markaId: MIG.markaId })).rejects.toBeInstanceOf(ServiceUnavailableException);
+    expect(model(zla.db).marka).toBeUndefined();
+    // cudza strona
+    db.strony.push({ id: 'obca', userId: 'u2', status: 'GOTOWA', model: SALON, propozycje: null });
+    await expect(svc.zastosujMarke('u1', 'obca', { markaId: MIG.markaId })).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('zapis z edytora nie zmienia migawki: własne SVG klienta odrzucone po cichu, migawka z bazy zostaje; usunięcie pola też nie działa', async () => {
+    const { svc, db } = zStrona(dostawca());
+    await svc.zastosujMarke('u1', 's1', { markaId: MIG.markaId });
+    const zBazy = model(db).marka;
+    const wrogie = { ...model(db), marka: { ...zBazy!, logoPoziome: '<svg viewBox="0 0 1 1"><script>alert(1)</script></svg>' } };
+    await svc.zapiszRecznie('u1', 's1', wrogie);
+    expect(model(db).marka).toEqual(zBazy);
+    const { marka: _m, ...bez } = model(db);
+    await svc.zapiszRecznie('u1', 's1', { ...bez, seo: { ...bez.seo, tytul: 'Nowy tytuł salonu' } });
+    expect(model(db).marka).toEqual(zBazy);
+    expect(model(db).seo.tytul).toBe('Nowy tytuł salonu');
+    // strona bez marki – edytor nie doda jej sam
+    const t2 = zStrona(dostawca());
+    await t2.svc.zapiszRecznie('u1', 's1', { ...model(db), marka: zBazy });
+    expect(model(t2.db).marka).toBeUndefined();
+  });
+
+  it('odłączenie marki: inicjał wraca, wpis w historii; strona bez marki – bez nowej wersji', async () => {
+    const { svc, db } = zStrona(dostawca());
+    await svc.zastosujMarke('u1', 's1', { markaId: MIG.markaId });
+    const w = await svc.odlaczMarke('u1', 's1');
+    expect(w.model?.marka).toBeUndefined();
+    expect(w.zmiany.map((z) => z.element)).toEqual(['logo', 'favicon']);
+    expect(db.wersje.at(-1)?.opis).toBe('Odłączono markę „Łódka i Wiosło”');
+    await svc.odlaczMarke('u1', 's1');
+    expect(db.wersje).toHaveLength(2);
+  });
+
+  it('wybór propozycji i ponowna generacja zachowują logo marki (AI generuje bez marki)', async () => {
+    const { svc, db, dokonczZadania } = zbuduj([JSON.stringify(SALON)], dostawca());
+    db.strony.push({ id: 's1', userId: 'u1', nazwa: 'Salon', status: 'GOTOWA', model: structuredClone(SALON), brief: BRIEF, propozycje: [zeStylem('propozycja')], createdAt: new Date(), updatedAt: new Date() });
+    await svc.zastosujMarke('u1', 's1', { markaId: MIG.markaId });
+    const zBazy = model(db).marka;
+    await svc.wybierzPropozycje('u1', 's1', 1);
+    expect(model(db).motyw.styl).toBe('propozycja');
+    expect(model(db).marka).toEqual(zBazy);
+    await svc.generujPonownie('u1', 'u1', 's1');
+    await dokonczZadania();
+    expect(db.strony[0]).toMatchObject({ status: 'GOTOWA' });
+    expect(model(db).marka).toEqual(zBazy);
+  });
+
+  it('DTO: markaId z białej listy znaków, opcje logiczne', async () => {
+    const zle = await validate(plainToInstance(ZastosujMarkeDto, { markaId: '../x', opcje: { logo: 'tak' } }));
+    expect(zle.map((e) => e.property).sort()).toEqual(['markaId', 'opcje']);
+    expect(await validate(plainToInstance(ZastosujMarkeDto, { markaId: 'marka-1', opcje: { logo: true, fonty: false } }))).toEqual([]);
   });
 });

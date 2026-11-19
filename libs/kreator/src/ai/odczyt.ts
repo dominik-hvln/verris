@@ -288,7 +288,15 @@ export function odczytajWynikZmiany(strona: Strona, tekst: string, sekcjaId: str
     const w = walidujStrone(nowa);
     if (!w.ok) return w;
   }
+  // Paczka 130: migawka marki nie przechodzi przez AI – zostaje dokładnie taka, jak przed zmianą (albo jej brak).
+  nowa = zMigawkaMarki(nowa, strona);
   return dokoncz(nowa, wersja, { tryb: 'zmiana', poprzednia: strona });
+}
+
+/** Kopia `nowa` z migawką marki z `zrodlo` (pole spoza AI – POLA_POZA_AI). */
+function zMigawkaMarki(nowa: Strona, zrodlo: Strona): Strona {
+  const { marka: _zAi, ...reszta } = nowa;
+  return zrodlo.marka ? { ...reszta, marka: structuredClone(zrodlo.marka) } : reszta;
 }
 
 /** Jedna runda naprawy: poprzednia odpowiedź modelu + lista błędów i prośba o poprawiony pełny JSON. */

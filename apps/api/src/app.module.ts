@@ -40,6 +40,7 @@ import { ProductOpsModule } from './product-ops/product-ops.module.js';
 import { RateLimitGuard } from './common/guards/rate-limit.guard.js';
 import { AiModule } from './ai/ai.module.js';
 import { KreatorModule } from './kreator/kreator.module.js';
+import { KreatorMarkiModule } from './kreator-marki/kreator-marki.module.js';
 import { PlatformSettingsModule } from './platform-settings/platform-settings.module.js';
 import { LiveReadinessModule } from './admin-readiness/live-readiness.module.js';
 import { VpsModule } from './vps/vps.module.js';
@@ -139,6 +140,7 @@ import { ZadaniaWTleModule } from './zadania-w-tle/zadania-w-tle.module.js';
     ZadaniaWTleModule,
     // Paczka 119 – Verris Kreator (strony klienta budowane przez AI).
     KreatorModule,
+    KreatorMarkiModule,
   ],
   controllers: [],
   providers: [

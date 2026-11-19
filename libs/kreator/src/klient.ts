@@ -13,3 +13,6 @@ export * from './plany.ts';
 export { TYPY_STRON, type BriefStrony, type KierunekProjektu, type TypStrony } from './ai/kontrakt.ts';
 export * from './style/katalog-stylow.ts';
 export { generujPalete, kontrast, korygujPalete, MIN_KONTRAST_AA, PARY_KONTRASTU, sprawdzKontrastPalety } from './style/kolory.ts';
+// Paczka 130 – marka na stronie: schemat migawki i typy podglądu zmian (bez renderera SVG na stronę).
+export { MarkaStrony } from './marka-strony/model.ts';
+export { ELEMENTY_MARKI, type ElementMarki, type OpcjeZastosowaniaMarki, type StanMarkiStrony, type WygladMarki, type ZmianaMarki } from './marka-strony/zastosuj.ts';

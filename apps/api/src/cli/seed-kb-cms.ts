@@ -28,6 +28,8 @@ type Art = {
   body: string;
   faq: Faq[];
   relatedSlugs: string[];
+  /** Paczka 130 – szkic (DRAFT): nie trafia na pomoc.verris.pl ani do indeksu AI, dopóki redaktor go nie opublikuje. */
+  status?: 'DRAFT' | 'PUBLISHED';
 };
 
 const CATEGORIES: Cat[] = [
@@ -65,6 +67,9 @@ const A = (
   faq: opts?.faq ?? [],
   relatedSlugs: opts?.related ?? [],
 });
+
+/** Szkic artykułu (status DRAFT) – dla funkcji, które jeszcze nie są w sprzedaży (paczka 130: Kreator marki). */
+const D = (...a: Parameters<typeof A>): Art => ({ ...A(...a), status: 'DRAFT' });
 
 const ARTICLES: Art[] = [
   // ---------------- Pierwsze kroki
@@ -1141,6 +1146,211 @@ Opublikowane strony działają dalej. Elementy Pro znikną przy następnej publi
         { q: 'Czy mogę kupić Kreator Pro w okresie próbnym?', a: 'Nie. Kreator Pro kupisz po opłaceniu hostingu – w okresie próbnym korzystasz z kreatora w wersji próbnej.' },
         { q: 'Co się stanie z moją stroną, gdy zrezygnuję z Pro?', a: 'Opublikowana strona działa dalej. Elementy Pro znikną dopiero przy następnej publikacji, a okno publikacji pokaże wcześniej listę zmian.' },
       ], related: ['jak-stworzyc-strone-w-kreatorze', 'publikacja-strony-z-kreatora', 'portfel-i-platnosci'] }),
+  // ---------------- Kreator marki (paczka 130) – SZKICE (DRAFT). Moduł jest domyślnie wyłączony do publikacji §13b
+  // Regulaminu i zmian Polityki (docs/legal/drafts/DO_ZATWIERDZENIA_kreator-marki.md). Redaktor publikuje je w CMS
+  // razem ze startem modułu. Liczby i ceny = DOMYSLNA_KONFIGURACJA_MARKI (apps/api/src/kreator-marki/konfiguracja-marki.ts)
+  // – zgodność pilnuje src/test/baza-wiedzy-kreator-marki.spec.ts; przy zmianie cen w adminie popraw artykuły.
+  // Przed publikacją sprawdzić z dokumentacją: ścieżki menu w programach pocztowych, interfejs TMview, nazwy pozycji
+  // menu panelu (faza 2).
+  D('kreator-stron', 'jak-stworzyc-logo-w-kreatorze-marki', 'Jak stworzyć logo w Kreatorze marki',
+    'Od opisu firmy do logo w wektorze: brief, sześć kierunków, edycja na żywo, zasady marki i pliki.',
+    `## Czym jest Kreator marki
+Kreator marki to kreator logo w panelu Verris. Opisujesz firmę, wybierasz jeden z sześciu kierunków i dopracowujesz go na żywo. Na końcu dostajesz logo w wektorze w kilku wersjach, paletę kolorów, kroje pisma, favicon i stopkę e-mail. Logo możesz od razu użyć na stronie z Kreatora stron.
+
+## Krok 1 – brief
+W menu wybierz **Kreator marki** i kliknij **Nowa marka**. Podaj nazwę firmy, branżę i jedno zdanie o tym, co robisz. Wybierz rodzaj znaku (znak z napisem, sam napis albo monogram), do trzech cech charakteru marki oraz kolory, które lubisz i których nie chcesz. Nie wpisuj nazw znanych marek („jak logo X”) – takie polecenie kreator odrzuci.
+
+## Krok 2 – sześć kierunków
+Kreator pokazuje sześć kierunków: każdy ma inny znak, krój pisma i paletę oraz krótkie uzasadnienie. Jedna taka propozycja to jedna seria. Jeśli żaden kierunek Ci nie pasuje, zmień brief i poproś o nową serię.
+
+## Krok 3 – edycja na żywo
+Wybrany kierunek zmieniasz w panelu **Dopasuj**: kolor główny i akcent, krój i grubość napisu, układ (poziomy, pionowy, sam znak). Te zmiany działają od razu, bez AI, i nie zużywają limitu. Limit zmian AI dotyczy poleceń, takich jak „zaproponuj hasło” albo „nazwij kolory”.
+
+## Krok 4 – zasady i pliki
+Po wyborze kreator przygotowuje zasady marki: wersje logo, pole ochronne, minimalne rozmiary, favicon i paletę ze sprawdzonym kontrastem. Pliki pobierzesz jako ZIP (opis w artykule „Pliki logo – który do czego”).
+
+## Limity
+- **W cenie hostingu:** 1 marka na koncie, 3 serie propozycji i 50 zmian AI miesięcznie.
+- **Pakiet marki:** 10 serii propozycji i 300 zmian AI, księga znaku, wizytówka i papier firmowy, grafiki do mediów społecznościowych oraz nowe szablony przez 12 miesięcy – 149 zł brutto (121,14 zł netto) jednorazowo.
+- **Druga marka na koncie:** 49 zł brutto (39,84 zł netto) jednorazowo.
+
+## Zanim użyjesz logo
+Logo z kreatora nie jest znakiem zastrzeżonym. Zanim zamówisz szyld albo wizytówki, sprawdź w TMview, czy nikt nie ma podobnego znaku – instrukcja w artykule „Logo a znak towarowy – TMview krok po kroku”.`,
+    { t: 'Jak stworzyć logo w Kreatorze marki – kreator logo w panelu Verris', d: 'Kreator logo Verris krok po kroku: brief, sześć kierunków, edycja koloru i kroju na żywo, zasady marki i pliki. W cenie hostingu.',
+      faq: [
+        { q: 'Ile kosztuje Kreator marki?', a: 'Jest w cenie hostingu: 1 marka na koncie, 3 serie propozycji i 50 zmian AI miesięcznie. Płatny jest Pakiet marki – 149 zł brutto (121,14 zł netto) jednorazowo – i druga marka na koncie – 49 zł brutto (39,84 zł netto).' },
+        { q: 'Czy zmiana koloru zużywa limit?', a: 'Nie. Kolor, krój i układ zmieniasz bez AI i bez limitu. Limit dotyczy serii propozycji i poleceń dla AI.' },
+        { q: 'Czy mogę poprosić o logo w stylu znanej marki?', a: 'Nie. Kreator odrzuca briefy, które proszą o styl konkretnej marki – to chroni Cię przed sporem o podobieństwo.' },
+      ], related: ['pliki-logo-svg-png-pdf-favicon', 'logo-a-znak-towarowy-tmview', 'marka-na-stronie-z-kreatora-stron'] }),
+
+  D('kreator-stron', 'mam-logo-materialy-key-visual', 'Mam już logo – materiały Key Visual',
+    'Wgraj swoje logo, a kreator zbuduje z niego paletę, wzór i materiały – bez zmiany samego logo.',
+    `## Kiedy wybrać tę ścieżkę
+Masz logo i chcesz je zostawić, ale brakuje Ci spójnych materiałów: kolorów, wzoru, grafik do mediów społecznościowych, wizytówki. W **Kreatorze marki** wybierz **Mam już logo**.
+
+## Wgranie logo
+Wgraj plik SVG, PDF, PNG albo JPG do 10 MB. Najlepszy jest SVG albo PDF z wektorem – wtedy logo zostaje ostre w każdym rozmiarze. Przed wgraniem potwierdzasz, że masz prawo używać tego logo (np. zaprojektowałeś je sam albo kupiłeś prawa od grafika).
+
+## Co robi kreator
+- Odczytuje kolory z logo i proponuje paletę z kontrastem sprawdzonym pod czytelność.
+- Plik PNG albo JPG zamienia na wektor – porównasz oryginał z wersją wektorową i wybierzesz lepszą.
+- Opisuje elementy logo i wskazuje możliwe problemy, np. zbyt jasny podpis na białym tle albo gradient, który źle się drukuje.
+- Buduje materiały: wzór, post, story, okładkę Facebooka, baner LinkedIn, wizytówkę i papier firmowy (część z nich w Pakiecie marki).
+
+Samo logo zostaje bez zmian. Jeśli chcesz je unowocześnić, zobacz artykuł „Odświeżenie logo”.`,
+    { t: 'Mam już logo – materiały Key Visual w Kreatorze marki', d: 'Wgraj logo (SVG, PDF, PNG, JPG do 10 MB), a Kreator marki zbuduje z niego paletę, wzór i materiały do sieci i druku bez zmiany logo.',
+      faq: [
+        { q: 'Jaki plik logo najlepiej wgrać?', a: 'SVG albo PDF z wektorem. PNG i JPG też zadziałają – kreator zamieni je na wektor i pokaże porównanie z oryginałem.' },
+        { q: 'Czy kreator zmieni moje logo?', a: 'Nie w tej ścieżce. Logo zostaje bez zmian – zmieniają się tylko materiały wokół niego.' },
+      ], related: ['odswiezenie-logo', 'pliki-logo-svg-png-pdf-favicon', 'druk-wizytowka-cmyk'] }),
+
+  D('kreator-stron', 'odswiezenie-logo', 'Odświeżenie logo',
+    'Trzy kierunki odświeżenia istniejącego logo: ewolucja, odświeżenie i nowy kierunek – z opisem, co zostaje, a co się zmienia.',
+    `## Kiedy odświeżyć logo
+Gdy logo ma kilkanaście lat, źle wygląda w małym rozmiarze (np. jako ikona w przeglądarce) albo nie pasuje do nowej strony. Klienci znają jednak stare logo – dlatego kreator pokazuje zmiany stopniowo.
+
+## Jak to działa
+W **Kreatorze marki** wybierz **Odświeżenie** i wgraj obecne logo (SVG, PDF, PNG albo JPG do 10 MB). Potwierdź, że masz do niego prawa. Dostaniesz trzy kierunki:
+- **Ewolucja** – to samo logo, poprawione: wyrównane proporcje, lepszy kontrast, czytelność w małym rozmiarze.
+- **Odświeżenie** – rozpoznawalny znak i kolory, nowy krój lub układ.
+- **Nowy kierunek** – nowe logo, które nawiązuje do starego tylko kolorem albo motywem.
+
+Przy każdym kierunku widzisz listę „co zostaje / co się zmienia”. Wybrany kierunek dopracujesz na żywo tak jak przy nowej marce.
+
+## Zanim wymienisz logo wszędzie
+Nowa wersja logo to nowy znak – sprawdź go w TMview (artykuł „Logo a znak towarowy – TMview krok po kroku”). Jeśli stare logo było zarejestrowane jako znak towarowy, zmiana może wymagać nowego zgłoszenia – zapytaj rzecznika patentowego.`,
+    { t: 'Odświeżenie logo w Kreatorze marki – ewolucja czy nowy kierunek', d: 'Jak odświeżyć logo w Kreatorze marki Verris: trzy kierunki zmian, lista co zostaje i co się zmienia, edycja na żywo.',
+      faq: [
+        { q: 'Czy odświeżone logo straci rozpoznawalność?', a: 'Zależy od kierunku. Ewolucja zmienia najmniej, nowy kierunek – najwięcej. Przy każdym widzisz, co zostaje, a co się zmienia.' },
+      ], related: ['mam-logo-materialy-key-visual', 'logo-a-znak-towarowy-tmview', 'jak-stworzyc-logo-w-kreatorze-marki'] }),
+
+  D('kreator-stron', 'pliki-logo-svg-png-pdf-favicon', 'Pliki logo – który do czego (SVG, PNG, PDF, favicon)',
+    'Co jest w paczce z logo i którego pliku użyć na stronie, w dokumentach, w mediach społecznościowych i w druku.',
+    `## Co jest w paczce
+Pliki pobierasz w Kreatorze marki jako ZIP. W środku:
+- **SVG** – logo w wektorze w wersjach: kolor, jednobarwna, negatyw (na ciemne tło) i biała; w układzie poziomym, pionowym i jako sam znak.
+- **PNG** – te same wersje jako obrazki w kilku rozmiarach, z przezroczystym tłem.
+- **PDF** – logo w wektorze do dokumentów i drukarni.
+- **Favicon** – favicon.ico i favicon.svg oraz ikony 180, 192 i 512 px z plikiem manifestu – do strony i ikony na ekranie telefonu.
+- **Kroje pisma** – pliki krojów z tekstem licencji (SIL Open Font License), która pozwala używać ich komercyjnie, także na stronie i w druku.
+- **Zasady marki** – kolory (w zapisie do ekranu i odpowiedniki do druku), pole ochronne i minimalne rozmiary.
+
+## Który plik do czego
+- **Strona www:** SVG (ostry w każdym rozmiarze); PNG, jeśli system strony nie przyjmuje SVG.
+- **Favicon i ikona telefonu:** favicon.ico, favicon.svg i ikony 180, 192 i 512 px.
+- **Facebook, Instagram, LinkedIn:** PNG – na zdjęcie profilowe sam znak.
+- **Word, PowerPoint:** PNG albo SVG (nowsze wersje pakietów biurowych przyjmują SVG).
+- **Drukarnia, szyld, folia:** PDF albo SVG.
+- **Stopka e-mail:** PNG z Twojego hostingu – programy pocztowe źle pokazują SVG.
+
+## Minimalny rozmiar
+Logo poziome nie powinno być niższe niż 24 px na ekranie i 8 mm w druku. W mniejszym miejscu użyj samego znaku.`,
+    { t: 'Pliki logo: SVG, PNG, PDF i favicon – którego użyć', d: 'Co dostajesz z Kreatora marki Verris i którego pliku logo użyć na stronie, w mediach społecznościowych, w dokumentach i w druku.',
+      faq: [
+        { q: 'Czym różni się SVG od PNG?', a: 'SVG to wektor – jest ostry w każdym rozmiarze i ma mały plik. PNG to obrazek o stałej liczbie pikseli – przy powiększeniu się rozmywa.' },
+        { q: 'Czy mogę używać krojów z paczki na stronie i w druku?', a: 'Tak. Kroje mają licencję SIL Open Font License, która pozwala używać ich komercyjnie. Nie wolno tylko sprzedawać samych plików krojów.' },
+      ], related: ['druk-wizytowka-cmyk', 'stopka-email-z-logo', 'marka-na-stronie-z-kreatora-stron'] }),
+
+  D('kreator-stron', 'druk-wizytowka-cmyk', 'Druk: wizytówka i CMYK',
+    'Jak przygotować wizytówkę z Pakietu marki do druku i co zrobić, gdy drukarnia prosi o plik w CMYK.',
+    `## Co dostajesz
+Wizytówka z Pakietu marki to PDF wektorowy w formacie 85 × 55 mm ze spadem 3 mm z każdej strony i liniami cięcia. Papier firmowy dostajesz w PDF A4.
+
+## Kolory: RGB i CMYK
+Ekran wyświetla kolory w RGB, a drukarnie offsetowe drukują w CMYK. Pliki z kreatora mają kolory w RGB, a w zasadach marki podajemy odpowiedniki CMYK dla każdego koloru. Nie wszystkie kolory z ekranu da się wydrukować tak samo – intensywne zielenie, niebieskie i pomarańcze w druku często wychodzą ciemniejsze.
+
+## Gdy drukarnia nie przyjmuje pliku
+1. Napisz do drukarni, że plik jest w RGB, i podaj odpowiedniki CMYK z zasad marki – większość drukarni sama konwertuje plik.
+2. Poproś o wydruk próbny (proof), zanim zamówisz cały nakład.
+3. Jeśli drukarnia wymaga pliku PDF/X w CMYK, poproś ją o konwersję albo skorzystaj z programu graficznego. Kreator marki nie tworzy dziś plików PDF/X.
+
+## Spad i linie cięcia
+Spad to tło wychodzące 3 mm poza format – dzięki niemu po cięciu nie zostaje biały pasek. Nie przesuwaj ważnych elementów (tekstu, logo) bliżej niż 3–4 mm od krawędzi.`,
+    { t: 'Wizytówka do druku i CMYK – pliki z Kreatora marki', d: 'Jak wydrukować wizytówkę z Pakietu marki Verris: spad, linie cięcia, kolory RGB i odpowiedniki CMYK, co zrobić, gdy drukarnia nie przyjmuje pliku.',
+      faq: [
+        { q: 'Drukarnia mówi, że plik nie jest w CMYK. Co robić?', a: 'Podaj drukarni odpowiedniki CMYK z zasad marki i poproś o konwersję oraz wydruk próbny. Kreator nie tworzy dziś plików PDF/X w CMYK.' },
+        { q: 'Dlaczego kolor na wizytówce jest inny niż na ekranie?', a: 'Ekran świeci kolorami RGB, a druk używa farb CMYK o mniejszym zakresie. Wydruk próbny pokaże, jak kolor wyjdzie na wybranym papierze.' },
+      ], related: ['pliki-logo-svg-png-pdf-favicon', 'mam-logo-materialy-key-visual'] }),
+
+  D('kreator-stron', 'logo-a-znak-towarowy-tmview', 'Logo a znak towarowy – TMview krok po kroku',
+    'Dlaczego logo z kreatora nie jest znakiem zastrzeżonym i jak samodzielnie sprawdzić podobne znaki w TMview.',
+    `## Logo to nie znak zastrzeżony
+Logo z Kreatora marki możesz używać w swojej firmie, ale samo w sobie nie jest znakiem zastrzeżonym. Ochronę znaku towarowego daje dopiero rejestracja:
+- w **Urzędzie Patentowym RP** – ochrona w Polsce,
+- w **EUIPO** – ochrona w całej Unii Europejskiej.
+
+Rejestracja to osobna procedura z opłatami urzędowymi. Zgłaszasz znak sam albo z rzecznikiem patentowym. Urzędy nie sprawdzają same wszystkich wcześniejszych znaków – właściciele podobnych znaków mogą wnieść sprzeciw.
+
+## Dlaczego sprawdzić znak przed użyciem
+Jeśli ktoś ma zarejestrowany podobny znak dla podobnych towarów lub usług, może zażądać, żebyś przestał używać swojego logo – nawet jeśli wymyśliłeś je sam. Dlatego sprawdź nazwę i znak, zanim zamówisz szyld, wizytówki albo oklejenie samochodu.
+
+## TMview krok po kroku
+1. Otwórz bezpłatną bazę **TMview** (tmdn.org/tmview). Zbiera znaki z urzędów Unii Europejskiej, w tym z UPRP i EUIPO.
+2. Wpisz nazwę firmy w polu wyszukiwania. Sprawdź też warianty pisowni i nazwy podobnie brzmiące.
+3. Zawęź wyniki do terytorium: Polska i Unia Europejska.
+4. Zawęź wyniki do klas towarów i usług, w których działasz (np. usługi gastronomiczne, usługi księgowe). Klasy opisuje klasyfikacja nicejska.
+5. Sprawdź status znaków: zarejestrowane i zgłoszone są ważne, wygasłe i odrzucone – zwykle nie.
+6. Jeśli TMview pozwala szukać obrazem, wgraj swoje logo i przejrzyj podobne znaki.
+
+To nie jest badanie prawne. Gdy znajdziesz podobny znak albo planujesz duże wydatki na markę, skonsultuj się z rzecznikiem patentowym.
+
+## Co robi Verris
+Kreator nie przygotuje logo na wzór znanej marki i nie wyda tego samego znaku dwóm firmom z Kreatora marki. Nie sprawdzamy jednak rejestrów urzędowych za Ciebie i nie gwarantujemy, że podobnego znaku nikt nie używa. Przed pobraniem plików do druku poprosimy Cię o potwierdzenie, że znasz te zasady.`,
+    { t: 'Logo a znak towarowy – jak sprawdzić logo w TMview', d: 'Logo z kreatora nie jest znakiem zastrzeżonym. Jak samodzielnie sprawdzić nazwę i znak w TMview przed drukiem i rejestracją w UPRP lub EUIPO.',
+      faq: [
+        { q: 'Czy logo z Kreatora marki jest zastrzeżone?', a: 'Nie. Ochronę daje dopiero rejestracja znaku towarowego w Urzędzie Patentowym RP albo w EUIPO – to osobna procedura.' },
+        { q: 'Czy Verris sprawdza, czy podobne logo już istnieje?', a: 'Pilnujemy, żeby ten sam znak z Kreatora marki nie trafił do dwóch firm. Rejestrów urzędowych nie sprawdzamy – zrób to w TMview albo z rzecznikiem patentowym.' },
+        { q: 'Czy mogę zarejestrować logo z kreatora jako znak towarowy?', a: 'Możesz je zgłosić do urzędu. Przed zgłoszeniem sprawdź podobne znaki w TMview – rejestracja nie chroni przed sprzeciwem właściciela wcześniejszego znaku.' },
+      ], related: ['jak-stworzyc-logo-w-kreatorze-marki', 'odswiezenie-logo'] }),
+
+  D('kreator-stron', 'stopka-email-z-logo', 'Stopka e-mail z logo',
+    'Stopka HTML z Kreatora marki dla skrzynek w Twojej domenie – jak ją skopiować i ustawić w webmailu i programie pocztowym.',
+    `## Co przygotowuje kreator
+Kreator marki tworzy stopkę e-mail w HTML: logo, imię i nazwisko, stanowisko, telefon, adres e-mail i stronę. Logo w stopce to plik PNG na Twoim hostingu – programy pocztowe źle pokazują SVG. Każda osoba w firmie wpisuje swoje imię i stanowisko i ustawia stopkę w swojej skrzynce.
+
+## Webmail Verris
+1. Zaloguj się do webmaila skrzynki.
+2. Wejdź w **Ustawienia → Tożsamości** i kliknij swoją tożsamość.
+3. W polu **Podpis** włącz edytor HTML i otwórz widok kodu źródłowego.
+4. Wklej kod HTML stopki z Kreatora marki i zapisz.
+
+## Outlook, Gmail, Apple Mail
+Te programy nie przyjmują kodu HTML w polu podpisu. Kliknij w Kreatorze marki **Kopiuj stopkę** – skopiujesz gotowy podgląd – i wklej go w ustawieniach podpisu:
+- **Outlook:** Ustawienia → Konta → Podpisy.
+- **Gmail:** Ustawienia → Zobacz wszystkie ustawienia → Ogólne → Podpis.
+- **Apple Mail:** Mail → Ustawienia → Podpisy (odznacz dopasowanie do domyślnej czcionki).
+
+## Thunderbird
+W ustawieniach konta zaznacz **Użyj HTML** przy tekście podpisu i wklej kod HTML stopki.
+
+## Gdy logo się nie wyświetla
+Część programów domyślnie blokuje obrazki z internetu – odbiorca zobaczy logo po kliknięciu „pokaż obrazy”. Sprawdź też, czy strona z logo działa pod Twoją domeną (adres obrazka zaczyna się od https://).`,
+    { t: 'Stopka e-mail z logo – jak ustawić podpis HTML', d: 'Jak ustawić stopkę e-mail z logo z Kreatora marki w webmailu Verris, Outlooku, Gmailu, Apple Mail i Thunderbirdzie.',
+      faq: [
+        { q: 'Czy Verris ustawi stopkę za mnie we wszystkich skrzynkach?', a: 'Jeszcze nie. Stopkę kopiujesz z Kreatora marki i wklejasz w ustawieniach podpisu – każda osoba w swojej skrzynce.' },
+        { q: 'Dlaczego odbiorca nie widzi logo w stopce?', a: 'Wiele programów pocztowych blokuje obrazki z internetu, dopóki odbiorca ich nie pokaże. Logo musi też być dostępne pod adresem https:// na Twoim hostingu.' },
+      ], related: ['konfiguracja-poczty-imap-smtp', 'pliki-logo-svg-png-pdf-favicon'] }),
+
+  D('kreator-stron', 'marka-na-stronie-z-kreatora-stron', 'Marka na stronie z Kreatora stron',
+    'Jak przenieść logo, kolory, kroje i favicon z Kreatora marki na stronę z Kreatora stron – i co się dzieje, gdy zmienisz markę.',
+    `## Użyj marki na stronie
+W Kreatorze marki kliknij **Użyj w Kreatorze stron** i wybierz stronę. Zobaczysz podgląd zmian:
+- logo w nagłówku i stopce zamiast pierwszej litery nazwy,
+- kolory marki w motywie strony,
+- kroje marki w nagłówkach i tekście,
+- favicon i obraz do udostępniania w mediach społecznościowych.
+
+Zmiany zatwierdzasz jednym kliknięciem, a stronę publikujesz jak zwykle.
+
+## Gdy zmienisz markę później
+Strona nie zmienia się sama. Po zmianie marki edytor pokaże propozycję aktualizacji z podglądem – Ty decydujesz, czy ją przyjąć. Opublikowana strona zmieni się dopiero po ponownej publikacji.
+
+## Kolory i czytelność
+Kreator stron dba o kontrast tekstu z tłem. Jeśli kolor marki jest za jasny do tekstu, motyw użyje go w tłach i akcentach, a tekst zostanie ciemny.`,
+    { t: 'Logo i kolory marki na stronie z Kreatora stron', d: 'Jak użyć logo, kolorów, krojów i faviconu z Kreatora marki na stronie z Kreatora stron Verris i co się dzieje po zmianie marki.',
+      faq: [
+        { q: 'Czy zmiana logo zmieni opublikowaną stronę?', a: 'Nie od razu. Edytor pokaże propozycję zmian z podglądem, a opublikowana strona zmieni się po ponownej publikacji.' },
+      ], related: ['jak-stworzyc-strone-w-kreatorze', 'publikacja-strony-z-kreatora', 'jak-stworzyc-logo-w-kreatorze-marki'] }),
 ];
 
 function toPlain(md: string): string {
@@ -1259,7 +1469,8 @@ async function main() {
             relatedSlugs: a.relatedSlugs,
           },
         });
-        await indexAi(a).catch(() => {});
+        // Szkic nie trafia do indeksu AI (asystent nie może mówić o funkcji, której nie ma w sprzedaży).
+        if ((exists as { status?: string }).status === 'PUBLISHED') await indexAi(a).catch(() => {});
         updated++;
       }
       continue;
@@ -1271,16 +1482,16 @@ async function main() {
         title: a.title,
         excerpt: a.excerpt,
         bodyMarkdown: a.body,
-        status: 'PUBLISHED',
+        status: a.status ?? 'PUBLISHED',
         seoTitle: a.seoTitle ?? null,
         seoDescription: a.seoDescription ?? null,
         faq: a.faq as unknown as object,
         relatedSlugs: a.relatedSlugs,
         authorName: 'Zespół Verris',
-        publishedAt: new Date(),
+        publishedAt: a.status === 'DRAFT' ? null : new Date(),
       },
     });
-    await indexAi(a).catch(() => {});
+    if (a.status !== 'DRAFT') await indexAi(a).catch(() => {});
     created++;
   }
 

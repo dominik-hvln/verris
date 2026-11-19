@@ -81,7 +81,25 @@ function jezykiWMenu(k: KontekstPodstrony, lista: PozycjaJezyka[]): string {
   return `<ul class="jez-menu" aria-label="${esc(k.t.jezyk)}">${lista.map((p) => `<li>${linkJezyka(p, esc(NAZWY_JEZYKOW[p.jezyk]))}</li>`).join('')}</ul>`;
 }
 
-function logo(k: KontekstPodstrony): string {
+/**
+ * Logo strony. Paczka 130: strona z marką – inline SVG z migawki (po sanitizacji w `przygotujMarke`): w nagłówku logo
+ * poziome (na wąskim ekranie sygnet, jeśli marka go ma; na ciemnym tle negatyw), w stopce negatyw albo logo poziome
+ * w kolorze tekstu na ciemnym. Nazwa firmy jako tekst dla czytników (SVG ma aria-hidden). SVG nie ma atrybutów edycji
+ * – w podglądzie edytora logo nie jest polem tekstowym (nazwę zmienia się w „Firma i SEO”). Bez marki – inicjał.
+ */
+function logo(k: KontekstPodstrony, miejsce: 'naglowek' | 'stopka' = 'naglowek'): string {
+  const m = k.s.marka;
+  const svg = miejsce === 'naglowek' ? m?.naglowek : m?.stopka;
+  if (m && svg) {
+    const sygnet = miejsce === 'naglowek' ? m.naglowekSygnet : null;
+    const negatyw = miejsce === 'naglowek' ? m.negatywNaglowek : m.negatywStopka;
+    const klasy = `logo logo-marka${sygnet ? ' z-sygnetem' : ''}${negatyw ? ' negatyw' : ''}`;
+    return (
+      `<a class="${klasy}" href="${esc(hrefPodstrony(k, k.glowna))}">` +
+      `<span class="logo-svg logo-poz">${svg}</span>${sygnet ? `<span class="logo-svg logo-syg">${sygnet}</span>` : ''}` +
+      `<span class="sr">${esc(k.s.strona.firma.nazwa)}</span></a>`
+    );
+  }
   const nazwa = k.s.strona.firma.nazwa;
   const inicjal = (nazwa.trim().match(/\p{L}|\p{N}/u)?.[0] ?? '').toUpperCase();
   const atr = atrTekstu(k, k.s.edycja ? 'firma.nazwa' : null);
@@ -137,7 +155,7 @@ export function stopka(k: KontekstPodstrony): string {
   const tl = k.jezyk !== s.strona.jezyk ? st.tlumaczenia?.[k.jezyk as 'en' | 'de' | 'uk']?.tekst : undefined;
   const sciezkaOpisu = tl !== undefined ? `stopka.tlumaczenia.${k.jezyk}.tekst` : st.tekst !== undefined ? 'stopka.tekst' : 'firma.opisKrotki';
   const atrOpisu = atrTekstu(k, k.s.edycja ? sciezkaOpisu : null);
-  kol.push(`<div class="stopka-firma">${logo(k)}<p${atrOpisu}>${esc(tl ?? st.tekst ?? f.opisKrotki)}</p></div>`);
+  kol.push(`<div class="stopka-firma">${logo(k, 'stopka')}<p${atrOpisu}>${esc(tl ?? st.tekst ?? f.opisKrotki)}</p></div>`);
   const af = (pole: 'telefon' | 'email' | 'adres.ulica') => atrFirmy(k, pole);
   const kontakt = [adresHtml(f, af), f.telefon ? `<p>${telefonLink(f, '', af)}</p>` : '', f.email ? `<p>${emailLink(f, '', af)}</p>` : ''].join('');
   if (kontakt) kol.push(`<div><h2 class="stopka-tytul">${esc(k.t.kontakt)}</h2>${kontakt}</div>`);

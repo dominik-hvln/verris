@@ -1,4 +1,4 @@
-import type { StronaWejscie } from '../model.ts';
+import { WERSJA_MODELU, type StronaWejscie } from '../model.ts';
 
 /**
  * Portfolio z blogiem (Pro) pracowni projektowania wnętrz (firma i dane fikcyjne) – fikstura testów
@@ -6,7 +6,7 @@ import type { StronaWejscie } from '../model.ts';
  * i podstroną jednego wpisu (BlogPosting i BreadcrumbList w pełnym SEO), kontakt minimalny.
  */
 export const PRZYKLAD_STUDIO: StronaWejscie = {
-  wersjaModelu: 1,
+  wersjaModelu: WERSJA_MODELU,
   firma: {
     nazwa: 'Studio Przestrzeń',
     branza: 'projektowanie wnętrz',

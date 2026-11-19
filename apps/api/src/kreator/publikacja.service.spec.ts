@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { BadRequestException, ConflictException, ForbiddenException, NotFoundException, ServiceUnavailableException, UnprocessableEntityException } from '@nestjs/common';
-import { PRZYKLAD_SALON, walidujStrone, type Strona, type WersjaKreatora } from '@verris/kreator';
+import { PRZYKLAD_MIGAWKI_MARKI, PRZYKLAD_SALON, walidujStrone, zastosujMarke, type Strona, type WersjaKreatora } from '@verris/kreator';
 import { KreatorPublikacjaService } from './publikacja.service.js';
 
 type WynikPublikacji = Awaited<ReturnType<KreatorPublikacjaService['publikuj']>>;
@@ -530,6 +530,25 @@ describe('Kreator – ZIP strony', () => {
       // Strona nieopublikowana: formularz w ZIP wyłączony, README to wyjaśnia.
       expect(readFileSync(join(kat, 'x', 'index.html'), 'utf8')).toContain('Formularz zadziała po publikacji strony.');
       expect(readFileSync(join(kat, 'x', 'README.txt'), 'utf8')).toContain('zacznie działać po opublikowaniu');
+    } finally {
+      rmSync(kat, { recursive: true, force: true });
+    }
+  });
+
+  it('paczka 130: ZIP strony z marką – logo i favicon jako pliki SVG (kolory na stałe), favicon podpięty w HTML', async () => {
+    const t = zbuduj({ model: zastosujMarke(SALON_Z_PODSTRONA, PRZYKLAD_MIGAWKI_MARKI).strona });
+    const { dane } = await t.svc.zip('u1', ID);
+    if (!existsSync('/usr/bin/unzip')) return;
+    const kat = mkdtempSync(join(tmpdir(), 'kreator-zip-'));
+    try {
+      writeFileSync(join(kat, 'strona.zip'), dane);
+      const lista = execFileSync('unzip', ['-Z1', join(kat, 'strona.zip')]).toString().trim().split('\n');
+      expect(lista).toEqual(expect.arrayContaining(['assets/marka/logo.svg', 'assets/marka/logo-negatyw.svg', 'assets/marka/favicon.svg']));
+      execFileSync('unzip', ['-q', join(kat, 'strona.zip'), '-d', join(kat, 'x')]);
+      expect(readFileSync(join(kat, 'x', 'assets', 'marka', 'logo.svg'), 'utf8')).toMatch(/^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg"[^>]*>.*fill="#1F3A5F"/s);
+      const index = readFileSync(join(kat, 'x', 'index.html'), 'utf8');
+      expect(index).toContain('<link rel="icon" href="assets/marka/favicon.svg" type="image/svg+xml">');
+      expect(index).toContain('logo-marka');
     } finally {
       rmSync(kat, { recursive: true, force: true });
     }

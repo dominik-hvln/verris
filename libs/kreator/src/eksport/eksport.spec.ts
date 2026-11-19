@@ -5,7 +5,9 @@ import { DATA, model, wszystkieWarianty } from '../render/testy.pomoc.ts';
 import { przestrzenNazwCss, przeksztalcSelektory } from './css.ts';
 import { parsujHtml, htmlWezlow } from './html.ts';
 import { celeCms, eksportujDoCms, fontyEksportu, FUNCTIONS_PHP, parsujBloki, splaszcz, TOKEN_MEDIUM, TOKEN_STRONY, type EksportCms } from './index.ts';
-import { skryptFormularza } from './wordpress/motyw.ts';
+import { PLIK_FAVICONU_MARKI, PLIK_LOGO_NAGLOWKA, skryptFormularza, WZORZEC_LOGO_MARKI, WZORZEC_LOGO_PHP } from './wordpress/motyw.ts';
+import { PRZYKLAD_MIGAWKI_MARKI } from '../marka-strony/przyklad.ts';
+import { zastosujMarke } from '../marka-strony/zastosuj.ts';
 
 const FORMULARZ = 'https://api.verris.pl/kreator/formularz/token-testowy';
 
@@ -332,5 +334,50 @@ describe('cele CMS', () => {
     expect(c.map((x) => x.id)).toEqual(['wordpress']);
     expect(c[0]!.kiedyWarto.join(' ')).toMatch(/WooCommerce/);
     expect(c[0]!.coSieZmienia.join(' ')).toMatch(/kreator przestaje publikować/);
+  });
+});
+
+/** Paczka 130 – logo marki w motywie WordPressa: plik w motywie, wzorzec z blokiem obrazka w nagłówku, favicon. */
+describe('Eksport WordPress: marka', () => {
+  const zMarka = () => zastosujMarke(model(PRZYKLAD_SALON), PRZYKLAD_MIGAWKI_MARKI).strona as StronaWejscie;
+
+  it('bez marki: nagłówek z logo-inicjałem, bez plików marki i wzorca', () => {
+    const e = eksport(PRZYKLAD_SALON);
+    expect(plikMotywu(e, 'parts/header.html')).toContain('vk-logo-blok');
+    expect(e.motyw.pliki.some((p) => p.sciezka.startsWith('assets/marka/') || p.sciezka.startsWith('patterns/'))).toBe(false);
+  });
+
+  it('z marką: logo jako plik motywu i wzorzec w nagłówku, favicon w motywie, stopka z logo SVG', () => {
+    const e = eksport(zMarka());
+    const naglowek = plikMotywu(e, 'parts/header.html');
+    expect(naglowek).toContain(`<!-- wp:pattern {"slug":"${WZORZEC_LOGO_MARKI}"} /-->`);
+    expect(naglowek).not.toMatch(/logo-marka|mkn-|Łódka/);
+    expect(naglowek).not.toContain('vk-logo-blok');
+    const logo = plikMotywu(e, PLIK_LOGO_NAGLOWKA);
+    expect(logo).toMatch(/^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg"/);
+    expect(logo).toContain('fill="#1F3A5F"');
+    expect(plikMotywu(e, PLIK_FAVICONU_MARKI)).toContain('<svg');
+    const wzorzec = plikMotywu(e, 'patterns/logo-marki.php');
+    expect(wzorzec).toBe(WZORZEC_LOGO_PHP);
+    expect(wzorzec).toContain(`Slug: ${WZORZEC_LOGO_MARKI}`);
+    expect(wzorzec).toContain(`get_theme_file_uri( '${PLIK_LOGO_NAGLOWKA}' )`);
+    // bez danych klienta w PHP
+    expect(wzorzec).not.toContain('Łódka');
+    expect(wzorzec).not.toContain('Pracownia');
+    expect(FUNCTIONS_PHP).toContain("has_site_icon()");
+    expect(FUNCTIONS_PHP).toContain("'assets/marka/favicon.svg'");
+    // stopka: logo marki jako HTML (blok html), sanitizowany SVG
+    const stopka = plikMotywu(e, 'parts/footer.html');
+    expect(stopka).toContain('<svg');
+    expect(stopka).not.toMatch(/<script|onload|metadata/);
+    expect(plikMotywu(e, 'assets/css/wordpress.css')).toContain('.vk-logo-marki img');
+    // bloki nagłówka parsują się (wzorzec jako blok bez treści)
+    expect(splaszcz(parsujBloki(naglowek)).some((b) => b.nazwa === 'core/pattern' || b.nazwa === 'pattern')).toBe(true);
+  });
+
+  it('ciemny nagłówek: plik logo nagłówka to negatyw', () => {
+    const w = zMarka();
+    w.motyw.paleta = { ...w.motyw.paleta, tlo: '#101418', tekst: '#F2F2F2', tekstPrzygaszony: '#C8C8C8' };
+    expect(plikMotywu(eksport(w), PLIK_LOGO_NAGLOWKA)).toContain('fill="#FFFFFF"');
   });
 });

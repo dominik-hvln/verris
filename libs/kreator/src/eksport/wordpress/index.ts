@@ -8,7 +8,8 @@ import { bezEncji, maKlase, parsujHtml, tekstWezla, znajdz, type Wezel } from '.
 import { WERSJA_FORMATU_EKSPORTU, type EksportCms, type MediumCms, type OpcjeEksportu, type PozycjaMenuCms, type StronaCms } from '../model.ts';
 import * as b from './bloki.ts';
 import { adresLinku, blokZ, blokiTresci, bloki, htmlZPrzestrzenia, TOKEN_MEDIUM, type KontekstKonwersji } from './konwerter.ts';
-import { KATALOG_MOTYWU, SZABLON_STRONY, plikiMotywu } from './motyw.ts';
+import { KATALOG_MOTYWU, SZABLON_STRONY, WZORZEC_LOGO_MARKI, plikiMotywu } from './motyw.ts';
+import { PLIKI_MARKI } from '../../render/marka.ts';
 
 /** Klucz strony w eksporcie: 'glowna' albo 'p-<slug>' (ukośnik → „__”, myślnik w slugu zostaje). */
 export function kluczStrony(slug: string): string {
@@ -65,7 +66,9 @@ function naglowekMotywu(w: Wezel, k: KontekstKonwersji): string {
   const czesci: string[] = [];
   for (const d of wnetrze?.dzieci ?? []) {
     if (d.tag === '#text') continue;
-    if (maKlase(d, 'logo')) czesci.push(b.akapit({ klasa: 'vk-logo-blok' }, htmlZPrzestrzenia([d], k)));
+    // Paczka 130: logo marki – wzorzec z obrazkiem z pliku motywu (inline SVG w akapicie edytor bloków by zgubił).
+    if (maKlase(d, 'logo-marka')) czesci.push(b.blok('pattern', { slug: WZORZEC_LOGO_MARKI }, null));
+    else if (maKlase(d, 'logo')) czesci.push(b.akapit({ klasa: 'vk-logo-blok' }, htmlZPrzestrzenia([d], k)));
     else if (maKlase(d, 'nav')) czesci.push(b.blok('navigation', { className: 'vk-nawigacja', overlayMenu: 'mobile', layout: { type: 'flex', justifyContent: 'center' } }, null));
     else {
       const blok = blokZ(d, k);
@@ -210,6 +213,15 @@ export function eksportujWordpress(wejscie: Strona, opcje: OpcjeEksportu): Ekspo
     formularz,
     brakujaceFonty: new Set(opcje.brakujaceFonty ?? []),
     data,
+    // Paczka 130 – logo nagłówka: ten sam wariant co na stronie statycznej (negatyw na ciemnym nagłówku).
+    ...(s.marka
+      ? {
+          marka: {
+            logoNaglowka: (naglowek && znajdz([naglowek], (x) => maKlase(x, 'logo-marka') && maKlase(x, 'negatyw')) ? plik(PLIKI_MARKI.logoNegatyw) : null) ?? plik(PLIKI_MARKI.logo) ?? null,
+            favicon: plik(PLIKI_MARKI.favicon) ?? null,
+          },
+        }
+      : {}),
   });
 
   return {

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { CelLinku, Obraz, Przycisk, Strona } from '../model.ts';
-import { POLA_SERWERA } from './kompakt.ts';
+import { POLA_POZA_AI, POLA_SERWERA } from './kompakt.ts';
 
 /**
  * Zwięzły opis modelu strony dla master promptu, generowany z JSON Schema (`z.toJSONSchema(Strona)`,
@@ -138,7 +138,8 @@ export function opisModeluStrony(): string {
   if (pamiec !== null) return pamiec;
   const schemat = z.toJSONSchema(Strona, { io: 'input' }) as Wezel;
   const definicje = new Map<string, string>();
-  const glowny = opisObiektu(schemat, '', definicje);
+  // Paczka 130: pola spoza AI (migawka marki) nie istnieją dla modelu – bez nich w opisie.
+  const glowny = opisObiektu(schemat, '', definicje, new Set<string>(POLA_POZA_AI));
   const kolejnosc = ['CelLinku', 'Przycisk', 'Obraz', 'BazaSekcji', ...[...definicje.keys()].filter((k) => k.startsWith('Sekcja_')), 'Sekcja'];
   const czesci = [`type Strona = ${glowny};`, ...kolejnosc.filter((k) => definicje.has(k)).map((k) => `type ${k} = ${definicje.get(k)};`)];
   pamiec = czesci.join('\n\n');

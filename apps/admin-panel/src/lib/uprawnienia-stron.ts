@@ -90,6 +90,7 @@ export const STRONY = {
   "/settings/eko": { perm: "ADMIN", tytul: "Program EKO i drzewa" },
   "/settings/kopie-offsite": { perm: "ADMIN", tytul: "Kopie offsite" },
   "/settings/kreator": { perm: "ADMIN", tytul: "Kreator stron" },
+  "/settings/kreator-marki": { perm: "ADMIN", tytul: "Kreator marki" },
   "/settings/live-readiness": { perm: "ADMIN", tytul: "Gotowość do startu" },
   "/settings/mail": { perm: "ADMIN", tytul: "Poczta (SMTP)" },
   "/settings/mail/log": { perm: "ADMIN", tytul: "Dziennik poczty" },

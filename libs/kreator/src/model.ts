@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { JEZYKI, JEZYKI_DODATKOWE, jezykPodstrony, kluczPodstrony, prefiksJezyka, slugGlownej } from './jezyki.ts';
+import { MarkaStrony } from './marka-strony/model.ts';
 
 /**
  * Model strony kreatora Verris – jedno źródło prawdy dla AI (wynik generacji), edytora (panel klienta)
@@ -9,8 +10,10 @@ import { JEZYKI, JEZYKI_DODATKOWE, jezykPodstrony, kluczPodstrony, prefiksJezyka
  * daje kombinacja stylu, palety, fontów, wariantów układu i treści.
  *
  * Zmiana kształtu modelu = podbicie WERSJA_MODELU i migracja w `migrujModel` (stare strony w bazie).
+ *
+ * Wersje: 1 – paczka 119; 2 – paczka 130: opcjonalna migawka marki (`marka`, marka-strony/model.ts).
  */
-export const WERSJA_MODELU = 1;
+export const WERSJA_MODELU = 2;
 
 const tekst = (max: number) => z.string().trim().min(1).max(max);
 const tekstOpc = (max: number) => z.string().trim().max(max).optional();
@@ -378,6 +381,11 @@ export const Strona = z.object({
       .object({ en: TekstStopki.optional(), de: TekstStopki.optional(), uk: TekstStopki.optional() })
       .optional(),
   }),
+  /**
+   * Paczka 130 – migawka marki z Kreatora marki (logo, favicon, kolory kanałów). Wypełnia wyłącznie serwer
+   * („Użyj marki”); AI jej nie widzi ani nie pisze, zapis z edytora jej nie zmienia. Brak = logo z inicjału.
+   */
+  marka: MarkaStrony.optional(),
 });
 export type Strona = z.infer<typeof Strona>;
 /** Wejście przed parsowaniem (pola z domyślnymi wartościami opcjonalne) – tak pisze AI i edytor. */
@@ -445,7 +453,18 @@ export function wszystkieSekcje(s: Strona): Sekcja[] {
   return s.strony.flatMap((p) => p.sekcje);
 }
 
-/** Migracja starszych zapisów modelu do WERSJA_MODELU (na razie jedna wersja). */
+/**
+ * Migracja starszych zapisów modelu do WERSJA_MODELU. Nie mutuje wejścia; nieznany kształt zwraca bez zmian
+ * (walidacja i tak go odrzuci).
+ * 1 → 2 (paczka 130): doszło opcjonalne pole `marka` – stara strona go nie ma, więc wystarczy numer wersji.
+ * Pole `marka` w zapisie v1 nie mogło powstać legalnie – usuwamy je, zamiast przyjmować SVG spoza migawki serwera.
+ */
 export function migrujModel(dane: unknown): unknown {
+  if (!dane || typeof dane !== 'object' || Array.isArray(dane)) return dane;
+  const o = dane as Record<string, unknown>;
+  if (o.wersjaModelu === 1) {
+    const { marka: _marka, ...reszta } = o;
+    return { ...reszta, wersjaModelu: 2 };
+  }
   return dane;
 }

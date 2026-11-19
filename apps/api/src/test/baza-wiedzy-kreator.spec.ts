@@ -30,7 +30,7 @@ describe('Baza wiedzy – Verris Kreator', () => {
   });
 
   it('powiązane artykuły wskazują istniejące slugi', () => {
-    const wszystkie = new Set([...SEED.matchAll(/A\('[\w-]+', '([\w-]+)',/g)].map((m) => m[1]));
+    const wszystkie = new Set([...SEED.matchAll(/[AD]\('[\w-]+', '([\w-]+)',/g)].map((m) => m[1]));
     const powiazane = [...ARTYKULY.matchAll(/related: \[([^\]]*)\]/g)].flatMap((m) => [...m[1].matchAll(/'([\w-]+)'/g)].map((x) => x[1]));
     expect(powiazane.length).toBeGreaterThan(0);
     expect(powiazane.filter((s) => !wszystkie.has(s))).toEqual([]);

@@ -15,3 +15,5 @@ export * from './przyklady/studio.ts';
 export * from './ai/index.ts';
 export * from './render/index.ts';
 export * from './eksport/index.ts';
+export * from './marka/index.ts';
+export * from './marka-strony/index.ts';

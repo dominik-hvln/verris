@@ -181,3 +181,34 @@ export class OkresProDto {
   @IsIn(['MONTH', 'YEAR'], { message: 'Okres: miesięczny albo roczny.' })
   okres!: 'MONTH' | 'YEAR';
 }
+
+/** Paczka 130 – co zastosować z marki (brak pola = tak). */
+export class OpcjeMarkiDto {
+  @IsOptional()
+  @IsBoolean()
+  logo?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  paleta?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  fonty?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  favicon?: boolean;
+}
+
+/** POST /kreator/strony/:id/marka(/podglad) – marka konta (Kreator marki) i wybrane elementy. */
+export class ZastosujMarkeDto {
+  @IsString()
+  @Matches(/^[A-Za-z0-9_-]{1,64}$/, { message: 'Nieprawidłowy identyfikator marki.' })
+  markaId!: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => OpcjeMarkiDto)
+  opcje?: OpcjeMarkiDto;
+}

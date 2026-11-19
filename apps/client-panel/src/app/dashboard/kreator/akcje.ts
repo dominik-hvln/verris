@@ -4,7 +4,11 @@ import { unstable_rethrow } from 'next/navigation';
 import { apiFetch, ApiError } from '@/lib/api';
 import type { JezykDodatkowy } from '@verris/kreator/klient';
 import type {
+  MarkaStronyKreatora,
   NowaStronaKreatora,
+  OpcjeZastosowaniaMarki,
+  PodgladMarkiKreatora,
+  WynikMarkiKreatora,
   PozycjaListyKreatora,
   StanKreatora,
   StanKreatoraPro,
@@ -210,5 +214,48 @@ export async function wycofajPublikacje(id: string): Promise<WynikKreatora<unkno
   return wynik(async () => {
     sprawdzId(id);
     return apiFetch<unknown>(`/kreator/strony/${id}/wycofaj`, { method: 'POST', timeoutMs: 120_000 });
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Marka na stronie (paczka 130) – migawka marki z Kreatora marki; nic nie zmienia się samo
+// ---------------------------------------------------------------------------
+
+const MARKA_ID = /^[A-Za-z0-9_-]{1,64}$/;
+
+function sprawdzMarke(markaId: string): void {
+  if (!MARKA_ID.test(markaId)) throw new ApiError('Nie znaleziono marki.', 404, null);
+}
+
+export async function markaStrony(id: string): Promise<WynikKreatora<MarkaStronyKreatora>> {
+  return wynik(async () => {
+    sprawdzId(id);
+    return apiFetch<MarkaStronyKreatora>(`/kreator/strony/${id}/marka`);
+  });
+}
+
+/** Podgląd zmian „Użyj marki” (dry-run – API nic nie zapisuje). */
+export async function podgladMarki(id: string, markaId: string, opcje: OpcjeZastosowaniaMarki): Promise<WynikKreatora<PodgladMarkiKreatora>> {
+  return wynik(async () => {
+    sprawdzId(id);
+    sprawdzMarke(markaId);
+    return apiFetch<PodgladMarkiKreatora>(`/kreator/strony/${id}/marka/podglad`, { method: 'POST', body: JSON.stringify({ markaId, opcje }) });
+  });
+}
+
+/** Zastosowanie marki (wybrane elementy) – nowa wersja strony w historii. */
+export async function zastosujMarke(id: string, markaId: string, opcje: OpcjeZastosowaniaMarki): Promise<WynikKreatora<WynikMarkiKreatora>> {
+  return wynik(async () => {
+    sprawdzId(id);
+    sprawdzMarke(markaId);
+    return apiFetch<WynikMarkiKreatora>(`/kreator/strony/${id}/marka`, { method: 'POST', body: JSON.stringify({ markaId, opcje }) });
+  });
+}
+
+/** Strona bez logo z marki (inicjał firmy); paleta i fonty zostają. */
+export async function odlaczMarke(id: string): Promise<WynikKreatora<WynikMarkiKreatora>> {
+  return wynik(async () => {
+    sprawdzId(id);
+    return apiFetch<WynikMarkiKreatora>(`/kreator/strony/${id}/marka`, { method: 'DELETE' });
   });
 }

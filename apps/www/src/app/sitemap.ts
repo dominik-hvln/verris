@@ -4,6 +4,7 @@ import { getPayloadClient } from '@/lib/payload';
 import { EMAIL_MARKETING_W_SPRZEDAZY, SPECYFIKACJA_OPUBLIKOWANA, VPS_W_SPRZEDAZY } from '@/lib/oferta';
 import { OPUBLIKOWANE } from '@/collections/tylko-opublikowane';
 import { PORADNIKI } from '@/lib/poradniki';
+import { pobierzOferteMarki } from '@/lib/kreator-marki-api';
 
 const BASE = 'https://verris.pl';
 
@@ -57,7 +58,9 @@ async function blogEntries(): Promise<{ path: string; lastmod?: string }[]> {
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
-  const staticEntries = [...STATIC, ...features.map((f) => `/funkcje/${f.slug}`)].map((p) => ({
+  // Paczka 130 – /kreator-marki tylko, gdy moduł jest włączony dla wszystkich w panelu admina (inaczej strona daje 404).
+  const marka = (await pobierzOferteMarki()) ? ['/kreator-marki'] : [];
+  const staticEntries = [...STATIC, ...marka, ...features.map((f) => `/funkcje/${f.slug}`)].map((p) => ({
     url: `${BASE}${p}`,
     lastModified: now,
     changeFrequency: 'weekly' as const,

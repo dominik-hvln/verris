@@ -4,7 +4,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { RateLimit } from '../common/guards/rate-limit.guard.js';
 import { KreatorService } from './kreator.service.js';
-import { OkresProDto, PodgladQueryDto, TlumaczenieDto, UtworzStroneDto, ZapiszModelDto, ZmianaAiDto, ZmienNazweDto } from './dto/kreator.dto.js';
+import { OkresProDto, PodgladQueryDto, TlumaczenieDto, UtworzStroneDto, ZapiszModelDto, ZastosujMarkeDto, ZmianaAiDto, ZmienNazweDto } from './dto/kreator.dto.js';
 
 /** Tożsamość z JWT: `userId` = konto (właściciel), `principalUserId` = człowiek za subkontem albo impersonacją. */
 type Uzytkownik = { userId: string; principalUserId?: string };
@@ -120,6 +120,38 @@ export class KreatorController {
     const { html, naglowki } = await this.kreator.podglad(u.userId, id, q);
     for (const [k, v] of Object.entries(naglowki)) res.setHeader(k, v);
     res.status(200).send(html);
+  }
+
+  /**
+   * Paczka 130 – marka z Kreatora marki na stronie. Uprawnienia jak przy zapisie strony (własna strona, dostęp do
+   * kreatora); marki konta daje dostawca marki (DOSTAWCA_MARKI – moduł Kreatora marki, do tego czasu „niedostępny”).
+   */
+  @Get('strony/:id/marka')
+  marka(@CurrentUser() u: Uzytkownik, @Param('id', ParseUUIDPipe) id: string) {
+    return this.kreator.markaStrony(u.userId, id);
+  }
+
+  /** Podgląd zmian „Użyj marki” (dry-run – nic nie zapisuje). */
+  @Post('strony/:id/marka/podglad')
+  @HttpCode(200)
+  @RateLimit({ limit: 120, windowMs: 60 * 1000, scope: 'kreator:zapis', perKonto: true })
+  podgladMarki(@CurrentUser() u: Uzytkownik, @Param('id', ParseUUIDPipe) id: string, @Body() dto: ZastosujMarkeDto) {
+    return this.kreator.podgladMarki(u.userId, id, dto);
+  }
+
+  /** Zastosowanie marki (logo, kolory, fonty, favicon – wybrane w `opcje`) jako nowa wersja strony. */
+  @Post('strony/:id/marka')
+  @HttpCode(200)
+  @RateLimit({ limit: 120, windowMs: 60 * 1000, scope: 'kreator:zapis', perKonto: true })
+  zastosujMarke(@CurrentUser() u: Uzytkownik, @Param('id', ParseUUIDPipe) id: string, @Body() dto: ZastosujMarkeDto) {
+    return this.kreator.zastosujMarke(u.userId, id, dto);
+  }
+
+  /** Strona bez logo z marki (inicjał firmy); paleta i fonty zostają. */
+  @Delete('strony/:id/marka')
+  @RateLimit({ limit: 120, windowMs: 60 * 1000, scope: 'kreator:zapis', perKonto: true })
+  odlaczMarke(@CurrentUser() u: Uzytkownik, @Param('id', ParseUUIDPipe) id: string) {
+    return this.kreator.odlaczMarke(u.userId, id);
   }
 
   @Delete('strony/:id')

@@ -33,7 +33,17 @@ export interface WejscieMotywu {
   formularz: boolean;
   brakujaceFonty: Set<string>;
   data: Date;
+  /**
+   * Paczka 130 – pliki marki z renderu (SVG z kolorami na stałe): logo do nagłówka (wzorzec `logo-marki`) i favicon
+   * (functions.php, gdy w WordPressie nie ustawiono ikony witryny). Brak = strona bez marki.
+   */
+  marka?: { logoNaglowka: string | null; favicon: string | null };
 }
+
+/** Paczka 130 – wzorzec logo marki w nagłówku i jego plik w motywie. */
+export const WZORZEC_LOGO_MARKI = `${KATALOG_MOTYWU}/logo-marki`;
+export const PLIK_LOGO_NAGLOWKA = 'assets/marka/logo-naglowek.svg';
+export const PLIK_FAVICONU_MARKI = 'assets/marka/favicon.svg';
 
 /** Wersja motywu = data generacji (WordPress pokazuje ją w Wyglądzie; pliki CSS dostają ją jako ?ver=). */
 function wersja(d: Date): string {
@@ -214,6 +224,10 @@ export const ARKUSZ_ZGODNOSCI = `/* Verris Kreator – zgodność bloków WordPr
 .vk-tresc-wp>*+*{margin-top:1.25rem}
 .vk-wpisy{padding:clamp(2rem,1rem + 3vw,4rem) var(--kont-px);max-width:calc(50rem + 2 * var(--kont-px));margin-inline:auto}
 .vk-wpisy .wp-block-post{margin-bottom:2.5rem}
+/* logo z Kreatora marki (wzorzec logo-marki) */
+.vk-logo-marki{margin:0 auto 0 0;flex:none;line-height:0}
+.vk-logo-marki img{display:block;height:2.75rem;width:auto;max-width:min(16rem,60vw)}
+@media (min-width:960px){.vk-logo-marki{margin-right:0}}
 `;
 
 /**
@@ -257,6 +271,21 @@ add_action(
 		add_theme_support( 'editor-styles' );
 		add_theme_support( 'responsive-embeds' );
 		add_editor_style( array( 'assets/css/sekcje.css', 'assets/css/wordpress.css' ) );
+	}
+);
+
+// Favicon z Verris Kreatora marki (plik motywu), dopóki w WordPressie nie ustawiono ikony witryny – ustawiona ikona
+// ma pierwszeństwo. [do weryfikacji z dokumentacją WordPressa: has_site_icon(), get_theme_file_uri()]
+add_action(
+	'wp_head',
+	function () {
+		if ( function_exists( 'has_site_icon' ) && has_site_icon() ) {
+			return;
+		}
+		$plik = 'assets/marka/favicon.svg';
+		if ( is_readable( get_theme_file_path( $plik ) ) ) {
+			echo '<link rel="icon" href="' . esc_url( get_theme_file_uri( $plik ) ) . '" type="image/svg+xml">' . "\\n";
+		}
 	}
 );
 
@@ -483,6 +512,32 @@ export function skryptFormularza(): string {
     .replace(/\.form-status/g, '.vk-form-status');
 }
 
+/**
+ * Wzorzec (pattern) z logo marki: blok obrazka z plikiem z katalogu motywu i linkiem do strony głównej.
+ * Wzorzec w PHP, bo szablony HTML motywu blokowego nie znają adresu katalogu motywu (get_theme_file_uri).
+ * Bez danych klienta w kodzie – plik i nazwa witryny z WordPressa.
+ * [do weryfikacji z dokumentacją WordPressa: nagłówek wzorca (Title/Slug/Inserter) i blok core/pattern w części
+ * szablonu – https://developer.wordpress.org/themes/patterns/; alternatywa: blok „Logo witryny” (core/site-logo)
+ * po wgraniu logo do biblioteki mediów i ustawieniu custom_logo – wymaga importu mediów przez importer]
+ */
+export const WZORZEC_LOGO_PHP = `<?php
+/**
+ * Title: Logo marki
+ * Slug: ${WZORZEC_LOGO_MARKI}
+ * Inserter: no
+ *
+ * Logo z Verris Kreatora marki (plik motywu ${PLIK_LOGO_NAGLOWKA}). Zmienisz je w Wygląd > Edytor > Nagłówek
+ * (np. na blok „Logo witryny”).
+ *
+ * @package verris-kreator
+ */
+
+?>
+<!-- wp:image {"sizeSlug":"full","linkDestination":"custom","className":"vk-logo-marki"} -->
+<figure class="wp-block-image size-full vk-logo-marki"><a href="<?php echo esc_url( home_url( '/' ) ); ?>"><img src="<?php echo esc_url( get_theme_file_uri( '${PLIK_LOGO_NAGLOWKA}' ) ); ?>" alt="<?php echo esc_attr( get_bloginfo( 'name' ) ); ?>"/></a></figure>
+<!-- /wp:image -->
+`;
+
 export function plikiMotywu(w: WejscieMotywu): { pliki: PlikCms[]; fonty: string[] } {
   const { json, fonty } = themeJson(w);
   const ustawienia = { klasyBody: w.klasyBody, jsonLd: w.jsonLd };
@@ -506,6 +561,8 @@ export function plikiMotywu(w: WejscieMotywu): { pliki: PlikCms[]; fonty: string
     { sciezka: 'readme.txt', tresc: README_MOTYWU },
   ];
   if (w.formularz) pliki.push({ sciezka: 'assets/js/kreator.js', tresc: skryptFormularza() });
+  if (w.marka?.logoNaglowka) pliki.push({ sciezka: PLIK_LOGO_NAGLOWKA, tresc: w.marka.logoNaglowka }, { sciezka: 'patterns/logo-marki.php', tresc: WZORZEC_LOGO_PHP });
+  if (w.marka?.favicon) pliki.push({ sciezka: PLIK_FAVICONU_MARKI, tresc: w.marka.favicon });
   return { pliki, fonty };
 }
 

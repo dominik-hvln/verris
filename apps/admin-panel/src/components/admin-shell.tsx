@@ -308,6 +308,12 @@ export function grupy(l: LicznikiMenu | null): Grupa[] {
           ikona: "kreator",
           pod: [{ name: "Kreator stron", href: "/settings/kreator", perm: "ADMIN", szukaj: "verris kreator strony www ai konta testowe zdjęcia pixabay openverse pexels koszty cache kreator pro" }],
         },
+        // Paczka 130 — Kreator marki (admin/kreator-marki/* — @Roles(ADMIN)): włącznik, dostępność, limity, Pakiet marki, ceny.
+        {
+          name: "Kreator marki",
+          ikona: "kreator",
+          pod: [{ name: "Kreator marki", href: "/settings/kreator-marki", perm: "ADMIN", szukaj: "logo marka znak key visual pakiet marki druga marka symbole ai stopka" }],
+        },
       ],
     },
     {

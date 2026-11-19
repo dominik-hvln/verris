@@ -2,6 +2,7 @@ import type { Jezyk } from '../jezyki.ts';
 import type { Podstrona, Strona } from '../model.ts';
 import type { WersjaKreatora } from '../plany.ts';
 import type { UstawieniaFontow } from './fonty.ts';
+import type { MarkaRenderu } from './marka.ts';
 import type { KoloryStrony } from './paleta.ts';
 import type { TekstyStrony } from './teksty.ts';
 
@@ -79,6 +80,8 @@ export interface KontekstStrony {
   edycja: EdycjaStrony | null;
   rok: number;
   dataIso: string;
+  /** Paczka 130 – logo i favicon z migawki marki (po sanitizacji); null = inicjał firmy. */
+  marka: MarkaRenderu | null;
 }
 
 /** Stan jednej podstrony. */

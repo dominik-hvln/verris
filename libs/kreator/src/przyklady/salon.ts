@@ -1,8 +1,8 @@
-import type { StronaWejscie } from '../model.ts';
+import { WERSJA_MODELU, type StronaWejscie } from '../model.ts';
 
 /** Przykład z makiety (firma i dane fikcyjne) – fikstura testów renderera i planów. */
 export const PRZYKLAD_SALON: StronaWejscie = {
-  wersjaModelu: 1,
+  wersjaModelu: WERSJA_MODELU,
   firma: {
     nazwa: 'Pracownia Fal',
     branza: 'salon fryzjerski',

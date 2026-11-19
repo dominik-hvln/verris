@@ -429,6 +429,13 @@ export const POMOC = {
     kiedy: "Przed włączeniem kreatora dla wszystkich (najpierw Regulamin z kreatorem), przy dodawaniu testera i przy przeglądzie kosztów AI.",
     rozniSieOd: "„Kreator węzła” zakłada serwer; ten ekran dotyczy stron www klientów. Koszty pozostałego AI są w Konfiguracji asystenta.",
   },
+  // Paczka 130 — Admin → Wiedza i AI → Kreator marki (/settings/kreator-marki).
+  "kreator-marki": {
+    tytul: "Kreator marki",
+    opis: "Logo i materiały marki dla klientów: włącznik i dostępność (lista kont, beta, wszyscy), limity w cenie hostingu, Pakiet marki i druga marka (ceny brutto, netto liczone z brutto), symbole AI, modele AI i limit wgrania pliku.",
+    kiedy: "Przed startem modułu (najpierw Regulamin i Polityka prywatności z Kreatorem marki), przy dodawaniu testera i przy zmianie cen – strona /kreator-marki na verris.pl bierze ceny stąd.",
+    rozniSieOd: "„Kreator stron” buduje strony www; Kreator marki tworzy logo, które potem trafia na stronę, do stopki e-mail i do materiałów.",
+  },
 } satisfies Record<string, WpisPomocy>;
 
 export type PomocId = keyof typeof POMOC;

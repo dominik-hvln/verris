@@ -7,6 +7,7 @@ import { plikFontu, ustawFonty } from './fonty.ts';
 import type { KontekstPodstrony, KontekstStrony, OpcjeRenderu, PlikStrony, WynikRenderu } from './kontekst.ts';
 import { przygotujEdycje } from './edycja.ts';
 import { budujKolory } from './paleta.ts';
+import { przygotujMarke } from './marka.ts';
 import { czyWidoczna } from './sekcje/index.ts';
 import { glowaHtml, robots, sitemap, wpisDlaPodstrony } from './seo.ts';
 import { budujSkrypt } from './skrypt.ts';
@@ -22,6 +23,7 @@ export { plikFontu, slugRodziny, ZAKRESY_FONTOW, type ZakresFontu } from './font
 export { MAKS_POL_FORMULARZA } from './sekcje/wspolne.ts';
 export { dodatkiMostu, kodMostu, STYL_MOSTU, type OpcjeMostu } from './edycja-most.ts';
 export { SZEROKOSCI_ZDJEC, szerokosciWariantow, wymagaAtrybucji } from './obraz.ts';
+export { PLIKI_MARKI } from './marka.ts';
 export {
   bezpiecznyCss,
   bezpiecznyJs,
@@ -95,6 +97,7 @@ export function renderujStrone(wejscie: Strona, opcje: OpcjeRenderu): WynikRende
     edycja: podglad && opcje.edycja ? przygotujEdycje(wejscie) : null,
     rok: data.getUTCFullYear(),
     dataIso: data.toISOString(),
+    marka: przygotujMarke(strona, ostrzezenia),
   };
 
   const klasyHtml = [
@@ -162,6 +165,7 @@ export function renderujStrone(wejscie: Strona, opcje: OpcjeRenderu): WynikRende
       js: js ? `${r.k.prefix}assets/kreator.js` : null,
       preload: bazaAbs ? `${baza}/${plikNaglowka}` : `${r.k.prefix}${baza}/${plikNaglowka}`,
       artykul: r.artykul,
+      prefiks: r.k.prefix,
     });
     pliki.push({ sciezka: r.p.slug ? `${r.p.slug}/index.html` : 'index.html', tresc: r.html.replace(ZNACZNIK_GLOWY, glowa), typ: 'text/html; charset=utf-8' });
   }
@@ -172,10 +176,13 @@ export function renderujStrone(wejscie: Strona, opcje: OpcjeRenderu): WynikRende
     preload: bazaAbs ? `${baza}/${plikNaglowka}` : `/${baza}/${plikNaglowka}`,
     artykul: false,
     bezAdresu: true,
+    prefiks: '/',
   });
   pliki.push({ sciezka: '404.html', tresc: html404.replace(ZNACZNIK_GLOWY, glowa404), typ: 'text/html; charset=utf-8' });
   pliki.push({ sciezka: 'assets/styl.css', tresc: css, typ: 'text/css; charset=utf-8' });
   if (js) pliki.push({ sciezka: 'assets/kreator.js', tresc: js, typ: 'text/javascript; charset=utf-8' });
+  // Paczka 130 – logo i favicon marki jako pliki (publikacja, ZIP, motyw WordPressa; w podglądzie favicon inline).
+  if (s.marka) pliki.push(...s.marka.pliki);
   pliki.push({ sciezka: 'sitemap.xml', tresc: sitemap(s, noindex ? [] : strony), typ: 'application/xml; charset=utf-8' });
   pliki.push({ sciezka: 'robots.txt', tresc: robots(s, noindex), typ: 'text/plain; charset=utf-8' });
 

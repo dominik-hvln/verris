@@ -1,11 +1,11 @@
-import type { StronaWejscie } from '../model.ts';
+import { WERSJA_MODELU, type StronaWejscie } from '../model.ts';
 
 /**
  * Sklep Pro pracowni ceramiki (firma i dane fikcyjne) – fikstura testów renderera: hero-mozaika (Pro),
  * katalog produktów (Product w pełnym SEO), warsztaty jako kroki, galeria-mozaika, kontakt z formularzem.
  */
 export const PRZYKLAD_CERAMIKA: StronaWejscie = {
-  wersjaModelu: 1,
+  wersjaModelu: WERSJA_MODELU,
   firma: {
     nazwa: 'Glina i Ogień',
     branza: 'pracownia ceramiki',

@@ -1,7 +1,12 @@
 import {
   CENA_KREATORA_PRO,
   type Efekt,
+  type ElementMarki,
+  type OpcjeZastosowaniaMarki,
   type PlanKreatora,
+  type StanMarkiStrony,
+  type WygladMarki,
+  type ZmianaMarki,
   type Strona,
   type TypSekcji,
   type WariantSekcji,
@@ -31,6 +36,8 @@ export interface StanKreatora {
   /** Paczka 121 – abonament Kreator Pro (plan KREATOR_PRO): zakup i bieżący abonament. Brak w starszym API. */
   pro?: StanKreatoraPro;
   katalog: { warianty: Record<TypSekcji, WariantSekcji[]>; efekty: Efekt[]; sekcjePro: TypSekcji[] };
+  /** Paczka 130 – moduł Kreatora marki dostępny dla konta (brak w starszym API = niedostępny). */
+  markaDostepna?: boolean;
 }
 
 /** GET /kreator/stan → `pro` (apps/api/src/kreator/kreator-pro.ts `stanKreatoraPro`). */
@@ -257,4 +264,50 @@ export function limitMb(mb: number): string {
 /** Miejsce na zdjęcia na karcie wersji: „Zajęte 3,5 MB z 500 MB.” */
 export function opisMiejscaZdjec(bajty: number, limitMbPlanu: number): string {
   return `Zajęte ${rozmiar(bajty)} z ${limitMb(limitMbPlanu)}.`;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Marka na stronie (paczka 130) – GET/POST/DELETE /kreator/strony/:id/marka (apps/api/src/kreator/kreator.service.ts)
+// ---------------------------------------------------------------------------------------------------------------
+
+export type { ElementMarki, OpcjeZastosowaniaMarki, StanMarkiStrony, WygladMarki, ZmianaMarki };
+
+/** GET /kreator/strony/:id/marka */
+export interface MarkaStronyKreatora {
+  dostepna: boolean;
+  naStronie: { markaId: string; wersja: number; nazwa: string; uzyj: { logo: boolean; favicon: boolean } } | null;
+  marki: { markaId: string; nazwa: string; wersja: number; stan: StanMarkiStrony }[];
+}
+
+/** POST /kreator/strony/:id/marka/podglad */
+export interface PodgladMarkiKreatora {
+  stan: StanMarkiStrony;
+  wersjaNaStronie: number | null;
+  wersjaMarki: number;
+  zmiany: ZmianaMarki[];
+  ostrzezenia: string[];
+  przed: WygladMarki;
+  po: WygladMarki;
+}
+
+/** POST /kreator/strony/:id/marka i DELETE …/marka – widok strony + co się zmieniło. */
+export type WynikMarkiKreatora = WidokStronyKreatora & { zmiany: ZmianaMarki[]; ostrzezenia: string[] };
+
+/** Ścieżka Kreatora marki w panelu (strona modułu – faza 2). */
+export const SCIEZKA_KREATORA_MARKI = '/dashboard/kreator-marki';
+
+/** Marka do propozycji w edytorze: ta ze strony, a gdy strona nie ma marki – pierwsza (najnowsza) marka konta. */
+export function markaDoPropozycji(m: MarkaStronyKreatora): MarkaStronyKreatora['marki'][number] | null {
+  if (!m.dostepna || !m.marki.length) return null;
+  return m.marki.find((x) => x.markaId === m.naStronie?.markaId) ?? m.marki[0]!;
+}
+
+/** „3 zmiany” – liczba zmian z odmianą. */
+export function opisLiczbyZmian(n: number): string {
+  return `${n} ${plForm(n, 'zmiana', 'zmiany', 'zmian')}`;
+}
+
+/** SVG z API (po sanitizacji, kolory na stałe) jako adres obrazka – <img> nie wykonuje skryptów SVG. */
+export function adresSvg(svg: string): string {
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }

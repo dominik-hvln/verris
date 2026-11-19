@@ -2,6 +2,7 @@ import type { Motyw } from '../model.ts';
 import { regulyFontFace, stosFontu } from './fonty.ts';
 import { czyCiemny, mieszaj, rgba } from './kolor.ts';
 import type { KontekstStrony } from './kontekst.ts';
+import { cssMarki } from './marka.ts';
 import { zmienneKontekstu } from './paleta.ts';
 
 /**
@@ -775,6 +776,8 @@ export function budujCss(s: KontekstStrony, bazaFontowCss: string): string {
   const kolejnosc = Object.keys(MODULY);
   for (const klucz of kolejnosc) if (s.css.has(klucz)) czesci.push(MODULY[klucz]!);
   for (const [klucz, css] of Object.entries(EFEKTY)) if (s.css.has(klucz)) czesci.push(css);
+  // Paczka 130 – logo marki (kolory kanałów z modelu, tylko gdy strona ma logo z marki).
+  if (s.marka?.naglowek || s.marka?.stopka) czesci.push(cssMarki(s.marka, czyCiemny(s.kolory.paleta.tlo)));
   czesci.push(RUCH);
   return czesci.join('\n').replace(/\n{2,}/g, '\n');
 }

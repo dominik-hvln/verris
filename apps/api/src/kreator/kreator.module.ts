@@ -26,6 +26,7 @@ import { FUNKCJE_AI_KREATORA, RENDERER_KREATORA, fabrykaFunkcjiAiKreatora, fabry
 import { GENERATORY_OBRAZOW, KreatorObrazyAiService } from './generowanie/obrazy-ai.service.js';
 import { GeneratorBfl } from './generowanie/bfl.js';
 import { GeneratorOpenAi } from './generowanie/openai-obrazy.js';
+import { BrakModuluMarki, DOSTAWCA_MARKI } from './marka-dostawca.js';
 
 /**
  * Verris Kreator (paczka 119). Funkcje AI (`funkcjeAiKreatora`) i renderer (`renderujStrone`) z @verris/kreator
@@ -78,6 +79,8 @@ import { GeneratorOpenAi } from './generowanie/openai-obrazy.js';
     { provide: RENDERER_KREATORA, useFactory: fabrykaRendereraKreatora },
     { provide: RENDERER_PUBLIKACJI, useFactory: fabrykaRendereraPublikacji },
     { provide: PLIKI_HOSTINGU_KREATORA, useClass: PlikiHostinguDa },
+    // Paczka 130 – marki konta dla „Użyj marki”. Faza 2 (moduł Kreatora marki) podmieni implementację pod tym tokenem.
+    { provide: DOSTAWCA_MARKI, useClass: BrakModuluMarki },
   ],
   exports: [KreatorService],
 })

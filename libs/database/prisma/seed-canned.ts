@@ -21,6 +21,8 @@ interface Seed {
   content: string;
   /** PB-37 — sytuacja w rozmowie (blok „Podpowiedzi”). */
   category?: 'POWITANIE' | 'DIAGNOZA' | 'OPOZNIENIE' | 'ZALECENIA' | 'ZAMKNIECIE';
+  /** Paczka 130 – false: szablon funkcji, której nie ma jeszcze w sprzedaży (admin włącza go przy starcie). */
+  isActive?: boolean;
 }
 
 const SIGN = '\n\nPozdrawiamy,\nZespół Verris';
@@ -152,6 +154,39 @@ const TEMPLATES: Seed[] = [
     content:
       'Żeby sytuacja się nie powtórzyła, zalecamy:\n• [ZALECENIE 1],\n• [ZALECENIE 2].\n\nChętnie pomożemy w każdym z tych kroków – wystarczy odpisać na tę wiadomość.',
   },
+  // Paczka 130 – Kreator marki (moduł domyślnie wyłączony): szablony NIEAKTYWNE, admin włącza je przy starcie modułu
+  // (Ustawienia → Szablony odpowiedzi). Zasady: bez usługi „poprawi grafik”, bez naśladowania marek, druk – RGB
+  // z odpowiednikami CMYK i proof w drukarni. Artykuły pomocy: seed-kb-cms.ts (szkice kategorii „Kreator stron”).
+  {
+    title: 'Kreator marki – prośba o zmianę logo przez nas',
+    topic: 'HOSTING',
+    shortcut: 'marka-zmiana',
+    category: 'ZALECENIA',
+    isActive: false,
+    content:
+      'Cześć {{imie}},\n\ndziękujemy za wiadomość. Nie projektujemy ani nie poprawiamy logo ręcznie – Kreator marki pozwala jednak zmienić je samodzielnie:\n• kolor, krój i układ zmienisz w panelu „Dopasuj” bez limitu (bez AI),\n• nowy zestaw kierunków dostaniesz, zmieniając opis w briefie i prosząc o nową serię propozycji,\n• jeśli limit serii w tym miesiącu się skończył, odnowi się 1. dnia miesiąca albo możesz kupić Pakiet marki z dodatkowymi seriami.\n\nInstrukcja krok po kroku: artykuł „Jak stworzyć logo w Kreatorze marki” w bazie wiedzy. Jeśli coś w kreatorze nie działa tak, jak opisaliśmy, odpisz – sprawdzimy to.' +
+      SIGN,
+  },
+  {
+    title: 'Kreator marki – logo „jak znana marka”',
+    topic: 'HOSTING',
+    shortcut: 'marka-jak-znana',
+    category: 'ZALECENIA',
+    isActive: false,
+    content:
+      'Cześć {{imie}},\n\nrozumiemy, że podoba Ci się styl tej marki. Kreator marki nie przygotuje jednak logo na wzór cudzego znaku – podobieństwo do zarejestrowanego znaku dla podobnych usług może skończyć się żądaniem zmiany logo, a nawet sporem.\n\nZamiast nazwy marki opisz w briefie, co Ci się w niej podoba: np. „prosty znak geometryczny”, „grube litery”, „dwa kolory, granat i pomarańcz”, „charakter: nowoczesny, pewny siebie”. Kreator zaproponuje kierunki w tym duchu.\n\nPrzed użyciem logo sprawdź też podobne znaki w TMview – instrukcja w artykule „Logo a znak towarowy – TMview krok po kroku”.' +
+      SIGN,
+  },
+  {
+    title: 'Kreator marki – drukarnia nie przyjmuje pliku / CMYK',
+    topic: 'HOSTING',
+    shortcut: 'marka-druk',
+    category: 'ZALECENIA',
+    isActive: false,
+    content:
+      'Cześć {{imie}},\n\npliki do druku z Kreatora marki (wizytówka, papier firmowy, logo w PDF) są wektorowe, a kolory są zapisane w RGB. Odpowiedniki CMYK każdego koloru znajdziesz w zasadach marki (w paczce ZIP i w księdze znaku).\n\nCo zrobić:\n• przekaż drukarni plik PDF i odpowiedniki CMYK z zasad marki – większość drukarni sama konwertuje plik,\n• poproś o wydruk próbny (proof) przed całym nakładem – kolory na papierze mogą wyjść inaczej niż na ekranie,\n• jeśli drukarnia wymaga pliku PDF/X w CMYK, poproś ją o konwersję – Kreator marki nie tworzy dziś takich plików.\n\nWizytówka ma spad 3 mm i linie cięcia. Więcej: artykuł „Druk: wizytówka i CMYK” w bazie wiedzy.' +
+      SIGN,
+  },
 ];
 
 async function main() {
@@ -175,7 +210,7 @@ async function main() {
       topic: t.topic,
       shortcut: t.shortcut,
       category: t.category ?? null,
-      isActive: true,
+      isActive: t.isActive ?? true,
     })),
   });
   console.log(`Dodano ${toCreate.length} szablonów odpowiedzi.`);

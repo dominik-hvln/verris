@@ -1,4 +1,4 @@
-import { Strona, walidujStrone, type StronaWejscie } from '../model.ts';
+import { Strona, WERSJA_MODELU, walidujStrone, type StronaWejscie } from '../model.ts';
 import { PRZYKLAD_CERAMIKA } from '../przyklady/ceramika.ts';
 import { PRZYKLAD_KSIEGOWA } from '../przyklady/ksiegowa.ts';
 import { PRZYKLAD_SALON } from '../przyklady/salon.ts';
@@ -70,14 +70,14 @@ describe('odczyt odpowiedzi w zapisie kompaktowym', () => {
     const w = odczytajWynikGeneracji(JSON.stringify(k), 'pro');
     if (!w.ok) throw new Error(w.bledy.join('\n'));
     expect(w.strona).not.toHaveProperty('strategia');
-    expect(w.strona.wersjaModelu).toBe(1);
+    expect(w.strona.wersjaModelu).toBe(WERSJA_MODELU);
   });
 
   it('master prompt mówi o zapisie kompaktowym i pokazuje wartości domyślne; wersjaModelu oznaczona jako pole serwera', () => {
     const b = blokMasterPromptu();
     expect(b).toContain('Zapis kompaktowy: bez wcięć');
     expect(b).toContain('Pomijaj pola z wartością domyślną');
-    expect(opisModeluStrony()).toContain('wersjaModelu?: 1; // pomiń – uzupełnia serwer');
+    expect(opisModeluStrony()).toContain('wersjaModelu?: 2; // pomiń – uzupełnia serwer');
     expect(opisModeluStrony()).toContain('tlo?: \'domyslne\' | \'powierzchnia\' | \'ciemne\' | \'akcent\' = "domyslne"');
   });
 });

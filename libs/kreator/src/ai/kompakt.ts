@@ -25,6 +25,13 @@ interface Wezel {
 /** Pola, które uzupełnia serwer – model ich nie pisze, my ich nie wysyłamy. */
 export const POLA_SERWERA = ['wersjaModelu'] as const;
 
+/**
+ * Paczka 130: pola modelu, których AI w ogóle nie zna – nie ma ich w opisie schematu (master prompt), w stronie
+ * wysyłanej do modelu ani w jego odpowiedzi (odczyt usuwa je z wyniku, zmiana przywraca wartość sprzed zmiany).
+ * `marka` = migawka SVG z Kreatora marki – model nie może jej zobaczyć ani wstrzyknąć własnego SVG.
+ */
+export const POLA_POZA_AI = ['marka'] as const;
+
 const schematy = new Map<z.ZodType, Wezel>();
 function schemat(s: z.ZodType): Wezel {
   let w = schematy.get(s);
@@ -80,7 +87,7 @@ export function kompaktujWg(s: z.ZodType, wartosc: unknown): unknown {
 /** Strona bez pól domyślnych i bez `wersjaModelu`. */
 export function kompaktujStrone(strona: unknown): unknown {
   const k = kompaktujWg(Strona, strona);
-  if (k && typeof k === 'object') for (const p of POLA_SERWERA) delete (k as Record<string, unknown>)[p];
+  if (k && typeof k === 'object') for (const p of [...POLA_SERWERA, ...POLA_POZA_AI]) delete (k as Record<string, unknown>)[p];
   return k;
 }
 
@@ -90,11 +97,13 @@ export function kompaktujSekcje(sekcja: unknown): unknown {
 
 /**
  * Odpowiedź modelu przed walidacją: `wersjaModelu` uzupełnia serwer, `strategia` (plan strony z generacji –
- * master prompt, „Jak pracujesz”) nie należy do modelu strony i znika. Nie mutuje wejścia.
+ * master prompt, „Jak pracujesz”) nie należy do modelu strony i znika, pola spoza AI (`marka`) też znikają.
+ * Nie mutuje wejścia.
  */
 export function uzupelnijSerwerowe(dane: unknown): unknown {
   if (!dane || typeof dane !== 'object' || Array.isArray(dane)) return dane;
   const { strategia: _strategia, ...reszta } = dane as Record<string, unknown>;
+  for (const p of POLA_POZA_AI) delete reszta[p];
   return { ...reszta, wersjaModelu: reszta.wersjaModelu ?? WERSJA_MODELU };
 }
 

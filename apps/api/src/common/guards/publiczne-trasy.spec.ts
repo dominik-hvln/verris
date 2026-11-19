@@ -126,6 +126,8 @@ const PUBLICZNE = [
   'OpenproviderWebhookController.odbierz',
   // 6.11 — kredyty na autoskalowanie przy pierwszym zakupie (kwoty z ustawień oferty) dla verris.pl; tylko odczyt, bez danych konta.
   'OfertaPublicznaController.kredytyStartowe',
+  // 19.11 – paczka 130: oferta Kreatora marki dla verris.pl (tylko `dostepny: false`, dopóki moduł nie jest dla wszystkich).
+  'OfertaMarkiController.kreatorMarki',
   'PaynowPowiadomieniaController.powiadomienie',
   'PlansController.get',
   // Podgląd przed DNS (15.10): dostęp tylko z tokenem HMAC w nazwie hosta; tls-check woła Caddy wewnętrznie (api:3000),

@@ -7,6 +7,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
   ServiceUnavailableException,
   UnprocessableEntityException,
 } from '@nestjs/common';
@@ -27,7 +28,13 @@ import {
   WERSJA_MODELU,
   dopasujDoPlanu,
   migrujModel,
+  MigawkaMarki,
   naglowkiPodgladu,
+  odlaczMarke,
+  porownajMarke,
+  WSZYSTKO_Z_MARKI,
+  wygladMarki,
+  zastosujMarke,
   walidujStrone,
   zlozPodglad,
   wszystkieSekcje,
@@ -35,6 +42,8 @@ import {
   type FunkcjeAiKreatora,
   type JezykDodatkowy,
   type KierunekProjektu,
+  type MarkaStrony,
+  type OpcjeZastosowaniaMarki,
   type Strona,
   type WersjaKreatora,
   type WiadomoscAi,
@@ -56,6 +65,7 @@ import { FUNKCJE_AI_KREATORA, RENDERER_KREATORA, type RendererKreatora } from '.
 import { idZasobow, uzupelnijWymiary } from './zasoby-model.js';
 import { adresBazowyZasobu } from './zasoby-token.js';
 import type { BriefStronyDto } from './dto/kreator.dto.js';
+import { BrakModuluMarki, DOSTAWCA_MARKI, MARKA_NIEDOSTEPNA, type DostawcaMarki } from './marka-dostawca.js';
 
 /** Najwyżej tyle wersji na stronę; nadmiar = najstarsze wersje RECZNE (zapisy z edytora). */
 export const LIMIT_WERSJI = 200;
@@ -129,6 +139,8 @@ export class KreatorService {
     private readonly config: ConfigService,
     @Inject(FUNKCJE_AI_KREATORA) private readonly ai: FunkcjeAiKreatora,
     @Inject(RENDERER_KREATORA) private readonly renderer: RendererKreatora,
+    /** Paczka 130 – marki konta (Kreator marki, faza 2); bez modułu – BrakModuluMarki („niedostępny”). */
+    @Optional() @Inject(DOSTAWCA_MARKI) private readonly marki: DostawcaMarki = new BrakModuluMarki(),
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -161,11 +173,12 @@ export class KreatorService {
   async stan(userId: string) {
     const d = await this.dostep(userId);
     const miesiac = miesiacUtc();
-    const [zuzycie, stron, pro, zdjecia] = await Promise.all([
+    const [zuzycie, stron, pro, zdjecia, markaDostepna] = await Promise.all([
       this.prisma.kreatorZuzycie.findUnique({ where: { userId_miesiac: { userId, miesiac } } }),
       this.prisma.kreatorStrona.count({ where: { userId } }),
       stanKreatoraPro(this.prisma, userId),
       this.prisma.kreatorZasob.aggregate({ where: { userId }, _sum: { bajty: true } }),
+      this.markaDostepna(userId),
     ]);
     const plan = d.wersja ? PLANY_KREATORA[d.wersja] : null;
     return {
@@ -187,7 +200,19 @@ export class KreatorService {
       cenaPro: pro.cena,
       pro,
       katalog: { warianty: KATALOG_WARIANTOW, efekty: KATALOG_EFEKTOW, sekcjePro: SEKCJE_PRO },
+      /** Paczka 130 – moduł Kreatora marki dostępny dla konta (panel: sekcja „Marka” i link do kreatora marki). */
+      markaDostepna,
     };
+  }
+
+  /** Błąd dostawcy marki nie psuje /stan – marka po prostu niedostępna. */
+  private async markaDostepna(userId: string): Promise<boolean> {
+    try {
+      return await this.marki.dostepna(userId);
+    } catch (e) {
+      this.logger.warn(`Dostawca marki: ${e instanceof Error ? e.message : String(e)}`);
+      return false;
+    }
   }
 
   /**
@@ -359,8 +384,11 @@ export class KreatorService {
         await this.zakonczBledem(z, BLAD_GENERACJI);
         return;
       }
-      const [model, ...propozycje] = strony;
-      const zapisano = await this.zapiszModel(z.stronaId, model, KreatorZrodloWersji.AI_GENERACJA, 'Strona wygenerowana przez AI', {
+      // Paczka 130: ponowna generacja strony z marką – logo marki przechodzi do nowego projektu i propozycji.
+      const biezaca = await this.prisma.kreatorStrona.findFirst({ where: { id: z.stronaId }, select: { model: true } });
+      const marka = migawkaZModelu(biezaca?.model);
+      const [model, ...propozycje] = strony.map((x) => zMigawka(x, marka));
+      const zapisano = await this.zapiszModel(z.stronaId, model!, KreatorZrodloWersji.AI_GENERACJA, 'Strona wygenerowana przez AI', {
         tylkoGdyGenerowanie: true,
         propozycje: propozycje.length ? propozycje : null,
       });
@@ -462,7 +490,8 @@ export class KreatorService {
     if (!w.ok) throw new ConflictException('Ta propozycja jest nieaktualna – wygeneruj stronę ponownie.');
     const nowe = [...propozycje];
     nowe[n - 1] = s.model;
-    await this.zapiszModel(id, w.strona, KreatorZrodloWersji.AI_GENERACJA, `Wybrano propozycję ${n}`, { propozycje: nowe });
+    // Paczka 130: logo marki zostaje przy zmianie projektu (propozycje powstają bez marki – AI jej nie zna).
+    await this.zapiszModel(id, zMigawka(w.strona, migawkaZModelu(s.model)), KreatorZrodloWersji.AI_GENERACJA, `Wybrano propozycję ${n}`, { propozycje: nowe });
     return this.widok(await this.wlasna(userId, id), wersja);
   }
 
@@ -471,9 +500,12 @@ export class KreatorService {
     const { wersja } = await this.wymagajDostepu(userId);
     const s = await this.wlasna(userId, id);
     if (s.status === KreatorStatus.GENEROWANIE) throw new ConflictException('Strona jest jeszcze generowana – poczekaj na koniec.');
-    const w = walidujStrone(migrujModel(model));
+    // Paczka 130: migawkę marki ustawia wyłącznie serwer („Użyj marki”) – z edytora jej nie przyjmujemy (ani nie
+    // walidujemy), zostaje ta z bazy. Inaczej klient mógłby zapisać własne SVG w logo strony.
+    const w = walidujStrone(bezMigawki(migrujModel(model)));
     if (!w.ok) throw new BadRequestException({ message: 'Strona zawiera błędy – popraw zaznaczone pola.', bledy: w.bledy });
-    await this.zapiszModel(id, await this.zZasobamiKonta(userId, w.strona), KreatorZrodloWersji.RECZNA, null);
+    const strona = zMigawka(w.strona, migawkaZModelu(s.model));
+    await this.zapiszModel(id, await this.zZasobamiKonta(userId, strona), KreatorZrodloWersji.RECZNA, null);
     return this.widok(await this.wlasna(userId, id), wersja);
   }
 
@@ -657,6 +689,94 @@ export class KreatorService {
     const r = await this.prisma.kreatorStrona.deleteMany({ where: { id, userId } });
     if (!r.count) throw new NotFoundException(NIE_MA_STRONY);
     return { ok: true };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Marka (paczka 130) – migawka marki z Kreatora marki w modelu strony
+  // ---------------------------------------------------------------------------
+
+  /** GET /kreator/strony/:id/marka – marka na stronie i marki konta ze stanem względem strony (baner „marka się zmieniła”). */
+  async markaStrony(userId: string, id: string) {
+    await this.wymagajDostepu(userId);
+    const strona = this.gotowyModel(await this.wlasna(userId, id));
+    const na = strona.marka;
+    const naStronie = na ? { markaId: na.markaId, wersja: na.wersja, nazwa: na.nazwa, uzyj: na.uzyj } : null;
+    if (!(await this.markaDostepna(userId))) return { dostepna: false, naStronie, marki: [] };
+    const marki = await this.marki.lista(userId);
+    return {
+      dostepna: true,
+      naStronie,
+      marki: marki.map((m) => ({
+        ...m,
+        stan: !na ? 'brak' : na.markaId !== m.markaId ? 'inna' : na.wersja < m.wersja ? 'starsza' : 'aktualna',
+      })),
+    };
+  }
+
+  /** Migawka marki od dostawcy: dostępność, własność (null = 404) i schemat (SVG z białej listy). */
+  private async migawka(userId: string, markaId: string): Promise<MigawkaMarki> {
+    if (!(await this.markaDostepna(userId))) throw new ServiceUnavailableException(MARKA_NIEDOSTEPNA);
+    const m = await this.marki.migawka(userId, markaId);
+    if (!m || m.markaId !== markaId) throw new NotFoundException('Nie znaleziono marki.');
+    const w = MigawkaMarki.safeParse(m);
+    if (!w.success) {
+      this.logger.error(`Migawka marki ${markaId} odrzucona: ${w.error.issues.slice(0, 3).map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}`);
+      throw new ServiceUnavailableException('Nie udało się przygotować marki dla strony – spróbuj ponownie za chwilę.');
+    }
+    return w.data;
+  }
+
+  private opcjeMarki(o: Partial<OpcjeZastosowaniaMarki> | undefined): OpcjeZastosowaniaMarki {
+    const opcje = { ...WSZYSTKO_Z_MARKI, ...(o ?? {}) };
+    if (!Object.values(opcje).some(Boolean)) throw new BadRequestException('Wybierz, co zastosować z marki: logo, kolory, fonty albo favicon.');
+    return opcje;
+  }
+
+  /**
+   * POST /kreator/strony/:id/marka/podglad – co zmieni „Użyj marki” (dry-run, nic nie zapisuje): lista zmian, stan
+   * marki na stronie (nowsza wersja marki = propozycja aktualizacji) i wygląd przed/po (logo jako SVG do <img>).
+   */
+  async podgladMarki(userId: string, id: string, dto: { markaId: string; opcje?: Partial<OpcjeZastosowaniaMarki> }) {
+    await this.wymagajDostepu(userId);
+    const strona = this.gotowyModel(await this.wlasna(userId, id));
+    const m = await this.migawka(userId, dto.markaId);
+    const opcje = this.opcjeMarki(dto.opcje);
+    const p = porownajMarke(strona, m);
+    const w = zastosujMarke(strona, m, opcje);
+    return {
+      stan: p.stan,
+      wersjaNaStronie: p.wersjaNaStronie,
+      wersjaMarki: p.wersjaMarki,
+      zmiany: w.zmiany,
+      ostrzezenia: w.ostrzezenia,
+      przed: wygladMarki(strona),
+      po: wygladMarki(w.strona),
+    };
+  }
+
+  /** POST /kreator/strony/:id/marka – zastosowanie marki (wybrane elementy) jako nowa wersja strony w historii. */
+  async zastosujMarke(userId: string, id: string, dto: { markaId: string; opcje?: Partial<OpcjeZastosowaniaMarki> }) {
+    const { wersja } = await this.wymagajDostepu(userId);
+    const strona = this.gotowyModel(await this.wlasna(userId, id));
+    const m = await this.migawka(userId, dto.markaId);
+    const w = zastosujMarke(strona, m, this.opcjeMarki(dto.opcje));
+    const w2 = walidujStrone(w.strona);
+    if (!w2.ok) {
+      this.logger.error(`Strona ${id} z marką ${dto.markaId} niepoprawna: ${w2.bledy.slice(0, 3).join('; ')}`);
+      throw new UnprocessableEntityException('Nie udało się zastosować marki do tej strony.');
+    }
+    const bezZmian = JSON.stringify(w2.strona) === JSON.stringify(strona);
+    if (!bezZmian) await this.zapiszModel(id, w2.strona, KreatorZrodloWersji.RECZNA, `Marka „${m.nazwa}” (wersja ${m.wersja})`.slice(0, 200));
+    return { ...this.widok(await this.wlasna(userId, id), wersja), zmiany: w.zmiany, ostrzezenia: w.ostrzezenia };
+  }
+
+  /** DELETE /kreator/strony/:id/marka – strona bez logo z marki (inicjał); paleta i fonty zostają. */
+  async odlaczMarke(userId: string, id: string) {
+    const { wersja } = await this.wymagajDostepu(userId);
+    const strona = this.gotowyModel(await this.wlasna(userId, id));
+    const w = odlaczMarke(strona);
+    if (strona.marka) await this.zapiszModel(id, w.strona, KreatorZrodloWersji.RECZNA, `Odłączono markę „${strona.marka.nazwa}”`.slice(0, 200));
+    return { ...this.widok(await this.wlasna(userId, id), wersja), zmiany: w.zmiany, ostrzezenia: [] as string[] };
   }
 
   // ---------------------------------------------------------------------------
@@ -849,4 +969,23 @@ export class KreatorService {
   private publicznyAdresApi(): string {
     return (this.config.get<string>('PUBLIC_API_URL') ?? this.config.get<string>('API_BASE_URL') ?? 'https://api.verris.pl').replace(/\/+$/, '');
   }
+}
+
+/** Model bez pola `marka` (dane z edytora – migawkę ustawia tylko serwer). */
+function bezMigawki(dane: unknown): unknown {
+  if (!dane || typeof dane !== 'object' || Array.isArray(dane)) return dane;
+  const { marka: _marka, ...reszta } = dane as Record<string, unknown>;
+  return reszta;
+}
+
+/** Migawka marki z zapisanego modelu strony (po migracji i walidacji) albo undefined. */
+function migawkaZModelu(model: unknown): MarkaStrony | undefined {
+  const w = walidujStrone(migrujModel(model));
+  return w.ok ? w.strona.marka : undefined;
+}
+
+/** Strona z migawką marki (albo bez niej, gdy undefined). */
+function zMigawka(strona: Strona, marka: MarkaStrony | undefined): Strona {
+  const { marka: _stara, ...reszta } = strona;
+  return marka ? { ...reszta, marka } : reszta;
 }
