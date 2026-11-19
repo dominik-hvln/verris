@@ -697,8 +697,9 @@ export class KreatorMarkiService {
     return this.widok(await this.zapisz(r, dane), w);
   }
 
+  /** Zgody tylko odblokowują pobranie (bez AI i limitów) – działają także na koncie z samym odczytem (paczka 134). */
   async zgody(kto: KtoMarki, id: string, body: unknown): Promise<WidokMarki> {
-    const { wersjaKreatora: w } = await this.dostep(kto.userId);
+    const { wersjaKreatora: w, plikiJakHosting } = await this.dostep(kto.userId, 'odczyt');
     const r = await this.wlasna(kto.userId, id);
     const b = (body ?? {}) as ZgodyBody;
     const dane = odczytajDaneMarki(r.dane);
@@ -713,7 +714,7 @@ export class KreatorMarkiService {
     }
     const zapisana = await this.zapisz(r, dane);
     for (const z of nowe) await this.audit.record({ action: KreatorMarkiActions.KREATOR_MARKI_ZGODA, userId: kto.userId, actorUserId: kto.actorUserId, details: { markaId: r.id, zgoda: z, kiedy: teraz } });
-    return this.widok(zapisana, w);
+    return this.widok(zapisana, w, plikiJakHosting);
   }
 
   // ───────────────────────── drobne zmiany AI, KV od AI ─────────────────────────

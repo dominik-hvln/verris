@@ -137,6 +137,25 @@ describe('paczka 134 – wykupione pliki zawsze dostępne (decyzja 19.11)', () =
     expect(s.provider.anthropicZBlokami).not.toHaveBeenCalled();
   }, 30_000);
 
+  it('Pakiet bez hostingu: eksport (ZIP marki) zwraca dane z plikami z Pakietu', async () => {
+    const s = stanowisko([], { hosting: false, pakiet: true, zProjektem: true });
+    const z = await s.svc.eksport(KTO, MARKA_ID);
+    expect(z.typ).toBe('application/zip');
+    expect(z.dane.subarray(0, 2).toString()).toBe('PK');
+    const t = z.dane.toString('latin1');
+    expect(t).toContain('post.png');
+    expect(t).toContain('logo-poziome-kolor.svg');
+  }, 60_000);
+
+  it('bez hostingu i Pakietu, po progu (sam odczyt): zgoda TMview działa i odblokowuje logo.pdf', async () => {
+    const s = stanowisko([], { hosting: false, uslugiEksportu: TRZY_MIESIACE, zProjektem: true });
+    expect(plik(await s.svc.pobierz('u1', MARKA_ID), 'logo.pdf')).toMatchObject({ dostepny: false, blokada: 'TMVIEW_WYMAGANY' });
+    const w = await s.svc.zgody(KTO, MARKA_ID, { sprawdzilemTmview: true });
+    expect(plik(w, 'logo.pdf')).toMatchObject({ dostepny: true });
+    expect(plik(w, 'post.png')).toMatchObject({ dostepny: false, blokada: 'PAKIET_WYMAGANY' });
+    expect(s.prisma.kreatorMarka.update).toHaveBeenCalled();
+  }, 30_000);
+
   it('bez hostingu, bez Pakietu i bez progu – odczyt i plik 403 BRAK_HOSTINGU', async () => {
     const s = stanowisko([], { hosting: false, uslugiEksportu: MIESIAC, zProjektem: true });
     expect(await status(s.svc.pobierz('u1', MARKA_ID))).toEqual({ status: 403, kod: 'BRAK_HOSTINGU' });
