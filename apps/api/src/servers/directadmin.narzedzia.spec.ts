@@ -14,7 +14,7 @@ import { DirectAdminService } from './directadmin.service.js';
 type Odp = { data: unknown };
 const odp = (v: unknown): Promise<Odp> => (v instanceof Error ? Promise.reject(v) : Promise.resolve({ data: v }));
 
-function stanowisko(o: { status?: string; get?: Record<string, unknown>; pliki?: Record<string, string> } = {}) {
+function stanowisko(o: { status?: string; get?: Record<string, unknown>; pliki?: Record<string, string>; adresTechniczny?: string; domena?: string } = {}) {
   const trasyGet: Record<string, unknown> = {
     '/CMD_API_SHOW_DOMAINS': 'list0=firma.pl',
     '/CMD_API_SHOW_USER_CONFIG': 'domain=firma.pl',
@@ -38,9 +38,9 @@ function stanowisko(o: { status?: string; get?: Record<string, unknown>; pliki?:
   vi.spyOn(klient, 'writeFile').mockImplementation(async (dir: string, name: string, tresc: string) => {
     zapisane.push({ dir, name, tresc });
   });
-  const account = { id: 'a1', status: o.status ?? 'ACTIVE', daUsername: 'klient1', domain: 'firma.pl', daPasswordEnc: 'enc' };
+  const account = { id: 'a1', status: o.status ?? 'ACTIVE', daUsername: 'klient1', domain: o.domena ?? 'firma.pl', daPasswordEnc: 'enc' };
   const prisma = {
-    subscription: { findFirst: vi.fn(async () => ({ id: 's1', userId: 'u1', account })) },
+    subscription: { findFirst: vi.fn(async () => ({ id: 's1', userId: 'u1', account, adresTechniczny: o.adresTechniczny ?? null })) },
     account: { update: vi.fn(async () => account) },
   };
   const audit = { record: vi.fn(async () => undefined) };
@@ -108,6 +108,47 @@ describe('alias domeny – usunięcie', () => {
     const s = stanowisko();
     await expect(s.svc.deleteHostingDomainPointer('s1', 'u1', '  ')).rejects.toThrow('Brak aliasu');
     expect(s.post).not.toHaveBeenCalled();
+  });
+});
+
+describe('adres techniczny usługi (paczka 129)', () => {
+  const ADRES = 'v7k2m9qx.verris-host.pl';
+  beforeEach(() => {
+    process.env.HOSTING_TECH_DOMAIN = 'verris-host.pl';
+  });
+  afterEach(() => {
+    delete process.env.HOSTING_TECH_DOMAIN;
+  });
+
+  it('klient nie usunie adresu technicznego ani jako aliasu, ani jako domeny dodatkowej', async () => {
+    const s = stanowisko({ adresTechniczny: ADRES, get: { '/CMD_API_SHOW_DOMAINS': `list0=firma.pl&list1=${ADRES}` } });
+    await expect(s.svc.deleteHostingDomainPointer('s1', 'u1', ` ${ADRES.toUpperCase()} `)).rejects.toThrow('Adresu technicznego usługi nie można usunąć');
+    await expect(s.svc.deleteHostingAdditionalDomain('s1', 'u1', ADRES)).rejects.toThrow('Adresu technicznego usługi nie można usunąć');
+    expect(s.post).not.toHaveBeenCalled();
+  });
+
+  it('klient nie doda adresu w domenie technicznej (cudzego v…… ani samej domeny) jako aliasu ani domeny', async () => {
+    const s = stanowisko();
+    await expect(s.svc.createHostingDomainPointer('s1', 'u1', { alias: 'vinnyyyy.verris-host.pl' })).rejects.toThrow('zarezerwowany');
+    await expect(s.svc.createHostingAdditionalDomain('s1', 'u1', { domain: 'verris-host.pl' })).rejects.toThrow('zarezerwowany');
+    expect(s.post).not.toHaveBeenCalled();
+  });
+
+  it('alias adresu technicznego dodawany przez provisioning: CMD_API_DOMAIN_POINTER add/alias=yes', async () => {
+    const s = stanowisko();
+    await s.svc.dodajAliasAdresuTechnicznego('s1', 'u1', 'firma.pl', ADRES);
+    expect(s.post.mock.calls[0][0]).toBe('/CMD_API_DOMAIN_POINTER');
+    expect(s.wyslane()).toMatchObject({ action: 'add', domain: 'firma.pl', from: ADRES, alias: 'yes' });
+  });
+
+  it('„Wystaw SSL” dla konta na adresie technicznym zamawia certyfikat bez www (jest tylko rekord A tej nazwy)', async () => {
+    const s = stanowisko({ adresTechniczny: ADRES, domena: ADRES });
+    await s.svc.requestLetsEncryptForSubscription('s1', 'u1');
+    expect(s.wyslane()).toMatchObject({ domain: ADRES, name: ADRES, le_select0: ADRES });
+    expect(s.wyslane().le_select1).toBeUndefined();
+    const z = stanowisko({ adresTechniczny: ADRES });
+    await z.svc.requestLetsEncryptForSubscription('s1', 'u1');
+    expect(z.wyslane()).toMatchObject({ domain: 'firma.pl', name: 'firma.pl,www.firma.pl' });
   });
 });
 

@@ -26,6 +26,7 @@ export function OrderFlow({
   uPartnera,
   paynowDostepny,
   bezKredytowStartowych,
+  bezDomenyDostepne,
 }: {
   plans: PlanDto[];
   offer: TrialOffer;
@@ -36,6 +37,8 @@ export function OrderFlow({
   uPartnera?: boolean;
   /** Klient ma już za sobą zakup — kredyty na autoskalowanie są tylko przy pierwszym (14.10, jak w API). */
   bezKredytowStartowych?: boolean;
+  /** Paczka 129 – zamówienie hostingu bez domeny (adres techniczny) dostępne w API. */
+  bezDomenyDostepne?: boolean;
 }) {
   const offer = uPartnera || bezKredytowStartowych ? { ...ofertaVerris, cardEnabled: false } : ofertaVerris;
   // VPS ukryty do wejścia do sprzedaży (2026-09-23); włącza API per konto (FEATURE_VPS / FEATURE_VPS_TYLKO_KONTA).
@@ -100,6 +103,7 @@ export function OrderFlow({
                 bezKarty={bezKarty}
                 bezKodu={uPartnera}
                 paynowDostepny={paynowDostepny}
+                bezDomenyDostepne={type === 'hosting' && bezDomenyDostepne === true}
                 // Decyzja 6.11.2026 — przy pierwszym zakupie hostingu (z portfela) API zapisuje kredyty na autoskalowanie;
                 // klient widzi korzyść przed zapłatą. Cena pierwszego okresu = cena odnowienia.
                 kredytyStartowe={

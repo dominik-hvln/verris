@@ -58,6 +58,8 @@ interface Props {
   bezKodu?: boolean;
   /** Zakup tej usługi od razu BLIK-iem lub przelewem (Paynow) — faktura nazywa usługę i okres. */
   paynowDostepny?: boolean;
+  /** Paczka 129 – hosting bez domeny (adres techniczny) dostępny w API. */
+  bezDomenyDostepne?: boolean;
 }
 
 /** Sposób zapłaty w formularzu: źródło płatności usługi + „Paynow” (portfel jako źródło odnowień, zapłata teraz). */
@@ -73,6 +75,7 @@ export function NewSubscriptionForm({
   bezKarty,
   bezKodu,
   paynowDostepny,
+  bezDomenyDostepne = false,
 }: Props) {
   const router = useRouter();
   const hasEmailPlans = useMemo(() => plans.some((p) => p.productKind === 'EMAIL'), [plans]);
@@ -126,6 +129,9 @@ export function NewSubscriptionForm({
     register: null,
   });
   const domain = domainSel.domain;
+  // Paczka 129 – „bez domeny” tylko dla hostingu WWW i przy włączonej funkcji; inaczej to zwykłe „mam własną domenę”.
+  const zBezDomeny = domainSel.mode === 'none' && bezDomenyDostepne && productKind === 'HOSTING';
+  const trybDomeny: 'own' | 'register' | 'none' = zBezDomeny ? 'none' : domainSel.mode === 'register' ? 'register' : 'own';
   const [autoscalingEnabled, setAutoscalingEnabled] = useState(false);
   // Decyzja 6 (3.11) — domyślnie bez limitu kosztu, z prostą opcją „ustaw własny limit”.
   const [limitTryb, setLimitTryb] = useState<'bez' | 'wlasny'>('bez');
@@ -164,6 +170,7 @@ export function NewSubscriptionForm({
     daUsername: string;
     domain: string;
     productKind: 'HOSTING' | 'EMAIL';
+    naAdresieTechnicznym?: boolean;
   } | null>(null);
   const [provisionQueuedSubId, setProvisionQueuedSubId] = useState<string | null>(null);
   const [promoCode, setPromoCode] = useState(initialPromo ?? '');
@@ -178,7 +185,7 @@ export function NewSubscriptionForm({
   );
   const zAutoskalowaniem = !aplikacyjny && selectedPlan?.productKind !== 'EMAIL' && autoscalingEnabled;
   const limit = zAutoskalowaniem && limitTryb === 'wlasny' ? odczytajLimit(limitKwota) : null;
-  const domena = !aplikacyjny && domainSel.mode === 'own' && domain.trim() ? sprawdzDomene(domain) : null;
+  const domena = !aplikacyjny && trybDomeny === 'own' && domain.trim() ? sprawdzDomene(domain) : null;
 
   const listPrice = useMemo(() => {
     if (!selectedPlan) return null;
@@ -219,8 +226,8 @@ export function NewSubscriptionForm({
   // A3-2 — czego brakuje do zamówienia: widoczne przy przycisku (zamiast cichego `disabled`) i fokus na pierwsze pole.
   const braki: { id: string; tekst: string }[] = [];
   if (!selectedPlan) braki.push({ id: 'plan-zamowienia', tekst: 'wybierz plan' });
-  if (!aplikacyjny) {
-    if (domainSel.mode === 'own') {
+  if (!aplikacyjny && trybDomeny !== 'none') {
+    if (trybDomeny === 'own') {
       if (!domain.trim()) braki.push({ id: 'domena-wlasna', tekst: 'wpisz domenę' });
       else if (domena && !domena.ok) braki.push({ id: 'domena-wlasna', tekst: 'popraw adres domeny' });
     } else if (!domainSel.register) {
@@ -337,9 +344,9 @@ export function NewSubscriptionForm({
         }
       }
 
-      const domenaDoZamowienia = aplikacyjny
+      const domenaDoZamowienia = aplikacyjny || zBezDomeny
         ? undefined
-        : domainSel.mode === 'own' && domena?.ok
+        : trybDomeny === 'own' && domena?.ok
           ? domena.ascii
           : domain.trim().toLowerCase();
       const res = await createSubscriptionAction({
@@ -348,6 +355,7 @@ export function NewSubscriptionForm({
         paymentSource,
         ...(zPaynow ? { oplata: 'PAYNOW' as const } : {}),
         domain: domenaDoZamowienia,
+        ...(zBezDomeny ? { bezDomeny: true } : {}),
         autoscalingEnabled: zAutoskalowaniem,
         ...(zAutoskalowaniem && limit && 'kwota' in limit ? { autoscalingMaxCost: limit.kwota } : {}),
         ecoModeEnabled: aplikacyjny ? false : ecoModeEnabled,
@@ -382,6 +390,7 @@ export function NewSubscriptionForm({
           daUsername: res.data.provisioning.daUsername,
           productKind: (selectedPlan?.productKind ?? 'HOSTING') as 'HOSTING' | 'EMAIL',
           domain: res.data.provisioning.domain,
+          naAdresieTechnicznym: zBezDomeny,
         });
       } else if (res.data?.provisioningQueued && res.data.subscription?.id) {
         setProvisionQueuedSubId(res.data.subscription.id);
@@ -525,6 +534,7 @@ export function NewSubscriptionForm({
           value={domainSel}
           onChange={setDomainSel}
           dlaPoczty={productKind === 'EMAIL'}
+          bezDomenyDostepne={bezDomenyDostepne}
           bladDomeny={domena && !domena.ok ? domena.blad : null}
           zapisAscii={domena?.ok && domena.ascii !== domena.domena ? domena.ascii : null}
         />
@@ -1086,7 +1096,7 @@ function Toggle({
         <span
           aria-hidden
           className={`relative h-6 w-11 rounded-full border transition-colors ${
-            checked ? 'border-emerald-300 bg-emerald-400' : 'border-line-strong bg-raised'
+            checked ? 'border-emerald-300 bg-emerald-400' : 'border-control-border bg-raised'
           }`}
         >
           <span
@@ -1129,10 +1139,12 @@ function ProvisioningSuccess({
   daUsername,
   domain,
   productKind,
+  naAdresieTechnicznym = false,
 }: {
   daUsername: string;
   domain: string;
   productKind: 'HOSTING' | 'EMAIL';
+  naAdresieTechnicznym?: boolean;
 }) {
   // Poczta nie ma hostingu WWW ani logowania do panelu DA — skrzynkami zarządza
   // się w panelu (zakładka Poczta) i przez webmail. Nie pokazujemy danych DA.
@@ -1166,8 +1178,18 @@ function ProvisioningSuccess({
       <div>
         <h2 className="text-2xl font-bold text-white">Usługa uruchomiona</h2>
         <p className="text-neutral-300 mt-1">
-          Twoje konto hostingowe dla domeny <strong>{domain}</strong> jest gotowe. Wszystkim – plikami,
-          bazami, pocztą, SSL i kopiami – zarządzasz w tym panelu. Konta FTP i klucze SSH dodasz w zakładkach usługi.
+          {naAdresieTechnicznym ? (
+            <>
+              Twoje konto hostingowe działa pod adresem technicznym <strong>{domain}</strong>. Własną domenę podłączysz
+              później w zakładce „Domeny”.
+            </>
+          ) : (
+            <>
+              Twoje konto hostingowe dla domeny <strong>{domain}</strong> jest gotowe.
+            </>
+          )}{' '}
+          Wszystkim – plikami, bazami, pocztą, SSL i kopiami – zarządzasz w tym panelu. Konta FTP i klucze SSH dodasz
+          w zakładkach usługi.
         </p>
       </div>
       <dl className="grid grid-cols-1 gap-4 text-sm">

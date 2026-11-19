@@ -437,7 +437,7 @@ export function Switch({
       onClick={() => onChange(!checked)}
       className={cx(
         'relative h-6 w-[42px] flex-none rounded-full border p-0 transition-colors disabled:opacity-50',
-        checked ? 'border-data bg-data-soft' : 'border-line-strong bg-raised',
+        checked ? 'border-data bg-data-soft' : 'border-control-border bg-raised',
       )}
     >
       <span

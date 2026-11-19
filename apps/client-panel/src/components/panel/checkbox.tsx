@@ -17,7 +17,7 @@ export function Checkbox({ className, ...props }: Omit<InputHTMLAttributes<HTMLI
       />
       <span
         aria-hidden
-        className="pointer-events-none h-full w-full rounded-[4px] border border-line-strong bg-raised transition-colors peer-checked:border-data peer-checked:bg-data peer-focus-visible:ring-2 peer-focus-visible:ring-data/40 peer-disabled:opacity-50"
+        className="pointer-events-none h-full w-full rounded-[4px] border border-control-border bg-raised transition-colors peer-checked:border-data peer-checked:bg-data peer-focus-visible:ring-2 peer-focus-visible:ring-data/40 peer-disabled:opacity-50"
       />
       <svg
         aria-hidden

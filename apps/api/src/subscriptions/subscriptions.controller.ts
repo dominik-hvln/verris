@@ -55,6 +55,12 @@ export class SubscriptionsController {
     return this.subscriptions.kredytyStartowe(user.userId);
   }
 
+  /** Paczka 129 – czy panel może pokazać opcję „Bez domeny – użyję adresu technicznego” przy zamówieniu hostingu. */
+  @Get('zamowienie-bez-domeny')
+  zamowienieBezDomeny() {
+    return this.subscriptions.zamowienieBezDomeny();
+  }
+
   /** Czy to konto może jeszcze uruchomić darmowy okres próbny. */
   @Get('trial/eligibility')
   trialEligibility(@CurrentUser() user: { userId: string }) {

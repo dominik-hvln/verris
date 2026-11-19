@@ -1897,6 +1897,8 @@ export class UserServicesController {
       id: sub.id,
       status: sub.status,
       serviceTag: sub.serviceTag ?? sub.account?.daUsername ?? null,
+      // Paczka 129 – adres techniczny usługi (`vxxxxxxx.<domena techniczna>`); null u usług sprzed paczki.
+      adresTechniczny: sub.adresTechniczny ?? null,
       plan: {
         id: sub.plan.id,
         slug: sub.plan.slug,

@@ -550,8 +550,8 @@ function DashboardLayoutInner({
         {...atrybutySzuflady}
         className={
           skupienie
-            ? "fixed inset-y-0 left-0 z-[80] flex w-[300px] max-w-[85vw] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground shadow-2xl animate-in slide-in-from-left duration-200 motion-reduce:animate-none"
-            : `max-lg:fixed max-lg:inset-y-0 max-lg:left-0 z-[60] flex w-[300px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-transform duration-300 max-lg:duration-300 lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:max-h-screen lg:self-start lg:translate-x-0 ${
+            ? "fixed inset-y-0 left-0 z-[80] v2-sidebar flex w-[300px] max-w-[85vw] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground shadow-2xl animate-in slide-in-from-left duration-200 motion-reduce:animate-none"
+            : `v2-sidebar max-lg:fixed max-lg:inset-y-0 max-lg:left-0 z-[60] flex w-[300px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-transform duration-300 max-lg:duration-300 lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:max-h-screen lg:self-start lg:translate-x-0 ${
                 sidebarOpen ? "max-lg:translate-x-0" : "max-lg:-translate-x-full"
               }`
         }

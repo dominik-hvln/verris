@@ -83,6 +83,15 @@ export class CreateSubscriptionDto {
   @DomenaZamowienia()
   domain?: string;
 
+  /**
+   * Paczka 129 – hosting WWW bez domeny: konto powstaje na adresie technicznym usługi
+   * (`<identyfikator>.<HOSTING_TECH_DOMAIN>`), własną domenę klient podłącza później w panelu. Dostępne tylko przy
+   * skonfigurowanej domenie technicznej (GET /subscriptions/zamowienie-bez-domeny). Z podaną `domain` – ignorowane.
+   */
+  @IsOptional()
+  @IsBoolean()
+  bezDomeny?: boolean;
+
   /** Optional region preference (e.g. "PL-WAW"). Used as a tie-breaker. */
   @IsOptional()
   @IsString()

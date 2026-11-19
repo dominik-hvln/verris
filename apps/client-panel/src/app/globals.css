@@ -117,14 +117,19 @@
   --sidebar-accent-foreground: var(--verris-paper);
   --sidebar-border: var(--verris-hairline);
   --sidebar-ring: var(--verris-mint);
+  /* P129 — szarość menu bocznego (nagłówki grup, liczniki, e-mail): 7,8:1+ na każdym tle menu (było --verris-stone 6,3:1).
+     Podmieniana w .v2-sidebar. Pilnuje lib/kontrast-tokenow.spec.ts. */
+  --sidebar-muted: #adb6af;
   --eko: var(--verris-mid);
   --eko-bg: var(--verris-eco);
   --eko-foreground: var(--verris-tip);
   /* PB-15 — tokeny nowego wyglądu (docs/design/wzorzec-panelu.html) */
   --raised: #eceee6;
   --line: rgba(12, 26, 20, 0.1);
-  --line-strong: rgba(12, 26, 20, 0.18);
-  --data: #18935f; /* 3,2:1+ na każdym tle — wykresy i obramowanie fokusu (WCAG 1.4.11) */
+  --line-strong: rgba(12, 26, 20, 0.34); /* P129: obramowanie przycisku drugorzędnego 2,1:1+ (było 0.18 → 1,4:1) */
+  /* P129 — obrys wyłączonego przełącznika i pustego pola wyboru: 3,5:1+ na każdym tle (WCAG 1.4.11; line-strong 1,4:1). */
+  --control-border: #737d76;
+  --data: #128255; /* 3,9:1+ na każdym tle, kciuk włączonego przełącznika 3,4:1+ na --data-soft (P129; #18935f: 2,8:1) — wykresy i fokus (WCAG 1.4.11) */
   --data-2: #6cc9a0;
   --data-3: #b5e3cc;
   --data-soft: rgba(31, 168, 113, 0.16);
@@ -186,12 +191,16 @@
   --sidebar-accent-foreground: var(--verris-paper);
   --sidebar-border: var(--verris-hairline);
   --sidebar-ring: var(--verris-mint);
+  /* P129 — szarość menu bocznego (nagłówki grup, liczniki, e-mail): 7,8:1+ na każdym tle menu (było --verris-stone 6,3:1).
+     Podmieniana w .v2-sidebar. Pilnuje lib/kontrast-tokenow.spec.ts. */
+  --sidebar-muted: #adb6af;
   --eko: var(--verris-mid);
   --eko-bg: var(--verris-eco);
   --eko-foreground: var(--verris-tip);
   --raised: #132a1f;
   --line: rgba(255, 255, 255, 0.08);
-  --line-strong: rgba(255, 255, 255, 0.16);
+  --line-strong: rgba(255, 255, 255, 0.24); /* P129: 2,1:1+ (było 0.16 → 1,6:1) */
+  --control-border: #64806f; /* P129 — 3,5:1+ na każdym tle (WCAG 1.4.11) */
   --data: var(--verris-mint);
   --data-2: var(--verris-mid);
   --data-3: #1c5a40;
@@ -204,6 +213,12 @@
   --crit: #fb7185;
 }
 
+
+/* P129 — menu boczne: szarość pomocnicza (text-verris-stone w NavRow, ServiceNav, menu użytkownika) jaśniejsza
+   tylko w <aside>, bez ruszania palety bazowej i --muted-foreground treści. */
+.v2-sidebar {
+  --verris-stone: var(--sidebar-muted);
+}
 
 /* --accent nadpisany kolorem tła (hover, zaznaczenie) — tekst w text-accent bierze --accent-text (A3-5: było 1,48:1). */
 html.dark.eco-tint {
@@ -256,6 +271,8 @@ html.dark.eco-tint {
   --color-raised: var(--raised);
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
+  --color-control-border: var(--control-border);
+  --color-sidebar-muted: var(--sidebar-muted);
   --color-data: var(--data);
   --color-data-2: var(--data-2);
   --color-data-3: var(--data-3);

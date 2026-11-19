@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState, useTransition } from 'react';
-import { Download, Loader2, Upload } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
+import { Download, FileUp, Loader2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { Select } from '@/components/panel/select';
 import { potwierdz } from '@/components/panel/potwierdz';
@@ -11,8 +11,10 @@ import {
   importDb,
   maintainDb,
   measureDbSizes,
+  uploadDbFile,
   type DbTransferStatus,
 } from '@/app/dashboard/services/[id]/hosting-db-transfer-actions';
+import { bladPlikuBazy } from '@/lib/plik-bazy';
 import { liczba } from '@/lib/liczba';
 import { plForm } from '@/lib/pl';
 
@@ -41,6 +43,8 @@ export function DbTransferPanel({ serviceId, databases }: { serviceId: string; d
   const [plik, setPlik] = useState('');
   const [pending, start] = useTransition();
   const [pobierany, setPobierany] = useState<string | null>(null);
+  const [wgrywanie, setWgrywanie] = useState(false);
+  const wyborPliku = useRef<HTMLInputElement>(null);
 
   const odswiez = useCallback(
     () =>
@@ -73,6 +77,31 @@ export function DbTransferPanel({ serviceId, databases }: { serviceId: string; d
         toast.success('Eksport zlecony – plik pojawi się poniżej.');
       } else toast.error(r.error);
     });
+
+  // Paczka 129 — plik do importu wgrany stąd (bez menedżera plików); po wgraniu od razu wybrany do importu.
+  const wgraj = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (wyborPliku.current) wyborPliku.current.value = '';
+    if (!f) return;
+    const zly = bladPlikuBazy(f);
+    if (zly) {
+      toast.error(zly);
+      return;
+    }
+    setWgrywanie(true);
+    const form = new FormData();
+    form.append('id', serviceId);
+    form.append('file', f);
+    const r = await uploadDbFile(form);
+    setWgrywanie(false);
+    if (!r.ok) {
+      toast.error('Nie udało się wgrać pliku', { description: r.error });
+      return;
+    }
+    setStan(r.status);
+    setPlik(f.name);
+    toast.success('Plik wgrany – wybierz bazę i kliknij „Importuj do bazy”.');
+  };
 
   const importuj = async () => {
     const tak = await potwierdz(
@@ -145,7 +174,7 @@ export function DbTransferPanel({ serviceId, databases }: { serviceId: string; d
         <h3 className="m-0 text-[15px] font-bold text-foreground">Eksport i import bazy</h3>
         <p className="m-0 mt-0.5 text-[12.5px] text-muted-foreground">
           Pliki trafiają do katalogu <span className="font-mono">{stan?.katalog ?? 'verris-bazy'}</span> na koncie. Plik do importu (.sql
-          albo .sql.gz) wgrasz tam menedżerem plików, a duży – przez FTP.
+          albo .sql.gz, do 25 MB) wgrasz przyciskiem „Wgraj plik”, a większy – przez FTP.
         </p>
       </header>
 
@@ -161,9 +190,15 @@ export function DbTransferPanel({ serviceId, databases }: { serviceId: string; d
           <label htmlFor="dbt-plik" className="mb-1 block text-[13px] font-medium text-foreground">Plik do importu</label>
           <Select id="dbt-plik" value={plik} onChange={setPlik} options={opcjePlikow} placeholder={opcjePlikow.length ? 'Wybierz plik…' : 'Brak plików .sql w katalogu'} disabled={pending || !opcjePlikow.length} className="w-full" />
         </div>
-        <button type="button" onClick={() => void importuj()} disabled={pending || !baza || !plik || stan?.wToku} className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[7px] border border-line-strong bg-card px-[13px] py-2 text-sm font-medium text-foreground hover:bg-raised disabled:opacity-50">
-          <Upload className="h-4 w-4" /> Importuj do bazy
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => wyborPliku.current?.click()} disabled={pending || wgrywanie} className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[7px] border border-line-strong bg-card px-[13px] py-2 text-sm font-medium text-foreground hover:bg-raised disabled:opacity-50">
+            {wgrywanie ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />} {wgrywanie ? 'Wgrywanie…' : 'Wgraj plik'}
+          </button>
+          <input ref={wyborPliku} type="file" accept=".sql,.gz" hidden aria-label="Plik .sql albo .sql.gz do importu" onChange={(e) => void wgraj(e)} />
+          <button type="button" onClick={() => void importuj()} disabled={pending || wgrywanie || !baza || !plik || stan?.wToku} className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[7px] border border-line-strong bg-card px-[13px] py-2 text-sm font-medium text-foreground hover:bg-raised disabled:opacity-50">
+            <Upload className="h-4 w-4" /> Importuj do bazy
+          </button>
+        </div>
       </div>
       <div className="border-t border-line px-4 py-3">
         <div className="flex flex-wrap items-center justify-between gap-2">

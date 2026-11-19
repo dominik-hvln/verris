@@ -41,6 +41,18 @@ export async function czyKredytyStartowe(): Promise<boolean> {
   }
 }
 
+/**
+ * Paczka 129 – czy API przyjmie zamówienie hostingu bez domeny (adres techniczny usługi). Błąd API = opcja ukryta
+ * (klient poda domenę jak dotąd).
+ */
+export async function czyZamowienieBezDomeny(): Promise<boolean> {
+  try {
+    return (await apiFetch<{ dostepne: boolean }>('/subscriptions/zamowienie-bez-domeny')).dostepne === true;
+  } catch {
+    return false;
+  }
+}
+
 /** UX-3 — oferta na start (chooser zamawiania). Fallback bezpieczny: bez obietnicy kredytów. */
 export async function getTrialOffer(): Promise<TrialOffer> {
   try {

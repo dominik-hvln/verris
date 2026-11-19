@@ -22,6 +22,11 @@ export interface CreateSubscriptionInput {
   paymentSource: SubscriptionPaymentSource;
   /** Wymagana dla hostingu i poczty; produkt aplikacyjny (EMAIL_MARKETING, KREATOR_PRO) zamawia się bez domeny. */
   domain?: string;
+  /**
+   * Paczka 129 – hosting WWW bez domeny: konto na adresie technicznym usługi, domena podłączana później.
+   * Tylko gdy GET /subscriptions/zamowienie-bez-domeny zwraca `dostepne: true`.
+   */
+  bezDomeny?: boolean;
   preferredRegion?: string;
   autoscalingEnabled?: boolean;
   /**
@@ -279,6 +284,11 @@ export interface ServiceConnectionInfoDto {
 
 export interface ServiceDetailsDto extends Omit<ServiceSummaryDto, 'planSlug' | 'planName'> {
   paymentSource: SubscriptionPaymentSource;
+  /**
+   * Paczka 129 – adres techniczny usługi hostingowej (np. `v7k2m9qx.<domena techniczna>`): domena główna konta przy
+   * zamówieniu bez domeny, przy własnej domenie – jej alias. null = nie nadano (usługa sprzed paczki 129).
+   */
+  adresTechniczny?: string | null;
   plan: {
     id: string;
     slug: string;

@@ -4,12 +4,14 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  PayloadTooLargeException,
 } from '@nestjs/common';
 import { NodeTaskKind, NodeTaskStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { HostingResourceActions } from '../common/audit/audit.actions.js';
 import { DirectAdminService } from '../servers/directadmin.service.js';
+import { DirectAdminApiError } from '@verris/directadmin-sdk';
 
 /**
  * D-12 — eksport i import bazy z panelu klienta. DirectAdmin nie ma na to udokumentowanego API,
@@ -26,6 +28,8 @@ import { DirectAdminService } from '../servers/directadmin.service.js';
  */
 export const KATALOG_BAZ = 'verris-bazy';
 const PLIK_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,120}\.sql(\.gz)?$/;
+/** Paczka 129 — wgranie pliku do importu prosto z zakładki baz; większe pliki przez FTP (jak w menedżerze plików). */
+export const MAX_PLIKU_BAZY = 25_000_000;
 
 type Zadanie = {
   id: string;
@@ -113,6 +117,47 @@ export class DbTransferService {
   async zlecRozmiary(subscriptionId: string, userId: string) {
     const sub = await this.wymagajKonta(subscriptionId, userId);
     await this.zlec(sub.account, userId, { mode: 'sizes', db: '' });
+    return this.opis(subscriptionId, userId, sub.account.id);
+  }
+
+  /**
+   * Paczka 129 — plik .sql/.sql.gz do importu wgrany z zakładki „Bazy danych” do ~/verris-bazy. Ten sam tor co
+   * menedżer plików (API serwera hostingu z control-plane, jako użytkownik konta). Bez nadpisywania: plik o tej
+   * samej nazwie (np. kopia sprzed importu) zostaje, klient dostaje 409.
+   */
+  async wgrajPlik(subscriptionId: string, userId: string, nazwa: string | undefined, dane: Buffer | undefined) {
+    const sub = await this.wymagajKonta(subscriptionId, userId);
+    if (sub.account.status !== 'ACTIVE') throw new BadRequestException('Konto hostingowe nie jest aktywne.');
+    const plik = (nazwa ?? '').trim();
+    if (!PLIK_RE.test(plik)) {
+      throw new BadRequestException('Wybierz plik .sql albo .sql.gz – w nazwie tylko litery, cyfry, kropki, myślniki i podkreślenia.');
+    }
+    if (!dane?.length) throw new BadRequestException('Plik jest pusty.');
+    if (dane.length > MAX_PLIKU_BAZY) {
+      throw new PayloadTooLargeException(`Plik jest większy niż 25 MB – wgraj go przez FTP do katalogu ${KATALOG_BAZ}.`);
+    }
+    if (plik.endsWith('.gz') && !(dane[0] === 0x1f && dane[1] === 0x8b)) {
+      throw new BadRequestException('Plik .sql.gz nie jest archiwum gzip – sprawdź plik albo wgraj go jako .sql.');
+    }
+    const client = await this.directAdmin.getClientForHostingAccount(sub.account.id, userId);
+    const katalog = `/${KATALOG_BAZ}`;
+    let wpisy: { name: string }[] | null = null;
+    try {
+      wpisy = await client.listDir(katalog);
+    } catch (err) {
+      // Katalogu nie ma przed pierwszym eksportem — DA odpowiada wtedy błędem (jak w listHostingDbTransferFiles).
+      if (!(err instanceof DirectAdminApiError)) throw err;
+    }
+    if (wpisy === null) await client.makeDir('/', KATALOG_BAZ);
+    else if (wpisy.some((w) => w.name === plik)) {
+      throw new ConflictException(`W katalogu ${KATALOG_BAZ} jest już plik „${plik}” – zmień nazwę pliku i wgraj go ponownie.`);
+    }
+    await client.uploadFile(katalog, plik, dane);
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_FILE_UPLOADED,
+      userId: sub.userId, actorUserId: userId,
+      details: { subscriptionId, accountId: sub.account.id, path: `${katalog}/${plik}`, bytes: dane.length, cel: 'import-bazy' },
+    });
     return this.opis(subscriptionId, userId, sub.account.id);
   }
 

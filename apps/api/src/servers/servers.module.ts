@@ -27,6 +27,7 @@ import { NodeTasksService } from './node-tasks.service.js';
 import { NodeAuditService } from './node-audit.service.js';
 import { NodeStackReadinessService } from './node-stack-readiness.service.js';
 import { OvhClient } from './ovh.client.js';
+import { AdresTechnicznyService } from './adres-techniczny.service.js';
 import { NodeDnsService } from './node-dns.service.js';
 import { NodeBootstrapService } from './node-bootstrap.service.js';
 import { NodeBootstrapAgentController } from './node-bootstrap.agent.controller.js';
@@ -82,6 +83,8 @@ import { StraznikWezlaAdminController, StraznikWezlaService } from './straznik-w
     OvhClient,
     NodeDnsService,
     NodeBootstrapService,
+    // Paczka 129 – adres techniczny usługi (strefa DNS domeny technicznej).
+    AdresTechnicznyService,
   ],
   exports: [
     ServersService,
@@ -94,6 +97,7 @@ import { StraznikWezlaAdminController, StraznikWezlaService } from './straznik-w
     NodeAuditService,
     NodeStackReadinessService,
     NodeDnsService,
+    AdresTechnicznyService,
   ],
 })
 export class ServersModule {}

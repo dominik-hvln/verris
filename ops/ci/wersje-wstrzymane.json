@@ -5,22 +5,22 @@
       "pakiet": "prisma",
       "poziom": "major",
       "pozycja": "PB-38",
-      "przeglad": "2026-11-15",
-      "powod": "Prisma 8 jest w RC; brakuje w niej increment, zagnieżdżonych zapisów i kodów P2002, których używamy — czekamy na wydanie stabilne. @prisma/client i @prisma/adapter-pg idą razem z CLI (strażnik: jedna wersja główna)."
+      "przeglad": "2026-12-15",
+      "powod": "Prisma 8 jest wciąż w RC (przegląd 2026-11-19: tag latest = 8.0.0-rc.34, prev = 7.10.1); brakuje w niej increment, zagnieżdżonych zapisów i kodów P2002, których używamy — czekamy na wydanie stabilne. @prisma/client i @prisma/adapter-pg idą razem z CLI (strażnik: jedna wersja główna)."
     },
     {
       "pakiet": "typescript",
       "poziom": "major",
       "pozycja": "PB-38",
-      "przeglad": "2026-11-15",
-      "powod": "typescript-eslint deklaruje typescript <6.1 — TypeScript 7 wyłączyłby linter."
+      "przeglad": "2026-12-15",
+      "powod": "typescript-eslint 8.73.0 (przegląd 2026-11-19) nadal deklaruje typescript >=4.8.4 <6.1.0 — TypeScript 7 wyłączyłby linter."
     },
     {
       "pakiet": "@types/node",
       "poziom": "major",
       "pozycja": "PB-38",
-      "przeglad": "2026-11-15",
-      "powod": "Typy idą za wersją Node z .nvmrc (24); 26 po wejściu w LTS (2026-10-28)."
+      "przeglad": "2026-12-15",
+      "powod": "Typy idą za wersją Node z .nvmrc (24). Node 26 jest LTS od 2026-10-28, ale przejście runtime (obrazy, węzły, CI) to osobna decyzja — przegląd 2026-11-19 przesunięty o miesiąc."
     },
     {
       "pakiet": "graphql",

@@ -41,6 +41,7 @@ import { MigracjaZaKlientaService } from './migracja-za-klienta.service.js';
 import { MigracjaZgodaController } from './migracja-zgoda.controller.js';
 import { TablicaMigracjiService } from './tablica-migracji.service.js';
 import { TablicaMigracjiController } from './tablica-migracji.controller.js';
+import { BazyPlikController } from './bazy-plik.controller.js';
 import { ServiceHealthService } from './service-health.service.js';
 import { HostingDnsPointingService } from './hosting-dns-pointing.service.js';
 import { AssistantService } from './assistant.service.js';
@@ -199,6 +200,7 @@ import { ComplianceModule } from '../compliance/compliance.module.js';
     BlokadyIpKontaAdminController,
     MigracjaZgodaController,
     TablicaMigracjiController,
+    BazyPlikController,
   ],
   exports: [
     SubscriptionsService,

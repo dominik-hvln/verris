@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { Check, Globe, Loader2, Search, Sparkles } from 'lucide-react';
+import { Check, Globe, Link2, Loader2, Search, Sparkles } from 'lucide-react';
 import type { DomainSearchResultDto } from '@verris/contracts/klient';
 import { searchDomainsAction } from '@/app/dashboard/domains/actions';
 import { formatCredits } from '@/lib/credits';
 
-export type DomainMode = 'own' | 'register';
+/** `none` – paczka 129: hosting bez domeny, konto na adresie technicznym usługi (domena później). */
+export type DomainMode = 'own' | 'register' | 'none';
 
 export interface DomainSelection {
   mode: DomainMode;
@@ -28,6 +29,7 @@ export function DomainStep({
   dlaPoczty = false,
   bladDomeny = null,
   zapisAscii = null,
+  bezDomenyDostepne = false,
 }: {
   value: DomainSelection;
   onChange: (next: DomainSelection) => void;
@@ -37,7 +39,10 @@ export function DomainStep({
   bladDomeny?: string | null;
   /** P5-04 — domena z polskimi znakami: zapis, pod którym ją założymy. */
   zapisAscii?: string | null;
+  /** Paczka 129 – API ma skonfigurowaną domenę techniczną (GET /subscriptions/zamowienie-bez-domeny); nie dla poczty. */
+  bezDomenyDostepne?: boolean;
 }) {
+  const bezDomeny = bezDomenyDostepne && !dlaPoczty;
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<DomainSearchResultDto[] | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -72,10 +77,10 @@ export function DomainStep({
       <h2 className="text-xl font-bold text-white">3. Domena główna</h2>
       <p className="text-neutral-400 text-sm mt-1">
         Podłącz własną domenę albo zarejestruj nową w trakcie zamówienia – opłata za domenę
-        zostanie pobrana z portfela.
+        zostanie pobrana z portfela.{bezDomeny ? ' Możesz też zacząć bez domeny i podłączyć ją później.' : ''}
       </p>
 
-      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl">
+      <div className={`mt-4 grid grid-cols-1 gap-3 ${bezDomeny ? 'sm:grid-cols-3 max-w-3xl' : 'sm:grid-cols-2 max-w-2xl'}`}>
         <ModeCard
           active={value.mode === 'own'}
           onClick={() => setMode('own')}
@@ -90,9 +95,24 @@ export function DomainStep({
           title="Zarejestruj nową domenę"
           description={`Wyszukaj i zarejestruj nową domenę razem z ${dlaPoczty ? 'pocztą' : 'hostingiem'}.`}
         />
+        {bezDomeny ? (
+          <ModeCard
+            active={value.mode === 'none'}
+            onClick={() => setMode('none')}
+            icon={<Link2 className="h-5 w-5" />}
+            title="Bez domeny – użyję adresu technicznego"
+            description="Strona ruszy od razu pod adresem technicznym usługi. Domenę podłączysz później."
+          />
+        ) : null}
       </div>
 
-      {value.mode === 'own' ? (
+      {value.mode === 'none' && bezDomeny ? (
+        <p id="domena-techniczna-opis" className="mt-4 max-w-2xl text-sm text-neutral-400">
+          Konto założymy na adresie technicznym usługi (krótki identyfikator w naszej domenie technicznej) – zobaczysz go
+          po zakupie w szczegółach usługi. Własną domenę dodasz w zakładce „Domeny” – adres techniczny
+          zostanie wtedy jako dodatkowy.
+        </p>
+      ) : value.mode === 'own' || value.mode === 'none' ? (
         <div className="mt-4 max-w-2xl">
           <input
             id="domena-wlasna"

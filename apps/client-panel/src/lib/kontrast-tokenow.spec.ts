@@ -75,6 +75,86 @@ describe.each([
 });
 
 /**
+ * Paczka 129 (feedback bety: „mało czytelne menu boczne, przyciski i przełączniki”).
+ * Menu boczne jest zawsze ciemne (motyw jasny obejmuje tylko kolumnę treści), tekst ma 10,5–14 px — cel AAA 7:1 (1.4.6)
+ * na każdym tle menu: samo menu, hover (white/4%), ramka usługi (mint/2,5%), lista menu użytkownika (#10241b).
+ * Przełącznik i pole wyboru: obrys wyłączonego i kciuk włączonego ≥ 3:1 (1.4.11). Obramowanie przycisku
+ * drugorzędnego (--line-strong) — próg projektowy 2:1 (tekst przycisku i tak ma ≥ 4,5:1).
+ * Na starych wartościach: nagłówki grup menu 6,3:1, obrys przełącznika 1,4–1,7:1, kciuk na torze w jasnym 2,8:1.
+ */
+const SRC = join(__dirname, '..');
+const plik = (p: string) => readFileSync(join(SRC, p), 'utf8');
+
+describe.each([
+  ['jasny', ':root,\n[data-vtheme="light"] .v2-content'],
+  ['ciemny', '.dark {'],
+])('menu boczne – motyw %s', (_n, naglowek) => {
+  const t = blok(naglowek);
+  const tlaMenu = () => {
+    const menu = t.sidebar;
+    return { menu, hover: naTle('rgba(255, 255, 255, 0.04)', menu), usluga: naTle('rgba(52, 229, 160, 0.025)', menu), lista: '#10241b' };
+  };
+  it.each(['sidebar-foreground', 'sidebar-muted'])('tekst --%s ≥ 7:1 na każdym tle menu', (tok) => {
+    for (const [tlo, kolor] of Object.entries(tlaMenu())) {
+      expect({ tlo, kontrast: kontrast(t[tok], kolor) >= 7 }).toEqual({ tlo, kontrast: true });
+    }
+  });
+  it('ikona nieaktywna (--sidebar-foreground przy opacity-70) ≥ 3:1, aktywny wiersz i jego ikona', () => {
+    const { menu } = tlaMenu();
+    const ikona = naTle(`rgba(${[1, 3, 5].map((i) => parseInt(t['sidebar-foreground'].slice(i, i + 2), 16)).join(', ')}, 0.7)`, menu);
+    expect(kontrast(ikona, menu)).toBeGreaterThanOrEqual(3);
+    const aktywny = naTle('rgba(52, 229, 160, 0.08)', menu);
+    expect(kontrast(t['sidebar-accent-foreground'], aktywny)).toBeGreaterThanOrEqual(7);
+    expect(kontrast(t['sidebar-primary'], aktywny)).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe('menu boczne bierze szarość z --sidebar-muted', () => {
+  it('.v2-sidebar podmienia --verris-stone (nagłówki grup, liczniki, e-mail) na --sidebar-muted', () => {
+    expect(css).toMatch(/\.v2-sidebar\s*\{\s*--verris-stone:\s*var\(--sidebar-muted\);/);
+  });
+  it('<aside> panelu ma klasę v2-sidebar w obu wariantach (szuflada skupienia i zwykłe menu)', () => {
+    const aside = plik('app/dashboard/layout.tsx').match(/<aside[\s\S]*?>/)?.[0] ?? '';
+    expect(aside.match(/v2-sidebar/g)?.length).toBe(2);
+  });
+});
+
+describe.each([
+  ['jasny', ':root,\n[data-vtheme="light"] .v2-content', ['background', 'card', 'raised', 'muted']],
+  ['ciemny', '.dark {', ['background', 'card', 'raised']],
+])('przełącznik, pole wyboru i przycisk – motyw %s', (_n, naglowek, tla) => {
+  const t = blok(naglowek);
+  it('obrys wyłączonego przełącznika i pola wyboru (--control-border) ≥ 3:1 na każdym tle', () => {
+    for (const tlo of tla) expect({ tlo, kontrast: kontrast(t['control-border'] ?? '', t[tlo]) >= 3 }).toEqual({ tlo, kontrast: true });
+  });
+  it('kciuk wyłączonego (--muted-foreground) na torze --raised ≥ 3:1', () => {
+    expect(kontrast(t['muted-foreground'], t.raised)).toBeGreaterThanOrEqual(3);
+  });
+  it('kciuk włączonego (--data) na torze --data-soft ≥ 3:1 na każdym tle', () => {
+    for (const tlo of tla) {
+      const tor = naTle(t['data-soft'], t[tlo]);
+      expect({ tlo, kontrast: kontrast(t.data, tor) >= 3 }).toEqual({ tlo, kontrast: true });
+    }
+  });
+  it('obramowanie przycisku drugorzędnego (--line-strong) ≥ 2:1 na każdym tle', () => {
+    for (const tlo of tla) {
+      expect({ tlo, kontrast: kontrast(naTle(t['line-strong'], t[tlo]), t[tlo]) >= 2 }).toEqual({ tlo, kontrast: true });
+    }
+  });
+});
+
+describe('Switch i Checkbox używają --control-border', () => {
+  it('wyłączony Switch (v2.tsx) i pusty Checkbox mają border-control-border, nie border-line-strong', () => {
+    const sw = plik('components/panel/v2.tsx').match(/export function Switch[\s\S]*?\n}\n/)?.[0] ?? '';
+    expect(sw).toContain("'border-control-border bg-raised'");
+    expect(sw).not.toContain('border-line-strong');
+    expect(plik('components/panel/checkbox.tsx')).toMatch(/border border-control-border bg-raised/);
+    // Przełącznik dodatków w zamówieniu usługi (services/new/form.tsx) – ten sam wygląd co Switch.
+    expect(plik('app/dashboard/services/new/form.tsx')).toContain("'border-control-border bg-raised'");
+  });
+});
+
+/**
  * A3-5 / A3-14 — klasy text-accent i text-data biorą kolor z tokenów tekstu, nie z --accent/--data (tło i grafika).
  * Na starym CSS: „Zmień adres e-mail” 1,48:1 u uczestników EKO (eco-tint nadpisuje --accent tłem), 1,63:1 w motywie jasnym.
  */

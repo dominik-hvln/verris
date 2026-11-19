@@ -177,3 +177,24 @@ describe('ServiceOverviewV2 – zawieszona usługa', () => {
     expect(t).not.toContain('kopie są bezpieczne');
   });
 });
+
+describe('ServiceOverviewV2 – adres techniczny (paczka 129)', () => {
+  it('usługa z adresem technicznym: „Adres techniczny:” z linkiem; usługa bez adresu – bez wiersza', async () => {
+    mockSvc.mockReturnValue({
+      ...usluga('ACTIVE'),
+      adresTechniczny: 'v7k2m9qx.verris-host.pl',
+      account: { domain: 'v7k2m9qx.verris-host.pl', daUsername: 'kowalski', diskLimitMb: 10240, cpuLimit: 100, ramLimitMb: 1024, server: null },
+    });
+    await zamontuj();
+    expect(el.textContent).toContain('Adres techniczny: v7k2m9qx.verris-host.pl');
+    const link = [...el.querySelectorAll('a')].find((a) => a.textContent === 'v7k2m9qx.verris-host.pl');
+    expect(link?.getAttribute('href')).toBe('https://v7k2m9qx.verris-host.pl');
+    expect(link?.getAttribute('rel')).toContain('noopener');
+    act(() => root.unmount());
+    document.body.innerHTML = '';
+
+    mockSvc.mockReturnValue(usluga('ACTIVE'));
+    await zamontuj();
+    expect(el.textContent).not.toContain('Adres techniczny');
+  });
+});

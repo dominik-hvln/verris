@@ -205,3 +205,32 @@ describe('przegląd 14.10 – domenyWskazujaceNaWezel (publiczny DNS)', () => {
     await expect(s.domenyWskazujaceNaWezel('a', 't1', { resolveNs: vi.fn(), resolve4: vi.fn() } as never)).rejects.toThrow('węzeł niedostępny');
   });
 });
+
+describe('Przeniesienie konta – adres techniczny (paczka 129)', () => {
+  function zestaw(blad?: Error) {
+    const prisma = {
+      nodeTask: { create: vi.fn(async (a: unknown) => a) },
+      server: { findUnique: vi.fn(async () => ({ status: 'ACTIVE' })) },
+    };
+    const da = { przepnijDelegacjePoPrzeniesieniu: vi.fn(async () => ({ przepiete: [], rodzicNaStarymWezle: false, bledy: [] })) };
+    const alarmy = { wyslij: vi.fn(async () => undefined) };
+    const adres = { poPrzeniesieniu: vi.fn(async () => (blad ? Promise.reject(blad) : 'v1234567.verris-host.pl')) };
+    const svc = new NodeTasksService(prisma as never, { record: vi.fn() } as never, da as never, undefined, undefined, undefined, alarmy as never, adres as never);
+    return { svc, prisma, alarmy, adres };
+  }
+
+  it('rekord A adresu technicznego przepięty na nowy węzeł, potem archiwum sieroty jak dotąd', async () => {
+    const t = zestaw();
+    await t.svc.porzadekPoPrzeniesieniu('a-pb55', 't1', 'rdeetgju');
+    expect(t.adres.poPrzeniesieniu).toHaveBeenCalledWith('a-pb55');
+    expect(t.prisma.nodeTask.create).toHaveBeenCalled();
+    expect(t.adres.poPrzeniesieniu.mock.invocationCallOrder[0]).toBeLessThan(t.prisma.nodeTask.create.mock.invocationCallOrder[0]);
+  });
+
+  it('błąd DNS → alarm porządku po przeniesieniu (bez przerywania dalszych kroków)', async () => {
+    const t = zestaw(new Error('OVH 500'));
+    await t.svc.porzadekPoPrzeniesieniu('a-pb55', 't1', 'rdeetgju');
+    expect(t.alarmy.wyslij).toHaveBeenCalledWith(expect.objectContaining({ tresc: expect.stringContaining('Adres techniczny konta rdeetgju') }));
+    expect(t.prisma.nodeTask.create).toHaveBeenCalled();
+  });
+});

@@ -12,6 +12,7 @@ import { SupportActions } from '../common/audit/audit.actions.js';
 import { limitZLogu } from './poczta-wezla.js';
 import { wynikUsuwania } from './kolejka-poczty.js';
 import { DirectAdminService } from './directadmin.service.js';
+import { AdresTechnicznyService } from './adres-techniczny.service.js';
 import { PLANY_Z_PAKIETEM_DA } from './da-package-spec.js';
 import { deltaKsiegi, KONTO_NIEISTNIEJACE, ksiegaUpdateData } from '../subscriptions/node-capacity.js';
 
@@ -155,6 +156,7 @@ export class NodeTasksService {
     @Optional() private readonly notifications?: NotificationsService,
     @Optional() private readonly stos?: StosWezlaService,
     @Optional() private readonly alarmy?: AlarmyService,
+    @Optional() private readonly adresTechniczny?: AdresTechnicznyService,
   ) {}
 
   /**
@@ -1086,6 +1088,14 @@ export class NodeTasksService {
       if (d.bledy.length) await this.alarmPorzadku(staryServerId, `Delegacja NS po przeniesieniu konta ${daUser} – do poprawienia ręcznie:\n${d.bledy.join('\n')}`);
     } catch (err) {
       await this.alarmPorzadku(staryServerId, `Delegacja NS po przeniesieniu konta ${daUser} nie została przepięta: ${(err as Error).message}`);
+    }
+    // Paczka 129 – adres techniczny usługi (rekord A w strefie domeny technicznej) na IP nowego węzła.
+    if (this.adresTechniczny) {
+      try {
+        await this.adresTechniczny.poPrzeniesieniu(accountId);
+      } catch (err) {
+        await this.alarmPorzadku(staryServerId, `Adres techniczny konta ${daUser} nie został przepięty na nowy węzeł: ${(err as Error).message}`);
+      }
     }
     const stary = await this.prisma.server.findUnique({ where: { id: staryServerId }, select: { status: true } });
     if (!stary || (stary.status !== ServerStatus.ACTIVE && stary.status !== ServerStatus.MAINTENANCE)) return;

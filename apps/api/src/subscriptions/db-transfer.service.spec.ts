@@ -1,12 +1,13 @@
-import { BadRequestException, ConflictException } from '@nestjs/common';
-import { DbTransferService, bladDlaKlienta, rozmiaryZLogu, wynikZLogu } from './db-transfer.service.js';
+import { BadRequestException, ConflictException, PayloadTooLargeException } from '@nestjs/common';
+import { DirectAdminApiError } from '@verris/directadmin-sdk';
+import { DbTransferService, MAX_PLIKU_BAZY, bladDlaKlienta, rozmiaryZLogu, wynikZLogu } from './db-transfer.service.js';
 
 /**
  * D-12 — zlecanie eksportu/importu bazy. Skrypt na węźle sprawdzony na prawdziwej MariaDB 10.11
  * (2026-09-24): plik obcej bazy i `USE inna_baza` → odmowa uprawnień, dowiązanie do pliku roota →
  * „brak pliku”, kopia przed importem, sprzątnięty tymczasowy użytkownik. Tu: strona API.
  */
-function stanowisko(o: { wToku?: boolean; status?: string } = {}) {
+function stanowisko(o: { wToku?: boolean; status?: string; katalog?: { name: string }[] | null } = {}) {
   const account = { id: 'a1', serverId: 'n1', status: o.status ?? 'ACTIVE', daUsername: 'klient1' };
   const prisma = {
     subscription: { findFirst: vi.fn(async () => ({ id: 's1', userId: 'u1', account })) },
@@ -17,8 +18,20 @@ function stanowisko(o: { wToku?: boolean; status?: string } = {}) {
     },
   };
   const audit = { record: vi.fn(async () => undefined) };
-  const da = { listHostingDbTransferFiles: vi.fn(async () => ({ pliki: [], bladPlikow: null })) };
-  return { svc: new DbTransferService(prisma as never, audit as never, da as never), prisma, audit };
+  const klient = {
+    // null = katalogu verris-bazy jeszcze nie ma (DA odpowiada błędem, jak przed pierwszym eksportem)
+    listDir: vi.fn(async () => {
+      if (o.katalog === null) throw new DirectAdminApiError('Path does not exist', 'Path does not exist');
+      return o.katalog ?? [];
+    }),
+    makeDir: vi.fn(async () => undefined),
+    uploadFile: vi.fn(async () => undefined),
+  };
+  const da = {
+    listHostingDbTransferFiles: vi.fn(async () => ({ pliki: [], bladPlikow: null })),
+    getClientForHostingAccount: vi.fn(async () => klient),
+  };
+  return { svc: new DbTransferService(prisma as never, audit as never, da as never), prisma, audit, klient, da };
 }
 
 describe('DbTransferService', () => {
@@ -98,5 +111,56 @@ describe('DbTransferService', () => {
     expect(wynikZLogu('VERRIS_WYNIK_PLIK=/etc/shadow')).toBeNull();
     expect(bladDlaKlienta(log, 'rc=1')).toMatch(/^import przerwany .* Powód: ERROR 1044 .*obcy_baza/);
     expect(bladDlaKlienta('[db-transfer] BŁĄD: brak pliku /home/klient1/verris-bazy/a.sql', null)).toBe('brak pliku ~/verris-bazy/a.sql');
+  });
+  describe('paczka 129 – wgranie pliku do importu z zakładki baz', () => {
+    const SQL = Buffer.from('CREATE TABLE t (id int);\n');
+    const GZ = Buffer.from([0x1f, 0x8b, 0x08, 0x00, 0x00]);
+
+    it('wgrywa .sql do ~/verris-bazy jako użytkownik konta, wpis w audycie, zwraca stan z listą plików', async () => {
+      const s = stanowisko({ katalog: [{ name: 'inny.sql' }] });
+      const r = await s.svc.wgrajPlik('s1', 'u1', 'sklep.sql', SQL);
+      expect(s.da.getClientForHostingAccount).toHaveBeenCalledWith('a1', 'u1');
+      expect(s.klient.makeDir).not.toHaveBeenCalled();
+      expect(s.klient.uploadFile).toHaveBeenCalledWith('/verris-bazy', 'sklep.sql', SQL);
+      expect(s.audit.record).toHaveBeenCalledWith(expect.objectContaining({
+        action: 'HOSTING_FILE_UPLOADED',
+        details: expect.objectContaining({ path: '/verris-bazy/sklep.sql', bytes: SQL.length }),
+      }));
+      expect(r).toMatchObject({ katalog: 'verris-bazy', pliki: [] });
+    });
+
+    it('brak katalogu (przed pierwszym eksportem) → najpierw tworzy verris-bazy w katalogu domowym', async () => {
+      const s = stanowisko({ katalog: null });
+      await s.svc.wgrajPlik('s1', 'u1', 'kopia.sql.gz', GZ);
+      expect(s.klient.makeDir).toHaveBeenCalledWith('/', 'verris-bazy');
+      expect(s.klient.uploadFile).toHaveBeenCalledWith('/verris-bazy', 'kopia.sql.gz', GZ);
+    });
+
+    it('plik o tej samej nazwie (np. kopia sprzed importu) → 409, bez nadpisania', async () => {
+      const s = stanowisko({ katalog: [{ name: 'klient1_sklep-przed-importem.sql.gz' }] });
+      await expect(s.svc.wgrajPlik('s1', 'u1', 'klient1_sklep-przed-importem.sql.gz', GZ)).rejects.toBeInstanceOf(ConflictException);
+      expect(s.klient.uploadFile).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['../../etc/passwd.sql', SQL],
+      ['strona.php', SQL],
+      ['zrzut.sql.zip', SQL],
+      ['a"b.sql', SQL],
+      ['pusty.sql', Buffer.alloc(0)],
+      ['udawany.sql.gz', SQL],
+    ])('zły plik (%s) → 400 przed serwerem', async (nazwa, dane) => {
+      const s = stanowisko();
+      await expect(s.svc.wgrajPlik('s1', 'u1', nazwa, dane)).rejects.toBeInstanceOf(BadRequestException);
+      expect(s.da.getClientForHostingAccount).not.toHaveBeenCalled();
+      expect(s.audit.record).not.toHaveBeenCalled();
+    });
+
+    it('ponad 25 MB → 413 z podpowiedzią FTP; konto zawieszone → 400', async () => {
+      const s = stanowisko();
+      await expect(s.svc.wgrajPlik('s1', 'u1', 'duzy.sql', Buffer.alloc(MAX_PLIKU_BAZY + 1, 0x41))).rejects.toBeInstanceOf(PayloadTooLargeException);
+      await expect(stanowisko({ status: 'SUSPENDED' }).svc.wgrajPlik('s1', 'u1', 'a.sql', SQL)).rejects.toThrow('nie jest aktywne');
+      expect(s.klient.uploadFile).not.toHaveBeenCalled();
+    });
   });
 });

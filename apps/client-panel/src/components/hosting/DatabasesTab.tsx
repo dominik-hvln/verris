@@ -157,7 +157,7 @@ export default function DatabasesTab({ serviceId }: Props) {
             disabled={pmaOpening}
             onClick={() => void openPhpMyAdmin()}
             className="h-8 gap-1.5 border-line-strong bg-raised text-foreground hover:bg-raised text-xs"
-            title="Otwiera phpMyAdmin bez logowania (jednorazowy link)"
+            title="Narzędzie zaawansowane – przeglądanie tabel i zapytania SQL. Otwiera się bez logowania (jednorazowy link)."
           >
             {pmaOpening ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
             phpMyAdmin

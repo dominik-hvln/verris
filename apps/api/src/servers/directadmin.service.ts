@@ -3,6 +3,7 @@ import * as dnsPubliczny from 'node:dns/promises';
 import { statusOffsite } from './offsite-status.js';
 import { odczytySondy, opiszOdpowiedz, type WynikSondy } from './sonda-da.js';
 import { normalizujKatalogDocroot, odczytajDocroot, trescCustomHttpd, zapiszDocroot } from './docroot.js';
+import { adresPmaDlaKlienta } from './pma-adres.js';
 import {
   BadRequestException,
   Injectable,
@@ -45,6 +46,7 @@ import { HostingResourceActions } from '../common/audit/audit.actions.js';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
 import { PLANY_Z_PAKIETEM_DA, buildDaPackageSpecFromPlan, planResourceFields } from './da-package-spec.js';
 import { resolveHostingPrimaryDomain } from './hosting-primary-domain.js';
+import { KOMUNIKAT_DOMENY_TECHNICZNEJ, konfiguracjaDomenyTechnicznej, wDomenieTechnicznej } from './adres-techniczny.js';
 
 /**
  * Wynik `listHostingDomainsForSubscription` — wołający, który już go ma (podgląd konta przez obsługę, PB-42),
@@ -493,7 +495,8 @@ export class DirectAdminService {
     if (!sub?.account) throw new NotFoundException('Nie znaleziono usługi.');
     const client = await this.getClientForHostingAccount(sub.account.id, userId);
     try {
-      await client.requestLetsEncrypt(sub.account.domain);
+      // Paczka 129 – konto na adresie technicznym: w DNS jest tylko rekord A tej nazwy (bez `www.`).
+      await client.requestLetsEncrypt(sub.account.domain, { includeWww: sub.adresTechniczny !== sub.account.domain });
       return { ok: true, domain: sub.account.domain, error: null };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -511,6 +514,7 @@ export class DirectAdminService {
     daUsername: string,
     password: string,
     domain: string,
+    opcje: { includeWww?: boolean } = {},
   ): Promise<void> {
     const host = server.hostname ?? server.daHost ?? server.ipAddress ?? '';
     const client = new DirectAdminClient({
@@ -521,7 +525,7 @@ export class DirectAdminService {
       secure: server.daUseTls,
       rejectUnauthorized: !server.daAllowInvalidCert,
     });
-    await client.requestLetsEncrypt(domain);
+    await client.requestLetsEncrypt(domain, opcje);
   }
 
   /**
@@ -1223,6 +1227,30 @@ export class DirectAdminService {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.warn(`readHostingLog sub=${subscriptionId} ${type}: ${msg}`);
       return { domain, type, lines: [], truncated: false, fetchError: hostingFetchErrorMessage(msg) };
+    }
+  }
+
+  /**
+   * Paczka 129 – adres techniczny jako alias (domain pointer) domeny głównej konta: pod `vxxxxxxx.<domena techniczna>`
+   * ta sama strona co pod domeną klienta. To samo polecenie co alias dodawany przez klienta (createHostingDomainPointer,
+   * CMD_API_DOMAIN_POINTER action=add, alias=yes – https://docs.directadmin.com/developer/api/legacy-api.html; do
+   * sprawdzenia z dokumentacją DA na węźle), ale bez kontroli „cudzej domeny”: adres nadał nam provisioning.
+   */
+  async dodajAliasAdresuTechnicznego(subscriptionId: string, userId: string, domenaGlowna: string, alias: string) {
+    await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_DOMAIN_POINTER', {
+      action: 'add',
+      domain: domenaGlowna,
+      from: alias,
+      alias: 'yes',
+    });
+    return { ok: true as const };
+  }
+
+  /** Paczka 129 – adresu technicznego usługi klient nie usuwa (panel pokazuje go zawsze; DNS prowadzi Verris). */
+  private async chronAdresTechniczny(subscriptionId: string, userId: string, nazwa: string) {
+    const sub = await this.prisma.subscription.findFirst({ where: { id: subscriptionId, userId }, select: { adresTechniczny: true } });
+    if (sub?.adresTechniczny && sub.adresTechniczny === nazwa.trim().toLowerCase()) {
+      throw new BadRequestException('Adresu technicznego usługi nie można usunąć – zostaje jako dodatkowy adres strony.');
     }
   }
 
@@ -2091,6 +2119,11 @@ export class DirectAdminService {
    */
   // ponytail: sprawdzamy domeny główne kont i domeny z rejestracji; domeny dodatkowe innych kont żyją tylko w DA węzłów.
   async assertDomenaNieJestCudza(domena: string, userId: string, opts: { glowna?: boolean } = {}): Promise<void> {
+    // Paczka 129 – domena techniczna jest zarezerwowana na adresy usług (`vxxxxxxx.<domena>`): klient nie doda jej ani
+    // jej poddomeny jako domeny, aliasu czy domeny głównej. Własny adres techniczny dodaje provisioning bez tej kontroli.
+    if (wDomenieTechnicznej(domena, konfiguracjaDomenyTechnicznej(process.env).domena)) {
+      throw new BadRequestException(KOMUNIKAT_DOMENY_TECHNICZNEJ);
+    }
     const czesci = domena.split('.');
     const kandydaci = czesci.slice(0, -1).map((_, i) => czesci.slice(i).join('.'));
     // Przegląd 15.10: konto usunięte (np. przy wycofaniu węzła, bez przyrostka „~usuniete-”) nie blokuje domeny na zawsze.
@@ -2131,6 +2164,7 @@ export class DirectAdminService {
     if (!domain) throw new BadRequestException('Brak domeny do usunięcia.');
     const primary = await this.syncPrimaryDomainForSubscription(subscriptionId, userId);
     if (domain === primary) throw new BadRequestException('Nie można usunąć domeny głównej konta.');
+    await this.chronAdresTechniczny(subscriptionId, userId, domain);
     const naKoncie = (await this.listHostingDomainsForSubscription(subscriptionId, userId)).domains.map((d) => d.name.toLowerCase());
     // DA: usuwanie domeny przez select0 + delete=yes + confirmed=yes (bez action).
     await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_DOMAIN', {
@@ -2713,7 +2747,25 @@ export class DirectAdminService {
     if (target !== 'phpmyadmin') throw new BadRequestException('Nieznany cel logowania.');
     const { account, client } = await this.accountClientForSubscription(subscriptionId, userId);
     this.assertAccountMutable(account);
-    const url = await client.createPhpMyAdminSso();
+    // Paczka 129 — adres z DA przepisujemy na publiczną nazwę hosta węzła (443), host z listy adresów węzła.
+    const wezel = await this.prisma.server.findUnique({
+      where: { id: account.serverId },
+      select: { hostname: true, ipAddress: true, ipv6Address: true, daHost: true },
+    });
+    const zDa = await client.createPhpMyAdminSso();
+    let url: string;
+    try {
+      url = adresPmaDlaKlienta(zDa, wezel ?? { hostname: null, ipAddress: null });
+    } catch (err) {
+      // Do logu (nie do klienta): host i port z odpowiedzi DA, bez jednorazowej nazwy skryptu.
+      let slad = 'nie-URL';
+      try {
+        const u = new URL(zDa);
+        slad = `${u.protocol}//${u.host}`;
+      } catch { /* zostaje nie-URL */ }
+      this.logger.warn(`phpMyAdmin SSO sub=${subscriptionId} server=${account.serverId}: odrzucony adres ${slad}`);
+      throw err;
+    }
     await this.audit.record({
       action: HostingResourceActions.HOSTING_SSO_URL_CREATED,
       userId,
@@ -3126,6 +3178,7 @@ export class DirectAdminService {
     if (!domain) throw new BadRequestException('Brak domeny głównej konta.');
     const alias = String(aliasRaw || '').trim().toLowerCase();
     if (!alias) throw new BadRequestException('Brak aliasu do usunięcia.');
+    await this.chronAdresTechniczny(subscriptionId, userId, alias);
     await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_DOMAIN_POINTER', {
       action: 'delete',
       domain,

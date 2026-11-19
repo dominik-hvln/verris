@@ -75,6 +75,7 @@ import {
 import { Wykres } from '@/components/panel/wykres';
 import { zOdpakowaniem } from '@/lib/wynik-akcji';
 import { plForm } from '@/lib/pl';
+import { linkAdresuTechnicznego } from '@/lib/adres-techniczny';
 
 // Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
 const fetchServiceDetailsAction = zOdpakowaniem(fetchServiceDetailsActionAkcja);
@@ -292,6 +293,20 @@ export default function ServiceOverviewV2({
               <StatusPill tone={h.tone}>{h.text}</StatusPill>
             </span>
             {primary ? <span>{domenaDoWyswietlenia(primary)}{domainList.length > 1 ? ` + ${domainList.length - 1}` : ''}</span> : null}
+            {/* Paczka 129 – adres techniczny usługi: działa bez własnej domeny i zostaje po jej podłączeniu. */}
+            {service.adresTechniczny ? (
+              <span className="inline-flex items-center gap-1.5">
+                Adres techniczny:{' '}
+                <a
+                  className="font-mono text-foreground underline underline-offset-2 hover:no-underline"
+                  href={linkAdresuTechnicznego(service.adresTechniczny, account?.domain)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {service.adresTechniczny}
+                </a>
+              </span>
+            ) : null}
             {account?.daUsername ? (
               <span className="inline-flex items-center gap-1.5">
                 login <CopyValue value={account.daUsername} />

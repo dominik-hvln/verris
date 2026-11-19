@@ -19,6 +19,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { RodoActions } from '../common/audit/audit.actions.js';
 import { DirectAdminService } from '../servers/directadmin.service.js';
+import { AdresTechnicznyService } from '../servers/adres-techniczny.service.js';
 import { DirectAdminApiError } from '@verris/directadmin-sdk';
 import { MailerService } from '../mail/mailer.service.js';
 import { ConfigService } from '@nestjs/config';
@@ -102,6 +103,8 @@ export class AccountDeletionService {
     // Audyt Fali 3 — pliki wpisów poczty przychodzącej konta (magazyn zgłoszeń). Moduł magazynu jest globalny;
     // bez niego (testy jednostkowe) pliki zostają, a log mówi, ile.
     @Optional() private readonly storage?: ObjectStorageService,
+    // Paczka 129 – rekord DNS adresu technicznego usługi znika razem z kontem.
+    @Optional() private readonly adresTechniczny?: AdresTechnicznyService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -750,6 +753,7 @@ export class AccountDeletionService {
         serverId: true,
         status: true,
         userId: true,
+        subscriptionId: true,
         cpuLimit: true,
         ramLimitMb: true,
         diskLimitMb: true,
@@ -835,6 +839,11 @@ export class AccountDeletionService {
       details: { ...audyt?.details, accountId, domain: acc.domain, daUsername: acc.daUsername, serverId: acc.serverId },
     });
     await this.da.usunDelegacjeUsunietegoKonta(acc.serverId, acc.id, domenyKonta);
+    // Paczka 129 – nazwa `<id>.<domena techniczna>` nie zostaje w DNS wskazując węzeł, na którym konta już nie ma.
+    // Błąd sprzątania DNS nie cofa usunięcia konta (log; rekord zdejmie się ręcznie w strefie).
+    await this.adresTechniczny?.poUsunieciuKonta(acc.subscriptionId).catch((err) =>
+      this.logger.warn(`adres techniczny po usunięciu konta ${acc.id}: ${(err as Error).message}`),
+    );
     return { ok: true };
   }
 

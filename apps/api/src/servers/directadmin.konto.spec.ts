@@ -15,7 +15,14 @@ import { DirectAdminService } from './directadmin.service.js';
 type Odp = { data: unknown };
 const odp = (v: unknown): Promise<Odp> => (v instanceof Error ? Promise.reject(v) : Promise.resolve({ data: v }));
 
-function stanowisko(o: { status?: string; get?: Record<string, unknown>; post?: Record<string, unknown> } = {}) {
+function stanowisko(
+  o: {
+    status?: string;
+    get?: Record<string, unknown>;
+    post?: Record<string, unknown>;
+    wezel?: { hostname: string | null; ipAddress: string; ipv6Address: string | null; daHost: string | null };
+  } = {},
+) {
   const trasyGet: Record<string, unknown> = {
     '/CMD_API_SHOW_DOMAINS': 'list0=firma.pl&list1=sklep.pl',
     '/CMD_API_SHOW_USER_CONFIG': 'domain=firma.pl',
@@ -27,9 +34,10 @@ function stanowisko(o: { status?: string; get?: Record<string, unknown>; post?: 
   );
   const klient = new DirectAdminClient({ host: 'da.test', port: 2222, username: 'klient1', loginKey: 'x', secure: true });
   Object.assign(klient, { client: { get, post } });
-  const account = { id: 'a1', status: o.status ?? 'ACTIVE', daUsername: 'klient1', domain: 'firma.pl', daPasswordEnc: 'enc' };
+  const account = { id: 'a1', serverId: 'srv1', status: o.status ?? 'ACTIVE', daUsername: 'klient1', domain: 'firma.pl', daPasswordEnc: 'enc' };
   const prisma = {
     subscription: { findFirst: vi.fn(async () => ({ id: 's1', userId: 'u1', account })) },
+    server: { findUnique: vi.fn(async () => o.wezel ?? { hostname: 't1.verris.pl', ipAddress: '62.171.162.57', ipv6Address: null, daHost: null }) },
     account: { update: vi.fn(async () => account), findFirst: vi.fn(async () => null) },
     domain: { findFirst: vi.fn(async () => null) },
   };
@@ -156,6 +164,43 @@ describe('phpMyAdmin jednym kliknięciem (white label – bez sesji DA)', () => 
   ])('%s → wyjątek, bez audytu', async (_n, odpowiedz) => {
     const s = stanowisko({ post: { [PMA]: odpowiedz } });
     await expect(s.svc.createHostingSsoUrl('s1', 'u1', 'phpmyadmin')).rejects.toThrow();
+    expect(s.audit.record).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['port panelu 2222 (zamknięty dla klientów – „Ta witryna jest nieosiągalna”)', 'https://t1.verris.pl:2222/phpMyAdmin/sso/Ab12Cd.php'],
+    ['adres IP węzła (certyfikat jest na nazwę hosta)', 'https://62.171.162.57/phpMyAdmin/sso/Ab12Cd.php'],
+    ['IP z portem panelu', 'https://62.171.162.57:2222/phpMyAdmin/sso/Ab12Cd.php'],
+    ['nazwa hosta z kropką i wielkimi literami', 'https://T1.Verris.PL.:2222/phpMyAdmin/sso/Ab12Cd.php'],
+  ])('paczka 129 – %s → publiczna nazwa hosta węzła na 443', async (_n, zDa) => {
+    const s = stanowisko({ post: { [PMA]: { url: zDa } } });
+    await expect(s.svc.createHostingSsoUrl('s1', 'u1', 'phpmyadmin')).resolves.toEqual({ url: 'https://t1.verris.pl/phpMyAdmin/sso/Ab12Cd.php' });
+  });
+
+  it('paczka 129 – adres wewnętrzny, którym control-plane łączy się z DA (daHost) → publiczna nazwa hosta', async () => {
+    const s = stanowisko({
+      post: { [PMA]: { url: 'https://10.66.0.2:2222/phpMyAdmin/sso/Ab12Cd.php' } },
+      wezel: { hostname: 't1.verris.pl', ipAddress: '62.171.162.57', ipv6Address: null, daHost: '10.66.0.2' },
+    });
+    await expect(s.svc.createHostingSsoUrl('s1', 'u1', 'phpmyadmin')).resolves.toEqual({ url: 'https://t1.verris.pl/phpMyAdmin/sso/Ab12Cd.php' });
+  });
+
+  it.each([
+    ['obcy host', 'https://evil.example/phpMyAdmin/sso/Ab12Cd.php', 'spoza Twojego serwera'],
+    ['host innego węzła', 'https://t9.verris.pl/phpMyAdmin/sso/Ab12Cd.php', 'spoza Twojego serwera'],
+    ['login w adresie', 'https://x:y@t1.verris.pl/phpMyAdmin/sso/Ab12Cd.php', 'chwilowo niedostępny'],
+  ])('paczka 129 – %s → czytelny błąd zamiast linku donikąd, bez audytu', async (_n, zDa, fragment) => {
+    const s = stanowisko({ post: { [PMA]: { url: zDa } } });
+    await expect(s.svc.createHostingSsoUrl('s1', 'u1', 'phpmyadmin')).rejects.toThrow(fragment);
+    expect(s.audit.record).not.toHaveBeenCalled();
+  });
+
+  it('paczka 129 – węzeł bez publicznej nazwy hosta → błąd po polsku (nie link z IP)', async () => {
+    const s = stanowisko({
+      post: { [PMA]: { url: 'https://62.171.162.57/phpMyAdmin/sso/Ab12Cd.php' } },
+      wezel: { hostname: null, ipAddress: '62.171.162.57', ipv6Address: null, daHost: null },
+    });
+    await expect(s.svc.createHostingSsoUrl('s1', 'u1', 'phpmyadmin')).rejects.toThrow('nie jest jeszcze dostępny');
     expect(s.audit.record).not.toHaveBeenCalled();
   });
 

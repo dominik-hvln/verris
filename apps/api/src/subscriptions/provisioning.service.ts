@@ -4,6 +4,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import {
@@ -35,6 +36,8 @@ import {
   planResourceFields,
 } from '../servers/da-package-spec.js';
 import { WafService } from './waf.service.js';
+import { AdresTechnicznyService } from '../servers/adres-techniczny.service.js';
+import { KOMUNIKAT_DOMENY_TECHNICZNEJ } from '../servers/adres-techniczny.js';
 import {
   deltaKsiegi,
   KONTO_NIEISTNIEJACE,
@@ -103,6 +106,8 @@ export class ProvisioningService {
     private readonly config: ConfigService,
     private readonly ecoPoints: EcoPointsService,
     private readonly waf: WafService,
+    // Paczka 129 – adres techniczny usługi (bez konfiguracji domeny technicznej: brak, jak dotąd).
+    @Optional() private readonly adresTechniczny?: AdresTechnicznyService,
   ) {}
 
   /** Przed pobraniem opłaty — czy jest węzeł dla planu (patrz NodeSelectorService.sprawdzMiejsceDlaZakupu). */
@@ -116,8 +121,14 @@ export class ProvisioningService {
    * `sklep.<domena innego klienta>` albo na domenie zarejestrowanej przez kogoś innego w Verris. Wołane przy zamówieniu
    * (przed opłatą) i jeszcze raz przy zakładaniu konta.
    */
-  async sprawdzDomeneGlowna(domainRaw: string, userId: string): Promise<void> {
+  async sprawdzDomeneGlowna(domainRaw: string, userId: string, opts: { adresTechniczny?: string | null } = {}): Promise<void> {
     const domain = normaliseDomain(domainRaw);
+    // Paczka 129 – adres techniczny nadany TEJ usłudze to nie domena klienta: tylko kontrola duplikatu. Każdą inną
+    // nazwę w domenie technicznej odrzucamy (klient nie zamówi ani nie podepnie cudzego `vxxxxxxx.<domena techniczna>`).
+    const technicznyTejUslugi = !!opts.adresTechniczny && domain === opts.adresTechniczny;
+    if (!technicznyTejUslugi && this.adresTechniczny?.zarezerwowana(domain)) {
+      throw new BadRequestException(KOMUNIKAT_DOMENY_TECHNICZNEJ);
+    }
     // Usunięte konto nie blokuje domeny (indeks unikalny jest częściowy: status <> DELETED).
     const existingDomainAccount = await this.prisma.account.findFirst({
       where: { domain, status: { not: AccountStatus.DELETED } },
@@ -126,6 +137,7 @@ export class ProvisioningService {
     if (existingDomainAccount) {
       throw new ConflictException(`Domena ${domain} ma już konto hostingowe w Verris. Jeśli jest Twoja, napisz do pomocy – przeniesiemy ją.`);
     }
+    if (technicznyTejUslugi) return;
     await this.da.assertDomenaNieJestCudza(domain, userId, { glowna: true });
   }
 
@@ -156,8 +168,15 @@ export class ProvisioningService {
       );
     }
 
+    // Paczka 129 – adres techniczny: nadany przy zamówieniu albo tutaj (zamówienia sprzed wdrożenia, hosting WWW).
+    // Zamówienie „bez domeny” przychodzi już z domeną = adres techniczny (SubscriptionsService.create).
+    const adresTechniczny =
+      subscription.plan.productKind === 'HOSTING' && this.adresTechniczny
+        ? (subscription.adresTechniczny ?? (await this.adresTechniczny.nadaj(subscription.id)))
+        : null;
     const domain = normaliseDomain(options.domain);
-    await this.sprawdzDomeneGlowna(domain, subscription.userId);
+    const kontoNaAdresieTechnicznym = adresTechniczny !== null && domain === adresTechniczny;
+    await this.sprawdzDomeneGlowna(domain, subscription.userId, { adresTechniczny });
 
     const server = await this.nodeSelector.pickServerForPlan(subscription.plan, {
       preferredRegion: options.preferredRegion,
@@ -379,6 +398,17 @@ export class ProvisioningService {
       },
     });
 
+    if (adresTechniczny) {
+      await this.podlaczAdresTechniczny({
+        subscriptionId: subscription.id,
+        userId: subscription.userId,
+        adres: adresTechniczny,
+        domenaGlowna: domain,
+        ipv4: server.ipAddress,
+        actorUserId,
+      });
+    }
+
     // MON-2 — monitoring strony domyślnie włączony dla usług hostingowych
     // (darmowy, zawsze-on; klient może wyłączyć w panelu). Best-effort: nie
     // blokuje aktywacji. Przy re-provisioningu nie nadpisujemy decyzji klienta.
@@ -458,7 +488,11 @@ export class ProvisioningService {
           this.logger.log(`Auto-SSL skipped for ${domain} (sub=${subscription.id}): DNS nie wskazuje jeszcze na węzeł`);
           return;
         }
-        await this.da.requestLetsEncryptDirect(server, daUsername, daResult.password, domain);
+        // Paczka 129 – adres techniczny ma w DNS tylko własny rekord A (bez `www.`); `www` w zamówieniu certyfikatu
+        // oblałoby walidację całego certyfikatu.
+        await this.da.requestLetsEncryptDirect(server, daUsername, daResult.password, domain, {
+          includeWww: !kontoNaAdresieTechnicznym,
+        });
         this.logger.log(`Auto-SSL (LE) requested for ${domain} (sub=${subscription.id})`);
       })
       .catch((err) => {
@@ -487,6 +521,44 @@ export class ProvisioningService {
       serverId: server.id,
       domain,
     };
+  }
+
+  /**
+   * Paczka 129 – adres techniczny działa po założeniu konta: rekord A w strefie domeny technicznej → IP węzła, a przy
+   * koncie z własną domeną dodatkowo alias (domain pointer) tej domeny w DA, żeby pod adresem technicznym była ta sama
+   * strona. Konto już stoi i jest opłacone, więc błąd tutaj NIE cofa zakładania – zostaje w audycie
+   * (ADRES_TECHNICZNY_BLAD) i w logu, a panel dalej pokazuje adres; operator poprawia DNS/alias ręcznie.
+   */
+  private async podlaczAdresTechniczny(c: {
+    subscriptionId: string;
+    userId: string;
+    adres: string;
+    domenaGlowna: string;
+    ipv4: string | null;
+    actorUserId?: string;
+  }): Promise<void> {
+    const kroki: Record<string, string> = {};
+    try {
+      kroki.dns = await this.adresTechniczny!.ustawRekord(c.adres, c.ipv4);
+    } catch (err) {
+      kroki.dnsBlad = err instanceof Error ? err.message : String(err);
+    }
+    if (c.adres !== c.domenaGlowna) {
+      try {
+        await this.da.dodajAliasAdresuTechnicznego(c.subscriptionId, c.userId, c.domenaGlowna, c.adres);
+        kroki.alias = 'dodany';
+      } catch (err) {
+        kroki.aliasBlad = err instanceof Error ? err.message : String(err);
+      }
+    }
+    const blad = kroki.dnsBlad || kroki.aliasBlad;
+    if (blad) this.logger.error(`Adres techniczny ${c.adres} sub=${c.subscriptionId}: ${blad}`);
+    await this.audit.record({
+      action: blad ? 'ADRES_TECHNICZNY_BLAD' : 'ADRES_TECHNICZNY_PODLACZONY',
+      userId: c.userId,
+      actorUserId: c.actorUserId ?? null,
+      details: { subscriptionId: c.subscriptionId, adres: c.adres, domenaGlowna: c.domenaGlowna, ...kroki },
+    });
   }
 
   /** Usuwa konto DA założone w tej próbie; porażkę sprzątania zapisuje w audycie (ręczne sprzątanie). */

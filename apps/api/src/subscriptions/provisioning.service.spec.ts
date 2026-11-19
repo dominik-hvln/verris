@@ -15,10 +15,14 @@ const PLAN = {
   ioLimitKbps: 1024, iopsLimit: 1024, entryProcesses: 20, nprocLimit: 100,
 };
 
-function stanowisko(o: { kontoZDomena?: boolean; limity?: Error; zapis?: Error; usuniecie?: Error; ip?: string } = {}) {
+function stanowisko(o: {
+  kontoZDomena?: boolean; limity?: Error; zapis?: Error; usuniecie?: Error; ip?: string;
+  /** Paczka 129 – atrapa AdresTechnicznyService: adres już na usłudze / nadawany teraz / błąd DNS. */
+  adres?: { naUsludze?: string | null; nadaj?: string | null; dnsBlad?: Error; aliasBlad?: Error };
+} = {}) {
   const subscription = {
     id: 'sub-1', userId: 'u1', status: 'PROVISIONING', serviceTag: 'abc12345', ecoModeEnabled: false,
-    plan: PLAN, user: { email: 'jan@firma.pl' }, account: null,
+    plan: PLAN, user: { email: 'jan@firma.pl' }, account: null, adresTechniczny: o.adres?.naUsludze ?? null,
   };
   const daClient = {
     ensureUserPackage: vi.fn(async () => undefined),
@@ -52,7 +56,15 @@ function stanowisko(o: { kontoZDomena?: boolean; limity?: Error; zapis?: Error; 
     usunDelegacjeUsunietegoKonta: vi.fn(async () => undefined),
     applyEcoModeBackupCronPolicy: vi.fn(),
     requestLetsEncryptDirect: le,
+    dodajAliasAdresuTechnicznego: vi.fn(async () => (o.adres?.aliasBlad ? Promise.reject(o.adres.aliasBlad) : { ok: true })),
   };
+  const adresSvc = o.adres
+    ? {
+        nadaj: vi.fn(async () => o.adres!.nadaj ?? null),
+        zarezerwowana: (d: string) => d === 'verris-host.pl' || d.endsWith('.verris-host.pl'),
+        ustawRekord: vi.fn(async () => (o.adres!.dnsBlad ? Promise.reject(o.adres!.dnsBlad) : 'utworzono')),
+      }
+    : undefined;
   const svc = new ProvisioningService(
     prisma as never,
     { encrypt: (v: string) => `enc:${v}` } as never,
@@ -64,10 +76,11 @@ function stanowisko(o: { kontoZDomena?: boolean; limity?: Error; zapis?: Error; 
     { get: () => undefined } as never,
     { safeAward: vi.fn(), awardSubscriptionFirstPaid: vi.fn(), awardOnce: vi.fn() } as never,
     { setModeForAccount: vi.fn(async () => undefined) } as never,
+    adresSvc as never,
   );
   vi.spyOn(svc as unknown as { notifyAccountProvisioned: () => Promise<void> }, 'notifyAccountProvisioned').mockResolvedValue();
   const akcje = () => (audit.record.mock.calls as unknown as Array<[{ action: string; details: Record<string, unknown> }]>).map((c) => c[0]);
-  return { svc, daClient, prisma, akcje, le, daSvc };
+  return { svc, daClient, prisma, akcje, le, daSvc, adresSvc };
 }
 
 describe('emailKontaDa – DA nie pisze do klientów sam', () => {
@@ -135,5 +148,62 @@ describe('ProvisioningService – zakładanie konta DA', () => {
     await new Promise((r) => setTimeout(r, 0));
     expect(tak.le).toHaveBeenCalled();
     r4.mockRestore();
+  });
+});
+
+describe('ProvisioningService – adres techniczny (paczka 129)', () => {
+  const ADRES = 'v7k2m9qx.verris-host.pl';
+
+  it('zamówienie bez domeny: konto DA na adresie technicznym, bez kontroli „cudzej domeny”, rekord A → IP węzła', async () => {
+    const s = stanowisko({ ip: '203.0.113.7', adres: { naUsludze: ADRES } });
+    const r = await s.svc.provisionForSubscription('sub-1', { domain: ADRES });
+    expect(s.daClient.createAccount).toHaveBeenCalledWith(expect.objectContaining({ domain: ADRES }));
+    expect(s.daSvc.assertDomenaNieJestCudza).not.toHaveBeenCalled();
+    expect(s.adresSvc!.ustawRekord).toHaveBeenCalledWith(ADRES, '203.0.113.7');
+    // Domena główna = adres techniczny → bez aliasu.
+    expect(s.daSvc.dodajAliasAdresuTechnicznego).not.toHaveBeenCalled();
+    expect(r.domain).toBe(ADRES);
+    expect(s.akcje()).toContainEqual(expect.objectContaining({ action: 'ADRES_TECHNICZNY_PODLACZONY', details: expect.objectContaining({ dns: 'utworzono' }) }));
+  });
+
+  it('auto-SSL dla adresu technicznego bez „www.” (w DNS jest tylko rekord A tej nazwy)', async () => {
+    const r4 = vi.spyOn(dns, 'resolve4').mockResolvedValueOnce(['203.0.113.7']);
+    const s = stanowisko({ ip: '203.0.113.7', adres: { naUsludze: ADRES } });
+    await s.svc.provisionForSubscription('sub-1', { domain: ADRES });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(s.le).toHaveBeenCalledWith(expect.anything(), 'abc12345', 'HasloDA123', ADRES, { includeWww: false });
+    r4.mockRestore();
+  });
+
+  it('własna domena: adres techniczny nadany przy zakładaniu i podpięty jako alias + rekord A', async () => {
+    const s = stanowisko({ ip: '203.0.113.7', adres: { nadaj: ADRES } });
+    await s.svc.provisionForSubscription('sub-1', { domain: 'firma.pl' });
+    expect(s.adresSvc!.nadaj).toHaveBeenCalledWith('sub-1');
+    expect(s.daClient.createAccount).toHaveBeenCalledWith(expect.objectContaining({ domain: 'firma.pl' }));
+    expect(s.daSvc.assertDomenaNieJestCudza).toHaveBeenCalledWith('firma.pl', 'u1', { glowna: true });
+    expect(s.daSvc.dodajAliasAdresuTechnicznego).toHaveBeenCalledWith('sub-1', 'u1', 'firma.pl', ADRES);
+    expect(s.adresSvc!.ustawRekord).toHaveBeenCalledWith(ADRES, '203.0.113.7');
+  });
+
+  it('błąd DNS po założeniu konta nie cofa opłaconego konta – ADRES_TECHNICZNY_BLAD w audycie', async () => {
+    const s = stanowisko({ ip: '203.0.113.7', adres: { naUsludze: ADRES, dnsBlad: new Error('OVH 403: not been granted') } });
+    const r = await s.svc.provisionForSubscription('sub-1', { domain: ADRES });
+    expect(r.accountId).toBe('acc-1');
+    expect(s.daClient.deleteAccount).not.toHaveBeenCalled();
+    expect(s.akcje()).toContainEqual(expect.objectContaining({ action: 'ADRES_TECHNICZNY_BLAD', details: expect.objectContaining({ dnsBlad: 'OVH 403: not been granted' }) }));
+  });
+
+  it('cudzy adres w domenie technicznej jako domena konta → 400 bez dotykania węzła', async () => {
+    const s = stanowisko({ adres: { naUsludze: ADRES } });
+    await expect(s.svc.provisionForSubscription('sub-1', { domain: 'vinnyyyy.verris-host.pl' })).rejects.toThrow(/zarezerwowany/);
+    await expect(s.svc.sprawdzDomeneGlowna('verris-host.pl', 'u1')).rejects.toThrow(/zarezerwowany/);
+    expect(s.daClient.createAccount).not.toHaveBeenCalled();
+  });
+
+  it('bez konfiguracji domeny technicznej – jak dotąd (bez adresu, aliasu i DNS)', async () => {
+    const s = stanowisko({ ip: '203.0.113.7' });
+    await s.svc.provisionForSubscription('sub-1', { domain: 'firma.pl' });
+    expect(s.daSvc.dodajAliasAdresuTechnicznego).not.toHaveBeenCalled();
+    expect(s.akcje().map((a) => a.action)).not.toContain('ADRES_TECHNICZNY_PODLACZONY');
   });
 });

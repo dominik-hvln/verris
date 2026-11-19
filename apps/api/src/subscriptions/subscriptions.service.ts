@@ -5,6 +5,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import {
   AccountStatus,
@@ -24,6 +25,8 @@ import { PromoService } from '../billing/promo.service.js';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
 import { StripeService } from '../billing/stripe/stripe.service.js';
 import { DirectAdminService } from '../servers/directadmin.service.js';
+import { AdresTechnicznyService } from '../servers/adres-techniczny.service.js';
+import { KOMUNIKAT_BEZ_DOMENY_NIEDOSTEPNE } from '../servers/adres-techniczny.js';
 import { ProvisioningService, ProvisionResult } from './provisioning.service.js';
 import { ProvisioningQueueService } from './provisioning-queue.service.js';
 import { KOMUNIKAT_AUTOSKALOWANIA_W_PROBIE, wProbie } from './okres-probny.js';
@@ -152,6 +155,8 @@ export class SubscriptionsService {
     private readonly ecoPoints: EcoPointsService,
     private readonly platformSettings: PlatformSettingsService,
     private readonly vatNabywcy: VatNabywcyService,
+    // Paczka 129 – zamówienie hostingu bez domeny (adres techniczny). Bez konfiguracji: opcja niedostępna.
+    @Optional() private readonly adresTechniczny?: AdresTechnicznyService,
   ) {}
 
   /**
@@ -161,6 +166,11 @@ export class SubscriptionsService {
   async kredytyStartowe(userId: string): Promise<{ przysluguje: boolean }> {
     if (await klientAktywnegoResellera(this.prisma, userId)) return { przysluguje: false };
     return { przysluguje: await czyPierwszyZakup(this.prisma, userId) };
+  }
+
+  /** Paczka 129 – zamówienie hostingu bez domeny dostępne (domena techniczna i jej strefa DNS skonfigurowane). */
+  zamowienieBezDomeny(): { dostepne: boolean } {
+    return { dostepne: this.adresTechniczny?.dostepny() === true };
   }
 
   async previewSubscriptionPromo(userId: string, dto: PreviewSubscriptionPromoDto) {
@@ -359,7 +369,14 @@ export class SubscriptionsService {
     // (produkt-aplikacyjny.ts). Dla pozostałych produktów domena jest wymagana.
     const isAppLevel = produktAplikacyjny(plan.productKind);
     const kreatorPro = (plan.productKind as string) === 'KREATOR_PRO';
-    if (!isAppLevel && !dto.domain) {
+    // Paczka 129 (feedback bety 19.11) – hosting WWW bez domeny: konto na adresie technicznym usługi, domena później.
+    const bezDomeny = !isAppLevel && !dto.domain && dto.bezDomeny === true;
+    if (bezDomeny) {
+      if ((plan.productKind as string) !== 'HOSTING') {
+        throw new BadRequestException('Poczta e-mail działa w Twojej domenie – podaj domenę.');
+      }
+      if (!this.adresTechniczny?.dostepny()) throw new BadRequestException(KOMUNIKAT_BEZ_DOMENY_NIEDOSTEPNE);
+    } else if (!isAppLevel && !dto.domain) {
       throw new BadRequestException('Domena jest wymagana dla tego produktu.');
     }
     // Domena zajęta albo cudza (Z-10) → odmowa przed opłatą, nie dopiero przy zakładaniu konta.
@@ -463,6 +480,26 @@ export class SubscriptionsService {
       },
       { maxWait: 30_000, timeout: 60_000 },
     );
+
+    if (bezDomeny) {
+      // Adres techniczny nadany od razu i użyty jako domena zamówienia na całej dalszej drodze (portfel, Paynow – metadane
+      // płatności z `dto.domain` w kontrolerze, karta – zamiar provisioningu, kolejka). Provisioning rozpozna go po
+      // `Subscription.adresTechniczny` i nie potraktuje jak cudzej domeny.
+      let adres: string | null = null;
+      try {
+        adres = await this.adresTechniczny!.nadaj(subscription.id);
+      } finally {
+        if (!adres) {
+          await oddajKod();
+          await this.prisma.subscription.updateMany({
+            where: { id: subscription.id, status: SubscriptionStatus.PENDING_PAYMENT },
+            data: { status: SubscriptionStatus.CANCELED, canceledAt: new Date(), cancelAt: new Date() },
+          });
+        }
+      }
+      if (!adres) throw new BadRequestException(KOMUNIKAT_BEZ_DOMENY_NIEDOSTEPNE);
+      dto.domain = adres;
+    }
 
     await this.prisma.subscriptionEvent.create({
       data: {

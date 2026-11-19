@@ -1165,6 +1165,12 @@ model Subscription {
   // Dla hostingu jest jednocześnie loginem DirectAdmin (realny prefiks baz danych).
   serviceTag           String?                   @unique
 
+  /// Paczka 129 (19.11.2026) – adres techniczny usługi hostingowej: `<identyfikator>.<HOSTING_TECH_DOMAIN>`
+  /// (np. `v7k2m9qx.verris-host.pl`). Losowy identyfikator, bez danych osobowych, inny niż serviceTag (login konta).
+  /// Nadawany przy zamówieniu/zakładaniu konta, gdy domena techniczna jest skonfigurowana; zamówienie „bez domeny”
+  /// zakłada konto właśnie na nim. NULL = usługa sprzed paczki 129 albo funkcja wyłączona.
+  adresTechniczny      String?                   @unique
+
   // Provisioned account (1:1)
   account              Account?                  @relation("SubscriptionAccount")
 
