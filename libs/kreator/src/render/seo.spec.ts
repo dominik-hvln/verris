@@ -1,7 +1,7 @@
 import { WERSJE_KREATORA } from '../plany.ts';
 import { ADRES, blokiLd, grafLd, htmle, model, plik, PRZYKLADY, render, typyLd, znaczniki } from './testy.pomoc.ts';
 
-const PELNE = ['FAQPage', 'Product', 'BlogPosting', 'BreadcrumbList'];
+const PELNE = ['Product', 'BlogPosting', 'BreadcrumbList'];
 
 describe('JSON-LD', () => {
   it.each(Object.keys(PRZYKLADY).flatMap((n) => WERSJE_KREATORA.map((w) => [n, w] as const)))('%s / %s: parsuje się i ma firmę z typSchema', (nazwa, wersja) => {
@@ -25,17 +25,17 @@ describe('JSON-LD', () => {
     }
   });
 
-  it('pełne SEO (pro): FAQPage z pytaniami z modelu', () => {
-    const typy = typyLd(plik(render(PRZYKLADY.ksiegowa!, 'pro'), 'index.html'));
-    expect(typy).toContain('FAQPage');
-    const faq = grafLd(plik(render(PRZYKLADY.ksiegowa!, 'pro'), 'index.html')).find((x) => x['@type'] === 'FAQPage') as { mainEntity: { name: string; acceptedAnswer: { text: string } }[] };
-    expect(faq.mainEntity).toHaveLength(4);
-    expect(faq.mainEntity[0]).toMatchObject({ name: 'Czy muszę przywozić dokumenty do biura?', acceptedAnswer: { '@type': 'Answer' } });
+  // Google wycofał wyniki rozszerzone FAQ (maj/czerwiec 2026) – bez FAQPage w schema, sekcja FAQ zostaje na stronie.
+  it('pełne SEO (pro): bez FAQPage, a sekcja FAQ zostaje w HTML', () => {
+    const html = plik(render(PRZYKLADY.ksiegowa!, 'pro'), 'index.html');
+    const typy = typyLd(html);
+    expect(typy).not.toContain('FAQPage');
+    expect(html).toContain('Czy muszę przywozić dokumenty do biura?');
     expect(typy).not.toContain('Product');
     expect(typy).not.toContain('BreadcrumbList');
   });
 
-  it('pełne SEO (pro): Product z ofertą w PLN i dostępnością; bez FAQ nie ma FAQPage', () => {
+  it('pełne SEO (pro): Product z ofertą w PLN i dostępnością', () => {
     const graf = grafLd(plik(render(PRZYKLADY.ceramika!, 'pro'), 'index.html'));
     const produkty = graf.filter((x) => x['@type'] === 'Product');
     expect(produkty).toHaveLength(6);

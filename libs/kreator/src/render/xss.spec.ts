@@ -60,9 +60,11 @@ describe('XSS: teksty z modelu są uciekane w HTML i JSON-LD', () => {
         const graf = grafLd(tresc);
         const firma = graf.find((x) => x['@id'] && x['@type'] !== 'WebSite')!;
         expect(firma.name, kto).toBe(i === 0 ? `Biuro ${SKRYPT}` : `Studio ${ATRYBUT}`);
-        if (i === 0 && wersja === 'pro' && sciezka === 'index.html') {
-          const faq = graf.find((x) => x['@type'] === 'FAQPage') as { mainEntity: { name: string; acceptedAnswer: { text: string } }[] };
-          expect(faq.mainEntity[0]).toMatchObject({ name: `Pytanie ${SKRYPT}`, acceptedAnswer: { text: `Odpowiedź ${ATRYBUT} & ${APOSTROF}` } });
+        // FAQ nie trafia do JSON-LD (Google wycofał wyniki FAQ) – wrogie pytanie wraca dosłownie tylko w treści strony.
+        if (i === 0 && sciezka === 'index.html') {
+          expect(graf.map((x) => x['@type']), kto).not.toContain('FAQPage');
+          expect(tekst(tresc), kto).toContain(`Pytanie ${SKRYPT}`);
+          expect(tekst(tresc), kto).toContain(`Odpowiedź ${ATRYBUT} & ${APOSTROF}`);
         }
       }
     }

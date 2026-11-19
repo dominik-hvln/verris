@@ -2,7 +2,7 @@ import { WERSJA_MODELU, type StronaWejscie } from '../model.ts';
 
 /**
  * Landing biura rachunkowego (firma i dane fikcyjne) – fikstura testów renderera: hero z formularzem,
- * cennik z kwotami netto i brutto, FAQ (FAQPage w pełnym SEO), pas CTA na ciemnym tle.
+ * cennik z kwotami netto i brutto, FAQ (bez FAQPage w schema), pas CTA na ciemnym tle.
  */
 export const PRZYKLAD_KSIEGOWA: StronaWejscie = {
   wersjaModelu: WERSJA_MODELU,

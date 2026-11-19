@@ -103,7 +103,7 @@ function jsonLdZDokumentu(dokument: string): unknown {
   const m = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(dokument);
   if (!m) return null;
   const ld = JSON.parse(m[1]!) as { '@context'?: string; '@graph'?: Record<string, unknown>[] };
-  // Witryna i firma – wspólne dla wszystkich stron; dane FAQ, produktów i wpisów zależą od podstrony.
+  // Witryna i firma – wspólne dla wszystkich stron; dane produktów i wpisów zależą od podstrony.
   const graf = (ld['@graph'] ?? []).filter((x) => x['@type'] === 'WebSite' || String(x['@id'] ?? '').endsWith('#firma'));
   return { '@context': ld['@context'] ?? 'https://schema.org', '@graph': graf };
 }

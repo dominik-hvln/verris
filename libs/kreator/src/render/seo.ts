@@ -153,8 +153,9 @@ function bezwzgl(s: KontekstStrony, sciezka: string | undefined): string | undef
 }
 
 /**
- * Dane strukturalne. Zawsze: WebSite + firma (typSchema). SEO pełne (Pro): FAQPage, Product z Offer
+ * Dane strukturalne. Zawsze: WebSite + firma (typSchema). SEO pełne (Pro): Product z Offer
  * w PLN, BlogPosting, BreadcrumbList na podstronach. Opinie NIGDY nie dają AggregateRating/Review.
+ * Bez FAQPage – Google wycofał wyniki rozszerzone FAQ (maj/czerwiec 2026); sekcja FAQ zostaje na stronie.
  */
 export function jsonLd(k: KontekstPodstrony): Record<string, unknown> {
   const s = k.s;
@@ -171,10 +172,6 @@ export function jsonLd(k: KontekstPodstrony): Record<string, unknown> {
   graf.push(strona);
   if (s.seoPelne) {
     const sekcje = p.sekcje.filter((x) => czyWidoczna(s, x));
-    const faq = sekcje.filter((x): x is SekcjaTypu<'faq'> => x.typ === 'faq').flatMap((x) => x.dane.pytania);
-    if (faq.length) {
-      graf.push({ '@type': 'FAQPage', mainEntity: faq.map((q) => ({ '@type': 'Question', name: q.pytanie, acceptedAnswer: { '@type': 'Answer', text: q.odpowiedz } })) });
-    }
     for (const sek of sekcje.filter((x): x is SekcjaTypu<'produkty'> => x.typ === 'produkty')) {
       for (const pr of sek.dane.produkty) {
         const prod: Record<string, unknown> = {
