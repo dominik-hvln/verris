@@ -111,7 +111,7 @@ export async function kierunkiOdswiezenia(id: string): Promise<WynikMarki<WidokM
   });
 }
 
-/** Wybór kierunku (z ewentualną edycją z „Dopasuj”); 409 PODOBNY_ZNAK = znak zbyt podobny do wydanego innej firmie. */
+/** Wybór kierunku (z ewentualną edycją z „Dopasuj”); 409 PODOBNY_ZNAK = znak bardzo podobny do logo, które już powstało w kreatorze. */
 export async function wybierzKierunek(id: string, body: WybierzBody): Promise<WynikMarki<WidokMarki>> {
   return wynik(async () => {
     sprawdzId(id);

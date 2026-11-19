@@ -1299,7 +1299,7 @@ Kreator nie przygotuje logo na wzór znanej marki i nie wyda tego samego znaku d
     { t: 'Logo a znak towarowy – jak sprawdzić logo w TMview', d: 'Logo z kreatora nie jest znakiem zastrzeżonym. Jak samodzielnie sprawdzić nazwę i znak w TMview przed drukiem i rejestracją w UPRP lub EUIPO.',
       faq: [
         { q: 'Czy logo z Kreatora marki jest zastrzeżone?', a: 'Nie. Ochronę daje dopiero rejestracja znaku towarowego w Urzędzie Patentowym RP albo w EUIPO – to osobna procedura.' },
-        { q: 'Czy Verris sprawdza, czy podobne logo już istnieje?', a: 'Pilnujemy, żeby ten sam znak z Kreatora marki nie trafił do dwóch firm. Rejestrów urzędowych nie sprawdzamy – zrób to w TMview albo z rzecznikiem patentowym.' },
+        { q: 'Czy Verris sprawdza, czy podobne logo już istnieje?', a: 'Kreator unika propozycji bardzo podobnych do logo, które już w nim powstały, ale tego nie gwarantujemy – logo powstaje z pomocą AI ze wspólnej biblioteki kształtów. Rejestrów urzędowych nie sprawdzamy – zrób to w TMview albo z rzecznikiem patentowym.' },
         { q: 'Czy mogę zarejestrować logo z kreatora jako znak towarowy?', a: 'Możesz je zgłosić do urzędu. Przed zgłoszeniem sprawdź podobne znaki w TMview – rejestracja nie chroni przed sprzeciwem właściciela wcześniejszego znaku.' },
       ], related: ['jak-stworzyc-logo-w-kreatorze-marki', 'odswiezenie-logo'] }),
 

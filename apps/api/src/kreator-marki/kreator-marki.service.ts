@@ -110,7 +110,7 @@ export const KOMUNIKATY = {
   limitSerii: 'Wykorzystano limit serii propozycji. Limit w cenie hostingu odnowi się 1. dnia miesiąca – więcej serii daje Pakiet marki.',
   limitZmian: 'Wykorzystano limit zmian AI. Limit w cenie hostingu odnowi się 1. dnia miesiąca – więcej zmian daje Pakiet marki. Kolor, krój i układ zmienisz bez AI.',
   bezProjektu: 'Najpierw wybierz kierunek znaku.',
-  podobny: 'Ten znak jest zbyt podobny do znaku wydanego już innej firmie z tej samej branży w Kreatorze marki Verris. Wybierz inny kierunek albo zmień parametry znaku.',
+  podobny: 'Ten znak jest bardzo podobny do logo, które już powstało w Kreatorze marki. Wybierz inny kierunek albo zmień parametry znaku.',
   ai: 'Kreator AI jest chwilowo niedostępny – spróbuj ponownie za chwilę.',
   proba: 'Pobieranie plików marki jest dostępne po opłaceniu hostingu – w okresie próbnym projektujesz markę i oglądasz podgląd.',
   pakiet: 'Ten plik jest w Pakiecie marki.',
@@ -368,7 +368,7 @@ export class KreatorMarkiService {
     const r = await this.wlasna(kto.userId, id);
     const pliki = await this.prisma.kreatorMarkaPlik.findMany({ where: { markaId: r.id, userId: kto.userId }, select: { klucz: true, kluczPodgladu: true } });
     await this.prisma.$transaction([
-      // rejestr wydanych znaków: wpis zostaje bez powiązań (unikalność w obrębie Verris działa dalej)
+      // rejestr wydanych znaków: wpis zostaje bez powiązań – wewnętrzny mechanizm ograniczania powtórzeń (bez obietnicy unikalności, decyzja 19.11)
       this.prisma.kreatorMarkaOdcisk.updateMany({ where: { markaId: r.id }, data: { userId: null, markaId: null } }),
       this.prisma.kreatorMarka.delete({ where: { id: r.id } }),
     ]);

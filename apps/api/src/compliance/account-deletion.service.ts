@@ -570,7 +570,7 @@ export class AccountDeletionService {
       // 3e'') Paczka 131 — Kreator marki: marki (brief, projekt, dane kontaktowe do wizytówki i stopki, zgody), serie,
       //     wgrane pliki logo (oryginał i podgląd w magazynie – po zapisie) i zużycie. Odciski znaków w rejestrze wydanych
       //     znaków ZOSTAJĄ bez powiązania z kontem i marką (userId i markaId = NULL): wpis to rodzina, skwantowane
-      //     parametry i hash kształtu – bez nazwy i danych firmy; dzięki temu ten znak nie trafi do innej firmy z Verris.
+      //     parametry i hash kształtu – bez nazwy i danych firmy; służy tylko ograniczaniu powtórzeń propozycji (bez obietnicy unikalności – decyzja 19.11).
       //     Zakupy (Pakiet, kolejna marka) zostają jak faktury i księga portfela (rozliczenia).
       const plikiM = await tx.kreatorMarkaPlik.findMany({ where: { userId }, select: { klucz: true, kluczPodgladu: true } });
       plikiMarki = plikiM.flatMap((p) => [p.klucz, p.kluczPodgladu]).filter((k): k is string => !!k);

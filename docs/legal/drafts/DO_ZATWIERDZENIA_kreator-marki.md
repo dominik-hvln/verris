@@ -28,8 +28,9 @@
   logo do analizy (wizja). Zdjęcia w materiałach KV – z bibliotek (Pexels/Openverse/Pixabay) albo generowane (FLUX –
   wyłączone, osobny projekt `DO_ZATWIERDZENIA_zdjecia-ai.md`), **nigdy w logo** (licencja Pexels zakazuje użycia
   w znaku towarowym – z badania 7.11).
-- Rejestr wydanych znaków (faza 2): odcisk kształtu (rodzina + parametry + pHash renderu), blokada podobnych w tej
-  samej branży – **tylko w obrębie Kreatora marki Verris**.
+- Rejestr wydanych znaków (faza 2): odcisk kształtu (rodzina + parametry + pHash renderu), odrzucanie propozycji
+  bardzo podobnych do znaków wydanych w tej samej branży – **wyłącznie wewnętrzny mechanizm jakości, bez obietnicy
+  dla Klienta** (decyzja właściciela 19.11.2026: logo powstaje z pomocą AI, nie obiecujemy, że podobny znak nie powstanie).
 - Metadane „wygenerowano z pomocą AI” w plikach (SVG `<metadata>`, PNG XMP/IPTC).
 
 ## 2. Regulamin – §1 pkt 6 (definicja Usług)
@@ -55,7 +56,7 @@ marketing (§13), abonament Verris Kreator Pro (§13a) oraz Program resellerski 
 >    Kreator marki jest dostępny w cenie Hostingu, dopóki Klient ma działający Hosting, w zakresie i z limitami
 >    opisanymi w Panelu (m.in. liczba marek na Koncie, miesięczne limity serii propozycji i zmian AI).
 >    W okresie próbnym Hostingu (§7 ust. 8) Klient może tworzyć i edytować propozycje; pobranie plików i użycie Logo
->    na stronie z Kreatora (§13a) są dostępne po opłaceniu Hostingu. **[DECYZJA: okres próbny – potwierdzić]**
+>    na stronie z Kreatora (§13a) są dostępne po opłaceniu Hostingu. **[DECYZJA 19.11.2026: podgląd w okresie próbnym zostaje]**
 > 2. Kreator marki pozwala: (a) utworzyć nowe Logo na podstawie opisu Klienta („Brief”), (b) przygotować Materiały
 >    dla Logo wgranego przez Klienta bez zmiany tego Logo, (c) zaproponować odświeżenie Logo wgranego przez Klienta.
 >    Propozycje powstają z biblioteki kształtów, krojów pisma i szablonów Verris („Biblioteka”), parametryzowanych
@@ -96,11 +97,11 @@ marketing (§13), abonament Verris Kreator Pro (§13a) oraz Program resellerski 
 >    dla innych klientów, z zastrzeżeniem ust. 6. **[PRAWNIK]**: umowa z projektantem Biblioteki musi przenosić na
 >    Verris prawa z polami eksploatacji pozwalającymi na ust. 4 (w tym zgoda na opracowania, udzielanie licencji
 >    klientom, rejestrację przez klientów jako znaku towarowego) i zobowiązanie do niewykonywania praw osobistych.
-> 6. **Rejestr wydanych znaków.** Verris prowadzi rejestr Wydanych Wariantów (cechy techniczne kształtu i branża,
->    bez danych Klienta) i nie wyda w Kreatorze marki innemu klientowi wariantu identycznego z Wydanym Wariantem ani –
->    w tej samej branży – wariantu, który według kryteriów technicznych rejestru jest do niego podobny. Zobowiązanie
->    dotyczy wyłącznie Kreatora marki Verris; Verris nie odpowiada za oznaczenia tworzone poza nim.
->    **[DECYZJA – pyt. 10 koncepcji: czy obiecujemy to publicznie; www dziś tej obietnicy nie zawiera]**
+> 6. **Podobne znaki.** Kreator marki ogranicza powtarzanie się propozycji (m.in. odrzuca propozycje bardzo podobne
+>    do znaków wydanych wcześniej w tej samej branży), ale Verris nie zapewnia, że Wydany Wariant nie jest podobny do
+>    znaku wydanego innemu klientowi ani do oznaczeń tworzonych poza Kreatorem marki – Logo powstaje z pomocą
+>    generatora i AI na podstawie wspólnej Biblioteki. (Decyzja właściciela 19.11.2026: bez publicznej obietnicy
+>    unikalności.)
 > 7. **Brak gwarancji rejestrowej.** Kreator marki nie jest badaniem prawnym. Verris nie bada i nie zapewnia, że Logo
 >    ma zdolność odróżniającą, może zostać zarejestrowane jako znak towarowy ani że nie narusza praw osób trzecich
 >    (w szczególności znaków towarowych, praw autorskich, firm, nazw domen i oznaczeń geograficznych). Logo
@@ -144,8 +145,8 @@ marketing (§13), abonament Verris Kreator Pro (§13a) oraz Program resellerski 
 >     sprzedawać samych plików krojów.
 > 14. **Usunięcie i koniec Hostingu.** Klient może w każdej chwili usunąć w Panelu markę i wgrane pliki. Po
 >     wygaśnięciu Hostingu Kreator marki przestaje być dostępny, a dane marki są usuwane razem z danymi Konta zgodnie
->     z Polityką prywatności; pliki pobrane przez Klienta i prawa z ust. 4 pozostają u Klienta. Wpis w rejestrze
->     z ust. 6 (bez danych Klienta) pozostaje, aby zobowiązanie z ust. 6 działało. Rekompensaty z §15 nie obejmują
+>     z Polityką prywatności; pliki pobrane przez Klienta i prawa z ust. 4 pozostają u Klienta. Techniczny odcisk
+>     kształtu (bez danych Klienta i bez nazwy) może pozostać w mechanizmie z ust. 6. Rekompensaty z §15 nie obejmują
 >     Kreatora marki ani Pakietu marki.
 
 ## 4. Regulamin – §21 (odstąpienie)
@@ -222,11 +223,11 @@ obraz logo) [PRAWNIK: czy wymaga zawiadomienia klientów 30 dni wcześniej jak z
 
 ## 8. Do decyzji właściciela
 
-1. Okres próbny: propozycje i edycja tak, pobranie plików po opłaceniu Hostingu (§13b ust. 1)?
+1. Okres próbny: propozycje, edycja i podgląd logo tak (potwierdzone 19.11.2026), pobranie plików po opłaceniu Hostingu (§13b ust. 1).
 2. Ceny i limity (149 / 49 zł brutto, 1 marka, 3 serie, 50 zmian AI, Pakiet 10 serii / 300 zmian / 12 mies.) –
    zmienia się je w adminie bez wdrożenia; artykuły pomocy (szkice) mają liczby domyślne.
-3. Publiczna obietnica rejestru (§13b ust. 6, pyt. 10 koncepcji).
-4. Pakiet marki w Kreatorze Pro rocznym (dziś: nie).
+3. ~~Publiczna obietnica rejestru~~ – rozstrzygnięte 19.11.2026: bez obietnicy (§13b ust. 6 przepisany).
+4. Pakiet marki w Kreatorze Pro – rozstrzygnięte 19.11.2026: bez zmian, marka niezależna od Pro (w cenie Hostingu + jednorazowy Pakiet).
 5. Kolejność startu: (1) prawnik → (2) publikacja Regulaminu i Polityki (re-consent, §24 ust. 1 – nowe funkcje) →
    (3) Admin → Kreator marki: dostępność „Wszyscy” i włącznik → (4) publikacja szkiców pomocy w CMS i włączenie
    szablonów odpowiedzi „Kreator marki – …” w Ustawienia → Szablony odpowiedzi.

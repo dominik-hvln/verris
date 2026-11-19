@@ -1,5 +1,5 @@
 /**
- * Kreator marki – odcisk znaku do rejestru wydanych znaków (unikalność w obrębie Verris, koncepcja 3.6 i 8.4).
+ * Kreator marki – odcisk znaku do rejestru wydanych znaków (ograniczanie powtórzeń w obrębie Verris, koncepcja 3.6 i 8.4; decyzja 19.11.2026: bez publicznej obietnicy unikalności).
  *
  * Dwa odciski:
  * - `odciskParametrow` – rodzina + parametry skwantowane do 5 przedziałów zakresu (+ litery monogramu): szybkie
