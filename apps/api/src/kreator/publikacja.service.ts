@@ -64,6 +64,7 @@ import { KreatorZasobyService } from './zasoby.service.js';
 import { idZasobow } from './zasoby-model.js';
 import { POWOD_PRZENIESIONA, STANY_BLOKUJACE_PUBLIKACJE } from './wordpress/stan-cms.js';
 import { KOMUNIKAT_EKSPORTU, eksportOdblokowany } from './eksport-odblokowany.js';
+import type { KonfiguracjaKreatora } from './konfiguracja.js';
 
 /** Link podglądu wersji próbnej – 7 dni, odnawiany kolejną „publikacją”. */
 export const WAZNOSC_LINKU_MS = 7 * 24 * 60 * 60 * 1000;
@@ -113,7 +114,7 @@ export class KreatorPublikacjaService {
   // ---------------------------------------------------------------------------
 
   async stan(userId: string, id: string) {
-    const wersja = await this.wersja(userId);
+    const { wersja, konf } = await this.dostepKreatora(userId);
     const s = await this.wlasna(userId, id);
     const model = this.model(s);
     const plan = PLANY_KREATORA[wersja];
@@ -121,7 +122,7 @@ export class KreatorPublikacjaService {
     const opublikowana = s.opublikowanaAt && s.adres ? { adres: s.adres, at: s.opublikowanaAt, ...(s.domena ? { domena: s.domena } : {}) } : undefined;
     const link = s.podgladDo && s.podgladDo.getTime() > Date.now() ? { adres: this.adresLinku(s.id, s.podgladDo), wazneDo: s.podgladDo } : undefined;
     const niegotowa = model ? null : 'Strona nie jest jeszcze gotowa – poczekaj na koniec generowania albo popraw błędy.';
-    const zip = await this.stanZip(userId, wersja);
+    const zip = await this.stanZip(userId, wersja, konf);
 
     // Paczka 124 – strona przeniesiona do WordPressa: kreator nie publikuje na jej domenę (dopóki klient nie cofnie przejścia).
     if (await this.przeniesionaDoCms(id)) {
@@ -160,9 +161,13 @@ export class KreatorPublikacjaService {
     };
   }
 
-  /** Paczka 134 – czy klient może pobrać ZIP (próba – nie; hosting/pro – po progu z eksportOdblokowany). */
-  private async stanZip(userId: string, wersja: WersjaKreatora): Promise<{ dostepny: boolean; powod?: string }> {
+  /**
+   * Paczka 134 – czy klient może pobrać ZIP: próba – nie; hosting/pro – tak, a przy włączonym w konfiguracji progu
+   * (`eksportPoProgu`, domyślnie wyłączony – Regulamin 1.3.0 §13a ust. 2–3) dopiero po progu z eksportOdblokowany.
+   */
+  private async stanZip(userId: string, wersja: WersjaKreatora, konf: KonfiguracjaKreatora): Promise<{ dostepny: boolean; powod?: string }> {
     if (!PLANY_KREATORA[wersja].zip) return { dostepny: false, powod: ZIP_PO_OPLACENIU };
+    if (!konf.eksportPoProgu) return { dostepny: true };
     return (await eksportOdblokowany(this.prisma, userId)) ? { dostepny: true } : { dostepny: false, powod: KOMUNIKAT_EKSPORTU };
   }
 
@@ -326,10 +331,10 @@ export class KreatorPublikacjaService {
   // ---------------------------------------------------------------------------
 
   async zip(userId: string, id: string): Promise<{ nazwa: string; dane: Buffer }> {
-    const wersja = await this.wersja(userId);
+    const { wersja, konf } = await this.dostepKreatora(userId);
     if (!PLANY_KREATORA[wersja].zip) throw new ForbiddenException(ZIP_PO_OPLACENIU);
-    // Paczka 134 – ZIP po 3 opłaconych miesiącach hostingu albo od razu przy planie rocznym.
-    if (!(await eksportOdblokowany(this.prisma, userId))) throw new ForbiddenException(KOMUNIKAT_EKSPORTU);
+    // Paczka 134 – przy włączonym progu ZIP po 3 opłaconych miesiącach hostingu albo od razu przy planie rocznym.
+    if (konf.eksportPoProgu && !(await eksportOdblokowany(this.prisma, userId))) throw new ForbiddenException(KOMUNIKAT_EKSPORTU);
     const s = await this.wlasna(userId, id);
     const strona = this.gotowy(s);
     // Formularz w ZIP wysyła do Verris (token strony) – tylko gdy strona jest opublikowana na domenie; inaczej wyłączony.
@@ -553,9 +558,13 @@ export class KreatorPublikacjaService {
   }
 
   private async wersja(userId: string): Promise<WersjaKreatora> {
+    return (await this.dostepKreatora(userId)).wersja;
+  }
+
+  private async dostepKreatora(userId: string): Promise<{ wersja: WersjaKreatora; konf: KonfiguracjaKreatora }> {
     const d = await this.kreator.dostep(userId);
     if (!d.dostep) throw new ForbiddenException(d.powod);
-    return d.wersja;
+    return { wersja: d.wersja, konf: d.konf };
   }
 
   private async wlasna(userId: string, id: string): Promise<Rekord> {

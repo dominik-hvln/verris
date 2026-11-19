@@ -17,6 +17,8 @@ export type KonfiguracjaKreatora = {
   kontaTestowe: string[];
   bibliotekiZdjec: BibliotekaZdjec[];
   obrazyAi: KonfiguracjaObrazowAi;
+  /** Paczka 134 – ZIP strony po 3 opłaconych miesiącach albo przy planie rocznym; domyślnie wyłączony (Regulamin). */
+  eksportPoProgu: boolean;
 };
 
 export type UstawieniaKreatora = {
@@ -79,7 +81,7 @@ export async function fetchPodsumowanieKreatora(): Promise<PodsumowanieKreatora 
 
 /** Zapis bez listy kont testowych – tę zmieniają osobne akcje (konto musi istnieć). */
 export async function zapiszKreator(
-  konf: Pick<KonfiguracjaKreatora, 'wlaczony' | 'modelGeneracji' | 'modelZmian' | 'bibliotekiZdjec' | 'obrazyAi'>,
+  konf: Pick<KonfiguracjaKreatora, 'wlaczony' | 'modelGeneracji' | 'modelZmian' | 'bibliotekiZdjec' | 'obrazyAi' | 'eksportPoProgu'>,
 ): Promise<Wynik<UstawieniaKreatora>> {
   try {
     const body = {
@@ -88,6 +90,7 @@ export async function zapiszKreator(
       modelZmian: konf.modelZmian,
       bibliotekiZdjec: konf.bibliotekiZdjec,
       obrazyAi: konf.obrazyAi,
+      eksportPoProgu: konf.eksportPoProgu,
     };
     const dane = await adminApi<UstawieniaKreatora>('/admin/kreator/konfiguracja', { method: 'PUT', body });
     revalidatePath('/settings/kreator');

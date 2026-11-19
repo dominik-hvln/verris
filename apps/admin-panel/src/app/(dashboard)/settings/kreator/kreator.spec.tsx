@@ -36,6 +36,7 @@ const ustawienia = (z: Partial<UstawieniaKreatora> = {}, konf: Partial<Ustawieni
     kontaTestowe: ["ola@przyklad.pl", "stary@przyklad.pl"],
     bibliotekiZdjec: ["pixabay", "openverse", "pexels"],
     obrazyAi: { wlaczone: false, dostawca: "bfl", model: "flux-pro-1.1", cenaZaObrazUsd: 0.04 },
+    eksportPoProgu: false,
     ...konf,
   },
   kluczAnthropic: true,
@@ -224,6 +225,7 @@ describe("KreatorForm – zapis i konta testowe", () => {
         modelZmian: "claude-sonnet-5-5",
         bibliotekiZdjec: ["openverse", "pixabay"],
         obrazyAi: { wlaczone: false, dostawca: "bfl", model: "flux-pro-1.1", cenaZaObrazUsd: 0.04 },
+        eksportPoProgu: false,
       },
     });
     expect(revalidatePath).toHaveBeenCalledWith("/settings/kreator");
@@ -267,6 +269,31 @@ describe("KreatorForm – zapis i konta testowe", () => {
     await act(async () => wlacznik().click());
     expect(potwierdz).not.toHaveBeenCalled();
     expect(wlacznik().checked).toBe(true);
+  });
+
+  it("paczka 134: próg eksportu ZIP – włączenie z ostrzeżeniem o Regulaminie, odmowa zostawia wyłączony, zapis → PUT eksportPoProgu", async () => {
+    api.mockImplementation(async (_s: string, o: { body: Partial<UstawieniaKreatora["konfiguracja"]> }) => ustawienia({}, o.body));
+    render();
+    const prog = () => k.querySelector<HTMLInputElement>('[data-sekcja="eksport"] input[type=checkbox]')!;
+    expect(prog().checked).toBe(false);
+
+    (potwierdz as jest.Mock).mockResolvedValue(false);
+    await act(async () => prog().click());
+    expect(potwierdz).toHaveBeenCalledWith(expect.stringContaining("Regulamin"), expect.anything());
+    expect(prog().checked).toBe(false);
+
+    (potwierdz as jest.Mock).mockResolvedValue(true);
+    await act(async () => prog().click());
+    expect(prog().checked).toBe(true);
+    expect(k.textContent).toContain("Niezapisane zmiany");
+    await act(async () => przycisk("Zapisz ustawienia kreatora").click());
+    expect(api).toHaveBeenCalledWith("/admin/kreator/konfiguracja", { method: "PUT", body: expect.objectContaining({ eksportPoProgu: true }) });
+
+    // Wyłączenie – bez pytania.
+    (potwierdz as jest.Mock).mockClear();
+    await act(async () => prog().click());
+    expect(potwierdz).not.toHaveBeenCalled();
+    expect(prog().checked).toBe(false);
   });
 
   it("błąd zapisu: komunikat z API po polsku", async () => {

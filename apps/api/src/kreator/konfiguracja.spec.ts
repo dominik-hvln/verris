@@ -11,6 +11,7 @@ describe('konfiguracja kreatora', () => {
       kontaTestowe: [],
       bibliotekiZdjec: ['pixabay', 'openverse', 'pexels'],
       obrazyAi: { wlaczone: false, dostawca: 'bfl', model: 'flux-pro-1.1', cenaZaObrazUsd: 0.04 },
+      eksportPoProgu: false,
     });
     const k = odczytajKonfiguracjeKreatora(JSON.stringify({ modelGeneracji: 'gpt-6-luna', modelZmian: 'claude-opus-5-5', wlaczony: 'tak', kontaTestowe: ['A@b.pl', 'a@b.pl ', 7, ''] }));
     expect(k).toMatchObject({ modelGeneracji: 'claude-sonnet-5-5', modelZmian: 'claude-opus-5-5', wlaczony: false, kontaTestowe: ['a@b.pl'], bibliotekiZdjec: ['pixabay', 'openverse', 'pexels'] });
@@ -19,6 +20,12 @@ describe('konfiguracja kreatora', () => {
     expect(odczytajKonfiguracjeKreatora(JSON.stringify({ bibliotekiZdjec: [] })).bibliotekiZdjec).toEqual([]);
     expect(odczytajKonfiguracjeKreatora('[1,2]')).toEqual(odczytajKonfiguracjeKreatora(null));
     expect(odczytajKonfiguracjeKreatora('{zepsute')).toEqual(odczytajKonfiguracjeKreatora(null));
+  });
+
+  it('paczka 134: próg eksportu ZIP domyślnie wyłączony; włącza go tylko wartość true', () => {
+    expect(odczytajKonfiguracjeKreatora(JSON.stringify({ eksportPoProgu: true })).eksportPoProgu).toBe(true);
+    expect(odczytajKonfiguracjeKreatora(JSON.stringify({ eksportPoProgu: 'tak' })).eksportPoProgu).toBe(false);
+    expect(odczytajKonfiguracjeKreatora(null).eksportPoProgu).toBe(false);
   });
 
   it('konto testowe po e-mailu albo ID; miesiąc UTC', () => {

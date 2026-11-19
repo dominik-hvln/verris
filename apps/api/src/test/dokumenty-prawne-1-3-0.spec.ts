@@ -5,6 +5,7 @@ import { OKRES_COFNIECIA_DNI } from '../kreator/wordpress/kreator-wordpress.serv
 import { WAZNOSC_LINKU_MS } from '../kreator/publikacja.service.js';
 import { POLA_TRESCI } from '../kreator/formularz.js';
 import { REGULAMIN_Z_KREATOREM } from '../kreator/kreator.admin.controller.js';
+import { DOMYSLNA_KONFIGURACJA_KREATORA, odczytajKonfiguracjeKreatora } from '../kreator/konfiguracja.js';
 
 /**
  * Dokumenty prawne 1.3.0 (9.11.2026) – Verris Kreator w cenie Hostingu i abonament Kreator Pro (Regulamin §13a),
@@ -105,6 +106,10 @@ describe('Dokumenty prawne 1.3.0 – Verris Kreator i Kreator Pro', () => {
     expect([hosting.publikacja, hosting.zip, hosting.wordpress]).toEqual(['domena', true, true]);
     expect([pro.znakMinimalny, pro.wielojezycznosc, hosting.znakMinimalny]).toEqual([true, true, false]);
     expect(ustep(2)).toMatch(/Publikacja na domenie Klienta, pobranie strony jako pliku ZIP i przejście na WordPress \(ust\. 7\) są dostępne po opłaceniu Hostingu/);
+    // Paczka 134: ZIP „po opłaceniu Hostingu” (ust. 2–3) – próg 3 opłaconych miesięcy (eksportPoProgu) domyślnie wyłączony.
+    // Włączenie progu wymaga wersji Regulaminu, która go opisuje; bez niej ten test ma pilnować wartości domyślnej.
+    expect(DOMYSLNA_KONFIGURACJA_KREATORA.eksportPoProgu).toBe(false);
+    expect(odczytajKonfiguracjeKreatora(null).eksportPoProgu).toBe(false);
     expect(OKRES_COFNIECIA_DNI).toBe(30);
     expect(ustep(7)).toMatch(/odpowiada za jego aktualizacje, motywy, wtyczki[^\n]*Przez 30 dni od zamiany Klient może w Panelu cofnąć przejście/);
   });

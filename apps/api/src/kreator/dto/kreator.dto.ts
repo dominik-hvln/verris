@@ -174,6 +174,11 @@ export class KonfiguracjaKreatoraDto {
   @ValidateNested()
   @Type(() => ObrazyAiDto)
   obrazyAi?: ObrazyAiDto;
+
+  /** Paczka 134 – ZIP strony po progu (3 opłacone miesiące albo plan roczny); włączać po zmianie Regulaminu. */
+  @IsOptional()
+  @IsBoolean()
+  eksportPoProgu?: boolean;
 }
 
 /** POST /kreator/pro/okres – okres abonamentu Kreator Pro od następnego odnowienia (paczka 123). */

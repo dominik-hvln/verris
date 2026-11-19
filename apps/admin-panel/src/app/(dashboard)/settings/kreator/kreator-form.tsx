@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useId, useState, useTransition } from 'react';
-import { AlertTriangle, ArrowDown, ArrowUp, Bot, Image as Zdjecie, Loader2, Plus, Save, Sparkles, Trash2, Users } from 'lucide-react';
+import { AlertTriangle, ArrowDown, ArrowUp, Bot, Download, Image as Zdjecie, Loader2, Plus, Save, Sparkles, Trash2, Users } from 'lucide-react';
 import { Select, type SelectOption } from '@/components/select';
 import { Checkbox } from '@/components/checkbox';
 import { potwierdz } from '@/components/potwierdz';
@@ -89,6 +89,18 @@ export function KreatorForm({ initial, magazyn }: { initial: UstawieniaKreatora;
     ustaw({ wlaczony: on });
   };
 
+  /** Paczka 134 – próg ZIP zmienia zasady z Regulaminu 1.3.0 §13a ust. 2–3 (ZIP po opłaceniu Hostingu). */
+  const wlaczProgEksportu = async (on: boolean) => {
+    if (on) {
+      const ok = await potwierdz(
+        'Regulamin 1.3.0 (§13a ust. 2–3) daje pobranie strony w ZIP po opłaceniu Hostingu. Próg 3 opłaconych miesięcy włącz dopiero po publikacji wersji Regulaminu, która go opisuje. Włączyć mimo to? Zmiana zadziała po zapisie.',
+        { akcja: 'Włącz próg', tytul: 'Próg pobrania ZIP' },
+      );
+      if (!ok) return;
+    }
+    ustaw({ eksportPoProgu: on });
+  };
+
   const zapisz = () =>
     startZapis(async () => {
       const r = await zapiszKreator(konf);
@@ -131,7 +143,8 @@ export function KreatorForm({ initial, magazyn }: { initial: UstawieniaKreatora;
     konf.modelGeneracji !== dane.konfiguracja.modelGeneracji ||
     konf.modelZmian !== dane.konfiguracja.modelZmian ||
     konf.bibliotekiZdjec.join() !== dane.konfiguracja.bibliotekiZdjec.join() ||
-    JSON.stringify(konf.obrazyAi) !== JSON.stringify(dane.konfiguracja.obrazyAi);
+    JSON.stringify(konf.obrazyAi) !== JSON.stringify(dane.konfiguracja.obrazyAi) ||
+    konf.eksportPoProgu !== dane.konfiguracja.eksportPoProgu;
   const ustawObrazy = (z: Partial<KonfiguracjaObrazowAi>) => ustaw({ obrazyAi: { ...konf.obrazyAi, ...z } });
   const dostawcaAi = dane.dostawcyObrazowAi.find((d) => d.id === konf.obrazyAi.dostawca);
   const wlaczObrazy = async (on: boolean) => {
@@ -439,6 +452,22 @@ export function KreatorForm({ initial, magazyn }: { initial: UstawieniaKreatora;
         </p>
       </section>
 
+      <section data-sekcja="eksport" className={SEKCJA}>
+        <h2 className={NAGLOWEK}>
+          <Download className="h-4 w-4" aria-hidden /> Pobranie strony w ZIP
+        </h2>
+        <label className="flex items-start gap-3 text-sm text-white">
+          <Checkbox id={`${id}-eksport-po-progu`} checked={konf.eksportPoProgu} onChange={(e) => void wlaczProgEksportu(e.target.checked)} className="mt-0.5" />
+          <span>
+            ZIP dopiero po 3 opłaconych miesiącach hostingu (plan roczny – od razu)
+            <span className="block text-[11px] text-neutral-400">
+              Wyłączony: ZIP ma każde konto z opłaconym hostingiem, jak w Regulaminie 1.3.0. Włączaj dopiero po publikacji wersji Regulaminu,
+              która opisuje próg. Nie dotyczy plików marki ani przejścia na WordPressa. Działa od zapisu.
+            </span>
+          </span>
+        </label>
+      </section>
+
       <div className="flex max-w-3xl flex-wrap items-center gap-3">
         <button
           type="button"
@@ -452,7 +481,7 @@ export function KreatorForm({ initial, magazyn }: { initial: UstawieniaKreatora;
         <span role="status" className="text-xs">
           {stan.ok && !zmieniono ? <span className="text-emerald-300">Zapisano – działa od razu.</span> : null}
           {stan.error ? <span className="text-rose-300">{stan.error}</span> : null}
-          {zmieniono && !stan.error ? <span className="text-amber-200">Niezapisane zmiany (dostęp, modele, biblioteki albo zdjęcia AI).</span> : null}
+          {zmieniono && !stan.error ? <span className="text-amber-200">Niezapisane zmiany (dostęp, modele, biblioteki, zdjęcia AI albo próg ZIP).</span> : null}
         </span>
       </div>
     </div>

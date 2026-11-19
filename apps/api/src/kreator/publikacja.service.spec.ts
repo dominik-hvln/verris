@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { BadRequestException, ConflictException, ForbiddenException, NotFoundException, ServiceUnavailableException, UnprocessableEntityException } from '@nestjs/common';
 import { PRZYKLAD_MIGAWKI_MARKI, PRZYKLAD_SALON, walidujStrone, zastosujMarke, type Strona, type WersjaKreatora } from '@verris/kreator';
 import { KreatorPublikacjaService } from './publikacja.service.js';
+import { DOMYSLNA_KONFIGURACJA_KREATORA } from './konfiguracja.js';
 
 type WynikPublikacji = Awaited<ReturnType<KreatorPublikacjaService['publikuj']>>;
 /** Wynik publikacji na domenę (hosting/pro). */
@@ -156,7 +157,7 @@ const miesieczna = (n: number): Usluga => {
   return { status: 'ACTIVE', interval: 'MONTH', isTrial: false, trialConvertedAt: null, createdAt: od, currentPeriodEnd: poMiesiacach(od, n), canceledAt: null };
 };
 
-function zbuduj(opcje: { wersja?: WersjaKreatora; renderer?: RendererPublikacji; model?: Strona; zasoby?: unknown; uslugi?: Usluga[] } = {}) {
+function zbuduj(opcje: { wersja?: WersjaKreatora; renderer?: RendererPublikacji; model?: Strona; zasoby?: unknown; uslugi?: Usluga[]; eksportPoProgu?: boolean } = {}) {
   const strony: Rek[] = [
     {
       id: ID, userId: 'u1', nazwa: 'Salon Ąłka', model: opcje.model ?? SALON_Z_PODSTRONA, status: 'GOTOWA',
@@ -197,7 +198,8 @@ function zbuduj(opcje: { wersja?: WersjaKreatora; renderer?: RendererPublikacji;
       return { buf: Buffer.from(`font:${n}`), type: 'font/woff2' };
     }),
   };
-  const kreator = { dostep: vi.fn(async () => ({ dostep: true, wersja: opcje.wersja ?? 'hosting' })) };
+  const konf = { ...DOMYSLNA_KONFIGURACJA_KREATORA, eksportPoProgu: opcje.eksportPoProgu ?? false };
+  const kreator = { dostep: vi.fn(async () => ({ dostep: true, wersja: opcje.wersja ?? 'hosting', konf })) };
   const audit = { record: vi.fn(async () => undefined) };
   const config = { get: (k: string) => (k === 'appKmsKey' ? KLUCZ : k === 'PUBLIC_API_URL' ? 'https://api.verris.test/' : undefined) };
   const svc = new KreatorPublikacjaService(
@@ -534,27 +536,40 @@ describe('Kreator – link podglądu wersji próbnej', () => {
 describe('Kreator – ZIP strony', () => {
   const PROG = 'Pobranie strony w pliku ZIP jest dostępne po 3 opłaconych miesiącach hostingu albo od razu przy planie rocznym.';
 
-  it('hosting miesięczny po 1 opłaconym miesiącu: ZIP → 403 z komunikatem progu; stan.zip.dostepny = false z tym powodem', async () => {
-    const t = zbuduj({ uslugi: [miesieczna(1)] });
+  it('próg wyłączony (domyślnie – Regulamin 1.3.0 §13a ust. 2–3): ZIP po 1 opłaconym miesiącu działa, stan.zip.dostepny = true, bez pytania o usługi', async () => {
+    for (const wersja of ['hosting', 'pro'] as const) {
+      const t = zbuduj({ wersja, uslugi: [miesieczna(1)] });
+      const { dane } = await t.svc.zip('u1', ID);
+      expect(dane.subarray(0, 4).toString('hex')).toBe('504b0304');
+      expect((await t.svc.stan('u1', ID)).zip).toEqual({ dostepny: true });
+      expect(t.prisma.subscription.findMany).not.toHaveBeenCalled();
+    }
+    // Próba – bez zmian: ZIP po opłaceniu hostingu.
+    const proba = zbuduj({ wersja: 'proba', uslugi: [miesieczna(3)] });
+    await expect(proba.svc.zip('u1', ID)).rejects.toThrow(/opłaceniu hostingu/);
+  });
+
+  it('próg włączony (eksportPoProgu): hosting miesięczny po 1 opłaconym miesiącu: ZIP → 403 z komunikatem progu; stan.zip.dostepny = false z tym powodem', async () => {
+    const t = zbuduj({ uslugi: [miesieczna(1)], eksportPoProgu: true });
     const e = await t.svc.zip('u1', ID).catch((x: unknown) => x);
     expect(e).toBeInstanceOf(ForbiddenException);
     expect((e as ForbiddenException).message).toBe(PROG);
     expect((await t.svc.stan('u1', ID)).zip).toEqual({ dostepny: false, powod: PROG });
     // Pro bez progu – tak samo (dodatek Pro nie zastępuje opłaconego hostingu).
-    const pro = zbuduj({ wersja: 'pro', uslugi: [miesieczna(1)] });
+    const pro = zbuduj({ wersja: 'pro', uslugi: [miesieczna(1)], eksportPoProgu: true });
     await expect(pro.svc.zip('u1', ID)).rejects.toThrow(PROG);
   });
 
-  it('po 3 opłaconych miesiącach: ZIP działa, stan.zip.dostepny = true', async () => {
-    const t = zbuduj({ uslugi: [miesieczna(3)] });
+  it('próg włączony: po 3 opłaconych miesiącach: ZIP działa, stan.zip.dostepny = true', async () => {
+    const t = zbuduj({ uslugi: [miesieczna(3)], eksportPoProgu: true });
     const { dane } = await t.svc.zip('u1', ID);
     expect(dane.subarray(0, 4).toString('hex')).toBe('504b0304');
     expect((await t.svc.stan('u1', ID)).zip).toEqual({ dostepny: true });
     expect(t.prisma.subscription.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ userId: 'u1' }) }));
   });
 
-  it('strona przeniesiona do WordPressa: stan też ma pole zip', async () => {
-    const t = zbuduj({ uslugi: [miesieczna(1)] });
+  it('próg włączony: strona przeniesiona do WordPressa – stan też ma pole zip', async () => {
+    const t = zbuduj({ uslugi: [miesieczna(1)], eksportPoProgu: true });
     t.cms.push({ stronaId: ID, stan: 'PRZENIESIONA' });
     const s = await t.svc.stan('u1', ID);
     expect(s.mozliwa).toBe(false);

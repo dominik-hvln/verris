@@ -26,6 +26,12 @@ export interface KonfiguracjaKreatora {
   bibliotekiZdjec: NazwaDostawcy[];
   /** Paczka 124 – generowanie zdjęć przez AI (zakładka „Wygeneruj” w wyborze zdjęcia). */
   obrazyAi: KonfiguracjaObrazowAi;
+  /**
+   * Paczka 134 – ZIP strony dopiero po 3 opłaconych miesiącach hostingu albo od razu przy planie rocznym
+   * (eksport-odblokowany.ts). Domyślnie false: Regulamin 1.3.0 §13a ust. 2–3 daje ZIP po opłaceniu Hostingu –
+   * włączyć dopiero po publikacji wersji Regulaminu, która opisuje próg. Pliki marki nie zależą od przełącznika.
+   */
+  eksportPoProgu: boolean;
 }
 
 /**
@@ -62,6 +68,7 @@ export const DOMYSLNA_KONFIGURACJA_KREATORA: KonfiguracjaKreatora = {
   kontaTestowe: [],
   bibliotekiZdjec: [...DOSTAWCY_ZDJEC],
   obrazyAi: { wlaczone: false, dostawca: 'bfl', model: DOMYSLNE_OBRAZY_AI.bfl.model, cenaZaObrazUsd: DOMYSLNE_OBRAZY_AI.bfl.cenaZaObrazUsd },
+  eksportPoProgu: false,
 };
 
 /** Ustawienia zdjęć AI z JSON-a: nieznany dostawca → BFL, model spoza wzorca dostawcy → domyślny, cena 0..5 USD. */
@@ -111,6 +118,7 @@ export function odczytajKonfiguracjeKreatora(surowe: string | null | undefined):
     kontaTestowe: konta,
     bibliotekiZdjec: biblioteki,
     obrazyAi: odczytajObrazyAi(v.obrazyAi),
+    eksportPoProgu: v.eksportPoProgu === true,
   };
 }
 

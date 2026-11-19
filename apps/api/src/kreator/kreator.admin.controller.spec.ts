@@ -130,8 +130,18 @@ describe('KreatorAdminController – konfiguracja', () => {
       bibliotekiZdjec: ['openverse', 'pixabay'],
       kontaTestowe: ['a@b.pl'],
       obrazyAi: DOMYSLNA_KONFIGURACJA_KREATORA.obrazyAi,
+      eksportPoProgu: false,
     });
     expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'ADMIN_AI_SETTINGS_UPDATED', actorUserId: 'admin-1', details: { kreator: expect.objectContaining({ wlaczony: true, kontaTestowe: 1 }) } }));
+  });
+
+  it('paczka 134: zapis przełącznika progu eksportu ZIP (eksportPoProgu); pominięty – bez zmian', async () => {
+    const { c, zapisana } = stanowisko();
+    await c.zapisz({ eksportPoProgu: true }, ADMIN);
+    expect(zapisana()).toMatchObject({ eksportPoProgu: true });
+    const wl = stanowisko({ eksportPoProgu: true });
+    await wl.c.zapisz({ wlaczony: true }, ADMIN);
+    expect(wl.zapisana()).toMatchObject({ eksportPoProgu: true, wlaczony: true });
   });
 
   it('zdjęcia AI (paczka 124): stan klucza tylko tak/nie, zapis scala pola, zmiana dostawcy bez modelu → model domyślny', async () => {
