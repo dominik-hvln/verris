@@ -8,13 +8,15 @@ import { ConfigService } from '@nestjs/config';
 import { funkcjaDlaUzytkownika } from '../common/funkcje-testowe.js';
 import { KonfiguracjaMarkiService } from '../kreator-marki/konfiguracja-marki.service.js';
 import { wersjaKreatora } from '../kreator/wersja-kreatora.js';
+import { dostepBezHostingu } from '../kreator-marki/limity-marki.js';
 
 /**
  * N-12 — flagi funkcji ocenione dla zalogowanego klienta: `{ [klucz]: włączona }`.
  * Plus `vps` i `resellerMarkup` z env API (FEATURE_* / FEATURE_*_TYLKO_KONTA) — panel klienta czyta je
  * stąd w runtime, bo obraz panelu budowany jest bez argumentów NEXT_PUBLIC_FEATURE_*.
  * Paczka 131 — `kreatorMarki`: moduł Kreatora marki dostępny dla konta (ustawienia admina) i konto ma działający
- * hosting (także próbny) – menu panelu; tani odczyt bez składania marek.
+ * hosting (także próbny) – menu panelu; tani odczyt bez składania marek. Paczka 134 (decyzja 19.11 – wykupione pliki
+ * zawsze dostępne): bez hostingu menu zostaje, gdy konto ma opłacony Pakiet marki albo spełnia próg eksportu.
  */
 @Controller('me/feature-flags')
 @UseGuards(JwtAuthGuard)
@@ -29,7 +31,9 @@ export class MeFeatureFlagsController {
   private async markaDostepna(userId: string): Promise<boolean> {
     if (!this.kreatorMarki) return false;
     try {
-      return (await this.kreatorMarki.dostep(userId)) && (await wersjaKreatora(this.prisma, userId)) !== null;
+      if (!(await this.kreatorMarki.dostep(userId))) return false;
+      if ((await wersjaKreatora(this.prisma, userId)) !== null) return true;
+      return (await dostepBezHostingu(this.prisma, userId)) !== null;
     } catch {
       return false;
     }

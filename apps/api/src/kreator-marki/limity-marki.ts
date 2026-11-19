@@ -3,6 +3,7 @@ import type { LicznikMarki, WersjaKreatora, WersjaMarkiKonta } from '@verris/kre
 import type { PrismaService } from '../prisma/prisma.service.js';
 import { miesiacUtc } from '../kreator/konfiguracja.js';
 import { PRO_DZIALA } from '../kreator/kreator-pro.js';
+import { eksportOdblokowany } from '../kreator/eksport-odblokowany.js';
 import type { KonfiguracjaMarki } from './konfiguracja-marki.js';
 
 /**
@@ -14,6 +15,14 @@ import type { KonfiguracjaMarki } from './konfiguracja-marki.js';
  * Limity w cenie hostingu są MIESIĘCZNE (KreatorMarkaZuzycie), pula Pakietu – ŁĄCZNA (KreatorMarkaZakup.serie/zmianyAi
  * zapisane przy zakupie). Rezerwacja: najpierw miesiąc, potem pula Pakietu; atomowo (updateMany z warunkiem), zwrot
  * przy błędzie AI – jak kreator stron (KreatorService.rezerwuj/zwolnij).
+ *
+ * Paczka 134 – decyzja właściciela 19.11.2026: „wykupione pliki zawsze dostępne”.
+ *  - Pakiet wygrywa z próbą i z brakiem hostingu: kolejność wersji to Pakiet (albo Pro) → 'pakiet', potem próba
+ *    albo brak hostingu → 'proba', reszta → 'hosting';
+ *  - bez hostingu (wersjaKreatora = null) limity miesięczne w cenie hostingu = 0 – serie i zmiany AI tylko z puli
+ *    Pakietu; limit marek bez zmian (marki zostają po końcu usługi, kasuje je dopiero anonimizacja RODO);
+ *  - bez hostingu i bez Pakietu, gdy eksportOdblokowany (3 opłacone miesiące albo plan roczny): sam odczyt i pobranie
+ *    plików jak przy hostingu (bez KV i druku) – rozstrzyga serwis (dostepBezHostingu), nie stanLimitow.
  */
 
 export type PoleLimituMarki = 'serie' | 'zmianyAi';
@@ -49,18 +58,32 @@ export interface StanLimitow {
   zmianyAi: LicznikMarki;
 }
 
+/** Dostęp bez działającego hostingu: 'pakiet' – opłacony Pakiet marki (pełny moduł), 'odczyt' – próg eksportu (sam odczyt i pliki), null – brak. */
+export type DostepBezHostingu = 'pakiet' | 'odczyt' | null;
+
+export async function dostepBezHostingu(db: Pick<PrismaService, 'kreatorMarkaZakup' | 'subscription'>, userId: string): Promise<DostepBezHostingu> {
+  if ((await pakietyKonta(db, userId)).length) return 'pakiet';
+  return (await eksportOdblokowany(db, userId)) ? 'odczyt' : null;
+}
+
+/** Limity miesięczne w cenie hostingu – bez hostingu zero (decyzja 19.11). */
+const wCenieHostingu = (konf: KonfiguracjaMarki, wersjaKreatora: WersjaKreatora | null) =>
+  wersjaKreatora === null ? { ...konf.wCenieHostingu, seriiMies: 0, zmianAiMies: 0 } : konf.wCenieHostingu;
+
 export async function stanLimitow(db: Db, userId: string, konf: KonfiguracjaMarki, wersjaKreatora: WersjaKreatora | null): Promise<StanLimitow> {
   const miesiac = miesiacUtc();
+  const bezHostingu = wersjaKreatora === null;
   const [pakiety, drugie, marek, zuzycie, pro] = await Promise.all([
     pakietyKonta(db, userId),
     db.kreatorMarkaZakup.count({ where: { userId, rodzaj: 'DRUGA_MARKA', status: 'OPLACONY' } }),
     db.kreatorMarka.count({ where: { userId } }),
-    db.kreatorMarkaZuzycie.findUnique({ where: { userId_miesiac: { userId, miesiac } } }),
+    // bez hostingu licznik miesięczny się nie liczy (limit 0) – uzyte/limit to sama pula Pakietu
+    bezHostingu ? Promise.resolve(null) : db.kreatorMarkaZuzycie.findUnique({ where: { userId_miesiac: { userId, miesiac } } }),
     konf.pakietWKreatorzeProRocznym && wersjaKreatora === 'pro' ? proRoczny(db, userId) : Promise.resolve(false),
   ]);
   const pakietKupiony = pakiety.length > 0;
-  const wersja: WersjaMarkiKonta = wersjaKreatora === 'proba' || wersjaKreatora === null ? 'proba' : pakietKupiony || pro ? 'pakiet' : 'hosting';
-  const h = konf.wCenieHostingu;
+  const wersja: WersjaMarkiKonta = pakietKupiony || pro ? 'pakiet' : wersjaKreatora === 'proba' || bezHostingu ? 'proba' : 'hosting';
+  const h = wCenieHostingu(konf, wersjaKreatora);
   const suma = (f: (p: (typeof pakiety)[number]) => number) => pakiety.reduce((s, p) => s + f(p), 0);
   const aktualizacjeDo = pakiety.map((p) => p.aktualizacjeDo).filter((d): d is Date => !!d).sort((a, b) => b.getTime() - a.getTime())[0];
   return {
@@ -81,10 +104,14 @@ async function wierszZuzycia(db: Pick<PrismaService, 'kreatorMarkaZuzycie'>, use
   }
 }
 
-/** Atomowa rezerwacja jednej serii / zmiany AI: miesiąc w cenie hostingu, potem pula Pakietu. null = limit wyczerpany. */
-export async function rezerwuj(db: Db, userId: string, pole: PoleLimituMarki, konf: KonfiguracjaMarki): Promise<RezerwacjaMarki | null> {
+/**
+ * Atomowa rezerwacja jednej serii / zmiany AI: miesiąc w cenie hostingu, potem pula Pakietu. null = limit wyczerpany.
+ * Bez hostingu (wersjaKreatora = null) – od razu pula Pakietu.
+ */
+export async function rezerwuj(db: Db, userId: string, pole: PoleLimituMarki, konf: KonfiguracjaMarki, wersjaKreatora: WersjaKreatora | null): Promise<RezerwacjaMarki | null> {
   const miesiac = miesiacUtc();
-  const limit = pole === 'serie' ? konf.wCenieHostingu.seriiMies : konf.wCenieHostingu.zmianAiMies;
+  const h = wCenieHostingu(konf, wersjaKreatora);
+  const limit = pole === 'serie' ? h.seriiMies : h.zmianAiMies;
   if (limit > 0) {
     await wierszZuzycia(db, userId, miesiac);
     const r = await db.kreatorMarkaZuzycie.updateMany({ where: { userId, miesiac, [pole]: { lt: limit } }, data: { [pole]: { increment: 1 } } });

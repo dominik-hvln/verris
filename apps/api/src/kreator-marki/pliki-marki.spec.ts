@@ -6,6 +6,8 @@ import { ksztaltZKrojow } from './napis-marki.js';
 import { GeneratorPlikowMarki, zip } from './generator-plikow.js';
 import { odczytajXmpPng, pakietXmp, pngZSvg, wstawXmpPng, zlozIco } from './pliki-graficzne.js';
 import { blokadaPliku, katalogPlikow, kluczBranzy, listaPlikow } from './dane-marki.js';
+import { rezerwuj, stanLimitow } from './limity-marki.js';
+import { DOMYSLNA_KONFIGURACJA_MARKI } from './konfiguracja-marki.js';
 import { parsujSvg, stronaZSvg, wymagaRastra } from './pdf-svg.js';
 import { markaTestowa, napisTestowy, PLIK_LATIN, PLIK_LATIN_EXT, zrodloKrojowTestowe } from './test-marka.js';
 import { NapisMarkiService } from './napis-marki.js';
@@ -197,6 +199,43 @@ describe('katalog plików i blokady', () => {
   it('układy plików: marka bez znaku – sam napis; wgrane logo – samo logo', () => {
     expect(katalogPlikow(markaTestowa({ projekt: { ...m.projekt, sygnet: { typ: 'brak' }, uklad: 'napis' } })).filter((p) => p.grupa === 'logo').every((p) => p.plik.startsWith('logo-napis-'))).toBe(true);
     expect(katalogPlikow(markaTestowa({ zrodlo: 'wgrane' })).filter((p) => p.grupa === 'logo').every((p) => p.plik.startsWith('logo-sygnet-'))).toBe(true);
+  });
+
+  // Paczka 134 (decyzja 19.11): wykupione pliki zawsze dostępne – Pakiet wygrywa z brakiem hostingu i z próbą.
+  const bazaLimitow = (pakiet: boolean) => {
+    const zakup = { id: 'z1', serie: 10, zmianyAi: 300, serieUzyte: 4, zmianyAiUzyte: 20, aktualizacjeDo: null, oplaconoAt: new Date('2026-10-01') };
+    return {
+      kreatorMarkaZakup: { findMany: vi.fn(async () => (pakiet ? [zakup] : [])), count: vi.fn(async () => 0), updateMany: vi.fn(async () => ({ count: 1 })) },
+      kreatorMarka: { count: vi.fn(async () => 1) },
+      kreatorMarkaZuzycie: { findUnique: vi.fn(async () => ({ serie: 2, zmianyAi: 7 })), upsert: vi.fn(async () => ({})), updateMany: vi.fn(async () => ({ count: 1 })) },
+      subscription: { count: vi.fn(async () => 0) },
+    };
+  };
+  const konf = DOMYSLNA_KONFIGURACJA_MARKI;
+
+  it('stanLimitow: Pakiet bez hostingu – wersja „pakiet”, limity tylko z puli Pakietu (bez miesięcznych w cenie hostingu)', async () => {
+    const l = await stanLimitow(bazaLimitow(true) as never, 'u1', konf, null);
+    expect(l.wersja).toBe('pakiet');
+    expect(l.pakietKupiony).toBe(true);
+    expect(l.serie).toEqual({ uzyte: 4, limit: 10 });
+    expect(l.zmianyAi).toEqual({ uzyte: 20, limit: 300 });
+    expect(l.marki).toEqual({ uzyte: 1, limit: konf.wCenieHostingu.marek });
+  });
+
+  it('stanLimitow: Pakiet w okresie próbnym – „pakiet”; bez Pakietu: próba i brak hostingu – „proba”, płatny – „hosting”', async () => {
+    expect((await stanLimitow(bazaLimitow(true) as never, 'u1', konf, 'proba')).wersja).toBe('pakiet');
+    expect((await stanLimitow(bazaLimitow(false) as never, 'u1', konf, 'proba')).wersja).toBe('proba');
+    expect((await stanLimitow(bazaLimitow(false) as never, 'u1', konf, null)).wersja).toBe('proba');
+    const hosting = await stanLimitow(bazaLimitow(false) as never, 'u1', konf, 'hosting');
+    expect(hosting.wersja).toBe('hosting');
+    expect(hosting.serie).toEqual({ uzyte: 2, limit: konf.wCenieHostingu.seriiMies });
+  });
+
+  it('rezerwuj bez hostingu: od razu z puli Pakietu, bez licznika miesięcznego w cenie hostingu', async () => {
+    const db = bazaLimitow(true);
+    expect(await rezerwuj(db as never, 'u1', 'zmianyAi', konf, null)).toEqual({ zrodlo: 'pakiet', zakupId: 'z1', pole: 'zmianyAi' });
+    expect(db.kreatorMarkaZuzycie.updateMany).not.toHaveBeenCalled();
+    expect(await rezerwuj(db as never, 'u1', 'zmianyAi', konf, 'hosting')).toMatchObject({ zrodlo: 'miesiac' });
   });
 
   it('klucz branży: małe litery, bez polskich znaków i interpunkcji', () => {

@@ -84,18 +84,24 @@ describe('/me/feature-flags – panel dostaje vps i resellerMarkup dla zalogowan
 });
 
 describe('/me/feature-flags – kreatorMarki (paczka 131)', () => {
-  const prisma = (hosting: { isTrial: boolean } | null) => ({
+  type BezHostingu = { pakiet?: boolean; uslugiEksportu?: unknown[] };
+  const prisma = (hosting: { isTrial: boolean } | null, bez: BezHostingu = {}) => ({
     featureFlag: { findMany: vi.fn(async () => []) },
     subscription: {
-      findMany: vi.fn(async (a: { where: { plan?: unknown } }) =>
-        a.where.plan && hosting ? [{ isTrial: hosting.isTrial, trialConvertedAt: null, status: 'ACTIVE', plan: { productKind: 'HOSTING' } }] : [],
+      findMany: vi.fn(async (a: { where: { plan?: unknown; status?: { notIn?: unknown } } }) =>
+        a.where.status?.notIn
+          ? (bez.uslugiEksportu ?? [])
+          : a.where.plan && hosting
+            ? [{ isTrial: hosting.isTrial, trialConvertedAt: null, status: 'ACTIVE', plan: { productKind: 'HOSTING' } }]
+            : [],
       ),
     },
+    kreatorMarkaZakup: { findMany: vi.fn(async () => (bez.pakiet ? [{ id: 'z1' }] : [])) },
     user: { findUnique: vi.fn(async () => ({ email: 'k@firma.pl' })) },
   });
-  const flaga = async (dostep: boolean | Error, hosting: { isTrial: boolean } | null) => {
+  const flaga = async (dostep: boolean | Error, hosting: { isTrial: boolean } | null, bez: BezHostingu = {}) => {
     const marka = { dostep: vi.fn(async () => { if (dostep instanceof Error) throw dostep; return dostep; }) };
-    const p = prisma(hosting);
+    const p = prisma(hosting, bez);
     const r = await new MeFeatureFlagsController(p as never, konfig({}) as never, marka as never).moje({ userId: 'u1' });
     return { r: r.kreatorMarki, marka, p };
   };
@@ -107,6 +113,13 @@ describe('/me/feature-flags – kreatorMarki (paczka 131)', () => {
     const bezModulu = await flaga(false, { isTrial: false });
     expect(bezModulu.r).toBe(false);
     expect(bezModulu.marka.dostep).toHaveBeenCalledWith('u1');
+  });
+
+  it('paczka 134: bez hostingu menu zostaje, gdy klient ma Pakiet marki albo 3 opłacone miesiące (pliki do pobrania)', async () => {
+    const trzyMiesiace = [{ status: 'EXPIRED', interval: 'MONTH', isTrial: false, trialConvertedAt: null, createdAt: new Date('2026-06-01T10:00:00Z'), currentPeriodEnd: new Date('2026-09-01T10:00:00Z'), canceledAt: null }];
+    expect((await flaga(true, null, { pakiet: true })).r).toBe(true);
+    expect((await flaga(true, null, { uslugiEksportu: trzyMiesiace })).r).toBe(true);
+    expect((await flaga(false, null, { pakiet: true })).r).toBe(false);
   });
 
   it('błąd odczytu konfiguracji – false, reszta flag działa', async () => {

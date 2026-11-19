@@ -61,6 +61,7 @@ import {
   type UkladLogo,
   type WariantKoloru,
   type WersjaKreatora,
+  type WersjaMarkiKonta,
   type WiadomoscAi,
   type WidokMarki,
   type WybierzBody,
@@ -82,7 +83,7 @@ import { kluczWariantu } from '../kreator/zasoby-obraz.js';
 import { KonfiguracjaMarkiService } from './konfiguracja-marki.service.js';
 import { cenyMarki, FUNKCJA_AI_MARKI, type KonfiguracjaMarki } from './konfiguracja-marki.js';
 import { etapMarki, katalogPlikow, kluczBranzy, listaPlikow, odczytajDaneMarki, ukladyMarki, blokadaPliku, type AnalizaZapisana, type DaneMarki } from './dane-marki.js';
-import { dolicz, nowyLicznikMarki, rezerwuj, stanLimitow, zwolnij, type LicznikAiMarki, type PoleLimituMarki, type RezerwacjaMarki } from './limity-marki.js';
+import { dolicz, dostepBezHostingu, nowyLicznikMarki, rezerwuj, stanLimitow, zwolnij, type LicznikAiMarki, type PoleLimituMarki, type RezerwacjaMarki } from './limity-marki.js';
 import { NapisMarkiService } from './napis-marki.js';
 import { GeneratorPlikowMarki, type KontekstPlikow, type WynikPliku } from './generator-plikow.js';
 import { ZakupMarkiService } from './zakup-marki.js';
@@ -170,7 +171,16 @@ export function zbytPodobny(o: OdciskZnaku | null, wydane: readonly { odciskPara
   return wydane.some((w) => (o.odciskParametrow && w.odciskParametrow === o.odciskParametrow) || podobienstwo(o.pHash, w.pHash) >= PROG_PODOBIENSTWA);
 }
 
-type Dostep = { konf: KonfiguracjaMarki; wersjaKreatora: WersjaKreatora };
+/** 'odczyt' – podgląd marki i pobieranie plików; 'zapis' – reszta (serie, zmiany AI, wgrywanie, stopka). */
+export type TrybDostepu = 'zapis' | 'odczyt';
+
+type Dostep = {
+  konf: KonfiguracjaMarki;
+  /** null – brak działającego hostingu (dostęp z Pakietu albo z progu eksportu, paczka 134). */
+  wersjaKreatora: WersjaKreatora | null;
+  /** Bez hostingu i Pakietu, próg eksportu spełniony: sam odczyt, pliki jak przy hostingu (bez KV i druku). */
+  plikiJakHosting: boolean;
+};
 
 @Injectable()
 export class KreatorMarkiService {
@@ -200,12 +210,25 @@ export class KreatorMarkiService {
     return this.konfiguracjaMarki.konfiguracja();
   }
 
-  /** Moduł + działający hosting (także próba – jak Kreator stron). */
-  async dostep(userId: string): Promise<Dostep> {
+  /**
+   * Moduł + działający hosting (także próba – jak Kreator stron). Paczka 134 (decyzja 19.11 – wykupione pliki zawsze
+   * dostępne): bez hostingu opłacony Pakiet marki daje pełny moduł (limity tylko z puli Pakietu), a konto bez Pakietu
+   * z progiem eksportu (eksportOdblokowany) – sam odczyt i pobranie plików. Inaczej 403 BRAK_HOSTINGU.
+   */
+  async dostep(userId: string, tryb: TrybDostepu = 'zapis'): Promise<Dostep> {
     const konf = await this.modul(userId);
     const w = await wersjaKreatora(this.prisma, userId);
-    if (!w) throw blad(HttpStatus.FORBIDDEN, KOMUNIKATY.hosting, 'BRAK_HOSTINGU');
-    return { konf, wersjaKreatora: w };
+    if (w) return { konf, wersjaKreatora: w, plikiJakHosting: false };
+    const bez = await dostepBezHostingu(this.prisma, userId);
+    if (bez === 'pakiet') return { konf, wersjaKreatora: null, plikiJakHosting: false };
+    if (bez === 'odczyt' && tryb === 'odczyt') return { konf, wersjaKreatora: null, plikiJakHosting: true };
+    throw blad(HttpStatus.FORBIDDEN, KOMUNIKATY.hosting, 'BRAK_HOSTINGU');
+  }
+
+  /** Wersja do blokad plików: konto z samym progiem eksportu (bez hostingu i Pakietu) dostaje pliki jak przy hostingu. */
+  private async wersjaPlikow(userId: string, konf: KonfiguracjaMarki, d: Pick<Dostep, 'wersjaKreatora' | 'plikiJakHosting'>): Promise<WersjaMarkiKonta> {
+    const { wersja } = await stanLimitow(this.prisma, userId, konf, d.wersjaKreatora);
+    return d.plikiJakHosting && wersja === 'proba' ? 'hosting' : wersja;
   }
 
   /** Dla dostawcy marki (Kreator stron, GET /kreator/stan.markaDostepna). */
@@ -226,6 +249,8 @@ export class KreatorMarkiService {
   async stan(userId: string): Promise<StanKreatoraMarki> {
     const konf = await this.modul(userId);
     const w = await wersjaKreatora(this.prisma, userId);
+    // paczka 134: bez hostingu panel nie chowa marki przed kimś, kto ją wykupił albo może ją pobrać (próg eksportu)
+    const bez = w === null ? await dostepBezHostingu(this.prisma, userId) : null;
     const limity = await stanLimitow(this.prisma, userId, konf, w);
     const ceny = cenyMarki(konf);
     const marki = await this.prisma.kreatorMarka.findMany({ where: { userId }, orderBy: { updatedAt: 'desc' } });
@@ -241,8 +266,8 @@ export class KreatorMarkiService {
       lista.push({ id: r.id, nazwa: r.nazwa, zrodlo: r.zrodlo as PozycjaListyMarek['zrodlo'], etap: r.etap as PozycjaListyMarek['etap'], wersja: r.wersja, zaktualizowano: r.updatedAt.toISOString(), miniaturaSvg });
     }
     return {
-      dostepny: w !== null,
-      wersja: limity.wersja,
+      dostepny: w !== null || bez !== null,
+      wersja: bez === 'odczyt' && limity.wersja === 'proba' ? 'hosting' : limity.wersja,
       limity: { marki: limity.marki, serie: limity.serie, zmianyAi: limity.zmianyAi },
       pakiet: {
         kupiony: limity.pakietKupiony,
@@ -259,14 +284,14 @@ export class KreatorMarkiService {
 
   // ───────────────────────── widok ─────────────────────────
 
-  private async widok(r: KreatorMarka, wersjaKreatoraKonta?: WersjaKreatora | null): Promise<WidokMarki> {
+  private async widok(r: KreatorMarka, wersjaKreatoraKonta?: WersjaKreatora | null, plikiJakHosting = false): Promise<WidokMarki> {
     const dane = odczytajDaneMarki(r.dane);
     const [serie, konf] = await Promise.all([
       this.prisma.kreatorMarkaSeria.findMany({ where: { markaId: r.id }, orderBy: { createdAt: 'desc' }, take: MAKS_SERII_W_WIDOKU }),
       this.konfiguracjaMarki.konfiguracja(),
     ]);
     const w = wersjaKreatoraKonta === undefined ? await wersjaKreatora(this.prisma, r.userId) : wersjaKreatoraKonta;
-    const limity = await stanLimitow(this.prisma, r.userId, konf, w);
+    const wersjaPlikow = await this.wersjaPlikow(r.userId, konf, { wersjaKreatora: w, plikiJakHosting });
     const strony = await this.prisma.$queryRaw<{ id: string; nazwa: string; wersja: number | null }[]>`
       SELECT "id", "nazwa", NULLIF("model"->'marka'->>'wersja', '')::int AS "wersja"
       FROM "KreatorStrona" WHERE "userId" = ${r.userId} AND "model"->'marka'->>'markaId' = ${r.id} ORDER BY "updatedAt" DESC LIMIT 50`;
@@ -282,7 +307,7 @@ export class KreatorMarkiService {
       marka: m,
       ocena,
       ...(dane.analiza ? { analiza: await this.analizaWidoku(r.userId, dane.analiza) } : {}),
-      pliki: listaPlikow(m, limity.wersja, !!(m?.zgody.sprawdzilemTmview ?? dane.zgody.sprawdzilemTmview)),
+      pliki: listaPlikow(m, wersjaPlikow, !!(m?.zgody.sprawdzilemTmview ?? dane.zgody.sprawdzilemTmview)),
       strony: strony.map((s) => ({ id: s.id, nazwa: s.nazwa, wersjaNaStronie: s.wersja })),
     };
   }
@@ -309,8 +334,8 @@ export class KreatorMarkiService {
   }
 
   async pobierz(userId: string, id: string): Promise<WidokMarki> {
-    const { wersjaKreatora: w } = await this.dostep(userId);
-    return this.widok(await this.wlasna(userId, id), w);
+    const { wersjaKreatora: w, plikiJakHosting } = await this.dostep(userId, 'odczyt');
+    return this.widok(await this.wlasna(userId, id), w, plikiJakHosting);
   }
 
   // ───────────────────────── marki ─────────────────────────
@@ -320,7 +345,7 @@ export class KreatorMarkiService {
     if (!s.ok) throw blad(HttpStatus.UNPROCESSABLE_ENTITY, s.bledy[0]?.komunikat ?? 'Popraw opis firmy.', 'ZNANA_MARKA', { bledy: s.bledy.map((b) => `${b.pole}: ${b.komunikat}`) });
   }
 
-  private async limitMarek(userId: string, konf: KonfiguracjaMarki, w: WersjaKreatora): Promise<void> {
+  private async limitMarek(userId: string, konf: KonfiguracjaMarki, w: WersjaKreatora | null): Promise<void> {
     const l = await stanLimitow(this.prisma, userId, konf, w);
     if (l.marki.uzyte >= l.marki.limit) throw blad(HttpStatus.PAYMENT_REQUIRED, KOMUNIKATY.limitMarek(l.marki.uzyte), 'LIMIT_MAREK');
   }
@@ -435,8 +460,8 @@ export class KreatorMarkiService {
     }
   }
 
-  private async rezerwujAlbo(userId: string, pole: PoleLimituMarki, konf: KonfiguracjaMarki): Promise<RezerwacjaMarki> {
-    const r = await rezerwuj(this.prisma, userId, pole, konf);
+  private async rezerwujAlbo(userId: string, pole: PoleLimituMarki, konf: KonfiguracjaMarki, w: WersjaKreatora | null): Promise<RezerwacjaMarki> {
+    const r = await rezerwuj(this.prisma, userId, pole, konf, w);
     if (!r) throw blad(HttpStatus.PAYMENT_REQUIRED, pole === 'serie' ? KOMUNIKATY.limitSerii : KOMUNIKATY.limitZmian, pole === 'serie' ? 'LIMIT_SERII' : 'LIMIT_ZMIAN_AI');
     return r;
   }
@@ -470,7 +495,7 @@ export class KreatorMarkiService {
     if (r.zrodlo !== 'nowa') throw blad(HttpStatus.CONFLICT, r.zrodlo === 'odswiezenie' ? 'Dla wgranego logo użyj „Odśwież” – trzy kierunki zmian.' : 'Wgrane logo zostaje bez zmian – zaproponujemy do niego Key Visual.', 'ZLE_ZRODLO');
     const dane = odczytajDaneMarki(r.dane);
     this.sprawdzBrief(dane.brief);
-    const rez = await this.rezerwujAlbo(kto.userId, 'serie', konf);
+    const rez = await this.rezerwujAlbo(kto.userId, 'serie', konf, w);
     const licznik = nowyLicznikMarki();
     let zuzyta = false;
     try {
@@ -504,7 +529,7 @@ export class KreatorMarkiService {
     const dane = odczytajDaneMarki(r.dane);
     if (r.zrodlo !== 'odswiezenie' || !dane.analiza) throw blad(HttpStatus.CONFLICT, 'Odświeżenie działa dla wgranego logo – wgraj je w „Odśwież logo”.', 'ZLE_ZRODLO');
     this.sprawdzBrief(dane.brief);
-    const rez = await this.rezerwujAlbo(kto.userId, 'serie', konf);
+    const rez = await this.rezerwujAlbo(kto.userId, 'serie', konf, w);
     const licznik = nowyLicznikMarki();
     let zuzyta = false;
     try {
@@ -702,7 +727,7 @@ export class KreatorMarkiService {
     const sp = sprawdzPolecenieMarki(polecenie);
     if (!sp.ok) throw blad(HttpStatus.UNPROCESSABLE_ENTITY, sp.bledy[0]!.komunikat, 'ZNANA_MARKA');
     const dane = odczytajDaneMarki(r.dane);
-    const rez = await this.rezerwujAlbo(kto.userId, 'zmianyAi', konf);
+    const rez = await this.rezerwujAlbo(kto.userId, 'zmianyAi', konf, w);
     const licznik = nowyLicznikMarki();
     let zuzyta = false;
     try {
@@ -741,7 +766,7 @@ export class KreatorMarkiService {
     const polecenie = typeof (body as { polecenie?: unknown } | null)?.polecenie === 'string' ? ((body as { polecenie: string }).polecenie.trim().slice(0, 500) || undefined) : undefined;
     const sp = sprawdzPolecenieMarki(polecenie);
     if (!sp.ok) throw blad(HttpStatus.UNPROCESSABLE_ENTITY, sp.bledy[0]!.komunikat, 'ZNANA_MARKA');
-    const rez = await this.rezerwujAlbo(kto.userId, 'zmianyAi', konf);
+    const rez = await this.rezerwujAlbo(kto.userId, 'zmianyAi', konf, w);
     const licznik = nowyLicznikMarki();
     let zuzyta = false;
     try {
@@ -794,7 +819,7 @@ export class KreatorMarkiService {
     // analiza wizją: jedna zmiana AI; bez limitu albo przy błędzie dostawcy – sam pomiar serwera
     const licznik = nowyLicznikMarki();
     let analizaAi: AnalizaLogo | null = null;
-    const rez = await rezerwuj(this.prisma, kto.userId, 'zmianyAi', konf);
+    const rez = await rezerwuj(this.prisma, kto.userId, 'zmianyAi', konf, w);
     try {
       if (rez) {
         const zap = budujZapytanieAnalizyLogo({ nazwa, branza }, pomiar.pomiary);
@@ -874,15 +899,15 @@ export class KreatorMarkiService {
     return k;
   }
 
-  private async markaKonta(userId: string, id: string): Promise<{ r: KreatorMarka; dane: DaneMarki; m: Marka; w: WersjaKreatora }> {
-    const { wersjaKreatora: w } = await this.dostep(userId);
+  private async markaKonta(userId: string, id: string, tryb: TrybDostepu): Promise<{ r: KreatorMarka; dane: DaneMarki; m: Marka; d: Dostep }> {
+    const d = await this.dostep(userId, tryb);
     const r = await this.wlasna(userId, id);
     const dane = odczytajDaneMarki(r.dane);
-    return { r, dane, m: this.wymagajProjektu(dane), w };
+    return { r, dane, m: this.wymagajProjektu(dane), d };
   }
 
   async logoSvg(userId: string, id: string, q: Record<string, unknown>): Promise<string> {
-    const { m } = await this.markaKonta(userId, id);
+    const { m } = await this.markaKonta(userId, id, 'odczyt');
     const uklad = (UKLADY_LOGO as readonly string[]).includes(String(q.uklad)) ? (q.uklad as UkladLogo) : ukladyMarki(m)[0]!;
     const wariant = (WARIANTY_KOLORU as readonly string[]).includes(String(q.wariant)) ? (q.wariant as WariantKoloru) : 'kolor';
     return (await this.generator.logo(m, uklad, wariant)).svg;
@@ -909,12 +934,11 @@ export class KreatorMarkiService {
 
   /** GET /marki/:id/material/:material.(svg|png) – podgląd; bez Pakietu materiały Pakietu ze znakiem wodnym. */
   async material(userId: string, id: string, material: string, format: 'svg' | 'png'): Promise<{ dane: Buffer; typ: string }> {
-    const { r, m } = await this.markaKonta(userId, id);
+    const { r, m, d } = await this.markaKonta(userId, id, 'odczyt');
     if (!(MATERIALY_KV as readonly string[]).includes(material)) throw new NotFoundException({ message: 'Nie ma takiego materiału.', kod: 'NIE_MA_MATERIALU' });
-    const konf = await this.konfiguracjaMarki.konfiguracja();
-    const l = await stanLimitow(this.prisma, userId, konf, await wersjaKreatora(this.prisma, userId));
+    const wersja = await this.wersjaPlikow(userId, d.konf, d);
     const pakietowy = katalogPlikow(m).some((p) => p.material === material && p.pakiet);
-    const kontekst = await this.kontekstPlikow(userId, r, m, pakietowy && l.wersja !== 'pakiet');
+    const kontekst = await this.kontekstPlikow(userId, r, m, pakietowy && wersja !== 'pakiet');
     if (format === 'svg') {
       const s = await this.generator.materialSvg(m, material as MaterialKv, kontekst);
       if (!s) throw new NotFoundException({ message: 'Ten materiał nie ma podglądu SVG.', kod: 'NIE_MA_MATERIALU' });
@@ -926,8 +950,8 @@ export class KreatorMarkiService {
   }
 
   async pliki(userId: string, id: string) {
-    const { r } = await this.markaKonta(userId, id);
-    return (await this.widok(r)).pliki;
+    const { r, d } = await this.markaKonta(userId, id, 'odczyt');
+    return (await this.widok(r, d.wersjaKreatora, d.plikiJakHosting)).pliki;
   }
 
   /** Blokada pliku → wyjątek (402 PROBA / PAKIET_WYMAGANY, 409 TMVIEW_WYMAGANY). */
@@ -938,12 +962,11 @@ export class KreatorMarkiService {
   }
 
   async plik(kto: KtoMarki, id: string, nazwa: string): Promise<WynikPliku> {
-    const { r, dane, m, w } = await this.markaKonta(kto.userId, id);
+    const { r, dane, m, d } = await this.markaKonta(kto.userId, id, 'odczyt');
     const opis = katalogPlikow(m).find((p) => p.plik === nazwa);
     if (!opis) throw new NotFoundException({ message: 'Nie ma takiego pliku.', kod: 'NIE_MA_PLIKU' });
-    const konf = await this.konfiguracjaMarki.konfiguracja();
-    const l = await stanLimitow(this.prisma, kto.userId, konf, w);
-    const b = blokadaPliku(opis, l.wersja, !!(m.zgody.sprawdzilemTmview ?? dane.zgody.sprawdzilemTmview));
+    const wersja = await this.wersjaPlikow(kto.userId, d.konf, d);
+    const b = blokadaPliku(opis, wersja, !!(m.zgody.sprawdzilemTmview ?? dane.zgody.sprawdzilemTmview));
     if (b) throw this.wyjatekBlokady(b);
     const wynik = await this.generator.plik(m, nazwa, await this.kontekstPlikow(kto.userId, r, m));
     if (!wynik) throw new NotFoundException({ message: 'Tego pliku nie da się przygotować dla tej marki.', kod: 'NIE_MA_PLIKU' });
@@ -952,11 +975,10 @@ export class KreatorMarkiService {
   }
 
   async eksport(kto: KtoMarki, id: string): Promise<WynikPliku> {
-    const { r, dane, m, w } = await this.markaKonta(kto.userId, id);
-    const konf = await this.konfiguracjaMarki.konfiguracja();
-    const l = await stanLimitow(this.prisma, kto.userId, konf, w);
+    const { r, dane, m, d } = await this.markaKonta(kto.userId, id, 'odczyt');
+    const wersja = await this.wersjaPlikow(kto.userId, d.konf, d);
     const tm = !!(m.zgody.sprawdzilemTmview ?? dane.zgody.sprawdzilemTmview);
-    const dostepne = new Set(katalogPlikow(m).filter((p) => !blokadaPliku(p, l.wersja, tm)).map((p) => p.plik));
+    const dostepne = new Set(katalogPlikow(m).filter((p) => !blokadaPliku(p, wersja, tm)).map((p) => p.plik));
     if (!dostepne.size) throw this.wyjatekBlokady('PROBA');
     const dane2 = await this.generator.eksportZip(m, dostepne, await this.kontekstPlikow(kto.userId, r, m));
     await this.audit.record({ action: KreatorMarkiActions.KREATOR_MARKI_POBRANO, userId: kto.userId, actorUserId: kto.actorUserId, details: { markaId: r.id, plik: 'eksport.zip', plikow: dostepne.size } });
@@ -965,9 +987,8 @@ export class KreatorMarkiService {
 
   /** POST /marki/:id/stopka-email – sprawdzony HTML (logo PNG z publicznego adresu), wersja tekstowa i instrukcje. */
   async stopkaEmail(userId: string, id: string): Promise<StopkaEmailWynik> {
-    const { r, m, w } = await this.markaKonta(userId, id);
-    const konf = await this.konfiguracjaMarki.konfiguracja();
-    const l = await stanLimitow(this.prisma, userId, konf, w);
+    const { r, m, d } = await this.markaKonta(userId, id, 'zapis');
+    const l = await stanLimitow(this.prisma, userId, d.konf, d.wersjaKreatora);
     if (l.wersja === 'proba') throw this.wyjatekBlokady('PROBA');
     const url = this.adresPubliczny(r.id, 'logo-stopka.png');
     const logo = url ? await this.generator.logoStopki(m) : null;
