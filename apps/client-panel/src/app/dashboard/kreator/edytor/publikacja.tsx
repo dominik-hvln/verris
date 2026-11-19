@@ -100,6 +100,8 @@ function OknoPublikacji({ id, otwarta, onZamknij, przedPublikacja, onOpublikowan
   };
 
   const tytul = faza.f === 'gotowe' && faza.stan.wersja === 'proba' ? 'Opublikuj podgląd' : 'Opublikuj stronę';
+  // Paczka 134 – ZIP za progiem (3 opłacone miesiące albo plan roczny); w wyniku po publikacji – ze stanu pobranego przy otwarciu.
+  const zip = faza.f === 'gotowe' ? faza.stan.zip : undefined;
 
   return (
     <PanelModal open={otwarta} onClose={onZamknij} title={tytul} className="max-w-xl">
@@ -142,9 +144,10 @@ function OknoPublikacji({ id, otwarta, onZamknij, przedPublikacja, onOpublikowan
         ) : null}
 
         {blad ? <Komunikat rodzaj="blad">{blad}</Komunikat> : null}
+        {wynik?.tryb === 'domena' && !zip?.dostepny && zip?.powod ? <p className="text-[13px] text-muted-foreground">{zip.powod}</p> : null}
         {faza.f !== 'gotowe' || wynik ? (
           <div className="flex flex-wrap gap-2 border-t border-line pt-4">
-            {wynik?.tryb === 'domena' ? (
+            {wynik?.tryb === 'domena' && zip?.dostepny ? (
               <a href={`/api/kreator/zip/${id}`} className={klasaPrzyciskuDrugiego} download>
                 <Download className="h-4 w-4" aria-hidden /> Pobierz ZIP
               </a>
@@ -267,7 +270,7 @@ function OknoPublikacji({ id, otwarta, onZamknij, przedPublikacja, onOpublikowan
               {zajete ? 'Zastąp i opublikuj' : domena ? `Opublikuj na ${domena}` : 'Opublikuj'}
             </button>
           )}
-          {!proba ? (
+          {!proba && s.zip?.dostepny ? (
             <a href={`/api/kreator/zip/${id}`} className={klasaPrzyciskuDrugiego} download>
               <Download className="h-4 w-4" aria-hidden /> Pobierz ZIP
             </a>
@@ -281,6 +284,7 @@ function OknoPublikacji({ id, otwarta, onZamknij, przedPublikacja, onOpublikowan
             Anuluj
           </button>
         </div>
+        {!proba && !s.zip?.dostepny && s.zip?.powod ? <p className="text-[13px] text-muted-foreground">{s.zip.powod}</p> : null}
 
         {/* Paczka 124 – przejście na WordPressa (i kolejne CMS-y) po opłaceniu hostingu. */}
         {!proba ? <PrzejscieNaCms id={id} /> : null}

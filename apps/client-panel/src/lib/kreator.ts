@@ -115,6 +115,8 @@ export interface StanPublikacji {
   opublikowana?: { adres: string; at: string; domena?: string };
   zmianyPlanu: string[];
   linkPodgladu?: { adres: string; wazneDo: string };
+  /** Paczka 134 – pobranie ZIP: po 3 opłaconych miesiącach hostingu albo od razu przy planie rocznym; `powod` dla klienta. */
+  zip?: { dostepny: boolean; powod?: string };
 }
 
 /** POST /kreator/strony/:id/publikuj */

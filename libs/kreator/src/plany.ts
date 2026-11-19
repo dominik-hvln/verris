@@ -6,7 +6,8 @@ import { KATALOG_STYLOW } from './style/katalog-stylow.ts';
 /**
  * Wersje kreatora (decyzja właściciela 2026-11-07):
  *  - proba   – okres próbny hostingu: podgląd bez własnej domeny, noindex, bez ZIP;
- *  - hosting – kreator w cenie hostingu: własna domena, ZIP (przejście na WordPressa – etap 3, jeszcze niedostępne; flaga `wordpress` nic dziś nie włącza);
+ *  - hosting – kreator w cenie hostingu: własna domena, ZIP po 3 opłaconych miesiącach hostingu albo od razu przy planie rocznym
+ *    (paczka 134 – próg w API: eksportOdblokowany); przejście na WordPressa dostępne;
  *  - pro     – dodatek Kreator Pro: 9,90 zł brutto/mies. (8,05 netto) albo 99 zł brutto/rok (80,49 netto).
  * „Mała dawka” w wersjach bez Pro: lżejszy master prompt (prompt 'lite'), podstawowe efekty i warianty,
  * podstawowe SEO. Funkcje Pro widać w edytorze jako podgląd z oznaczeniem, publikacja je zastępuje.

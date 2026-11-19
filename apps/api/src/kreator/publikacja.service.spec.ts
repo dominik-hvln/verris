@@ -137,7 +137,26 @@ function pasuje(r: Rek, where: Rek): boolean {
   });
 }
 
-function zbuduj(opcje: { wersja?: WersjaKreatora; renderer?: RendererPublikacji; model?: Strona; zasoby?: unknown } = {}) {
+/** Usługa hostingu do progu eksportu (paczka 134) – pola jak w select eksportOdblokowany. */
+type Usluga = { status: string; interval: 'MONTH' | 'YEAR'; isTrial: boolean; trialConvertedAt: Date | null; createdAt: Date; currentPeriodEnd: Date | null; canceledAt: Date | null };
+const DZIEN_MS = 24 * 60 * 60 * 1000;
+const poMiesiacach = (od: Date, n: number) => {
+  const d = new Date(od.getTime());
+  d.setUTCMonth(d.getUTCMonth() + n);
+  return d;
+};
+/** Domyślnie: aktywny plan roczny (ZIP odblokowany od razu). */
+const roczna = (): Usluga => {
+  const od = new Date(Date.now() - 30 * DZIEN_MS);
+  return { status: 'ACTIVE', interval: 'YEAR', isTrial: false, trialConvertedAt: null, createdAt: od, currentPeriodEnd: poMiesiacach(od, 12), canceledAt: null };
+};
+/** Plan miesięczny z `n` opłaconymi miesiącami (bieżący okres kończy się w przyszłości). */
+const miesieczna = (n: number): Usluga => {
+  const od = poMiesiacach(new Date(Date.now() + 5 * DZIEN_MS), -n);
+  return { status: 'ACTIVE', interval: 'MONTH', isTrial: false, trialConvertedAt: null, createdAt: od, currentPeriodEnd: poMiesiacach(od, n), canceledAt: null };
+};
+
+function zbuduj(opcje: { wersja?: WersjaKreatora; renderer?: RendererPublikacji; model?: Strona; zasoby?: unknown; uslugi?: Usluga[] } = {}) {
   const strony: Rek[] = [
     {
       id: ID, userId: 'u1', nazwa: 'Salon Ąłka', model: opcje.model ?? SALON_Z_PODSTRONA, status: 'GOTOWA',
@@ -145,7 +164,9 @@ function zbuduj(opcje: { wersja?: WersjaKreatora; renderer?: RendererPublikacji;
     },
   ];
   const cms: Rek[] = [];
+  const uslugi = opcje.uslugi ?? [roczna()];
   const prisma = {
+    subscription: { findMany: vi.fn(async ({ where }: { where: Rek }) => (where.userId === 'u1' ? uslugi : [])) },
     kreatorCms: { findUnique: vi.fn(async ({ where }: { where: Rek }) => cms.find((c) => c.stronaId === where.stronaId) ?? null) },
     kreatorStrona: {
       findFirst: vi.fn(async ({ where }: { where: Rek }) => strony.find((s) => pasuje(s, where)) ?? null),
@@ -183,7 +204,7 @@ function zbuduj(opcje: { wersja?: WersjaKreatora; renderer?: RendererPublikacji;
     prisma as never, config as never, kreator as never, audit as never, fonty as never, hosting, opcje.renderer ?? fabrykaRendereraPublikacji(),
     opcje.zasoby as never,
   );
-  return { svc, strony, prisma, fs, hosting, fonty, audit, kreator, cms };
+  return { svc, strony, prisma, fs, hosting, fonty, audit, kreator, cms, uslugi };
 }
 
 const znacznik = (fs: FsAtrapa) => odczytajZnacznik(fs.tekst(`${PUB}/${PLIK_ZNACZNIKA}`));
@@ -481,6 +502,7 @@ describe('Kreator – link podglądu wersji próbnej', () => {
     const t = zbuduj({ wersja: 'proba' });
     await expect(t.svc.publikuj('u1', 'u1', ID, { domena: 'x.pl' })).rejects.toBeInstanceOf(ForbiddenException);
     await expect(t.svc.zip('u1', ID)).rejects.toThrow(/opłaceniu hostingu/);
+    expect((await t.svc.stan('u1', ID)).zip).toEqual({ dostepny: false, powod: 'Pobranie strony w pliku ZIP jest dostępne po opłaceniu hostingu.' });
   });
 
   it('wygasły token → strona „Link wygasł” (410); podrobiony → 404; wycofany i usunięta strona – link przestaje działać', async () => {
@@ -510,6 +532,35 @@ describe('Kreator – link podglądu wersji próbnej', () => {
 });
 
 describe('Kreator – ZIP strony', () => {
+  const PROG = 'Pobranie strony w pliku ZIP jest dostępne po 3 opłaconych miesiącach hostingu albo od razu przy planie rocznym.';
+
+  it('hosting miesięczny po 1 opłaconym miesiącu: ZIP → 403 z komunikatem progu; stan.zip.dostepny = false z tym powodem', async () => {
+    const t = zbuduj({ uslugi: [miesieczna(1)] });
+    const e = await t.svc.zip('u1', ID).catch((x: unknown) => x);
+    expect(e).toBeInstanceOf(ForbiddenException);
+    expect((e as ForbiddenException).message).toBe(PROG);
+    expect((await t.svc.stan('u1', ID)).zip).toEqual({ dostepny: false, powod: PROG });
+    // Pro bez progu – tak samo (dodatek Pro nie zastępuje opłaconego hostingu).
+    const pro = zbuduj({ wersja: 'pro', uslugi: [miesieczna(1)] });
+    await expect(pro.svc.zip('u1', ID)).rejects.toThrow(PROG);
+  });
+
+  it('po 3 opłaconych miesiącach: ZIP działa, stan.zip.dostepny = true', async () => {
+    const t = zbuduj({ uslugi: [miesieczna(3)] });
+    const { dane } = await t.svc.zip('u1', ID);
+    expect(dane.subarray(0, 4).toString('hex')).toBe('504b0304');
+    expect((await t.svc.stan('u1', ID)).zip).toEqual({ dostepny: true });
+    expect(t.prisma.subscription.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ userId: 'u1' }) }));
+  });
+
+  it('strona przeniesiona do WordPressa: stan też ma pole zip', async () => {
+    const t = zbuduj({ uslugi: [miesieczna(1)] });
+    t.cms.push({ stronaId: ID, stan: 'PRZENIESIONA' });
+    const s = await t.svc.stan('u1', ID);
+    expect(s.mozliwa).toBe(false);
+    expect(s.zip).toEqual({ dostepny: false, powod: PROG });
+  });
+
   it('ZIP z renderem publikacji i fontami otwiera się (unzip -t) i ma komplet plików', async () => {
     const t = zbuduj();
     const { nazwa, dane } = await t.svc.zip('u1', ID);

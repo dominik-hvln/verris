@@ -63,6 +63,7 @@ import { readmeZip, zbudujZip } from './zip-strony.js';
 import { KreatorZasobyService } from './zasoby.service.js';
 import { idZasobow } from './zasoby-model.js';
 import { POWOD_PRZENIESIONA, STANY_BLOKUJACE_PUBLIKACJE } from './wordpress/stan-cms.js';
+import { KOMUNIKAT_EKSPORTU, eksportOdblokowany } from './eksport-odblokowany.js';
 
 /** Link podglądu wersji próbnej – 7 dni, odnawiany kolejną „publikacją”. */
 export const WAZNOSC_LINKU_MS = 7 * 24 * 60 * 60 * 1000;
@@ -76,6 +77,7 @@ const NIE_MA_STRONY = 'Nie znaleziono strony.';
 const BLAD_HOSTINGU = 'Nie udało się zapisać plików na hostingu – spróbuj ponownie za chwilę. Jeśli problem się powtórzy, napisz do nas.';
 const BLAD_FONTOW = 'Nie udało się przygotować fontów strony – spróbuj ponownie za chwilę.';
 const TRWA = 'Publikacja tej strony już trwa – poczekaj na jej koniec.';
+const ZIP_PO_OPLACENIU = 'Pobranie strony w pliku ZIP jest dostępne po opłaceniu hostingu.';
 const DOMENA_RE = /^(?=.{3,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9-]{2,63}$/;
 
 type Rekord = KreatorStrona;
@@ -119,13 +121,14 @@ export class KreatorPublikacjaService {
     const opublikowana = s.opublikowanaAt && s.adres ? { adres: s.adres, at: s.opublikowanaAt, ...(s.domena ? { domena: s.domena } : {}) } : undefined;
     const link = s.podgladDo && s.podgladDo.getTime() > Date.now() ? { adres: this.adresLinku(s.id, s.podgladDo), wazneDo: s.podgladDo } : undefined;
     const niegotowa = model ? null : 'Strona nie jest jeszcze gotowa – poczekaj na koniec generowania albo popraw błędy.';
+    const zip = await this.stanZip(userId, wersja);
 
     // Paczka 124 – strona przeniesiona do WordPressa: kreator nie publikuje na jej domenę (dopóki klient nie cofnie przejścia).
     if (await this.przeniesionaDoCms(id)) {
-      return { wersja, mozliwa: false, powod: POWOD_PRZENIESIONA, domeny: [], zmianyPlanu, ...(opublikowana ? { opublikowana } : {}) };
+      return { wersja, mozliwa: false, powod: POWOD_PRZENIESIONA, domeny: [], zmianyPlanu, zip, ...(opublikowana ? { opublikowana } : {}) };
     }
     if (plan.publikacja === 'podglad') {
-      return { wersja, mozliwa: !niegotowa, ...(niegotowa ? { powod: niegotowa } : {}), domeny: [], zmianyPlanu, ...(opublikowana ? { opublikowana } : {}), ...(link ? { linkPodgladu: link } : {}) };
+      return { wersja, mozliwa: !niegotowa, ...(niegotowa ? { powod: niegotowa } : {}), domeny: [], zmianyPlanu, zip, ...(opublikowana ? { opublikowana } : {}), ...(link ? { linkPodgladu: link } : {}) };
     }
     const domeny = await this.hosting.domenyKlienta(userId).catch((e: unknown) => {
       this.logger.warn(`Domeny klienta ${userId}: ${String(e)}`);
@@ -151,9 +154,16 @@ export class KreatorPublikacjaService {
       ...(powod ? { powod } : {}),
       domeny: lista,
       zmianyPlanu,
+      zip,
       ...(opublikowana ? { opublikowana } : {}),
       ...(link ? { linkPodgladu: link } : {}),
     };
+  }
+
+  /** Paczka 134 – czy klient może pobrać ZIP (próba – nie; hosting/pro – po progu z eksportOdblokowany). */
+  private async stanZip(userId: string, wersja: WersjaKreatora): Promise<{ dostepny: boolean; powod?: string }> {
+    if (!PLANY_KREATORA[wersja].zip) return { dostepny: false, powod: ZIP_PO_OPLACENIU };
+    return (await eksportOdblokowany(this.prisma, userId)) ? { dostepny: true } : { dostepny: false, powod: KOMUNIKAT_EKSPORTU };
   }
 
   private async stanKatalogu(se: SesjaPlikow, domena: string, stronaId: string): Promise<StanKatalogu> {
@@ -317,9 +327,9 @@ export class KreatorPublikacjaService {
 
   async zip(userId: string, id: string): Promise<{ nazwa: string; dane: Buffer }> {
     const wersja = await this.wersja(userId);
-    if (!PLANY_KREATORA[wersja].zip) {
-      throw new ForbiddenException('Pobranie strony w pliku ZIP jest dostępne po opłaceniu hostingu.');
-    }
+    if (!PLANY_KREATORA[wersja].zip) throw new ForbiddenException(ZIP_PO_OPLACENIU);
+    // Paczka 134 – ZIP po 3 opłaconych miesiącach hostingu albo od razu przy planie rocznym.
+    if (!(await eksportOdblokowany(this.prisma, userId))) throw new ForbiddenException(KOMUNIKAT_EKSPORTU);
     const s = await this.wlasna(userId, id);
     const strona = this.gotowy(s);
     // Formularz w ZIP wysyła do Verris (token strony) – tylko gdy strona jest opublikowana na domenie; inaczej wyłączony.
