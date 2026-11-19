@@ -1295,12 +1295,15 @@ Jeśli ktoś ma zarejestrowany podobny znak dla podobnych towarów lub usług, m
 To nie jest badanie prawne. Gdy znajdziesz podobny znak albo planujesz duże wydatki na markę, skonsultuj się z rzecznikiem patentowym.
 
 ## Co robi Verris
-Kreator nie przygotuje logo na wzór znanej marki i nie wyda tego samego znaku dwóm firmom z Kreatora marki. Nie sprawdzamy jednak rejestrów urzędowych za Ciebie i nie gwarantujemy, że podobnego znaku nikt nie używa. Przed pobraniem plików do druku poprosimy Cię o potwierdzenie, że znasz te zasady.`,
+Kreator nie przygotuje logo na wzór znanej marki i unika propozycji bardzo podobnych do znaków, które już w nim wybrano – ale tego nie gwarantujemy, bo logo powstaje z pomocą AI ze wspólnej biblioteki kształtów. Nie sprawdzamy rejestrów urzędowych za Ciebie i nie gwarantujemy, że podobnego znaku nikt nie używa. Przed pobraniem plików do druku poprosimy Cię o potwierdzenie, że znasz te zasady.
+
+## Prawa do logo
+Do pobranego logo i materiałów dostajesz bezterminową licencję niewyłączną na całym świecie. Możesz ich używać w firmie, na stronie, w drukach i reklamie, zmieniać je, przekazać pliki drukarni lub agencji i zgłosić logo jako znak towarowy. Licencji nie wypowiemy – zostaje także po zakończeniu hostingu i usunięciu konta. Szczegóły: Regulamin §13b ust. 4–6.`,
     { t: 'Logo a znak towarowy – jak sprawdzić logo w TMview', d: 'Logo z kreatora nie jest znakiem zastrzeżonym. Jak samodzielnie sprawdzić nazwę i znak w TMview przed drukiem i rejestracją w UPRP lub EUIPO.',
       faq: [
         { q: 'Czy logo z Kreatora marki jest zastrzeżone?', a: 'Nie. Ochronę daje dopiero rejestracja znaku towarowego w Urzędzie Patentowym RP albo w EUIPO – to osobna procedura.' },
         { q: 'Czy Verris sprawdza, czy podobne logo już istnieje?', a: 'Kreator unika propozycji bardzo podobnych do logo, które już w nim powstały, ale tego nie gwarantujemy – logo powstaje z pomocą AI ze wspólnej biblioteki kształtów. Rejestrów urzędowych nie sprawdzamy – zrób to w TMview albo z rzecznikiem patentowym.' },
-        { q: 'Czy mogę zarejestrować logo z kreatora jako znak towarowy?', a: 'Możesz je zgłosić do urzędu. Przed zgłoszeniem sprawdź podobne znaki w TMview – rejestracja nie chroni przed sprzeciwem właściciela wcześniejszego znaku.' },
+        { q: 'Czy mogę zarejestrować logo z kreatora jako znak towarowy?', a: 'Możesz je zgłosić do urzędu – licencja z Regulaminu (§13b ust. 4) na to pozwala. Przed zgłoszeniem sprawdź podobne znaki w TMview – rejestracja nie chroni przed sprzeciwem właściciela wcześniejszego znaku.' },
       ], related: ['jak-stworzyc-logo-w-kreatorze-marki', 'odswiezenie-logo'] }),
 
   D('kreator-stron', 'stopka-email-z-logo', 'Stopka e-mail z logo',

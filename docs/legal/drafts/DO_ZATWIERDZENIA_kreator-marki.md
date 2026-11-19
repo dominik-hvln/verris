@@ -1,5 +1,14 @@
 # Kreator marki i Pakiet marki – zmiany w dokumentach (projekt do zatwierdzenia)
 
+> **Status: WBUDOWANE w 1.4.0 · 2026-11-19.** Projekt jest wbudowany w `terms.md` (§1 pkt 6 i 18–24, §10 ust. 3, §13b,
+> §19 ust. 2, §21 ust. 5), `privacy.md` (pkt 2.13, 3, 4, 5.1, 7, 8), `dpa.md` (§2 ust. 2 i 6, §4 ust. 1, Załącznik 2),
+> `subprocessors.md` i `../consumer-info.md` w wersji 1.4.0 – bez zewnętrznego prawnika (decyzja właściciela 19.11.2026).
+> Punkty [PRAWNIK]/[DECYZJA] poniżej rozstrzygnięto wariantem najbezpieczniejszym dla Verris i uczciwym dla klienta;
+> każde rozstrzygnięcie z uzasadnieniem i ryzyka: `ZMIANY_1.3.0-1.4.0.md` część C. Najważniejsza różnica względem
+> projektu: zamiast przeniesienia praw / licencji wyłącznej (§13b ust. 4 wariant A/B – wymagają formy pisemnej)
+> licencja niewyłączna, nieodwołalna, z prawem do rejestracji znaku (§13b ust. 4–6). Poniżej – projekt z paczki 130,
+> zostawiony jako historia decyzji.
+
 > **Status: PROJEKT · 2026-11-19 (paczka 130). Nic nie opublikowano – ten plik nie zmienia `terms.md`, `privacy.md`,
 > `subprocessors.md`, `dpa.md` ani `rcpd.md` i nie podbija ich wersji.** Moduł jest w kodzie **domyślnie wyłączony**
 > (Admin → Wiedza i AI → Kreator marki, ustawienie `kreator-marki.konfiguracja`, `wlaczony: false`, dostępność „lista

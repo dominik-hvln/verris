@@ -1,6 +1,8 @@
-# Dokumenty prawne Verris — wersja 1.3.0 (do publikacji)
+# Dokumenty prawne Verris – wersja 1.4.0 (do publikacji)
 
-> **1.3.0 (9.11.2026):** Verris Kreator i abonament Kreator Pro – lista zmian, instrukcja publikacji i blokery: `ZMIANY_1.2.1-1.3.0.md`. Historia 1.2.x poniżej.
+> **1.4.0 (19.11.2026):** Kreator marki, Pakiet marki i Kolejna marka (Regulamin §13b, Polityka pkt 2.13, DPA §2 ust. 6) – lista zmian, rozstrzygnięcia, instrukcja publikacji i ryzyka: `ZMIANY_1.3.0-1.4.0.md`. Projekt `DO_ZATWIERDZENIA_kreator-marki.md` jest wbudowany. Wersja 1.3.0 opublikowana 10.11.2026 zostaje w bazie jako archiwum.
+
+> **1.3.0 (9.11.2026, opublikowana 10.11.2026):** Verris Kreator i abonament Kreator Pro – lista zmian, instrukcja publikacji i blokery: `ZMIANY_1.2.1-1.3.0.md`. Historia 1.2.x poniżej.
 
 > **Status: DO PUBLIKACJI jako 1.2.0 — jedna publikacja wszystkich zmian (decyzja Dominika 3.11.2026, przed 7.12.2026), zastąpi 1.1.0 z 6.10.2026 obowiązującą na produkcji.** Lista zmian dla klientów, instrukcja publikacji i punkty „DO SPRAWDZENIA”: `ZMIANY_1.1.0-1.2.0.md`. Projekty `DO_ZATWIERDZENIA_beta-zgloszenia.md`, `…_okres-probny-ograniczenia.md` i `…_asystent-ai.md` są już wbudowane w `terms.md`/`privacy.md`. Historia robocza (1.0.0 z 7.07.2026): komplet dokumentów pod stan faktyczny — hosting współdzielony, VPS, domeny (Openprovider), e-mail marketing, program resellerski; płatności Stripe i Paynow + Portfel; infrastruktura Hetzner (UE); poczta Amazon SES (region UE); anty-bot Cloudflare Turnstile; faktury KSeF 2.0.
 
@@ -18,7 +20,7 @@
 ## Publikacja
 
 1. Wykonaj działania operacyjne z `ANALIZA_LUK_PRAWNYCH_2026-07-07.md` §3 (minimum: skrzynka `abuse@verris.pl`, akceptacja DPA u subprocesorów: Hetzner, Stripe, AWS, Cloudflare, Openprovider).
-2. Na prod: `./ops/scripts/prod-legal-publish-live.sh` → publikuje wersję podaną w `LEGAL_LIVE_VERSION=1.2.0` (wymusza ponowną akceptację istniejących użytkowników). Szczegóły i kolejność kroków: `ZMIANY_1.1.0-1.2.0.md` cz. B.
+2. Na prod: `./ops/scripts/prod-legal-publish-live.sh` → publikuje wersję podaną w `LEGAL_LIVE_VERSION` (wymusza ponowną akceptację istniejących użytkowników). Szczegóły i kolejność kroków bieżącej wersji: `ZMIANY_1.3.0-1.4.0.md` cz. B.
 3. Smoke re-consent (LEG-4) + weryfikacja stron `/legal/terms`, `/legal/privacy`, `/legal/cookies`, `/legal/dpa`.
 
 ## Utrzymanie

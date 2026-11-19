@@ -479,7 +479,8 @@ function czytajEksport(m: Marka): string {
     '',
     'Znak przygotowano w Verris Kreator marki z pomocą AI (pliki mają metadane „wygenerowano z pomocą AI”).',
     'Przed rejestracją znaku albo drukiem sprawdź podobne znaki w bazie TMview (https://www.tmdn.org/tmview/).',
-    'Sprawdzenie w Verris dotyczy tylko znaków wydanych w Kreatorze marki Verris – to nie jest badanie prawne.',
+    'Verris nie sprawdza rejestrów znaków towarowych i nie gwarantuje, że podobnego znaku nikt nie używa – to nie jest badanie prawne.',
+    'Prawa do logo i materiałów: licencja z Regulaminu Verris §13b ust. 4–6 (https://panel.verris.pl/legal/terms).',
   ].join('\n');
 }
 

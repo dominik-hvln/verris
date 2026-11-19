@@ -1,8 +1,8 @@
 # Polityka prywatności Verris
 
-**Wersja 1.3.0 · obowiązuje od [DATA PUBLIKACJI]**
+**Wersja 1.4.0 · obowiązuje od [DATA PUBLIKACJI]**
 
-> Wersja 1.3.0 zastępuje wersję 1.2.1 z 6 listopada 2026 r.
+> Wersja 1.4.0 zastępuje wersję 1.3.0 z 10 listopada 2026 r.
 
 Niniejsza Polityka realizuje obowiązki informacyjne z art. 13 i 14 RODO wobec klientów Verris, użytkowników subkont, osób odwiedzających panel i strony Verris oraz osób korzystających z formularzy na stronie verris.pl.
 
@@ -58,9 +58,18 @@ Treść stron, ich zmiany i tłumaczenia przygotowuje model AI Anthropic (pkt 5.
 
 Wiadomości wysyłane przez formularz kontaktowy Twojej strony z kreatora oraz dane innych osób, które umieszczasz na stronie (np. imiona i zdjęcia pracowników), przetwarzamy na Twoje polecenie jako podmiot przetwarzający (pkt 3 i DPA).
 
+### 2.13 Kreator marki (logo i materiały)
+Jeśli tworzysz markę w Kreatorze marki, przetwarzamy: opis firmy z briefu (nazwa, podpis pod nazwą, branża, zdanie o działalności, cechy marki, lubiane i odrzucone kolory, uwagi), Twoje polecenia dla AI, propozycje i wybrany projekt logo z ustawieniami materiałów, wgrane przez Ciebie pliki logo (oryginał i podgląd), dane wpisane do wizytówki i stopki e-mail (imię i nazwisko, stanowisko, telefon, e-mail, strona, adres), liczniki użycia w miesiącu, zakupy Pakietu marki i kolejnych marek oraz Twoje potwierdzenia z datą: oświadczenie o prawach do wgranego logo, potwierdzenie zapoznania się z informacją o sprawdzeniu znaku w TMview przed pobraniem plików do druku i zgodę na dostarczenie treści cyfrowej przed upływem terminu odstąpienia od umowy.
+
+Propozycje, zmiany i analizę wgranego logo przygotowuje model AI Anthropic (pkt 5.1): przekazujemy mu brief, Twoje polecenia, parametry projektu i – gdy wgrywasz logo do analizy albo odświeżenia – obraz tego logo (podgląd PNG); dostawca nie trenuje modeli na tych danych. Danych z wizytówki i stopki e-mail nie przekazujemy do AI. W dzienniku kosztów AI zapisujemy zużycie i koszt każdego użycia, bez treści. Wgrane pliki logo przechowujemy w magazynie plików Verris na naszych serwerach (pkt 5.1 – Hetzner); pliki do pobrania (logo, materiały, księga znaku, wizytówka) tworzymy w chwili pobrania i nie przechowujemy ich osobno. Do materiałów możesz dodać zdjęcie z biblioteki zdjęć Verris Kreatora (pkt 2.12). Nazwy ani logo nie wysyłamy do wyszukiwarek znaków towarowych – sprawdzenie w TMview robisz sam.
+
+Dane osób, które wpisujesz do wizytówki, stopki e-mail i innych materiałów (np. Twoich pracowników), przetwarzamy na Twoje polecenie jako podmiot przetwarzający (pkt 3 i DPA §2 ust. 6). Pozostałe dane opisane w tym punkcie – w tym brief, polecenia, wgrane logo i potwierdzenia – przetwarzamy jako administrator.
+
+Po wyborze kierunku zapisujemy w rejestrze wydanych znaków techniczny odcisk kształtu znaku (rodzina kształtu, parametry, skrót obrazu) i branżę z briefu. Odcisk służy wyłącznie do ograniczania powtórzeń propozycji w Kreatorze marki. Po usunięciu marki albo konta odcisk zostaje bez nazwy, danych konta i powiązania z Tobą – nie pozwala Cię zidentyfikować.
+
 ## 3. Dwie role Verris
 
-W zakresie danych opisanych w pkt 2 Verris jest **administratorem**. W zakresie danych, które przechowujesz lub przetwarzasz w ramach swoich usług (pliki i bazy Twoich serwisów, skrzynki Twoich użytkowników, listy odbiorców kampanii e-mail, dane na Twoim VPS, statystyki odwiedzin Twoich stron, jeśli je włączysz, a także dane osób trzecich w treściach stron tworzonych w Verris Kreatorze i wiadomości z formularzy kontaktowych tych stron), administratorem jesteś **Ty**, a Verris działa jako **podmiot przetwarzający** na podstawie Umowy powierzenia przetwarzania danych (DPA), którą akceptujesz i pobierasz w Panelu (Ustawienia → Prywatność i dane).
+W zakresie danych opisanych w pkt 2 Verris jest **administratorem**. W zakresie danych, które przechowujesz lub przetwarzasz w ramach swoich usług (pliki i bazy Twoich serwisów, skrzynki Twoich użytkowników, listy odbiorców kampanii e-mail, dane na Twoim VPS, statystyki odwiedzin Twoich stron, jeśli je włączysz, a także dane osób trzecich w treściach stron tworzonych w Verris Kreatorze i wiadomości z formularzy kontaktowych tych stron, a także dane osób wpisane do wizytówki i stopki e-mail w Kreatorze marki), administratorem jesteś **Ty**, a Verris działa jako **podmiot przetwarzający** na podstawie Umowy powierzenia przetwarzania danych (DPA), którą akceptujesz i pobierasz w Panelu (Ustawienia → Prywatność i dane).
 
 ## 4. Cele, podstawy prawne i okresy przetwarzania
 
@@ -85,6 +94,7 @@ W zakresie danych opisanych w pkt 2 Verris jest **administratorem**. W zakresie 
 | Pomiar skuteczności i dopasowanie reklam (Google Ads, Meta Pixel, przekaźnik zdarzeń Meta), w tym remarketing | ust. 1 lit. a – zgoda wyrażona w banerze cookies | do wycofania zgody; cookies wg Polityki cookies |
 | Asystent AI w panelu (odpowiedzi na pytania, prognozy zasobów) i szkice odpowiedzi dla naszych pracowników | ust. 1 lit. b – funkcja usługi uruchamiana przez Ciebie; szkice dla obsługi – ust. 1 lit. f (sprawne wsparcie) | dziennik asystenta (pytania, odpowiedzi, zużycie) 12 miesięcy; u dostawcy AI zgodnie z umową z nim (OpenAI: do 30 dni na wykrywanie nadużyć); dostawcy nie trenują modeli na tych danych |
 | Verris Kreator: tworzenie, zmiany i tłumaczenie stron z pomocą AI, biblioteka zdjęć, publikacja na Twoim hostingu, przejście na WordPress, abonament Kreator Pro | ust. 1 lit. b – funkcja usługi, z której korzystasz | strony z historią wersji i zdjęcia – do ich usunięcia w kreatorze, najpóźniej do usunięcia konta; dane publikacji i przejścia na WordPress – do usunięcia strony; dziennik kosztów AI (bez treści) 12 miesięcy; rozliczenia abonamentu Kreator Pro – jak dokumenty księgowe |
+| Kreator marki: propozycje i zmiany logo z pomocą AI, analiza wgranego logo, materiały i stopka e-mail, Pakiet marki i kolejne marki | ust. 1 lit. b – funkcja usługi, z której korzystasz; potwierdzenia (oświadczenie o prawach do wgranego logo, informacja o TMview, zgoda na dostarczenie treści cyfrowej) – ust. 1 lit. c (potwierdzenie zgody wymagane ustawą o prawach konsumenta) i lit. f (dowód na wypadek sporu) | marki z propozycjami, wgrane pliki logo i dane do wizytówki i stopki – do ich usunięcia w Kreatorze marki, najpóźniej do usunięcia konta; dziennik kosztów AI (bez treści) 12 miesięcy; zakupy Pakietu marki i kolejnych marek z datą zgody na dostarczenie treści cyfrowej – jak dokumenty księgowe; wpisy potwierdzeń w dzienniku zmian konta (rodzaj potwierdzenia i data) – także po usunięciu marki lub konta, do upływu terminów przedawnienia roszczeń (co do zasady 6 lat, art. 118 KC); odcisk kształtu znaku – po usunięciu marki lub konta bez powiązania z Tobą |
 | Asystent AI na verris.pl (odpowiedzi na pytania o ofertę, ochrona przed nadużyciami) | ust. 1 lit. f – odpowiadanie na pytania osób zainteresowanych usługą; lit. b – gdy pytanie dotyczy zawarcia umowy | rozmowa 30 dni od ostatniej wiadomości; dziennik kosztów AI (bez treści) 12 miesięcy |
 | Obrona i dochodzenie roszczeń, obsługa reklamacji | ust. 1 lit. f | do upływu terminów przedawnienia (co do zasady 6 lat, art. 118 KC) |
 | Wykonywanie obowiązków z RODO (rejestr zgód, obsługa żądań) | ust. 1 lit. c | historia zgód i żądań przez czas konta + okres przedawnienia |
@@ -97,7 +107,7 @@ Podanie danych oznaczonych w formularzach jako wymagane jest warunkiem zawarcia 
 
 | Podmiot | Siedziba / lokalizacja danych | Cel | Transfer poza EOG |
 | --- | --- | --- | --- |
-| **Hetzner Online GmbH** | Niemcy; centra danych w Niemczech i Finlandii (UE) | serwery Verris: panel, interfejs API i baza danych, magazyn plików (m.in. zdjęcia z Verris Kreatora), serwery hostingowe, serwery VPS, zaszyfrowane kopie zapasowe przechowywane poza podstawową lokalizacją | nie |
+| **Hetzner Online GmbH** | Niemcy; centra danych w Niemczech i Finlandii (UE) | serwery Verris: panel, interfejs API i baza danych, magazyn plików (m.in. zdjęcia z Verris Kreatora i logo wgrane w Kreatorze marki), serwery hostingowe, serwery VPS, zaszyfrowane kopie zapasowe przechowywane poza podstawową lokalizacją | nie |
 | **Stripe Payments Europe, Ltd.** | Irlandia (EOG) | płatności kartą (także Apple Pay i Google Pay) i Przelewy24, zapisane karty, automatyczne doładowanie portfela, subskrypcje kartą, wpłaty w EUR i USD | możliwy transfer wspierający do Stripe, Inc. (USA) – standardowe klauzule umowne (SCC) i certyfikacja Data Privacy Framework |
 | **mBank S.A. (Paynow)** | Polska (EOG) | jednorazowe wpłaty w PLN przez bramkę Paynow (BLIK, szybki przelew, karta) i ich zwroty | nie – dane przetwarzane w Polsce |
 | **Amazon Web Services EMEA SARL** | Luksemburg; region usługi: UE (Frankfurt/Irlandia) | wysyłka wiadomości e-mail (Amazon SES): powiadomienia transakcyjne, kampanie e-mail marketingu i wiadomości z formularzy kontaktowych stron z Verris Kreatora | dane w regionie UE; możliwy dostęp wspierający z USA – SCC i Data Privacy Framework |
@@ -106,7 +116,7 @@ Podanie danych oznaczonych w formularzach jako wymagane jest warunkiem zawarcia 
 | **Google Ireland Limited** | Irlandia (EOG) | pomiar korzystania z serwisu (Google Analytics 4) i zarządzanie tagami (Google Tag Manager) – pomiar z cookies wyłącznie po Twojej zgodzie; sygnały bez cookies opisuje pkt 5.2 | możliwy transfer do Google LLC (USA) – SCC i Data Privacy Framework |
 | **Streamsoft spółka z ograniczoną odpowiedzialnością sp. k.** | Polska (Zielona Góra) | program księgowy Firmino: wystawianie i przechowywanie faktur VAT, przekazywanie faktur do KSeF | nie |
 | **OpenAI Ireland Ltd** | Irlandia (Dublin); przetwarzanie także w USA | asystent AI w panelu – poziom szybki (czat, podpowiedzi) i wyszukiwanie w bazie wiedzy | tak – standardowe klauzule umowne (SCC) w umowie powierzenia dostawcy |
-| **Anthropic Ireland, Limited** | Irlandia (Dublin); przetwarzanie także w USA | asystent AI w panelu – poziom analiz (prognozy zasobów, szkice odpowiedzi obsługi), asystent AI na verris.pl oraz Verris Kreator (tworzenie, zmiany i tłumaczenie treści stron) | tak – standardowe klauzule umowne (SCC) w umowie powierzenia dostawcy |
+| **Anthropic Ireland, Limited** | Irlandia (Dublin); przetwarzanie także w USA | asystent AI w panelu – poziom analiz (prognozy zasobów, szkice odpowiedzi obsługi), asystent AI na verris.pl, Verris Kreator (tworzenie, zmiany i tłumaczenie treści stron) oraz Kreator marki (propozycje i zmiany logo na podstawie briefu i poleceń, analiza obrazu wgranego logo) | tak – standardowe klauzule umowne (SCC) w umowie powierzenia dostawcy |
 
 Ze wszystkimi powyższymi podmiotami wiążą nas umowy powierzenia przetwarzania (art. 28 RODO). Narzędzia monitoringu błędów i kopie zapasowe bazy prowadzimy na własnej infrastrukturze – nie angażują one dodatkowych podmiotów.
 
@@ -136,7 +146,7 @@ Dane przechowujemy w Unii Europejskiej. W przypadku dostawców należących do g
 
 Przysługują Ci prawa: **dostępu** do danych i uzyskania ich kopii (art. 15 – w Panelu, Ustawienia → Prywatność i dane, dostępny automatyczny eksport paczki ZIP), **sprostowania** (art. 16 – większość danych zaktualizujesz w Panelu), **usunięcia** (art. 17), **ograniczenia przetwarzania** (art. 18), **przenoszenia danych** (art. 20 – eksport w formacie ustrukturyzowanym JSON), **sprzeciwu** wobec przetwarzania opartego na uzasadnionym interesie, w tym bezwzględnie skutecznego sprzeciwu wobec marketingu (art. 21), oraz **wycofania zgody** w każdym czasie bez wpływu na zgodność z prawem wcześniejszego przetwarzania. Zgody na wiadomości od Verris zmienisz w Panelu (Ustawienia → Powiadomienia) albo linkiem „Wypisz się” w każdej takiej wiadomości. Jeśli wysyłasz formularze na verris.pl bez konta, swoje prawa wykonasz, pisząc na `rodo@verris.pl`.
 
-Żądanie usunięcia konta możesz wycofać, dopóki konto nie zostanie usunięte: po 14 dniach od żądania, a jeżeli masz opłacone usługi – z końcem najdłuższego opłaconego okresu. Datę usunięcia, saldo portfela, aktywne usługi i domeny pokazujemy przed potwierdzeniem żądania. Po tym terminie dane konta są anonimizowane; zachowujemy to, czego wymagają przepisy (faktury i dokumenty zwrotu – 5 lat), zanonimizowane zapisy księgowe oraz treść zgłoszeń do obsługi i reklamacji do upływu terminów przedawnienia roszczeń. Strony z historią wersji i zdjęcia z Verris Kreatora usuwamy razem z kontem. Konta hostingowe powiązane z usuniętym kontem są trwale usuwane z infrastruktury po wygaśnięciu cyklu kopii zapasowych, nie później niż 180 dni od anonimizacji.
+Żądanie usunięcia konta możesz wycofać, dopóki konto nie zostanie usunięte: po 14 dniach od żądania, a jeżeli masz opłacone usługi – z końcem najdłuższego opłaconego okresu. Datę usunięcia, saldo portfela, aktywne usługi i domeny pokazujemy przed potwierdzeniem żądania. Po tym terminie dane konta są anonimizowane; zachowujemy to, czego wymagają przepisy (faktury i dokumenty zwrotu – 5 lat), zanonimizowane zapisy księgowe oraz treść zgłoszeń do obsługi i reklamacji do upływu terminów przedawnienia roszczeń. Strony z historią wersji i zdjęcia z Verris Kreatora oraz marki, wgrane pliki logo i dane do wizytówki i stopki z Kreatora marki usuwamy razem z kontem (zakupy Pakietu marki i kolejnych marek zostają jako rozliczenia). Konta hostingowe powiązane z usuniętym kontem są trwale usuwane z infrastruktury po wygaśnięciu cyklu kopii zapasowych, nie później niż 180 dni od anonimizacji.
 
 Masz prawo wnieść skargę do Prezesa Urzędu Ochrony Danych Osobowych (ul. Stawki 2, 00-193 Warszawa, `https://uodo.gov.pl`).
 
@@ -148,7 +158,7 @@ Za Twoją zgodą na cookies marketingowe narzędzia Google Ads i Meta mogą prof
 
 Jeżeli wyrazisz zgodę na cookies marketingowe, w ramach pomiaru skuteczności reklam Meta stosujemy również **zaawansowane dopasowywanie** (advanced matching): dane kontaktowe wpisywane w formularzach serwisu (np. adres e-mail, numer telefonu) mogą być przekazywane do Meta Platforms Ireland Ltd. wyłącznie w postaci **skrótu (SHA-256)** – Meta nie otrzymuje ich w postaci jawnej i wykorzystuje je do dopasowania zdarzeń do kont reklamowych oraz pomiaru konwersji. Przekazanie następuje tylko przy aktywnej zgodzie marketingowej; jej wycofanie w „Preferencjach cookies" natychmiast je wyłącza. Podstawą prawną jest Twoja zgoda (art. 6 ust. 1 lit. a RODO).
 
-Asystent AI i Verris Kreator niczego za Ciebie nie rozstrzygają – treści stron proponowane przez AI publikujesz Ty, po ich sprawdzeniu. Asystent AI odpowiada na pytania i przygotowuje prognozy, a szkice odpowiedzi dla naszych pracowników zawsze sprawdza i wysyła człowiek.
+Asystent AI, Verris Kreator i Kreator marki niczego za Ciebie nie rozstrzygają – treści stron proponowane przez AI publikujesz Ty, po ich sprawdzeniu, a logo wybierasz i pobierasz sam. Kreator marki automatycznie odrzuca brief lub polecenie z nazwą znanej marki i nie pozwala wybrać znaku bardzo podobnego do znaku wybranego wcześniej w tej samej branży – to reguły jakości bez skutków prawnych: możesz zmienić brief albo wybrać inny kierunek, a w razie wątpliwości napisać do wsparcia. Asystent AI odpowiada na pytania i przygotowuje prognozy, a szkice odpowiedzi dla naszych pracowników zawsze sprawdza i wysyła człowiek.
 
 ## 9. Bezpieczeństwo danych
 
@@ -168,4 +178,4 @@ O każdej zmianie Polityki informujemy w Panelu i e-mailem; istotne zmiany wymag
 
 ---
 
-**Wersja 1.3.0 – data publikacji i wejścia w życie: [DATA PUBLIKACJI]**
+**Wersja 1.4.0 – data publikacji i wejścia w życie: [DATA PUBLIKACJI]**

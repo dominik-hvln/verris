@@ -14,8 +14,8 @@ import { faqSchema, graph, serviceSchema } from '@/lib/schema';
  * (GET /public/oferta/kreator-marki → `dostepny: true`); inaczej 404, brak w sitemapie i brak linków w menu.
  * Limity i ceny wyłącznie z API (lib/kreator-marki), ceny hostingu z lib/ceny – bez kwot wpisanych w kod.
  * Ton: forma „Ty”, konkret. Bez obietnic „unikalne / zastrzeżone / gotowe do rejestracji”: logo z kreatora nie jest
- * znakiem towarowym, a sprawdzenie w TMview i rejestracja to decyzja i obowiązek klienta (projekt §13b Regulaminu:
- * docs/legal/drafts/DO_ZATWIERDZENIA_kreator-marki.md).
+ * znakiem towarowym, a sprawdzenie w TMview i rejestracja to decyzja i obowiązek klienta (Regulamin 1.4.0 §13b,
+ * docs/legal/drafts/terms.md).
  */
 export const metadata: Metadata = {
   title: 'Kreator logo i marki w cenie hostingu | Verris',
@@ -94,11 +94,15 @@ function faq(o: OfertaMarki, hostingOd: string): [string, string][] {
   return [
     [
       'Czy kreator logo jest płatny?',
-      `Nie. Kreator marki jest w cenie hostingu (${hostingOd}): ${ileMarek(h.marek)} na koncie, ${ileSerii(h.seriiMies)} i ${ileZmianAi(h.zmianAiMies)} miesięcznie. Płatny jest tylko Pakiet marki z materiałami do druku i sieci: ${cenaBruttoNetto(o.pakiet.brutto)} jednorazowo.`,
+      `Nie. Kreator marki jest w cenie hostingu (${hostingOd}): ${ileMarek(h.marek)} na koncie, ${ileSerii(h.seriiMies)} i ${ileZmianAi(h.zmianAiMies)} miesięcznie. Płatne są tylko jednorazowe dodatki: Pakiet marki z materiałami do druku i sieci (${cenaBruttoNetto(o.pakiet.brutto)}) i kolejna marka na koncie (${cenaBruttoNetto(o.drugaMarka.brutto)}).`,
     ],
     [
       'Jakie pliki dostanę?',
       'Logo w SVG w kilku wersjach (kolor, jednobarwna, negatyw, biała), PNG i PDF wektorowy, favicon z ikonami aplikacji, kroje z licencją i stopkę e-mail w HTML. Pliki pobierasz jako ZIP i zostają u Ciebie.',
+    ],
+    [
+      'Do kogo należą prawa do logo?',
+      'Do pobranego logo i materiałów dostajesz bezterminową licencję niewyłączną bez ograniczeń terytorialnych. Możesz ich używać w firmie, zmieniać je, przekazać pliki drukarni lub agencji i zgłosić logo jako znak towarowy. Licencji nie wypowiemy – zostaje także po zakończeniu hostingu (Regulamin §13b).',
     ],
     [
       'Czy mogę zarejestrować logo jako znak towarowy?',
@@ -119,6 +123,10 @@ function faq(o: OfertaMarki, hostingOd: string): [string, string][] {
     [
       'Czy mogę mieć drugą markę na koncie?',
       `Tak. Druga i każda kolejna marka kosztuje ${cenaBruttoNetto(o.drugaMarka.brutto)} jednorazowo.`,
+    ],
+    [
+      'Czy mogę odstąpić od zakupu Pakietu marki?',
+      'Pakiet marki i kolejną markę udostępniamy od razu po zapłacie. Przy zakupie zgadzasz się na to i potwierdzasz, że z chwilą udostępnienia tracisz prawo odstąpienia od umowy w tym zakresie – potwierdzenie dostaniesz e-mailem. Od umowy hostingu możesz odstąpić w ciągu 14 dni na zasadach Regulaminu.',
     ],
   ];
 }

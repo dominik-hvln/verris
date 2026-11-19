@@ -13,6 +13,9 @@ import { REGULAMIN_Z_KREATOREM } from '../kreator/kreator.admin.controller.js';
  * mieć 1.3.0 w nagłówku i stopce. Generowanie zdjęć AI jest wyłączone do umowy z dostawcą
  * (`DO_ZATWIERDZENIA_zdjecia-ai.md`) – dokumenty go nie obiecują i nie wymieniają dostawcy obrazów.
  * Na szkicach 1.2.1 test pada: brak §13a, Kreatora w §1 pkt 6, pkt 2.12 i formularzy w DPA.
+ * Od wersji 1.4.0 (Kreator marki, 19.11.2026) numer bieżącej wersji sprawdza `dokumenty-prawne-1-4-0.spec.ts`; tutaj
+ * zostaje treść z 1.3.0 (§13a, pkt 2.12, DPA §2 ust. 4–5), a numer 1.3.0 – opublikowany 10.11.2026 – nie może wrócić
+ * w nagłówku ani stopce z inną treścią.
  */
 const KORZEN = join(__dirname, '../../../..');
 const czytaj = (p: string) => readFileSync(join(KORZEN, p), 'utf8');
@@ -35,20 +38,22 @@ const p13a = par.get('13a') ?? '';
 const ustep = (n: number) => p13a.split('\n').find((l) => l.startsWith(`${n}. `)) ?? '';
 
 describe('Dokumenty prawne 1.3.0 – Verris Kreator i Kreator Pro', () => {
-  it.each(DOKUMENTY)('%s: wersja 1.3.0 z datą do podstawienia, bez pauzy „—” i miejsc do uzupełnienia', (d) => {
+  it.each(DOKUMENTY)('%s: wersja z datą do podstawienia (1.3.0 opublikowana 10.11 – nie wraca), bez pauzy „—” i miejsc do uzupełnienia', (d) => {
     const t = tresc[d];
-    expect(t).toContain('**Wersja 1.3.0 · obowiązuje od [DATA PUBLIKACJI]**');
-    expect(t).toContain('**Wersja 1.3.0 – data publikacji i wejścia w życie: [DATA PUBLIKACJI]**');
+    expect(t).toMatch(/\*\*Wersja \d+\.\d+\.\d+ · obowiązuje od \[DATA PUBLIKACJI\]\*\*/);
+    expect(t).toMatch(/\*\*Wersja \d+\.\d+\.\d+ – data publikacji i wejścia w życie: \[DATA PUBLIKACJI\]\*\*/);
+    expect(t).not.toMatch(/\*\*Wersja 1\.3\.0/);
     expect(t).not.toContain('—');
     expect(t).not.toMatch(/\[(UZUPEŁNIĆ|TODO|DO UZUPEŁNIENIA)/i);
     expect(t).not.toMatch(/<!--|DO SPRAWDZENIA/);
   });
 
-  it('Regulamin i Polityka: 1.3.0 zastępuje 1.2.1 z 6.11.2026; informacje dla konsumenta razem z Regulaminem 1.3.0', () => {
-    for (const d of ['terms', 'privacy'] as const) expect(tresc[d]).toContain('> Wersja 1.3.0 zastępuje wersję 1.2.1 z 6 listopada 2026 r.');
-    expect(konsument).toContain('**Wersja 1.3.0 · obowiązuje od [DATA PUBLIKACJI]** (razem z Regulaminem 1.3.0)');
-    expect(konsument).toMatch(/Verris Kreator w cenie hostingu\), abonament Verris Kreator Pro/);
-    expect(podprocesorzy).toContain('**Wersja 1.3.0 · stan na [DATA PUBLIKACJI]**');
+  it('Regulamin i Polityka wskazują poprzednią wersję; informacje dla konsumenta razem z bieżącym Regulaminem', () => {
+    const biezaca = /\*\*Wersja (\d+\.\d+\.\d+) · /.exec(tresc.terms)?.[1];
+    for (const d of ['terms', 'privacy'] as const) expect(tresc[d]).toMatch(/> Wersja \d+\.\d+\.\d+ zastępuje wersję \d+\.\d+\.\d+ z \d{1,2} \p{L}+ \d{4} r\./u);
+    expect(konsument).toContain(`**Wersja ${biezaca} · obowiązuje od [DATA PUBLIKACJI]** (razem z Regulaminem ${biezaca})`);
+    expect(konsument).toMatch(/Verris Kreator[^)]*w cenie hostingu\), abonament Verris Kreator Pro/);
+    expect(podprocesorzy).toContain(`**Wersja ${biezaca} · stan na [DATA PUBLIKACJI]**`);
   });
 
   it('bez obietnicy generowania zdjęć AI i bez dostawcy obrazów (funkcja wyłączona do umowy z dostawcą)', () => {

@@ -1,6 +1,6 @@
 # Informacje dla konsumenta – umowa zawierana na odległość
 
-**Wersja 1.3.0 · obowiązuje od [DATA PUBLIKACJI]** (razem z Regulaminem 1.3.0)
+**Wersja 1.4.0 · obowiązuje od [DATA PUBLIKACJI]** (razem z Regulaminem 1.4.0)
 
 Dokument przekazywany Konsumentom i Przedsiębiorcom na prawach Konsumenta przed zawarciem umowy (proces zakupowy w panelu) oraz – wraz z Regulaminem – w potwierdzeniu zawarcia umowy na trwałym nośniku (e-mail), stosownie do art. 12 i art. 21 ustawy z dnia 30 maja 2014 r. o prawach konsumenta.
 
@@ -11,7 +11,7 @@ Kontakt: e-mail `kontakt@verris.pl`, telefon +48 511 589 465 (dni robocze 9–17
 
 ## 2. Główne cechy świadczenia
 
-Usługi świadczone drogą elektroniczną pod marką Verris: hosting współdzielony (konto hostingowe, strony WWW, bazy danych, poczta, certyfikaty TLS, kopie zapasowe konta, kreator stron Verris Kreator w cenie hostingu), abonament Verris Kreator Pro (rozszerzenie kreatora stron, kupowany do opłaconego hostingu; zmiana okresu rozliczeniowego od następnego odnowienia; po zakończeniu abonamentu strony zostają, a opublikowane działają dalej), serwery VPS (niezarządzane, pełny dostęp administracyjny), rejestracja i utrzymanie domen internetowych, usługa e-mail marketingu oraz program resellerski. Dokładne parametry wybranego planu (zasoby, limity, funkcje) są prezentowane w specyfikacji planu przed zakupem i w podsumowaniu zamówienia. Warunki świadczenia określa Regulamin świadczenia usług Verris (`https://panel.verris.pl/legal/terms`).
+Usługi świadczone drogą elektroniczną pod marką Verris: hosting współdzielony (konto hostingowe, strony WWW, bazy danych, poczta, certyfikaty TLS, kopie zapasowe konta, kreator stron Verris Kreator i kreator logo Kreator marki w cenie hostingu), abonament Verris Kreator Pro (rozszerzenie kreatora stron, kupowany do opłaconego hostingu; zmiana okresu rozliczeniowego od następnego odnowienia; po zakończeniu abonamentu strony zostają, a opublikowane działają dalej), jednorazowe zakupy w Kreatorze marki – Pakiet marki i kolejna marka na koncie (treści cyfrowe kupowane do opłaconego hostingu, bez odnowień; pobrane pliki logo zostają u Ciebie na licencji z Regulaminu §13b ust. 4–5), serwery VPS (niezarządzane, pełny dostęp administracyjny), rejestracja i utrzymanie domen internetowych, usługa e-mail marketingu oraz program resellerski. Dokładne parametry wybranego planu (zasoby, limity, funkcje) są prezentowane w specyfikacji planu przed zakupem i w podsumowaniu zamówienia. Warunki świadczenia określa Regulamin świadczenia usług Verris (`https://panel.verris.pl/legal/terms`).
 
 ## 3. Cena i płatności
 
@@ -29,6 +29,7 @@ Masz prawo odstąpić od umowy w terminie **14 dni od jej zawarcia**, bez podawa
 
 1. Jeżeli przy zakupie zażądasz rozpoczęcia świadczenia usługi przed upływem terminu odstąpienia (usługa aktywowana od razu), w razie odstąpienia zapłacisz za część usługi wykonaną do chwili odstąpienia (proporcjonalnie do ceny). Po **pełnym wykonaniu** usługi, przy której zażądano takiego rozpoczęcia, prawo odstąpienia nie przysługuje (art. 38 ust. 1 pkt 1 ustawy o prawach konsumenta).
 2. **Rejestracja domeny** jest wykonywana w całości niezwłocznie po opłaceniu – z chwilą zarejestrowania domeny prawo odstąpienia w tym zakresie **wygasa**. Przy każdym zamówieniu rejestracji albo transferu domeny poprosimy Cię o wyraźną zgodę na natychmiastowe wykonanie usługi i potwierdzenie, że przyjmujesz to do wiadomości; oświadczenie dotyczy tylko tego zamówienia, a bez niego domeny nie zamówisz.
+3. **Pakiet marki i kolejna marka** w Kreatorze marki to treści cyfrowe, które udostępniamy na koncie od razu po zapłacie. Przy każdym takim zakupie poprosimy Cię o wyraźną zgodę na rozpoczęcie dostarczania przed upływem terminu odstąpienia i o potwierdzenie, że wiesz, iż z chwilą udostępnienia zakupu **tracisz prawo odstąpienia** w tym zakresie (art. 38 ust. 1 pkt 13 ustawy o prawach konsumenta). Bez tej zgody zakupu nie złożysz, a potwierdzenie zgody wyślemy Ci e-mailem razem z potwierdzeniem zakupu (Regulamin §13b ust. 13).
 
 ## 6. Reklamacje
 

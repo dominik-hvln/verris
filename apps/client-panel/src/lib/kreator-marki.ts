@@ -49,19 +49,20 @@ export const SCIEZKA_MARKI = '/dashboard/kreator-marki';
 export const POWROT_MARKI = { href: SCIEZKA_MARKI, opis: 'Wróć do listy marek w panelu', nazwa: 'Kreator marki' } as const;
 
 // ---------------------------------------------------------------------------------------------------------------
-// Teksty prawne – brzmienie z projektu docs/legal/drafts/DO_ZATWIERDZENIA_kreator-marki.md (sekcja 6, do akceptacji)
+// Teksty prawne – zgodne z Regulaminem 1.4.0 §13b (docs/legal/drafts/terms.md); odesłania do ustępów pilnuje
+// apps/api/src/test/dokumenty-prawne-1-4-0.spec.ts
 // ---------------------------------------------------------------------------------------------------------------
 
 export const OSTRZEZENIE_NAGLOWKA =
-  'Logo z kreatora nie jest znakiem zastrzeżonym. Zanim zamówisz druk albo zgłosisz znak do urzędu, sprawdź podobne znaki w TMview. To nie jest badanie prawne.';
+  'Logo z kreatora nie jest znakiem zastrzeżonym. Zanim zamówisz druk albo zgłosisz znak do urzędu, sprawdź podobne znaki w TMview. To nie jest badanie prawne (Regulamin §13b ust. 9–10).';
 export const TEKST_ZGODY_TMVIEW =
-  'Wiem, że Verris nie sprawdza rejestrów znaków towarowych i nie gwarantuje, że podobnego znaku nikt nie używa. Sprawdzę znak w TMview przed drukiem i rejestracją.';
+  'Wiem, że Verris nie sprawdza rejestrów znaków towarowych i nie gwarantuje, że podobnego znaku nikt nie używa (Regulamin §13b ust. 8–10). Przed drukiem i zgłoszeniem znaku sprawdzę go w TMview.';
 export const TEKST_OSWIADCZENIA_PRAW =
-  'Mam prawo używać tego logo i zlecić jego przetworzenie (analizę, wektoryzację, materiały, propozycje odświeżenia).';
+  'Mam prawo używać tego logo i zlecić jego przetworzenie: analizę z pomocą AI, wektoryzację, materiały i propozycje odświeżenia (Regulamin §13b ust. 12).';
 export const TEKST_ZGODY_TRESCI_CYFROWEJ =
-  'Chcę dostać zakup od razu. Wiem, że po rozpoczęciu dostarczania treści cyfrowej tracę prawo odstąpienia od umowy w tym zakresie.';
+  'Chcę, żeby Verris udostępnił mi ten zakup od razu, przed upływem 14 dni na odstąpienie od umowy. Wiem, że z chwilą udostępnienia treści cyfrowej tracę prawo odstąpienia od umowy w tym zakresie (Regulamin §13b ust. 13). Potwierdzenie dostanę e-mailem.';
 export const INFORMACJA_EKSPORTU =
-  'Pliki mają w opisie (metadanych) informację, że powstały z pomocą AI. Kroje mają licencję SIL Open Font License – jej tekst jest w paczce.';
+  'Pliki mają w opisie (metadanych) informację, że powstały z pomocą AI (Regulamin §13b ust. 14). Kroje mają licencję SIL Open Font License – jej tekst jest w paczce. Pobrane logo możesz używać, zmieniać i zgłosić jako znak towarowy (licencja: Regulamin §13b ust. 4–6).';
 export const ODRZUCONY_BRIEF =
   'Nie przygotujemy logo na wzór cudzej marki. Opisz, co Ci się w niej podoba – np. prosty znak, grube litery, dwa kolory – bez nazwy marki.';
 

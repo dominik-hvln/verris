@@ -1,4 +1,5 @@
 import { BadRequestException, ConflictException, ForbiddenException, HttpException, HttpStatus, Inject, Injectable, Logger, Optional, ServiceUnavailableException, forwardRef, type OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Prisma, WalletTxType, type KreatorMarkaZakup, type KreatorMarkaZakupRodzaj } from '@verris/database';
 import type { WersjaKreatora, WynikZakupuMarki, ZakupPakietuBody } from '@verris/kreator';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -8,6 +9,8 @@ import { AuditService } from '../common/audit/audit.service.js';
 import { KreatorMarkiActions } from '../common/audit/audit.actions.js';
 import type { KonfiguracjaMarki } from './konfiguracja-marki.js';
 import { KonfiguracjaMarkiService } from './konfiguracja-marki.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { kreatorMarkiZakupTemplate } from '../mail/templates/kreator-marki-notifications.js';
 
 /**
  * Kreator marki (paczka 131) – zakupy jednorazowe (treść cyfrowa): Pakiet marki i druga marka.
@@ -22,7 +25,9 @@ import { KonfiguracjaMarkiService } from './konfiguracja-marki.service.js';
  * (idempotentnie: klucz obciążenia = zakup, zmiana statusu tylko z OCZEKUJE).
  *
  * Zgoda na rozpoczęcie dostarczania treści cyfrowej przed upływem terminu odstąpienia (ustawa o prawach konsumenta,
- * art. 38 ust. 1 pkt 13 [do weryfikacji numeru jednostki redakcyjnej po nowelizacjach]) – wymagana, zapisana z datą.
+ * art. 38 ust. 1 pkt 13; Regulamin 1.4.0 §13b ust. 13) – wymagana, zapisana z datą. Prawo odstąpienia wygasa dopiero,
+ * gdy konsument dostanie potwierdzenie tej zgody na trwałym nośniku (art. 21 ust. 1) – dlatego po udostępnieniu zakupu
+ * (status OPLACONY) wysyłamy e-mail z potwierdzeniem zakupu i zgody (`kreatorMarkiZakupTemplate`), dokładnie raz.
  */
 
 export const NAZWY_ZAKUPOW: Record<KreatorMarkaZakupRodzaj, string> = { PAKIET: 'Kreator marki – Pakiet marki', DRUGA_MARKA: 'Kreator marki – kolejna marka' };
@@ -46,6 +51,8 @@ export class ZakupMarkiService implements OnModuleInit {
     private readonly audit: AuditService,
     @Optional() @Inject(forwardRef(() => BillingService)) private readonly billing?: BillingService,
     @Optional() private readonly konfiguracjaMarki?: KonfiguracjaMarkiService,
+    @Optional() private readonly mailer?: MailerService,
+    @Optional() private readonly config?: ConfigService,
   ) {}
 
   /** Realizacja zamówienia kartą/Paynow po wpłacie – w billingu, po zaksięgowaniu doładowania z referencją zakupu. */
@@ -161,7 +168,7 @@ export class ZakupMarkiService implements OnModuleInit {
     const teraz = new Date();
     const pakiet = z.rodzaj === 'PAKIET';
     const aktualizacjeDo = pakiet ? new Date(Date.UTC(teraz.getUTCFullYear(), teraz.getUTCMonth() + konf.pakiet.aktualizacjeSzablonowMies, teraz.getUTCDate())) : null;
-    await this.prisma.kreatorMarkaZakup.updateMany({
+    const zmiana = await this.prisma.kreatorMarkaZakup.updateMany({
       where: { id: z.id, status: 'OCZEKUJE' },
       data: {
         status: 'OPLACONY',
@@ -178,7 +185,38 @@ export class ZakupMarkiService implements OnModuleInit {
       actorUserId,
       details: { zakupId: z.id, rodzaj: z.rodzaj, metoda: z.metoda, kwota: kwota.toFixed(2), walletTxId, zgodaTresciCyfrowejAt: z.zgodaTresciCyfrowejAt.toISOString() },
     });
+    // Tylko przejście OCZEKUJE → OPLACONY w tym wywołaniu wysyła potwierdzenie (powtórna realizacja – nie).
+    if (zmiana.count === 1) await this.potwierdz({ ...z, oplaconoAt: teraz, serie: pakiet ? konf.pakiet.serie : 0, zmianyAi: pakiet ? konf.pakiet.zmianyAi : 0, aktualizacjeDo });
     return { oplacony: true };
+  }
+
+  /**
+   * E-mail z potwierdzeniem zakupu i zgody na dostarczenie treści cyfrowej (trwały nośnik – Regulamin §13b ust. 13).
+   * Błąd poczty nie cofa zakupu (treść jest już udostępniona) – zostaje w logu; wtedy prawo odstąpienia nie wygasło
+   * i obsługa uznaje odstąpienie (ZMIANY_1.3.0-1.4.0.md, część C).
+   */
+  private async potwierdz(z: Pick<KreatorMarkaZakup, 'id' | 'userId' | 'rodzaj' | 'metoda' | 'kwotaBrutto' | 'zgodaTresciCyfrowejAt' | 'oplaconoAt' | 'serie' | 'zmianyAi' | 'aktualizacjeDo'>): Promise<void> {
+    if (!this.mailer) return;
+    try {
+      const u = await this.prisma.user.findUnique({ where: { id: z.userId }, select: { email: true, firstName: true } });
+      if (!u?.email) return;
+      const panelUrl = (this.config?.get<string>('CLIENT_PANEL_URL') ?? 'https://panel.verris.pl').replace(/\/$/, '');
+      const pakiet = z.rodzaj === 'PAKIET';
+      const wiadomosc = kreatorMarkiZakupTemplate({
+        to: u.email,
+        firstName: u.firstName,
+        rodzaj: z.rodzaj,
+        kwotaBrutto: new Prisma.Decimal(z.kwotaBrutto).toFixed(2),
+        metoda: z.metoda,
+        zgodaAt: z.zgodaTresciCyfrowejAt,
+        udostepnionoAt: z.oplaconoAt ?? new Date(),
+        ...(pakiet ? { serie: z.serie, zmianyAi: z.zmianyAi, aktualizacjeDo: z.aktualizacjeDo } : {}),
+        panelUrl,
+      });
+      await this.mailer.send({ ...wiadomosc, userId: z.userId, category: 'TRANSACTIONAL', fromRole: 'BILLING' });
+    } catch (e) {
+      this.logger.error(`Zakup ${z.id}: nie wysłano potwierdzenia zakupu i zgody na treść cyfrową – ${(e as Error).message}`);
+    }
   }
 
   /**
