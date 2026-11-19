@@ -94,6 +94,9 @@ const PUBLICZNE = [
   // hosty dostawcy, ≤ 2 MB, treść musi być obrazem rastrowym) i pliki wariantów zdjęć z biblioteki konta (token HMAC
   // id zasobu, tylko istniejące szerokości) – ładuje je podgląd w ramce bez ciasteczek, link próbny i panel.
   'KreatorMiniaturaController.miniatura',
+  // Paczka 131: pliki marki dla stopki e-mail i strony z kreatora (logo PNG, favicon PNG, obraz OG) – token HMAC id
+  // marki w adresie (bez terminu: adres trafia do wysłanych maili), zamknięta lista 3 plików, usunięcie marki = 404.
+  'KreatorMarkiPlikPublicznyController.plik',
   'KreatorZasobPlikController.plik',
   'KbPublicController.apiArticle',
   'KbPublicController.apiTree',

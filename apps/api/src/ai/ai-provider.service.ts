@@ -32,6 +32,15 @@ export interface WynikAi<T> {
 type Wiadomosc = { role: 'user' | 'assistant'; content: string };
 
 /**
+ * Paczka 131 – treść wiadomości Messages API: tekst albo bloki (obraz base64 + tekst; analiza wgranego logo w Kreatorze
+ * marki – https://platform.claude.com/docs/en/build-with-claude/vision). Tylko `anthropicZBlokami`.
+ */
+export type BlokTresciAnthropic =
+  | { type: 'text'; text: string }
+  | { type: 'image'; source: { type: 'base64'; media_type: 'image/png' | 'image/jpeg'; data: string } };
+export type WiadomoscAnthropic = { role: 'user' | 'assistant'; content: string | BlokTresciAnthropic[] };
+
+/**
  * Dane z zewnątrz — kształt deklarujemy jawnie, wszystko opcjonalne (dostawca może zwrócić cokolwiek).
  * OpenAI: chat/completions; Anthropic: Messages API (platform.claude.com/docs/en/api/messages).
  */
@@ -387,7 +396,7 @@ export class AiProviderService {
   async anthropicZBlokami(input: {
     model: string;
     system: BlokSystemuAi[];
-    wiadomosci: Wiadomosc[];
+    wiadomosci: WiadomoscAnthropic[];
     maxTokens: number;
     funkcja: string;
     userId: string | null;

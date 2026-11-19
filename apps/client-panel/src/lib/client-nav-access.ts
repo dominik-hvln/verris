@@ -80,6 +80,10 @@ export function canAccessDashboardRoute(
   ) {
     return hasAny(perms, ['SERVICES_READ', 'SERVICES_MANAGE']);
   }
+  // Paczka 131 – Kreator marki jak Kreator stron (podgląd jak usługi albo menedżer plików); zakupy sprawdza API.
+  if (href === '/dashboard/kreator-marki' || href.startsWith('/dashboard/kreator-marki/') || href.startsWith('/dashboard/kreator-marki?')) {
+    return hasAny(perms, ['SERVICES_READ', 'SERVICES_MANAGE', 'FILES_MANAGE']);
+  }
   // Paczka 120 – Verris Kreator jak w API (customer-permissions.guard: /kreator): podgląd jak usługi,
   // nowa strona (generacja AI z limitu konta) jak menedżer plików; zapis w edytorze sprawdza API.
   if (href === '/dashboard/kreator/nowa' || href.startsWith('/dashboard/kreator/nowa?')) {

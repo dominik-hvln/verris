@@ -14,3 +14,5 @@ export * from './favicon.ts';
 export * from './kv/index.ts';
 export * from './stopka-email.ts';
 export * from './ksiega.ts';
+export * from './api-kontrakt.ts';
+export { parsujD as parsujDSciezki, zlozMacierze as zlozMacierzeSvg, zastosuj as zastosujMacierzSvg, type Segment as SegmentSciezki, type Macierz as MacierzSvg } from './sciezka-svg.ts';

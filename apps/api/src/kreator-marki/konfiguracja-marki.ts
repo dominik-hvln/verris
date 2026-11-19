@@ -247,9 +247,8 @@ export function ofertaMarki(konf: KonfiguracjaMarki): OfertaMarki {
 }
 
 /**
- * Podsumowanie użycia w adminie. Faza 1 (paczka 130): tabel kreatora marki jeszcze nie ma – zera i `zrodlo:
- * 'brak-danych'`. Faza 2 podmienia tę funkcję na zapytania (marki, serie, zmiany AI, koszt z AiInteractionLog
- * z funkcją FUNKCJA_AI_MARKI, sprzedane Pakiety i drugie marki) – kształt odpowiedzi zostaje.
+ * Podsumowanie użycia w adminie (kształt z fazy 1 bez zmian): marki i konta z marką (stan bieżący), serie i zmiany AI
+ * oraz koszt AI w miesiącu (KreatorMarkaZuzycie), sprzedane w miesiącu Pakiety i kolejne marki (opłacone zakupy).
  */
 export interface UzycieMarki {
   miesiac: string;
@@ -265,4 +264,39 @@ export interface UzycieMarki {
 
 export function uzycieMarkiBezDanych(miesiac: string): UzycieMarki {
   return { miesiac, zrodlo: 'brak-danych', marki: 0, kontaZMarka: 0, serie: 0, zmianyAi: 0, kosztUsd: 0, pakiety: 0, drugieMarki: 0 };
+}
+
+type DbUzycia = {
+  kreatorMarka: { count(a?: object): Promise<number>; groupBy(a: object): Promise<unknown[]> };
+  kreatorMarkaZuzycie: { aggregate(a: object): Promise<{ _sum: { serie: number | null; zmianyAi: number | null; kosztUsd: unknown } }> };
+  kreatorMarkaZakup: { count(a: object): Promise<number> };
+};
+
+/** Zakres miesiąca 'YYYY-MM' (UTC). */
+function granicaMiesiaca(miesiac: string): { od: Date; do: Date } {
+  const [r, m] = miesiac.split('-').map(Number) as [number, number];
+  return { od: new Date(Date.UTC(r, m - 1, 1)), do: new Date(Date.UTC(r, m, 1)) };
+}
+
+export async function uzycieMarki(db: DbUzycia, miesiac: string): Promise<UzycieMarki> {
+  const { od, do: doo } = granicaMiesiaca(miesiac);
+  const zakupy = (rodzaj: 'PAKIET' | 'DRUGA_MARKA') => db.kreatorMarkaZakup.count({ where: { rodzaj, status: 'OPLACONY', oplaconoAt: { gte: od, lt: doo } } });
+  const [marki, konta, z, pakiety, drugieMarki] = await Promise.all([
+    db.kreatorMarka.count(),
+    db.kreatorMarka.groupBy({ by: ['userId'] }),
+    db.kreatorMarkaZuzycie.aggregate({ where: { miesiac }, _sum: { serie: true, zmianyAi: true, kosztUsd: true } }),
+    zakupy('PAKIET'),
+    zakupy('DRUGA_MARKA'),
+  ]);
+  return {
+    miesiac,
+    zrodlo: 'baza',
+    marki,
+    kontaZMarka: konta.length,
+    serie: z._sum.serie ?? 0,
+    zmianyAi: z._sum.zmianyAi ?? 0,
+    kosztUsd: Math.round(Number(z._sum.kosztUsd ?? 0) * 10_000) / 10_000,
+    pakiety,
+    drugieMarki,
+  };
 }

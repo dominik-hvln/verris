@@ -105,3 +105,13 @@ describe('X-05 czyModul / trasaWidoczna – co jest w menu', () => {
     }
   });
 });
+
+describe('Paczka 131 – Kreator marki w menu tylko, gdy moduł dostępny dla konta (flaga `kreatorMarki` z API)', () => {
+  it('brak flagi albo false – ukryty; true – widoczny; Kreator stron bez zmian', async () => {
+    const { trasaWidoczna } = await load();
+    expect(trasaWidoczna({}, '/dashboard/kreator-marki')).toBe(false);
+    expect(trasaWidoczna({ kreatorMarki: false }, '/dashboard/kreator-marki/nowa')).toBe(false);
+    expect(trasaWidoczna({ kreatorMarki: true }, '/dashboard/kreator-marki')).toBe(true);
+    expect(trasaWidoczna({}, '/dashboard/kreator')).toBe(true);
+  });
+});

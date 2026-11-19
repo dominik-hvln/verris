@@ -143,10 +143,37 @@ it('kreator: pełne wejście @verris/kreator tylko w modułach serwerowych, komp
   expect(readFileSync(join(SRC, 'app/api/kreator/podglad/route.ts'), 'utf8')).toMatch(/from '@verris\/kreator'/);
 });
 
-it('kreator: drzewo wejścia klienckiego (klient.ts) nie sięga renderera ani master promptu', () => {
+/**
+ * Paczka 131 – Kreator marki: panel składa logo w przeglądarce (podgląd i „Dopasuj” bez AI), więc klient.ts eksportuje
+ * model marki, katalog sygnetów, złożenie, kolory i reguły. Jedyny moduł z `render/` w tym drzewie to `render/esc.ts`
+ * (escapowanie tekstu, bez wiedzy renderera). Master prompt i analiza marki (`marka/ai/`, `marka/analiza/`), materiały
+ * KV i księga znaku zostają w API.
+ */
+const DOZWOLONE_Z_RENDERA = ['render/esc.ts'];
+const ZAKAZANE_MARKI = ['marka/ai/', 'marka/analiza/', 'marka/kv/', 'marka/ksiega.ts', 'marka/stopka-email.ts', 'marka/wzor.ts'];
+
+const zakazaneKreatora = (osiagalne: string[]) =>
+  osiagalne.filter(
+    (p) =>
+      (p.startsWith('render/') && !DOZWOLONE_Z_RENDERA.includes(p)) ||
+      (p.startsWith('ai/') && p !== 'ai/kontrakt.ts') ||
+      p.startsWith('przyklady/') ||
+      ZAKAZANE_MARKI.some((z) => p.startsWith(z)),
+  );
+
+it('kreator: drzewo wejścia klienckiego (klient.ts) nie sięga renderera, master promptu ani AI marki', () => {
   const osiagalne = [...drzewo(join(KREATOR, 'klient.ts')).keys()].map((p) => p.slice(KREATOR.length + 1));
-  expect(osiagalne.filter((p) => p.startsWith('render/') || (p.startsWith('ai/') && p !== 'ai/kontrakt.ts') || p.startsWith('przyklady/'))).toEqual([]);
+  expect(zakazaneKreatora(osiagalne)).toEqual([]);
   expect(osiagalne).toEqual(expect.arrayContaining(['model.ts', 'katalog.ts', 'plany.ts', 'style/katalog-stylow.ts']));
+  // Kreator marki w panelu: złożenie logo i reguły działają w przeglądarce.
+  expect(osiagalne).toEqual(expect.arrayContaining(['marka/model.ts', 'marka/zloz.ts', 'marka/sygnety/katalog.ts', 'marka/kolory-marki.ts', 'marka/reguly.ts']));
+});
+
+it('kreator marki: strażnik łapie AI marki i materiały (pełne wejście marki sięga ai/ i kv/)', () => {
+  const pelne = [...drzewo(join(KREATOR, 'marka/index.ts')).keys()].map((p) => p.slice(KREATOR.length + 1));
+  expect(zakazaneKreatora(pelne)).toEqual(expect.arrayContaining(['marka/ai/index.ts', 'marka/kv/index.ts']));
+  // Sam render/esc.ts nie jest zakazany, inny moduł renderera – tak.
+  expect(zakazaneKreatora(['render/esc.ts', 'render/index.ts'])).toEqual(['render/index.ts']);
 });
 
 it('kreator: strażnik łapie pełne wejście (index.ts sięga renderera i master promptu)', () => {

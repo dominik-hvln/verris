@@ -326,6 +326,12 @@ model User {
   kreatorZuzycie            KreatorZuzycie[]
   // Paczka 122 — zdjęcia kreatora (biblioteka konta)
   kreatorZasoby             KreatorZasob[]
+  // Paczka 131 — Kreator marki: marki konta, wgrane pliki logo, zużycie AI w miesiącu, zakupy (Pakiet, druga marka)
+  kreatorMarki              KreatorMarka[]
+  kreatorMarkiPliki         KreatorMarkaPlik[]
+  kreatorMarkiZuzycie       KreatorMarkaZuzycie[]
+  kreatorMarkiZakupy        KreatorMarkaZakup[]
+  kreatorMarkiOdciski       KreatorMarkaOdcisk[]
   @@index([role, createdAt])
   @@index([referredByUserId])
 }
@@ -5018,4 +5024,152 @@ model KreatorCms {
   updatedAt      DateTime       @updatedAt
 
   @@index([userId])
+}
+
+// -----------------------------------------------------------------------------
+// Paczka 131 — Kreator marki (faza 2): marki konta, serie kierunków, rejestr wydanych znaków, wgrane pliki,
+// zużycie AI, zakupy jednorazowe (Pakiet marki, druga marka). Konfiguracja (ceny, limity) – PlatformSetting
+// `kreator-marki.konfiguracja` (apps/api/src/kreator-marki/konfiguracja-marki.ts).
+// -----------------------------------------------------------------------------
+
+/// Marka konta. `dane` = DaneMarki (apps/api/src/kreator-marki/dane-marki.ts): brief, po wyborze kierunku pełna
+/// `Marka` (libs/kreator/src/marka/model.ts), analiza wgranego logo, zgody z datą. `wersja` rośnie przy każdej zmianie
+/// projektu – Kreator stron porównuje ją z migawką na stronie („marka się zmieniła”).
+model KreatorMarka {
+  id        String               @id @default(uuid())
+  userId    String
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nazwa     String
+  /// 'nowa' | 'odswiezenie' | 'wgrane' (ZRODLA_MARKI).
+  zrodlo    String
+  /// 'brief' | 'kierunki' | 'projekt'.
+  etap      String
+  wersja    Int                  @default(1)
+  dane      Json
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+  serie     KreatorMarkaSeria[]
+  pliki     KreatorMarkaPlik[]
+  odciski   KreatorMarkaOdcisk[]
+
+  @@index([userId, updatedAt])
+}
+
+/// Seria kierunków (6 propozycji „Nowa marka” albo 3 kierunki odświeżenia) po walidacji i zamiennikach serwera.
+model KreatorMarkaSeria {
+  id        String       @id @default(uuid())
+  markaId   String
+  marka     KreatorMarka @relation(fields: [markaId], references: [id], onDelete: Cascade)
+  /// 'nowa' | 'odswiezenie'.
+  rodzaj    String
+  kierunki  Json
+  strategia Json?
+  createdAt DateTime     @default(now())
+
+  @@index([markaId, createdAt])
+}
+
+/// Rejestr wydanych znaków (koncepcja 3.6, 8.4): odcisk znaku wybranego przez klienta, porównywany z nowymi
+/// propozycjami w tej samej branży. Po usunięciu marki albo konta wpis ZOSTAJE bez powiązań (markaId i userId = NULL) –
+/// obietnica „ten znak nie trafi do innej firmy z Kreatora marki Verris” działa dalej; wpis nie zawiera nazwy
+/// ani danych firmy (tylko rodzina, parametry i odcisk kształtu).
+model KreatorMarkaOdcisk {
+  id               String        @id @default(uuid())
+  markaId          String?       @unique
+  marka            KreatorMarka? @relation(fields: [markaId], references: [id], onDelete: SetNull)
+  userId           String?
+  user             User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  /// Branża znormalizowana (małe litery, bez znaków diakrytycznych i interpunkcji).
+  branzaKlucz      String
+  /// Rodzina sygnetu z biblioteki albo 'ai' / 'wgrany' / 'brak'.
+  rodzina          String
+  /// Odcisk parametrów (odciskParametrow) – null dla symboli AI i wgranych.
+  odciskParametrow String?
+  /// Perceptual hash renderu 64×64 (odciskSvg / odciskRastra), hex.
+  pHash            String
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([branzaKlucz, createdAt])
+}
+
+/// Plik logo wgrany przez klienta (ścieżki „Mam logo” i „Odświeżenie”): oryginał w magazynie obiektów
+/// (KREATOR_ZASOBY, klucz `<userId>/marka/<id>.<typ>`) i podgląd PNG do analizy.
+model KreatorMarkaPlik {
+  id             String        @id @default(uuid())
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  markaId        String?
+  marka          KreatorMarka? @relation(fields: [markaId], references: [id], onDelete: Cascade)
+  /// Typ rozpoznany po zawartości: 'svg' | 'png' | 'jpg' | 'pdf'.
+  typ            String
+  bajty          Int
+  sha256         String
+  /// Klucz oryginału w magazynie.
+  klucz          String
+  /// Klucz podglądu PNG (≤ 1024 px) w magazynie.
+  kluczPodgladu  String?
+  /// Oświadczenie klienta o prawie do używania logo (wymagane przed analizą).
+  oswiadczenieAt DateTime
+  createdAt      DateTime      @default(now())
+
+  @@index([userId, createdAt])
+  @@index([markaId])
+}
+
+/// Zużycie Kreatora marki w miesiącu (limity w cenie hostingu: serie i zmiany AI) i tokeny/koszt AI (admin).
+model KreatorMarkaZuzycie {
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// 'YYYY-MM' (UTC)
+  miesiac     String
+  serie       Int      @default(0)
+  zmianyAi    Int      @default(0)
+  wejTokeny   Int      @default(0)
+  wyjTokeny   Int      @default(0)
+  cacheZapis  Int      @default(0)
+  cacheOdczyt Int      @default(0)
+  kosztUsd    Decimal  @default(0) @db.Decimal(10, 4)
+  updatedAt   DateTime @updatedAt
+
+  @@id([userId, miesiac])
+}
+
+enum KreatorMarkaZakupRodzaj {
+  PAKIET
+  DRUGA_MARKA
+}
+
+enum KreatorMarkaZakupStatus {
+  /// Zamówione z płatnością kartą/Paynow – czeka na wpłatę do portfela.
+  OCZEKUJE
+  OPLACONY
+  /// Zamówienie bez wpłaty (porzucone) – nie blokuje kolejnego.
+  ANULOWANY
+}
+
+/// Zakup jednorazowy w Kreatorze marki (treść cyfrowa): Pakiet marki albo druga marka. Obciążenie portfela
+/// (WalletTransaction CHARGE_USAGE) z fakturą w tej samej transakcji (WalletLedgerService). Pula serii i zmian AI
+/// Pakietu jest łączna (nie miesięczna) – zapisana przy zakupie z konfiguracji obowiązującej w tej chwili.
+model KreatorMarkaZakup {
+  id                    String                  @id @default(uuid())
+  userId                String
+  user                  User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rodzaj                KreatorMarkaZakupRodzaj
+  status                KreatorMarkaZakupStatus @default(OCZEKUJE)
+  /// 'portfel' | 'karta' | 'paynow'.
+  metoda                String
+  kwotaBrutto           Decimal                 @db.Decimal(10, 2)
+  walletTxId            String?                 @unique
+  /// Zgoda na rozpoczęcie dostarczania treści cyfrowej i przyjęcie do wiadomości utraty prawa odstąpienia.
+  zgodaTresciCyfrowejAt DateTime
+  serie                 Int                     @default(0)
+  zmianyAi              Int                     @default(0)
+  serieUzyte            Int                     @default(0)
+  zmianyAiUzyte         Int                     @default(0)
+  aktualizacjeDo        DateTime?
+  oplaconoAt            DateTime?
+  createdAt             DateTime                @default(now())
+
+  @@index([userId, rodzaj, status])
 }

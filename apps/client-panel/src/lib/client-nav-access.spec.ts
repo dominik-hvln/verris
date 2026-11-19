@@ -131,3 +131,14 @@ describe('Paczka 120 – Kreator stron (jak customer-permissions.guard w API: od
     expect(canAccessDashboardRoute('/dashboard/kreator', { ...sub(['SERVICES_READ', 'FILES_MANAGE']), serviceScope: ['s1'] })).toBe(false);
   });
 });
+
+describe('Paczka 131 – Kreator marki (jak Kreator stron)', () => {
+  const sub = (customerPermissions: string[]) => ({ isSubaccount: true, customerPermissions });
+  it('subkonto z podglądem usług albo plikami – tak; bez nich – nie; właściciel – tak', () => {
+    expect(canAccessDashboardRoute('/dashboard/kreator-marki', sub(['SERVICES_READ']))).toBe(true);
+    expect(canAccessDashboardRoute('/dashboard/kreator-marki/nowa', sub(['FILES_MANAGE']))).toBe(true);
+    expect(canAccessDashboardRoute('/dashboard/kreator-marki/clx7marka01?krok=eksport', sub(['SERVICES_MANAGE']))).toBe(true);
+    expect(canAccessDashboardRoute('/dashboard/kreator-marki', sub(['TICKETS_READ']))).toBe(false);
+    expect(canAccessDashboardRoute('/dashboard/kreator-marki', { isSubaccount: false, customerPermissions: [] })).toBe(true);
+  });
+});

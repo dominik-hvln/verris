@@ -56,6 +56,7 @@ import {
   ChevronUp,
   FlaskConical,
   LayoutTemplate,
+  Palette,
 } from "lucide-react";
 import { sidebarTilesFromLinks } from "@/lib/sidebar-tiles";
 import { clientFeatures } from "@/lib/client-features";
@@ -84,6 +85,8 @@ const secondaryItems = [
       { name: "Domeny", href: "/dashboard/domains", icon: VerrisDomenyIcon },
       { name: "Płatności", href: "/dashboard/billing", icon: VerrisPortfelIcon },
       { name: "Kreator stron", href: "/dashboard/kreator", icon: LayoutTemplate },
+      // Paczka 131 – widoczny tylko, gdy moduł jest dostępny dla konta (flaga `kreatorMarki`, feature-flags-action.ts).
+      { name: "Kreator marki", href: "/dashboard/kreator-marki", icon: Palette },
       { name: "Migracje", href: "/dashboard/migrations", icon: Globe },
       { name: "Dodatki", href: "/dashboard/addons", icon: Calculator },
       { name: "VPS / Cloud", href: "/dashboard/vps", icon: ServerIcon },

@@ -465,7 +465,7 @@ export class DataExportService implements OnApplicationBootstrap {
 
   private async collectSections(userId: string): Promise<Record<string, unknown>> {
     const [user, accounts, subscriptions, walletTxs, invoices, tickets, ticketAttachments,
-      ticketReplies, consents, prefs, exports, deletions, auditLogs, customerNotes, migracje, poczta, kreatorStrony, kreatorZdjecia, kreatorZuzycie] =
+      ticketReplies, consents, prefs, exports, deletions, auditLogs, customerNotes, migracje, poczta, kreatorStrony, kreatorZdjecia, kreatorZuzycie, kreatorMarki, kreatorMarkiPliki, kreatorMarkiZuzycie, kreatorMarkiZakupy] =
       await this.prisma.$transaction([
         this.prisma.user.findUniqueOrThrow({ where: { id: userId } }),
         this.prisma.account.findMany({ where: { userId } }),
@@ -558,6 +558,27 @@ export class DataExportService implements OnApplicationBootstrap {
           orderBy: { miesiac: 'asc' },
           select: { miesiac: true, generacje: true, zmiany: true, obrazyAi: true },
         }),
+        // Paczka 131 — Kreator marki: marki (brief, projekt, dane kontaktowe, zgody z datą), serie kierunków, metadane
+        // wgranych plików logo (bez samych plików – oryginał klient ma u siebie) i liczniki użycia (bez kosztów Verris).
+        this.prisma.kreatorMarka.findMany({
+          where: { userId },
+          orderBy: { createdAt: 'asc' },
+          select: {
+            id: true, nazwa: true, zrodlo: true, etap: true, wersja: true, dane: true, createdAt: true, updatedAt: true,
+            serie: { orderBy: { createdAt: 'asc' }, select: { rodzaj: true, kierunki: true, strategia: true, createdAt: true } },
+          },
+        }),
+        this.prisma.kreatorMarkaPlik.findMany({
+          where: { userId },
+          orderBy: { createdAt: 'asc' },
+          select: { id: true, markaId: true, typ: true, bajty: true, sha256: true, oswiadczenieAt: true, createdAt: true },
+        }),
+        this.prisma.kreatorMarkaZuzycie.findMany({ where: { userId }, orderBy: { miesiac: 'asc' }, select: { miesiac: true, serie: true, zmianyAi: true } }),
+        this.prisma.kreatorMarkaZakup.findMany({
+          where: { userId },
+          orderBy: { createdAt: 'asc' },
+          select: { rodzaj: true, status: true, metoda: true, kwotaBrutto: true, zgodaTresciCyfrowejAt: true, oplaconoAt: true, aktualizacjeDo: true, createdAt: true },
+        }),
       ]);
 
     // P5-07 (paczka 109) — allowlista zamiast „cały wiersz minus sekrety”: nowe kolumny wewnętrzne (flagi zespołu,
@@ -618,6 +639,10 @@ export class DataExportService implements OnApplicationBootstrap {
       'kreator-sites': kreatorStrony,
       'kreator-photos': kreatorZdjecia,
       'kreator-usage': kreatorZuzycie,
+      'brand-creator-brands': kreatorMarki,
+      'brand-creator-uploads': kreatorMarkiPliki,
+      'brand-creator-usage': kreatorMarkiZuzycie,
+      'brand-creator-purchases': kreatorMarkiZakupy,
     });
   }
 
@@ -882,6 +907,12 @@ function buildReadme(userId: string): string {
     '  kreator-photos.json              – zdjęcia z biblioteki kreatora: źródło, autor, licencja, wymiary i opis; same pliki',
     '                                     zdjęć nie są częścią archiwum (opublikowana strona i jej ZIP zawierają użyte zdjęcia).',
     '  kreator-usage.json               – liczniki użycia kreatora w miesiącach (generacje, zmiany AI).',
+    '  brand-creator-brands.json        – marki z Kreatora marki: opis firmy, projekt logo, kolory, kroje, dane kontaktowe do',
+    '                                     wizytówki i stopki, zgody z datą, serie propozycji.',
+    '  brand-creator-uploads.json       – wgrane pliki logo (typ, rozmiar, skrót, data oświadczenia o prawach); same pliki',
+    '                                     nie są częścią archiwum.',
+    '  brand-creator-usage.json         – liczniki użycia Kreatora marki w miesiącach (serie, zmiany AI).',
+    '  brand-creator-purchases.json     – zakupy Pakietu marki i kolejnych marek (kwota, zgoda na treść cyfrową z datą).',
     '  data-export-requests.json        – historia żądań eksportu danych.',
     '  account-deletion-requests.json   – historia żądań usunięcia konta.',
     '  attachments/<plik>               – fizyczne kopie załączników z ticketów.',

@@ -214,6 +214,29 @@ export class AiChatService {
   }
 
   /**
+   * Paczka 131 — krótki kontekst marek konta (najwyżej 3 z wybranym projektem): nazwa, kolory HEX i kroje. Bez danych
+   * kontaktowych z wizytówki. Błąd odczytu nie psuje czatu.
+   */
+  private async markiDlaAsystenta(userId: string): Promise<{ nazwa: string; kolory: Record<string, string>; kroje: Record<string, string> }[]> {
+    try {
+      const wiersze = await this.prisma.kreatorMarka.findMany({ where: { userId, etap: 'projekt' }, orderBy: { updatedAt: 'desc' }, take: 3, select: { nazwa: true, dane: true } });
+      return wiersze.flatMap((w) => {
+        const p = (w.dane as { marka?: { projekt?: { kolory?: Record<string, unknown>; fonty?: Record<string, unknown>; napis?: { font?: unknown } } } } | null)?.marka?.projekt;
+        const k = p?.kolory;
+        if (!k || typeof k.glowny !== 'string') return [];
+        const tekst = (v: unknown) => (typeof v === 'string' ? v : '');
+        return [{
+          nazwa: w.nazwa,
+          kolory: { glowny: tekst(k.glowny), akcent: tekst(k.akcent), akcentJasny: tekst(k.akcentJasny) },
+          kroje: { logo: tekst(p?.napis?.font), naglowki: tekst(p?.fonty?.naglowki), tekst: tekst(p?.fonty?.tekst) },
+        }];
+      });
+    } catch {
+      return [];
+    }
+  }
+
+  /**
    * PB-17 — kontekst konta dla czatu: bez sekretów, e-maili i kwot. Na stronie
    * usługi — ta usługa z bieżącymi sygnałami (dysk, SSL, domena, kopie); poza
    * nią — krótka lista usług klienta. Te same reguły co dymki (bez sond na żywo).
@@ -237,9 +260,12 @@ export class AiChatService {
           siteMonitor: { select: { tlsExpiresAt: true } },
         },
       });
-      if (subs.length === 0) return null;
+      // Paczka 131 — marki z Kreatora marki (nazwa, kolory, kroje): asystent odpowie np. „jaki kolor na szyld?”.
+      const marki = await this.markiDlaAsystenta(userId);
+      if (subs.length === 0 && !marki.length) return null;
       // t1 05.10: „kiedy odnowienie / czy SSL ważny” na pulpicie — asystent nie znał dat. Kwot nadal nie wysyłamy (RCPD A13).
       return JSON.stringify({
+        ...(marki.length ? { marki } : {}),
         uslugi: subs.map((s) => ({
           plan: s.plan?.name ?? null,
           status: s.status,

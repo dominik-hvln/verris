@@ -6,7 +6,7 @@ import { JwtStrategy } from '../auth/strategies/jwt.strategy.js';
  * P-02 — anonimizacja konta (art. 17): operacja nieodwracalna. Pilnujemy, co znika, co zostaje
  * (faktury), że subkonta tracą dostęp razem z właścicielem i że w dzienniku nie zostaje jawny e-mail.
  */
-function stanowisko(opts: { juzZanonimizowany?: boolean; subkonta?: string[]; zasobyKreatora?: { id: string; szerokosc: number }[]; bladMagazynu?: boolean } = {}) {
+function stanowisko(opts: { juzZanonimizowany?: boolean; subkonta?: string[]; zasobyKreatora?: { id: string; szerokosc: number }[]; plikiMarki?: { klucz: string; kluczPodgladu: string | null }[]; bladMagazynu?: boolean } = {}) {
   const kolejnosc: string[] = [];
   const magazyn = {
     removeObject: vi.fn(async (_b: string, k: string) => {
@@ -30,6 +30,11 @@ function stanowisko(opts: { juzZanonimizowany?: boolean; subkonta?: string[]; za
     kreatorZasob: { findMany: vi.fn(async () => opts.zasobyKreatora ?? []), deleteMany: vi.fn(async () => kolejnosc.push('kreator-zasoby')) },
     kreatorStrona: { deleteMany: vi.fn(async () => kolejnosc.push('kreator-strony')) },
     kreatorZuzycie: { deleteMany: vi.fn(async () => kolejnosc.push('kreator-zuzycie')) },
+    // Paczka 131 — Kreator marki: marki (kaskada serii), wgrane pliki, zużycie; odciski zostają bez powiązań.
+    kreatorMarkaPlik: { findMany: vi.fn(async () => opts.plikiMarki ?? []), deleteMany: vi.fn(async () => kolejnosc.push('marka-pliki')) },
+    kreatorMarkaOdcisk: { updateMany: vi.fn(async () => kolejnosc.push('marka-odciski')) },
+    kreatorMarka: { deleteMany: vi.fn(async () => kolejnosc.push('marki')) },
+    kreatorMarkaZuzycie: { deleteMany: vi.fn(async () => kolejnosc.push('marka-zuzycie')) },
     apiToken: { updateMany: vi.fn(async () => ({})) },
     customerNote: { deleteMany: vi.fn(async () => ({})) },
     migracjaKontakt: { deleteMany: vi.fn(async () => ({})) },
@@ -156,6 +161,20 @@ describe('AccountDeletionService.executeAnonymization (P-02)', () => {
     expect(sql.find((q) => q.t.includes('UPDATE "NodeTask"') && !q.t.includes('"kind"'))?.v).toEqual([
       ['dbPass', 'adminPass', 'adminEmail'], ['a1', 'a2'], ['dbPass', 'adminPass', 'adminEmail'],
     ]);
+  });
+
+  it('paczka 131 – Kreator marki: marki, wgrane logo (pliki po zapisie) i zużycie znikają, odciski znaków zostają bez powiązań', async () => {
+    const s = stanowisko({ plikiMarki: [{ klucz: 'u1/marka/p1.png', kluczPodgladu: 'u1/marka/p1-podglad.png' }] });
+    await s.svc.executeAnonymization('u1');
+    expect(s.tx.kreatorMarkaOdcisk.updateMany).toHaveBeenCalledWith({ where: { userId: 'u1' }, data: { userId: null, markaId: null } });
+    expect(s.tx.kreatorMarka.deleteMany).toHaveBeenCalledWith({ where: { userId: 'u1' } });
+    expect(s.tx.kreatorMarkaPlik.deleteMany).toHaveBeenCalledWith({ where: { userId: 'u1' } });
+    expect(s.tx.kreatorMarkaZuzycie.deleteMany).toHaveBeenCalledWith({ where: { userId: 'u1' } });
+    // odciski odpinane przed usunięciem marek (SetNull i tak by zadziałało, ale userId nie ma kaskady przy zachowanym User)
+    expect(s.kolejnosc.indexOf('marka-odciski')).toBeLessThan(s.kolejnosc.indexOf('marki'));
+    const pliki = (s.magazyn.removeObject.mock.calls as unknown as [string, string][]).filter(([b]) => b === 'KREATOR_ZASOBY').map(([, k]) => k);
+    expect(pliki).toEqual(['u1/marka/p1.png', 'u1/marka/p1-podglad.png']);
+    expect(s.kolejnosc.indexOf('commit')).toBeLessThan(s.kolejnosc.indexOf('magazyn:u1/marka/p1.png'));
   });
 
   it('paczka 126 – błąd magazynu przy zdjęciach kreatora nie blokuje usunięcia konta (log, reszta kroków idzie)', async () => {

@@ -37,6 +37,19 @@ describe('AiChatService – kontekst pulpitu i zwykły tekst', () => {
     expect(r.answer).toBe('Usługa d3.hvln.pl odnawia się 28.10.\nSSL\nWażny do 20.12.');
   });
 
+  it('paczka 131 – marki z Kreatora marki w kontekście (nazwa, kolory, kroje), bez danych kontaktowych z wizytówki', async () => {
+    const s = serwis('Kolor główny to #1F3A5F.');
+    (s.prisma as Record<string, unknown>).kreatorMarka = {
+      findMany: vi.fn(async () => [
+        { nazwa: 'Łódka i Wiosło', dane: { marka: { projekt: { kolory: { glowny: '#1F3A5F', akcent: '#E07A3F', akcentJasny: '#F5C9A8' }, fonty: { naglowki: 'Manrope', tekst: 'Inter' }, napis: { font: 'Manrope' } }, kontakt: { telefon: '600 000 000' } } } },
+      ]),
+    };
+    await s.svc.ask({ question: 'Jaki kolor na szyld?', audience: 'CLIENT', userId: 'u1', actorUserId: 'u1' });
+    const system = (s.chat.mock.calls[0] as unknown as [{ system: string }])[0].system;
+    expect(system).toContain('"marki":[{"nazwa":"Łódka i Wiosło","kolory":{"glowny":"#1F3A5F","akcent":"#E07A3F","akcentJasny":"#F5C9A8"},"kroje":{"logo":"Manrope","naglowki":"Manrope","tekst":"Inter"}}]');
+    expect(system).not.toContain('600 000 000');
+  });
+
   it('bezMarkdown: pauza „\u2014” w odpowiedzi → półpauza „–” (decyzja 6.11), łącznik i półpauza bez zmian', () => {
     expect(bezMarkdown('Kopie są codzienne \u2014 przywrócisz je w panelu. Godziny 9\u201317, e-mail.')).toBe(
       'Kopie są codzienne \u2013 przywrócisz je w panelu. Godziny 9\u201317, e-mail.',

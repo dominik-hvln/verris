@@ -184,6 +184,10 @@ function zbuduj(opts: { brakujacyZalacznik?: boolean } = {}) {
     },
     kreatorZasob: { findMany: lista([{ id: 'zd1', zrodlo: 'PIXABAY', autor: 'Autor', licencja: 'pixabay', szerokosc: 1200, wysokosc: 800, alt: 'Fotel' }]) },
     kreatorZuzycie: { findMany: lista([{ miesiac: '2026-11', generacje: 2, zmiany: 5, obrazyAi: 0 }]) },
+    kreatorMarka: { findMany: lista([{ id: 'm1', nazwa: 'Łódka i Wiosło', zrodlo: 'nowa', etap: 'projekt', wersja: 2, dane: { brief: { nazwa: 'Łódka i Wiosło' } }, serie: [] }]) },
+    kreatorMarkaPlik: { findMany: lista([{ id: 'p1', markaId: 'm1', typ: 'png', bajty: 1200, sha256: 'ab', oswiadczenieAt: new Date('2026-11-19T10:00:00Z') }]) },
+    kreatorMarkaZuzycie: { findMany: lista([{ miesiac: '2026-11', serie: 1, zmianyAi: 3 }]) },
+    kreatorMarkaZakup: { findMany: lista([{ rodzaj: 'PAKIET', status: 'OPLACONY', metoda: 'portfel', kwotaBrutto: '149.00' }]) },
     server: { findMany: lista([{ name: 't1', hostname: 't1.verris.pl', daHost: 'da-t1.wezly.example', ipAddress: '203.0.113.50', ipv6Address: null }]) },
     $transaction: vi.fn(async (ops: Array<Promise<unknown>>) => Promise.all(ops)),
   };
@@ -384,6 +388,17 @@ describe('X-22 – eksport RODO buduje prawdziwe archiwum', () => {
     expect(JSON.parse(pliki.get('kreator-usage.json')!)).toEqual([{ miesiac: '2026-11', generacje: 2, zmiany: 5, obrazyAi: 0 }]);
     expect(z.prisma.kreatorZuzycie.findMany).toHaveBeenCalledWith(expect.objectContaining({ select: { miesiac: true, generacje: true, zmiany: true, obrazyAi: true } }));
     for (const n of ['kreator-sites.json', 'kreator-photos.json', 'kreator-usage.json']) expect(pliki.get('README.txt')).toContain(n);
+  });
+
+  it('paczka 131 – dane Kreatora marki w eksporcie: marki z projektem, metadane wgranych plików (bez kluczy magazynu), użycie, zakupy', async () => {
+    const z = zbuduj();
+    const pliki = await zbudujZip(z.svc);
+    expect(JSON.parse(pliki.get('brand-creator-brands.json')!)).toEqual([expect.objectContaining({ id: 'm1', nazwa: 'Łódka i Wiosło' })]);
+    expect(JSON.parse(pliki.get('brand-creator-uploads.json')!)).toEqual([expect.objectContaining({ id: 'p1', typ: 'png' })]);
+    expect(z.prisma.kreatorMarkaPlik.findMany).toHaveBeenCalledWith(expect.objectContaining({ select: expect.not.objectContaining({ klucz: true }) }));
+    expect(JSON.parse(pliki.get('brand-creator-usage.json')!)).toEqual([{ miesiac: '2026-11', serie: 1, zmianyAi: 3 }]);
+    expect(JSON.parse(pliki.get('brand-creator-purchases.json')!)).toEqual([expect.objectContaining({ rodzaj: 'PAKIET', status: 'OPLACONY' })]);
+    for (const n of ['brand-creator-brands.json', 'brand-creator-uploads.json', 'brand-creator-usage.json', 'brand-creator-purchases.json']) expect(pliki.get('README.txt')).toContain(n);
   });
 
   it('nazwa załącznika nie wychodzi poza katalog attachments/ (zip slip)', async () => {

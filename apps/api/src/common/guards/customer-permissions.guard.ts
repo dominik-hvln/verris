@@ -222,6 +222,19 @@ export const REGULY_TRAS: Regula[] = [
     po_co: 'Okres abonamentu Kreator Pro (miesiąc/rok) – kwota kolejnych obciążeń portfela albo karty właściciela.',
   },
   {
+    // Paczka 131 – Kreator marki: zakup Pakietu marki i kolejnej marki obciąża portfel właściciela (jak /addons + usługa).
+    pasuje: (s) => s === '/kreator-marki/pakiet' || s === '/kreator-marki/druga-marka',
+    odczyt: [SERVICES_READ], zapis: [SERVICES_MANAGE, BILLING_MANAGE],
+    po_co: 'Zakup jednorazowy w Kreatorze marki – wydatek z portfela albo płatność właściciela.',
+  },
+  {
+    // Paczka 131 – Kreator marki: projekt marki i pliki jak treść konta (Kreator stron); serie i zmiany AI zużywają limit
+    // konta. Usunięcie marki – też FILES_MANAGE (jak usunięcie strony z kreatora).
+    pasuje: zaczyna('/kreator-marki'),
+    odczyt: [SERVICES_READ], zapis: [FILES_MANAGE],
+    po_co: 'Kreator marki: podgląd jak usługa; brief, serie AI, edycja, wgranie logo i zgody jak menedżer plików.',
+  },
+  {
     // Paczka 119 – Verris Kreator: strona klienta to treść jak pliki konta (kolejna paczka publikuje ją na hosting),
     // a każda generacja i zmiana AI zużywa miesięczny limit konta.
     pasuje: zaczyna('/kreator'),

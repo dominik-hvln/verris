@@ -74,6 +74,14 @@ describe('trybSkupienia – które adresy', () => {
     expect(trybSkupienia('/dashboard/services')).toBe(false);
     expect(trybSkupienia(null)).toBe(false);
   });
+
+  it('paczka 131 – Kreator marki: brief, wgranie i ekran marki – tak; lista marek – nie', () => {
+    expect(trybSkupienia('/dashboard/kreator-marki/nowa')).toBe(true);
+    expect(trybSkupienia('/dashboard/kreator-marki/wgraj')).toBe(true);
+    expect(trybSkupienia('/dashboard/kreator-marki/clx7marka01')).toBe(true);
+    expect(trybSkupienia('/dashboard/kreator-marki')).toBe(false);
+    expect(trybSkupienia('/dashboard/kreator-marki/a/b')).toBe(false);
+  });
 });
 
 describe('layout panelu w trybie skupienia (HTML z serwera)', () => {

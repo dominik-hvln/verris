@@ -11,7 +11,7 @@ import { KontoTestoweDto } from '../kreator/dto/kreator-admin.dto.js';
 import { miesiacUtc } from '../kreator/konfiguracja.js';
 import { KonfiguracjaMarkiDto } from './dto/konfiguracja-marki.dto.js';
 import { KonfiguracjaMarkiService } from './konfiguracja-marki.service.js';
-import { cenyMarki, odczytajKonfiguracjeMarki, scalKonfiguracjeMarki, uzycieMarkiBezDanych, type KonfiguracjaMarki } from './konfiguracja-marki.js';
+import { cenyMarki, odczytajKonfiguracjeMarki, scalKonfiguracjeMarki, uzycieMarki, type KonfiguracjaMarki } from './konfiguracja-marki.js';
 
 /** Obowiązujący dokument opisuje moduł, gdy wymienia go z nazwy (projekt: docs/legal/drafts/DO_ZATWIERDZENIA_kreator-marki.md). */
 export const DOKUMENT_Z_KREATOREM_MARKI = /Kreator(?:a|em|ze|owi)?\s+marki/i;
@@ -68,16 +68,17 @@ export class KreatorMarkiAdminController {
   /**
    * GET /admin/kreator-marki/konfiguracja – konfiguracja, ceny brutto i netto (netto liczone z brutto), stan
    * dokumentów prawnych (Regulamin i Polityka prywatności muszą wymieniać moduł, zanim dostaną go wszyscy),
-   * modele, konta testowe i użycie miesiąca (faza 1: `zrodlo: 'brak-danych'`).
+   * modele, konta testowe i użycie miesiąca (paczka 131: z bazy – `zrodlo: 'baza'`).
    */
   @Get('konfiguracja')
   async konfiguracja() {
     const konfiguracja = await this.konfiguracjaMarki.konfiguracja();
-    const [modele, konta, regulamin, polityka] = await Promise.all([
+    const [modele, konta, regulamin, polityka, uzycie] = await Promise.all([
       this.modele(),
       this.konta(konfiguracja),
       this.dokument(LegalDocumentKind.TERMS),
       this.dokument(LegalDocumentKind.PRIVACY),
+      uzycieMarki(this.prisma as never, miesiacUtc()),
     ]);
     return {
       konfiguracja,
@@ -86,7 +87,7 @@ export class KreatorMarkiAdminController {
       dokumenty: { regulamin, polityka },
       modele,
       konta,
-      uzycie: uzycieMarkiBezDanych(miesiacUtc()),
+      uzycie,
     };
   }
 

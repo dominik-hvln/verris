@@ -23,6 +23,9 @@ export function trasaWidoczna(flagi: Record<string, boolean>, href: string): boo
   // VPS: wynik z env API dla konta (`vps` w /me/feature-flags; FEATURE_VPS / FEATURE_VPS_TYLKO_KONTA).
   if (href.startsWith('/dashboard/vps')) return flagi.vps === true;
   if (href.startsWith('/dashboard/email-marketing')) return clientFeatures.emailMarketing;
+  // Paczka 131 – Kreator marki: domyślnie wyłączony w adminie (do publikacji dokumentów prawnych); `kreatorMarki`
+  // z /me/feature-flags (API). Brak flagi = ukryty.
+  if (href === '/dashboard/kreator-marki' || href.startsWith('/dashboard/kreator-marki/') || href.startsWith('/dashboard/kreator-marki?')) return flagi.kreatorMarki === true;
   const m = TRASY_MODULOW[href.split('?')[0]];
   return m ? czyModul(flagi, m) : true;
 }

@@ -59,6 +59,12 @@ const ZAKLADKI: { id: Zakladka; nazwa: string }[] = [
   { id: 'ai', nazwa: 'AI' },
 ];
 
+/** Paczka 131 – zakładka z adresu (`?zakladka=motyw` – link „Użyj w Kreatorze stron” z Kreatora marki otwiera sekcję Marka). */
+export function zakladkaZAdresu(search: string): Zakladka | null {
+  const z = new URLSearchParams(search).get('zakladka');
+  return ZAKLADKI.some((x) => x.id === z) ? (z as Zakladka) : null;
+}
+
 /** Z której zakładki i sekcji poprawić błąd pod ścieżką modelu. */
 export function celBledu(sciezka: string): { zakladka: Zakladka; podstrona?: number; sekcja?: number } {
   const m = /^strony\.(\d+)(?:\.sekcje\.(\d+))?/.exec(sciezka);
@@ -185,6 +191,19 @@ export function Edytor({
   const zamknijSzuflade = useCallback(() => setSzuflada(null), []);
   useOknoModalne(szuflada === 'sekcje', zamknijSzuflade, szufladaSekcji);
   useOknoModalne(szuflada === 'edycja', zamknijSzuflade, szufladaEdycji);
+
+  // Paczka 131 – link z Kreatora marki otwiera zakładkę Motyw (sekcja „Marka”); na telefonie – od razu panel edycji.
+  useEffect(() => {
+    const z = zakladkaZAdresu(window.location.search);
+    if (!z) return;
+    const t = setTimeout(() => {
+      setZakladka(z);
+      if (uklad === 'telefon') setWidokMobilny('edycja');
+    }, 0);
+    return () => clearTimeout(t);
+    // tylko przy wejściu na stronę edytora
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // „Więcej” (menu rozwijane): Esc i kliknięcie obok zamykają, Esc oddaje fokus przyciskowi.
   useEffect(() => {

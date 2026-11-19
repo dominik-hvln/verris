@@ -1,7 +1,7 @@
 import { PRZYKLAD_SALON } from '@verris/kreator';
 import { TYPY_SEKCJI, KATALOG_WARIANTOW, type Strona } from '@verris/kreator/klient';
 import { bladPod, nowaSekcja, polaSekcji, przesun, ustaw, walidujWEdytorze } from './schemat';
-import { celBledu } from './edytor';
+import { celBledu, zakladkaZAdresu } from './edytor';
 import { slugZTytulu } from './struktura';
 import { slowaZTekstu } from './panel-seo';
 import { odczytajWiadomosc } from './podglad';
@@ -87,6 +87,13 @@ describe('pomocnicze edytora', () => {
     expect(celBledu('strony.2.seo.tytul')).toEqual({ zakladka: 'seo', podstrona: 2 });
     expect(celBledu('motyw.paleta.tlo')).toEqual({ zakladka: 'motyw' });
     expect(celBledu('firma.telefon')).toEqual({ zakladka: 'seo' });
+  });
+
+  it('paczka 131 – zakładka z adresu (link z Kreatora marki → Motyw z sekcją Marka); nieznana – brak', () => {
+    expect(zakladkaZAdresu('?zakladka=motyw')).toBe('motyw');
+    expect(zakladkaZAdresu('?x=1&zakladka=seo')).toBe('seo');
+    expect(zakladkaZAdresu('?zakladka=marka')).toBeNull();
+    expect(zakladkaZAdresu('')).toBeNull();
   });
 
   it('wiadomości z ramki podglądu: tylko znane kształty od skryptu edytora', () => {

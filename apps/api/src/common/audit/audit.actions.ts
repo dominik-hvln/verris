@@ -523,3 +523,25 @@ export const ZamowieniePaynowActions = {
   /** Wpłata zaksięgowana, realizacja z portfela się nie udała — K w portfelu, alarm dla adminów. details: + powod. */
   ZAMOWIENIE_PAYNOW_NIEZREALIZOWANE: 'ZAMOWIENIE_PAYNOW_NIEZREALIZOWANE',
 } as const;
+
+// ---------------------------------------------------------------------------
+// Kreator marki (paczka 131) – zdarzenia na koncie klienta (bez treści briefu i plików)
+// ---------------------------------------------------------------------------
+
+/** userId = właściciel konta; actorUserId = osoba (subkonto / impersonacja). */
+export const KreatorMarkiActions = {
+  /** details: markaId, zrodlo. */
+  KREATOR_MARKI_UTWORZONO: 'KREATOR_MARKI_UTWORZONO',
+  /** details: markaId, seriaId, kierunekId, wersja – znak wydany (odcisk w rejestrze). */
+  KREATOR_MARKI_WYBRANO: 'KREATOR_MARKI_WYBRANO',
+  /** details: markaId, plikId, typ, bajty – oświadczenie o prawach do pliku z datą. */
+  KREATOR_MARKI_WGRANO: 'KREATOR_MARKI_WGRANO',
+  /** details: markaId, zgoda ('oswiadczeniePraw' | 'sprawdzilemTmview'), kiedy. */
+  KREATOR_MARKI_ZGODA: 'KREATOR_MARKI_ZGODA',
+  /** details: markaId, plik (nazwa) albo 'eksport.zip'. */
+  KREATOR_MARKI_POBRANO: 'KREATOR_MARKI_POBRANO',
+  /** details: markaId; odcisk znaku zostaje w rejestrze bez powiązań. */
+  KREATOR_MARKI_USUNIETO: 'KREATOR_MARKI_USUNIETO',
+  /** details: zakupId, rodzaj, metoda, kwota, walletTxId, zgodaTresciCyfrowejAt. */
+  KREATOR_MARKI_ZAKUP: 'KREATOR_MARKI_ZAKUP',
+} as const;

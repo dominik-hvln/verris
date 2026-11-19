@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type CSSProperties } from 'react';
 import { Check, ChevronDown } from 'lucide-react';
 import { cx } from './cx';
 
@@ -8,6 +8,8 @@ export interface SelectOption {
   value: string;
   label: string;
   disabled?: boolean;
+  /** Paczka 131 – styl etykiety (np. `fontFamily` w wyborze kroju Kreatora marki – podgląd kroju na liście). */
+  styl?: CSSProperties;
 }
 
 /** Ile pozycji przeskakuje PageUp/PageDown (jak w przykładzie APG). */
@@ -304,7 +306,7 @@ export function Select({
           open ? 'border-emerald-400/60 ring-2 ring-emerald-400/20' : 'border-white/10',
         )}
       >
-        <span className={cx('min-w-0 break-words', selected ? 'text-white' : 'text-neutral-500')}>
+        <span className={cx('min-w-0 break-words', selected ? 'text-white' : 'text-neutral-500')} style={selected?.styl}>
           {selected ? selected.label : placeholder}
         </span>
         <ChevronDown
@@ -353,7 +355,9 @@ export function Select({
                     : 'text-neutral-200',
               )}
             >
-              <span className="min-w-0 break-words">{o.label}</span>
+              <span className="min-w-0 break-words" style={o.styl}>
+                {o.label}
+              </span>
               {isSel ? <Check aria-hidden className="h-3.5 w-3.5 shrink-0 text-emerald-400" /> : null}
             </li>
           );

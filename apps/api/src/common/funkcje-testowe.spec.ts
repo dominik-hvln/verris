@@ -73,12 +73,44 @@ describe('/me/feature-flags – panel dostaje vps i resellerMarkup dla zalogowan
     new MeFeatureFlagsController(prisma(email) as never, konfig(w) as never).moje({ userId: 'u1' });
 
   it('bez zmiennych: obie false', async () => {
-    expect(await moje({}, 'test@hvln.pl')).toEqual({ vps: false, resellerMarkup: false });
+    expect(await moje({}, 'test@hvln.pl')).toEqual({ vps: false, resellerMarkup: false, kreatorMarki: false });
   });
 
   it('listy kont: true tylko dla konta z listy danej funkcji', async () => {
     const cfg = { FEATURE_VPS_TYLKO_KONTA: 'test@hvln.pl', FEATURE_RESELLER_MARKUP: 'true' };
-    expect(await moje(cfg, 'test@hvln.pl')).toEqual({ vps: true, resellerMarkup: true });
-    expect(await moje(cfg, 'ktos@firma.pl')).toEqual({ vps: false, resellerMarkup: true });
+    expect(await moje(cfg, 'test@hvln.pl')).toEqual({ vps: true, resellerMarkup: true, kreatorMarki: false });
+    expect(await moje(cfg, 'ktos@firma.pl')).toEqual({ vps: false, resellerMarkup: true, kreatorMarki: false });
+  });
+});
+
+describe('/me/feature-flags – kreatorMarki (paczka 131)', () => {
+  const prisma = (hosting: { isTrial: boolean } | null) => ({
+    featureFlag: { findMany: vi.fn(async () => []) },
+    subscription: {
+      findMany: vi.fn(async (a: { where: { plan?: unknown } }) =>
+        a.where.plan && hosting ? [{ isTrial: hosting.isTrial, trialConvertedAt: null, status: 'ACTIVE', plan: { productKind: 'HOSTING' } }] : [],
+      ),
+    },
+    user: { findUnique: vi.fn(async () => ({ email: 'k@firma.pl' })) },
+  });
+  const flaga = async (dostep: boolean | Error, hosting: { isTrial: boolean } | null) => {
+    const marka = { dostep: vi.fn(async () => { if (dostep instanceof Error) throw dostep; return dostep; }) };
+    const p = prisma(hosting);
+    const r = await new MeFeatureFlagsController(p as never, konfig({}) as never, marka as never).moje({ userId: 'u1' });
+    return { r: r.kreatorMarki, marka, p };
+  };
+
+  it('moduł dla konta + hosting (także próbny) = true; bez hostingu albo bez modułu = false', async () => {
+    expect((await flaga(true, { isTrial: false })).r).toBe(true);
+    expect((await flaga(true, { isTrial: true })).r).toBe(true);
+    expect((await flaga(true, null)).r).toBe(false);
+    const bezModulu = await flaga(false, { isTrial: false });
+    expect(bezModulu.r).toBe(false);
+    expect(bezModulu.marka.dostep).toHaveBeenCalledWith('u1');
+  });
+
+  it('błąd odczytu konfiguracji – false, reszta flag działa', async () => {
+    const { r } = await flaga(new Error('baza'), { isTrial: false });
+    expect(r).toBe(false);
   });
 });

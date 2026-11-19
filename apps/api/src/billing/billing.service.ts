@@ -74,6 +74,17 @@ import {
 /** Bramka doładowania wybrana w panelu klienta. Bez wyboru: Paynow dla PLN (gdy skonfigurowany), inaczej Stripe. */
 export type MetodaDoladowania = 'paynow' | 'stripe';
 
+/**
+ * Paczka 131 — realizacja zamówienia po zaksięgowanej wpłacie, rejestrowana przez moduł zamawiający (np. Kreator marki:
+ * Pakiet opłacany kartą/Paynow = doładowanie kwotą zakupu z referencją zamówienia w metadanych płatności). Wołana raz
+ * na wpłatę (Paynow: przebieg, który przestawił płatność na CONFIRMED; Stripe: zdarzenie zajęte w ewidencji webhooków),
+ * po zatwierdzeniu wpisu w księdze. Błąd realizacji nie cofa wpłaty – pieniądze zostają w portfelu.
+ */
+export type RealizacjaPoWplacie = (i: { userId: string; walletTxId: string; referencja: string }) => Promise<void>;
+/** Klucze metadanych płatności z referencją zamówienia (lista zamknięta – nie dowolne pola od klienta). */
+export const KLUCZE_REALIZACJI_PO_WPLACIE = ['kreatorMarkiZakup'] as const;
+export type KluczRealizacjiPoWplacie = (typeof KLUCZE_REALIZACJI_PO_WPLACIE)[number];
+
 type RekordPaynow = {
   id: string;
   userId: string;
@@ -94,6 +105,12 @@ export interface TransactionsCsvFilters {
 @Injectable()
 export class BillingService {
   private readonly logger = new Logger(BillingService.name);
+  private readonly realizacjePoWplacie = new Map<KluczRealizacjiPoWplacie, RealizacjaPoWplacie>();
+
+  /** Paczka 131 — moduł zamawiający rejestruje realizację zamówienia po wpłacie (patrz RealizacjaPoWplacie). */
+  zarejestrujRealizacjePoWplacie(klucz: KluczRealizacjiPoWplacie, fn: RealizacjaPoWplacie): void {
+    this.realizacjePoWplacie.set(klucz, fn);
+  }
 
   constructor(
     private readonly prisma: PrismaService,
@@ -540,6 +557,8 @@ export class BillingService {
     currency?: WalutaWplaty | null;
     /** 2026-10-05 — bramka; bez wyboru PLN idzie przez Paynow, gdy jest skonfigurowany. */
     metoda?: MetodaDoladowania | null;
+    /** Paczka 131 — referencja zamówienia realizowanego po wpłacie (np. { kreatorMarkiZakup: id }); tylko klucze z listy. */
+    zamowienie?: Partial<Record<KluczRealizacjiPoWplacie, string>>;
   }) {
     const amount = new Prisma.Decimal(opts.amount);
     if (amount.lessThanOrEqualTo(0) || amount.greaterThan(10000)) {
@@ -595,12 +614,15 @@ export class BillingService {
       ? { amount: promoMetadata.bonusAmount, percent: Number(promoMetadata.promoPercent), code: promoMetadata.promoCode }
       : null;
 
+    const zamowienie = Object.fromEntries(
+      Object.entries(opts.zamowienie ?? {}).filter(([k, v]) => (KLUCZE_REALIZACJI_PO_WPLACIE as readonly string[]).includes(k) && typeof v === 'string' && v.length <= 64),
+    ) as Record<string, string>;
     if (przezPaynow) {
       return this.utworzDoladowaniePaynow(paynow, {
         user,
         minor,
         description,
-        meta: { kind: 'wallet_topup', ...(promoMetadata ?? {}), ...DoladowanieService.doMetadanych(traktowanie, vies) },
+        meta: { ...zamowienie, kind: 'wallet_topup', ...(promoMetadata ?? {}), ...DoladowanieService.doMetadanych(traktowanie, vies) },
         amount,
         bonus,
       });
@@ -614,6 +636,7 @@ export class BillingService {
       cancelUrl: this.config.get<string>('stripeCancelUrl')!,
       clientReferenceId: user.id,
       metadata: {
+        ...zamowienie,
         userId: user.id,
         kind: 'wallet_topup',
         ...(promoMetadata ?? {}),
@@ -1941,6 +1964,18 @@ export class BillingService {
         creditedK: kredytK.toFixed(2),
       },
     });
+
+    // Paczka 131 — zamówienie opłacone tą wpłatą (referencja w metadanych płatności): realizacja z portfela od razu.
+    for (const klucz of KLUCZE_REALIZACJI_PO_WPLACIE) {
+      const referencja = meta[klucz];
+      const fn = this.realizacjePoWplacie.get(klucz);
+      if (!referencja || !fn) continue;
+      try {
+        await fn({ userId, walletTxId: tx.id, referencja });
+      } catch (err) {
+        this.logger.error(`Realizacja zamówienia ${klucz}=${referencja} po wpłacie ${tx.id} nie powiodła się: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
 
     // Bonus z kodu procentowego: metadane (Stripe) / rekord (Paynow) zawierają bonus policzony po naszej
     // stronie przed przekierowaniem do płatności — klient nie zmieni procentu po stronie przeglądarki.

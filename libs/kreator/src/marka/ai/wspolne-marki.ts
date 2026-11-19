@@ -1,8 +1,8 @@
 import type { WiadomoscAi, ZapytanieAi } from '../../ai/kontrakt.ts';
 import { FRAZY_ZAKAZANE, oczyscTeksty, wyciagnijJson } from '../../ai/odczyt.ts';
-import { dopasujKontrast, generujPalete, hexDoOklch, kontrast, oklchDoHex } from '../../style/kolory.ts';
 import { CHARAKTERY_PALET } from '../../style/kolory.ts';
 import { KoloryMarki, type BriefMarki } from '../model.ts';
+import { koloryMarki } from '../kolory-marki.ts';
 
 /**
  * Wspólne części operacji AI kreatora marki: zapytanie (z rodzajem modelu i opcjonalnym obrazem), odczyt JSON,
@@ -99,25 +99,15 @@ export function literyMonogramu(l: unknown, nazwa: string): string {
 
 export type CharakterPaletyMarki = (typeof CHARAKTERY_PALET)[number];
 
-const BIALY = '#FFFFFF';
-
 /**
- * KoloryMarki z barwy akcentu i charakteru palety (style/kolory.ts – ta sama paleta co motyw strony):
- *  - akcent = paleta.akcent, poprawiony do ≥ 3:1 z bielą (WCAG 1.4.11 dla grafiki);
- *  - główny = ciemny odcień barwy `barwaGlowna` (domyślnie barwy akcentu), ≥ 4,5:1 z bielą (napis);
- *  - akcent jasny = jasny odcień akcentu, ≥ 3:1 z kolorem głównym (wariant na ciemnym tle).
- * Deterministyczne. [Jeśli biblioteka marki (kolory-marki.ts) dostarczy własną funkcję – tu podmiana w jednym miejscu.]
+ * KoloryMarki kierunku od AI: `barwa` = barwa AKCENTU (zakres slotu), `barwaGlowna` = barwa koloru głównego
+ * (domyślnie ta sama). Jedno źródło kolorów marki – `koloryMarki` z kolory-marki.ts (kontrast znaku ≥ 3:1, napisu
+ * ≥ 4,5:1, akcent jasny ≥ 3:1 z głównym, paleta strony z korektą kontrastu). Deterministyczne.
  */
 export function koloryKierunku(barwa: number, charakter: CharakterPaletyMarki, barwaGlowna?: number): KoloryMarki {
   const h = ((Math.round(barwa) % 360) + 360) % 360;
-  const paleta = generujPalete(h, charakter);
-  const akcent = dopasujKontrast(paleta.akcent, [BIALY], 3);
   const hg = barwaGlowna === undefined ? h : ((Math.round(barwaGlowna) % 360) + 360) % 360;
-  const cAkcentu = hexDoOklch(akcent).c;
-  const glowny = dopasujKontrast(oklchDoHex({ l: 0.3, c: Math.min(0.1, Math.max(0.03, cAkcentu * 0.5)), h: hg }), [BIALY], 4.5);
-  let jasny = oklchDoHex({ l: 0.86, c: Math.min(0.12, cAkcentu), h });
-  for (let l = 0.86; kontrast(jasny, glowny) < 3 && l < 0.99; l += 0.02) jasny = oklchDoHex({ l, c: Math.min(0.12, cAkcentu), h });
-  return KoloryMarki.parse({ glowny, akcent, akcentJasny: jasny, paleta, barwa: h, charakter });
+  return KoloryMarki.parse(koloryMarki(hg, charakter, { akcentBarwa: h }));
 }
 
 /** Jedna runda naprawy dla operacji marki – ten sam format co w kreatorze stron. */

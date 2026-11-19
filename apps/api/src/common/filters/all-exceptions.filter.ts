@@ -105,12 +105,19 @@ function polaWalidacji(response: string | object): { pola?: unknown } {
   return Array.isArray(pola) ? { pola } : {};
 }
 
-/** PB-47 — przepuszczamy tylko znane pola kodu odmowy (reszta treści wyjątku nie wychodzi). */
-function kodOdmowy(response: string | object): { code?: string; operacja?: string } {
+/**
+ * PB-47 — przepuszczamy tylko znane pola kodu odmowy (reszta treści wyjątku nie wychodzi). Paczka 131 — także `kod`
+ * (kontrakt Kreatora marki: `{ message, kod? }`, np. PODOBNY_ZNAK, PAKIET_WYMAGANY) i lista `bledy` (komunikaty
+ * walidacji i reguł po polsku – same napisy, najwyżej 30).
+ */
+function kodOdmowy(response: string | object): { code?: string; operacja?: string; kod?: string; bledy?: string[] } {
   if (typeof response !== 'object' || response === null) return {};
-  const { code, operacja } = response as { code?: unknown; operacja?: unknown };
+  const { code, operacja, kod, bledy } = response as { code?: unknown; operacja?: unknown; kod?: unknown; bledy?: unknown };
+  const lista = Array.isArray(bledy) ? bledy.filter((b): b is string => typeof b === 'string').slice(0, 30) : [];
   return {
     ...(typeof code === 'string' ? { code } : {}),
     ...(typeof operacja === 'string' ? { operacja } : {}),
+    ...(typeof kod === 'string' && /^[A-Z][A-Z0-9_]{1,40}$/.test(kod) ? { kod } : {}),
+    ...(lista.length ? { bledy: lista } : {}),
   };
 }

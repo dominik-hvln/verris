@@ -429,6 +429,7 @@ export class AccountDeletionService {
     const now = new Date();
     let plikiPoczty: string[] = [];
     let plikiKreatora: string[] = [];
+    let plikiMarki: string[] = [];
 
     await this.prisma.$transaction(async (tx) => {
       // 0) Zajęcie wniosku jako pierwsze w transakcji: lista do anonimizacji powstaje o 03:30,
@@ -566,6 +567,17 @@ export class AccountDeletionService {
       await tx.kreatorZasob.deleteMany({ where: { userId } });
       await tx.kreatorStrona.deleteMany({ where: { userId } });
       await tx.kreatorZuzycie.deleteMany({ where: { userId } });
+      // 3e'') Paczka 131 — Kreator marki: marki (brief, projekt, dane kontaktowe do wizytówki i stopki, zgody), serie,
+      //     wgrane pliki logo (oryginał i podgląd w magazynie – po zapisie) i zużycie. Odciski znaków w rejestrze wydanych
+      //     znaków ZOSTAJĄ bez powiązania z kontem i marką (userId i markaId = NULL): wpis to rodzina, skwantowane
+      //     parametry i hash kształtu – bez nazwy i danych firmy; dzięki temu ten znak nie trafi do innej firmy z Verris.
+      //     Zakupy (Pakiet, kolejna marka) zostają jak faktury i księga portfela (rozliczenia).
+      const plikiM = await tx.kreatorMarkaPlik.findMany({ where: { userId }, select: { klucz: true, kluczPodgladu: true } });
+      plikiMarki = plikiM.flatMap((p) => [p.klucz, p.kluczPodgladu]).filter((k): k is string => !!k);
+      await tx.kreatorMarkaOdcisk.updateMany({ where: { userId }, data: { userId: null, markaId: null } });
+      await tx.kreatorMarkaPlik.deleteMany({ where: { userId } });
+      await tx.kreatorMarka.deleteMany({ where: { userId } });
+      await tx.kreatorMarkaZuzycie.deleteMany({ where: { userId } });
 
       // 3f) Audyt Fal 2 — dane o osobie z nowych modułów zespołu:
       //     - notatki wewnętrzne w wątkach zgłoszeń i tagi zgłoszeń — jak notatki obsługi (3c); same zgłoszenia
@@ -651,6 +663,8 @@ export class AccountDeletionService {
     await this.usunPliki(userId, ObjectBuckets.TICKET_ATTACHMENTS, plikiPoczty, 'poczty (poczta/…)');
     // 6c) Paczka 126 — zdjęcia Verris Kreatora (oryginał i warianty). Błąd magazynu nie cofa usunięcia konta.
     await this.usunPliki(userId, ObjectBuckets.KREATOR_ZASOBY, plikiKreatora, 'zdjęć kreatora (<userId>/…)');
+    // 6d) Paczka 131 — wgrane pliki logo Kreatora marki (<userId>/marka/…).
+    await this.usunPliki(userId, ObjectBuckets.KREATOR_ZASOBY, plikiMarki, 'logo kreatora marki (<userId>/marka/…)');
 
     // 7) Provider-side DA suspend (after commit). One failure must not block
     //    others — log and continue. The `purgeDueDaAccounts` sweeper will

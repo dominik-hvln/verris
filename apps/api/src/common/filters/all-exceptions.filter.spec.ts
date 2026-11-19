@@ -55,4 +55,10 @@ describe('AllExceptionsFilter', () => {
     expect(r.tresc).not.toHaveProperty('sekret');
     expect(obsluz(new BadRequestException('Zła domena')).tresc).not.toHaveProperty('code');
   });
+
+  it('paczka 131 – kod kontraktu Kreatora marki i lista błędów (same napisy) docierają do panelu', () => {
+    const r = obsluz(new ForbiddenException({ message: 'Moduł niedostępny.', kod: 'MODUL_NIEDOSTEPNY', bledy: ['nazwa: znana marka', 7, { x: 1 }] }), '/kreator-marki/stan');
+    expect(r.tresc).toMatchObject({ message: 'Moduł niedostępny.', kod: 'MODUL_NIEDOSTEPNY', bledy: ['nazwa: znana marka'] });
+    expect(obsluz(new BadRequestException({ message: 'x', kod: '<script>' })).tresc).not.toHaveProperty('kod');
+  });
 });

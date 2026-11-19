@@ -41,6 +41,10 @@ function stanowisko(konf: Partial<KonfiguracjaMarki> = {}, opcje: { uzytkownicy?
       }),
     },
     promoRedemption: { count: vi.fn(async () => (opcje.tester ? 1 : 0)) },
+    // paczka 131 – użycie z bazy
+    kreatorMarka: { count: vi.fn(async () => 3), groupBy: vi.fn(async () => [{ userId: 'a' }, { userId: 'b' }]) },
+    kreatorMarkaZuzycie: { aggregate: vi.fn(async () => ({ _sum: { serie: 5, zmianyAi: 12, kosztUsd: '0.123456' } })) },
+    kreatorMarkaZakup: { count: vi.fn(async ({ where }: { where: { rodzaj: string } }) => (where.rodzaj === 'PAKIET' ? 2 : 1)) },
     legalDocument: {
       findFirst: vi.fn(async ({ where }: { where: { kind: string } }) => {
         const tresc = where.kind === 'TERMS' ? opcje.regulamin : opcje.polityka;
@@ -83,7 +87,7 @@ describe('KreatorMarkiAdminController – konfiguracja', () => {
     expect(r.modele.length).toBeGreaterThan(0);
     expect(r.modele.every((m) => m.model.startsWith('claude-'))).toBe(true);
     expect(r.kluczAnthropic).toBe(true);
-    expect(r.uzycie).toMatchObject({ zrodlo: 'brak-danych', marki: 0, pakiety: 0 });
+    expect(r.uzycie).toEqual({ miesiac: r.uzycie.miesiac, zrodlo: 'baza', marki: 3, kontaZMarka: 2, serie: 5, zmianyAi: 12, kosztUsd: 0.1235, pakiety: 2, drugieMarki: 1 });
     expect(r.uzycie.miesiac).toMatch(/^\d{4}-\d{2}$/);
   });
 
