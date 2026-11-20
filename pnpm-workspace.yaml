@@ -72,3 +72,6 @@ overrides:
   # 09.11.2026 bramka podatności: GHSA-mrhx-c7xc-m3w5 (zod <4.6.6, wyczerpanie pamięci przy walidacji dużych kolekcji)
   # przez libs/kreator i eslint-plugin-react-hooks (status-page, www).
   zod: "^4.6.6"
+  # 20.11.2026 bramka podatności: GHSA-7589-6fvf-x4pw (effect <=3.22.0, ReDoS w Schema.TemplateLiteral) przez
+  # @prisma/config 7.10.x (przypina effect 3.20.0, także w 7.10.1). Poprawka w 3.22.1 – ta sama linia 3.x (semver minor).
+  effect: "^3.22.1"
